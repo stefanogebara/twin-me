@@ -35,7 +35,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
         background: 'rgba(255, 255, 255, 0.06)',
         backdropFilter: 'blur(10px) saturate(140%)',
         WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(155, 89, 182, 0.2)',
+        border: '1px solid var(--glass-surface-border)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       }}
       initial={{ opacity: 0, y: 16 }}
@@ -46,7 +46,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
       <div
         className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
         style={{
-          background: 'linear-gradient(180deg, #9B59B6 0%, rgba(155, 89, 182, 0.2) 100%)',
+          background: 'linear-gradient(180deg, var(--accent-vibrant) 0%, rgba(255, 132, 0, 0.15) 100%)',
         }}
       />
 
@@ -54,7 +54,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
       <div
         className="absolute top-0 left-0 w-48 h-48 rounded-full pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(155, 89, 182, 0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, var(--accent-vibrant-glow) 0%, transparent 70%)',
           transform: 'translate(-30%, -30%)',
         }}
       />
@@ -62,7 +62,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
       <div className="relative pl-2">
         <p
           className="text-xs uppercase tracking-widest font-medium mb-4"
-          style={{ color: '#9B59B6' }}
+          style={{ color: 'var(--accent-amber)' }}
         >
           Soul Summary
         </p>

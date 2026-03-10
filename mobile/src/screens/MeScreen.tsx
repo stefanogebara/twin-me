@@ -12,6 +12,7 @@ import {
   fetchMemoryStats,
   fetchPlatformConnections,
 } from '../services/api';
+import { SoulSignatureRevealScreen } from './SoulSignatureRevealScreen';
 import { registerBackgroundSync, unregisterBackgroundSync, runSyncNow } from '../services/backgroundSync';
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
@@ -145,6 +146,7 @@ export function MeScreen({ user, onLogout }: Props) {
   const [platforms, setPlatforms] = useState<PlatformConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [revealOpen, setRevealOpen] = useState(false);
 
   // Sync
   const [syncEnabled, setSyncEnabled] = useState(true);
@@ -295,8 +297,16 @@ export function MeScreen({ user, onLogout }: Props) {
       </View>
 
       {/* ── Soul signature ── */}
+      <SoulSignatureRevealScreen
+        visible={revealOpen}
+        onClose={() => setRevealOpen(false)}
+      />
       <Text style={styles.sectionLabel}>SOUL SIGNATURE</Text>
-      <View style={styles.card}>
+      <TouchableOpacity
+        activeOpacity={0.88}
+        onPress={() => setRevealOpen(true)}
+        style={styles.card}
+      >
         {archetypeStr ? (
           <Text style={styles.archetypeTitle}>{archetypeStr}</Text>
         ) : null}
@@ -304,7 +314,7 @@ export function MeScreen({ user, onLogout }: Props) {
           <Text style={styles.archetypeSubtitle}>{soul.archetype_subtitle}</Text>
         ) : null}
         {soul?.narrative ? (
-          <Text style={styles.narrative} numberOfLines={5}>{soul.narrative}</Text>
+          <Text style={styles.narrative} numberOfLines={3}>{soul.narrative}</Text>
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Not generated yet</Text>
@@ -313,7 +323,10 @@ export function MeScreen({ user, onLogout }: Props) {
             </Text>
           </View>
         )}
-      </View>
+        <View style={styles.revealCta}>
+          <Text style={styles.revealCtaText}>See full signature →</Text>
+        </View>
+      </TouchableOpacity>
 
       {/* ── Twin insights ── */}
       {insights.length > 0 && (
@@ -532,6 +545,20 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
+  },
+
+  // Reveal CTA
+  revealCta: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    marginTop: 4,
+  },
+  revealCtaText: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    color: COLORS.primary,
+    opacity: 0.5,
+    letterSpacing: 0.2,
   },
 
   // Soul signature

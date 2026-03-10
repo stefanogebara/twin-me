@@ -17,9 +17,11 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
-  spotify: '#1DB954',
-  google_calendar: '#4285F4',
-  youtube: '#FF0000',
+  spotify: 'var(--platform-spotify)',
+  google_calendar: 'var(--platform-calendar)',
+  youtube: 'var(--platform-youtube)',
+  discord: 'var(--platform-discord)',
+  linkedin: 'var(--platform-linkedin)',
 };
 
 interface PlatformDataRevealProps {
