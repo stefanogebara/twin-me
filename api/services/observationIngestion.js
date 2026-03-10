@@ -1894,8 +1894,65 @@ async function fetchFitbitObservations(userId) {
 }
 
 /**
+ * Build observations from Twitch followed channels data.
+ * Shared by both Nango and direct OAuth paths.
+ */
+function _buildTwitchChannelObservations(observations, channels) {
+  if (!channels || channels.length === 0) return;
+
+  observations.push({
+    content: `Follows ${channels.length} Twitch channels`,
+    contentType: 'weekly_summary',
+  });
+
+  const names = channels
+    .map(c => sanitizeExternal(c.game_name || c.broadcaster_name || '', 60))
+    .filter(Boolean);
+
+  const categoryPatterns = {
+    'FPS/shooters':       /\b(valorant|counter.?strike|cs2|apex|call.of.duty|warzone|overwatch|rainbow.?six|halo|battlefield|fortnite|pubg)\b/i,
+    'RPG/adventure':      /\b(elden.ring|dark.souls|diablo|baldur|final.fantasy|zelda|pokemon|cyberpunk|witcher|skyrim|wow|world.of.warcraft|genshin|ffxiv)\b/i,
+    'strategy/MOBA':      /\b(league.of.legends|lol|dota|hearthstone|starcraft|age.of.empires|civilization|teamfight.tactics|tft)\b/i,
+    'sports/racing':      /\b(fifa|nba|nfl|madden|rocket.league|f1|formula|nascar|ufc)\b/i,
+    'sandbox/survival':   /\b(minecraft|roblox|terraria|stardew|rust|ark|valheim|palworld)\b/i,
+    'IRL/just chatting':  /\b(just.chatting|irl|podcast|talk|creative|art|music)\b/i,
+    'horror':             /\b(dead.by.daylight|phasmophobia|resident.evil|amnesia|outlast)\b/i,
+    'variety/retro':      /\b(speed.?run|variety|retro|classic|indie)\b/i,
+  };
+
+  const hits = {};
+  for (const name of names) {
+    for (const [cat, pat] of Object.entries(categoryPatterns)) {
+      if (pat.test(name)) hits[cat] = (hits[cat] || 0) + 1;
+    }
+  }
+
+  const topCats = Object.entries(hits)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([cat]) => cat);
+
+  if (topCats.length > 0) {
+    observations.push({
+      content: `Twitch viewing interests: ${topCats.join(', ')}`,
+      contentType: 'weekly_summary',
+    });
+  }
+
+  const topNames = channels.slice(0, 3)
+    .map(c => sanitizeExternal(c.broadcaster_name || c.broadcaster_login || '', 40))
+    .filter(Boolean);
+  if (topNames.length > 0) {
+    observations.push({
+      content: `Top followed Twitch channels include: ${topNames.join(', ')}`,
+      contentType: 'weekly_summary',
+    });
+  }
+}
+
+/**
  * Fetch Twitch data and return natural-language observations.
- * Extracts followed channel categories to reveal gaming/streaming interests.
+ * Supports both Nango-managed and direct OAuth connections.
  */
 async function fetchTwitchObservations(userId) {
   const observations = [];
@@ -1903,25 +1960,88 @@ async function fetchTwitchObservations(userId) {
   const supabase = await getSupabase();
   if (!supabase) return observations;
 
-  const hasConnection = await _hasNangoMapping(supabase, userId, 'twitch');
-  if (!hasConnection) {
-    console.warn('[ObservationIngestion] Twitch: no Nango connection for user', userId);
-    return observations;
-  }
+  // Check if this is a Nango-managed Twitch connection or direct OAuth
+  const { data: twitchConn } = await supabase
+    .from('platform_connections')
+    .select('access_token')
+    .eq('user_id', userId)
+    .eq('platform', 'twitch')
+    .single();
 
-  let nangoService;
-  try {
-    nangoService = await import('./nangoService.js');
-  } catch (e) {
-    console.warn('[ObservationIngestion] Twitch: failed to load nangoService:', e.message);
-    return observations;
-  }
+  const isNangoManaged = twitchConn?.access_token === 'NANGO_MANAGED'
+    || (!twitchConn && await _hasNangoMapping(supabase, userId, 'twitch'));
 
-  // ── 1. Get Twitch user ID (required by followed-channels endpoint) ──────────
   let twitchUserId = null;
+  let twitchHeaders = null;
+
+  if (isNangoManaged) {
+    // ── Nango path ──────────────────────────────────────────────────────────
+    let nangoService;
+    try {
+      nangoService = await import('./nangoService.js');
+    } catch (e) {
+      console.warn('[ObservationIngestion] Twitch: failed to load nangoService:', e.message);
+      return observations;
+    }
+
+    try {
+      const userResult = await nangoService.twitch.getUser(userId);
+      const userData = userResult.success ? userResult.data?.data?.[0] : null;
+      twitchUserId = userData?.id || null;
+
+      const broadcastType = userData?.broadcaster_type;
+      const isStreamer = broadcastType === 'affiliate' || broadcastType === 'partner';
+      if (isStreamer) {
+        const login = sanitizeExternal(userData?.login || '', 40);
+        const views = userData?.view_count;
+        observations.push({
+          content: `Active Twitch streamer (${login}) with ${views?.toLocaleString() || 'unknown'} lifetime views`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      console.warn('[ObservationIngestion] Twitch Nango getUser error:', e.message);
+      return observations;
+    }
+
+    if (!twitchUserId) return observations;
+
+    try {
+      const followResult = await nangoService.twitch.getFollowedChannels(userId, twitchUserId);
+      const channels = followResult.success ? (followResult.data?.data || []) : [];
+      _buildTwitchChannelObservations(observations, channels);
+    } catch (e) {
+      console.warn('[ObservationIngestion] Twitch Nango getFollowedChannels error:', e.message);
+    }
+
+    return observations;
+  }
+
+  // ── Direct OAuth path ─────────────────────────────────────────────────────
+  const tokenResult = await getValidAccessToken(userId, 'twitch');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    console.warn('[ObservationIngestion] Twitch: no valid token for user', userId);
+    return observations;
+  }
+
+  // Twitch API requires both Authorization and Client-Id headers
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  if (!clientId) {
+    console.warn('[ObservationIngestion] Twitch: TWITCH_CLIENT_ID not set');
+    return observations;
+  }
+
+  twitchHeaders = {
+    'Authorization': `Bearer ${tokenResult.accessToken}`,
+    'Client-Id': clientId,
+  };
+
+  // ── 1. Get Twitch user ID ────────────────────────────────────────────────
   try {
-    const userResult = await nangoService.twitch.getUser(userId);
-    const userData = userResult.success ? userResult.data?.data?.[0] : null;
+    const userRes = await axios.get('https://api.twitch.tv/helix/users', {
+      headers: twitchHeaders, timeout: 10000,
+    });
+    const userData = userRes.data?.data?.[0];
     twitchUserId = userData?.id || null;
 
     const broadcastType = userData?.broadcaster_type;
@@ -1943,61 +2063,12 @@ async function fetchTwitchObservations(userId) {
 
   // ── 2. Followed channels → content interest fingerprint ──────────────────
   try {
-    const followResult = await nangoService.twitch.getFollowedChannels(userId, twitchUserId);
-    const channels = followResult.success ? (followResult.data?.data || []) : [];
-
-    if (channels.length > 0) {
-      observations.push({
-        content: `Follows ${channels.length} Twitch channels`,
-        contentType: 'weekly_summary',
-      });
-
-      // Categorize by game/content name
-      const names = channels
-        .map(c => sanitizeExternal(c.game_name || c.broadcaster_name || '', 60))
-        .filter(Boolean);
-
-      const categoryPatterns = {
-        'FPS/shooters':       /\b(valorant|counter.?strike|cs2|apex|call.of.duty|warzone|overwatch|rainbow.?six|halo|battlefield|fortnite|pubg)\b/i,
-        'RPG/adventure':      /\b(elden.ring|dark.souls|diablo|baldur|final.fantasy|zelda|pokemon|cyberpunk|witcher|skyrim|wow|world.of.warcraft|genshin|ffxiv)\b/i,
-        'strategy/MOBA':      /\b(league.of.legends|lol|dota|hearthstone|starcraft|age.of.empires|civilization|teamfight.tactics|tft)\b/i,
-        'sports/racing':      /\b(fifa|nba|nfl|madden|rocket.league|f1|formula|nascar|ufc)\b/i,
-        'sandbox/survival':   /\b(minecraft|roblox|terraria|stardew|rust|ark|valheim|palworld)\b/i,
-        'IRL/just chatting':  /\b(just.chatting|irl|podcast|talk|creative|art|music)\b/i,
-        'horror':             /\b(dead.by.daylight|phasmophobia|resident.evil|amnesia|outlast)\b/i,
-        'variety/retro':      /\b(speed.?run|variety|retro|classic|indie)\b/i,
-      };
-
-      const hits = {};
-      for (const name of names) {
-        for (const [cat, pat] of Object.entries(categoryPatterns)) {
-          if (pat.test(name)) hits[cat] = (hits[cat] || 0) + 1;
-        }
-      }
-
-      const topCats = Object.entries(hits)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([cat]) => cat);
-
-      if (topCats.length > 0) {
-        observations.push({
-          content: `Twitch viewing interests: ${topCats.join(', ')}`,
-          contentType: 'weekly_summary',
-        });
-      }
-
-      // Top 3 streamers by name
-      const topNames = channels.slice(0, 3)
-        .map(c => sanitizeExternal(c.broadcaster_name || c.broadcaster_login || '', 40))
-        .filter(Boolean);
-      if (topNames.length > 0) {
-        observations.push({
-          content: `Top followed Twitch channels include: ${topNames.join(', ')}`,
-          contentType: 'weekly_summary',
-        });
-      }
-    }
+    const followRes = await axios.get(
+      `https://api.twitch.tv/helix/channels/followed?user_id=${twitchUserId}&first=100`,
+      { headers: twitchHeaders, timeout: 10000 }
+    );
+    const channels = followRes.data?.data || [];
+    _buildTwitchChannelObservations(observations, channels);
   } catch (e) {
     console.warn('[ObservationIngestion] Twitch getFollowedChannels error:', e.message);
   }
