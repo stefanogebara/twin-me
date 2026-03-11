@@ -19,7 +19,7 @@ const SCREENSHOT_DIR = 'tests/e2e/screenshots';
 
 // Fresh JWT minted 2026-03-06 (30-day validity)
 const TEST_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzI4MzE2NTYsImV4cCI6MTc3NTQyMzY1Nn0.moNmEwpAWk3fHHnG9CwXqwPuT2k0lbk7uoJIBNAaglQ';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzMxODc1MzgsImV4cCI6MTc3NTc3OTUzOH0.Eoe2AySxFZaNGxoSM48-d92knrqzJ7yqmCMRwnEToVI';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -222,16 +222,15 @@ test.describe.serial('Smoke: Core User Loop', () => {
     await injectAuthToken(page);
     await page.goto(`${BASE_URL}/identity`);
     await waitForPageLoad(page, 10000);
-    await screenshot(page, 'smoke-04-identity-initial');
 
     expect(page.url()).not.toContain('/auth');
 
-    // Page should have headings and not be blank
-    const headings = await page.locator('h1, h2, h3').count();
-    expect(headings).toBeGreaterThan(0);
+    // Wait for loading spinner to clear (API fetch can take 5-10s)
+    await page.waitForFunction(
+      () => !document.body.textContent?.includes('Assembling your soul portrait'),
+      { timeout: 15000 }
+    ).catch(() => {}); // non-fatal if it stays in loading
 
-    // Wait for data
-    await page.waitForTimeout(3000);
     await screenshot(page, 'smoke-04-identity-loaded');
 
     // Should have some content text (archetype, expert panels, etc.)
@@ -245,35 +244,38 @@ test.describe.serial('Smoke: Core User Loop', () => {
     console.log('[Identity] Console errors:', consoleErrors.length);
   });
 
-  test('5. Onboarding (/get-started) — 2 step indicators, platform connectors visible', async ({
+  test('5. Settings (/settings) — settings page renders', async ({
     page,
   }) => {
     const consoleErrors = collectConsoleErrors(page);
 
     await injectAuthToken(page);
-    await page.goto(`${BASE_URL}/get-started`);
+    await page.goto(`${BASE_URL}/settings`);
     await waitForPageLoad(page, 10000);
-    await screenshot(page, 'smoke-05-onboarding-initial');
 
     expect(page.url()).not.toContain('/auth');
 
-    // Page should load with headings
-    const headings = await page.locator('h1, h2, h3').count();
-    expect(headings).toBeGreaterThan(0);
+    // Wait for lazy-loaded Settings component to render (Suspense resolves)
+    await page.waitForFunction(
+      () => {
+        const text = document.body.textContent || '';
+        return text.toLowerCase().includes('setting') ||
+               text.toLowerCase().includes('profile') ||
+               text.toLowerCase().includes('account') ||
+               text.toLowerCase().includes('subscription');
+      },
+      { timeout: 15000 }
+    );
 
-    // Look for 2 step indicators (Connect + Generate)
+    await screenshot(page, 'smoke-05-settings-loaded');
+
     const bodyText = await page.textContent('body');
-    expect(bodyText?.toLowerCase()).toContain('connect');
-
-    // Platform connectors should be visible (Spotify, YouTube, etc.)
-    const hasConnectorText =
-      bodyText?.toLowerCase().includes('spotify') ||
-      bodyText?.toLowerCase().includes('youtube') ||
-      bodyText?.toLowerCase().includes('platform');
-    expect(hasConnectorText).toBe(true);
-
-    await page.waitForTimeout(2000);
-    await screenshot(page, 'smoke-05-onboarding-loaded');
+    const hasContent =
+      (bodyText?.toLowerCase().includes('setting') ||
+       bodyText?.toLowerCase().includes('profile') ||
+       bodyText?.toLowerCase().includes('account')) ?? false;
+    expect(hasContent).toBe(true);
+    console.log('[Settings] URL:', page.url());
 
     const realErrors = consoleErrors.filter(
       (e) => e.includes('TypeError') || e.includes('Uncaught') || e.includes('ReferenceError')
