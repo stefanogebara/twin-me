@@ -18,7 +18,8 @@
  *   complexity is not worth it. Removing parameters and matching or
  *   beating the score is a simplification win.
  *
- * BASELINE: twin_quality_score = 0.740165 → BEST: 0.776217 (MMR_LAMBDA=0.5 + RPC embedding return + identity recency=0.0, importance=1.6)
+ * BASELINE: twin_quality_score = 0.740165 → BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5)
+ * Perfect recall (1.000) achieved. Search space converged — any perturbation breaks recall gate.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
