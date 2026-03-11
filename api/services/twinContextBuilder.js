@@ -23,6 +23,8 @@ import axios from 'axios';
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
 const platformDataCache = new Map();
 const PLATFORM_CACHE_TTL = 5 * 60 * 1000;
+const PLATFORM_STALE_SERVE_MAX_MS = 30 * 60 * 1000; // 30 minutes
+const pendingPlatformRefreshes = new Set();
 
 // In-memory cache for stable data that rarely changes (avoids repeated proxy calls)
 const stableDataCache = new Map();
@@ -65,7 +67,17 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   const ctxLog = (label) => log.info(`${label} (${Date.now() - ctxStart}ms)`);
 
   // Wrap each fetch with timing
-  const timed = (label, promise) => promise.then(r => { ctxLog(`${label} done`); return r; });
+  const timings = {};
+  const timed = (label, promise) => {
+    const start = Date.now();
+    return promise.then(r => {
+      timings[label] = Date.now() - start;
+      return r;
+    }).catch(err => {
+      timings[label] = Date.now() - start;
+      throw err;
+    });
+  };
 
   // Circuit breaker: if any single fetch hangs, cap total context build at 7s
   // Uses individual tracked promises so the circuit breaker preserves already-resolved results
@@ -222,6 +234,8 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     }
   }
 
+  log.info('Context build complete', { totalMs: Date.now() - ctxStart, timings });
+
   return {
     soulSignature,
     platformData,
@@ -237,6 +251,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     identityContext,
     calibrationContext,
     nudgeHistory,
+    timings,
   };
 }
 
@@ -443,16 +458,59 @@ async function _fetchWritingProfile(userId) {
  */
 async function _fetchPlatformData(userId, platforms) {
   const cacheKey = userId;
+
+  // Pre-flight: only fetch platforms the user actually has connected (skip wasted API calls)
+  const connectedKey = `connected_${userId}`;
+  let connectedPlatforms = getCached(connectedKey);
+  if (connectedPlatforms === undefined) {
+    try {
+      const { data: connections } = await supabaseAdmin
+        .from('platform_connections')
+        .select('platform')
+        .eq('user_id', userId);
+      connectedPlatforms = new Set((connections || []).map(c => c.platform));
+      setCache(connectedKey, connectedPlatforms);
+    } catch (err) {
+      log.warn('Connected platforms check failed, fetching all', { error: err });
+      connectedPlatforms = new Set(platforms); // fallback: try all
+    }
+  }
+
+  // Filter to only connected platforms (web doesn't need OAuth)
+  const activePlatforms = platforms.filter(p => {
+    if (p === 'web') return true;
+    if (p === 'calendar') return connectedPlatforms.has('google_calendar') || connectedPlatforms.has('calendar');
+    return connectedPlatforms.has(p);
+  });
+
+  if (activePlatforms.length < platforms.length) {
+    log.info('Skipping disconnected platforms', {
+      requested: platforms.length,
+      active: activePlatforms.length,
+      skipped: platforms.filter(p => !activePlatforms.includes(p))
+    });
+  }
+
   const cached = platformDataCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < PLATFORM_CACHE_TTL) {
-    return cached.data;
+    return cached.data;  // Fresh cache hit
   }
-  if (cached) platformDataCache.delete(cacheKey); // Evict expired entry
+  // Stale-while-revalidate: serve stale data, refresh in background
+  if (cached && (Date.now() - cached.timestamp) < PLATFORM_STALE_SERVE_MAX_MS) {
+    if (!pendingPlatformRefreshes.has(cacheKey)) {
+      pendingPlatformRefreshes.add(cacheKey);
+      log.info('Platform data stale, background refreshing', { userId });
+      _refreshPlatformData(userId, activePlatforms, cacheKey)
+        .finally(() => pendingPlatformRefreshes.delete(cacheKey));
+    }
+    return cached.data;  // Return stale immediately
+  }
+  if (cached) platformDataCache.delete(cacheKey);  // Very stale, evict
 
   const data = {};
 
-  // Fetch all platforms in parallel instead of sequentially
-  const platformFetchers = platforms.map(platform => _fetchSinglePlatform(userId, platform).catch(err => {
+  // Fetch all active platforms in parallel instead of sequentially
+  const platformFetchers = activePlatforms.map(platform => _fetchSinglePlatform(userId, platform).catch(err => {
     log.warn(`Error fetching ${platform} data:`, err.message);
     return null;
   }));
@@ -466,6 +524,20 @@ async function _fetchPlatformData(userId, platforms) {
 
   platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
   return data;
+}
+
+async function _refreshPlatformData(userId, platforms, cacheKey) {
+  try {
+    const data = {};
+    const results = await Promise.all(
+      platforms.map(p => _fetchSinglePlatform(userId, p).catch(() => null))
+    );
+    results.forEach(result => { if (result) Object.assign(data, result); });
+    platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
+    log.info('Platform data background refresh complete', { userId });
+  } catch (err) {
+    log.warn('Platform data background refresh failed', { error: err });
+  }
 }
 
 async function _fetchSinglePlatform(userId, platform) {

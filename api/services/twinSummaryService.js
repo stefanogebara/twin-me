@@ -26,6 +26,7 @@ import { createLogger } from './logger.js';
 const log = createLogger('TwinSummary');
 
 const SUMMARY_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours
+const STALE_SERVE_MAX_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // In-memory lock: prevents concurrent regeneration for the same user.
 // Maps userId -> pending Promise<generateTwinSummary result>.
@@ -230,7 +231,18 @@ async function getTwinSummary(userId, userName = 'This person') {
         log.info('Using cached summary', { ageMinutes: Math.round(age / 60000) });
         return cached.summary;
       }
-      log.info('Cached summary stale, regenerating', { ageHours: Math.round(age / 3600000) });
+      // Stale-while-revalidate: serve stale immediately, regenerate in background
+      if (age < STALE_SERVE_MAX_MS) {
+        log.info('Serving stale summary, background regenerating', { ageHours: Math.round(age / 3600000) });
+        if (!pendingGenerations.has(userId)) {
+          const bgPromise = generateTwinSummary(userId, userName)
+            .then(result => result?.summary || null)
+            .finally(() => pendingGenerations.delete(userId));
+          pendingGenerations.set(userId, bgPromise);
+        }
+        return cached.summary;  // Return stale immediately
+      }
+      log.info('Cached summary too old, synchronous regeneration', { ageHours: Math.round(age / 3600000) });
     }
 
     // Join existing generation if another request is already running for this user
