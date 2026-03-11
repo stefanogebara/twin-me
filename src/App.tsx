@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 
 // Lazy-loaded pages (code-split into separate chunks)
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardV2 = lazy(() => import("./pages/DashboardV2"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
@@ -129,6 +130,15 @@ const App = () => {
 
             {/* Main Dashboard */}
             <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <DashboardV2 />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard-old" element={
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>
