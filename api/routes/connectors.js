@@ -598,6 +598,8 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
       params.set('force_verify', 'true');
     } else if (provider === 'discord') {
       params.set('prompt', 'consent');
+    } else if (provider === 'whoop') {
+      params.set('scope', [...config.scopes, 'offline'].join(' '));
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;

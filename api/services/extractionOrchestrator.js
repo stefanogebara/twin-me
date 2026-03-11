@@ -244,6 +244,19 @@ class ExtractionOrchestrator {
           }
           break;
 
+        case 'whoop':
+          try {
+            const { fetchWhoopObservations } = await import('./observationIngestion.js');
+            const observations = await fetchWhoopObservations(userId);
+            itemsExtracted = observations.length;
+            result = { success: true, itemsExtracted };
+            console.log(`   📊 Extracted ${itemsExtracted} Whoop observations`);
+          } catch (whoopError) {
+            console.error(`   ❌ Whoop extraction error: ${whoopError.message}`);
+            result = { success: false, error: whoopError.message };
+          }
+          break;
+
         // Platforms not yet implemented
         case 'reddit':
           console.log(`⚠️ [Orchestrator] Extractor for ${platform} not yet implemented`);
