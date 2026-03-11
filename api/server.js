@@ -279,6 +279,7 @@ import soulExtractionRoutes from './routes/soul-extraction.js';
 import authRoutes from './routes/auth-simple.js';
 import oauthCallbackRoutes from './routes/oauth-callback.js';
 import dashboardRoutes from './routes/dashboard.js';
+import dashboardContextRoutes from './routes/dashboard-context.js';
 import dataSourcesRoutes from './routes/data-sources.js';
 import webhookRoutes from './routes/webhooks.js';
 import sseRoutes from './routes/sse.js';
@@ -381,6 +382,7 @@ app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/data-sources', dataSourcesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
+app.use('/api/dashboard/context', dashboardContextRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)
 app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
