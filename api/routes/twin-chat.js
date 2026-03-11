@@ -53,6 +53,7 @@ import { lzComplexity } from '../utils/lzComplexity.js';
 import { getProfile } from '../services/personalityProfileService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { rerankByPersonality } from '../services/personalityReranker.js';
+import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -705,8 +706,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     let twinContext;
     let userLocation = null;
     let personalityProfile = null;
+    let oracleDraft = null;
     try {
-      // Fetch twin context + user location + personality profile in parallel
+      // Fetch twin context + user location + personality profile + oracle draft in parallel
       // Pass neuropil-routed budgets/weights if classified (otherwise defaults preserved)
       const contextOptions = {
         platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
@@ -735,12 +737,23 @@ router.post('/message', authenticateUser, async (req, res) => {
         getProfile(userId)
           .then(p => { personalityProfile = p; })
           .catch(err => { log.warn('Personality profile fetch failed', { error: err }); }),
+        // Personality Oracle: finetuned model generates behavioral compass draft (800ms budget)
+        getOracleDraft(userId, message)
+          .then(draft => { oracleDraft = draft; })
+          .catch(() => { /* graceful fallback — oracle is optional */ }),
       ]);
       twinContext = ctx;
     } finally {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
     chatLog('fetchTwinContext complete');
+    if (twinContext.timings) {
+      log.info('Chat context timings', {
+        totalContextMs: Date.now() - chatStartTime,
+        ...twinContext.timings
+      });
+    }
+    const contextBuildMs = Date.now() - chatStartTime;
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory } = twinContext;
 
     // Build personalized system prompt with structured context layers
@@ -759,6 +772,13 @@ router.post('/message', authenticateUser, async (req, res) => {
     if (personalityPromptBlock) {
       systemPrompt.push({ type: 'text', text: `\n${personalityPromptBlock}` });
       log.debug('Personality calibration', { chars: personalityPromptBlock.length, confidence: personalityProfile?.confidence?.toFixed(2) });
+    }
+
+    // Inject personality oracle draft (finetuned model behavioral compass)
+    const oracleBlock = formatOracleBlock(oracleDraft);
+    if (oracleBlock) {
+      systemPrompt.push({ type: 'text', text: `\n${oracleBlock}` });
+      log.debug('Oracle draft injected', { chars: oracleDraft.length });
     }
 
     // Detect neurotransmitter mode from message (pure keyword analysis, microseconds)
@@ -1158,6 +1178,13 @@ Make it sound natural and curious, not like a survey question.`;
         });
       }
     }
+
+    const llmMs = Date.now() - chatStartTime - contextBuildMs;
+    log.info('Chat complete', {
+      totalMs: Date.now() - chatStartTime,
+      contextMs: contextBuildMs,
+      llmMs,
+    });
 
     // LZ complexity: measure linguistic diversity of twin response
     const responseLzScore = lzComplexity(assistantMessage);
