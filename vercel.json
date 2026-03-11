@@ -64,6 +64,10 @@
     {
       "path": "/api/cron/memory-saliency-replay",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/personality-eval",
+      "schedule": "0 4 * * 0"
     }
   ]
 }

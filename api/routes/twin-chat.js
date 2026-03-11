@@ -53,8 +53,9 @@ import { lzComplexity } from '../utils/lzComplexity.js';
 import { getProfile } from '../services/personalityProfileService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { rerankByPersonality } from '../services/personalityReranker.js';
+import { createLogger } from '../services/logger.js';
 
-
+const log = createLogger('TwinChat');
 const router = express.Router();
 
 // ====================================================================
@@ -116,7 +117,7 @@ async function checkChatRateLimit(userId) {
       return { allowed: true, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
     }
   } catch (redisErr) {
-    console.warn('[Twin Chat] Redis rate limit check failed, using in-memory fallback:', redisErr.message);
+    log.warn('Redis rate limit check failed, using in-memory fallback', { error: redisErr });
   }
 
   // Fallback: in-memory Map (resets on cold start)
@@ -362,7 +363,7 @@ function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = 
   if (proactiveInsights && proactiveInsights.length > 0) {
     const diverseInsights = deduplicateByTheme(proactiveInsights, i => i.insight, { threshold: 0.50, maxItems: 2 });
     if (diverseInsights.length < proactiveInsights.length) {
-      console.log(`[Twin Chat] Insights deduped: ${proactiveInsights.length} -> ${diverseInsights.length}`);
+      log.debug('Insights deduped', { before: proactiveInsights.length, after: diverseInsights.length });
     }
     dynamicContext += '\n\nTHINGS I NOTICED — bring up the most relevant one early in this conversation (don\'t wait to be asked). If it\'s a nudge, casually suggest the action:';
     for (const insight of diverseInsights) {
@@ -502,7 +503,7 @@ function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = 
   // Hard cap dynamic context to prevent token bloat
   let trimmedContext = dynamicContext.trim();
   if (trimmedContext.length > MAX_DYNAMIC_CONTEXT_CHARS) {
-    console.warn(`[Twin Chat] Dynamic context truncated: ${trimmedContext.length} -> ${MAX_DYNAMIC_CONTEXT_CHARS} chars`);
+    log.warn('Dynamic context truncated', { from: trimmedContext.length, to: MAX_DYNAMIC_CONTEXT_CHARS });
     trimmedContext = trimmedContext.substring(0, MAX_DYNAMIC_CONTEXT_CHARS) + '...';
   }
 
@@ -562,7 +563,7 @@ async function getSoulSignature(userId) {
 
     return data;
   } catch (err) {
-    console.error('[Twin Chat] Error fetching soul signature:', err);
+    log.error('Error fetching soul signature', { error: err });
     return null;
   }
 }
@@ -582,7 +583,7 @@ async function getPersonalityScores(userId) {
     if (error || !data) return null;
     return data;
   } catch (err) {
-    console.warn('[Twin Chat] Could not fetch personality scores:', err.message);
+    log.warn('Could not fetch personality scores', { error: err });
     return null;
   }
 }
@@ -594,7 +595,7 @@ async function getPersonalityScores(userId) {
  */
 router.post('/message', authenticateUser, async (req, res) => {
   const chatStartTime = Date.now();
-  const chatLog = (label) => console.log(`[Twin Chat] ${label} (${Date.now() - chatStartTime}ms)`);
+  const chatLog = (label) => log.debug(label, { elapsedMs: Date.now() - chatStartTime });
   try {
     const userId = req.user.id;
     const { message, conversationId, context } = req.body;
@@ -657,14 +658,14 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     } catch (quotaErr) {
       // Don't block chat if quota check fails
-      console.warn('[Twin Chat] Quota check failed, allowing message:', quotaErr.message);
+      log.warn('Quota check failed, allowing message', { error: quotaErr });
     }
 
     // Per-user hourly rate limit (50 messages/hour)
     const rateLimit = await checkChatRateLimit(userId);
     if (!rateLimit.allowed) {
       const retryAfterSec = Math.ceil((rateLimit.retryAfterMs || 0) / 1000);
-      console.warn(`[Twin Chat] Rate limit exceeded for user ${userId}: ${rateLimit.used}/${rateLimit.limit} per hour`);
+      log.warn('Rate limit exceeded', { userId, used: rateLimit.used, limit: rateLimit.limit });
       return res.status(429).json({
         success: false,
         error: 'hourly_rate_limit',
@@ -733,7 +734,7 @@ router.post('/message', authenticateUser, async (req, res) => {
           .catch(() => { /* non-fatal */ }),
         getProfile(userId)
           .then(p => { personalityProfile = p; })
-          .catch(err => { console.warn('[Twin Chat] Personality profile fetch failed:', err.message); }),
+          .catch(err => { log.warn('Personality profile fetch failed', { error: err }); }),
       ]);
       twinContext = ctx;
     } finally {
@@ -750,14 +751,14 @@ router.post('/message', authenticateUser, async (req, res) => {
     const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
     if (personaBlock) {
       systemPrompt.splice(1, 0, { type: 'text', text: `\n${personaBlock}` });
-      console.log(`[Twin Chat] Persona block (${personaBlock.length} chars)`);
+      log.debug('Persona block built', { chars: personaBlock.length });
     }
 
     // Inject personality calibration block (OCEAN-derived behavioral instructions, zero LLM cost)
     const personalityPromptBlock = buildPersonalityPrompt(personalityProfile);
     if (personalityPromptBlock) {
       systemPrompt.push({ type: 'text', text: `\n${personalityPromptBlock}` });
-      console.log(`[Twin Chat] Personality calibration (${personalityPromptBlock.length} chars, confidence=${personalityProfile?.confidence?.toFixed(2)})`);
+      log.debug('Personality calibration', { chars: personalityPromptBlock.length, confidence: personalityProfile?.confidence?.toFixed(2) });
     }
 
     // Detect neurotransmitter mode from message (pure keyword analysis, microseconds)
@@ -768,7 +769,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         const ntBlock = buildNeurotransmitterPromptBlock(neurotransmitterMode.mode);
         if (ntBlock) {
           systemPrompt.push({ type: 'text', text: `\n${ntBlock}` });
-          console.log(`[Twin Chat] Neurotransmitter mode: ${neurotransmitterMode.mode} (confidence=${neurotransmitterMode.confidence}, keywords=${neurotransmitterMode.matchedKeywords.join(',')})`);
+          log.debug('Neurotransmitter mode', { mode: neurotransmitterMode.mode, confidence: neurotransmitterMode.confidence, keywords: neurotransmitterMode.matchedKeywords });
         }
       }
     }
@@ -777,13 +778,13 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Pass user message for keyword-based sentiment detection
     const emotionalState = useEmotionalState ? computeEmotionalState(platformData, message) : { promptBlock: null };
     if (useEmotionalState && emotionalState.promptBlock) {
-      console.log(`[Twin Chat] Emotional state: valence=${emotionalState.valence.toFixed(2)}, arousal=${emotionalState.arousal.toFixed(2)}, load=${emotionalState.cognitiveLoad}`);
+      log.debug('Emotional state', { valence: emotionalState.valence.toFixed(2), arousal: emotionalState.arousal.toFixed(2), load: emotionalState.cognitiveLoad });
       // Store snapshot as memory — non-blocking, deduplication handled by isDuplicateFact
       const stateMemory = buildEmotionalStateMemory(emotionalState);
       if (stateMemory) {
         import('../services/memoryStreamService.js').then(({ addMemory }) => {
           addMemory(userId, stateMemory, 'observation', { source: 'emotional_state' }, { skipImportance: true, importanceScore: 6 })
-            .catch(err => console.warn('[Twin Chat] Failed to store emotional state memory:', err.message));
+            .catch(err => log.warn('Failed to store emotional state memory', { error: err }));
         });
       }
     }
@@ -799,7 +800,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       }).join('\n');
       const nudgeBlock = `[PAST NUDGES — what you suggested before and whether they followed through]\n${nudgeLines}\nUse this to calibrate future suggestions: lean into what works, avoid repeating ignored patterns.`;
       systemPrompt.push({ type: 'text', text: `\n${nudgeBlock}` });
-      console.log(`[Twin Chat] Nudge history: ${nudgeHistory.length} past nudges injected`);
+      log.debug('Nudge history injected', { count: nudgeHistory.length });
     }
 
     // P8: identity + calibration now fetched inside fetchTwinContext (parallel)
@@ -814,13 +815,13 @@ router.post('/message', authenticateUser, async (req, res) => {
             }
             return { routingResult, expertMemories: [] };
           })
-          .catch(err => { console.warn('[Twin Chat] Expert routing failed (non-fatal):', err.message); return null; })
+          .catch(err => { log.warn('Expert routing failed (non-fatal)', { error: err }); return null; })
       : Promise.resolve(null);
 
     const conversationHistoryPromise = conversationId
       ? (async () => {
           if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
-            console.warn(`[Twin Chat] Invalid conversationId format from user ${userId}`);
+            log.warn('Invalid conversationId format', { userId });
             return [];
           }
           const { data: convoCheck, error: convoCheckErr } = await supabaseAdmin
@@ -829,9 +830,9 @@ router.post('/message', authenticateUser, async (req, res) => {
             .eq('id', conversationId)
             .eq('user_id', userId)
             .single();
-          if (convoCheckErr && convoCheckErr.code !== 'PGRST116') console.error('[Twin Chat] Conversation ownership check error:', convoCheckErr.message);
+          if (convoCheckErr && convoCheckErr.code !== 'PGRST116') log.error('Conversation ownership check error', { error: convoCheckErr });
           if (!convoCheck) {
-            console.warn(`[Twin Chat] conversationId ${conversationId} not owned by user ${userId}, ignoring history`);
+            log.warn('conversationId not owned by user, ignoring history', { conversationId, userId });
             return [];
           }
           const { data: messages } = await supabaseAdmin
@@ -844,7 +845,7 @@ router.post('/message', authenticateUser, async (req, res) => {
             role: m.role === 'assistant' ? 'assistant' : 'user',
             content: m.content.length > 800 ? m.content.substring(0, 800) + '...' : m.content
           }));
-        })().catch(err => { console.warn('[Twin Chat] Could not fetch conversation history:', err.message); return []; })
+        })().catch(err => { log.warn('Could not fetch conversation history', { error: err }); return []; })
       : Promise.resolve([]);
 
     const creativityBoostPromise = conversationId
@@ -961,7 +962,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         // Deduplicate reflections: keep diverse themes, prefer higher-scored (already sorted by retrieval score)
         const diverseReflections = deduplicateByTheme(reflections, r => r.content, { threshold: 0.40, maxItems: 8 });
         if (diverseReflections.length < reflections.length) {
-          console.log(`[Twin Chat] Reflections deduped: ${reflections.length} -> ${diverseReflections.length}`);
+          log.debug('Reflections deduped', { before: reflections.length, after: diverseReflections.length });
         }
         // Alpha-blend: omit low-confidence reflections, truncate medium-confidence
         const alphaFilteredReflections = diverseReflections.filter(r => computeAlpha(r) >= 0.2);
@@ -1017,7 +1018,7 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Hard cap additional context to prevent token bloat — truncate at last newline to avoid mid-sentence cuts
     if (additionalContext.length > MAX_ADDITIONAL_CONTEXT_CHARS) {
-      console.warn(`[Twin Chat] Additional context truncated: ${additionalContext.length} -> ${MAX_ADDITIONAL_CONTEXT_CHARS} chars`);
+      log.warn('Additional context truncated', { from: additionalContext.length, to: MAX_ADDITIONAL_CONTEXT_CHARS });
       const truncated = additionalContext.substring(0, MAX_ADDITIONAL_CONTEXT_CHARS);
       const lastNewline = truncated.lastIndexOf('\n');
       additionalContext = (lastNewline > MAX_ADDITIONAL_CONTEXT_CHARS * 0.5 ? truncated.substring(0, lastNewline) : truncated) + '\n[context truncated]';
@@ -1051,13 +1052,13 @@ Make it sound natural and curious, not like a survey question.`;
       } else {
         systemPrompt.push({ type: 'text', text: deepQuestionBlock.trim() });
       }
-      console.log(`[Twin Chat] Injected proactive deep question (turn ${conversationHistory.length})`);
+      log.debug('Injected proactive deep question', { turn: conversationHistory.length });
     }
 
     // Log total system prompt size for monitoring
     const totalSystemChars = systemPrompt.reduce((sum, block) => sum + (block.text?.length || 0), 0);
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
-    console.log(`[Twin Chat] System prompt: ${totalSystemChars} chars (~${estimatedTokens} tokens), ${conversationHistory.length} history msgs`);
+    log.info('System prompt built', { chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
 
     // Send message via LLM Gateway
     let assistantMessage;
@@ -1096,7 +1097,7 @@ Make it sound natural and curious, not like a survey question.`;
         chatLog('Streaming LLM call complete');
         assistantMessage = result.content || 'I apologize, I could not generate a response.';
       } catch (llmError) {
-        console.error('[Twin Chat] Streaming LLM Gateway failed:', llmError.message);
+        log.error('Streaming LLM Gateway failed', { error: llmError });
         const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing') || llmError.message?.includes('more credits') || llmError.message?.includes('402');
         res.write(`data: ${JSON.stringify({ type: 'error', error: isBillingIssue ? 'Chat is temporarily unavailable due to API billing.' : 'Chat is temporarily unavailable.' })}\n\n`);
         return res.end();
@@ -1146,7 +1147,7 @@ Make it sound natural and curious, not like a survey question.`;
         chatLog('LLM call complete');
         assistantMessage = result.content || 'I apologize, I could not generate a response.';
       } catch (llmError) {
-        console.error('[Twin Chat] LLM Gateway failed:', llmError.message);
+        log.error('LLM Gateway failed', { error: llmError });
         const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
         return res.status(503).json({
           success: false,
@@ -1204,7 +1205,7 @@ Make it sound natural and curious, not like a survey question.`;
         has_memory_stream: memories?.length > 0,
         has_writing_profile: !!writingProfile
       }
-    }).catch(err => console.warn('[Twin Chat] Failed to log conversation:', err.message));
+    }).catch(err => log.warn('Failed to log conversation', { error: err }));
 
     // Skip memory writes + reflection during eval runs to avoid polluting memory stream
     const evalMode = req.headers['x-eval-mode'] === 'true';
@@ -1216,13 +1217,13 @@ Make it sound natural and curious, not like a survey question.`;
       platforms: Object.keys(platformData),
       hasSoulSignature: !!soulSignature,
       chatSource
-    }).catch(err => console.warn('[Twin Chat] Failed to store in memory stream:', err.message));
+    }).catch(err => log.warn('Failed to store in memory stream', { error: err }));
 
     // Extract facts from user message - non-blocking
-    extractConversationFacts(userId, message).catch(err => console.error('[TWIN-CHAT] Fact extraction failed:', err.message));
+    extractConversationFacts(userId, message).catch(err => log.error('Fact extraction failed', { error: err }));
 
     // Extract communication style patterns from user message - non-blocking
-    extractCommunicationStyle(userId, message).catch(err => console.warn('[TWIN-CHAT] Communication style extraction failed:', err.message));
+    extractCommunicationStyle(userId, message).catch(err => log.warn('Communication style extraction failed', { error: err }));
 
     // Citation extraction + STDP co-retrieval link strengthening - non-blocking
     // RMM-inspired: identify which memories drove the response, then wire co-cited memories together
@@ -1236,39 +1237,39 @@ Make it sound natural and curious, not like a survey question.`;
         if (citedIds.length >= 2) {
           // STDP: memories cited together wire together
           strengthenCoCitedLinks(userId, citedIds).catch(err =>
-            console.warn('[Twin Chat] STDP co-citation failed:', err.message)
+            log.warn('STDP co-citation failed', { error: err })
           );
         }
-      }).catch(err => console.warn('[Twin Chat] Citation pipeline failed:', err.message));
+      }).catch(err => log.warn('Citation pipeline failed', { error: err }));
     }
     } // end !evalMode
 
     // Trigger reflection if enough importance has accumulated - non-blocking
     if (!evalMode) shouldTriggerReflection(userId).then(async (shouldReflect) => {
       if (shouldReflect) {
-        console.log(`[Twin Chat] Triggering background reflection for user ${userId}`);
+        log.info('Triggering background reflection', { userId });
         generateReflections(userId).catch(err =>
-          console.warn('[Twin Chat] Background reflection failed:', err.message)
+          log.warn('Background reflection failed', { error: err })
         );
       } else {
         // Auto-seed reflections for new users: if they have 3+ memories but 0 reflections
         try {
           const stats = await getMemoryStats(userId);
           if (stats.total >= 3 && stats.byType.reflection === 0) {
-            console.log(`[Twin Chat] Auto-seeding reflections for new user ${userId} (${stats.total} memories, 0 reflections)`);
+            log.info('Auto-seeding reflections for new user', { userId, totalMemories: stats.total });
             seedReflections(userId).catch(err =>
-              console.warn('[Twin Chat] Auto-seed reflections failed:', err.message)
+              log.warn('Auto-seed reflections failed', { error: err })
             );
           }
-        } catch (statsErr) { console.warn('[Twin Chat] Stats check for auto-seed failed:', statsErr.message); }
+        } catch (statsErr) { log.warn('Stats check for auto-seed failed', { error: statsErr }); }
       }
-    }).catch(err => console.warn('[Twin Chat] Reflection trigger check failed:', err.message));
+    }).catch(err => log.warn('Reflection trigger check failed', { error: err }));
 
     // Mark proactive insights as delivered (non-blocking)
     if (proactiveInsights && proactiveInsights.length > 0) {
       const insightIds = proactiveInsights.map(i => i.id);
       markInsightsDelivered(insightIds).catch(err =>
-        console.warn('[Twin Chat] Failed to mark insights delivered:', err.message)
+        log.warn('Failed to mark insights delivered', { error: err })
       );
     }
 
@@ -1288,7 +1289,7 @@ Make it sound natural and curious, not like a survey question.`;
 
     // Guard against client disconnect / timeout race
     if (res.destroyed || res.writableEnded) {
-      console.warn('[Twin Chat] Response already closed (client timeout?) — skipping send');
+      log.warn('Response already closed (client timeout?) - skipping send');
     } else if (isStreaming) {
       res.write(`data: ${JSON.stringify({ type: 'done', ...responsePayload })}\n\n`);
       res.end();
@@ -1299,11 +1300,11 @@ Make it sound natural and curious, not like a survey question.`;
   } catch (error) {
     // Silently ignore write-after-close from client disconnects
     if (error.code === 'ERR_HTTP_HEADERS_SENT' || res.destroyed || res.writableEnded) {
-      console.warn('[Twin Chat] Client disconnected before response could be sent');
+      log.warn('Client disconnected before response could be sent');
       return;
     }
 
-    console.error('[Twin Chat] Error:', error);
+    log.error('Chat message error', { error });
 
     // If SSE headers already sent, write error event instead of JSON
     if (res.headersSent) {
@@ -1377,7 +1378,7 @@ router.get('/history', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Twin Chat] History error:', error);
+    log.error('History error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch conversation history'
@@ -1409,7 +1410,7 @@ router.get('/context', authenticateUser, async (req, res) => {
           .gte('created_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
           .order('created_at', { ascending: false })
           .limit(20); // Fetch more so dedup has a wider pool
-        if (insightsErr) console.warn('[Twin Chat] Failed to fetch pending insights:', insightsErr.message);
+        if (insightsErr) log.warn('Failed to fetch pending insights', { error: insightsErr });
         const raw = data || [];
         return deduplicateByTheme(raw, i => i.insight, { threshold: 0.35, maxItems: 10 });
       })(),
@@ -1423,7 +1424,7 @@ router.get('/context', authenticateUser, async (req, res) => {
       pendingInsights: insightsResult,
     });
   } catch (error) {
-    console.error('[Twin Chat] Context endpoint error:', error);
+    log.error('Context endpoint error', { error });
     if (res.headersSent) return;
     res.status(500).json({
       success: false,
@@ -1433,9 +1434,9 @@ router.get('/context', authenticateUser, async (req, res) => {
 });
 
 // Legacy placeholder endpoint for backward compatibility
-router.post('/chat', (req, res) => {
-  res.status(501).json({
-    error: 'This endpoint is deprecated. Please use POST /api/chat/message instead.'
+router.post('/chat', authenticateUser, (req, res) => {
+  res.status(410).json({
+    error: 'This endpoint is gone. Please use POST /api/chat/message instead.'
   });
 });
 
@@ -1457,7 +1458,7 @@ router.get('/intro', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .limit(1);
     if (existingErr) {
-      console.warn('[twin-chat] /intro first-visit check error:', existingErr.message);
+      log.warn('/intro first-visit check error', { error: existingErr });
       // Fail safe: skip intro rather than risk a duplicate on DB errors
       return res.json({ success: true, intro: null, reason: 'db_error' });
     }
@@ -1473,7 +1474,7 @@ router.get('/intro', authenticateUser, async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-    if (sigErr && sigErr.code !== 'PGRST116') console.error('[Twin Chat] Soul signature fetch error:', sigErr.message);
+    if (sigErr && sigErr.code !== 'PGRST116') log.error('Soul signature fetch error', { error: sigErr });
 
     // Fetch display name
     const { data: userRow, error: userRowErr } = await supabaseAdmin
@@ -1481,7 +1482,7 @@ router.get('/intro', authenticateUser, async (req, res) => {
       .select('first_name, email')
       .eq('id', userId)
       .single();
-    if (userRowErr && userRowErr.code !== 'PGRST116') console.error('[Twin Chat] User row fetch error:', userRowErr.message);
+    if (userRowErr && userRowErr.code !== 'PGRST116') log.error('User row fetch error', { error: userRowErr });
     const firstName = userRow?.first_name || userRow?.email?.split('@')[0] || null;
 
     // Fetch enrichment bio/interests as extra context
@@ -1490,7 +1491,7 @@ router.get('/intro', authenticateUser, async (req, res) => {
       .select('discovered_bio, interests_and_hobbies, personality_traits')
       .eq('user_id', userId)
       .single();
-    if (enrichmentErr && enrichmentErr.code !== 'PGRST116') console.error('[Twin Chat] Enrichment fetch error:', enrichmentErr.message);
+    if (enrichmentErr && enrichmentErr.code !== 'PGRST116') log.error('Enrichment fetch error', { error: enrichmentErr });
 
     // Build a minimal prompt for the greeting
     const archetypeBlock = sig
@@ -1535,7 +1536,7 @@ Write a short, warm, genuinely curious greeting (2-3 sentences max).
 
     res.json({ success: true, intro });
   } catch (err) {
-    console.error('[Twin Chat] /intro error:', err.message);
+    log.error('/intro error', { error: err });
     res.json({ success: true, intro: null }); // Non-fatal — just show empty state
   }
 });

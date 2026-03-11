@@ -39,8 +39,8 @@ export function verifyCronSecret(req) {
   if (!expectedSecret) {
     return {
       authorized: false,
-      status: 500,
-      error: 'CRON_SECRET not configured in production',
+      status: 401,
+      error: 'Unauthorized',
     };
   }
 

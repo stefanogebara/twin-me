@@ -73,6 +73,8 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
           const Icon = config.icon;
           const percentage = trait.value;
           const level = percentage >= 75 ? 'High' : percentage >= 40 ? 'Moderate' : 'Low';
+          // 5th card in a 2-col grid spans full width to avoid orphan left-aligned card
+          const isLastOdd = data.length % 2 !== 0 && index === data.length - 1;
 
           return (
             <motion.div
@@ -80,7 +82,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
-              className={`bg-gradient-to-br ${config.gradient} rounded-xl p-5 border border-white/10 hover:shadow-lg transition-all duration-300`}
+              className={`bg-gradient-to-br ${config.gradient} rounded-xl p-5 border border-white/10 hover:shadow-lg transition-all duration-300${isLastOdd ? ' md:col-span-2' : ''}`}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-3">

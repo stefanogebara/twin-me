@@ -42,6 +42,18 @@ export default async function handler(req, res) {
       } catch (e) {
         console.warn('[CRON] Auto-snapshot setup failed:', e.message);
       }
+
+      // Pre-warm insights summary cache for processed users
+      try {
+        const { generateAndCacheSummary } = await import('./platform-insights.js');
+        for (const uid of result.processedUserIds) {
+          generateAndCacheSummary(uid).catch(e =>
+            console.warn('[CRON] Insights summary pre-warm failed for', uid, e.message)
+          );
+        }
+      } catch (e) {
+        console.warn('[CRON] Insights summary pre-warm setup failed:', e.message);
+      }
     }
 
     const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;

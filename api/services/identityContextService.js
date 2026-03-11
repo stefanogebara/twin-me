@@ -5,7 +5,7 @@
  * life stage, cultural orientation, career salience, approximate age.
  *
  * No new API calls. Pure signal extraction from already-stored memories.
- * Cached 24h because identity changes slowly.
+ * Cached 4h in Redis (matches twin summary TTL). In-memory fallback when Redis unavailable.
  *
  * Output shape:
  *   {
@@ -29,24 +29,35 @@
 import { retrieveMemories, addMemory } from './memoryStreamService.js';
 import { complete } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { get as redisGet, set as redisSet, del as redisDel, CACHE_TTL, CACHE_KEYS } from './redisClient.js';
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours — identity changes slowly
+const CACHE_TTL_MS = CACHE_TTL.IDENTITY_CONTEXT * 1000; // 4 hours in ms (matches twin summary TTL)
+const CACHE_TTL_S = CACHE_TTL.IDENTITY_CONTEXT;          // 4 hours in seconds (for Redis)
 
-// In-memory cache: userId → { data: IdentityContext, timestamp: number }
-const identityCache = new Map();
+// In-memory fallback cache: used when Redis is unavailable
+const identityFallbackCache = new Map();
 
 /**
  * Infer identity context for a user from their memory stream.
- * Cached 24h. Non-blocking when stored fact exists.
+ * Cached 4h in Redis. Non-blocking when stored fact exists.
  *
  * @param {string} userId
  * @returns {Promise<object>} Identity context object
  */
 export async function inferIdentityContext(userId) {
-  // 1. Check in-memory cache first
-  const cached = identityCache.get(userId);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.data;
+  // 1. Check Redis cache first (survives cold starts)
+  try {
+    const redisCached = await redisGet(CACHE_KEYS.identityContext(userId));
+    if (redisCached) {
+      console.log(`[IdentityContext] Redis cache HIT for ${userId}`);
+      return redisCached;
+    }
+  } catch { /* Redis unavailable — fall through */ }
+
+  // 1b. Fallback: in-memory cache (for when Redis is down)
+  const fallback = identityFallbackCache.get(userId);
+  if (fallback && Date.now() - fallback.timestamp < CACHE_TTL_MS) {
+    return fallback.data;
   }
 
   // 2. Check DB for recently-stored identity fact (avoid re-inference on server restart)
@@ -65,7 +76,8 @@ export async function inferIdentityContext(userId) {
     if (existingFact && existingFact.length > 0) {
       const parsed = parseStoredIdentityFact(existingFact[0].content);
       if (parsed) {
-        identityCache.set(userId, { data: parsed, timestamp: Date.now() });
+        // Populate Redis + in-memory fallback
+        _setIdentityCache(userId, parsed);
         return parsed;
       }
     }
@@ -101,8 +113,8 @@ export async function inferIdentityContext(userId) {
     console.warn('[IdentityContext] Failed to store fact:', err.message)
   );
 
-  // 6. Cache in memory
-  identityCache.set(userId, { data: identityContext, timestamp: Date.now() });
+  // 6. Cache in Redis + in-memory fallback
+  _setIdentityCache(userId, identityContext);
 
   console.log(`[IdentityContext] Inferred for ${userId}: lifeStage=${identityContext.lifeStage}, career=${identityContext.careerSalience}, age≈${identityContext.approximateAge}`);
   return identityContext;
@@ -375,10 +387,26 @@ function defaultIdentityContext() {
   };
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// Cache Helpers (Redis + in-memory fallback)
+// ────────────────────────────────────────────────────────────────────────────
+
+async function _setIdentityCache(userId, data) {
+  // Redis (primary — survives cold starts)
+  try {
+    await redisSet(CACHE_KEYS.identityContext(userId), data, CACHE_TTL_S);
+  } catch { /* Redis unavailable */ }
+  // In-memory fallback
+  identityFallbackCache.set(userId, { data, timestamp: Date.now() });
+}
+
 /**
  * Invalidate the cache for a user (call when significant new data arrives).
  * @param {string} userId
  */
-export function invalidateIdentityCache(userId) {
-  identityCache.delete(userId);
+export async function invalidateIdentityCache(userId) {
+  try {
+    await redisDel(CACHE_KEYS.identityContext(userId));
+  } catch { /* Redis unavailable */ }
+  identityFallbackCache.delete(userId);
 }

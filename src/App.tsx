@@ -114,6 +114,10 @@ const App = () => {
             <Route path="/auth" element={<CustomAuth />} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
             <Route path="/signin" element={<Navigate to="/auth" replace />} />
+
+            {/* Legacy path redirects */}
+            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/chat" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/auth/callback" element={<OAuthCallback />} />

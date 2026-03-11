@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
+import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { toSecondPerson } from '@/lib/utils';
 import {
   MessageCircle,
@@ -51,8 +52,9 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export const ProactiveInsightsPanel: React.FC = () => {
-  const { isDemoMode } = useAuth();
+  const { isDemoMode, user } = useAuth();
   const navigate = useNavigate();
+  const { connectedCount } = usePlatformStatus(user?.id);
   // Track which insight IDs the user has already engaged with (fire-and-forget to backend)
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -118,8 +120,9 @@ export const ProactiveInsightsPanel: React.FC = () => {
     return null;
   }
 
-  // Empty state
+  // Empty state — only show "connect" prompt when no platforms are connected
   if (insights.length === 0) {
+    if (connectedCount > 0) return null; // Platforms connected, just no insights yet — hide panel
     return (
       <GlassPanel className="text-center py-6">
         <Plug
@@ -130,7 +133,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
           I'm still getting to know you — connect Spotify or Calendar so I can start noticing things
         </p>
         <button
-          onClick={() => navigate('/get-started')}
+          onClick={() => navigate('/settings?tab=platforms')}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors"
           style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' }}
         >

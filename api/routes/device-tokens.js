@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[DeviceTokens] Register error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to register device token' });
   }
 });
 
@@ -52,7 +52,7 @@ router.delete('/:token', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[DeviceTokens] Delete error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to remove device token' });
   }
 });
 

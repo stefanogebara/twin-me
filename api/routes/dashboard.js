@@ -1,95 +1,101 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
 
 const router = express.Router();
+
+const DASHBOARD_STATS_TTL = 300; // 5 minutes
+const dashboardStatsCacheKey = (userId) => `dashboard_stats:${userId}`;
 
 /**
  * GET /api/dashboard/stats
  * Get dashboard statistics for the user
+ * Optimized: parallel DB queries + Redis caching (5-min TTL)
  */
 router.get('/stats', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get connected platforms count from platform_connections
-    const { data: platforms, error: platformsError } = await supabaseAdmin
-      .from('platform_connections')
-      .select('platform', { count: 'exact' })
-      .eq('user_id', userId)
-      .eq('status', 'connected');
-
-    if (platformsError) {
-      console.error('Error fetching platforms:', platformsError);
+    // Check Redis cache first
+    const cached = await cacheGet(dashboardStatsCacheKey(userId));
+    if (cached) {
+      return res.json({ success: true, stats: cached });
     }
 
-    const connectedPlatforms = platforms?.length || 0;
+    // Run all 5 DB queries in parallel
+    const [platformsResult, dataPointsResult, soulProfileResult, lastSyncResult, modelResult] = await Promise.all([
+      // 1. Connected platforms count
+      supabaseAdmin
+        .from('platform_connections')
+        .select('platform', { count: 'exact' })
+        .eq('user_id', userId)
+        .eq('status', 'connected'),
 
-    // Get total data points count from user_platform_data (raw extracted data)
-    const { count: dataPointsCount, error: dataPointsError } = await supabaseAdmin
-      .from('user_platform_data')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      // 2. Total data points count (head-only, no row transfer)
+      supabaseAdmin
+        .from('user_platform_data')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId),
 
-    if (dataPointsError) {
-      console.error('Error fetching data points:', dataPointsError);
+      // 3. Soul signature progress
+      supabaseAdmin
+        .from('soul_signature_profile')
+        .select('confidence_score, data_completeness')
+        .eq('user_id', userId)
+        .single(),
+
+      // 4. Last sync time
+      supabaseAdmin
+        .from('platform_connections')
+        .select('last_sync_at')
+        .eq('user_id', userId)
+        .eq('status', 'connected')
+        .order('last_sync_at', { ascending: false })
+        .limit(1)
+        .single(),
+
+      // 5. Training status (digital twin exists?)
+      supabaseAdmin
+        .from('digital_twins')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1)
+        .single(),
+    ]);
+
+    // Process results
+    if (platformsResult.error) {
+      console.error('Error fetching platforms:', platformsResult.error);
+    }
+    if (dataPointsResult.error) {
+      console.error('Error fetching data points:', dataPointsResult.error);
+    }
+    if (soulProfileResult.error && soulProfileResult.error.code !== 'PGRST116') {
+      console.error('Error fetching soul signature profile:', soulProfileResult.error);
+    }
+    if (lastSyncResult.error && lastSyncResult.error.code !== 'PGRST116') {
+      console.error('Error fetching last sync:', lastSyncResult.error);
+    }
+    if (modelResult.error && modelResult.error.code !== 'PGRST116') {
+      console.error('Error fetching model status:', modelResult.error);
     }
 
-    const totalDataPoints = dataPointsCount || 0;
+    const connectedPlatforms = platformsResult.data?.length || 0;
+    const totalDataPoints = dataPointsResult.count || 0;
+    const soulProfile = soulProfileResult.data;
+    const lastSync = lastSyncResult.data?.last_sync_at || new Date().toISOString();
+    const trainingStatus = modelResult.data ? 'ready' : 'idle';
 
-    // Get soul signature progress from soul_signature_profile
-    const { data: soulProfile, error: soulProfileError } = await supabaseAdmin
-      .from('soul_signature_profile')
-      .select('confidence_score, data_completeness')
-      .eq('user_id', userId)
-      .single();
-
-    if (soulProfileError && soulProfileError.code !== 'PGRST116') {
-      console.error('Error fetching soul signature profile:', soulProfileError);
-    }
-
-    // Calculate progress: use confidence_score if available, otherwise estimate from platforms
+    // Calculate soul signature progress
     let soulSignatureProgress = 0;
     if (soulProfile?.confidence_score) {
-      // Convert confidence score (0-1) to percentage
       soulSignatureProgress = Math.round(parseFloat(soulProfile.confidence_score) * 100);
     } else if (soulProfile?.data_completeness) {
-      // Use data_completeness if confidence not available
       soulSignatureProgress = Math.round(parseFloat(soulProfile.data_completeness));
     } else if (connectedPlatforms > 0) {
-      // Fallback: estimate from connected platforms (20% per platform, max 100%)
       soulSignatureProgress = Math.min((connectedPlatforms / 5) * 100, 100);
     }
-
-    // Get last sync time from platform_connections
-    const { data: lastSyncData, error: lastSyncError } = await supabaseAdmin
-      .from('platform_connections')
-      .select('last_sync_at')
-      .eq('user_id', userId)
-      .eq('status', 'connected')
-      .order('last_sync_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (lastSyncError && lastSyncError.code !== 'PGRST116') {
-      console.error('Error fetching last sync:', lastSyncError);
-    }
-
-    const lastSync = lastSyncData?.last_sync_at || new Date().toISOString();
-
-    // Get training status (check if model exists for user)
-    const { data: modelData, error: modelError } = await supabaseAdmin
-      .from('digital_twins')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1)
-      .single();
-
-    if (modelError && modelError.code !== 'PGRST116') {
-      console.error('Error fetching model status:', modelError);
-    }
-
-    const trainingStatus = modelData ? 'ready' : 'idle';
 
     const stats = {
       connectedPlatforms,
@@ -98,6 +104,9 @@ router.get('/stats', authenticateUser, async (req, res) => {
       lastSync,
       trainingStatus,
     };
+
+    // Cache in Redis (fire-and-forget, don't block response)
+    cacheSet(dashboardStatsCacheKey(userId), stats, DASHBOARD_STATS_TTL);
 
     res.json({ success: true, stats });
   } catch (error) {

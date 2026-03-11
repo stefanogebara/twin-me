@@ -123,8 +123,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     <div
       className="mb-14 px-5 py-4 rounded-xl flex items-center gap-3"
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-        border: '1px solid rgba(255, 255, 255, 0.06)'
+        backgroundColor: 'var(--glass-surface-bg)',
+        border: '1px solid var(--glass-surface-border)'
       }}
     >
       <Clock
@@ -138,7 +138,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         {isCalendarConnected ? 'Looks like you have a free day' : 'Connect your calendar and I can help you plan your time'}
       </span>
       <button
-        onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/get-started')}
+        onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/settings?tab=platforms')}
         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 flex-shrink-0"
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.06)',

@@ -477,10 +477,11 @@ const InstantTwinOnboarding = () => {
     });
   };
 
-  const entertainmentConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'entertainment'));
-  const healthConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'health'));
-  const socialConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'social'));
-  const professionalConnectors = sortConnectors(AVAILABLE_CONNECTORS.filter(c => c.category === 'professional'));
+  const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);
+  const entertainmentConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'entertainment'));
+  const healthConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'health'));
+  const socialConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'social'));
+  const professionalConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'professional'));
 
   const categoryProps = {
     connectedServices,

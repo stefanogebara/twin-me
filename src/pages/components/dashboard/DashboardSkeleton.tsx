@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 
-const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => {
+export const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => {
   return (
     <div
       className={`glass-shimmer rounded ${className}`}

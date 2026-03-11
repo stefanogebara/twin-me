@@ -492,6 +492,11 @@ router.post('/import/hbo-max', authenticateUser, async (req, res) => {
 router.get('/demo/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
+    const VALID_PLATFORMS = ['spotify', 'youtube', 'discord', 'twitch', 'linkedin', 'whoop', 'calendar', 'reddit', 'github', 'gmail'];
+
+    if (!VALID_PLATFORMS.includes(platform)) {
+      return res.status(400).json({ success: false, error: 'Invalid platform' });
+    }
 
     const demoData = generateDemoSoulSignature(platform);
 

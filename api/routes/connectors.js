@@ -13,6 +13,9 @@ import {
   invalidatePlatformStatusCache
 } from '../services/redisClient.js';
 import { ensureFreshToken } from '../services/tokenRefreshService.js';
+import { createLogger, redact } from '../services/logger.js';
+
+const log = createLogger('Connectors');
 const router = express.Router();
 
 // In-memory cache fallback for when Redis is unavailable
@@ -172,7 +175,7 @@ const OAUTH_CONFIGS = {
 };
 
 // Debug: Check LinkedIn config on load
-console.log('🔍 LinkedIn config on file load:', {
+log.debug('LinkedIn config on file load', {
   hasLinkedIn: !!OAUTH_CONFIGS.linkedin,
   hasClientId: !!OAUTH_CONFIGS.linkedin?.clientId,
   hasClientSecret: !!OAUTH_CONFIGS.linkedin?.clientSecret
@@ -200,7 +203,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
       const healthUrl = `${baseUrl}/api/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
 
-      console.log(`🏃 Proxying GET reconnect to health connector: ${healthUrl}`);
+      log.info('Proxying GET reconnect to health connector', { healthUrl });
 
       try {
         const response = await fetch(healthUrl, {
@@ -228,7 +231,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
 
         return res.json(data);
       } catch (healthError) {
-        console.error(`❌ Health connector error for ${provider}:`, healthError);
+        log.error("Health connector error", { provider, error: healthError });
         return res.status(500).json({
           success: false,
           error: `Failed to initiate ${provider} reconnection`,
@@ -244,7 +247,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🔄 Reconnect/refresh initiated for ${provider} - userId: ${userId}`);
+    log.info("Reconnect/refresh initiated", { provider, userId });
 
     // Check if we have a refresh token stored
     const { data: connection, error: fetchError } = await supabaseAdmin
@@ -256,7 +259,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
 
     if (fetchError || !connection) {
       // No existing connection, redirect to full OAuth flow
-      console.log(`📝 No existing connection found for ${provider}, initiating full OAuth`);
+      log.info("No existing connection found, initiating full OAuth", { provider });
 
       // Generate OAuth URL for fresh authentication
       const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
@@ -277,7 +280,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
         });
       if (stateInsertErr1) {
-        console.error('[connectors] Failed to store CSRF state for connect:', stateInsertErr1.message);
+        log.error("Failed to store CSRF state for connect", { error: stateInsertErr1 });
       }
 
       const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
@@ -315,7 +318,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
     if (connection.refresh_token) {
       try {
         const refreshToken = decryptToken(connection.refresh_token);
-        console.log(`🔑 Attempting to refresh token for ${provider}`);
+        log.info("Attempting to refresh token", { provider });
 
         let newTokens;
         if (provider === 'spotify') {
@@ -382,7 +385,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           throw updateError;
         }
 
-        console.log(`✅ Token refreshed successfully for ${provider}`);
+        log.info("Token refreshed successfully", { provider });
 
         // Invalidate cache
         await invalidatePlatformStatusCache(userId);
@@ -393,7 +396,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         });
 
       } catch (refreshError) {
-        console.error(`❌ Token refresh failed for ${provider}:`, refreshError);
+        log.error("Token refresh failed", { provider, error: refreshError });
 
         // Refresh failed, need to re-authenticate
         const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
@@ -415,7 +418,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
             expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
           });
         if (stateInsertErr2) {
-          console.error('[connectors] Failed to store CSRF state for reconnect:', stateInsertErr2.message);
+          log.error("Failed to store CSRF state for reconnect", { error: stateInsertErr2 });
         }
 
         const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
@@ -449,7 +452,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       }
     } else {
       // No refresh token available, need full re-authentication
-      console.log(`🔐 No refresh token available for ${provider}, requiring re-authentication`);
+      log.info("No refresh token available, requiring re-auth", { provider });
 
       const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
       const state = encryptState({
@@ -470,7 +473,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           expires_at: new Date(Date.now() + 1800000).toISOString() // 30 minutes
         });
       if (stateInsertErr3) {
-        console.error('[connectors] Failed to store CSRF state for /auth/:provider:', stateInsertErr3.message);
+        log.error("Failed to store CSRF state for /auth/:provider", { error: stateInsertErr3 });
       }
 
       const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
@@ -504,7 +507,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Reconnect error:', error);
+    log.error("Reconnect error", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to reconnect',
@@ -539,7 +542,7 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     }
 
     const config = OAUTH_CONFIGS[provider];
-    console.log(`🔍 Provider: ${provider}, Config exists: ${!!config}, ClientId: ${config?.clientId}`);
+    log.debug("Provider config check", { provider, configExists: !!config });
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -548,7 +551,7 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     }
 
     if (!config.clientId) {
-      console.log(`❌ No clientId for ${provider}. Full config:`, config);
+      log.error("No clientId for provider", { provider });
       return res.status(500).json({
         success: false,
         error: 'OAuth not configured for this provider'
@@ -561,19 +564,19 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
       userId,
       timestamp: Date.now()
     };
-    console.log('🔗 Creating state object for connector OAuth');
+    log.debug("Creating state object for connector OAuth");
     const state = encryptState(stateObject);
-    console.log('🔗 State encrypted successfully');
+    log.debug("State encrypted successfully");
 
     // Build authorization URL - Use unified callback for all platforms
     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
     const redirectUri = `${appUrl}/oauth/callback`;
 
-    console.log(`🔗 OAuth for ${provider}:`);
-    console.log(`📍 APP_URL from env: ${process.env.APP_URL}`);
-    console.log(`📍 VITE_APP_URL from env: ${process.env.VITE_APP_URL}`);
-    console.log(`📍 Final appUrl: ${appUrl}`);
-    console.log(`📍 Redirect URI: ${redirectUri}`);
+    log.debug("OAuth URL generation", { provider });
+    log.debug("APP_URL from env", { appUrl: process.env.APP_URL });
+    log.debug("VITE_APP_URL from env", { viteAppUrl: process.env.VITE_APP_URL });
+    log.debug("Final appUrl", { appUrl });
+    log.debug("Redirect URI", { redirectUri });
 
     // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
     // Slack also uses comma-separated scopes, while most others use space-separated
@@ -614,7 +617,7 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error generating auth URL:', error);
+    log.error("Error generating auth URL", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to generate authorization URL'
@@ -630,12 +633,12 @@ router.post('/callback', async (req, res) => {
   try {
     const { code, state } = req.body;
 
-    console.log('🔵 [Connector Callback] Starting OAuth callback processing');
-    console.log('🔵 [Connector Callback] Code present:', !!code);
-    console.log('🔵 [Connector Callback] State present:', !!state);
+    log.info("Starting OAuth callback processing");
+    log.debug("Callback params", { hasCode: !!code });
+    log.debug("Callback state", { hasState: !!state });
 
     if (!code || !state) {
-      console.error('❌ [Connector Callback] Missing required parameters');
+      log.error("Callback missing required parameters");
       return res.status(400).json({
         success: false,
         error: 'Missing code or state parameter'
@@ -646,9 +649,9 @@ router.post('/callback', async (req, res) => {
     let stateData;
     try {
       stateData = decryptState(state);
-      console.log('🔵 [Connector Callback] State decrypted for provider:', stateData.provider);
+      log.debug("State decrypted", { provider: stateData.provider });
     } catch (e) {
-      console.error('❌ [Connector Callback] Failed to decrypt state:', e.message);
+      log.error("Failed to decrypt state", { error: e });
       return res.status(400).json({
         success: false,
         error: 'Invalid state parameter'
@@ -661,16 +664,16 @@ router.post('/callback', async (req, res) => {
     // Frontend sends provider: 'google', platform: 'google_calendar'
     // But OAUTH_CONFIGS uses 'google_calendar' as the key
     const configKey = platform || provider;
-    console.log('🔵 [Connector Callback] Provider:', provider);
-    console.log('🔵 [Connector Callback] Platform:', platform);
-    console.log('🔵 [Connector Callback] Using config key:', configKey);
-    console.log('🔵 [Connector Callback] UserId:', userId);
-    console.log('🔵 [Connector Callback] Available configs:', Object.keys(OAUTH_CONFIGS));
+    log.debug("Callback provider", { provider });
+    log.debug("Callback platform", { platform });
+    log.debug("Callback config key", { configKey });
+    log.debug("Callback userId", { userId });
+    log.debug("Available configs", { configs: Object.keys(OAUTH_CONFIGS) });
 
     // Route health platforms to health connectors
     const healthPlatforms = ['oura'];
     if (healthPlatforms.includes(configKey)) {
-      console.log(`🏃 [Connector Callback] Routing ${configKey} to health connectors`);
+      log.info("Routing to health connectors", { configKey });
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
       const healthUrl = `${baseUrl}/api/health/oauth/callback/${configKey}`;
 
@@ -684,14 +687,14 @@ router.post('/callback', async (req, res) => {
         const healthData = await healthResponse.json();
 
         if (!healthResponse.ok) {
-          console.error(`❌ [Connector Callback] Health callback failed:`, healthData);
+          log.error("Health callback failed", { healthData });
           return res.status(healthResponse.status).json(healthData);
         }
 
-        console.log(`✅ [Connector Callback] Health callback successful for ${configKey}`);
+        log.info("Health callback successful", { configKey });
         return res.json(healthData);
       } catch (healthError) {
-        console.error(`❌ [Connector Callback] Health callback error:`, healthError);
+        log.error("Health callback error", { error: healthError });
         return res.status(500).json({
           success: false,
           error: `Failed to process ${configKey} callback`,
@@ -703,17 +706,17 @@ router.post('/callback', async (req, res) => {
     const config = OAUTH_CONFIGS[configKey];
 
     if (!config) {
-      console.error(`❌ [Connector Callback] No config found for key: ${configKey}`);
-      console.error('❌ [Connector Callback] Available configs:', Object.keys(OAUTH_CONFIGS));
+      log.error("No config found", { configKey });
+      log.error("Available configs", { configs: Object.keys(OAUTH_CONFIGS) });
       return res.status(400).json({
         success: false,
         error: `Unsupported provider: ${configKey}`
       });
     }
 
-    console.log('🔵 [Connector Callback] Config found:', !!config);
-    console.log('🔵 [Connector Callback] Config has clientId:', !!config.clientId);
-    console.log('🔵 [Connector Callback] Config has clientSecret:', !!config.clientSecret);
+    log.debug("Config found", { hasConfig: !!config });
+    log.debug("Config clientId", { hasClientId: !!config.clientId });
+    log.debug("Config clientSecret present", { hasClientSecret: !!config.clientSecret });
 
     // Convert email to UUID by looking up in users table
     // userId from state might be email (test@twinme.com) or UUID
@@ -727,14 +730,14 @@ router.post('/callback', async (req, res) => {
         .single();
 
       if (userError || !userData) {
-        console.error('Error looking up user UUID:', userError);
+        log.error("Error looking up user UUID", { error: userError });
         return res.status(400).json({
           success: false,
           error: 'User not found'
         });
       }
       userUuid = userData.id;
-      console.log(`🔄 Converted email-based userId to UUID ${userUuid}`);
+      log.info("Converted email-based userId to UUID", { userUuid });
     }
 
     // Exchange authorization code for tokens
@@ -742,14 +745,14 @@ router.post('/callback', async (req, res) => {
     const redirectUri = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
     let tokenResponse;
 
-    console.log(`🔑 [${provider}] Starting token exchange...`);
-    console.log(`🔑 [${provider}] Code length: ${code.length}`);
-    console.log(`🔑 [${provider}] Redirect URI: ${redirectUri}`);
-    console.log(`🔑 [${provider}] Token URL: ${config.tokenUrl}`);
+    log.info("Starting token exchange", { provider });
+    log.debug("Token exchange code", { provider, codeLength: code.length });
+    log.debug("Token exchange redirect", { provider, redirectUri });
+    log.debug("Token exchange URL", { provider, tokenUrl: config.tokenUrl });
 
     if (provider === 'spotify') {
       // Spotify uses Basic Authentication
-      console.log(`🔑 [Spotify] Has client ID: ${!!config.clientId}`);
+      log.debug("Spotify client ID check", { hasClientId: !!config.clientId });
 
       tokenResponse = await fetch(config.tokenUrl, {
         method: 'POST',
@@ -764,7 +767,7 @@ router.post('/callback', async (req, res) => {
         })
       });
 
-      console.log(`🔑 [Spotify] Token response status: ${tokenResponse.status}`);
+      log.debug("Spotify token response", { status: tokenResponse.status });
     } else if (provider === 'github') {
       // GitHub needs Accept header for JSON response
       tokenResponse = await fetch(config.tokenUrl, {
@@ -828,18 +831,19 @@ router.post('/callback', async (req, res) => {
     // Check if token exchange was successful
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error(`❌ Token exchange failed for ${provider}:`, {
+      log.error("Token exchange failed", {
+        provider,
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
-        error: errorText
+        errorText,
       });
 
       // Try to parse JSON error for more details
       try {
         const errorJson = JSON.parse(errorText);
-        console.error(`❌ [${provider}] Parsed error:`, JSON.stringify(errorJson, null, 2));
+        log.error("Token exchange parsed error", { provider, errorJson });
       } catch (e) {
-        console.error(`❌ [${provider}] Raw error (not JSON):`, errorText);
+        log.error("Token exchange raw error", { provider, errorText });
       }
 
       return res.status(tokenResponse.status).json({
@@ -850,7 +854,7 @@ router.post('/callback', async (req, res) => {
     }
 
     const tokenData = await tokenResponse.json();
-    console.log(`✅ Token exchange successful for ${provider}`);
+    log.info("Token exchange successful", { provider });
 
     // Handle Slack's special response format
     let tokens;
@@ -884,7 +888,7 @@ router.post('/callback', async (req, res) => {
       // Use the correct platform key for storage
       // For Google services, use the specific service (google_calendar, google_gmail, etc.)
       const platformKey = configKey;
-      console.log(`🔵 [Connector Callback] Storing connection with platform key: ${platformKey}`);
+      log.info("Storing connection", { platformKey });
 
       const connectionData = {
         user_id: userUuid,  // Use UUID not email
@@ -913,11 +917,11 @@ router.post('/callback', async (req, res) => {
         });
 
       if (dbError) {
-        console.error('Database error storing connection:', dbError);
+        log.error("Database error storing connection", { error: dbError });
         throw dbError;
       }
 
-      console.log(`✅ Successfully stored ${platformKey} connection for user ${userId} (UUID: ${userUuid}) in database`);
+      log.info("Connection stored", { platformKey, userId });
 
       // Invalidate cached platform status for this user
       await invalidatePlatformStatusCache(userUuid);
@@ -930,45 +934,45 @@ router.post('/callback', async (req, res) => {
           // Add job to queue with high priority (newly connected platforms)
           addExtractionJob(userUuid, platformKey, null, { priority: 1 })
             .then(job => {
-              console.log(`✅ Added extraction job to queue: ${job.id} for ${platformKey}`);
+              log.info("Extraction job queued", { jobId: job.id, platformKey });
             })
             .catch(error => {
-              console.warn(`⚠️ Failed to queue extraction job for ${platformKey}:`, error.message);
+              log.warn("Failed to queue extraction job", { platformKey, error });
             });
         } else {
           // Fallback to direct execution if queue not available
           import('../services/dataExtractionService.js').then(({ default: extractionService }) => {
             extractionService.extractPlatformData(userUuid, platformKey)
               .then(result => {
-                console.log(`✅ Background extraction completed for ${platformKey}:`, result);
+                log.info("Background extraction completed", { platformKey });
 
                 // Trigger soul signature building after extraction
                 import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
                   soulBuilder.buildSoulSignature(userUuid)
                     .then(soulResult => {
-                      console.log(`✅ Soul signature updated for user after ${platformKey} extraction:`, soulResult);
+                      log.info("Soul signature updated", { platformKey });
                     })
                     .catch(soulError => {
-                      console.warn(`⚠️ Soul signature building failed:`, soulError);
+                      log.warn("Soul signature building failed", { error: soulError });
                     });
                 });
               })
               .catch(error => {
-                console.warn(`⚠️ Background extraction failed for ${platformKey}:`, error.message);
+                log.warn("Background extraction failed", { platformKey, error });
               });
           });
         }
       });
 
     } catch (error) {
-      console.error('Error storing connection:', error);
+      log.error("Error storing connection", { error });
       return res.status(500).json({
         success: false,
         error: 'Failed to store connection'
       });
     }
 
-    console.log(`📤 Sending connector callback response for ${provider}`);
+    log.debug("Sending callback response", { provider });
 
     const responseData = {
       success: true,
@@ -984,12 +988,12 @@ router.post('/callback', async (req, res) => {
       }
     };
 
-    console.log('📤 Connector response:', responseData);
+    log.debug("Connector response sent");
 
     res.json(responseData);
 
   } catch (error) {
-    console.error('Error handling OAuth callback:', error);
+    log.error("Error handling OAuth callback", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to process OAuth callback'
@@ -1024,7 +1028,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
         .eq('email', userId)
         .single();
       if (userLookupErr) {
-        console.warn('[connectors] Failed to resolve email to UUID:', userLookupErr.message);
+        log.warn("Failed to resolve email to UUID", { error: userLookupErr });
       } else if (userData) {
         userUuid = userData.id;
       }
@@ -1063,13 +1067,13 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       error = result.error;
       if (!error) break;
       if (attempt === 0) {
-        console.warn('Database error getting connections, retrying...', error.code);
+        log.warn("Database error getting connections, retrying", { errorCode: error.code });
         await new Promise(r => setTimeout(r, 1000));
       }
     }
 
     if (error) {
-      console.error('Database error getting connections (after retry):', error);
+      log.error("Database error getting connections (after retry)", { error });
       throw error;
     }
 
@@ -1093,21 +1097,21 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       if ((connection.platform === 'spotify' || connection.platform === 'youtube') &&
           connection.last_sync_status === 'encryption_key_mismatch') {
         isConnected = true;  // Force true to show expired state in UI
-        console.log(`🔧 Forcing ${connection.platform} connected=true due to encryption_key_mismatch`);
+        log.info("Forcing connected due to encryption_key_mismatch", { platform: connection.platform });
       }
 
       // AUTOMATIC TOKEN REFRESH: Attempt to refresh expired tokens
       // Skip for Nango-managed connections (Nango handles refresh automatically)
       if (isConnected && isTokenExpired && !isNangoManaged) {
-        console.log(`🔄 Attempting automatic token refresh for ${connection.platform}...`);
+        log.info("Attempting automatic token refresh", { platform: connection.platform });
         try {
           await ensureFreshToken(userUuid, connection.platform);
-          console.log(`✅ Token automatically refreshed for ${connection.platform}`);
+          log.info("Token automatically refreshed", { platform: connection.platform });
           isTokenExpired = false;  // Token is now valid
           // Invalidate cache so next request gets fresh status
           await invalidatePlatformStatusCache(userUuid);
         } catch (refreshError) {
-          console.warn(`⚠️ Auto-refresh failed for ${connection.platform}: ${refreshError.message}`);
+          log.warn("Auto-refresh failed", { platform: connection.platform, error: refreshError });
           // Keep isTokenExpired = true, user will need to reconnect
         }
       }
@@ -1123,7 +1127,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       if (connection.status === 'expired' || connection.status === 'token_expired') {
         status = 'token_expired';
         isTokenExpired = true;  // Force token expired flag when status indicates expired
-        console.log(`🔄 Platform ${connection.platform} has status=${connection.status}, setting tokenExpired=true`);
+        log.info("Platform token expired", { platform: connection.platform, status: connection.status });
       }
       // Override with 'token_expired' if:
       // 1. The token is actually expired NOW
@@ -1150,7 +1154,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     // Also include Nango-only connections (stored in nango_connection_mappings, not platform_connections)
     const { data: nangoMappings } = await supabaseAdmin
       .from('nango_connection_mappings')
-      .select('platform, status, created_at, updated_at')
+      .select('platform, status, created_at, updated_at, last_synced_at')
       .eq('user_id', userUuid)
       .eq('status', 'connected');
 
@@ -1161,14 +1165,14 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
           isActive: true,
           tokenExpired: false,
           connectedAt: mapping.created_at || null,
-          lastSync: mapping.updated_at || null,
+          lastSync: mapping.last_synced_at || mapping.updated_at || null,
           status: 'active',
           expiresAt: null,
         };
       }
     }
 
-    console.log(`📊 Connection status for user ${userId}:`, connectionStatus);
+    log.debug("Connection status", { userId });
 
     // Cache the result in memory and Redis
     setMemoryCached(`status:${userUuid}`, connectionStatus);
@@ -1181,7 +1185,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error getting connector status:', error);
+    log.error("Error getting connector status", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to get connector status'
@@ -1201,8 +1205,8 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log(`🔄 Resetting connections for user ${userId}`);
-    console.warn(`⚠️ RESET ENDPOINT CALLED - This should only be called on fresh page loads!`);
+    log.info("Resetting connections", { userId });
+    log.warn("RESET ENDPOINT CALLED - should only be on fresh page loads");
 
     // Convert email to UUID if needed
     let userUuid = userId;
@@ -1222,7 +1226,7 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
       .from('platform_connections')
       .select('id, platform, last_sync_status')
       .eq('user_id', userUuid);
-    if (currentConnErr) console.error('[Connectors] Failed to get current connections:', currentConnErr.message);
+    if (currentConnErr) log.error("Failed to get current connections", { error: currentConnErr });
 
     // Only reset connections that don't have encryption_key_mismatch
     // Since we don't have a 'connected' column, we'll update the last_sync_status instead
@@ -1234,12 +1238,12 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
       .select();
 
     if (error) {
-      console.error('Database error resetting connections:', error);
+      log.error("Database error resetting connections", { error });
       throw error;
     }
 
     const deletedCount = data?.length || 0;
-    console.log(`🗑️ Deactivated ${deletedCount} connections for user ${userId}`);
+    log.info("Deactivated connections", { deletedCount, userId });
 
     // Invalidate cached platform status for this user
     await invalidatePlatformStatusCache(userUuid);
@@ -1255,7 +1259,7 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error resetting connections:', error);
+    log.error("Error resetting connections", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to reset connections'
@@ -1282,7 +1286,7 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
 
     const userUuid = userId;
 
-    console.log(`🔌 Disconnect request for ${provider} from user ${userId}`);
+    log.info("Disconnect request", { provider, userId });
 
     let deletedSomething = false;
 
@@ -1295,7 +1299,7 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking platform_connections:', checkError);
+      log.error("Error checking platform_connections", { error: checkError });
     }
 
     if (existingConnection) {
@@ -1306,10 +1310,10 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
         .eq('platform', provider);
 
       if (error) {
-        console.error('Error deleting from platform_connections:', error);
+        log.error("Error deleting from platform_connections", { error });
         throw error;
       }
-      console.log(`✅ Deleted platform_connections for ${provider}`);
+      log.info("Deleted platform_connections", { provider });
       deletedSomething = true;
     }
 
@@ -1329,20 +1333,20 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
         .eq('platform', provider);
 
       if (nangoError) {
-        console.error('Error deleting from nango_connection_mappings:', nangoError);
+        log.error("Error deleting from nango_connection_mappings", { error: nangoError });
         throw nangoError;
       }
-      console.log(`✅ Deleted nango_connection_mappings for ${provider}`);
+      log.info("Deleted nango_connection_mappings", { provider });
       deletedSomething = true;
     }
 
     if (!deletedSomething) {
-      console.log(`⚠️ No connection found for ${provider} - user ${userUuid}`);
+      log.warn("No connection found", { provider, userUuid });
     }
 
     // Invalidate cached platform status for this user BEFORE responding
     await invalidatePlatformStatusCache(userUuid);
-    console.log(`🔄 Cache invalidated for user ${userUuid}`);
+    log.debug("Cache invalidated", { userUuid });
 
     res.json({
       success: true,
@@ -1354,7 +1358,7 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error disconnecting provider:', error);
+    log.error("Error disconnecting provider", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect provider'
@@ -1372,7 +1376,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     const { platform } = req.params;
     const userId = req.user.id;
 
-    console.log(`🔗 OAuth connection request for ${platform} from user ${userId}`);
+    log.info("OAuth connection request", { platform, userId });
 
     // Platforms handled by entertainment-connectors
     const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'tiktok'];
@@ -1385,7 +1389,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
       const healthUrl = `${baseUrl}/api/health/connect/${platform}?userId=${encodeURIComponent(userId)}`;
 
-      console.log(`🏃 Proxying to health connector: ${healthUrl}`);
+      log.info("Proxying to health connector", { healthUrl });
 
       try {
         const response = await fetch(healthUrl, {
@@ -1413,7 +1417,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
 
         return res.json(data);
       } catch (healthError) {
-        console.error(`❌ Health connector error for ${platform}:`, healthError);
+        log.error("Health connector error", { platform, error: healthError });
         return res.status(500).json({
           success: false,
           error: `Failed to initiate ${platform} connection`,
@@ -1427,7 +1431,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
       const entertainmentUrl = `${baseUrl}/api/entertainment/connect/${platform}`;
 
-      console.log(`📡 Proxying to entertainment connector: ${entertainmentUrl}`);
+      log.info("Proxying to entertainment connector", { entertainmentUrl });
 
       // Make internal request to entertainment connector
       const response = await fetch(entertainmentUrl, {
@@ -1503,7 +1507,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`Error initiating ${req.params.platform} connection:`, error);
+    log.error("Error initiating platform connection", { platform: req.params.platform, error });
     res.status(500).json({
       success: false,
       error: 'Failed to initiate OAuth connection',
@@ -1554,11 +1558,11 @@ router.post('/test-add-connection', authenticateUser, async (req, res) => {
       });
 
     if (error) {
-      console.error('Database error adding test connection:', error);
+      log.error("Database error adding test connection", { error });
       throw error;
     }
 
-    console.log(`🧪 Test connection added to database: ${userId}-${provider}`);
+    log.info("Test connection added", { userId, provider });
 
     res.json({
       success: true,
@@ -1571,7 +1575,7 @@ router.post('/test-add-connection', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error adding test connection:', error);
+    log.error("Error adding test connection", { error });
     res.status(500).json({
       success: false,
       error: 'Failed to add test connection'

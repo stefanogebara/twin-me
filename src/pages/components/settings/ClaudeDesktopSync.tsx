@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CheckCircle,
   Loader2,
@@ -7,6 +7,8 @@ import {
   Copy,
   Play,
   Info,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 
 interface SyncStats {
@@ -38,6 +40,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
   handleCopyUserId,
   cardStyle,
 }) => {
+  const [showDevInfo, setShowDevInfo] = useState(false);
   return (
     <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-2">
@@ -96,9 +99,9 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           disabled={syncing}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
-            backgroundColor: 'rgba(124, 58, 237, 0.1)',
-            border: '1px solid rgba(167, 139, 250, 0.3)',
-            color: '#A78BFA',
+            backgroundColor: '#252222',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#fdfcfb',
             fontFamily: 'var(--font-body)',
             fontWeight: 500,
             opacity: syncing ? 0.7 : 1
@@ -109,31 +112,45 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
         </button>
 
         <div
-          className="p-3 rounded-xl"
+          className="rounded-xl"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             border: '1px solid rgba(255, 255, 255, 0.05)'
           }}
         >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Your User ID (for manual setup)
-            </span>
-            <button
-              onClick={handleCopyUserId}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
-              style={{
-                backgroundColor: userIdCopied ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                color: userIdCopied ? '#10B981' : '#8A857D'
-              }}
-            >
-              {userIdCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              {userIdCopied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-          <code className="text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
-            {user?.id || 'Loading...'}
-          </code>
+          <button
+            onClick={() => setShowDevInfo((prev) => !prev)}
+            className="w-full flex items-center gap-2 p-3 text-xs transition-colors"
+            style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}
+          >
+            {showDevInfo
+              ? <ChevronDown className="w-3 h-3 flex-shrink-0" />
+              : <ChevronRight className="w-3 h-3 flex-shrink-0" />}
+            Developer Info
+          </button>
+          {showDevInfo && (
+            <div className="px-3 pb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Your User ID (for support)
+                </span>
+                <button
+                  onClick={handleCopyUserId}
+                  className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
+                  style={{
+                    backgroundColor: userIdCopied ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                    color: userIdCopied ? '#10B981' : '#8A857D'
+                  }}
+                >
+                  {userIdCopied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {userIdCopied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <code className="text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
+                {user?.id || 'Loading...'}
+              </code>
+            </div>
+          )}
         </div>
 
         <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>

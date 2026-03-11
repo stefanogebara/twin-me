@@ -19,6 +19,9 @@ import crypto from 'crypto';
 import OpenAI from 'openai';
 import { getRedisClient, isRedisAvailable } from './redisClient.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('LLMGateway');
 import {
   TIER_CHAT, TIER_CHAT_FINETUNED, TIER_ANALYSIS, TIER_EXTRACTION,
   OPENROUTER_MODELS, MODEL_PRICING, CACHE_TTL_BY_TIER,
@@ -43,7 +46,7 @@ function checkCircuitBreaker() {
     const elapsed = Date.now() - circuitBreaker.lastFailure;
     if (elapsed >= circuitBreaker.resetTimeout) {
       circuitBreaker.state = 'half-open';
-      console.log('[LLM Gateway] Circuit breaker: open -> half-open');
+      log.info('Circuit breaker: open -> half-open');
     }
   }
 }
@@ -53,13 +56,13 @@ function recordCircuitBreakerFailure() {
   circuitBreaker.lastFailure = Date.now();
   if (circuitBreaker.failures >= circuitBreaker.threshold) {
     circuitBreaker.state = 'open';
-    console.warn(`[LLM Gateway] Circuit breaker OPEN after ${circuitBreaker.failures} failures`);
+    log.warn('Circuit breaker OPEN', { failures: circuitBreaker.failures });
   }
 }
 
 function recordCircuitBreakerSuccess() {
   if (circuitBreaker.state !== 'closed') {
-    console.log('[LLM Gateway] Circuit breaker: reset to closed');
+    log.info('Circuit breaker: reset to closed');
   }
   circuitBreaker.state = 'closed';
   circuitBreaker.failures = 0;
@@ -102,14 +105,14 @@ async function getDailyCost() {
           .select('cost_usd')
           .gte('created_at', todayStart.toISOString());
         if (fallbackErr) {
-          console.warn('[LLM Gateway] Budget check fallback error:', fallbackErr.message);
+          log.warn('Budget check fallback error', { error: fallbackErr });
           return dailyCostCache.value;
         }
         const fallbackCost = (rows || []).reduce((sum, row) => sum + (row.cost_usd || 0), 0);
         dailyCostCache = { value: fallbackCost, fetchedAt: Date.now() };
         return fallbackCost;
       }
-      console.warn('[LLM Gateway] Budget check query error:', error.message);
+      log.warn('Budget check query error', { error });
       return dailyCostCache.value; // Return stale cache on error
     }
 
@@ -117,7 +120,7 @@ async function getDailyCost() {
     dailyCostCache = { value: totalCost, fetchedAt: Date.now() };
     return totalCost;
   } catch (err) {
-    console.warn('[LLM Gateway] Budget check failed:', err.message);
+    log.warn('Budget check failed', { error: err });
     return dailyCostCache.value;
   }
 }
@@ -194,7 +197,7 @@ async function cacheGet(key) {
       const raw = await client.get(key);
       if (raw) return JSON.parse(raw);
     } catch (err) {
-      console.warn('[LLM Gateway] Redis get error:', err.message);
+      log.warn('Redis get error', { error: err });
     }
   }
   // Fallback to in-memory
@@ -210,7 +213,7 @@ async function cacheSet(key, value, ttlSeconds) {
       const client = getRedisClient();
       await client.setex(key, ttlSeconds, JSON.stringify(value));
     } catch (err) {
-      console.warn('[LLM Gateway] Redis set error:', err.message);
+      log.warn('Redis set error', { error: err });
     }
   }
   // Always write to in-memory as backup
@@ -249,9 +252,9 @@ function logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit, lat
       latency_ms: latencyMs,
     })
     .then(({ error }) => {
-      if (error) console.warn('[LLM Gateway] Usage log error:', error.message);
+      if (error) log.warn('Usage log error', { error });
     })
-    .catch(err => console.warn('[LLM Gateway] Usage log promise rejected:', err.message));
+    .catch(err => log.warn('Usage log promise rejected', { error: err }));
 }
 
 // ====================================================================
@@ -320,7 +323,7 @@ export async function complete({
     const cacheKey = buildCacheKey(model, system, messages, maxTokens);
     const cached = await cacheGet(cacheKey);
     if (cached) {
-      console.log(`[LLM Gateway] Cache HIT for ${serviceName || 'unknown'} (${tier})`);
+      log.info('Cache HIT', { serviceName: serviceName || 'unknown', tier });
       logUsage({
         userId, serviceName, model, tier,
         usage: cached.usage || { prompt_tokens: 0, completion_tokens: 0 },
@@ -361,10 +364,10 @@ export async function complete({
     };
     const cost = calculateCost(model, usage);
 
-    console.log(
-      `[LLM Gateway] ${serviceName || 'unknown'} | ${tier} | ${model} | ` +
-      `${usage.total_tokens} tokens | $${cost.toFixed(4)} | ${latencyMs}ms`
-    );
+    log.info('LLM complete', {
+      serviceName: serviceName || 'unknown', tier, model,
+      tokens: usage.total_tokens, cost: cost.toFixed(4), latencyMs,
+    });
 
     const result = { content, model, usage, cost, cacheHit: false };
 
@@ -392,7 +395,7 @@ export async function complete({
       throw new Error(`[LLM Gateway] Request timed out after ${timeoutMs}ms for ${tier}/${model} (${serviceName || 'unknown'})`);
     }
 
-    console.error(`[LLM Gateway] Error (${tier}/${model}): ${error.message} [${latencyMs}ms]`);
+    log.error('LLM error', { tier, model, error, latencyMs });
 
     // Record circuit breaker failure (4B)
     recordCircuitBreakerFailure();
@@ -488,10 +491,10 @@ export async function stream({
     const latencyMs = Date.now() - startTime;
     const cost = calculateCost(model, usage);
 
-    console.log(
-      `[LLM Gateway] STREAM ${serviceName || 'unknown'} | ${tier} | ${model} | ` +
-      `${usage.total_tokens} tokens | $${cost.toFixed(4)} | ${latencyMs}ms`
-    );
+    log.info('LLM stream complete', {
+      serviceName: serviceName || 'unknown', tier, model,
+      tokens: usage.total_tokens, cost: cost.toFixed(4), latencyMs,
+    });
 
     // Log to Supabase
     logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit: false, latencyMs });
@@ -503,7 +506,7 @@ export async function stream({
 
   } catch (error) {
     const latencyMs = Date.now() - startTime;
-    console.error(`[LLM Gateway] Stream error (${tier}/${model}): ${error.message} [${latencyMs}ms]`);
+    log.error('LLM stream error', { tier, model, error, latencyMs });
 
     // Record circuit breaker failure (4B)
     recordCircuitBreakerFailure();

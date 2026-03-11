@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Auth');
 
 dotenv.config();
 
@@ -53,7 +56,7 @@ export const authenticateUser = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log(`[Auth] ❌ Missing authorization header for ${req.path}`);
+      log.warn('Missing authorization header', { path: req.path });
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Missing or invalid authorization header'
@@ -64,7 +67,7 @@ export const authenticateUser = async (req, res, next) => {
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     if (!token) {
-      console.log(`[Auth] ❌ No token provided for ${req.path}`);
+      log.warn('No token provided', { path: req.path });
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'No token provided'
@@ -92,7 +95,7 @@ export const authenticateUser = async (req, res, next) => {
 
       next();
     } catch (verifyError) {
-      console.error(`[Auth] ❌ Token verification failed for ${req.path}:`, verifyError.name);
+      log.error('Token verification failed', { path: req.path, errorName: verifyError.name });
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid or expired token',
@@ -102,7 +105,7 @@ export const authenticateUser = async (req, res, next) => {
     }
 
   } catch (error) {
-    console.error('[Auth] ❌ Unexpected error:', error);
+    log.error('Unexpected error', { error });
     return res.status(500).json({
       error: 'Authentication service error',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -129,14 +132,14 @@ export const optionalAuth = async (req, res, next) => {
           };
         } catch (verifyError) {
           // For optional auth, we don't fail on invalid tokens
-          console.warn('Optional auth token verification failed:', verifyError.message);
+          log.warn('Optional auth token verification failed', { error: verifyError });
         }
       }
     }
 
     next();
   } catch (error) {
-    console.error('Optional authentication middleware error:', error);
+    log.error('Optional authentication middleware error', { error });
     next(); // Continue without authentication for optional auth
   }
 };
@@ -174,7 +177,7 @@ export const requireProfessor = async (req, res, next) => {
 
     next();
   } catch (err) {
-    console.error('[Auth] requireProfessor DB check failed:', err.message);
+    log.error('requireProfessor DB check failed', { error: err });
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -253,7 +256,7 @@ export const validateTwinOwnership = async (req, res, next) => {
     req.twin = twin;
     next();
   } catch (error) {
-    console.error('Twin ownership validation error:', error);
+    log.error('Twin ownership validation error', { error });
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to validate twin ownership'
