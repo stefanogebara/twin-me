@@ -125,7 +125,11 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       <CheckCircle className="w-4 h-4" style={{ color: '#10B981' }} />
                       {!isDemoMode && connector.isOAuth && (
                         <button
-                          onClick={() => handleDisconnectService(connector.id)}
+                          onClick={() => {
+                            if (window.confirm(`Disconnect ${connector.name}? This will remove access to your ${connector.name} data.`)) {
+                              handleDisconnectService(connector.id);
+                            }
+                          }}
                           disabled={disconnectingService === connector.id}
                           className="text-xs px-2 py-1 rounded-lg"
                           style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}

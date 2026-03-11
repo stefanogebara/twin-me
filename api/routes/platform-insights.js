@@ -17,8 +17,13 @@ import { authenticateUser } from '../middleware/auth.js';
 import platformReflectionService from '../services/platformReflectionService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { seedPatternFromInsight } from '../services/twinPatternService.js';
+import { get as redisGet, set as redisSet } from '../services/redisClient.js';
 
 const router = express.Router();
+
+// Redis cache key for insights summary
+const SUMMARY_CACHE_KEY = (userId) => `insights_summary:${userId}`;
+const SUMMARY_CACHE_TTL = 14400; // 4 hours in seconds
 
 // Wrap a promise with a hard timeout — returns a timeout error if it exceeds the deadline
 const INSIGHTS_TIMEOUT_MS = 20_000;
@@ -48,34 +53,39 @@ const PLATFORM_DB_NAMES = {
 router.get('/all/summary', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
-  console.log(`🪞 [Insights API] GET /all/summary for user ${userId}`);
+  console.log(`[Insights API] GET /all/summary for user ${userId}`);
 
   try {
-    const results = await Promise.allSettled([
-      withTimeout(platformReflectionService.getReflections(userId, 'spotify')),
-      withTimeout(platformReflectionService.getReflections(userId, 'calendar')),
-      withTimeout(platformReflectionService.getReflections(userId, 'youtube')),
-      withTimeout(platformReflectionService.getReflections(userId, 'web'))
-    ]);
+    // 1. Check Redis cache first — instant response
+    const cached = await redisGet(SUMMARY_CACHE_KEY(userId));
+    if (cached) {
+      console.log(`[Insights API] Cache HIT for summary, user ${userId}`);
+      return res.json({
+        success: true,
+        summary: cached,
+        cached: true
+      });
+    }
 
-    const makeSummary = (result) =>
-      result.status === 'fulfilled' && result.value.success
-        ? { connected: true, preview: result.value.reflection?.text?.substring(0, 100) + '...' }
-        : { connected: false };
-
-    const summary = {
-      spotify: makeSummary(results[0]),
-      calendar: makeSummary(results[1]),
-      youtube: makeSummary(results[2]),
-      web: makeSummary(results[3])
-    };
-
+    // 2. Cache miss — return "generating" immediately, don't block
+    console.log(`[Insights API] Cache MISS for summary, user ${userId} — generating in background`);
     res.json({
       success: true,
-      summary
+      summary: {
+        spotify: { connected: false },
+        calendar: { connected: false },
+        youtube: { connected: false },
+        web: { connected: false }
+      },
+      generating: true
     });
+
+    // 3. Fire background generation (non-blocking — response already sent)
+    generateAndCacheSummary(userId).catch(err =>
+      console.error(`[Insights API] Background summary generation failed for ${userId}:`, err.message)
+    );
   } catch (error) {
-    console.error(`❌ [Insights API] Summary error:`, error);
+    console.error(`[Insights API] Summary error:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to get insights summary',
@@ -83,6 +93,36 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
     });
   }
 });
+
+/**
+ * Generate insights summary for all platforms and cache in Redis.
+ * Called from the route handler (background) and from cron jobs (pre-warm).
+ */
+export async function generateAndCacheSummary(userId) {
+  const platforms = ['spotify', 'calendar', 'youtube', 'web'];
+
+  const results = await Promise.allSettled(
+    platforms.map(p => withTimeout(platformReflectionService.getReflections(userId, p)))
+  );
+
+  const makeSummary = (result) =>
+    result.status === 'fulfilled' && result.value.success
+      ? { connected: true, preview: result.value.reflection?.text?.substring(0, 100) + '...' }
+      : { connected: false };
+
+  const summary = Object.fromEntries(
+    platforms.map((p, i) => [p, makeSummary(results[i])])
+  );
+
+  // Only cache if at least one platform has data
+  const hasData = Object.values(summary).some(s => s.connected);
+  if (hasData) {
+    await redisSet(SUMMARY_CACHE_KEY(userId), summary, SUMMARY_CACHE_TTL);
+    console.log(`[Insights API] Cached summary for user ${userId} (TTL: ${SUMMARY_CACHE_TTL}s)`);
+  }
+
+  return summary;
+}
 
 /**
  * GET /api/insights/proactive/engagement-stats
@@ -122,6 +162,51 @@ router.get('/proactive/engagement-stats', authenticateUser, async (req, res) => 
   }
 
   res.json({ success: true, data: stats });
+});
+
+/**
+ * GET /api/insights/proactive
+ * Returns proactive insights for the authenticated user.
+ * NOTE: Must be registered BEFORE GET /:platform to avoid being shadowed.
+ */
+router.get('/proactive', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const includeDelivered = req.query.include_delivered === 'true';
+
+    const query = supabaseAdmin
+      .from('proactive_insights')
+      .select('id, insight, urgency, category, created_at, delivered, engaged')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (!includeDelivered) {
+      query.eq('delivered', false);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[Insights] GET /proactive error:', error.message);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+
+    // Sort by urgency (high > medium > low), then by recency
+    const urgencyOrder = { high: 0, medium: 1, low: 2 };
+    const sorted = (data || []).sort((a, b) => {
+      const urgDiff = (urgencyOrder[a.urgency] || 2) - (urgencyOrder[b.urgency] || 2);
+      if (urgDiff !== 0) return urgDiff;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    res.json({ success: true, insights: sorted });
+  } catch (error) {
+    console.error('[Insights] GET /proactive error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch proactive insights' });
+  }
 });
 
 /**

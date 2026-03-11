@@ -1,4 +1,8 @@
 import { forwardRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
+const REMARK_PLUGINS = [remarkGfm];
 import {
   Sparkles, Database, User,
   Lightbulb, RotateCcw, AlertCircle
@@ -85,9 +89,17 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     : assistantBubbleStyle
                 }
               >
-                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {message.content}
-                </p>
+                {message.role === 'assistant' ? (
+                  <div className="text-[15px] leading-relaxed prose prose-sm max-w-none prose-invert">
+                    <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-[15px] leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
+                )}
                 {message.failed && (
                   <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: '1px solid rgba(239,68,68,0.2)' }}>
                     <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#EF4444' }} />

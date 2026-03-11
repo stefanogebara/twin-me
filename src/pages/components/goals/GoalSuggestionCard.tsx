@@ -8,60 +8,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import {
-  Moon,
-  Dumbbell,
-  Focus,
-  CalendarClock,
-  Scale,
   Sparkles,
   Check,
   X,
   Loader2,
 } from 'lucide-react';
+import { TEXT_PRIMARY, TEXT_SECONDARY, BORDER_COLOR, PILL_STYLE, CATEGORY_ICONS } from './goalStyles';
 import type { Goal } from '@/services/api/goalsAPI';
-
-// Design tokens
-const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'var(--text-secondary)';
-const BORDER_COLOR = 'var(--glass-surface-border)';
-
-// Category to icon mapping
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  sleep: Moon,
-  fitness: Dumbbell,
-  focus: Focus,
-  schedule: CalendarClock,
-  balance: Scale,
-};
-
-// Category to color mapping
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  sleep: {
-    bg: 'rgba(99, 102, 241, 0.1)',
-    text: '#818cf8',
-    border: 'rgba(99, 102, 241, 0.2)',
-  },
-  fitness: {
-    bg: 'rgba(16, 185, 129, 0.1)',
-    text: '#34d399',
-    border: 'rgba(16, 185, 129, 0.2)',
-  },
-  focus: {
-    bg: 'rgba(245, 158, 11, 0.1)',
-    text: '#fbbf24',
-    border: 'rgba(245, 158, 11, 0.2)',
-  },
-  schedule: {
-    bg: 'rgba(59, 130, 246, 0.1)',
-    text: '#60a5fa',
-    border: 'rgba(59, 130, 246, 0.2)',
-  },
-  balance: {
-    bg: 'rgba(168, 85, 247, 0.1)',
-    text: '#c084fc',
-    border: 'rgba(168, 85, 247, 0.2)',
-  },
-};
 
 interface GoalSuggestionCardProps {
   goal: Goal;
@@ -81,7 +34,6 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
   index,
 }, ref) => {
   const CategoryIcon = CATEGORY_ICONS[goal.category] ?? Sparkles;
-  const categoryColor = CATEGORY_COLORS[goal.category] ?? CATEGORY_COLORS.balance;
   const isLoading = isAccepting || isDismissing;
 
   return (
@@ -121,11 +73,11 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{
-              background: categoryColor.bg,
-              border: `1px solid ${categoryColor.border}`,
+              background: PILL_STYLE.bg,
+              border: `1px solid ${PILL_STYLE.border}`,
             }}
           >
-            <CategoryIcon className="w-3.5 h-3.5" style={{ color: categoryColor.text }} />
+            <CategoryIcon className="w-3.5 h-3.5" style={{ color: PILL_STYLE.text }} />
           </div>
           <div className="flex-1 min-w-0">
             <h4
@@ -161,9 +113,9 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
             <span
               className="px-2 py-0.5 rounded-full text-[10px]"
               style={{
-                background: categoryColor.bg,
-                color: categoryColor.text,
-                border: `1px solid ${categoryColor.border}`,
+                background: PILL_STYLE.bg,
+                color: PILL_STYLE.text,
+                border: `1px solid ${PILL_STYLE.border}`,
               }}
             >
               Target: {goal.target_operator === '>=' ? '' : goal.target_operator + ' '}

@@ -32,9 +32,10 @@
 - Skip this for simple, obvious fixes — don't over-engineer
 - Challenge your own work before presenting it
 
-### 6. Autonomous Bug Fixing
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests — then resolve them
+### 6. Bug Fixing: Test-First
+- When a bug is reported, do NOT start by trying to fix it
+- First, write a test that reproduces the bug (the test must FAIL)
+- Then, launch subagents to fix the bug and prove it with a passing test
 - Zero context switching required from the user
 - Go fix failing CI tests without being told how
 
@@ -294,12 +295,17 @@ Closes the sensorimotor loop: twin suggests micro-action → user acts → twin 
 - **Auth**: JWT + OAuth 2.0 for platform connections
 - **Analytics**: PostHog
 
-## Active Platform Integrations (5)
+## Active Platform Integrations (10)
 1. **Spotify** - Music taste, listening patterns, mood
 2. **Google Calendar** - Schedule, events, time patterns
 3. **YouTube** - Content preferences, subscriptions
-4. **Discord** - Server activity, community interests, communication style
-5. **LinkedIn** - Career trajectory, professional skills, network
+4. **Gmail** - Communication patterns from email metadata
+5. **Discord** - Server activity, community interests, communication style
+6. **LinkedIn** - Career trajectory, professional skills, network
+7. **GitHub** - Coding activity and open source contributions
+8. **Reddit** - Community interests and discussion patterns
+9. **Twitch** - Gaming identity and streaming preferences
+10. **Whoop** - Recovery, strain, sleep, HRV patterns
 
 ## LLM Model Strategy
 | Tier | Use Case | OpenRouter Model ID | Why |

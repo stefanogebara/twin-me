@@ -1,15 +1,17 @@
 /**
  * Personality Profile API
  *
- * GET  /api/personality-profile        — Current profile (strips embedding)
+ * GET  /api/personality-profile          — Current profile (strips embedding)
  * POST /api/personality-profile/rebuild — Force rebuild
  * GET  /api/personality-profile/drift   — Check drift status
+ * GET  /api/personality-profile/history — Assessment history
  */
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { getProfile, buildProfile } from '../services/personalityProfileService.js';
 import { checkDrift } from '../services/personalityDriftService.js';
+import { getPersonalityHistory } from '../services/personalityEvaluationService.js';
 
 const router = Router();
 
@@ -64,6 +66,17 @@ router.get('/drift', authenticateUser, async (req, res) => {
   } catch (err) {
     console.error('[PersonalityProfile] drift check error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to check personality drift.' });
+  }
+});
+
+// GET /api/personality-profile/history — assessment history
+router.get('/history', authenticateUser, async (req, res) => {
+  try {
+    const history = await getPersonalityHistory(req.user.id, parseInt(req.query.limit) || 12);
+    res.json({ success: true, assessments: history });
+  } catch (err) {
+    console.error('[PersonalityProfile] History fetch error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to fetch personality history' });
   }
 });
 

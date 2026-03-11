@@ -82,6 +82,7 @@ const CACHE_TTL = {
   USER_PROFILE: 600,         // 10 minutes - user profile data
   SOUL_SIGNATURE: 900,       // 15 minutes - soul signature data
   EXTRACTION_JOB: 60,        // 1 minute - extraction job status (more dynamic)
+  IDENTITY_CONTEXT: 14400,   // 4 hours - identity context (matches twin summary TTL)
 };
 
 /**
@@ -92,6 +93,7 @@ const CACHE_KEYS = {
   userProfile: (userId) => `user_profile:${userId}`,
   soulSignature: (userId) => `soul_signature:${userId}`,
   extractionJob: (jobId) => `extraction_job:${jobId}`,
+  identityContext: (userId) => `identity_context:${userId}`,
 };
 
 /**

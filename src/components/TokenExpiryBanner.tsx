@@ -7,7 +7,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+
 import { AlertTriangle, X, RefreshCw, Bell } from 'lucide-react';
+import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { cn } from '@/lib/utils';
@@ -132,7 +134,8 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     || visibleNotifications[0];
 
   const isExpired = urgentNotification.type === 'token_expired';
-  const platformName = urgentNotification.platform.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  const platformName = PLATFORM_DISPLAY_NAMES[urgentNotification.platform]
+    || urgentNotification.platform.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
   return (
     <div

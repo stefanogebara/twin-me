@@ -12,12 +12,12 @@ import { TodayInsights } from '@/components/TodayInsights';
 import { ProactiveInsightsPanel } from '@/components/ProactiveInsightsPanel';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
-import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton';
 import { NextEventCard } from './components/dashboard/NextEventCard';
 import { TwinInsightsGrid } from './components/dashboard/TwinInsightsGrid';
 import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
 import { DailyCheckin } from '@/components/twin/DailyCheckin';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { shouldShowInterviewCTA } from '@/utils/shouldShowInterviewCTA';
 
 const QUICK_CHIPS = [
   { label: 'How am I doing?', icon: Sparkles },
@@ -50,11 +50,7 @@ export const Dashboard: React.FC = () => {
   useDocumentTitle('Dashboard');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [allEvents, setAllEvents] = useState<CalendarEvent[]>([]);
-  const [calendarConnected, setCalendarConnected] = useState(false);
-  const [goalSummary, setGoalSummary] = useState<GoalSummary | null>(null);
-  const [error, setError] = useState<{ message: string; type?: 'auth' | 'general' } | null>(null);
+  const [syncError, setSyncError] = useState<{ message: string; type?: 'auth' | 'general' } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -62,6 +58,80 @@ export const Dashboard: React.FC = () => {
   const { connectedProviders, data: platformStatusData } = usePlatformStatus(user?.id);
 
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
+  // Calendar status + events (single query to avoid waterfall)
+  const { data: calendarData } = useQuery({
+    queryKey: ['calendar-data'],
+    queryFn: async () => {
+      const status = await calendarAPI.getStatus();
+      if (!status.connected) return { connected: false, events: [] as CalendarEvent[], authError: false };
+      if (status.tokenExpired) return { connected: true, events: [] as CalendarEvent[], authError: true };
+      try {
+        const eventsResponse = await calendarAPI.getEvents();
+        return { connected: true, events: eventsResponse.events || [], authError: false };
+      } catch (err: unknown) {
+        const isAuth = err instanceof Error && /401|403|unauthorized|expired|token/i.test(err.message);
+        if (isAuth) return { connected: true, events: [] as CalendarEvent[], authError: true };
+        return { connected: true, events: [] as CalendarEvent[], authError: false };
+      }
+    },
+    staleTime: 60 * 1000,
+    enabled: !isDemoMode,
+  });
+
+  // Goals summary
+  const { data: goalSummary } = useQuery<GoalSummary | null>({
+    queryKey: ['goal-summary'],
+    queryFn: async () => {
+      try { return await goalsAPI.getSummary(); } catch { return null; }
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !isDemoMode,
+  });
+
+  // Demo calendar events (computed synchronously)
+  const demoEvents = useMemo(() => {
+    if (!isDemoMode) return [];
+    const today = new Date();
+    const events: CalendarEvent[] = DEMO_CALENDAR_DATA.todayEvents.map((evt) => {
+      const [startH, startM] = evt.startTime.split(':').map(Number);
+      const [endH, endM] = evt.endTime.split(':').map(Number);
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), startH, startM);
+      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), endH, endM);
+      return {
+        id: evt.id,
+        title: evt.title,
+        startTime: start,
+        endTime: end,
+        type: (evt.type === 'focus' || evt.type === 'workout') ? 'personal' : evt.type as CalendarEvent['type'],
+        isImportant: (evt.attendees || 0) > 3,
+      };
+    });
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    DEMO_CALENDAR_DATA.upcomingEvents.forEach((evt) => {
+      const [h, m] = (evt.time || '10:00').split(':').map(Number);
+      const start = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), h, m);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
+      events.push({
+        id: evt.id,
+        title: evt.title,
+        startTime: start,
+        endTime: end,
+        type: evt.type as CalendarEvent['type'],
+        isImportant: (evt.attendees || 0) > 3,
+      });
+    });
+    return events;
+  }, [isDemoMode]);
+
+  // Derived calendar state
+  const calendarConnected = isDemoMode || calendarData?.connected || false;
+  const allEvents = isDemoMode ? demoEvents : (calendarData?.events || []);
+  const calendarAuthError = !isDemoMode && calendarData?.authError
+    ? { message: 'Calendar connection expired. Please reconnect to see your events.', type: 'auth' as const }
+    : null;
+  const error = syncError || calendarAuthError;
 
   // Daily check-in streak
   const { data: streakData } = useQuery<{ streak: number }>({
@@ -100,7 +170,13 @@ export const Dashboard: React.FC = () => {
     enabled: !!user?.id && !isDemoMode,
   });
 
-  const showInterviewCTA = !isDemoMode && interviewStatus !== undefined && !interviewStatus?.data?.completed_at;
+  const showInterviewCTA = shouldShowInterviewCTA({
+    isDemoMode,
+    interviewCompleted: !!interviewStatus?.data?.completed_at,
+    interviewStatusLoaded: interviewStatus !== undefined,
+    connectedPlatformCount: connectedProviders.length,
+    totalMemories: memoryHealth?.totalCount ?? 0,
+  });
 
   // Dismiss the check-in card locally (separate from checkedIn — allows manual dismissal)
   const [checkinDismissed, setCheckinDismissed] = useState(false);
@@ -115,7 +191,7 @@ export const Dashboard: React.FC = () => {
   const showCheckin = !isDemoMode && !checkinDismissed && todayCheckin !== undefined && !todayCheckin.checkedIn;
 
   // Fetch memory health (includes readiness score) — 5-min stale time, non-blocking
-  const { data: memoryHealth } = useQuery<{ readiness?: TwinReadiness }>({
+  const { data: memoryHealth } = useQuery<{ totalCount?: number; readiness?: TwinReadiness }>({
     queryKey: ['memory-health'],
     queryFn: async () => {
       const res = await authFetch('/memory-health');
@@ -123,7 +199,7 @@ export const Dashboard: React.FC = () => {
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
-    enabled: !localStorage.getItem('demo_mode'),
+    enabled: !isDemoMode,
   });
 
   // Update current time every 30 seconds for live event filtering
@@ -156,136 +232,28 @@ export const Dashboard: React.FC = () => {
     };
   }, [allEvents, currentTime]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
+  // Calendar auto-refresh interval
 
-      const isDemoMode = localStorage.getItem('demo_mode') === 'true';
-
-      if (isDemoMode) {
-        setCalendarConnected(true);
-
-        const today = new Date();
-        const demoEvents: CalendarEvent[] = DEMO_CALENDAR_DATA.todayEvents.map((evt) => {
-          const [startH, startM] = evt.startTime.split(':').map(Number);
-          const [endH, endM] = evt.endTime.split(':').map(Number);
-          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), startH, startM);
-          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), endH, endM);
-          return {
-            id: evt.id,
-            title: evt.title,
-            startTime: start,
-            endTime: end,
-            type: (evt.type === 'focus' || evt.type === 'workout') ? 'personal' : evt.type as CalendarEvent['type'],
-            isImportant: (evt.attendees || 0) > 3,
-          };
-        });
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        DEMO_CALENDAR_DATA.upcomingEvents.forEach((evt) => {
-          const [h, m] = (evt.time || '10:00').split(':').map(Number);
-          const start = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), h, m);
-          const end = new Date(start.getTime() + 60 * 60 * 1000);
-          demoEvents.push({
-            id: evt.id,
-            title: evt.title,
-            startTime: start,
-            endTime: end,
-            type: evt.type as CalendarEvent['type'],
-            isImportant: (evt.attendees || 0) > 3,
-          });
-        });
-        setAllEvents(demoEvents);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const [calendarStatus, goalResult] = await Promise.allSettled([
-          calendarAPI.getStatus(),
-          goalsAPI.getSummary()
-        ]);
-
-        if (goalResult.status === 'fulfilled') {
-          setGoalSummary(goalResult.value);
-        }
-
-        if (calendarStatus.status === 'fulfilled') {
-          setCalendarConnected(calendarStatus.value.connected);
-        }
-
-        if (calendarStatus.status === 'fulfilled' && calendarStatus.value.connected) {
-          if (calendarStatus.value.tokenExpired) {
-            setError({
-              message: 'Calendar connection expired. Please reconnect to see your events.',
-              type: 'auth'
-            });
-          } else {
-            try {
-              const eventsResponse = await calendarAPI.getEvents();
-              setAllEvents(eventsResponse.events || []);
-            } catch (err: unknown) {
-              const isAuthError = err instanceof Error && (
-                err.message.includes('401') ||
-                err.message.includes('403') ||
-                err.message.includes('unauthorized') ||
-                err.message.includes('Unauthorized') ||
-                err.message.includes('expired') ||
-                err.message.includes('token')
-              );
-              if (err instanceof Error && !err.message.includes('not connected')) {
-                setError({
-                  message: isAuthError
-                    ? 'Calendar connection expired. Please reconnect to see your events.'
-                    : 'Failed to load calendar events',
-                  type: isAuthError ? 'auth' : 'general'
-                });
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Dashboard loading error:', err);
-        setError({ message: 'Failed to load dashboard data', type: 'general' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [user]);
-
-  const fetchCalendarEvents = useCallback(async () => {
-    if (!calendarConnected) return;
-    try {
-      const eventsResponse = await calendarAPI.getEvents();
-      setAllEvents(eventsResponse.events || []);
-      setCurrentTime(new Date());
-    } catch (err) {
-      console.error('Failed to fetch calendar events:', err);
-    }
-  }, [calendarConnected]);
+  const refreshCalendar = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['calendar-data'] });
+    setCurrentTime(new Date());
+  }, [queryClient]);
 
   useEffect(() => {
-    if (!calendarConnected) return;
-    const refreshInterval = setInterval(fetchCalendarEvents, CALENDAR_REFRESH_INTERVAL);
+    if (!calendarConnected || isDemoMode) return;
+    const refreshInterval = setInterval(refreshCalendar, CALENDAR_REFRESH_INTERVAL);
     return () => clearInterval(refreshInterval);
-  }, [calendarConnected, fetchCalendarEvents]);
+  }, [calendarConnected, isDemoMode, refreshCalendar]);
 
   const handleSync = async () => {
     setSyncing(true);
-    setError(null);
+    setSyncError(null);
     try {
       await calendarAPI.sync();
-      await fetchCalendarEvents();
+      refreshCalendar();
     } catch (err) {
-      const isAuthError = err instanceof Error && (
-        err.message.includes('401') ||
-        err.message.includes('403') ||
-        err.message.includes('expired')
-      );
-      setError({
+      const isAuthError = err instanceof Error && /401|403|expired/i.test(err.message);
+      setSyncError({
         message: isAuthError
           ? 'Calendar connection expired. Please reconnect.'
           : 'Failed to sync calendar',
@@ -395,10 +363,6 @@ export const Dashboard: React.FC = () => {
       actionPath: isYouTubeConnected ? '/insights/youtube' : '/get-started'
     },
   ];
-
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
 
   return (
     <PageLayout>

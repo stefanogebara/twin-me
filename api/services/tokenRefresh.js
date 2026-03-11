@@ -128,6 +128,18 @@ const REFRESH_CONFIGS = {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     buildBody: (clientId, clientSecret, refreshToken) =>
       `grant_type=refresh_token&refresh_token=${refreshToken}&client_id=${clientId}&client_secret=${clientSecret}`
+  },
+
+  // Reddit - Basic Auth (same pattern as Spotify)
+  reddit: {
+    tokenEndpoint: 'https://www.reddit.com/api/v1/access_token',
+    method: 'POST',
+    headers: (clientId, clientSecret) => ({
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    }),
+    buildBody: (_clientId, _clientSecret, refreshToken) =>
+      `grant_type=refresh_token&refresh_token=${refreshToken}`
   }
 };
 
@@ -178,6 +190,10 @@ const CLIENT_CREDENTIALS = {
   twitch: {
     clientId: process.env.TWITCH_CLIENT_ID,
     clientSecret: process.env.TWITCH_CLIENT_SECRET
+  },
+  reddit: {
+    clientId: process.env.REDDIT_CLIENT_ID,
+    clientSecret: process.env.REDDIT_CLIENT_SECRET
   }
 };
 

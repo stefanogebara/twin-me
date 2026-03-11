@@ -529,6 +529,11 @@ router.post('/extract/multi-platform',
  */
 router.get('/demo/:platform', async (req, res) => {
   const { platform } = req.params;
+  const VALID_PLATFORMS = ['spotify', 'youtube', 'discord', 'twitch', 'linkedin', 'whoop', 'calendar', 'reddit', 'github', 'gmail'];
+
+  if (!VALID_PLATFORMS.includes(platform)) {
+    return res.status(400).json({ success: false, error: 'Invalid platform' });
+  }
 
   console.log(`🎭 Demo request for ${platform} - redirecting to real connection`);
 

@@ -9,8 +9,47 @@
 const LOG_LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 const LEVEL_NAMES = { 10: 'debug', 20: 'info', 30: 'warn', 40: 'error' };
 
-const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'debug'] || LOG_LEVELS.debug;
 const isProduction = process.env.NODE_ENV === 'production';
+const defaultLevel = isProduction ? 'info' : 'debug';
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || defaultLevel] || LOG_LEVELS.debug;
+
+// ====================================================================
+// PII Redaction
+// ====================================================================
+const PII_FIELDS = new Set([
+  'email', 'phone', 'token', 'password', 'secret',
+  'authorization', 'access_token', 'refresh_token',
+  'api_key', 'apikey', 'api-key', 'client_secret',
+]);
+
+const REDACTED = '***REDACTED***';
+
+/**
+ * Deep-clone an object and replace PII field values with '***REDACTED***'.
+ * Works on plain objects and arrays. Primitives pass through unchanged.
+ * @param {*} obj - Value to redact
+ * @returns {*} New object with PII fields masked
+ */
+export function redact(obj) {
+  if (obj == null || typeof obj !== 'object') return obj;
+  if (obj instanceof Error) {
+    return { name: obj.name, message: obj.message, ...(obj.code && { code: obj.code }) };
+  }
+  if (Array.isArray(obj)) return obj.map(item => redact(item));
+
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const lowerKey = key.toLowerCase().replace(/[-_]/g, '');
+    if (PII_FIELDS.has(key.toLowerCase()) || PII_FIELDS.has(lowerKey)) {
+      result[key] = typeof value === 'string' ? REDACTED : value;
+    } else if (typeof value === 'object' && value !== null) {
+      result[key] = redact(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
 /**
  * Format a log entry. JSON in production, human-readable in development.
@@ -124,4 +163,4 @@ export function requestLogger() {
   };
 }
 
-export default { createLogger, requestLogger };
+export default { createLogger, requestLogger, redact };

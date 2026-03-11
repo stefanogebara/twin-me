@@ -14,17 +14,7 @@ const PLATFORM_COLORS: Record<string, string> = {
   gmail: '#EA4335',
 };
 
-const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
-  spotify: 'Spotify',
-  youtube: 'YouTube',
-  google_youtube: 'YouTube',
-  calendar: 'Google Calendar',
-  google_calendar: 'Google Calendar',
-  'google-calendar': 'Google Calendar',
-  github: 'GitHub',
-  discord: 'Discord',
-  gmail: 'Gmail',
-};
+import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
 
 interface PlatformData {
   name: string;

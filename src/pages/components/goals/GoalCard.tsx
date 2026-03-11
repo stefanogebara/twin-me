@@ -11,11 +11,6 @@ import {
   Flame,
   Trophy,
   Clock,
-  Moon,
-  Dumbbell,
-  Focus,
-  CalendarClock,
-  Scale,
   Sparkles,
   Loader2,
   ChevronDown,
@@ -23,54 +18,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import GoalProgressChart from './GoalProgressChart';
+import { TEXT_PRIMARY, TEXT_SECONDARY, BORDER_COLOR, PILL_STYLE, CATEGORY_LABELS, CATEGORY_ICONS } from './goalStyles';
 import type { Goal, GoalProgress } from '@/services/api/goalsAPI';
-
-// Design tokens
-const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'var(--text-secondary)';
-const BORDER_COLOR = 'var(--glass-surface-border)';
-
-// Category color mapping
-const CATEGORY_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
-  sleep: {
-    bg: 'rgba(99, 102, 241, 0.1)',
-    text: '#818cf8',
-    border: 'rgba(99, 102, 241, 0.2)',
-    label: 'Sleep',
-  },
-  fitness: {
-    bg: 'rgba(16, 185, 129, 0.1)',
-    text: '#34d399',
-    border: 'rgba(16, 185, 129, 0.2)',
-    label: 'Fitness',
-  },
-  focus: {
-    bg: 'rgba(245, 158, 11, 0.1)',
-    text: '#fbbf24',
-    border: 'rgba(245, 158, 11, 0.2)',
-    label: 'Focus',
-  },
-  schedule: {
-    bg: 'rgba(59, 130, 246, 0.1)',
-    text: '#60a5fa',
-    border: 'rgba(59, 130, 246, 0.2)',
-    label: 'Schedule',
-  },
-  balance: {
-    bg: 'rgba(168, 85, 247, 0.1)',
-    text: '#c084fc',
-    border: 'rgba(168, 85, 247, 0.2)',
-    label: 'Balance',
-  },
-};
-
-const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  sleep: Moon,
-  fitness: Dumbbell,
-  focus: Focus,
-  schedule: CalendarClock,
-  balance: Scale,
-};
 
 interface GoalCardProps {
   goal: Goal;
@@ -90,7 +39,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
 
-  const categoryStyle = CATEGORY_STYLES[goal.category] ?? CATEGORY_STYLES.balance;
+  const categoryLabel = CATEGORY_LABELS[goal.category] ?? 'Balance';
   const CategoryIcon = CATEGORY_ICONS[goal.category] ?? Sparkles;
 
   // Progress percentage
@@ -138,11 +87,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{
-              background: categoryStyle.bg,
-              border: `1px solid ${categoryStyle.border}`,
+              background: PILL_STYLE.bg,
+              border: `1px solid ${PILL_STYLE.border}`,
             }}
           >
-            <CategoryIcon className="w-4 h-4" style={{ color: categoryStyle.text }} />
+            <CategoryIcon className="w-4 h-4" style={{ color: PILL_STYLE.text }} />
           </div>
           <div className="flex-1 min-w-0">
             <h4
@@ -154,12 +103,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
             <span
               className="inline-block px-3 py-1 rounded-full text-xs font-medium mt-1.5"
               style={{
-                background: categoryStyle.bg,
-                color: categoryStyle.text,
-                border: `1px solid ${categoryStyle.border}`,
+                background: PILL_STYLE.bg,
+                color: PILL_STYLE.text,
+                border: `1px solid ${PILL_STYLE.border}`,
               }}
             >
-              {categoryStyle.label}
+              {categoryLabel}
             </span>
           </div>
         </div>
@@ -198,7 +147,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         >
           <motion.div
             className="h-full rounded-full"
-            style={{ backgroundColor: categoryStyle.text }}
+            style={{ backgroundColor: 'var(--accent-vibrant)' }}
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}

@@ -2,7 +2,6 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { body, validationResult } from 'express-validator';
 import dotenv from 'dotenv';
 import path from 'path';
 import http from 'http';
@@ -21,8 +20,11 @@ import { startBackgroundJobs, stopBackgroundJobs } from './services/tokenLifecyc
 import { startPatternLearningJob, stopPatternLearningJob } from './services/patternLearningJob.js';
 import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/tokenExpiryNotifier.js';
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
-import behavioralEvidencePipeline from './services/behavioralEvidencePipeline.js';
 import { startObservationIngestion, stopObservationIngestion } from './services/observationIngestion.js';
+
+// Structured logging (imported early so log is available throughout server setup)
+import { createLogger } from './utils/logger.js';
+const log = createLogger('Server');
 
 // Only use dotenv in development - Vercel provides env vars directly
 // Updated: Fixed SUPABASE_SERVICE_ROLE_KEY truncation issue
@@ -41,8 +43,8 @@ const REQUIRED_ENV_VARS = [
 
 const missingVars = REQUIRED_ENV_VARS.filter(key => !process.env[key]);
 if (missingVars.length > 0) {
-  console.error(`❌ FATAL: Missing required environment variables: ${missingVars.join(', ')}`);
-  console.error('   Server cannot start without these. Check .env or hosting config.');
+  log.error('FATAL: Missing required environment variables', { missingVars });
+  log.error('Server cannot start without these. Check .env or hosting config.');
   process.exit(1);
 }
 
@@ -63,7 +65,7 @@ if (process.env.SENTRY_DSN) {
     ],
   });
 
-  console.log('✅ Sentry error tracking initialized');
+  log.info('Sentry error tracking initialized');
 
   // RequestHandler must be the first middleware
   app.use(Sentry.Handlers.requestHandler());
@@ -72,7 +74,7 @@ if (process.env.SENTRY_DSN) {
   app.use(Sentry.Handlers.tracingHandler());
 } else if (process.env.NODE_ENV === 'production') {
   // Only warn in production - in development, Sentry is typically not needed
-  console.log('⚠️  Sentry DSN not configured - error tracking disabled');
+  log.warn('Sentry DSN not configured - error tracking disabled');
 }
 
 // Trust proxy - required for Vercel serverless functions
@@ -123,11 +125,19 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
+    // No-origin requests: server-to-server (crons, webhooks, health checks) don't send Origin.
+    // In development, allow all no-origin requests (curl, Postman, mobile).
+    // In production, return false to omit CORS headers — non-browser clients are unaffected
+    // (CORS is browser-enforced), and JWT is the real security guard.
+    if (!origin) {
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    }
 
     // Allow browser extensions — auth middleware handles security via JWT
-    if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://'))) {
+    if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
       return callback(null, true);
     }
 
@@ -142,7 +152,7 @@ app.use(cors({
     }
 
     // Log rejected origins for debugging
-    console.warn(`CORS rejected origin: ${origin}`);
+    log.warn('CORS rejected origin', { origin });
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
@@ -333,102 +343,22 @@ import discoveryRoutes from './routes/discovery.js';
 import cronEmailDigestHandler from './routes/cron-email-digest.js';
 import emailUnsubscribeRoutes from './routes/email-unsubscribe.js';
 import personalityProfileRoutes from './routes/personality-profile.js';
+import systemHealthRoutes from './routes/system-health.js';
+import healthRoutes from './routes/health.js';
+import testEvidencePipelineRoutes from './routes/test-evidence-pipeline.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
   ogImageRoutes = (await import('./routes/og-image.js')).default;
 } catch (err) {
-  console.warn('[OG Image] Failed to load OG image routes:', err.message);
+  log.warn('Failed to load OG image routes', { error: err });
 }
-import { serverDb, supabaseAdmin } from './services/database.js';
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
-import { /* handleAuthError, */ handleGeneralError, handle404 } from './middleware/errorHandler.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authenticateUser } from './middleware/auth.js';
 
-// Health check cache: avoid hammering Supabase on every uptime probe
-let _healthCache = null;
-let _healthCacheAt = 0;
-const HEALTH_CACHE_TTL_MS = 30_000; // 30 seconds
-
-// System health check endpoint (4A - Production Hardening)
-// No auth required so uptime monitors (UptimeRobot, Vercel checks) can hit it
-app.get('/api/system/health', async (req, res) => {
-  // Return cached result if fresh enough
-  if (_healthCache && (Date.now() - _healthCacheAt) < HEALTH_CACHE_TTL_MS) {
-    return res.status(_healthCache.status === 'unhealthy' ? 503 : 200).json(_healthCache);
-  }
-
-  const checks = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: { connected: false },
-    memoryStreamCount: 0,
-    ingestionLastRun: null,
-    llmCallsLastHour: 0,
-  };
-
-  try {
-    // 1. Database connectivity — use user_memories (lighter; avoids users table churn)
-    if (!supabaseAdmin) {
-      checks.database.connected = false;
-      checks.database.error = 'supabaseAdmin not initialized';
-    } else {
-      const { error: dbError } = await supabaseAdmin
-        .from('user_memories')
-        .select('id')
-        .limit(1);
-      checks.database.connected = !dbError;
-      if (dbError) checks.database.error = dbError.message;
-    }
-  } catch (e) {
-    checks.database.connected = false;
-    checks.database.error = e.message;
-  }
-
-  // If database is not connected, cache the unhealthy result and return 503
-  if (!checks.database.connected) {
-    checks.status = 'unhealthy';
-    _healthCache = checks;
-    _healthCacheAt = Date.now();
-    return res.status(503).json(checks);
-  }
-
-  try {
-    // 2. Memory stream count
-    const { count, error: memError } = await supabaseAdmin
-      .from('user_memories')
-      .select('*', { count: 'exact', head: true });
-    if (!memError) checks.memoryStreamCount = count || 0;
-
-    // 3. Ingestion last-run
-    const { data: lastRun, error: ingError } = await supabaseAdmin
-      .from('ingestion_health_log')
-      .select('run_at, duration_ms, users_processed, observations_stored, errors')
-      .order('run_at', { ascending: false })
-      .limit(1)
-      .single();
-    if (!ingError && lastRun) checks.ingestionLastRun = lastRun;
-
-    // 4. LLM calls last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count: llmCount, error: llmError } = await supabaseAdmin
-      .from('llm_usage_log')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneHourAgo);
-    if (!llmError) checks.llmCallsLastHour = llmCount || 0;
-  } catch (e) {
-    // Non-fatal: database is connected but some queries failed
-    checks.queryError = e.message;
-  }
-
-  _healthCache = checks;
-  _healthCacheAt = Date.now();
-  res.status(200).json(checks);
-});
-
 // API routes
+app.use('/api/system/health', systemHealthRoutes); // System health check (uptime monitors)
 app.use('/api/ai', aiRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/twins', twinsRoutes);
@@ -499,17 +429,6 @@ app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly mu
 app.use('/api/cron/memory-saliency-replay', cronMemorySaliencyReplayRoutes); // Daily saliency replay (CL1-inspired)
 app.use('/api/cron/personality-eval', cronPersonalityEvalRoutes);   // Weekly personality assessment (Sunday 4am)
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
-// Personality assessment history (inline — small enough not to need its own route file)
-app.get('/api/personality/history', authenticateUser, async (req, res) => {
-  try {
-    const { getPersonalityHistory } = await import('./services/personalityEvaluationService.js');
-    const history = await getPersonalityHistory(req.user.id, parseInt(req.query.limit) || 12);
-    res.json({ success: true, assessments: history });
-  } catch (err) {
-    console.error('[Personality] History fetch error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch personality history' });
-  }
-});
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags (dev-only)
@@ -539,47 +458,10 @@ app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 m
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 
-// Health check endpoint (non-blocking with timeout)
-app.get('/api/health', async (req, res) => {
-  let dbHealth = { healthy: false, error: null };
-  try {
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('DB health check timeout')), 3000)
-    );
-    dbHealth = await Promise.race([serverDb.healthCheck(), timeout]);
-  } catch (e) {
-    dbHealth = { healthy: false, error: e };
-  }
-
-  res.json({
-    status: dbHealth.healthy ? 'ok' : 'degraded',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    database: {
-      connected: dbHealth.healthy,
-      error: dbHealth.error?.message || null
-    }
-  });
-});
-
-// TEMPORARY: Test endpoint to trigger evidence pipeline (for debugging)
-// SECURITY FIX: Only available in development mode
+app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
 if (process.env.NODE_ENV === 'development') {
-  app.get('/api/test-evidence-pipeline/:userId', async (req, res) => {
-    try {
-      const { userId } = req.params;
-      console.log(`🧪 [Test] Triggering evidence pipeline for user ${userId}`);
-      const result = await behavioralEvidencePipeline.runPipeline(userId);
-      res.json(result);
-    } catch (error) {
-      console.error('Test pipeline error:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes); // Evidence pipeline debugging
 }
-
-// Authentication error handling (must be before general error handler)
-// app.use(handleAuthError);
 
 // Sentry error handler (must be after routes but before other error handlers)
 if (process.env.SENTRY_DSN) {
@@ -607,11 +489,10 @@ app.use(errorHandler);
 // - This is necessary because Vercel serverless functions are stateless - persistent
 //   cron jobs won't work. Vercel Cron calls our endpoints on schedule instead.
 //
-console.log(`🔍 NODE_ENV check: "${process.env.NODE_ENV}" (condition: !== 'production')`);
-console.log(`🔍 Condition result: ${process.env.NODE_ENV !== 'production'}`);
+log.debug('NODE_ENV check', { nodeEnv: process.env.NODE_ENV, isNotProduction: process.env.NODE_ENV !== 'production' });
 
 if (process.env.NODE_ENV !== 'production') {
-  console.log('✅ Entering development server initialization block...');
+  log.info('Entering development server initialization block');
   // Create HTTP server for WebSocket support
   const server = http.createServer(app);
 
@@ -629,9 +510,9 @@ if (process.env.NODE_ENV !== 'production') {
   // Set DISABLE_BACKGROUND_JOBS=true to skip background workers (useful when DB is under load)
   const disableBackgroundJobs = process.env.DISABLE_BACKGROUND_JOBS === 'true';
   if (disableBackgroundJobs) {
-    console.log('⚠️  Background jobs DISABLED (DISABLE_BACKGROUND_JOBS=true). Skipping cron workers.');
+    log.warn('Background jobs DISABLED (DISABLE_BACKGROUND_JOBS=true)');
   } else {
-    console.log('🔧 Initializing background services (development mode)...');
+    log.info('Initializing background services (development mode)');
 
     // Platform polling service - platform-specific schedules
     // Production equivalent: Vercel Cron → /api/cron/platform-polling
@@ -662,36 +543,20 @@ if (process.env.NODE_ENV !== 'production') {
     startObservationIngestion();
   }
 
-
   // Start HTTP server
   server.listen(PORT, () => {
-    console.log(`🚀 Secure API server running on port ${PORT}`);
-    console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔐 CORS origin: ${process.env.VITE_APP_URL || 'http://localhost:8080'}`);
-    console.log(`🔌 WebSocket server enabled on ws://localhost:${PORT}/ws`);
-    console.log(`⏰ Background services active:`);
-    console.log(`   - Bull Job Queue: ${process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL ? 'Enabled' : 'Disabled (using fallback)'}`);
-    console.log(`   - Queue Dashboard: http://localhost:${PORT}/api/queues/dashboard`);
-    console.log(`   - Token Lifecycle Jobs:`);
-    console.log(`     • Token Refresh: Every 5 minutes (prevents token expiration)`);
-    console.log(`     • OAuth Cleanup: Every 15 minutes (removes expired states)`);
-    console.log(`   - Platform Polling:`);
-    console.log(`     • Spotify: Every 30 minutes`);
-    console.log(`     • YouTube: Every 2 hours`);
-    console.log(`     • GitHub: Every 6 hours`);
-    console.log(`     • Discord: Every 4 hours`);
-    console.log(`     • Gmail: Every 1 hour`);
-    console.log(`   - Pattern Learning:`);
-    console.log(`     • Feedback Processing: Every 6 hours`);
-    console.log(`     • Test endpoint: http://localhost:${PORT}/api/test-pattern-learning/status`);
-    console.log(`   - Observation Ingestion:`);
-    console.log(`     • Spotify/Calendar/YouTube: Every 30 minutes`);
-    console.log(`     • Cron endpoint: /api/cron/ingest-observations`);
+    const hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL);
+    log.info('Server started', {
+      port: PORT,
+      env: process.env.NODE_ENV || 'development',
+      cors: process.env.VITE_APP_URL || 'http://localhost:8080',
+      bullQueue: hasRedis ? 'Enabled' : 'Fallback',
+    });
   });
 
   // Graceful shutdown handlers
   const gracefulShutdown = async (signal) => {
-    console.log(`\n🛑 Received ${signal}, starting graceful shutdown...`);
+    log.info('Graceful shutdown initiated', { signal });
 
     // Stop background jobs first
     stopBackgroundJobs();
@@ -704,26 +569,25 @@ if (process.env.NODE_ENV !== 'production') {
 
     // Close server
     server.close(() => {
-      console.log('✅ Server closed successfully');
+      log.info('Server closed successfully');
       process.exit(0);
     });
 
     // Force exit after 10 seconds if graceful shutdown fails
     setTimeout(() => {
-      console.error('⏰ Graceful shutdown timeout, forcing exit');
+      log.error('Graceful shutdown timeout, forcing exit');
       process.exit(1);
     }, 10000);
   };
 
   // Handle unhandled promise rejections to prevent server crashes
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('⚠️ Unhandled Promise Rejection:', reason);
-    console.error('Promise:', promise);
+    log.error('Unhandled Promise Rejection', { reason: reason instanceof Error ? reason : String(reason) });
     // Don't exit - just log and continue
   });
 
   process.on('uncaughtException', (error) => {
-    console.error('⚠️ Uncaught Exception:', error);
+    log.error('Uncaught Exception', { error });
     // For uncaught exceptions, we should exit as the app might be in an inconsistent state
     // But give time for logging
     setTimeout(() => process.exit(1), 1000);
@@ -734,8 +598,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export default app;
-
-
-
-
 

@@ -54,6 +54,7 @@ const EXPERT_META: Record<string, { label: string; color: string; bg: string }> 
   health_behaviorist: { label: 'Health', color: '#f87171', bg: 'rgba(239,68,68,0.15)' },
   media_sociologist: { label: 'Media', color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
   digital_behaviorist: { label: 'Digital', color: '#a78bfa', bg: 'rgba(139,92,246,0.15)' },
+  code_architect: { label: 'Code', color: '#38bdf8', bg: 'rgba(56,189,248,0.15)' },
 };
 
 interface Reflection {
@@ -147,23 +148,31 @@ const BrainPage: React.FC = () => {
   useEffect(() => {
     if (!isSignedIn || isDemoMode || !user?.id) return;
 
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) setReflectionsLoading(false);
+    }, 5000);
+
     const fetchReflections = async () => {
       setReflectionsLoading(true);
       try {
         const res = await authFetch('/twin/reflections?limit=20');
+        if (cancelled) return;
         if (!res.ok) return;
         const json = await res.json();
-        if (json.success && Array.isArray(json.reflections)) {
+        if (!cancelled && json.success && Array.isArray(json.reflections)) {
           setReflections(json.reflections);
         }
       } catch {
         // silently fail — reflections are additive, not critical
       } finally {
-        setReflectionsLoading(false);
+        clearTimeout(timeout);
+        if (!cancelled) setReflectionsLoading(false);
       }
     };
 
     fetchReflections();
+    return () => { cancelled = true; clearTimeout(timeout); };
   }, [isSignedIn, isDemoMode, user?.id]);
 
   useEffect(() => {

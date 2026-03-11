@@ -76,7 +76,14 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
                 </p>
               </div>
               <button
-                onClick={() => handleRevokeConsent(consent.consent_type, consent.platform || '')}
+                onClick={() => {
+                  const label = consent.platform
+                    ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')}`
+                    : consent.consent_type.replace(/_/g, ' ');
+                  if (window.confirm(`Revoke consent for ${label}? This cannot be undone.`)) {
+                    handleRevokeConsent(consent.consent_type, consent.platform || '');
+                  }
+                }}
                 disabled={revokingConsent === `${consent.consent_type}:${consent.platform}`}
                 className="text-xs px-3 py-1.5 rounded-lg transition-all"
                 style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
