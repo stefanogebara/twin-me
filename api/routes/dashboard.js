@@ -106,7 +106,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
     };
 
     // Cache in Redis (fire-and-forget, don't block response)
-    cacheSet(dashboardStatsCacheKey(userId), stats, DASHBOARD_STATS_TTL);
+    cacheSet(dashboardStatsCacheKey(userId), stats, DASHBOARD_STATS_TTL).catch(() => {});
 
     res.json({ success: true, stats });
   } catch (error) {

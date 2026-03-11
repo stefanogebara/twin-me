@@ -6,6 +6,7 @@
  */
 
 import express from 'express';
+import { VALID_DEMO_PLATFORMS } from '../config/platformConfigs.js';
 import { platformAPIMappings } from '../services/platformAPIMappings.js';
 import { encryptState, encryptToken } from '../services/encryption.js';
 import { authenticateUser } from '../middleware/auth.js';
@@ -492,9 +493,7 @@ router.post('/import/hbo-max', authenticateUser, async (req, res) => {
 router.get('/demo/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
-    const VALID_PLATFORMS = ['spotify', 'youtube', 'discord', 'twitch', 'linkedin', 'whoop', 'calendar', 'reddit', 'github', 'gmail'];
-
-    if (!VALID_PLATFORMS.includes(platform)) {
+    if (!VALID_DEMO_PLATFORMS.includes(platform)) {
       return res.status(400).json({ success: false, error: 'Invalid platform' });
     }
 

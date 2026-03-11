@@ -7,6 +7,7 @@
  */
 
 import express from 'express';
+import { VALID_DEMO_PLATFORMS } from '../config/platformConfigs.js';
 import RealTimeExtractor from '../services/realTimeExtractor.js';
 import spotifyEnhancedExtractor from '../services/spotifyEnhancedExtractor.js';
 import youtubeEnhancedExtractor from '../services/youtubeEnhancedExtractor.js';
@@ -529,9 +530,7 @@ router.post('/extract/multi-platform',
  */
 router.get('/demo/:platform', async (req, res) => {
   const { platform } = req.params;
-  const VALID_PLATFORMS = ['spotify', 'youtube', 'discord', 'twitch', 'linkedin', 'whoop', 'calendar', 'reddit', 'github', 'gmail'];
-
-  if (!VALID_PLATFORMS.includes(platform)) {
+  if (!VALID_DEMO_PLATFORMS.includes(platform)) {
     return res.status(400).json({ success: false, error: 'Invalid platform' });
   }
 

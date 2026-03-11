@@ -18,6 +18,7 @@ import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
 import { DailyCheckin } from '@/components/twin/DailyCheckin';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { shouldShowInterviewCTA } from '@/utils/shouldShowInterviewCTA';
+import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
 
 const QUICK_CHIPS = [
   { label: 'How am I doing?', icon: Sparkles },
@@ -158,6 +159,18 @@ export const Dashboard: React.FC = () => {
     enabled: !isDemoMode,
   });
 
+  // Fetch memory health (includes readiness score) — 5-min stale time, non-blocking
+  const { data: memoryHealth } = useQuery<{ totalCount?: number; readiness?: TwinReadiness }>({
+    queryKey: ['memory-health'],
+    queryFn: async () => {
+      const res = await authFetch('/memory-health');
+      if (!res.ok) throw new Error('Failed to load memory health');
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !isDemoMode,
+  });
+
   // Fetch interview completion status — shown as a CTA if not done
   const { data: interviewStatus } = useQuery<{ data: { completed_at: string | null } | null }>({
     queryKey: ['interview-status', user?.id],
@@ -189,18 +202,6 @@ export const Dashboard: React.FC = () => {
 
   // Show the check-in card when: not demo mode, not yet checked in, and not dismissed this session
   const showCheckin = !isDemoMode && !checkinDismissed && todayCheckin !== undefined && !todayCheckin.checkedIn;
-
-  // Fetch memory health (includes readiness score) — 5-min stale time, non-blocking
-  const { data: memoryHealth } = useQuery<{ totalCount?: number; readiness?: TwinReadiness }>({
-    queryKey: ['memory-health'],
-    queryFn: async () => {
-      const res = await authFetch('/memory-health');
-      if (!res.ok) throw new Error('Failed to load memory health');
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000,
-    enabled: !isDemoMode,
-  });
 
   // Update current time every 30 seconds for live event filtering
   useEffect(() => {
@@ -275,18 +276,6 @@ export const Dashboard: React.FC = () => {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays === 1) return 'yesterday';
     return `${diffDays}d ago`;
-  };
-
-  const PLATFORM_DISPLAY_NAMES: Record<string, string> = {
-    spotify: 'Spotify',
-    google_calendar: 'Calendar',
-    youtube: 'YouTube',
-    discord: 'Discord',
-    linkedin: 'LinkedIn',
-    whoop: 'Whoop',
-    twitch: 'Twitch',
-    github: 'GitHub',
-    reddit: 'Reddit',
   };
 
   const formatTimeUntil = (startDate: Date, endDate?: Date) => {

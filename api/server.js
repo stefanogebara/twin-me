@@ -23,7 +23,7 @@ import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRa
 import { startObservationIngestion, stopObservationIngestion } from './services/observationIngestion.js';
 
 // Structured logging (imported early so log is available throughout server setup)
-import { createLogger } from './utils/logger.js';
+import { createLogger } from './services/logger.js';
 const log = createLogger('Server');
 
 // Only use dotenv in development - Vercel provides env vars directly
@@ -226,7 +226,7 @@ app.use((req, res, next) => {
 });
 
 // Structured request logging (before routes, after rate limiting)
-import { requestLogger } from './utils/logger.js';
+import { requestLogger } from './services/logger.js';
 app.use(requestLogger());
 
 // Billing webhook needs raw body — mount BEFORE express.json
