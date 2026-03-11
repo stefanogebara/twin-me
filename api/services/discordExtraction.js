@@ -8,6 +8,9 @@
 import axios from 'axios';
 import { supabaseAdmin } from './database.js';
 import { decryptToken } from './encryption.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('DiscordExtraction');
 
 /**
  * Main extraction function - retrieves all Discord data
@@ -38,7 +41,7 @@ export async function extractDiscordData(userId) {
       'User-Agent': 'TwinMe-App'
     };
 
-    console.log(`💜 Extracting Discord data for user ${userId}...`);
+    log.info(`Extracting Discord data for user ${userId}...`);
 
     // Extract multiple data types in parallel for performance
     const [
@@ -68,7 +71,7 @@ export async function extractDiscordData(userId) {
       soulData.guilds.length +
       soulData.connections.length;
 
-    console.log(`✅ Extracted ${totalItems} Discord items`);
+    log.info(`Extracted ${totalItems} Discord items`);
 
     // Save extracted data to soul_data table
     const { error: insertError } = await supabaseAdmin
@@ -87,7 +90,7 @@ export async function extractDiscordData(userId) {
       });
 
     if (insertError) {
-      console.error('Error saving Discord data:', insertError);
+      log.error('Error saving Discord data:', insertError);
     }
 
     // Update connection status
@@ -99,7 +102,7 @@ export async function extractDiscordData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'discord');
-    if (syncSuccessErr) console.warn('[Discord] Error updating sync success status:', syncSuccessErr.message);
+    if (syncSuccessErr) log.warn('Error updating sync success status:', syncSuccessErr.message);
 
     return {
       success: true,
@@ -110,7 +113,7 @@ export async function extractDiscordData(userId) {
     };
 
   } catch (error) {
-    console.error('Discord extraction error:', error);
+    log.error('Discord extraction error:', error);
 
     // Handle token expiration
     if (error.response?.status === 401) {
@@ -121,7 +124,7 @@ export async function extractDiscordData(userId) {
         })
         .eq('user_id', userId)
         .eq('platform', 'discord');
-      if (reauthErr) console.warn('[Discord] Error updating reauth status:', reauthErr.message);
+      if (reauthErr) log.warn('Error updating reauth status:', reauthErr.message);
 
       return {
         success: false,
@@ -149,7 +152,7 @@ export async function extractDiscordData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'discord');
-    if (failedErr) console.warn('[Discord] Error updating failed status:', failedErr.message);
+    if (failedErr) log.warn('Error updating failed status:', failedErr.message);
 
     throw error;
   }

@@ -8,6 +8,9 @@ import cron from 'node-cron';
 import { supabaseAdmin } from './database.js';
 import axios from 'axios';
 import { encryptToken, decryptToken } from './encryption.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TokenRefreshService');
 
 // In-memory lock to prevent concurrent token refresh attempts
 // Key: `${userId}:${platform}`, Value: Promise that resolves when refresh completes
@@ -70,13 +73,13 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   const config = getPlatformRefreshConfig(platform);
 
   if (!config || !config.tokenUrl) {
-    console.log(`ℹ️  Platform ${platform} doesn't support token refresh`);
+    log.info(`Platform ${platform} doesn't support token refresh`);
     return null;
   }
 
   try {
-    console.log(`🔄 Refreshing token for ${platform} (user: ${userId})`);
-    console.log(`🔷 [Token Refresh] Config for ${platform}:`, {
+    log.info(`Refreshing token for ${platform} (user: ${userId})`);
+    log.info(`Config for ${platform}:`, {
       hasTokenUrl: !!config?.tokenUrl,
       hasClientId: !!config?.clientId,
       hasClientSecret: !!config?.clientSecret,
@@ -115,7 +118,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     const params = new URLSearchParams(paramsObj);
 
     // Debug: log the exact params being sent (mask secrets)
-    console.log(`🔷 [Token Refresh] Request params for ${platform}:`, {
+    log.info(`Request params for ${platform}:`, {
       grant_type: paramsObj.grant_type,
       has_refresh_token: !!paramsObj.refresh_token,
       refresh_token_length: paramsObj.refresh_token?.length,
@@ -135,7 +138,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       throw new Error('No access token in refresh response');
     }
 
-    console.log(`✅ Token refreshed successfully for ${platform}`);
+    log.info(`Token refreshed successfully for ${platform}`);
 
     return {
       accessToken: access_token,
@@ -143,7 +146,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       expiresIn: expires_in || 3600, // Default 1 hour
     };
   } catch (error) {
-    console.error(`❌ Token refresh failed for ${platform}:`, error.response?.data || error.message);
+    log.error(`Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
     // Mark connection as expired (database constraint allows: connected, disconnected, error, pending, expired)
     const { error: expiredErr } = await supabaseAdmin
@@ -156,7 +159,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       .eq('platform', platform);
 
     if (expiredErr) {
-      console.warn(`⚠️  Failed to mark ${platform} token as expired:`, expiredErr.message);
+      log.warn(`Failed to mark ${platform} token as expired:`, expiredErr.message);
     }
 
     return null;
@@ -184,7 +187,7 @@ function isNangoManagedToken(token) {
  */
 async function checkAndRefreshExpiringTokens() {
   try {
-    console.log('🔍 Checking for expiring tokens...');
+    log.info('Checking for expiring tokens...');
 
     // Get all connections that expire in the next 10 minutes
     // Include both 'connected' and 'token_expired' status (tokens can be refreshed even if expired)
@@ -198,37 +201,37 @@ async function checkAndRefreshExpiringTokens() {
       .lt('token_expires_at', tenMinutesFromNow);
 
     if (error) {
-      console.error('❌ Error fetching connections:', error);
+      log.error('Error fetching connections:', error);
       return;
     }
 
     if (!connections || connections.length === 0) {
-      console.log('✅ No tokens expiring soon');
+      log.info('No tokens expiring soon');
       return;
     }
 
     // Filter out Nango-managed connections
     const refreshableConnections = connections.filter(conn => {
       if (isNangoManagedToken(conn.refresh_token) || isNangoManagedToken(conn.access_token)) {
-        console.log(`ℹ️  Skipping ${conn.platform} - Nango-managed token`);
+        log.info(`Skipping ${conn.platform} - Nango-managed token`);
         return false;
       }
       return true;
     });
 
     if (refreshableConnections.length === 0) {
-      console.log('✅ No tokens need refresh (all Nango-managed)');
+      log.info('No tokens need refresh (all Nango-managed)');
       return;
     }
 
-    console.log(`⚠️  Found ${refreshableConnections.length} tokens expiring soon`);
+    log.info(`Found ${refreshableConnections.length} tokens expiring soon`);
 
     // Refresh each token
     for (const connection of refreshableConnections) {
       const decryptedRefreshToken = decryptToken(connection.refresh_token);
 
       if (!decryptedRefreshToken) {
-        console.error(`❌ Could not decrypt refresh token for ${connection.platform}`);
+        log.error(`Could not decrypt refresh token for ${connection.platform}`);
         continue;
       }
 
@@ -257,14 +260,14 @@ async function checkAndRefreshExpiringTokens() {
           .eq('id', connection.id);
 
         if (saveErr) {
-          console.error(`❌ Failed to persist refreshed tokens for ${connection.platform} (user: ${connection.user_id}):`, saveErr.message);
+          log.error(`Failed to persist refreshed tokens for ${connection.platform} (user: ${connection.user_id}):`, saveErr.message);
         } else {
-          console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
+          log.info(`Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
         }
       }
     }
   } catch (error) {
-    console.error('❌ Error in token refresh check:', error);
+    log.error('Error in token refresh check:', error);
   }
 }
 
@@ -273,18 +276,18 @@ async function checkAndRefreshExpiringTokens() {
  * Runs every 5 minutes to check for expiring tokens
  */
 function startTokenRefreshService() {
-  console.log('🚀 Starting automatic token refresh service...');
+  log.info('Starting automatic token refresh service...');
 
   // Run immediately on startup
   checkAndRefreshExpiringTokens();
 
   // Schedule to run every 5 minutes
   cron.schedule('*/5 * * * *', () => {
-    console.log('⏰ Running scheduled token refresh check');
+    log.info('Running scheduled token refresh check');
     checkAndRefreshExpiringTokens();
   });
 
-  console.log('✅ Token refresh service started (runs every 5 minutes)');
+  log.info('Token refresh service started (runs every 5 minutes)');
 }
 
 /**
@@ -300,7 +303,7 @@ async function ensureFreshToken(userId, platform) {
 
   // Check if a refresh is already in progress for this user+platform
   if (refreshLocks.has(lockKey)) {
-    console.log(`⏳ [Token Refresh] Waiting for existing ${platform} refresh to complete...`);
+    log.info(`Waiting for existing ${platform} refresh to complete...`);
     try {
       await refreshLocks.get(lockKey);
       // After waiting, re-fetch the connection to get the updated token
@@ -310,15 +313,15 @@ async function ensureFreshToken(userId, platform) {
         .eq('user_id', userId)
         .eq('platform', platform)
         .single();
-      if (updConnErr && updConnErr.code !== 'PGRST116') console.warn('[Token Refresh] Failed to re-fetch connection after lock:', updConnErr.message);
+      if (updConnErr && updConnErr.code !== 'PGRST116') log.warn('Failed to re-fetch connection after lock:', updConnErr.message);
 
       if (updatedConnection?.status === 'connected') {
-        console.log(`✅ [Token Refresh] Using token from completed ${platform} refresh`);
+        log.info(`Using token from completed ${platform} refresh`);
         return decryptToken(updatedConnection.access_token);
       }
     } catch {
       // Previous refresh failed, we'll try our own below
-      console.log(`⚠️ [Token Refresh] Previous ${platform} refresh failed, attempting new refresh...`);
+      log.info(`Previous ${platform} refresh failed, attempting new refresh...`);
     }
   }
 
@@ -348,11 +351,11 @@ async function ensureFreshToken(userId, platform) {
     if (needsRefresh) {
       // Check if this is a Nango-managed connection - if so, we can't refresh it ourselves
       if (isNangoManagedToken(connection.access_token) || isNangoManagedToken(connection.refresh_token)) {
-        console.log(`⚠️  ${platform} is Nango-managed - token refresh must happen through Nango`);
+        log.info(`${platform} is Nango-managed - token refresh must happen through Nango`);
         throw new Error(`${platform} token expired. This platform is managed by Nango - please reconnect.`);
       }
 
-      console.log(`🔄 Token ${isExpiredStatus ? 'expired' : 'expiring'} for ${platform}, attempting refresh...`);
+      log.info(`Token ${isExpiredStatus ? 'expired' : 'expiring'} for ${platform}, attempting refresh...`);
 
       // Create a promise that we'll resolve when refresh completes
       let resolveRefresh, rejectRefresh;
@@ -392,11 +395,11 @@ async function ensureFreshToken(userId, platform) {
           .eq('id', connection.id);
 
         if (saveErr) {
-          console.error(`❌ Failed to persist refreshed tokens for ${platform}:`, saveErr.message);
+          log.error(`Failed to persist refreshed tokens for ${platform}:`, saveErr.message);
           throw new Error(`Token refresh succeeded but failed to persist: ${saveErr.message}`);
         }
 
-        console.log(`✅ Token refreshed for ${platform}`);
+        log.info(`Token refreshed for ${platform}`);
         resolveRefresh(newTokens.accessToken);
         return newTokens.accessToken;
       } catch (refreshError) {
@@ -411,7 +414,7 @@ async function ensureFreshToken(userId, platform) {
     // Token is still valid, decrypt and return
     return decryptToken(connection.access_token);
   } catch (error) {
-    console.error(`❌ Error ensuring fresh token for ${platform}:`, error.message);
+    log.error(`Error ensuring fresh token for ${platform}:`, error.message);
     throw error;
   }
 }

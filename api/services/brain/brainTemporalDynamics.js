@@ -7,6 +7,9 @@
 
 import { supabaseAdmin } from '../database.js';
 import { DECAY_RATES, MIN_CONFIDENCE_FLOOR, STALENESS_THRESHOLDS } from './brainConstants.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Braintemporaldynamics');
 
 /**
  * Calculate the effective confidence of a node accounting for decay
@@ -131,7 +134,7 @@ export async function reinforceNode(userId, nodeId, options = {}, logActivity) {
     source: evidenceSource
   }, evidenceSource);
 
-  console.log(`[TwinsBrain] Reinforced node: "${node.label}" (confidence: ${node.confidence.toFixed(2)} -> ${newConfidence.toFixed(2)})`);
+  log.info(`Reinforced node: "${node.label}" (confidence: ${node.confidence.toFixed(2)} -> ${newConfidence.toFixed(2)})`);
   return updatedNode;
 }
 
@@ -208,7 +211,7 @@ export async function reinforceNodesFromPlatform(userId, platform, nodeLabels, r
     .or(orFilter);
 
   if (nodesErr) {
-    console.warn('[TwinsBrain] Error fetching nodes for reinforcement:', nodesErr.message);
+    log.warn('Error fetching nodes for reinforcement:', nodesErr.message);
   }
 
   const reinforceResults = await Promise.all(
@@ -223,6 +226,6 @@ export async function reinforceNodesFromPlatform(userId, platform, nodeLabels, r
 
   stats.notFound = Math.max(nodeLabels.length - stats.reinforced, 0);
 
-  console.log(`[TwinsBrain] Platform reinforcement (${platform}): ${stats.reinforced} reinforced, ${stats.notFound} not found`);
+  log.info(`Platform reinforcement (${platform}): ${stats.reinforced} reinforced, ${stats.notFound} not found`);
   return stats;
 }

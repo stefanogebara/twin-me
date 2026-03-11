@@ -7,6 +7,9 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { syncMem0ToBrain, getSyncStatus } from '../services/mem0BrainSync.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Mem0BrainSyncRoute');
 
 const router = express.Router();
 
@@ -23,7 +26,7 @@ router.get('/status', authenticateUser, async (req, res) => {
       status
     });
   } catch (error) {
-    console.error('[Mem0Sync API] Status error:', error);
+    log.error('Status error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get sync status'
@@ -39,7 +42,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { limit = 20, dryRun = false } = req.body;
 
-    console.log(`[Mem0Sync API] Sync requested for user ${userId}`);
+    log.info(`Sync requested for user ${userId}`);
 
     const result = await syncMem0ToBrain(userId, { limit, dryRun });
 
@@ -50,7 +53,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
       error: result.error
     });
   } catch (error) {
-    console.error('[Mem0Sync API] Sync error:', error);
+    log.error('Sync error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to sync memories to brain'
@@ -75,14 +78,14 @@ router.post('/sync-all', authenticateUser, async (req, res) => {
     // Run sync in background (not awaited)
     syncMem0ToBrain(userId, { limit: 100 })
       .then(result => {
-        console.log(`[Mem0Sync API] Background sync complete:`, result.results);
+        log.info(`Background sync complete:`, result.results);
       })
       .catch(err => {
-        console.error(`[Mem0Sync API] Background sync error:`, err);
+        log.error(`Background sync error:`, err);
       });
 
   } catch (error) {
-    console.error('[Mem0Sync API] Sync-all error:', error);
+    log.error('Sync-all error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to start sync'

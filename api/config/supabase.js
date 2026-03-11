@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Supabase');
 
 // Only use dotenv in development - Vercel provides env vars directly
 if (process.env.NODE_ENV !== 'production') {
@@ -10,14 +13,15 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 // Debug logging - Verify environment variables are loaded correctly
-console.log('🔵 [Supabase Config] Initializing Supabase client');
-console.log('🔵 [Supabase Config] NODE_ENV:', process.env.NODE_ENV);
-console.log('🔵 [Supabase Config] SUPABASE_URL:', supabaseUrl ? '***configured***' : 'MISSING');
-console.log('🔵 [Supabase Config] SUPABASE_ANON_KEY length:', supabaseAnonKey?.length);
-console.log('🔵 [Supabase Config] SUPABASE_SERVICE_ROLE_KEY length:', process.env.SUPABASE_SERVICE_ROLE_KEY?.length);
+log.info('Initializing Supabase client', {
+  nodeEnv: process.env.NODE_ENV,
+  supabaseUrl: supabaseUrl ? '***configured***' : 'MISSING',
+  anonKeyLength: supabaseAnonKey?.length,
+  serviceRoleKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length
+});
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ [Supabase Config] Missing environment variables');
+  log.error('Missing environment variables');
   throw new Error('Missing Supabase environment variables');
 }
 
@@ -38,6 +42,6 @@ export const supabaseAdmin = supabaseServiceKey
       }
     })
   : supabase;
-console.log('🔵 [Supabase Config] supabaseAdmin using:', supabaseServiceKey ? 'SERVICE_ROLE_KEY (bypasses RLS)' : 'ANON_KEY (RLS-compliant)');
+log.info('supabaseAdmin configured', { keyType: supabaseServiceKey ? 'SERVICE_ROLE_KEY (bypasses RLS)' : 'ANON_KEY (RLS-compliant)' });
 
 export default supabase;

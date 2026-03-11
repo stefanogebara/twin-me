@@ -16,6 +16,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('SSE');
 
 // Store active SSE connections: userId -> response object
 const connections = new Map();
@@ -39,8 +42,8 @@ function initializeSSEConnection(userId, res) {
   // Store connection
   connections.set(userId, res);
 
-  console.log(`📡 SSE connection established for user: ${userId}`);
-  console.log(`📊 Active SSE connections: ${connections.size}`);
+  log.info(`SSE connection established for user: ${userId}`);
+  log.info(`Active SSE connections: ${connections.size}`);
 
   // Send initial connection success event
   sendSSE(userId, {
@@ -68,8 +71,8 @@ function initializeSSEConnection(userId, res) {
   res.on('close', () => {
     connections.delete(userId);
     clearInterval(heartbeatInterval);
-    console.log(`👋 SSE connection closed for user: ${userId}`);
-    console.log(`📊 Active SSE connections: ${connections.size}`);
+    log.info(`SSE connection closed for user: ${userId}`);
+    log.info(`Active SSE connections: ${connections.size}`);
   });
 
   return res;
@@ -83,7 +86,7 @@ function sendSSE(userId, data) {
   const res = connections.get(userId);
 
   if (!res) {
-    console.warn(`⚠️  No SSE connection found for user: ${userId}`);
+    log.warn(`No SSE connection found for user: ${userId}`);
     return false;
   }
 
@@ -113,7 +116,7 @@ function sendSSE(userId, data) {
 
     return true;
   } catch (error) {
-    console.error(`❌ Error sending SSE to user ${userId}:`, error);
+    log.error(`Error sending SSE to user ${userId}:`, error);
     connections.delete(userId);
     return false;
   }
@@ -131,7 +134,7 @@ function broadcastSSE(data) {
     }
   });
 
-  console.log(`📢 Broadcast sent to ${successCount}/${connections.size} clients`);
+  log.info(`Broadcast sent to ${successCount}/${connections.size} clients`);
 
   return successCount;
 }
@@ -147,7 +150,7 @@ async function sendPlatformStatus(userId) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('❌ Error fetching platform status:', error);
+      log.error('Error fetching platform status:', error);
       return;
     }
 
@@ -157,7 +160,7 @@ async function sendPlatformStatus(userId) {
       message: `${platformConnections.length} platforms connected`,
     });
   } catch (error) {
-    console.error('❌ Error sending platform status:', error);
+    log.error('Error sending platform status:', error);
   }
 }
 
@@ -257,13 +260,13 @@ function closeConnection(userId) {
     try {
       res.end();
     } catch (error) {
-      console.error(`❌ Error closing SSE connection for ${userId}:`, error);
+      log.error(`Error closing SSE connection for ${userId}:`, error);
     }
 
     connections.delete(userId);
     lastEventIds.delete(userId);
 
-    console.log(`🔌 Closed SSE connection for user: ${userId}`);
+    log.info(`Closed SSE connection for user: ${userId}`);
 
     return true;
   }

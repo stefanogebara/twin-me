@@ -24,6 +24,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('BehavioralPatternRecognition');
 
 // ====================================================================
 // TEMPORAL CORRELATION DETECTION
@@ -39,7 +42,7 @@ import { supabaseAdmin } from './database.js';
  */
 export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
   try {
-    console.log(`🔍 [Pattern Recognition] Detecting temporal correlations for user ${userId}`);
+    log.info(`Detecting temporal correlations for user ${userId}`);
 
     const now = new Date();
     const windowStart = new Date(now.getTime() - (timeWindowHours * 60 * 60 * 1000));
@@ -58,11 +61,11 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
     if (calendarError) throw calendarError;
 
     if (!calendarEvents || calendarEvents.length === 0) {
-      console.log('⚠️ [Pattern Recognition] No calendar events found in time window');
+      log.info('No calendar events found in time window');
       return [];
     }
 
-    console.log(`📅 [Pattern Recognition] Found ${calendarEvents.length} calendar events`);
+    log.info(`Found ${calendarEvents.length} calendar events`);
 
     // Step 2: Fetch platform activities in time window (Spotify, YouTube, Discord, etc.)
     const { data: activities, error: activitiesError } = await supabaseAdmin
@@ -76,11 +79,11 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
     if (activitiesError) throw activitiesError;
 
     if (!activities || activities.length === 0) {
-      console.log('⚠️ [Pattern Recognition] No platform activities found in time window');
+      log.info('No platform activities found in time window');
       return [];
     }
 
-    console.log(`🎵 [Pattern Recognition] Found ${activities.length} platform activities`);
+    log.info(`Found ${activities.length} platform activities`);
 
     // Step 3: Find temporal correlations
     const correlations = [];
@@ -93,7 +96,7 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
       const eventStartTime = eventData.start_time || eventData.start?.dateTime || eventData.start?.date;
 
       if (!eventStartTime) {
-        console.log('⚠️ [Pattern Recognition] Skipping event without start time:', eventData.summary || 'Unknown');
+        log.info('Skipping event without start time:', eventData.summary || 'Unknown');
         continue;
       }
 
@@ -128,11 +131,11 @@ export async function detectTemporalCorrelations(userId, timeWindowHours = 72) {
       }
     }
 
-    console.log(`✅ [Pattern Recognition] Found ${correlations.length} temporal correlations`);
+    log.info(`Found ${correlations.length} temporal correlations`);
     return correlations;
 
   } catch (error) {
-    console.error('❌ [Pattern Recognition] Error detecting temporal correlations:', error);
+    log.error('Error detecting temporal correlations:', error);
     throw error;
   }
 }
@@ -217,7 +220,7 @@ function extractEventKeywords(eventData) {
  */
 export async function buildBehavioralFingerprint(userId, eventType) {
   try {
-    console.log(`🔍 [Pattern Recognition] Building behavioral fingerprint for ${eventType}`);
+    log.info(`Building behavioral fingerprint for ${eventType}`);
 
     // Get all correlations for this event type
     const correlations = await detectTemporalCorrelations(userId, 24 * 30); // 30 days
@@ -275,7 +278,7 @@ export async function buildBehavioralFingerprint(userId, eventType) {
       })
       .sort((a, b) => b.consistencyRate - a.consistencyRate);
 
-    console.log(`✅ [Pattern Recognition] Built fingerprint with ${patterns.length} patterns`);
+    log.info(`Built fingerprint with ${patterns.length} patterns`);
 
     return {
       eventType,
@@ -284,7 +287,7 @@ export async function buildBehavioralFingerprint(userId, eventType) {
     };
 
   } catch (error) {
-    console.error('❌ [Pattern Recognition] Error building behavioral fingerprint:', error);
+    log.error('Error building behavioral fingerprint:', error);
     throw error;
   }
 }
@@ -370,7 +373,7 @@ export function getConfidenceDescription(score) {
  */
 export async function detectAndStoreBehavioralPatterns(userId, options = {}) {
   try {
-    console.log(`🔍 [Pattern Recognition] Starting pattern detection for user ${userId}`);
+    log.info(`Starting pattern detection for user ${userId}`);
 
     const {
       timeWindowDays = 30,
@@ -393,7 +396,7 @@ export async function detectAndStoreBehavioralPatterns(userId, options = {}) {
     // Step 2: Group correlations into potential patterns
     const potentialPatterns = groupCorrelationsIntoPatterns(correlations, userId);
 
-    console.log(`🔍 [Pattern Recognition] Found ${potentialPatterns.length} potential patterns`);
+    log.info(`Found ${potentialPatterns.length} potential patterns`);
 
     // Step 3: Filter by occurrence count and confidence
     const validPatterns = potentialPatterns.filter(pattern => {
@@ -401,7 +404,7 @@ export async function detectAndStoreBehavioralPatterns(userId, options = {}) {
       return pattern.occurrence_count >= minOccurrences && confidence >= minConfidence;
     });
 
-    console.log(`✅ [Pattern Recognition] ${validPatterns.length} patterns meet confidence threshold`);
+    log.info(`${validPatterns.length} patterns meet confidence threshold`);
 
     // Step 4: Store patterns in database
     const storedPatterns = [];
@@ -440,14 +443,14 @@ export async function detectAndStoreBehavioralPatterns(userId, options = {}) {
         .single();
 
       if (error) {
-        console.error('❌ [Pattern Recognition] Error storing pattern:', error);
+        log.error('Error storing pattern:', error);
         continue;
       }
 
       storedPatterns.push(data);
     }
 
-    console.log(`✅ [Pattern Recognition] Stored ${storedPatterns.length} patterns`);
+    log.info(`Stored ${storedPatterns.length} patterns`);
 
     return {
       success: true,
@@ -457,7 +460,7 @@ export async function detectAndStoreBehavioralPatterns(userId, options = {}) {
     };
 
   } catch (error) {
-    console.error('❌ [Pattern Recognition] Error detecting patterns:', error);
+    log.error('Error detecting patterns:', error);
     throw error;
   }
 }
@@ -651,7 +654,7 @@ export async function getUserPatterns(userId, filters = {}) {
     return data || [];
 
   } catch (error) {
-    console.error('❌ [Pattern Recognition] Error getting user patterns:', error);
+    log.error('Error getting user patterns:', error);
     throw error;
   }
 }
@@ -679,7 +682,7 @@ export async function deletePattern(userId, patternId) {
     return { success: true };
 
   } catch (error) {
-    console.error('❌ [Pattern Recognition] Error deleting pattern:', error);
+    log.error('Error deleting pattern:', error);
     throw error;
   }
 }

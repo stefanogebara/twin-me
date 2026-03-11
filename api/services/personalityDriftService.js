@@ -1,5 +1,8 @@
 import { supabaseAdmin } from './database.js';
 import { buildProfile } from './personalityProfileService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityDrift');
 
 const RECENT_DAYS = 7;
 const BASELINE_DAYS = 90;
@@ -61,7 +64,7 @@ export async function checkDrift(userId) {
 
     return { drifted, similarity, recentCount, baselineCount, rebuilt };
   } catch (err) {
-    console.warn('[PersonalityDrift] checkDrift error:', err.message);
+    log.warn('checkDrift error:', err.message);
     return { drifted: false, error: err.message };
   }
 }

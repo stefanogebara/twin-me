@@ -7,6 +7,9 @@
 
 import { supabaseAdmin } from '../../config/supabase.js';
 import { CACHE_TTL_HOURS } from './reflectionConstants.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Reflectionstore');
 
 /**
  * Store reflection in database
@@ -35,7 +38,7 @@ export async function storeReflection(userId, platform, reflection) {
         contextSnapshot: reflection.contextSnapshot || null
       }
     });
-  if (error) console.error('[Reflection] Failed to store reflection:', error.message);
+  if (error) log.error('Failed to store reflection:', error.message);
 }
 
 /**

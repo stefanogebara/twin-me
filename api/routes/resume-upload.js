@@ -10,6 +10,9 @@ import { resumeParserService } from '../services/resumeParserService.js';
 import { profileEnrichmentService } from '../services/profileEnrichmentService.js';
 import { createClient } from '@supabase/supabase-js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('ResumeUpload');
 
 const router = express.Router();
 
@@ -63,8 +66,8 @@ router.post('/upload', authenticateUser, upload.single('resume'), async (req, re
       });
     }
 
-    console.log(`[Resume Upload] Processing resume for user ${userId}`);
-    console.log(`[Resume Upload] File: ${req.file.originalname}, Size: ${req.file.size}, Type: ${req.file.mimetype}`);
+    log.info(`Processing resume for user ${userId}`);
+    log.info(`File: ${req.file.originalname}, Size: ${req.file.size}, Type: ${req.file.mimetype}`);
 
     // Determine file type
     let fileType = 'text';
@@ -80,7 +83,7 @@ router.post('/upload', authenticateUser, upload.single('resume'), async (req, re
     );
 
     if (!parseResult.success) {
-      console.error('[Resume Upload] Parse failed:', parseResult.error);
+      log.error('Parse failed:', parseResult.error);
       return res.status(400).json({
         success: false,
         error: 'Failed to parse resume',
@@ -88,7 +91,7 @@ router.post('/upload', authenticateUser, upload.single('resume'), async (req, re
       });
     }
 
-    console.log('[Resume Upload] Resume parsed successfully');
+    log.info('Resume parsed successfully');
 
     // Get existing enrichment data
     const existingEnrichment = await profileEnrichmentService.getEnrichment(userId);
@@ -108,7 +111,7 @@ router.post('/upload', authenticateUser, upload.single('resume'), async (req, re
     );
 
     if (!saveResult.success) {
-      console.error('[Resume Upload] Failed to save:', saveResult.error);
+      log.error('Failed to save:', saveResult.error);
     }
 
     // Return the extracted data
@@ -139,7 +142,7 @@ router.post('/upload', authenticateUser, upload.single('resume'), async (req, re
     });
 
   } catch (error) {
-    console.error('[Resume Upload] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process resume',
@@ -164,7 +167,7 @@ router.post('/parse-text', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Resume Parse] Processing text resume for user ${userId}`);
+    log.info(`Processing text resume for user ${userId}`);
 
     // Parse the resume text
     const parseResult = await resumeParserService.parseResume(text, 'text', name);
@@ -210,7 +213,7 @@ router.post('/parse-text', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Resume Parse] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to parse resume text',
@@ -248,7 +251,7 @@ router.get('/data/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Resume Data] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get resume data'

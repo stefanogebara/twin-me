@@ -12,6 +12,9 @@
  */
 
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Agentbase');
 
 class AgentBase {
   constructor(config = {}) {
@@ -62,7 +65,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
     const startTime = Date.now();
 
     try {
-      console.log(`🤖 [${this.name}] Executing task...`);
+      log.info(`[${this.name}] Executing task...`);
 
       // Build messages
       const messages = [
@@ -109,13 +112,13 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
       // Process response
       const result = this.processResponse(response);
 
-      console.log(`✅ [${this.name}] Task completed in ${Date.now() - startTime}ms`);
+      log.info(`[${this.name}] Task completed in ${Date.now() - startTime}ms`);
 
       return result;
 
     } catch (error) {
       this.metrics.failedCalls++;
-      console.error(`❌ [${this.name}] Execution failed:`, error.message);
+      log.error(`[${this.name}] Execution failed:`, error.message);
 
       throw new Error(`Agent ${this.name} failed: ${error.message}`);
     }
@@ -175,7 +178,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
       if (schema.required) {
         for (const field of schema.required) {
           if (!(field in output)) {
-            console.warn(`⚠️ [${this.name}] Missing required field: ${field}`);
+            log.warn(`[${this.name}] Missing required field: ${field}`);
             return false;
           }
         }
@@ -190,7 +193,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
 
             if (expectedType && actualType !== expectedType &&
                 !(expectedType === 'array' && Array.isArray(output[key]))) {
-              console.warn(`⚠️ [${this.name}] Type mismatch for ${key}: expected ${expectedType}, got ${actualType}`);
+              log.warn(`[${this.name}] Type mismatch for ${key}: expected ${expectedType}, got ${actualType}`);
               return false;
             }
           }
@@ -199,7 +202,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
 
       return true;
     } catch (error) {
-      console.error(`❌ [${this.name}] Validation error:`, error);
+      log.error(`[${this.name}] Validation error:`, error);
       return false;
     }
   }
@@ -219,7 +222,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
         try {
           return JSON.parse(codeBlockMatch[1]);
         } catch (e2) {
-          console.error(`❌ [${this.name}] Failed to parse JSON from code block`);
+          log.error(`[${this.name}] Failed to parse JSON from code block`);
         }
       }
 
@@ -229,7 +232,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e3) {
-          console.error(`❌ [${this.name}] Failed to parse JSON from text`);
+          log.error(`[${this.name}] Failed to parse JSON from text`);
         }
       }
 
@@ -258,7 +261,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
    * Following Anthropic best practices
    */
   logDecision(metadata) {
-    console.log(`📊 [${this.name}] Decision:`, {
+    log.info(`[${this.name}] Decision:`, {
       agent: this.name,
       model: metadata.model,
       tokens: {
@@ -309,12 +312,12 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
     // Check for duplicate
     const exists = this.tools.some(t => t.name === tool.name);
     if (exists) {
-      console.warn(`⚠️ [${this.name}] Tool ${tool.name} already exists, replacing`);
+      log.warn(`[${this.name}] Tool ${tool.name} already exists, replacing`);
       this.tools = this.tools.filter(t => t.name !== tool.name);
     }
 
     this.tools.push(tool);
-    console.log(`🔧 [${this.name}] Added tool: ${tool.name}`);
+    log.info(`[${this.name}] Added tool: ${tool.name}`);
   }
 
   /**
@@ -326,7 +329,7 @@ Remember: You are part of a multi-agent system. Focus on YOUR specific task.`;
     const after = this.tools.length;
 
     if (before > after) {
-      console.log(`🔧 [${this.name}] Removed tool: ${toolName}`);
+      log.info(`[${this.name}] Removed tool: ${toolName}`);
     }
   }
 

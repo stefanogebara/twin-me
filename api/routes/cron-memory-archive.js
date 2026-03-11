@@ -15,6 +15,9 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronMemoryArchive');
 
 const router = express.Router();
 
@@ -26,7 +29,7 @@ router.post('/', async (req, res) => {
       return res.status(authResult.status).json({ error: authResult.error });
     }
 
-    console.log('[Cron] memory-archive: starting run');
+    log.info('Starting run');
     const startTime = Date.now();
 
     // Find users with more than 5,000 memories (archive candidates)
@@ -46,7 +49,7 @@ router.post('/', async (req, res) => {
         .lte('importance_score', 5);
 
       if (rowsErr) {
-        console.error('[Cron] memory-archive: failed to fetch candidates:', rowsErr.message);
+        log.error('Failed to fetch candidates', { error: rowsErr.message });
         return res.status(500).json({ error: 'Failed to fetch archive candidates' });
       }
 
@@ -56,7 +59,7 @@ router.post('/', async (req, res) => {
       userIds = candidates.map(c => c.user_id);
     }
 
-    console.log(`[Cron] memory-archive: processing ${userIds.length} candidate users`);
+    log.info('Processing candidate users', { count: userIds.length });
 
     let usersProcessed = 0;
     let totalArchived = 0;
@@ -68,24 +71,24 @@ router.post('/', async (req, res) => {
       );
 
       if (archiveErr) {
-        console.error(`[Cron] memory-archive: error for user ${userId}:`, archiveErr.message);
+        log.error('Error for user', { userId, error: archiveErr.message });
         continue;
       }
 
       const count = archived || 0;
       if (count > 0) {
-        console.log(`[Cron] memory-archive: archived ${count} memories for user ${userId}`);
+        log.info('Archived memories for user', { count, userId });
         totalArchived += count;
       }
       usersProcessed++;
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[Cron] memory-archive: done. users=${usersProcessed}, archived=${totalArchived}, duration=${durationMs}ms`);
+    log.info('Archive run complete', { usersProcessed, totalArchived, durationMs });
 
     res.json({ success: true, usersProcessed, totalArchived, durationMs });
   } catch (err) {
-    console.error('[Cron] memory-archive: unexpected error:', err.message);
+    log.error('Unexpected error', { error: err.message });
     res.status(500).json({ error: err.message });
   }
 });

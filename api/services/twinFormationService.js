@@ -15,6 +15,9 @@ import { supabaseAdmin } from './database.js';
 import personalityAggregator from './personalityAggregator.js';
 import { mapToArchetype, generatePersonalityInsights, ARCHETYPES } from './personalityAssessmentService.js';
 import { generateChatResponse } from './anthropicService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinFormation');
 
 class TwinFormationService {
   constructor() {
@@ -90,7 +93,7 @@ class TwinFormationService {
       };
 
     } catch (error) {
-      console.error('[TwinFormationService] Error forming twin:', error);
+      log.error('Error forming twin:', error);
       return {
         success: false,
         error: error.message
@@ -170,7 +173,7 @@ Focus on what makes them unique and authentic.`;
       };
 
     } catch (error) {
-      console.error('[TwinFormationService] Error generating narrative:', error);
+      log.error('Error generating narrative:', error);
 
       // Return fallback narrative
       return {
@@ -242,7 +245,7 @@ What does this reveal about their personality or habits?`;
       };
 
     } catch (error) {
-      console.error(`[TwinFormationService] Error generating ${platform} reflection:`, error);
+      log.error(`Error generating ${platform} reflection:`, error);
       return {
         title: this.getPlatformContext(platform).reflectionTitle,
         content: this.getFallbackReflection(platform),
@@ -294,7 +297,7 @@ What does this reveal about their personality or habits?`;
         const { error: reflectionErr } = await supabaseAdmin
           .from('reflection_history')
           .upsert(reflectionRecords, { onConflict: 'user_id,platform' });
-        if (reflectionErr) console.warn('[TwinFormationService] Failed to upsert reflection history:', reflectionErr.message);
+        if (reflectionErr) log.warn('Failed to upsert reflection history:', reflectionErr.message);
       }
 
       // Also update personality_scores table
@@ -307,7 +310,7 @@ What does this reveal about their personality or habits?`;
       return { success: true, data };
 
     } catch (error) {
-      console.error('[TwinFormationService] Error saving twin:', error);
+      log.error('Error saving twin:', error);
       return { success: false, error: error.message };
     }
   }
@@ -343,7 +346,7 @@ What does this reveal about their personality or habits?`;
       };
 
     } catch (error) {
-      console.error('[TwinFormationService] Error getting twin:', error);
+      log.error('Error getting twin:', error);
       return { success: false, error: error.message };
     }
   }
@@ -358,7 +361,7 @@ What does this reveal about their personality or habits?`;
       .eq('user_id', userId)
       .eq('platform', platform)
       .order('extracted_at', { ascending: false });
-    if (error) console.warn('[TwinFormationService] Failed to fetch platform features:', error.message);
+    if (error) log.warn('Failed to fetch platform features:', error.message);
     return data || [];
   }
 

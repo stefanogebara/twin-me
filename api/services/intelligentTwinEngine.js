@@ -15,6 +15,9 @@
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import userContextAggregator from './userContextAggregator.js';
 import intelligentMusicService from './intelligentMusicService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('IntelligentTwinEngine');
 
 class IntelligentTwinEngine {
   constructor() {
@@ -29,7 +32,7 @@ class IntelligentTwinEngine {
    * @returns {Promise<Object>} Insights and recommendations
    */
   async generateInsightsAndRecommendations(userId, options = {}) {
-    console.log(`🧠 [IntelligentTwin] Generating insights for user ${userId}`);
+    log.info(`Generating insights for user ${userId}`);
 
     try {
       // 1. Get aggregated context from all platforms
@@ -87,7 +90,7 @@ class IntelligentTwinEngine {
         generatedAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ [IntelligentTwin] Error:', error);
+      log.error('Error:', error);
       return {
         success: false,
         error: error.message
@@ -99,7 +102,7 @@ class IntelligentTwinEngine {
    * Analyze context using Claude AI
    */
   async analyzeWithClaude(contextSummary, options = {}) {
-    console.log('🧠 [IntelligentTwin] Calling Claude for analysis...');
+    log.info('Calling Claude for analysis...');
 
     const prompt = `You are an AI digital twin assistant analyzing a user's current state across multiple platforms to provide personalized insights and recommendations.
 
@@ -155,7 +158,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
       });
 
       let responseText = result.content.trim();
-      console.log('🧠 [IntelligentTwin] Claude response received');
+      log.info('Claude response received');
 
       // Strip markdown code blocks if present
       if (responseText.startsWith('```')) {
@@ -173,7 +176,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
         reasoning: analysis.reasoning || ''
       };
     } catch (error) {
-      console.error('🧠 [IntelligentTwin] Claude analysis error:', error);
+      log.error('Claude analysis error:', error);
 
       // Return fallback analysis
       return this.generateFallbackAnalysis(contextSummary);
@@ -184,7 +187,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
    * Generate fallback analysis without Claude
    */
   generateFallbackAnalysis(contextSummary) {
-    console.log('🧠 [IntelligentTwin] Using fallback analysis');
+    log.info('Using fallback analysis');
 
     const analysis = {
       currentState: 'Analysis temporarily unavailable. Based on available data, continue with your planned activities.',
@@ -262,7 +265,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
    * Get quick status assessment without full recommendation pipeline
    */
   async getQuickStatus(userId) {
-    console.log(`🧠 [IntelligentTwin] Quick status for user ${userId}`);
+    log.info(`Quick status for user ${userId}`);
 
     try {
       const context = await userContextAggregator.aggregateUserContext(userId, {
@@ -315,7 +318,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
         }
       };
     } catch (error) {
-      console.error('🧠 [IntelligentTwin] Quick status error:', error);
+      log.error('Quick status error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -324,7 +327,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
    * Get specific recommendation for a purpose
    */
   async getRecommendationFor(userId, purpose) {
-    console.log(`🧠 [IntelligentTwin] Recommendation for ${purpose}`);
+    log.info(`Recommendation for ${purpose}`);
 
     const validPurposes = ['pre-event', 'focus', 'workout', 'relax', 'sleep'];
     if (!validPurposes.includes(purpose)) {
@@ -356,7 +359,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
         }
       };
     } catch (error) {
-      console.error('🧠 [IntelligentTwin] Recommendation error:', error);
+      log.error('Recommendation error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -460,7 +463,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
    * Analyze patterns and provide long-term insights
    */
   async analyzePatterns(userId) {
-    console.log(`🧠 [IntelligentTwin] Pattern analysis for user ${userId}`);
+    log.info(`Pattern analysis for user ${userId}`);
 
     try {
       const context = await userContextAggregator.aggregateUserContext(userId, {
@@ -481,7 +484,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
         summary: `Found ${context.patterns.length} behavioral patterns across your connected platforms.`
       };
     } catch (error) {
-      console.error('🧠 [IntelligentTwin] Pattern analysis error:', error);
+      log.error('Pattern analysis error:', error);
       return { success: false, error: error.message };
     }
   }

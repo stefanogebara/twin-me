@@ -1,3 +1,7 @@
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Errors');
+
 /**
  * Custom Error Classes for Soul Signature Platform
  * Provides specific error types for better error handling and user feedback
@@ -140,9 +144,9 @@ export class RateLimitError extends PlatformError {
  */
 export function errorHandler(err, req, res, next) {
   // Log error for debugging
-  console.error('❌ Error caught by handler:', {
+  log.error('Error caught by handler', {
+    error: err.message,
     name: err.name,
-    message: err.message,
     path: req.path,
     method: req.method,
     userId: req.body?.userId || req.query?.userId || 'unknown',

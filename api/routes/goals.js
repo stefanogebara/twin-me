@@ -24,6 +24,9 @@ import {
   getGoalSummary,
 } from '../services/goalTrackingService.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Goals');
 
 const router = express.Router();
 
@@ -51,7 +54,7 @@ router.get('/', authenticateUser, async (req, res) => {
       pagination: buildPaginationMeta(page, limit, total),
     });
   } catch (error) {
-    console.error('[Goals API] List error:', error.message);
+    log.error('List error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch goals' });
   }
 });
@@ -66,7 +69,7 @@ router.get('/suggestions', authenticateUser, async (req, res) => {
 
     res.json({ success: true, data: suggestions });
   } catch (error) {
-    console.error('[Goals API] Suggestions error:', error.message);
+    log.error('Suggestions error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch suggestions' });
   }
 });
@@ -81,7 +84,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
 
     res.json({ success: true, data: summary });
   } catch (error) {
-    console.error('[Goals API] Summary error:', error.message);
+    log.error('Summary error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch goal summary' });
   }
 });
@@ -108,7 +111,7 @@ router.get('/:id', authenticateUser, async (req, res) => {
 
     res.json({ success: true, data: goal });
   } catch (error) {
-    console.error('[Goals API] Get goal error:', error.message);
+    log.error('Get goal error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch goal' });
   }
 });
@@ -133,7 +136,7 @@ router.post('/:id/accept', authenticateUser, async (req, res) => {
 
     res.json({ success: true, data: result.data });
   } catch (error) {
-    console.error('[Goals API] Accept error:', error.message);
+    log.error('Accept error', { error });
     res.status(500).json({ success: false, error: 'Failed to accept goal' });
   }
 });
@@ -158,7 +161,7 @@ router.post('/:id/dismiss', authenticateUser, async (req, res) => {
 
     res.json({ success: true, data: result.data });
   } catch (error) {
-    console.error('[Goals API] Dismiss error:', error.message);
+    log.error('Dismiss error', { error });
     res.status(500).json({ success: false, error: 'Failed to dismiss goal' });
   }
 });
@@ -183,7 +186,7 @@ router.post('/:id/abandon', authenticateUser, async (req, res) => {
 
     res.json({ success: true, data: result.data });
   } catch (error) {
-    console.error('[Goals API] Abandon error:', error.message);
+    log.error('Abandon error', { error });
     res.status(500).json({ success: false, error: 'Failed to abandon goal' });
   }
 });

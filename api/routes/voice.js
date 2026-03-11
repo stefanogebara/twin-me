@@ -6,6 +6,9 @@ import { serverDb } from '../services/database.js';
 import { authenticateUser, requireProfessor, userRateLimit } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('VoiceRoute');
 
 const router = express.Router();
 
@@ -103,7 +106,7 @@ router.get('/status', userRateLimit(50, 15 * 60 * 1000), async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Voice status check failed:', error);
+    log.error('Voice status check failed:', error);
     res.status(500).json({
       error: 'Failed to check voice service status',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -136,7 +139,7 @@ router.get('/voices', authenticateUser, userRateLimit(30, 15 * 60 * 1000), async
       });
     }
   } catch (error) {
-    console.error('Error fetching voices:', error);
+    log.error('Error fetching voices:', error);
     res.status(500).json({
       error: 'Failed to fetch voices',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -172,7 +175,7 @@ router.post('/transcribe', authenticateUser, userRateLimit(30, 15 * 60 * 1000), 
     try {
       fs.unlinkSync(req.file.path);
     } catch (cleanupError) {
-      console.error('Failed to clean up uploaded file:', cleanupError);
+      log.error('Failed to clean up uploaded file:', cleanupError);
     }
 
     if (result.success) {
@@ -188,7 +191,7 @@ router.post('/transcribe', authenticateUser, userRateLimit(30, 15 * 60 * 1000), 
       });
     }
   } catch (error) {
-    console.error('Error in speech-to-text:', error);
+    log.error('Error in speech-to-text:', error);
     res.status(500).json({
       error: 'Speech-to-text failed',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -237,7 +240,7 @@ router.post('/synthesize', authenticateUser, userRateLimit(20, 15 * 60 * 1000), 
       });
     }
   } catch (error) {
-    console.error('Error in text-to-speech:', error);
+    log.error('Error in text-to-speech:', error);
     res.status(500).json({
       error: 'Text-to-speech failed',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -298,7 +301,7 @@ router.post('/clone', authenticateUser, requireProfessor, userRateLimit(5, 60 * 
       const { data: voiceProfile, error: dbError } = await serverDb.createVoiceProfile(voiceProfileData);
 
       if (dbError) {
-        console.error('Failed to save voice profile to database:', dbError);
+        log.error('Failed to save voice profile to database:', dbError);
         // Voice cloned at ElevenLabs — don't fail, but log for recovery
       }
 
@@ -306,7 +309,7 @@ router.post('/clone', authenticateUser, requireProfessor, userRateLimit(5, 60 * 
       try {
         fs.unlinkSync(req.file.path);
       } catch (cleanupError) {
-        console.error('Failed to clean up uploaded file:', cleanupError);
+        log.error('Failed to clean up uploaded file:', cleanupError);
       }
 
       res.json({
@@ -324,7 +327,7 @@ router.post('/clone', authenticateUser, requireProfessor, userRateLimit(5, 60 * 
       });
     }
   } catch (error) {
-    console.error('Error in voice cloning:', error);
+    log.error('Error in voice cloning:', error);
     res.status(500).json({
       error: 'Voice cloning failed',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -377,7 +380,7 @@ router.get('/twins/:twinId/profiles', authenticateUser, userRateLimit(50, 15 * 6
     });
 
   } catch (error) {
-    console.error('Error fetching voice profiles:', error);
+    log.error('Error fetching voice profiles:', error);
     res.status(500).json({
       error: 'Failed to fetch voice profiles',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -420,7 +423,7 @@ router.delete('/profiles/:profileId', authenticateUser, requireProfessor, userRa
     if (voiceProfile.is_cloned && voiceProfile.elevenlabs_voice_id && voiceService.isEnabled()) {
       const deleteResult = await voiceService.deleteVoice(voiceProfile.elevenlabs_voice_id);
       if (!deleteResult.success) {
-        console.error('Failed to delete voice from ElevenLabs:', deleteResult.error);
+        log.error('Failed to delete voice from ElevenLabs:', deleteResult.error);
       }
     }
 
@@ -441,7 +444,7 @@ router.delete('/profiles/:profileId', authenticateUser, requireProfessor, userRa
     });
 
   } catch (error) {
-    console.error('Error deleting voice profile:', error);
+    log.error('Error deleting voice profile:', error);
     res.status(500).json({
       error: 'Failed to delete voice profile',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

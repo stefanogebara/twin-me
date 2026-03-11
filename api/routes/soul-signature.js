@@ -18,6 +18,9 @@ import personalityAnalyzerService from '../services/personalityAnalyzerService.j
 import soulSignatureGenerator from '../services/soulSignatureGenerator.js';
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
 import { ARCHETYPES } from '../services/personalityAssessmentService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('SoulSignature');
 
 const router = express.Router();
 
@@ -38,7 +41,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`📊 [Soul Signature] Fetching profile for user ${userId}`);
+    log.info(`Fetching profile for user ${userId}`);
 
     // Fetch complete profile from view (joins all related tables)
     const { data: profile, error } = await supabaseAdmin
@@ -76,7 +79,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error fetching profile:', error);
+    log.error('Error fetching profile:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch soul signature profile',
@@ -93,7 +96,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`🧠 [Soul Signature] Fetching personality scores for user ${userId}`);
+    log.info(`Fetching personality scores for user ${userId}`);
 
     // First check personality_estimates (60-question assessment)
     const { data: estimates } = await supabaseAdmin
@@ -103,7 +106,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
       .single();
 
     if (estimates && estimates.total_questions_answered > 0) {
-      console.log(`🧠 [Soul Signature] Found assessment data: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
+      log.info(`Found assessment data: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
 
       // Also check for behavioral confidence from personality_scores
       const { data: behavioralScores } = await supabaseAdmin
@@ -127,7 +130,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
       );
 
       if (hasBehavioral) {
-        console.log(`🔬 [Soul Signature] Merging behavioral confidence:`, behavioralScores);
+        log.info(`Merging behavioral confidence:`, behavioralScores);
       }
 
       return res.json({
@@ -184,7 +187,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
       throw error;
     }
 
-    console.log(`🧠 [Soul Signature] Using behavioral personality scores`);
+    log.info(`Using behavioral personality scores`);
 
     // Compute archetype_code from Big Five scores for MBTI display
     const computeArchetypeCode = (scores) => {
@@ -223,7 +226,7 @@ router.get('/personality-scores', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error fetching personality scores:', error);
+    log.error('Error fetching personality scores:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch personality scores',
@@ -240,7 +243,7 @@ router.get('/archetype', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`✨ [Soul Signature] Fetching archetype for user ${userId}`);
+    log.info(`Fetching archetype for user ${userId}`);
 
     // First try soul_signatures table
     const { data: signature, error } = await supabaseAdmin
@@ -250,7 +253,7 @@ router.get('/archetype', authenticateToken, async (req, res) => {
       .single();
 
     if (signature && !error) {
-      console.log(`✨ [Soul Signature] Found soul signature: ${signature.archetype_name}`);
+      log.info(`Found soul signature: ${signature.archetype_name}`);
       return res.json({
         success: true,
         data: signature
@@ -266,7 +269,7 @@ router.get('/archetype', authenticateToken, async (req, res) => {
 
     if (estimates?.archetype_code) {
       const archetype = ARCHETYPES[estimates.archetype_code];
-      console.log(`✨ [Soul Signature] Using personality assessment archetype: ${estimates.archetype_code} - ${archetype?.name}`);
+      log.info(`Using personality assessment archetype: ${estimates.archetype_code} - ${archetype?.name}`);
 
       // Generate a narrative based on Big Five scores
       const narrative = generateArchetypeNarrative(estimates.archetype_code, archetype, estimates);
@@ -294,7 +297,7 @@ router.get('/archetype', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error fetching archetype:', error);
+    log.error('Error fetching archetype:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch soul signature',
@@ -337,7 +340,7 @@ router.get('/patterns', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const definingOnly = req.query.defining === 'true';
 
-    console.log(`🔍 [Soul Signature] Fetching patterns for user ${userId}`);
+    log.info(`Fetching patterns for user ${userId}`);
 
     let query = supabaseAdmin
       .from('unique_patterns')
@@ -361,7 +364,7 @@ router.get('/patterns', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error fetching patterns:', error);
+    log.error('Error fetching patterns:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch unique patterns',
@@ -379,7 +382,7 @@ router.get('/features', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const platform = req.query.platform;
 
-    console.log(`📈 [Soul Signature] Fetching features for user ${userId}`);
+    log.info(`Fetching features for user ${userId}`);
 
     let query = supabaseAdmin
       .from('behavioral_features')
@@ -403,7 +406,7 @@ router.get('/features', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error fetching features:', error);
+    log.error('Error fetching features:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch behavioral features',
@@ -420,7 +423,7 @@ router.get('/privacy', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`🔒 [Soul Signature] Fetching privacy settings for user ${userId}`);
+    log.info(`Fetching privacy settings for user ${userId}`);
 
     const { data: settings, error } = await supabaseAdmin
       .from('privacy_settings')
@@ -466,7 +469,7 @@ router.get('/privacy', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error fetching privacy settings:', error);
+    log.error('Error fetching privacy settings:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch privacy settings',
@@ -490,7 +493,7 @@ router.put('/privacy', authenticateToken, async (req, res) => {
       audience_profiles
     } = req.body;
 
-    console.log(`🔒 [Soul Signature] Updating privacy settings for user ${userId}`);
+    log.info(`Updating privacy settings for user ${userId}`);
 
     // Build update object
     const updates = {
@@ -538,7 +541,7 @@ router.put('/privacy', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error updating privacy settings:', error);
+    log.error('Error updating privacy settings:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update privacy settings',
@@ -556,8 +559,8 @@ router.post('/generate', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const { platforms, force_refresh } = req.body;
 
-    console.log(`🎨 [Soul Signature] Generating soul signature for user ${userId}`);
-    console.log(`📊 [Soul Signature] Platforms: ${platforms?.join(', ') || 'all'}`);
+    log.info(`Generating soul signature for user ${userId}`);
+    log.info(`Platforms: ${platforms?.join(', ') || 'all'}`);
 
     // Check if user already has a soul signature
     if (!force_refresh) {
@@ -577,7 +580,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     }
 
     // Step 1: Extract features from all connected platforms
-    console.log(`📊 [Soul Signature] Step 1: Extracting behavioral features...`);
+    log.info(`Step 1: Extracting behavioral features...`);
     const platformsToExtract = platforms || Object.keys(platformExtractors);
 
     for (const platform of platformsToExtract) {
@@ -589,17 +592,17 @@ router.post('/generate', authenticateToken, async (req, res) => {
             await extractor.saveFeatures(features);
           }
         } catch (extractError) {
-          console.log(`⚠️ [Soul Signature] Skipping ${platform}: ${extractError.message}`);
+          log.info(`Skipping ${platform}: ${extractError.message}`);
         }
       }
     }
 
     // Step 2: Detect unique patterns
-    console.log(`🔍 [Soul Signature] Step 2: Detecting unique patterns...`);
+    log.info(`Step 2: Detecting unique patterns...`);
     await uniquePatternDetector.detectUniquePatterns(userId);
 
     // Step 3: Analyze personality
-    console.log(`🧠 [Soul Signature] Step 3: Analyzing personality...`);
+    log.info(`Step 3: Analyzing personality...`);
     const analysisResult = await personalityAnalyzerService.analyzePersonality(userId);
 
     if (!analysisResult.success) {
@@ -610,7 +613,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     }
 
     // Step 4: Generate soul signature
-    console.log(`✨ [Soul Signature] Step 4: Generating soul signature...`);
+    log.info(`Step 4: Generating soul signature...`);
     const signatureResult = await soulSignatureGenerator.generateSoulSignature(userId);
 
     if (!signatureResult.success) {
@@ -620,7 +623,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log(`🎉 [Soul Signature] Generation complete: "${signatureResult.soulSignature.archetype_name}"`);
+    log.info(`Generation complete: "${signatureResult.soulSignature.archetype_name}"`);
 
     res.json({
       success: true,
@@ -630,7 +633,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error generating soul signature:', error);
+    log.error('Error generating soul signature:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate soul signature',
@@ -665,7 +668,7 @@ router.post('/extract-features', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log(`📊 [Soul Signature] Extracting features from ${platform} for user ${userId}`);
+    log.info(`Extracting features from ${platform} for user ${userId}`);
 
     // Extract features
     const features = await extractor.extractFeatures(userId);
@@ -691,7 +694,7 @@ router.post('/extract-features', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error extracting features:', error);
+    log.error('Error extracting features:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to extract features',
@@ -726,7 +729,7 @@ router.get('/extraction-progress', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [Soul Signature] Error checking progress:', error);
+    log.error('Error checking progress:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to check extraction progress',

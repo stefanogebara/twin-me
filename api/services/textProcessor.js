@@ -4,13 +4,16 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TextProcessor');
 
 class TextProcessor {
   /**
    * Process all unprocessed platform data for a user
    */
   async processUserData(userId, limit = 100) {
-    console.log(`[TextProcessor] Processing data for user ${userId}...`);
+    log.info(`Processing data for user ${userId}...`);
 
     try {
       // Get unprocessed data
@@ -26,7 +29,7 @@ class TextProcessor {
       }
 
       if (!rawData || rawData.length === 0) {
-        console.log('[TextProcessor] No unprocessed data found');
+        log.info('No unprocessed data found');
         return { processed: 0 };
       }
 
@@ -37,14 +40,14 @@ class TextProcessor {
           await this.processItem(item);
           processedCount++;
         } catch (error) {
-          console.error(`[TextProcessor] Error processing item ${item.id}:`, error);
+          log.error(`Error processing item ${item.id}:`, error);
         }
       }
 
-      console.log(`[TextProcessor] Processed ${processedCount} items`);
+      log.info(`Processed ${processedCount} items`);
       return { processed: processedCount };
     } catch (error) {
-      console.error('[TextProcessor] Error in processUserData:', error);
+      log.error('Error in processUserData:', error);
       throw error;
     }
   }
@@ -111,7 +114,7 @@ class TextProcessor {
           return '';
       }
     } catch (error) {
-      console.error(`[TextProcessor] Error extracting text:`, error);
+      log.error(`Error extracting text:`, error);
       return '';
     }
   }
@@ -295,11 +298,11 @@ class TextProcessor {
         .insert(data);
 
       if (error) {
-        console.error('[TextProcessor] Error storing text:', error);
+        log.error('Error storing text:', error);
         throw error;
       }
     } catch (error) {
-      console.error('[TextProcessor] Exception storing text:', error);
+      log.error('Exception storing text:', error);
       throw error;
     }
   }
@@ -313,9 +316,9 @@ class TextProcessor {
         .from('user_platform_data')
         .update({ processed: true })
         .eq('id', platformDataId);
-      if (markErr) console.error('[TextProcessor] Error marking as processed:', markErr.message);
+      if (markErr) log.error('Error marking as processed:', markErr.message);
     } catch (error) {
-      console.error('[TextProcessor] Error marking as processed:', error);
+      log.error('Error marking as processed:', error);
     }
   }
 
@@ -328,20 +331,20 @@ class TextProcessor {
         .from('user_platform_data')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
-      if (totalErr) { console.warn('[TextProcessor] Error getting stats:', totalErr.message); return { total: 0, processed: 0, textContent: 0 }; }
+      if (totalErr) { log.warn('Error getting stats:', totalErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
       const { data: processed, error: processedErr } = await supabaseAdmin
         .from('user_platform_data')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('processed', true);
-      if (processedErr) { console.warn('[TextProcessor] Error getting stats:', processedErr.message); return { total: 0, processed: 0, textContent: 0 }; }
+      if (processedErr) { log.warn('Error getting stats:', processedErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
       const { data: textCount, error: textCountErr } = await supabaseAdmin
         .from('user_text_content')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
-      if (textCountErr) { console.warn('[TextProcessor] Error getting stats:', textCountErr.message); return { total: 0, processed: 0, textContent: 0 }; }
+      if (textCountErr) { log.warn('Error getting stats:', textCountErr.message); return { total: 0, processed: 0, textContent: 0 }; }
 
       return {
         totalRawItems: total || 0,
@@ -350,7 +353,7 @@ class TextProcessor {
         pendingItems: (total || 0) - (processed || 0)
       };
     } catch (error) {
-      console.error('[TextProcessor] Error getting stats:', error);
+      log.error('Error getting stats:', error);
       return null;
     }
   }

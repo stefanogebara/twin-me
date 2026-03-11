@@ -1,3 +1,7 @@
+import { createLogger } from './logger.js';
+
+const log = createLogger('GraphProcessor');
+
 /**
  * Invisible Graph Processor
  * Runs graph calculations in the background
@@ -17,7 +21,7 @@ class GraphProcessor {
    * This runs silently in the background
    */
   async buildUserGraph(userId, platformData) {
-    console.log(`[GraphProcessor] Building graph for user ${userId}`);
+    log.info(`Building graph for user ${userId}`);
 
     // Initialize graph structure
     const graph = {
@@ -58,7 +62,7 @@ class GraphProcessor {
     const metrics = await this.calculateMetrics(userId, graph);
     this.userMetrics.set(userId, metrics);
 
-    console.log(`[GraphProcessor] Graph built with ${graph.nodes.size} nodes and ${graph.edges.length} edges`);
+    log.info(`Graph built with ${graph.nodes.size} nodes and ${graph.edges.length} edges`);
 
     return metrics;
   }
@@ -278,7 +282,7 @@ class GraphProcessor {
    * These get converted to insights by InsightGenerator
    */
   async calculateMetrics(userId, graph) {
-    console.log(`[GraphProcessor] Calculating metrics for user ${userId}`);
+    log.info(`Calculating metrics for user ${userId}`);
 
     const metrics = {
       // Basic counts
@@ -308,7 +312,7 @@ class GraphProcessor {
       calculatedAt: new Date()
     };
 
-    console.log(`[GraphProcessor] Metrics calculated:`, {
+    log.info(`Metrics calculated:`, {
       degree: metrics.degree,
       clustering: metrics.clusteringCoefficient.toFixed(2),
       betweenness: metrics.betweennessCentrality.toFixed(2),

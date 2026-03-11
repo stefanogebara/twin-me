@@ -8,6 +8,9 @@
 
 import { supabaseAdmin } from './database.js';
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PatternLearning');
 
 class PatternLearningService {
   constructor() {
@@ -21,13 +24,13 @@ class PatternLearningService {
    * Called during daily batch processing
    */
   async processUserFeedback(userId) {
-    console.log(`\n🔄 [PatternLearning] Processing started for user ${userId}`);
-    console.log(`   - Batch size limit: ${this.batchSize}`);
+    log.info(`\n🔄 [PatternLearning] Processing started for user ${userId}`);
+    log.info(`- Batch size limit: ${this.batchSize}`);
     const processingStartTime = Date.now();
 
     try {
       // 1. Get unprocessed feedback
-      console.log(`📥 [PatternLearning] Fetching unprocessed feedback from database...`);
+      log.info(`Fetching unprocessed feedback from database...`);
       const { data: feedbackItems, error } = await supabaseAdmin
         .from('recommendation_feedback')
         .select('*')
@@ -37,63 +40,63 @@ class PatternLearningService {
         .limit(this.batchSize);
 
       if (error) {
-        console.error(`❌ [PatternLearning] Error fetching feedback:`, error);
+        log.error(`Error fetching feedback:`, error);
         return { success: false, error: error.message };
       }
 
       if (!feedbackItems || feedbackItems.length === 0) {
-        console.log(`📭 [PatternLearning] No unprocessed feedback found for user ${userId}`);
+        log.info(`No unprocessed feedback found for user ${userId}`);
         return { success: true, processed: 0 };
       }
 
-      console.log(`📊 [PatternLearning] Found ${feedbackItems.length} unprocessed feedback items`);
-      console.log(`   - Thumbs up: ${feedbackItems.filter(f => f.thumbs_vote === 'up').length}`);
-      console.log(`   - Thumbs down: ${feedbackItems.filter(f => f.thumbs_vote === 'down').length}`);
-      console.log(`   - With comments: ${feedbackItems.filter(f => f.comment).length}`);
+      log.info(`Found ${feedbackItems.length} unprocessed feedback items`);
+      log.info(`- Thumbs up: ${feedbackItems.filter(f => f.thumbs_vote === 'up').length}`);
+      log.info(`- Thumbs down: ${feedbackItems.filter(f => f.thumbs_vote === 'down').length}`);
+      log.info(`- With comments: ${feedbackItems.filter(f => f.comment).length}`);
 
       // 2. Analyze feedback patterns
-      console.log(`🔍 [PatternLearning] Analyzing feedback patterns...`);
+      log.info(`Analyzing feedback patterns...`);
       const feedbackSummary = await this.analyzeFeedbackPatterns(feedbackItems);
       if (feedbackSummary) {
-        console.log(`   - Approval rate: ${Math.round((feedbackSummary.thumbsUp / feedbackSummary.total) * 100)}%`);
-        console.log(`   - Avg star rating: ${feedbackSummary.avgStarRating?.toFixed(1) || 'N/A'}`);
+        log.info(`- Approval rate: ${Math.round((feedbackSummary.thumbsUp / feedbackSummary.total) * 100)}%`);
+        log.info(`- Avg star rating: ${feedbackSummary.avgStarRating?.toFixed(1) || 'N/A'}`);
       }
 
       // 3. Update pattern confidences
-      console.log(`📈 [PatternLearning] Updating pattern confidence scores...`);
+      log.info(`Updating pattern confidence scores...`);
       await this.updatePatternConfidences(userId, feedbackItems);
 
       // 4. Generate personalized insights based on feedback
-      console.log(`🧠 [PatternLearning] Calling Claude for insight generation...`);
+      log.info(`Calling Claude for insight generation...`);
       const newInsights = await this.generateInsightsFromFeedback(userId, feedbackSummary);
 
       // 5. Store generated insights
       if (newInsights && newInsights.length > 0) {
-        console.log(`💡 [PatternLearning] Generated ${newInsights.length} new insights`);
+        log.info(`Generated ${newInsights.length} new insights`);
         newInsights.forEach((insight, i) => {
-          console.log(`   ${i + 1}. ${insight.title} (confidence: ${(insight.confidence * 100).toFixed(0)}%)`);
+          log.info(`${i + 1}. ${insight.title} (confidence: ${(insight.confidence * 100).toFixed(0)}%)`);
         });
         await this.storeGeneratedInsights(userId, newInsights);
-        console.log(`💾 [PatternLearning] Insights stored in database`);
+        log.info(`Insights stored in database`);
       } else {
-        console.log(`ℹ️ [PatternLearning] No new insights generated (need more feedback data)`);
+        log.info(`No new insights generated (need more feedback data)`);
       }
 
       // 6. Mark feedback as processed
-      console.log(`✓ [PatternLearning] Marking ${feedbackItems.length} feedback items as processed...`);
+      log.info(`Marking ${feedbackItems.length} feedback items as processed...`);
       const feedbackIds = feedbackItems.map(f => f.id);
       const { error: markErr } = await supabaseAdmin
         .from('recommendation_feedback')
         .update({ processed_at: new Date().toISOString() })
         .in('id', feedbackIds);
-      if (markErr) console.error('Error marking feedback processed:', markErr.message);
+      if (markErr) log.error('Error marking feedback processed:', markErr.message);
 
       const processingDuration = Date.now() - processingStartTime;
-      console.log(`\n✅ [PatternLearning] Processing complete for user ${userId}`);
-      console.log(`   - Duration: ${processingDuration}ms`);
-      console.log(`   - Feedback processed: ${feedbackItems.length}`);
-      console.log(`   - Insights generated: ${newInsights?.length || 0}`);
-      console.log(`${'─'.repeat(50)}\n`);
+      log.info(`\n✅ [PatternLearning] Processing complete for user ${userId}`);
+      log.info(`- Duration: ${processingDuration}ms`);
+      log.info(`- Feedback processed: ${feedbackItems.length}`);
+      log.info(`- Insights generated: ${newInsights?.length || 0}`);
+      log.info(`${'─'.repeat(50)}\n`);
 
       return {
         success: true,
@@ -103,7 +106,7 @@ class PatternLearningService {
       };
 
     } catch (error) {
-      console.error(`❌ [PatternLearning] Error processing feedback for user ${userId}:`, error);
+      log.error(`Error processing feedback for user ${userId}:`, error);
       return { success: false, error: error.message };
     }
   }
@@ -159,7 +162,7 @@ class PatternLearningService {
       return stats;
 
     } catch (error) {
-      console.error('[PatternLearning] Error analyzing feedback:', error);
+      log.error('Error analyzing feedback:', error);
       return null;
     }
   }
@@ -207,7 +210,7 @@ Return as JSON:
 
       return JSON.parse(result.content);
     } catch (error) {
-      console.error('[PatternLearning] Error analyzing with Claude:', error);
+      log.error('Error analyzing with Claude:', error);
       return null;
     }
   }
@@ -245,7 +248,7 @@ Return as JSON:
       }
 
     } catch (error) {
-      console.error('[PatternLearning] Error updating confidences:', error);
+      log.error('Error updating confidences:', error);
     }
   }
 
@@ -274,10 +277,10 @@ Return as JSON:
           updated_at: new Date().toISOString()
         })
         .eq('id', patternId);
-      if (confidenceErr) console.error('Error updating pattern confidence:', confidenceErr.message);
+      if (confidenceErr) log.error('Error updating pattern confidence:', confidenceErr.message);
 
     } catch (error) {
-      console.error('[PatternLearning] Error adjusting pattern confidence:', error);
+      log.error('Error adjusting pattern confidence:', error);
     }
   }
 
@@ -314,10 +317,10 @@ Return as JSON:
         }, {
           onConflict: 'user_id,preference_type'
         });
-      if (upsertErr) console.error('Error upserting core memory preference:', upsertErr.message);
+      if (upsertErr) log.error('Error upserting core memory preference:', upsertErr.message);
 
     } catch (error) {
-      console.error('[PatternLearning] Error updating type confidence:', error);
+      log.error('Error updating type confidence:', error);
     }
   }
 
@@ -387,7 +390,7 @@ Return as JSON array:
       return Array.isArray(insights) ? insights : [];
 
     } catch (error) {
-      console.error('[PatternLearning] Error generating insights:', error);
+      log.error('Error generating insights:', error);
       return [];
     }
   }
@@ -416,11 +419,11 @@ Return as JSON array:
         .insert(insightRecords);
 
       if (error) {
-        console.error('[PatternLearning] Error storing insights:', error);
+        log.error('Error storing insights:', error);
       }
 
     } catch (error) {
-      console.error('[PatternLearning] Error in storeGeneratedInsights:', error);
+      log.error('Error in storeGeneratedInsights:', error);
     }
   }
 
@@ -464,7 +467,7 @@ Return as JSON array:
       };
 
     } catch (error) {
-      console.error('[PatternLearning] Error getting metrics:', error);
+      log.error('Error getting metrics:', error);
       return null;
     }
   }
@@ -474,33 +477,33 @@ Return as JSON array:
    */
   static async runForAllUsers() {
     const batchStartTime = Date.now();
-    console.log(`\n${'='.repeat(60)}`);
-    console.log(`⏰ [PatternLearning] Batch processing started at ${new Date().toISOString()}`);
-    console.log(`${'='.repeat(60)}`);
+    log.info(`\n${'='.repeat(60)}`);
+    log.info(`Batch processing started at ${new Date().toISOString()}`);
+    log.info(`${'='.repeat(60)}`);
 
     try {
       // Get users with unprocessed feedback
-      console.log(`📋 [PatternLearning] Fetching users with pending feedback...`);
+      log.info(`Fetching users with pending feedback...`);
       const { data: usersWithFeedback, error } = await supabaseAdmin
         .from('recommendation_feedback')
         .select('user_id')
         .is('processed_at', null);
 
       if (error) {
-        console.error(`❌ [PatternLearning] Error fetching users:`, error);
+        log.error(`Error fetching users:`, error);
         return [];
       }
 
       const uniqueUserIds = [...new Set(usersWithFeedback?.map(u => u.user_id) || [])];
       const totalPendingFeedback = usersWithFeedback?.length || 0;
 
-      console.log(`📊 [PatternLearning] Batch statistics:`);
-      console.log(`   - Users with pending feedback: ${uniqueUserIds.length}`);
-      console.log(`   - Total pending feedback items: ${totalPendingFeedback}`);
+      log.info(`Batch statistics:`);
+      log.info(`- Users with pending feedback: ${uniqueUserIds.length}`);
+      log.info(`- Total pending feedback items: ${totalPendingFeedback}`);
 
       if (uniqueUserIds.length === 0) {
-        console.log(`✅ [PatternLearning] No pending feedback to process`);
-        console.log(`${'='.repeat(60)}\n`);
+        log.info(`No pending feedback to process`);
+        log.info(`${'='.repeat(60)}\n`);
         return [];
       }
 
@@ -511,11 +514,11 @@ Return as JSON array:
       let totalInsights = 0;
 
       // Process users in batches
-      console.log(`\n🔄 [PatternLearning] Processing ${uniqueUserIds.length} users...\n`);
+      log.info(`\n🔄 [PatternLearning] Processing ${uniqueUserIds.length} users...\n`);
 
       for (let i = 0; i < uniqueUserIds.length; i++) {
         const userId = uniqueUserIds[i];
-        console.log(`\n[${i + 1}/${uniqueUserIds.length}] Processing user ${userId}`);
+        log.info(`\n[${i + 1}/${uniqueUserIds.length}] Processing user ${userId}`);
 
         const result = await service.processUserFeedback(userId);
         results.push({ userId, ...result });
@@ -534,20 +537,20 @@ Return as JSON array:
 
       const batchDuration = Date.now() - batchStartTime;
 
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`✅ [PatternLearning] Batch processing complete!`);
-      console.log(`   - Duration: ${(batchDuration / 1000).toFixed(1)}s`);
-      console.log(`   - Users processed: ${uniqueUserIds.length}`);
-      console.log(`   - Successful: ${successCount}/${uniqueUserIds.length}`);
-      console.log(`   - Total feedback items processed: ${totalProcessed}`);
-      console.log(`   - Total insights generated: ${totalInsights}`);
-      console.log(`   - Completed at: ${new Date().toISOString()}`);
-      console.log(`${'='.repeat(60)}\n`);
+      log.info(`\n${'='.repeat(60)}`);
+      log.info(`Batch processing complete!`);
+      log.info(`- Duration: ${(batchDuration / 1000).toFixed(1)}s`);
+      log.info(`- Users processed: ${uniqueUserIds.length}`);
+      log.info(`- Successful: ${successCount}/${uniqueUserIds.length}`);
+      log.info(`- Total feedback items processed: ${totalProcessed}`);
+      log.info(`- Total insights generated: ${totalInsights}`);
+      log.info(`- Completed at: ${new Date().toISOString()}`);
+      log.info(`${'='.repeat(60)}\n`);
 
       return results;
 
     } catch (error) {
-      console.error(`❌ [PatternLearning] Error in batch processing:`, error);
+      log.error(`Error in batch processing:`, error);
       return [];
     }
   }

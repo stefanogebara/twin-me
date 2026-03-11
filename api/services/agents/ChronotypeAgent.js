@@ -18,6 +18,9 @@
 
 import AgentBase from './AgentBase.js';
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Chronotypeagent');
 
 // Research-backed chronotype and calendar correlations
 const CHRONOTYPE_CORRELATIONS = {
@@ -218,7 +221,7 @@ Remember: You analyze objective behavioral data, not self-reports. Your inferenc
    * Main entry point for calendar-based personality inference
    */
   async analyzeCalendarData(userId, calendarData = null) {
-    console.log(`📅 [ChronotypeAgent] Starting calendar analysis for user ${userId}`);
+    log.info(`Starting calendar analysis for user ${userId}`);
 
     try {
       // Get calendar data if not provided
@@ -227,7 +230,7 @@ Remember: You analyze objective behavioral data, not self-reports. Your inferenc
       }
 
       if (!calendarData || calendarData.events?.length === 0) {
-        console.log(`⚠️ [ChronotypeAgent] No calendar data found for user ${userId}`);
+        log.info(`No calendar data found for user ${userId}`);
         return {
           success: false,
           error: 'No calendar data available',
@@ -239,7 +242,7 @@ Remember: You analyze objective behavioral data, not self-reports. Your inferenc
 
       // Extract features
       const features = await this.extractFeatures(calendarData);
-      console.log(`📊 [ChronotypeAgent] Extracted ${Object.keys(features).length} features`);
+      log.info(`Extracted ${Object.keys(features).length} features`);
 
       // Calculate personality adjustments
       const personalityAdjustments = this.calculatePersonalityAdjustments(features);
@@ -260,7 +263,7 @@ Remember: You analyze objective behavioral data, not self-reports. Your inferenc
       };
 
     } catch (error) {
-      console.error(`❌ [ChronotypeAgent] Analysis failed:`, error);
+      log.error(`Analysis failed:`, error);
       return {
         success: false,
         error: error.message,
@@ -296,7 +299,7 @@ Remember: You analyze objective behavioral data, not self-reports. Your inferenc
 
       return null;
     } catch (error) {
-      console.error(`❌ [ChronotypeAgent] Error fetching calendar data:`, error);
+      log.error(`Error fetching calendar data:`, error);
       return null;
     }
   }
@@ -803,7 +806,7 @@ Respond in JSON format:
       const result = await this.execute(prompt);
       return this.parseJSON(result.text);
     } catch (error) {
-      console.error(`⚠️ [ChronotypeAgent] Claude interpretation failed:`, error);
+      log.error(`Claude interpretation failed:`, error);
       return {
         chronotype_summary: features.is_morning_person ? 'Morning-oriented' : 'Evening-oriented',
         work_style: 'Unable to interpret',

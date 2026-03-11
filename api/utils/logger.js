@@ -62,20 +62,23 @@ function formatEntry(level, service, message, context) {
     msg: message,
   };
 
-  if (context) {
+  // Auto-redact PII from all context objects before output
+  const safeContext = context ? redact(context) : undefined;
+
+  if (safeContext) {
     // Extract error objects specially
-    if (context.error instanceof Error) {
+    if (safeContext.error instanceof Error) {
       entry.error = {
-        name: context.error.name,
-        message: context.error.message,
-        ...(context.error.code && { code: context.error.code }),
-        ...(!isProduction && context.error.stack && { stack: context.error.stack }),
+        name: safeContext.error.name,
+        message: safeContext.error.message,
+        ...(safeContext.error.code && { code: safeContext.error.code }),
+        ...(!isProduction && safeContext.error.stack && { stack: safeContext.error.stack }),
       };
       // Copy remaining context fields
-      const { error: _err, ...rest } = context;
+      const { error: _err, ...rest } = safeContext;
       if (Object.keys(rest).length > 0) Object.assign(entry, rest);
     } else {
-      Object.assign(entry, context);
+      Object.assign(entry, safeContext);
     }
   }
 
@@ -92,8 +95,8 @@ function formatEntry(level, service, message, context) {
   }[LEVEL_NAMES[level]] || '';
   const reset = '\x1b[0m';
 
-  const contextStr = context
-    ? ` ${JSON.stringify(context, replacer, 0)}`
+  const contextStr = safeContext
+    ? ` ${JSON.stringify(safeContext, replacer, 0)}`
     : '';
   return `${prefix} [${service}]${reset} ${message}${contextStr}`;
 }

@@ -21,6 +21,9 @@
 import { retrieveMemories } from './memoryStreamService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinSummary');
 
 const SUMMARY_MAX_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours
 
@@ -61,7 +64,7 @@ async function summarizeMemories(memories, aspect, userName) {
 
     return (result.content || '').trim();
   } catch (error) {
-    console.warn(`[TwinSummary] Failed to summarize ${aspect}:`, error.message);
+    log.warn('Failed to summarize aspect', { aspect, error });
     return '';
   }
 }
@@ -75,7 +78,7 @@ async function summarizeMemories(memories, aspect, userName) {
  * @returns {object} { summary, personality, lifestyle, culturalIdentity, socialDynamics, motivation }
  */
 async function generateTwinSummary(userId, userName = 'This person') {
-  console.log(`[TwinSummary] Generating fresh summary for user ${userId}`);
+  log.info('Generating fresh summary', { userId });
 
   // Five parallel retrieval queries aligned to expert reflection domains
   // Using 'identity' weights: relevance dominant, low recency bias — who this person IS, not just what happened recently
@@ -114,10 +117,10 @@ async function generateTwinSummary(userId, userName = 'This person') {
       if (expertSocialRaw && expertSocialRaw.length > 0) {
         const fallbackMemories = expertSocialRaw.map(r => ({ content: r.content }));
         socialDynamics = await summarizeMemories(fallbackMemories, 'social dynamics and communication style', userName);
-        console.log(`[TwinSummary] socialDynamics fallback from expert memories (${expertSocialRaw.length} found)`);
+        log.info('socialDynamics fallback from expert memories', { count: expertSocialRaw.length });
       }
     } catch (sdErr) {
-      console.warn('[TwinSummary] socialDynamics expert fallback failed (non-fatal):', sdErr.message);
+      log.warn('socialDynamics expert fallback failed (non-fatal)', { error: sdErr });
     }
   }
 
@@ -144,7 +147,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
         }
       }
     } catch (err) {
-      console.warn('[TwinSummary] soul_signature_profile fallback failed:', err.message);
+      log.warn('soul_signature_profile fallback failed', { error: err });
     }
   }
 
@@ -165,7 +168,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
       });
       finalSummary = (synthesisResult.content || '').trim() || parts.join(' ');
     } catch (err) {
-      console.warn('[TwinSummary] Synthesis failed, falling back to concatenation:', err.message);
+      log.warn('Synthesis failed, falling back to concatenation', { error: err });
       finalSummary = parts.join(' ');
     }
   } else {
@@ -174,7 +177,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
   const summary = finalSummary;
 
   if (!summary) {
-    console.log('[TwinSummary] No memories available to generate summary');
+    log.info('No memories available to generate summary');
     return null;
   }
 
@@ -194,9 +197,9 @@ async function generateTwinSummary(userId, userName = 'This person') {
     }, { onConflict: 'user_id' });
 
   if (upsertErr) {
-    console.warn('[TwinSummary] Failed to persist summary:', upsertErr.message);
+    log.warn('Failed to persist summary', { error: upsertErr });
   } else {
-    console.log(`[TwinSummary] Summary persisted (${summary.length} chars, ${parts.length} domains)`);
+    log.info('Summary persisted', { chars: summary.length, domains: parts.length });
   }
 
   return { summary, personality, lifestyle: filledLifestyle, culturalIdentity: filledCulturalIdentity, socialDynamics, motivation };
@@ -224,15 +227,15 @@ async function getTwinSummary(userId, userName = 'This person') {
     if (!error && cached && cached.summary) {
       const age = cached.generated_at ? Date.now() - new Date(cached.generated_at).getTime() : Infinity;
       if (age < SUMMARY_MAX_AGE_MS) {
-        console.log(`[TwinSummary] Using cached summary (age: ${Math.round(age / 60000)}m)`);
+        log.info('Using cached summary', { ageMinutes: Math.round(age / 60000) });
         return cached.summary;
       }
-      console.log(`[TwinSummary] Cached summary stale (age: ${Math.round(age / 3600000)}h), regenerating`);
+      log.info('Cached summary stale, regenerating', { ageHours: Math.round(age / 3600000) });
     }
 
     // Join existing generation if another request is already running for this user
     if (pendingGenerations.has(userId)) {
-      console.log(`[TwinSummary] Joining in-progress generation for ${userId}`);
+      log.info('Joining in-progress generation', { userId });
       const result = await pendingGenerations.get(userId);
       return result?.summary || null;
     }
@@ -245,7 +248,7 @@ async function getTwinSummary(userId, userName = 'This person') {
     return result?.summary || null;
   } catch (err) {
     pendingGenerations.delete(userId);
-    console.warn('[TwinSummary] getTwinSummary error:', err.message);
+    log.warn('getTwinSummary error', { error: err });
     return null;
   }
 }
@@ -282,7 +285,7 @@ async function getTwinSummaryWithDomains(userId, userName = 'This person') {
 
     // Join existing generation if another request is already running for this user
     if (pendingGenerations.has(userId)) {
-      console.log(`[TwinSummary] Joining in-progress generation for ${userId}`);
+      log.info('Joining in-progress generation', { userId });
       const result = await pendingGenerations.get(userId);
       if (!result) return null;
       return {
@@ -318,7 +321,7 @@ async function getTwinSummaryWithDomains(userId, userName = 'This person') {
     };
   } catch (err) {
     pendingGenerations.delete(userId);
-    console.warn('[TwinSummary] getTwinSummaryWithDomains error:', err.message);
+    log.warn('getTwinSummaryWithDomains error', { error: err });
     return null;
   }
 }

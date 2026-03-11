@@ -20,6 +20,10 @@ import {
   globalOAuthLimiter
 } from '../middleware/oauthRateLimiter.js';
 
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('EntertainmentConnectors');
+
 const supabase = supabaseAdmin;
 
 const router = express.Router();
@@ -109,7 +113,7 @@ router.post('/connect/spotify', authenticateUser, oauthAuthorizationLimiter, asy
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
@@ -123,7 +127,7 @@ router.post('/connect/spotify', authenticateUser, oauthAuthorizationLimiter, asy
       `code_challenge_method=${pkce.codeChallengeMethod}&` +
       `show_dialog=true`;
 
-    console.log(`🎵 Spotify OAuth initiated for user ${userId}`);
+    log.info('Spotify OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -131,7 +135,7 @@ router.post('/connect/spotify', authenticateUser, oauthAuthorizationLimiter, asy
       message: 'Connect your musical soul - discover your authentic taste'
     });
   } catch (error) {
-    console.error('Spotify connection error:', error);
+    log.error('Spotify connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Spotify connection',
@@ -159,7 +163,7 @@ router.post('/connect/netflix', authenticateUser, oauthAuthorizationLimiter, asy
       ]
     });
   } catch (error) {
-    console.error('Netflix connection error:', error);
+    log.error('Netflix connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Netflix connection' });
   }
 });
@@ -183,7 +187,7 @@ router.post('/upload/netflix-csv', authenticateUser, csvUpload.single('csvFile')
       });
     }
 
-    console.log(`📄 Processing Netflix CSV for user ${userId}`);
+    log.info('Processing Netflix CSV', { userId });
 
     // Read and parse CSV file
     const csvContent = await fs.readFile(req.file.path, 'utf8');
@@ -212,7 +216,7 @@ router.post('/upload/netflix-csv', authenticateUser, csvUpload.single('csvFile')
       }
     }
 
-    console.log(`📊 Parsed ${viewingHistory.length} viewing entries`);
+    log.info('Parsed viewing entries', { count: viewingHistory.length });
 
     // Analyze viewing patterns
     const genres = extractNetflixGenres(viewingHistory);
@@ -255,14 +259,14 @@ router.post('/upload/netflix-csv', authenticateUser, csvUpload.single('csvFile')
     });
 
   } catch (error) {
-    console.error('Netflix CSV processing error:', error);
+    log.error('Netflix CSV processing error', { error });
 
     // Clean up file on error
     if (req.file) {
       try {
         await fs.unlink(req.file.path);
       } catch (unlinkError) {
-        console.error('Error deleting file:', unlinkError);
+        log.error('Error deleting file', { error: unlinkError });
       }
     }
 
@@ -315,7 +319,7 @@ router.post('/connect/youtube', authenticateUser, oauthAuthorizationLimiter, asy
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
@@ -326,7 +330,7 @@ router.post('/connect/youtube', authenticateUser, oauthAuthorizationLimiter, asy
       `code_challenge=${pkce.codeChallenge}&` +
       `code_challenge_method=${pkce.codeChallengeMethod}`;
 
-    console.log(`📺 YouTube OAuth initiated for user ${userId}`);
+    log.info('YouTube OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -334,7 +338,7 @@ router.post('/connect/youtube', authenticateUser, oauthAuthorizationLimiter, asy
       message: 'Connect your YouTube preferences'
     });
   } catch (error) {
-    console.error('YouTube connection error:', error);
+    log.error('YouTube connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize YouTube connection',
@@ -357,7 +361,7 @@ router.post('/connect/steam', authenticateUser, oauthAuthorizationLimiter, async
       instruction: 'We\'ll analyze your gaming preferences and playstyles'
     });
   } catch (error) {
-    console.error('Steam connection error:', error);
+    log.error('Steam connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Steam connection' });
   }
 });
@@ -389,7 +393,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
     try {
       stateData = decryptState(state); // Validates timestamp, throws if expired
     } catch (error) {
-      console.warn(`⚠️ State decryption failed - possible tampered/expired state:`, error.message);
+      log.warn('State decryption failed - possible tampered/expired state', { error });
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired state parameter'
@@ -404,7 +408,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
     });
 
     if (stateError || !storedState) {
-      console.warn(`⚠️ Invalid, expired, or already used state parameter - possible CSRF/replay attack`, stateError);
+      log.warn('Invalid, expired, or already used state parameter - possible CSRF/replay attack', { error: stateError });
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired state parameter'
@@ -438,7 +442,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!spotifyTokenResponse.ok) {
           const errorData = await spotifyTokenResponse.json();
-          console.error('Spotify token exchange error:', {
+          log.error('Spotify token exchange error', {
             status: spotifyTokenResponse.status,
             error: errorData.error,
             description: errorData.error_description,
@@ -477,7 +481,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!discordTokenResponse.ok) {
           const errorData = await discordTokenResponse.json();
-          console.error('Discord token exchange error:', errorData);
+          log.error('Discord token exchange error', { errorData });
           throw new Error(`Failed to exchange Discord authorization code: ${errorData.error_description || errorData.error}`);
         }
 
@@ -505,7 +509,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!githubTokenResponse.ok) {
           const errorData = await githubTokenResponse.json();
-          console.error('GitHub token exchange error:', errorData);
+          log.error('GitHub token exchange error', { errorData });
           throw new Error(`Failed to exchange GitHub authorization code: ${errorData.error_description || errorData.error}`);
         }
 
@@ -538,7 +542,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!googleTokenResponse.ok) {
           const errorData = await googleTokenResponse.json();
-          console.error('Google token exchange error:', errorData);
+          log.error('Google token exchange error', { errorData });
           throw new Error(`Failed to exchange Google authorization code: ${errorData.error_description || errorData.error}`);
         }
 
@@ -568,7 +572,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!redditTokenResponse.ok) {
           const errorData = await redditTokenResponse.json();
-          console.error('Reddit token exchange error:', errorData);
+          log.error('Reddit token exchange error', { errorData });
           throw new Error(`Failed to exchange Reddit authorization code: ${errorData.error || 'unknown'}`);
         }
 
@@ -594,7 +598,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!linkedinTokenResponse.ok) {
           const errorData = await linkedinTokenResponse.json();
-          console.error('LinkedIn token exchange error:', errorData);
+          log.error('LinkedIn token exchange error', { errorData });
           throw new Error(`Failed to exchange LinkedIn authorization code: ${errorData.error_description || errorData.error}`);
         }
 
@@ -621,7 +625,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
         if (!ouraTokenResponse.ok) {
           const errorData = await ouraTokenResponse.json();
-          console.error('Oura token exchange error:', errorData);
+          log.error('Oura token exchange error', { errorData });
           throw new Error(`Failed to exchange Oura authorization code: ${errorData.error_description || errorData.error}`);
         }
 
@@ -665,43 +669,44 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
       .single();
 
     if (connectorError) {
-      console.error('Error storing connector:', connectorError);
+      log.error('Error storing connector', { error: connectorError });
       throw new Error('Failed to store connection');
     }
 
-    console.log(`💾 Tokens stored for ${platform} - User: ${userId}`);
+    log.info('Tokens stored', { platform, userId });
 
     // Invalidate platform status cache so frontend gets fresh status immediately
     clearStatusMemoryCache(userId);
     await invalidatePlatformStatusCache(userId);
-    console.log(`🗑️ Status cache cleared for user ${userId} after ${platform} reconnect`);
+    log.info('Status cache cleared after reconnect', { userId, platform });
 
     // Trigger data extraction in background (non-blocking)
-    console.log(`📊 Starting background data extraction for ${platform}...`);
+    log.info('Starting background data extraction', { platform });
 
     // Don't await - let it run in background
     dataExtractionService.extractPlatformData(userId, platform)
       .then(async (result) => {
-        console.log(`✅ Background extraction completed for ${platform}:`, result);
+        log.info('Background extraction completed', { platform, result });
 
         // Trigger evidence generation pipeline after successful data extraction
-        console.log(`🔬 Starting behavioral evidence pipeline for ${platform}...`);
+        log.info('Starting behavioral evidence pipeline', { platform });
         try {
           const evidenceResult = await behavioralEvidencePipeline.runPlatformPipeline(userId, platform);
           if (evidenceResult.success) {
-            console.log(`✅ Evidence pipeline completed for ${platform}:`, {
+            log.info('Evidence pipeline completed', {
+              platform,
               evidenceGenerated: evidenceResult.evidenceGenerated,
               featuresExtracted: evidenceResult.featuresExtracted
             });
           } else {
-            console.warn(`⚠️ Evidence pipeline returned no evidence for ${platform}:`, evidenceResult.message);
+            log.warn('Evidence pipeline returned no evidence', { platform, message: evidenceResult.message });
           }
         } catch (evidenceError) {
-          console.error(`❌ Evidence pipeline failed for ${platform}:`, evidenceError.message);
+          log.error('Evidence pipeline failed', { platform, error: evidenceError });
         }
       })
       .catch(error => {
-        console.error(`❌ Background extraction failed for ${platform}:`, error);
+        log.error('Background extraction failed', { platform, error });
       });
 
     res.json({
@@ -717,7 +722,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    log.error('OAuth callback error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to complete OAuth flow',
@@ -747,19 +752,19 @@ router.post('/extract/spotify', authenticateUser, async (req, res) => {
 
     // Try to use MCP if available
     if (mcpClient.usesMCP('spotify')) {
-      console.log('📊 Using MCP for Spotify data extraction');
+      log.info('Using MCP for Spotify data extraction');
       try {
         rawData = await mcpClient.extractData('spotify', accessToken, userId);
         extractionMethod = 'mcp';
       } catch (mcpError) {
-        console.error('MCP extraction failed, falling back to direct API:', mcpError);
+        log.error('MCP extraction failed, falling back to direct API', { error: mcpError });
         extractionMethod = 'direct-api-fallback';
       }
     }
 
     // Fallback to direct Spotify API if MCP not available or failed
     if (!rawData || extractionMethod !== 'mcp') {
-      console.log('📊 Using direct Spotify API for data extraction');
+      log.info('Using direct Spotify API for data extraction');
 
       // Get user's top artists
       const topArtistsRes = await fetch('https://api.spotify.com/v1/me/top/artists?limit=50&time_range=long_term', {
@@ -858,7 +863,7 @@ router.post('/extract/spotify', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Spotify extraction error:', error);
+    log.error('Spotify extraction error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to extract Spotify data',
@@ -888,19 +893,19 @@ router.post('/extract/youtube', authenticateUser, async (req, res) => {
 
     // Try to use MCP if available
     if (mcpClient.usesMCP('youtube')) {
-      console.log('📊 Using MCP for YouTube data extraction');
+      log.info('Using MCP for YouTube data extraction');
       try {
         rawData = await mcpClient.extractData('youtube', accessToken, userId);
         extractionMethod = 'mcp';
       } catch (mcpError) {
-        console.error('MCP extraction failed, falling back to direct API:', mcpError);
+        log.error('MCP extraction failed, falling back to direct API', { error: mcpError });
         extractionMethod = 'direct-api-fallback';
       }
     }
 
     // Fallback to direct YouTube API if MCP not available or failed
     if (!rawData || extractionMethod !== 'mcp') {
-      console.log('📊 Using direct YouTube API for data extraction');
+      log.info('Using direct YouTube API for data extraction');
 
       // Get liked videos
       const likedRes = await fetch(
@@ -969,7 +974,7 @@ router.post('/extract/youtube', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('YouTube extraction error:', error);
+    log.error('YouTube extraction error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to extract YouTube data',
@@ -1022,7 +1027,7 @@ router.post('/aggregate-entertainment', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Entertainment aggregation error:', error);
+    log.error('Entertainment aggregation error', { error });
     res.status(500).json({ error: 'Failed to aggregate entertainment data' });
   }
 });
@@ -1414,14 +1419,14 @@ router.post('/connect/github', authenticateUser, oauthAuthorizationLimiter, asyn
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
     const authUrl = `https://github.com/login/oauth/authorize?` +
       `client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
 
-    console.log(`🔧 GitHub OAuth initiated for user ${userId}`);
+    log.info('GitHub OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -1429,7 +1434,7 @@ router.post('/connect/github', authenticateUser, oauthAuthorizationLimiter, asyn
       message: 'Connect your coding soul'
     });
   } catch (error) {
-    console.error('GitHub connection error:', error);
+    log.error('GitHub connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize GitHub connection'
@@ -1476,7 +1481,7 @@ router.post('/connect/discord', authenticateUser, oauthAuthorizationLimiter, asy
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
@@ -1488,7 +1493,7 @@ router.post('/connect/discord', authenticateUser, oauthAuthorizationLimiter, asy
       `state=${state}&` +
       `prompt=consent`;
 
-    console.log(`💬 Discord OAuth initiated for user ${userId}`);
+    log.info('Discord OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -1496,7 +1501,7 @@ router.post('/connect/discord', authenticateUser, oauthAuthorizationLimiter, asy
       message: 'Connect your community soul - discover your social circles'
     });
   } catch (error) {
-    console.error('Discord connection error:', error);
+    log.error('Discord connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Discord connection',
@@ -1551,7 +1556,7 @@ router.post('/connect/gmail', authenticateUser, oauthAuthorizationLimiter, async
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
@@ -1561,7 +1566,7 @@ router.post('/connect/gmail', authenticateUser, oauthAuthorizationLimiter, async
       `code_challenge=${pkce.codeChallenge}&` +
       `code_challenge_method=${pkce.codeChallengeMethod}`;
 
-    console.log(`📧 Gmail OAuth initiated for user ${userId}`);
+    log.info('Gmail OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -1569,7 +1574,7 @@ router.post('/connect/gmail', authenticateUser, oauthAuthorizationLimiter, async
       message: 'Connect your communication soul'
     });
   } catch (error) {
-    console.error('Gmail connection error:', error);
+    log.error('Gmail connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Gmail connection',
@@ -1621,7 +1626,7 @@ router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimi
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
@@ -1631,7 +1636,7 @@ router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimi
       `code_challenge=${pkce.codeChallenge}&` +
       `code_challenge_method=${pkce.codeChallengeMethod}`;
 
-    console.log(`📅 Google Calendar OAuth initiated for user ${userId}`);
+    log.info('Google Calendar OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -1639,7 +1644,7 @@ router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimi
       message: 'Connect your calendar to understand your schedule patterns'
     });
   } catch (error) {
-    console.error('Google Calendar connection error:', error);
+    log.error('Google Calendar connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Google Calendar connection',
@@ -1681,7 +1686,7 @@ router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async 
       });
 
     if (stateInsertError) {
-      console.error('❌ Failed to store OAuth state:', stateInsertError);
+      log.error('Failed to store OAuth state', { error: stateInsertError });
       throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
     }
 
@@ -1692,7 +1697,7 @@ router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async 
       `scope=${encodeURIComponent(scope)}&` +
       `state=${state}`;
 
-    console.log(`💍 Oura OAuth initiated for user ${userId}`);
+    log.info('Oura OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -1700,7 +1705,7 @@ router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async 
       message: 'Connect your Oura Ring to understand your sleep and readiness patterns'
     });
   } catch (error) {
-    console.error('Oura connection error:', error);
+    log.error('Oura connection error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Oura connection',
@@ -1758,7 +1763,7 @@ router.get('/oauth/debug', authenticateUser, async (req, res) => {
       allConfigured: platforms.spotify.configured && platforms.google.configured && encryptionConfigured
     });
   } catch (error) {
-    console.error('OAuth debug error:', error);
+    log.error('OAuth debug error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to check OAuth configuration',

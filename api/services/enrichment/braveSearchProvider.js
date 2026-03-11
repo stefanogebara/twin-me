@@ -9,6 +9,9 @@
 
 import { complete, TIER_ANALYSIS } from '../llmGateway.js';
 import { inferNameFromEmail } from './enrichmentUtils.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Bravesearchprovider');
 
 // Dynamic import to prevent server crash if @google/genai is unavailable
 const getGoogleAI = async () => {
@@ -18,7 +21,7 @@ const getGoogleAI = async () => {
     const { GoogleGenAI } = await import('@google/genai');
     return new GoogleGenAI({ apiKey });
   } catch (err) {
-    console.warn('[ProfileEnrichment] @google/genai not available:', err.message);
+    log.warn('@google/genai not available:', err.message);
     return null;
   }
 };
@@ -115,7 +118,7 @@ export async function searchWithBrave(name, email) {
     .flatMap(r => r.value)
     .filter(r => { if (seen.has(r.url)) return false; seen.add(r.url); return true; });
 
-  console.log(`[ProfileEnrichment] Brave: ${uniqueResults.length} unique results from ${queries.length} queries`);
+  log.info(`Brave: ${uniqueResults.length} unique results from ${queries.length} queries`);
 
   const allSnippets = uniqueResults
     .map(r => `[${r.title}] ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
@@ -146,8 +149,8 @@ export async function searchWithBrave(name, email) {
     .sort((a, b) => b._score - a._score)
     .slice(0, 6);
 
-  console.log(`[ProfileEnrichment] Deep scraping ${scoredResults.length} pages (scored, personal-first):`);
-  scoredResults.forEach(r => console.log(`  [score:${r._score}] ${r.title} — ${r.url}`));
+  log.info(`Deep scraping ${scoredResults.length} pages (scored, personal-first):`);
+  scoredResults.forEach(r => log.info(`[score:${r._score}] ${r.title} — ${r.url}`));
   const pageContents = await Promise.allSettled(
     scoredResults.map(r => fetchPageText(r.url))
   );
@@ -172,7 +175,7 @@ export async function searchWithBrave(name, email) {
     .map(({ result, target }) => `--- PAGE: ${target.title} (${target.url}) ---\n${result.value}`)
     .join('\n\n');
 
-  console.log(`[ProfileEnrichment] Scraped ${scrapedPages.length} relevant pages out of ${pageContents.filter(r => r.status === 'fulfilled' && r.value).length} fetched (${scrapedText.length} chars)`);
+  log.info(`Scraped ${scrapedPages.length} relevant pages out of ${pageContents.filter(r => r.status === 'fulfilled' && r.value).length} fetched (${scrapedText.length} chars)`);
 
   const combined = `=== SEARCH SNIPPETS ===\n${allSnippets}\n\n=== FULL PAGE CONTENT ===\n${scrapedText}`;
   const _emailUsernameFound = emailUsernameLower.length >= 3 && (
@@ -236,10 +239,10 @@ Return ONLY a JSON object. Set fields to null if NO evidence found:
     const text = result.content.replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(text);
     const fields = Object.keys(parsed).filter(k => parsed[k] && parsed[k] !== null && parsed[k] !== 'null');
-    console.log(`[ProfileEnrichment] Personal life extraction: ${fields.length} fields found: [${fields.join(', ')}]`);
+    log.info(`Personal life extraction: ${fields.length} fields found: [${fields.join(', ')}]`);
     return parsed;
   } catch (err) {
-    console.error('[ProfileEnrichment] Personal life extraction failed:', err.message);
+    log.error('Personal life extraction failed:', err.message);
     return null;
   }
 }
@@ -301,12 +304,12 @@ RULES:
     const parsed = JSON.parse(text);
     const personalFields = ['interests_and_hobbies', 'causes_and_values', 'personality_traits', 'personal_bio', 'notable_quotes', 'public_appearances', 'life_story', 'social_media_presence'];
     const found = personalFields.filter(f => parsed[f] && parsed[f] !== null && parsed[f] !== 'null');
-    console.log(`[ProfileEnrichment] Extraction: ${found.length}/${personalFields.length} personal fields populated: [${found.join(', ')}]`);
-    if (found.length === 0) console.log(`[ProfileEnrichment] Raw extraction keys: ${Object.keys(parsed).filter(k => parsed[k] !== null).join(', ')}`);
+    log.info(`Extraction: ${found.length}/${personalFields.length} personal fields populated: [${found.join(', ')}]`);
+    if (found.length === 0) log.info(`Raw extraction keys: ${Object.keys(parsed).filter(k => parsed[k] !== null).join(', ')}`);
     return parsed;
   } catch (parseError) {
-    console.error('[ProfileEnrichment] Failed to parse Brave extraction JSON:', parseError.message);
-    console.error('[ProfileEnrichment] Raw LLM output:', result.content?.substring(0, 500));
+    log.error('Failed to parse Brave extraction JSON:', parseError.message);
+    log.error('Raw LLM output:', result.content?.substring(0, 500));
     return null;
   }
 }
@@ -326,18 +329,18 @@ RULES:
  */
 export async function comprehensivePersonSearch(name, email, existingData = {}) {
   if (!name) {
-    console.log('[ProfileEnrichment] Cannot do comprehensive search - no name provided');
+    log.info('Cannot do comprehensive search - no name provided');
     return null;
   }
 
   // Tier 0: Brave Search API
   if (process.env.BRAVE_SEARCH_API_KEY) {
-    console.log('[ProfileEnrichment] Trying Brave Search API for:', { name, hasEmail: !!email });
+    log.info('Trying Brave Search API for:', { name, hasEmail: !!email });
     try {
       const braveResult = await searchWithBrave(name, email);
       if (braveResult) {
         const hasScrapedContent = braveResult.scrapedOnly && braveResult.scrapedOnly.length > 100;
-        console.log(`[ProfileEnrichment] Running extraction: Pass 1 (career) + ${hasScrapedContent ? 'Pass 2 (personal)' : 'no Pass 2 (no scraped content)'}`);
+        log.info(`Running extraction: Pass 1 (career) + ${hasScrapedContent ? 'Pass 2 (personal)' : 'no Pass 2 (no scraped content)'}`);
 
         const [pass1Result, pass2Result] = await Promise.allSettled([
           extractStructuredProfile(braveResult.snippetsOnly, name, email),
@@ -347,8 +350,8 @@ export async function comprehensivePersonSearch(name, email, existingData = {}) 
         const extracted = pass1Result.status === 'fulfilled' ? pass1Result.value : null;
         const personal = pass2Result.status === 'fulfilled' ? pass2Result.value : null;
 
-        if (pass1Result.status === 'rejected') console.error('[ProfileEnrichment] Pass 1 failed:', pass1Result.reason?.message);
-        if (pass2Result.status === 'rejected') console.error('[ProfileEnrichment] Pass 2 failed:', pass2Result.reason?.message);
+        if (pass1Result.status === 'rejected') log.error('Pass 1 failed:', pass1Result.reason?.message);
+        if (pass2Result.status === 'rejected') log.error('Pass 2 failed:', pass2Result.reason?.message);
 
         if (extracted || personal) {
           return {
@@ -379,10 +382,10 @@ export async function comprehensivePersonSearch(name, email, existingData = {}) 
         }
       }
     } catch (error) {
-      console.error('[ProfileEnrichment] Brave Search failed:', error.message);
+      log.error('Brave Search failed:', error.message);
     }
 
-    console.log('[ProfileEnrichment] Brave returned no usable results, skipping LLM-based search');
+    log.info('Brave returned no usable results, skipping LLM-based search');
     return null;
   }
 
@@ -435,37 +438,37 @@ IMPORTANT: The username "${emailUsername}" is the primary identifier for THIS sp
   // Try 1: Google AI with Search Grounding
   const googleAI = await getGoogleAI();
   if (googleAI) {
-    console.log('[ProfileEnrichment] Trying Google AI with Search Grounding for:', { searchName, hasEmail: !!email });
+    log.info('Trying Google AI with Search Grounding for:', { searchName, hasEmail: !!email });
     try {
       const result = await searchWithGoogleGrounding(googleAI, searchName, email, prompt);
       if (result) return result;
     } catch (error) {
-      console.error('[ProfileEnrichment] Google AI grounding failed:', error.message);
+      log.error('Google AI grounding failed:', error.message);
     }
   }
 
   // Try 2: Perplexity Sonar Pro via OpenRouter
   if (openRouterKey) {
-    console.log('[ProfileEnrichment] Falling back to Perplexity Sonar Pro for:', { searchName, hasEmail: !!email });
+    log.info('Falling back to Perplexity Sonar Pro for:', { searchName, hasEmail: !!email });
     try {
       const result = await searchWithSonar(searchName, email, prompt, openRouterKey);
       if (result) return result;
     } catch (error) {
-      console.error('[ProfileEnrichment] Sonar search failed:', error.message);
+      log.error('Sonar search failed:', error.message);
     }
   }
 
   // Try 3: Gemini via OpenRouter WITH web search plugin
   if (openRouterKey) {
-    console.log('[ProfileEnrichment] Falling back to Gemini + OpenRouter web search for:', { searchName, hasEmail: !!email });
+    log.info('Falling back to Gemini + OpenRouter web search for:', { searchName, hasEmail: !!email });
     try {
       return await searchWithOpenRouter(searchName, email, prompt, openRouterKey);
     } catch (error) {
-      console.error('[ProfileEnrichment] OpenRouter Gemini + web search failed:', error.message);
+      log.error('OpenRouter Gemini + web search failed:', error.message);
     }
   }
 
-  console.log('[ProfileEnrichment] All search tiers exhausted — returning null');
+  log.info('All search tiers exhausted — returning null');
   return null;
 }
 
@@ -489,14 +492,14 @@ export async function searchWithSonar(name, email, prompt, apiKey) {
   });
 
   if (!response.ok) {
-    console.log('[ProfileEnrichment] Sonar search failed:', response.status);
+    log.info('Sonar search failed:', response.status);
     return null;
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
-  console.log('[ProfileEnrichment] Sonar result length:', content.length);
-  console.log('[ProfileEnrichment] Sonar preview:', content.substring(0, 500));
+  log.info('Sonar result length:', content.length);
+  log.info('Sonar preview:', content.substring(0, 500));
 
   if (content.length < 50) return null;
   return parseComprehensiveSearchResult(content);
@@ -506,12 +509,12 @@ export async function searchWithSonar(name, email, prompt, apiKey) {
  * Search using Google AI with Google Search grounding (direct API)
  */
 export async function searchWithGoogleGrounding(googleAI, name, email, prompt) {
-  console.log('[ProfileEnrichment] Running Google AI with grounding for:', name);
+  log.info('Running Google AI with grounding for:', name);
 
   const models = ['gemini-2.0-flash-lite', 'gemini-2.5-flash'];
   for (const model of models) {
     try {
-      console.log(`[ProfileEnrichment] Trying ${model}...`);
+      log.info(`Trying ${model}...`);
       const result = await Promise.race([
         googleAI.models.generateContent({
           model,
@@ -524,19 +527,19 @@ export async function searchWithGoogleGrounding(googleAI, name, email, prompt) {
       const content = result.text;
       const metadata = result.candidates?.[0]?.groundingMetadata;
       if (metadata) {
-        console.log(`[ProfileEnrichment] [${model}] Grounding queries:`, metadata.webSearchQueries?.slice(0, 5));
+        log.info(`[${model}] Grounding queries:`, metadata.webSearchQueries?.slice(0, 5));
       }
 
-      console.log(`[ProfileEnrichment] [${model}] Result length:`, content?.length || 0);
+      log.info(`[${model}] Result length:`, content?.length || 0);
       if (!content || content.length < 50) {
-        console.log(`[ProfileEnrichment] [${model}] Empty/short response — trying next model`);
+        log.info(`[${model}] Empty/short response — trying next model`);
         continue;
       }
 
-      console.log(`[ProfileEnrichment] [${model}] Preview:`, content.substring(0, 200));
+      log.info(`[${model}] Preview:`, content.substring(0, 200));
       return parseComprehensiveSearchResult(content);
     } catch (err) {
-      console.error(`[ProfileEnrichment] [${model}] Error:`, err.message);
+      log.error(`[${model}] Error:`, err.message);
       continue;
     }
   }
@@ -547,7 +550,7 @@ export async function searchWithGoogleGrounding(googleAI, name, email, prompt) {
  * Fallback search using Gemini via OpenRouter WITH web search plugin.
  */
 export async function searchWithOpenRouter(name, email, prompt, apiKey) {
-  console.log('[ProfileEnrichment] Running Gemini via OpenRouter (with web search) for:', name);
+  log.info('Running Gemini via OpenRouter (with web search) for:', name);
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -566,13 +569,13 @@ export async function searchWithOpenRouter(name, email, prompt, apiKey) {
   });
 
   if (!response.ok) {
-    console.log('[ProfileEnrichment] OpenRouter search failed:', response.status);
+    log.info('OpenRouter search failed:', response.status);
     return null;
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content || '';
-  console.log('[ProfileEnrichment] OpenRouter result length:', content.length);
+  log.info('OpenRouter result length:', content.length);
 
   if (content.length < 50) return null;
   return parseComprehensiveSearchResult(content);
@@ -606,7 +609,7 @@ export function parseComprehensiveSearchResult(content) {
     'no widely recognized public', 'not a widely recognized public',
   ];
   if (refusalPatterns.some(p => lower.includes(p))) {
-    console.log('[ProfileEnrichment] Detected refusal/no-data response, skipping');
+    log.info('Detected refusal/no-data response, skipping');
     return null;
   }
 

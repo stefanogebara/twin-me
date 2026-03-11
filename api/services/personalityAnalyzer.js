@@ -6,6 +6,9 @@
  */
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityAnalyzer');
 
 export class PersonalityAnalyzer {
   constructor() {
@@ -368,7 +371,7 @@ export class PersonalityAnalyzer {
       return this.parseAIResponse(result.content);
 
     } catch (error) {
-      console.error('AI personality analysis error:', error);
+      log.error('AI personality analysis error:', error);
       return this.generateFallbackInsights(domain, data);
     }
   }

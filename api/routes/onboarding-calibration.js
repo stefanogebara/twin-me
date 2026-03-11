@@ -34,6 +34,9 @@ import { supabaseAdmin } from '../services/database.js';
 import { addMemory, addConversationMemory } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
 import { generateGoalSuggestions } from '../services/goalTrackingService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OnboardingCalibration');
 
 const router = express.Router();
 
@@ -476,10 +479,10 @@ Return ONLY this JSON array (no markdown, no explanation):
     }
 
     // Fallback if LLM output is malformed
-    console.warn('[QuickQuestions] LLM output malformed, using fallback');
+    log.warn('LLM output malformed, using fallback');
     return res.json({ success: true, questions: FALLBACK_QUICK_QUESTIONS });
   } catch (error) {
-    console.error('[QuickQuestions] Error:', error);
+    log.error('QuickQuestions error', { error });
     return res.json({ success: true, questions: FALLBACK_QUICK_QUESTIONS });
   }
 });
@@ -604,7 +607,7 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
         }
       } catch {
         // JSON parse failed (truncated or malformed) — never show raw JSON to user
-        console.warn('[Calibration] Failed to parse summary JSON, extracting fallback');
+        log.warn('Failed to parse summary JSON, extracting fallback');
         summary = '';
       }
 
@@ -628,7 +631,7 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
             questions_asked: currentQ - 1,
             completed_at: new Date().toISOString(),
           }, { onConflict: 'user_id' });
-        if (saveError) console.warn('[Calibration] Save error:', saveError.message);
+        if (saveError) log.warn('Save error', { error: saveError });
       }
 
       // Store rich domain-tagged memories — await to ensure they're persisted before responding
@@ -636,11 +639,11 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
         try {
           await storeInterviewMemories(userId, history, domainInsights, archetypeHint, summary);
         } catch (memErr) {
-          console.error('[Calibration] Memory storage failed (non-fatal):', memErr.message);
+          log.error('Memory storage failed (non-fatal)', { error: memErr });
         }
       }
 
-      console.log(`[Calibration] Interview complete: ${currentQ - 1} questions, ${domainsWithCoverage}/5 domains covered`);
+      log.info('Interview complete', { questions: currentQ - 1, domainsCovered: domainsWithCoverage });
 
       return res.json({
         success: true,
@@ -691,7 +694,7 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       domainProgress,
     });
   } catch (error) {
-    console.error('[Calibration] Error:', error);
+    log.error('Calibration error', { error });
     return res.status(500).json({
       success: false,
       error: 'Calibration failed',
@@ -714,8 +717,8 @@ async function storeInterviewMemories(userId, history, domainInsights, archetype
         .delete()
         .eq('user_id', userId)
         .contains('metadata', { source: 'onboarding_interview' });
-      if (delErr) console.warn('[Calibration] Failed to delete old interview memories:', delErr.message);
-      else console.log(`[Calibration] Cleared old interview memories for user ${userId}`);
+      if (delErr) log.warn('Failed to delete old interview memories', { error: delErr });
+      else log.info('Cleared old interview memories', { userId });
     }
 
     // Store each Q&A pair as a conversation memory
@@ -761,27 +764,27 @@ async function storeInterviewMemories(userId, history, domainInsights, archetype
       });
     }
 
-    console.log(`[Calibration] Stored interview memories for user ${userId}`);
+    log.info('Stored interview memories', { userId });
 
     // Post-interview hooks: trigger reflections + goal suggestions
     try {
       const shouldReflect = await shouldTriggerReflection(userId);
       if (shouldReflect) {
-        console.log(`[Calibration] Triggering post-interview reflections for user ${userId}`);
+        log.info('Triggering post-interview reflections', { userId });
         generateReflections(userId).catch(err =>
-          console.warn(`[Calibration] Post-interview reflection error:`, err.message)
+          log.warn('Post-interview reflection error', { error: err })
         );
       }
     } catch (reflErr) {
-      console.warn('[Calibration] Reflection trigger failed:', reflErr.message);
+      log.warn('Reflection trigger failed', { error: reflErr });
     }
 
     // Generate goal suggestions from interview insights
     generateGoalSuggestions(userId).catch(err =>
-      console.warn(`[Calibration] Goal suggestion error:`, err.message)
+      log.warn('Goal suggestion error', { error: err })
     );
   } catch (err) {
-    console.warn('[Calibration] Memory storage failed:', err.message);
+    log.warn('Memory storage failed', { error: err });
   }
 }
 
@@ -807,12 +810,12 @@ router.get('/calibration-data/:userId', authenticateUser, async (req, res) => {
       .single();
 
     if (error && error.code !== 'PGRST116') {
-      console.warn('[Calibration] Fetch error:', error.message);
+      log.warn('Fetch error', { error });
     }
 
     return res.json({ success: true, data: data || null });
   } catch (error) {
-    console.error('[Calibration] Fetch error:', error);
+    log.error('Fetch error', { error });
     return res.status(500).json({ success: false, error: 'Failed to fetch calibration data' });
   }
 });
@@ -849,7 +852,7 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
 
     return res.json({ success: true, isNew, memoriesCount, hasCalibration });
   } catch (error) {
-    console.error('[Onboarding] Status check error:', error);
+    log.error('Status check error', { error });
     return res.status(500).json({ success: false, error: 'Failed to check onboarding status' });
   }
 });

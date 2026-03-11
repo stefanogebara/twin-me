@@ -6,6 +6,9 @@
  */
 
 import privacyService from '../services/privacyService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PrivacyFilter');
 
 /**
  * Middleware to filter response data based on privacy settings
@@ -51,7 +54,7 @@ export function applyPrivacyFilter(platformName, options = {}) {
 
         return originalJson(responseWithMetadata);
       } catch (error) {
-        console.error('Error applying privacy filter:', error);
+        log.error('Error applying privacy filter', { error });
         // On error, return original data
         return originalJson(data);
       }
@@ -95,7 +98,7 @@ export function requireClusterAccess(clusterId, minPrivacyLevel = 1) {
       req.privacyLevel = effectiveLevel;
       next();
     } catch (error) {
-      console.error('Error checking cluster access:', error);
+      log.error('Error checking cluster access', { error });
       res.status(500).json({
         error: 'Failed to check privacy permissions',
         details: error.message
@@ -144,7 +147,7 @@ export function addPrivacyContext() {
 
       next();
     } catch (error) {
-      console.error('Error adding privacy context:', error);
+      log.error('Error adding privacy context', { error });
       next(); // Continue without privacy context on error
     }
   };
@@ -253,8 +256,8 @@ export function logPrivacyAction(action) {
             },
             changed_at: new Date().toISOString()
           });
-          if (auditErr) console.warn('[PrivacyFilter] Failed to log audit action:', auditErr.message);
-        })().catch(err => console.warn('[PrivacyFilter] Audit log callback error:', err.message));
+          if (auditErr) log.warn('Failed to log audit action', { error: auditErr });
+        })().catch(err => log.warn('Audit log callback error', { error: err }));
       });
     }
 
@@ -278,7 +281,7 @@ export function addPrivacyHeaders() {
           res.setHeader('X-Privacy-Global', result.stats.globalPrivacy);
         }
       } catch (error) {
-        console.error('Error adding privacy headers:', error);
+        log.error('Error adding privacy headers', { error });
       }
     }
 

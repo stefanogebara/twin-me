@@ -7,6 +7,9 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import { createLogger } from './logger.js';
+
+const log = createLogger('MCPClient');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,10 +28,10 @@ class MCPClient {
       const configPath = path.join(__dirname, '../config/mcp-servers.json');
       const configData = await fs.readFile(configPath, 'utf8');
       this.config = JSON.parse(configData);
-      console.log('✅ MCP configuration loaded successfully');
+      log.info('MCP configuration loaded successfully');
       return this.config;
     } catch (error) {
-      console.error('❌ Failed to load MCP configuration:', error);
+      log.error('Failed to load MCP configuration:', error);
       throw error;
     }
   }
@@ -65,11 +68,11 @@ class MCPClient {
 
     // Built-in MCP tools (like GitHub) don't need initialization
     if (serverConfig.type === 'builtin') {
-      console.log(`✅ Using built-in MCP for ${platform}`);
+      log.info(`Using built-in MCP for ${platform}`);
       return { type: 'builtin', platform };
     }
 
-    console.log(`🔧 Initializing MCP server for ${platform}...`);
+    log.info(`Initializing MCP server for ${platform}...`);
 
     // Prepare environment variables with credentials
     const env = {
@@ -108,7 +111,7 @@ class MCPClient {
 
     const serverConfig = this.config.mcpServers[platform];
 
-    console.log(`📊 Extracting data from ${platform} via MCP...`);
+    log.info(`Extracting data from ${platform} via MCP...`);
 
     // Platform-specific data extraction logic
     switch (platform) {

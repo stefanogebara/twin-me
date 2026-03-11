@@ -10,6 +10,9 @@
  */
 
 import crypto from 'crypto';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Encryption');
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16; // 128 bits
@@ -33,8 +36,8 @@ function getEncryptionKey() {
         throw new Error(`Encryption key must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
       }
     } catch (error) {
-      console.error('❌ Encryption setup failed:', error.message);
-      console.error('💡 Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+      log.error('Encryption setup failed:', error.message);
+      log.error('Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
       throw new Error(`Encryption initialization failed: ${error.message}`);
     }
   }
@@ -68,7 +71,7 @@ export function encryptToken(plaintext) {
     // Return in format: iv:authTag:ciphertext (all hex)
     return `${iv.toString('hex')}:${authTag.toString('hex')}:${ciphertext}`;
   } catch (error) {
-    console.error('Token encryption error:', error);
+    log.error('Token encryption error:', error);
     throw new Error('Failed to encrypt token');
   }
 }
@@ -114,7 +117,7 @@ export function decryptToken(encryptedData) {
 
     return plaintext;
   } catch (error) {
-    console.error('Token decryption error:', error.message);
+    log.error('Token decryption error:', error.message);
     throw new Error('Failed to decrypt token - data may be corrupted or key mismatch');
   }
 }
@@ -133,10 +136,10 @@ export function testEncryption() {
       throw new Error('Encryption test failed: decrypted text does not match original');
     }
 
-    console.log('✅ Encryption test passed');
+    log.info('Encryption test passed');
     return true;
   } catch (error) {
-    console.error('❌ Encryption test failed:', error.message);
+    log.error('Encryption test failed:', error.message);
     return false;
   }
 }

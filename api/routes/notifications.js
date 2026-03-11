@@ -8,6 +8,9 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { checkExpiringTokens } from '../services/tokenExpiryNotifier.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Notifications');
 
 const router = express.Router();
 
@@ -35,7 +38,7 @@ router.get('/', authenticateUser, async (req, res) => {
       .limit(50);
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      log.error('Error fetching notifications:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch notifications'
@@ -59,7 +62,7 @@ router.get('/', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Notifications fetch error:', error);
+    log.error('Notifications fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch notifications'
@@ -88,7 +91,7 @@ router.get('/unread', authenticateUser, async (req, res) => {
       .limit(10);
 
     if (error) {
-      console.error('Error fetching unread notifications:', error);
+      log.error('Error fetching unread notifications:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch notifications'
@@ -102,7 +105,7 @@ router.get('/unread', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Unread notifications fetch error:', error);
+    log.error('Unread notifications fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch notifications'
@@ -131,7 +134,7 @@ router.post('/:id/read', authenticateUser, async (req, res) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error marking notification as read:', error);
+      log.error('Error marking notification as read:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to mark notification as read'
@@ -144,7 +147,7 @@ router.post('/:id/read', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Mark read error:', error);
+    log.error('Mark read error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to mark notification as read'
@@ -174,7 +177,7 @@ router.post('/:id/dismiss', authenticateUser, async (req, res) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error dismissing notification:', error);
+      log.error('Error dismissing notification:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to dismiss notification'
@@ -187,7 +190,7 @@ router.post('/:id/dismiss', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Dismiss error:', error);
+    log.error('Dismiss error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to dismiss notification'
@@ -215,7 +218,7 @@ router.post('/read-all', authenticateUser, async (req, res) => {
       .eq('read', false);
 
     if (error) {
-      console.error('Error marking all as read:', error);
+      log.error('Error marking all as read:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to mark all notifications as read'
@@ -228,7 +231,7 @@ router.post('/read-all', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Mark all read error:', error);
+    log.error('Mark all read error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to mark all notifications as read'
@@ -242,7 +245,7 @@ router.post('/read-all', authenticateUser, async (req, res) => {
  */
 router.post('/check-expiring', authenticateUser, async (req, res) => {
   try {
-    console.log('🔔 Manual token expiry check triggered');
+    log.info('Manual token expiry check triggered');
     await checkExpiringTokens();
 
     res.json({
@@ -251,7 +254,7 @@ router.post('/check-expiring', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Token expiry check error:', error);
+    log.error('Token expiry check error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to check expiring tokens',

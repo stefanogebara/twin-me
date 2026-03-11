@@ -11,6 +11,9 @@ import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import { encryptToken, decryptToken } from '../services/encryption.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronTokenRefresh');
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -75,12 +78,12 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   const config = PLATFORM_REFRESH_CONFIGS[platform];
 
   if (!config || !config.tokenUrl) {
-    console.log(`ℹ️  Platform ${platform} doesn't support token refresh`);
+    log.info('Platform does not support token refresh', { platform });
     return null;
   }
 
   try {
-    console.log(`🔄 Refreshing token for ${platform} (user: ${userId})`);
+    log.info('Refreshing token', { platform, userId });
 
     // Build params
     const paramsObj = {
@@ -122,7 +125,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       throw new Error('No access token in refresh response');
     }
 
-    console.log(`✅ Token refreshed successfully for ${platform}`);
+    log.info('Token refreshed successfully', { platform });
 
     return {
       accessToken: access_token,
@@ -131,7 +134,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     };
   } catch (error) {
     const oauthError = error.response?.data;
-    console.error(`❌ Token refresh failed for ${platform}:`, oauthError || error.message);
+    log.error('Token refresh failed', { platform, error: oauthError || error.message });
 
     // invalid_grant = refresh token is revoked or expired permanently — no point retrying
     const isPermanentFailure = oauthError?.error === 'invalid_grant' ||
@@ -141,7 +144,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
     // Use 'error' for permanent failures (user must reconnect), 'expired' for transient ones
     const newStatus = isPermanentFailure ? 'error' : 'expired';
     if (isPermanentFailure) {
-      console.warn(`⚠️  [CRON] ${platform} refresh token permanently invalid (${oauthError?.error}) — marking error (user must reconnect)`);
+      log.warn('Refresh token permanently invalid - marking error', { platform, oauthError: oauthError?.error });
     }
 
     const { error: updateErr } = await getSupabaseClient()
@@ -153,7 +156,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       .eq('user_id', userId)
       .eq('platform', platform);
     if (updateErr) {
-      console.warn(`[CRON] Failed to update ${platform} status after refresh failure:`, updateErr.message);
+      log.warn('Failed to update platform status after refresh failure', { platform, error: updateErr.message });
     }
 
     return null;
@@ -180,7 +183,7 @@ function isNangoManagedToken(token) {
  */
 async function checkAndRefreshExpiringTokens() {
   try {
-    console.log('🔍 [CRON] Checking for expiring tokens...');
+    log.info('Checking for expiring tokens');
 
     // Get all connections that expire in the next 10 minutes
     const tenMinutesFromNow = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -194,12 +197,12 @@ async function checkAndRefreshExpiringTokens() {
       .limit(1000);
 
     if (error) {
-      console.error('❌ Error fetching connections:', error);
+      log.error('Error fetching connections', { error });
       return { success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' };
     }
 
     if (!connections || connections.length === 0) {
-      console.log('✅ No tokens expiring soon');
+      log.info('No tokens expiring soon');
       return { success: true, tokensRefreshed: 0, message: 'No tokens expiring soon' };
     }
 
@@ -208,22 +211,22 @@ async function checkAndRefreshExpiringTokens() {
     const sixtySecondsAgo = new Date(Date.now() - 60 * 1000).toISOString();
     const refreshableConnections = connections.filter(conn => {
       if (isNangoManagedToken(conn.refresh_token) || isNangoManagedToken(conn.access_token)) {
-        console.log(`ℹ️  [CRON] Skipping ${conn.platform} - Nango-managed token`);
+        log.info('Skipping Nango-managed token', { platform: conn.platform });
         return false;
       }
       if (conn.updated_at && conn.updated_at > sixtySecondsAgo) {
-        console.log(`ℹ️  [CRON] Skipping ${conn.platform} - recently updated (concurrency guard)`);
+        log.info('Skipping recently updated platform (concurrency guard)', { platform: conn.platform });
         return false;
       }
       return true;
     });
 
     if (refreshableConnections.length === 0) {
-      console.log('✅ No tokens need refresh (all Nango-managed)');
+      log.info('No tokens need refresh (all Nango-managed)');
       return { success: true, tokensRefreshed: 0, message: 'All expiring tokens are Nango-managed' };
     }
 
-    console.log(`⚠️  Found ${refreshableConnections.length} tokens expiring soon`);
+    log.warn('Found tokens expiring soon', { count: refreshableConnections.length });
 
     const refreshResults = [];
 
@@ -233,7 +236,7 @@ async function checkAndRefreshExpiringTokens() {
       try {
         decryptedRefreshToken = decryptToken(connection.refresh_token);
       } catch (decryptErr) {
-        console.error(`❌ Could not decrypt refresh token for ${connection.platform}:`, decryptErr.message);
+        log.error('Could not decrypt refresh token', { platform: connection.platform, error: decryptErr.message });
         refreshResults.push({
           platform: connection.platform,
           userId: connection.user_id,
@@ -268,9 +271,9 @@ async function checkAndRefreshExpiringTokens() {
           .eq('id', connection.id);
 
         if (updateError) {
-          console.error(`❌ Failed to save refreshed tokens for ${connection.platform}:`, updateError.message);
+          log.error('Failed to save refreshed tokens', { platform: connection.platform, error: updateError.message });
         } else {
-          console.log(`✅ Updated tokens for ${connection.platform} (user: ${connection.user_id})`);
+          log.info('Updated tokens', { platform: connection.platform, userId: connection.user_id });
         }
 
         refreshResults.push({
@@ -298,7 +301,7 @@ async function checkAndRefreshExpiringTokens() {
       results: refreshResults,
     };
   } catch (error) {
-    console.error('❌ Error in token refresh check:', error);
+    log.error('Error in token refresh check', { error });
     return { success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' };
   }
 }
@@ -323,11 +326,11 @@ async function logCronExecution(jobName, status, executionTimeMs, result, errorM
     const { error: logErr } = await getSupabaseClient()
       .from('cron_executions')
       .insert(logEntry);
-    if (logErr) console.warn('⚠️  [CRON] Failed to log execution to database:', logErr.message);
-    else console.log(`📊 [CRON] Execution logged to database`);
+    if (logErr) log.warn('Failed to log execution to database', { error: logErr.message });
+    else log.info('Execution logged to database');
   } catch (error) {
     // Don't fail the cron job if logging fails
-    console.error('⚠️  [CRON] Failed to log execution:', error.message);
+    log.error('Failed to log execution', { error: error.message });
   }
 }
 
@@ -337,12 +340,12 @@ async function logCronExecution(jobName, status, executionTimeMs, result, errorM
  */
 export default async function handler(req, res) {
   const startTime = Date.now();
-  console.log('🌐 [CRON] Token refresh endpoint called');
+  log.info('Token refresh endpoint called');
 
   // Security: Verify cron secret (timing-safe)
   const authResult = verifyCronSecret(req);
   if (!authResult.authorized) {
-    console.error('❌ Unauthorized cron request - invalid secret');
+    log.error('Unauthorized cron request - invalid secret');
     return res.status(authResult.status).json({
       success: false,
       error: authResult.error,
@@ -366,7 +369,7 @@ export default async function handler(req, res) {
     // Return results
     const status = result.success ? 200 : 500;
 
-    console.log(`✅ [CRON] Token refresh completed in ${executionTime}ms:`, result);
+    log.info('Token refresh completed', { executionTimeMs: executionTime, result });
 
     return res.status(status).json({
       ...result,
@@ -386,7 +389,7 @@ export default async function handler(req, res) {
       error.message
     );
 
-    console.error(`❌ [CRON] Token refresh failed in ${executionTime}ms:`, error);
+    log.error('Token refresh failed', { executionTimeMs: executionTime, error });
 
     return res.status(500).json({
       success: false,

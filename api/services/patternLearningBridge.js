@@ -13,6 +13,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PatternLearningBridge');
 
 /**
  * Push a raw event to the pattern learning system
@@ -49,13 +52,13 @@ export async function pushRawEvent(userId, platform, eventType, eventData, times
       if (error.code === '23505') {
         return { success: true, duplicate: true };
       }
-      console.error(`[PatternLearningBridge] Error pushing ${platform}/${eventType}:`, error.message);
+      log.error(`Error pushing ${platform}/${eventType}:`, error.message);
       return { success: false, error: error.message };
     }
 
     return { success: true, eventId: data.id };
   } catch (err) {
-    console.error(`[PatternLearningBridge] Error:`, err);
+    log.error(`Error:`, err);
     return { success: false, error: err.message };
   }
 }
@@ -351,7 +354,7 @@ export async function pushGitHubActivity(userId, activityData, timestamp = new D
  * Call this once to backfill historical data
  */
 export async function syncExistingPlatformData(userId, platform, days = 90) {
-  console.log(`[PatternLearningBridge] Syncing ${days} days of ${platform} data for user ${userId}`);
+  log.info(`Syncing ${days} days of ${platform} data for user ${userId}`);
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -371,13 +374,13 @@ export async function syncExistingPlatformData(userId, platform, days = 90) {
         synced = await syncCalendarData(userId, startDate);
         break;
       default:
-        console.log(`[PatternLearningBridge] No sync handler for ${platform}`);
+        log.info(`No sync handler for ${platform}`);
     }
 
-    console.log(`[PatternLearningBridge] Synced ${synced} ${platform} events`);
+    log.info(`Synced ${synced} ${platform} events`);
     return { success: true, synced };
   } catch (error) {
-    console.error(`[PatternLearningBridge] Sync error for ${platform}:`, error);
+    log.error(`Sync error for ${platform}:`, error);
     return { success: false, error: error.message };
   }
 }
@@ -420,7 +423,7 @@ async function syncSpotifyData(userId, startDate) {
 
   // 2. Also check user_platform_data for Spotify batches (recently_played, top_tracks)
   // Use pagination to avoid timeout on large datasets
-  console.log(`[PatternLearningBridge] Checking user_platform_data for Spotify (batched)...`);
+  log.info(`Checking user_platform_data for Spotify (batched)...`);
 
   const BATCH_SIZE = 100;
   let offset = 0;
@@ -438,7 +441,7 @@ async function syncSpotifyData(userId, startDate) {
       .range(offset, offset + BATCH_SIZE - 1);
 
     if (platformError) {
-      console.error(`[PatternLearningBridge] user_platform_data query error:`, platformError);
+      log.error(`user_platform_data query error:`, platformError);
       break;
     }
 
@@ -447,7 +450,7 @@ async function syncSpotifyData(userId, startDate) {
       continue;
     }
 
-    console.log(`[PatternLearningBridge] Processing batch of ${platformData.length} Spotify records (offset ${offset})`);
+    log.info(`Processing batch of ${platformData.length} Spotify records (offset ${offset})`);
 
     for (const record of platformData) {
       const rawData = record.raw_data;

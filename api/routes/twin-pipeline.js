@@ -10,6 +10,9 @@ import twinFormationService from '../services/twinFormationService.js';
 import twinEvolutionService from '../services/twinEvolutionService.js';
 import personalityAggregator from '../services/personalityAggregator.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TwinPipeline');
 
 const router = express.Router();
 
@@ -37,7 +40,7 @@ router.post('/form', authenticateUser, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('[TwinPipeline API] Form error:', error);
+    log.error('Form error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
@@ -62,7 +65,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     res.json(status);
 
   } catch (error) {
-    console.error('[TwinPipeline API] Status error:', error);
+    log.error('Status error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
@@ -102,7 +105,7 @@ router.get('/profile/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[TwinPipeline API] Profile error:', error);
+    log.error('Profile error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
@@ -131,7 +134,7 @@ router.post('/refresh/:platform', authenticateUser, async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('[TwinPipeline API] Refresh error:', error);
+    log.error('Refresh error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
@@ -171,7 +174,7 @@ router.get('/evolution/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[TwinPipeline API] Evolution error:', error);
+    log.error('Evolution error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
@@ -206,7 +209,7 @@ router.get('/personality/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[TwinPipeline API] Personality error:', error);
+    log.error('Personality error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
@@ -234,7 +237,7 @@ router.get('/pipeline-status/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[TwinPipeline API] Pipeline status error:', error);
+    log.error('Pipeline status error:', error);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'

@@ -13,6 +13,9 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { ingestWebObservations } from '../services/observationIngestion.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('ExtensionData');
 
 const router = express.Router();
 
@@ -73,7 +76,7 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
   const userId = req.user.id;
   const capturedData = req.body;
 
-  console.log(`[Extension] Receiving ${platform} data for user ${userId}`);
+  log.info(`Receiving ${platform} data for user ${userId}`);
 
   try {
     if (!allowedPlatforms.includes(platform.toLowerCase())) {
@@ -98,11 +101,11 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
       .single();
 
     if (error) {
-      console.error(`[Extension] Failed to store ${platform} data:`, error);
+      log.error(`Failed to store ${platform} data:`, error);
       throw error;
     }
 
-    console.log(`[Extension] Stored ${platform} data: ${data.id}`);
+    log.info(`Stored ${platform} data: ${data.id}`);
 
     res.json({
       success: true,
@@ -113,7 +116,7 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`[Extension] Error processing ${platform} data:`, error);
+    log.error(`Error processing ${platform} data:`, error);
     res.status(500).json({
       error: 'Failed to store extension data',
       message: error.message
@@ -129,7 +132,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
   const userId = req.user.id;
   const { platform, events } = req.body;
 
-  console.log(`[Extension] Receiving batch sync: ${events?.length || 0} events from ${platform || 'mixed'}`);
+  log.info(`Receiving batch sync: ${events?.length || 0} events from ${platform || 'mixed'}`);
 
   try {
     if (!events || !Array.isArray(events)) {
@@ -166,11 +169,11 @@ router.post('/batch', authenticateUser, async (req, res) => {
       .select();
 
     if (error) {
-      console.error(`[Extension] Batch insert failed:`, error);
+      log.error(`Batch insert failed:`, error);
       throw error;
     }
 
-    console.log(`[Extension] Batch inserted ${data.length} events`);
+    log.info(`Batch inserted ${data.length} events`);
 
     // B1: Route web tab visits → memory stream via ingestWebObservations (non-blocking)
     // This converts dwell-time events into NL observations stored in user_memories.
@@ -185,7 +188,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
         raw_data: e.raw_data || e,
       }));
       ingestWebObservations(userId, normalised).catch(err =>
-        console.warn('[Extension] Web observation ingestion failed (non-fatal):', err.message)
+        log.warn('Web observation ingestion failed (non-fatal):', err.message)
       );
     }
 
@@ -197,7 +200,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`[Extension] Batch sync error:`, error);
+    log.error(`Batch sync error:`, error);
     res.status(500).json({
       error: 'Batch sync failed',
       message: error.message
@@ -305,7 +308,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
     res.json({ success: true, stats });
 
   } catch (error) {
-    console.error(`[Extension] Stats error:`, error);
+    log.error(`Stats error:`, error);
     res.status(500).json({
       error: 'Failed to get stats',
       message: error.message
@@ -332,7 +335,7 @@ router.delete('/clear/:platform', authenticateUser, async (req, res) => {
 
     if (error) throw error;
 
-    console.log(`[Extension] Cleared ${data.length} records for ${platform}`);
+    log.info(`Cleared ${data.length} records for ${platform}`);
 
     res.json({
       success: true,
@@ -341,7 +344,7 @@ router.delete('/clear/:platform', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`[Extension] Clear error:`, error);
+    log.error(`Clear error:`, error);
     res.status(500).json({
       error: 'Failed to clear data',
       message: error.message
@@ -357,7 +360,7 @@ router.delete('/clear/:platform', authenticateUser, async (req, res) => {
 router.post('/analyze', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
-  console.log(`[Extension] Triggering browsing analysis for user ${userId}`);
+  log.info(`Triggering browsing analysis for user ${userId}`);
 
   try {
     // Get recent web browsing data
@@ -432,7 +435,7 @@ router.post('/analyze', authenticateUser, async (req, res) => {
       pageCount: pageVisits.length,
       searchCount: searchEvents.length
     }).catch(err => {
-      console.warn('[Extension] Integration push failed (non-blocking):', err.message);
+      log.warn('Integration push failed (non-blocking):', err.message);
     });
 
     res.json({
@@ -445,7 +448,7 @@ router.post('/analyze', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`[Extension] Analysis error:`, error);
+    log.error(`Analysis error:`, error);
     res.status(500).json({
       error: 'Analysis failed',
       message: error.message
@@ -458,7 +461,7 @@ router.post('/analyze', authenticateUser, async (req, res) => {
  * Runs asynchronously after analysis
  */
 async function pushBrowsingToIntegrations(userId, analysis) {
-  console.log(`[Extension] Pushing browsing insights to integrations for user ${userId}`);
+  log.info(`Pushing browsing insights to integrations for user ${userId}`);
 
   // 1. Push to Twins Brain - interest nodes from browsing categories and topics
   try {
@@ -492,7 +495,7 @@ async function pushBrowsingToIntegrations(userId, analysis) {
           });
         }
       } catch (err) {
-        console.warn(`[Extension] Brain node error for ${category}:`, err.message);
+        log.warn(`Brain node error for ${category}:`, err.message);
       }
     }
 
@@ -524,13 +527,13 @@ async function pushBrowsingToIntegrations(userId, analysis) {
           });
         }
       } catch (err) {
-        console.warn(`[Extension] Brain topic node error for ${topic}:`, err.message);
+        log.warn(`Brain topic node error for ${topic}:`, err.message);
       }
     }
 
-    console.log(`[Extension] Brain: Created/reinforced ${analysis.topCategories.length + analysis.topTopics.length} browsing nodes`);
+    log.info(`Brain: Created/reinforced ${analysis.topCategories.length + analysis.topTopics.length} browsing nodes`);
   } catch (err) {
-    console.warn('[Extension] Brain integration error:', err.message);
+    log.warn('Brain integration error:', err.message);
   }
 
   // 2. Push to Mem0 - browsing summary as memories
@@ -550,18 +553,18 @@ async function pushBrowsingToIntegrations(userId, analysis) {
       });
     }
 
-    console.log('[Extension] Mem0: Stored browsing summary and search memories');
+    log.info('Mem0: Stored browsing summary and search memories');
   } catch (err) {
-    console.warn('[Extension] Mem0 integration error:', err.message);
+    log.warn('Mem0 integration error:', err.message);
   }
 
   // 3. Trigger soul signature rebuild
   try {
     const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
     await soulBuilder.buildSoulSignature(userId);
-    console.log('[Extension] Soul Signature: Rebuild triggered with browsing data');
+    log.info('Soul Signature: Rebuild triggered with browsing data');
   } catch (err) {
-    console.warn('[Extension] Soul Signature rebuild error:', err.message);
+    log.warn('Soul Signature rebuild error:', err.message);
   }
 }
 

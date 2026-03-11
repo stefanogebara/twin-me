@@ -15,6 +15,9 @@
 
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinPattern');
 
 // ====================================================================
 // Read Operations
@@ -37,13 +40,13 @@ export async function getTopPatterns(userId, limit = 5) {
       .limit(limit);
 
     if (error) {
-      console.warn('[TwinPattern] getTopPatterns failed:', error.message);
+      log.warn('getTopPatterns failed:', error.message);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.warn('[TwinPattern] getTopPatterns error:', err.message);
+    log.warn('getTopPatterns error:', err.message);
     return [];
   }
 }
@@ -75,13 +78,13 @@ export async function findRelevantPatterns(userId, queryEmbedding, {
     });
 
     if (error) {
-      console.warn('[TwinPattern] findRelevantPatterns RPC failed:', error.message);
+      log.warn('findRelevantPatterns RPC failed:', error.message);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.warn('[TwinPattern] findRelevantPatterns error:', err.message);
+    log.warn('findRelevantPatterns error:', err.message);
     return [];
   }
 }
@@ -105,7 +108,7 @@ export async function reinforcePatternById(patternId, reward = 0.10) {
       p_reward: reward,
     });
   } catch (err) {
-    console.warn('[TwinPattern] reinforcePatternById error:', err.message);
+    log.warn('reinforcePatternById error:', err.message);
   }
 }
 
@@ -124,7 +127,7 @@ export async function decayPatternById(patternId, penalty = 0.05) {
       p_penalty: penalty,
     });
   } catch (err) {
-    console.warn('[TwinPattern] decayPatternById error:', err.message);
+    log.warn('decayPatternById error:', err.message);
   }
 }
 
@@ -157,14 +160,14 @@ export async function seedPatternFromInsight(userId, name, description) {
     if (error) {
       // Unique violation = already seeded; silently skip
       if (error.code !== '23505') {
-        console.warn('[TwinPattern] seedPatternFromInsight failed:', error.message);
+        log.warn('seedPatternFromInsight failed:', error.message);
       }
       return null;
     }
 
     return data?.id || null;
   } catch (err) {
-    console.warn('[TwinPattern] seedPatternFromInsight error:', err.message);
+    log.warn('seedPatternFromInsight error:', err.message);
     return null;
   }
 }

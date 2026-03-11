@@ -13,6 +13,9 @@
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { getRecentMemories } from './memoryStreamService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityEvaluation');
 
 const BIG_FIVE_TRAITS = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
 const MBTI_DIMENSIONS = [
@@ -32,7 +35,7 @@ export async function evaluatePersonality(userId) {
   // Fetch top 50 diverse memories for analysis
   const memories = await getRecentMemories(userId, 50);
   if (!memories || memories.length < 10) {
-    console.log(`[Personality] Skipping user ${userId}: insufficient memories (${memories?.length || 0})`);
+    log.info(`Skipping user ${userId}: insufficient memories (${memories?.length || 0})`);
     return null;
   }
 
@@ -94,7 +97,7 @@ Be evidence-based. Low confidence (< 0.5) if insufficient evidence for a trait. 
   // Extract JSON from response
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    console.warn('[Personality] Failed to parse LLM response');
+    log.warn('Failed to parse LLM response');
     return null;
   }
 
@@ -103,7 +106,7 @@ Be evidence-based. Low confidence (< 0.5) if insufficient evidence for a trait. 
 
     // Validate structure
     if (!scores.big_five || !scores.mbti) {
-      console.warn('[Personality] Invalid scores structure');
+      log.warn('Invalid scores structure');
       return null;
     }
 
@@ -123,17 +126,17 @@ Be evidence-based. Low confidence (< 0.5) if insufficient evidence for a trait. 
     if (error) {
       // Unique constraint = already assessed this week
       if (error.code === '23505') {
-        console.log(`[Personality] Already assessed user ${userId} this week`);
+        log.info(`Already assessed user ${userId} this week`);
         return null;
       }
-      console.warn('[Personality] Insert error:', error.message);
+      log.warn('Insert error:', error.message);
       return null;
     }
 
-    console.log(`[Personality] Assessment complete for user ${userId}: ${assessment.id}`);
+    log.info(`Assessment complete for user ${userId}: ${assessment.id}`);
     return { id: assessment.id, scores };
   } catch (parseErr) {
-    console.warn('[Personality] JSON parse error:', parseErr.message);
+    log.warn('JSON parse error:', parseErr.message);
     return null;
   }
 }

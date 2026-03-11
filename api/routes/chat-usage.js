@@ -8,6 +8,9 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('ChatUsage');
 
 const router = express.Router();
 
@@ -61,7 +64,7 @@ router.get('/usage', authenticateUser, async (req, res) => {
       reset_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
     });
   } catch (error) {
-    console.error('[Chat Usage] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch usage' });
   }
 });

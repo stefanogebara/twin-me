@@ -9,6 +9,9 @@ import axios from 'axios';
 import { supabaseAdmin } from './database.js';
 import { decryptToken } from './encryption.js';
 import PLATFORM_CONFIGS from '../config/platformConfigs.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('SpotifyExtraction');
 
 /**
  * Main extraction function - retrieves all Spotify data
@@ -39,7 +42,7 @@ export async function extractSpotifyData(userId) {
       'Authorization': `${config.tokenType} ${accessToken}`
     };
 
-    console.log(`🎵 Extracting Spotify data for user ${userId}...`);
+    log.info(`Extracting Spotify data for user ${userId}...`);
 
     // Extract multiple data types in parallel for performance
     const [
@@ -84,7 +87,7 @@ export async function extractSpotifyData(userId) {
       soulData.topArtists.length +
       soulData.savedTracks.length;
 
-    console.log(`✅ Extracted ${totalItems} Spotify items`);
+    log.info(`Extracted ${totalItems} Spotify items`);
 
     // Save extracted data to soul_data table
     const { error: insertError } = await supabaseAdmin
@@ -113,7 +116,7 @@ export async function extractSpotifyData(userId) {
       });
 
     if (insertError) {
-      console.error('Error saving Spotify data:', insertError);
+      log.error('Error saving Spotify data:', insertError);
     }
 
     // Update connection status
@@ -125,7 +128,7 @@ export async function extractSpotifyData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
-    if (syncSuccessErr) console.warn('[Spotify] Failed to update sync status:', syncSuccessErr.message);
+    if (syncSuccessErr) log.warn('Failed to update sync status:', syncSuccessErr.message);
 
     return {
       success: true,
@@ -136,7 +139,7 @@ export async function extractSpotifyData(userId) {
     };
 
   } catch (error) {
-    console.error('Spotify extraction error:', error);
+    log.error('Spotify extraction error:', error);
 
     // Handle token expiration
     if (error.response?.status === 401) {
@@ -147,7 +150,7 @@ export async function extractSpotifyData(userId) {
         })
         .eq('user_id', userId)
         .eq('platform', 'spotify');
-      if (reauthErr) console.warn('[Spotify] Failed to update reauth status:', reauthErr.message);
+      if (reauthErr) log.warn('Failed to update reauth status:', reauthErr.message);
 
       return {
         success: false,
@@ -175,7 +178,7 @@ export async function extractSpotifyData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
-    if (failedErr) console.warn('[Spotify] Failed to update failed sync status:', failedErr.message);
+    if (failedErr) log.warn('Failed to update failed sync status:', failedErr.message);
 
     throw error;
   }

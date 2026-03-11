@@ -12,6 +12,9 @@ import { encryptState, encryptToken } from '../services/encryption.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { generatePKCEParams } from '../services/pkce.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('AdditionalConnectors');
 
 const router = express.Router();
 
@@ -32,7 +35,7 @@ router.post('/connect/apple-music', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.entertainment.appleMusic.insights
     });
   } catch (error) {
-    console.error('Apple Music connection error:', error);
+    log.error('Apple Music connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Apple Music connection' });
   }
 });
@@ -64,7 +67,7 @@ router.post('/connect/tiktok', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.entertainment.tiktok.insights
     });
   } catch (error) {
-    console.error('TikTok connection error:', error);
+    log.error('TikTok connection error', { error });
     res.status(500).json({ error: 'Failed to initialize TikTok connection' });
   }
 });
@@ -97,7 +100,7 @@ router.post('/connect/discord', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.gaming.discord.insights
     });
   } catch (error) {
-    console.error('Discord connection error:', error);
+    log.error('Discord connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Discord connection' });
   }
 });
@@ -133,7 +136,7 @@ router.post('/connect/reddit', authenticateUser, async (req, res) => {
       });
 
     if (stateInsertError) {
-      console.error('Failed to store Reddit OAuth state:', stateInsertError);
+      log.error('Failed to store Reddit OAuth state', { error: stateInsertError });
       throw new Error('Failed to initialize Reddit connection');
     }
 
@@ -142,7 +145,7 @@ router.post('/connect/reddit', authenticateUser, async (req, res) => {
       `state=${state}&redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `duration=permanent&scope=identity history read`;
 
-    console.log(`🔴 Reddit OAuth initiated for user ${userId}`);
+    log.info('Reddit OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -151,7 +154,7 @@ router.post('/connect/reddit', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.social.reddit.insights
     });
   } catch (error) {
-    console.error('Reddit connection error:', error);
+    log.error('Reddit connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Reddit connection' });
   }
 });
@@ -184,7 +187,7 @@ router.post('/connect/github', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.productivity.github.insights
     });
   } catch (error) {
-    console.error('GitHub connection error:', error);
+    log.error('GitHub connection error', { error });
     res.status(500).json({ error: 'Failed to initialize GitHub connection' });
   }
 });
@@ -217,7 +220,7 @@ router.post('/connect/instagram', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.social?.instagram?.insights || ['Visual preferences', 'Aesthetic style', 'Social engagement patterns']
     });
   } catch (error) {
-    console.error('Instagram connection error:', error);
+    log.error('Instagram connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Instagram connection' });
   }
 });
@@ -252,7 +255,7 @@ router.post('/connect/twitter', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.social?.twitter?.insights || ['Conversation topics', 'Network analysis', 'Engagement style']
     });
   } catch (error) {
-    console.error('Twitter connection error:', error);
+    log.error('Twitter connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Twitter connection' });
   }
 });
@@ -286,7 +289,7 @@ router.post('/connect/medium', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.reading.medium.insights
     });
   } catch (error) {
-    console.error('Medium connection error:', error);
+    log.error('Medium connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Medium connection' });
   }
 });
@@ -319,7 +322,7 @@ router.post('/connect/strava', authenticateUser, async (req, res) => {
       insights: platformAPIMappings.fitness.strava.insights
     });
   } catch (error) {
-    console.error('Strava connection error:', error);
+    log.error('Strava connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Strava connection' });
   }
 });
@@ -356,7 +359,7 @@ router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
       });
 
     if (stateInsertError) {
-      console.error('Failed to store Gmail OAuth state:', stateInsertError);
+      log.error('Failed to store Gmail OAuth state', { error: stateInsertError });
       throw new Error('Failed to initialize Gmail connection');
     }
 
@@ -368,7 +371,7 @@ router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
       `code_challenge=${pkce.codeChallenge}&` +
       `code_challenge_method=${pkce.codeChallengeMethod}`;
 
-    console.log(`📧 Gmail OAuth initiated for user ${userId}`);
+    log.info('Gmail OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -376,7 +379,7 @@ router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
       message: 'Connect your email patterns',
     });
   } catch (error) {
-    console.error('Gmail connection error:', error);
+    log.error('Gmail connection error', { error });
     res.status(500).json({ error: 'Failed to initialize Gmail connection' });
   }
 });
@@ -413,7 +416,7 @@ router.post('/connect/linkedin', authenticateUser, async (req, res) => {
       });
 
     if (stateInsertError) {
-      console.error('Failed to store LinkedIn OAuth state:', stateInsertError);
+      log.error('Failed to store LinkedIn OAuth state', { error: stateInsertError });
       throw new Error('Failed to initialize LinkedIn connection');
     }
 
@@ -422,7 +425,7 @@ router.post('/connect/linkedin', authenticateUser, async (req, res) => {
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `scope=${encodeURIComponent(scope)}&state=${state}`;
 
-    console.log(`💼 LinkedIn OAuth initiated for user ${userId}`);
+    log.info('LinkedIn OAuth initiated', { userId });
 
     res.json({
       success: true,
@@ -430,7 +433,7 @@ router.post('/connect/linkedin', authenticateUser, async (req, res) => {
       message: 'Connect your professional identity',
     });
   } catch (error) {
-    console.error('LinkedIn connection error:', error);
+    log.error('LinkedIn connection error', { error });
     res.status(500).json({ error: 'Failed to initialize LinkedIn connection' });
   }
 });
@@ -462,7 +465,7 @@ router.post('/import/netflix', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Netflix import error:', error);
+    log.error('Netflix import error', { error });
     res.status(500).json({ error: 'Failed to process Netflix data' });
   }
 });
@@ -484,7 +487,7 @@ router.post('/import/hbo-max', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('HBO Max import error:', error);
+    log.error('HBO Max import error', { error });
     res.status(500).json({ error: 'Failed to process HBO Max data' });
   }
 });
@@ -509,7 +512,7 @@ router.get('/demo/:platform', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Demo generation error:', error);
+    log.error('Demo generation error', { error });
     res.status(500).json({ error: 'Failed to generate demo data' });
   }
 });

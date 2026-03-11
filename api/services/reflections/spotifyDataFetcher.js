@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from '../../config/supabase.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Spotifydatafetcher');
 
 /**
  * Get Spotify data for reflection
@@ -213,8 +216,8 @@ export async function getSpotifyData(userId, context) {
       .map(([hour, plays]) => ({ hour: parseInt(hour), plays }))
       .sort((a, b) => a.hour - b.hour);
 
-    console.log(`[Reflection] Found ${allTopTracks.length} top tracks, ${allRecentTracks.length} recent tracks for user ${userId}`);
-    console.log(`[Reflection] Visualization data: ${topArtistsWithPlays.length} artists, ${topGenres.length} genres, ${listeningHours.filter(h => h.plays > 0).length} active hours`);
+    log.info(`Found ${allTopTracks.length} top tracks, ${allRecentTracks.length} recent tracks for user ${userId}`);
+    log.info(`Visualization data: ${topArtistsWithPlays.length} artists, ${topGenres.length} genres, ${listeningHours.filter(h => h.plays > 0).length} active hours`);
 
     return {
       success: allTopTracks.length > 0 || allRecentTracks.length > 0,
@@ -234,7 +237,7 @@ export async function getSpotifyData(userId, context) {
       }
     };
   } catch (error) {
-    console.error('[Reflection] Spotify data error:', error);
+    log.error('Spotify data error:', error);
     return { success: false, error: error.message };
   }
 }

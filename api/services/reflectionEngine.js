@@ -51,6 +51,10 @@ import { supabaseAdmin } from './database.js';
 import { generateEmbedding } from './embeddingService.js';
 import { autoLinkMemory } from './memoryLinksService.js';
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('ReflectionEngine');
+
 // ====================================================================
 // Deduplication — Cosine similarity on stored embeddings
 // ====================================================================
@@ -128,7 +132,7 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
     // Catches obvious duplicates without paying for an embedding
     const bigramMax = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
     if (bigramMax > DEDUP_BIGRAM_THRESHOLD) {
-      console.log(`[Reflection] Dedup skip (${expertId}): bigram ${bigramMax.toFixed(2)} > ${DEDUP_BIGRAM_THRESHOLD}`);
+      log.info('Dedup skip (bigram)', { expertId, similarity: bigramMax.toFixed(2), threshold: DEDUP_BIGRAM_THRESHOLD });
       return true;
     }
 
@@ -142,7 +146,7 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
           if (!existingVec) continue;
           const sim = cosineSim(newVec, existingVec);
           if (sim > DEDUP_COSINE_THRESHOLD) {
-            console.log(`[Reflection] Dedup skip (${expertId}): cosine ${sim.toFixed(3)} > ${DEDUP_COSINE_THRESHOLD}`);
+            log.info('Dedup skip (cosine)', { expertId, similarity: sim.toFixed(3), threshold: DEDUP_COSINE_THRESHOLD });
             return true;
           }
         }
@@ -151,7 +155,7 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
 
     return false;
   } catch (err) {
-    console.warn('[Reflection] Dedup check failed (non-fatal):', err.message);
+    log.warn('Dedup check failed (non-fatal)', { error: err });
     return false; // On error, allow write
   }
 }
@@ -374,7 +378,7 @@ async function getPersonalityTrend(userId) {
 
     return changes.length > 0 ? `Recent personality shifts: ${changes.join('; ')}` : null;
   } catch (err) {
-    console.warn('[Reflection] getPersonalityTrend failed (non-fatal):', err.message);
+    log.warn('getPersonalityTrend failed (non-fatal)', { error: err });
     return null;
   }
 }
@@ -421,7 +425,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
 
     // Check for insufficient evidence (case-insensitive, handles trailing punctuation/variants)
     if (responseText.toUpperCase().startsWith('INSUFFICIENT_EVIDENCE') || responseText.length < 20) {
-      console.log(`[Reflection] ${expert.name}: insufficient evidence`);
+      log.info('Expert: insufficient evidence', { expert: expert.name });
       return [];
     }
 
@@ -463,7 +467,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
 
       if (reflectionResult) {
         stored.push(observation);
-        console.log(`[Reflection] ${expert.name}: "${observation.substring(0, 70)}..."`);
+        log.info('Expert generated reflection', { expert: expert.name, preview: observation.substring(0, 70) });
 
         // A-MEM: Auto-link this reflection to semantically related memories.
         // generateEmbedding is cached — this is a cache hit from the dedup check above.
@@ -471,7 +475,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
         generateEmbedding(observation).then(embedding => {
           if (embedding) {
             autoLinkMemory(reflectionResult.id, userId, embedding).catch(err =>
-              console.warn('[MemoryLinks] autoLinkMemory fire-and-forget error:', err.message)
+              log.warn('autoLinkMemory fire-and-forget error', { error: err })
             );
           }
         }).catch(() => {});
@@ -483,7 +487,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
     stored._evidenceIds = evidenceIds;
     return stored;
   } catch (error) {
-    console.warn(`[Reflection] ${expert.name} error:`, error.message);
+    log.warn('Expert analysis error', { expert: expert.name, error });
     return [];
   }
 }
@@ -495,25 +499,25 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
  */
 async function generateReflections(userId, depth = 0) {
   if (depth >= MAX_REFLECTION_DEPTH) {
-    console.log(`[Reflection] Max depth (${MAX_REFLECTION_DEPTH}) reached for user ${userId}`);
+    log.info('Max depth reached', { maxDepth: MAX_REFLECTION_DEPTH, userId });
     return 0;
   }
 
   // Check cooldown (only on initial call, not recursive ones)
   if (depth === 0) {
     if (await _isReflectionOnCooldown(userId)) {
-      console.log(`[Reflection] Skipping - cooldown active for user ${userId}`);
+      log.info('Skipping - cooldown active', { userId });
       return 0;
     }
   }
 
   try {
-    console.log(`[Reflection] Starting expert reflection generation (depth ${depth}) for user ${userId}`);
+    log.info('Starting expert reflection generation', { depth, userId });
 
     // Step 1: Gather recent memories
     const recentMemories = await getRecentMemories(userId, 100);
     if (recentMemories.length < 3) {
-      console.log(`[Reflection] Not enough memories (${recentMemories.length}) to reflect`);
+      log.info('Not enough memories to reflect', { count: recentMemories.length });
       return 0;
     }
 
@@ -532,10 +536,10 @@ async function generateReflections(userId, depth = 0) {
     try {
       identityContext = await inferIdentityContext(userId);
       if (identityContext.promptFragment) {
-        console.log(`[Reflection] Identity context: ${identityContext.lifeStage}, career=${identityContext.careerSalience}`);
+        log.info('Identity context loaded', { lifeStage: identityContext.lifeStage, careerSalience: identityContext.careerSalience });
       }
     } catch (idErr) {
-      console.warn('[Reflection] Identity context fetch failed (non-fatal):', idErr.message);
+      log.warn('Identity context fetch failed (non-fatal)', { error: idErr });
     }
 
     // Step 3: Fetch personality trend (non-blocking, injected as context for experts)
@@ -543,10 +547,10 @@ async function generateReflections(userId, depth = 0) {
     try {
       personalityTrend = await getPersonalityTrend(userId);
       if (personalityTrend) {
-        console.log(`[Reflection] Personality trend: ${personalityTrend}`);
+        log.info('Personality trend detected', { trend: personalityTrend });
       }
     } catch (trendErr) {
-      console.warn('[Reflection] Personality trend fetch failed (non-fatal):', trendErr.message);
+      log.warn('Personality trend fetch failed (non-fatal)', { error: trendErr });
     }
 
     // Append personality trend to the shared observations block so all experts see it
@@ -555,7 +559,7 @@ async function generateReflections(userId, depth = 0) {
       : formattedObservations;
 
     // Step 4: Run all experts in parallel (with identity context injected)
-    console.log(`[Reflection] Running ${EXPERT_PERSONAS.length} expert analyses in parallel...`);
+    log.info('Running expert analyses in parallel', { expertCount: EXPERT_PERSONAS.length });
 
     const expertSettled = await Promise.allSettled(
       EXPERT_PERSONAS.map(expert =>
@@ -569,17 +573,17 @@ async function generateReflections(userId, depth = 0) {
 
     for (let i = 0; i < EXPERT_PERSONAS.length; i++) {
       if (expertSettled[i].status === 'rejected') {
-        console.warn(`[Reflection] Expert ${EXPERT_PERSONAS[i].id} failed:`, expertSettled[i].reason?.message);
+        log.warn('Expert failed', { expertId: EXPERT_PERSONAS[i].id, error: expertSettled[i].reason });
         continue;
       }
       const result = expertSettled[i].value;
       if (!Array.isArray(result)) {
-        console.warn(`[Reflection] Expert ${EXPERT_PERSONAS[i].id} returned invalid result`);
+        log.warn('Expert returned invalid result', { expertId: EXPERT_PERSONAS[i].id });
         continue;
       }
       const count = result.length;
       if (count > 0) {
-        console.log(`[Reflection] ${EXPERT_PERSONAS[i].name}: ${count} reflections`);
+        log.info('Expert produced reflections', { expert: EXPERT_PERSONAS[i].name, count });
         // Collect evidence IDs (result items may be { observation, evidenceIds } or just strings)
         // runExpertAnalysis returns stored observation strings; evidenceIds tracked below via a Map
         if (result._evidenceIds) {
@@ -594,7 +598,7 @@ async function generateReflections(userId, depth = 0) {
     // reflections that abstracted them. Protected: importance ≥ 8 or retrieval_count ≥ 3.
     if (reflectionsGenerated > 0 && allEvidenceIds.size > 0) {
       decaySourceMemories(userId, [...allEvidenceIds]).catch(err =>
-        console.warn('[Reflection] Source decay failed (non-fatal):', err.message)
+        log.warn('Source decay failed (non-fatal)', { error: err })
       );
     }
 
@@ -602,7 +606,7 @@ async function generateReflections(userId, depth = 0) {
     if (reflectionsGenerated > 0 && depth + 1 < MAX_REFLECTION_DEPTH) {
       const newSum = await getRecentImportanceSum(userId, 2);
       if (newSum >= IMPORTANCE_THRESHOLD) {
-        console.log(`[Reflection] Importance ${newSum} >= ${IMPORTANCE_THRESHOLD} after depth ${depth}, recursing...`);
+        log.info('Importance threshold met, recursing', { importanceSum: newSum, threshold: IMPORTANCE_THRESHOLD, depth });
         reflectionsGenerated += await generateReflections(userId, depth + 1);
       }
     }
@@ -614,15 +618,15 @@ async function generateReflections(userId, depth = 0) {
       // Snapshot personality scores after each reflection cycle
       if (reflectionsGenerated > 0) {
         snapshotPersonalityScores(userId).catch(err =>
-          console.warn('[Reflection] Snapshot error (non-fatal):', err.message)
+          log.warn('Snapshot error (non-fatal)', { error: err })
         );
       }
     }
 
-    console.log(`[Reflection] Completed depth ${depth}: ${reflectionsGenerated} reflections from ${EXPERT_PERSONAS.length} experts for user ${userId}`);
+    log.info('Reflection generation completed', { depth, reflectionsGenerated, expertCount: EXPERT_PERSONAS.length, userId });
     return reflectionsGenerated;
   } catch (error) {
-    console.error('[Reflection] generateReflections error:', error.message);
+    log.error('generateReflections error', { error });
     return 0;
   }
 }
@@ -646,7 +650,7 @@ async function shouldTriggerReflection(userId) {
  * Useful for bootstrapping the reflection layer for existing users.
  */
 async function seedReflections(userId) {
-  console.log(`[Reflection] Seeding initial reflections for user ${userId}`);
+  log.info('Seeding initial reflections', { userId });
   // Clear cooldown to allow immediate reflection
   await _clearReflectionCooldown(userId);
   return generateReflections(userId);
@@ -674,7 +678,7 @@ async function snapshotPersonalityScores(userId) {
       .limit(1)
       .single();
     if (existingToday) {
-      console.log(`[Reflection] Skipping personality snapshot — already snapshotted today for user ${userId}`);
+      log.info('Skipping personality snapshot, already snapshotted today', { userId });
       return;
     }
 
@@ -711,9 +715,9 @@ async function snapshotPersonalityScores(userId) {
       memory_count: memCount || 0,
     });
 
-    console.log(`[Reflection] Personality snapshot recorded for user ${userId}`);
+    log.info('Personality snapshot recorded', { userId });
   } catch (err) {
-    console.warn('[Reflection] snapshotPersonalityScores error:', err.message);
+    log.warn('snapshotPersonalityScores error:', err.message);
   }
 }
 

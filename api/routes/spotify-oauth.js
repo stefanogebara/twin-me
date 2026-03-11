@@ -18,6 +18,9 @@ import {
   oauthCallbackLimiter
 } from '../middleware/oauthRateLimiter.js';
 import temporalPatternDetector from '../services/temporalPatternDetector.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('SpotifyOAuth');
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -90,7 +93,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
         expires_at: new Date(Date.now() + 1800000) // 30 minutes
       });
     if (stateErr) {
-      console.error('[Spotify OAuth] Failed to store OAuth state (CSRF protection will fail):', stateErr.message);
+      log.error('Failed to store OAuth state (CSRF protection will fail):', stateErr.message);
       return res.status(500).json({ success: false, error: 'Failed to initiate OAuth flow' });
     }
 
@@ -104,7 +107,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
       `code_challenge_method=${pkce.codeChallengeMethod}&` +
       `show_dialog=true`;
 
-    console.log(`[Spotify Ritual] OAuth initiated for user ${userId}`);
+    log.info(`OAuth initiated for user ${userId}`);
 
     res.json({
       success: true,
@@ -112,7 +115,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
       message: 'Connect Spotify to enable music for your presentation rituals'
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Connection error:', error);
+    log.error('Connection error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to initialize Spotify connection',
@@ -162,7 +165,7 @@ router.get('/status', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Status check error:', error);
+    log.error('Status check error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to check Spotify status',
@@ -253,7 +256,7 @@ router.get('/playlists', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Playlists fetch error:', error);
+    log.error('Playlists fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch playlists',
@@ -272,24 +275,24 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     const { energyLevel } = req.query;
 
-    console.log('[Spotify Ritual] Filtered playlists request:', { userId, energyLevel });
-    console.log('[Spotify Ritual] 🚨 CHECKPOINT 1: Immediately after first log');
+    log.info('Filtered playlists request:', { userId, energyLevel });
+    log.info('🚨 CHECKPOINT 1: Immediately after first log');
 
     if (!userId) {
-      console.log('[Spotify Ritual] No userId - unauthorized');
+      log.info('No userId - unauthorized');
       return res.status(401).json({
         success: false,
         error: 'User authentication required'
       });
     }
 
-    console.log('[Spotify Ritual] 🔍 DEBUG: About to start pattern detection...');
+    log.info('🔍 DEBUG: About to start pattern detection...');
 
     // 📅 CALENDAR EVENT ANALYSIS: Check upcoming events to suggest mood
     let upcomingEvent = null;
     let suggestedMood = null;
     try {
-      console.log('[Spotify Ritual] 📅 Checking upcoming calendar events...');
+      log.info('📅 Checking upcoming calendar events...');
 
       // Fetch upcoming events from calendar_events table
       const { data: events, error: eventsError } = await supabaseAdmin
@@ -305,7 +308,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
         const eventStart = new Date(nextEvent.start_time);
         const minutesUntilEvent = (eventStart - new Date()) / (1000 * 60);
 
-        console.log(`[Spotify Ritual]   → Upcoming event: "${nextEvent.title}" in ${Math.round(minutesUntilEvent)} minutes`);
+        log.info(`→ Upcoming event: "${nextEvent.title}" in ${Math.round(minutesUntilEvent)} minutes`);
 
         // Analyze event type to suggest mood
         if (minutesUntilEvent >= 10 && minutesUntilEvent <= 240) { // 10 min - 4 hours before event
@@ -340,7 +343,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
           for (const [keyword, mood] of Object.entries(eventMoodMap)) {
             if (nextEvent.event_type?.includes(keyword) || titleLower.includes(keyword)) {
               suggestedMood = mood;
-              console.log(`[Spotify Ritual]   → Suggested "${mood}" mood for ${nextEvent.event_type || 'event'}`);
+              log.info(`→ Suggested "${mood}" mood for ${nextEvent.event_type || 'event'}`);
               break;
             }
           }
@@ -348,18 +351,18 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
           // If no specific match, suggest based on importance
           if (!suggestedMood && nextEvent.is_important) {
             suggestedMood = 'calm';
-            console.log(`[Spotify Ritual]   → Suggested "calm" mood for important event`);
+            log.info(`→ Suggested "calm" mood for important event`);
           }
         }
       }
     } catch (calendarError) {
-      console.warn('[Spotify Ritual] ⚠️ Calendar analysis failed:', calendarError.message);
+      log.warn('⚠️ Calendar analysis failed:', calendarError.message);
     }
 
     // 🧠 GNN PATTERN DETECTION: Check for learned music patterns
     let learnedPattern = null;
     try {
-      console.log('[Spotify Ritual] 🧠 Checking for learned music patterns...');
+      log.info('🧠 Checking for learned music patterns...');
       const patterns = await temporalPatternDetector.detectPatterns(userId, {
         minOccurrences: 2,
         minConfidence: 0.6,
@@ -376,7 +379,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
 
           if (eventPattern) {
             learnedPattern = eventPattern;
-            console.log(`[Spotify Ritual] ✅ Found event-specific pattern: "${learnedPattern.response.genre}" for ${upcomingEvent.type} (confidence: ${learnedPattern.confidence_score}%)`);
+            log.info(`✅ Found event-specific pattern: "${learnedPattern.response.genre}" for ${upcomingEvent.type} (confidence: ${learnedPattern.confidence_score}%)`);
           }
         }
 
@@ -392,12 +395,12 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
           });
 
           if (learnedPattern) {
-            console.log(`[Spotify Ritual] ✅ Found mood pattern: "${learnedPattern.response.genre}" (confidence: ${learnedPattern.confidence_score}%)`);
+            log.info(`✅ Found mood pattern: "${learnedPattern.response.genre}" (confidence: ${learnedPattern.confidence_score}%)`);
           }
         }
       }
     } catch (patternError) {
-      console.warn('[Spotify Ritual] ⚠️ Pattern detection failed:', patternError.message);
+      log.warn('⚠️ Pattern detection failed:', patternError.message);
       // Continue with genre-based filtering
     }
 
@@ -459,7 +462,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
     }
 
     // Get access token
-    console.log('[Spotify Ritual] Fetching Spotify connection from DB...');
+    log.info('Fetching Spotify connection from DB...');
     const { data: connection, error: connError } = await supabaseAdmin
       .from('platform_connections')
       .select('access_token, token_expires_at, refresh_token')
@@ -468,46 +471,46 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
       .single();
 
     if (connError || !connection) {
-      console.log('[Spotify Ritual] No Spotify connection found:', connError);
+      log.info('No Spotify connection found:', connError);
       return res.status(404).json({
         success: false,
         error: 'Spotify not connected'
       });
     }
 
-    console.log('[Spotify Ritual] Decrypting access token...');
+    log.info('Decrypting access token...');
     let accessToken = decryptToken(connection.access_token);
 
     // Fetch user's playlists
-    console.log('[Spotify Ritual] Fetching playlists from Spotify API...');
+    log.info('Fetching playlists from Spotify API...');
     const playlistsResponse = await fetch(`${SPOTIFY_CONFIG.apiBaseUrl}/me/playlists?limit=50`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
 
     if (!playlistsResponse.ok) {
-      console.log('[Spotify Ritual] Playlist fetch failed:', playlistsResponse.status);
+      log.info('Playlist fetch failed:', playlistsResponse.status);
       throw new Error(`Spotify API error: ${playlistsResponse.status}`);
     }
 
     const playlistsData = await playlistsResponse.json();
-    console.log('[Spotify Ritual] Fetched', playlistsData.items?.length || 0, 'playlists');
+    log.info('Fetched', playlistsData.items?.length || 0, 'playlists');
     const scoredPlaylists = [];
 
     // For each playlist, analyze first 10 tracks to determine audio profile
     for (const playlist of playlistsData.items.slice(0, 20)) { // Limit to 20 playlists to avoid rate limits
       try {
-        console.log(`[Spotify Ritual] 🎵 Analyzing playlist: "${playlist.name}" (${playlist.id})`);
+        log.info(`🎵 Analyzing playlist: "${playlist.name}" (${playlist.id})`);
 
         // Get playlist tracks
-        console.log(`[Spotify Ritual]   → Fetching tracks...`);
+        log.info(`→ Fetching tracks...`);
         const tracksResponse = await fetch(
           `${SPOTIFY_CONFIG.apiBaseUrl}/playlists/${playlist.id}/tracks?limit=10`,
           { headers: { 'Authorization': `Bearer ${accessToken}` } }
         );
 
-        console.log(`[Spotify Ritual]   → Tracks response status: ${tracksResponse.status}`);
+        log.info(`→ Tracks response status: ${tracksResponse.status}`);
         if (!tracksResponse.ok) {
-          console.log(`[Spotify Ritual]   ✗ Skipping - tracks fetch failed`);
+          log.info(`✗ Skipping - tracks fetch failed`);
           continue;
         }
 
@@ -516,15 +519,15 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
           .filter(item => item.track && item.track.id)
           .map(item => item.track);
 
-        console.log(`[Spotify Ritual]   → Found ${tracks.length} valid tracks`);
+        log.info(`→ Found ${tracks.length} valid tracks`);
         if (tracks.length === 0) {
-          console.log(`[Spotify Ritual]   ✗ Skipping - no valid tracks`);
+          log.info(`✗ Skipping - no valid tracks`);
           continue;
         }
 
         // Get unique artist IDs from tracks
         const artistIds = [...new Set(tracks.flatMap(track => track.artists.map(a => a.id)))];
-        console.log(`[Spotify Ritual]   → Fetching genres from ${artistIds.length} unique artists...`);
+        log.info(`→ Fetching genres from ${artistIds.length} unique artists...`);
 
         // Fetch artist data in batches (max 50 per request)
         const artistGenres = [];
@@ -545,23 +548,23 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
           }
         }
 
-        console.log(`[Spotify Ritual]   → Collected ${artistGenres.length} genre tags`);
+        log.info(`→ Collected ${artistGenres.length} genre tags`);
         const uniqueGenres = [...new Set(artistGenres)];
-        console.log(`[Spotify Ritual]   → Unique genres: ${uniqueGenres.slice(0, 5).join(', ')}${uniqueGenres.length > 5 ? '...' : ''}`);
+        log.info(`→ Unique genres: ${uniqueGenres.slice(0, 5).join(', ')}${uniqueGenres.length > 5 ? '...' : ''}`);
 
         if (uniqueGenres.length === 0) {
-          console.log(`[Spotify Ritual]   ✗ Skipping - no genre data available`);
+          log.info(`✗ Skipping - no genre data available`);
           continue;
         }
 
         // Calculate energy score from genres
         const energyScore = calculateGenreEnergyScore(uniqueGenres);
-        console.log(`[Spotify Ritual]   → Genre-based energy score: ${energyScore.toFixed(1)}/100`);
+        log.info(`→ Genre-based energy score: ${energyScore.toFixed(1)}/100`);
 
         // Calculate match score based on energy level ranges
         let matchScore = 0;
         if (energyLevel) {
-          console.log(`[Spotify Ritual]   → Scoring against "${energyLevel}" profile...`);
+          log.info(`→ Scoring against "${energyLevel}" profile...`);
 
           // Energy level score ranges
           const energyRanges = {
@@ -585,7 +588,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
             }
           }
 
-          console.log(`[Spotify Ritual]   → Match score: ${matchScore.toFixed(2)}`);
+          log.info(`→ Match score: ${matchScore.toFixed(2)}`);
         }
 
         scoredPlaylists.push({
@@ -599,33 +602,33 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
           genres: uniqueGenres.slice(0, 10), // Include top genres
           matchScore: matchScore
         });
-        console.log(`[Spotify Ritual]   ✓ Successfully scored "${playlist.name}"`);
+        log.info(`✓ Successfully scored "${playlist.name}"`);
       } catch (error) {
-        console.error(`[Spotify Ritual]   ✗ Error analyzing playlist "${playlist.name}":`, error.message);
-        console.error(`[Spotify Ritual]   Stack:`, error.stack);
+        log.error(`✗ Error analyzing playlist "${playlist.name}":`, error.message);
+        log.error(`Stack:`, error.stack);
         continue;
       }
     }
 
     // Sort by match score if energy level specified, otherwise by track count
-    console.log('[Spotify Ritual] Scored', scoredPlaylists.length, 'user playlists');
+    log.info('Scored', scoredPlaylists.length, 'user playlists');
     if (energyLevel) {
       scoredPlaylists.sort((a, b) => b.matchScore - a.matchScore);
-      console.log('[Spotify Ritual] Sorted by match score for energy level:', energyLevel);
+      log.info('Sorted by match score for energy level:', energyLevel);
     } else {
       scoredPlaylists.sort((a, b) => b.trackCount - a.trackCount);
-      console.log('[Spotify Ritual] Sorted by track count');
+      log.info('Sorted by track count');
     }
 
     // 🎵 SPOTIFY RECOMMENDATIONS: Get personalized track recommendations
     const recommendations = [];
-    console.log(`[Spotify Ritual] 🔍 RECOMMENDATIONS DEBUG: energyLevel = "${energyLevel}" (type: ${typeof energyLevel})`);
+    log.info(`🔍 RECOMMENDATIONS DEBUG: energyLevel = "${energyLevel}" (type: ${typeof energyLevel})`);
 
     if (energyLevel) {
       try {
-        console.log(`[Spotify Ritual] 🎯 Generating personalized recommendations for "${energyLevel}" mood...`);
-        console.log(`[Spotify Ritual]   ℹ️ NOTE: Spotify deprecated /v1/recommendations API in Nov 2024`);
-        console.log(`[Spotify Ritual]   → Using alternative: filtering user's listening history by audio features`);
+        log.info(`🎯 Generating personalized recommendations for "${energyLevel}" mood...`);
+        log.info(`ℹ️ NOTE: Spotify deprecated /v1/recommendations API in Nov 2024`);
+        log.info(`→ Using alternative: filtering user's listening history by audio features`);
 
         // Map energy levels to Spotify audio feature values
         const audioFeatureTargets = {
@@ -652,16 +655,16 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
               if (topTracksResponse.ok) {
                 const data = await topTracksResponse.json();
                 allTopTracks.push(...(data.items || []));
-                console.log(`[Spotify Ritual]   ✓ Got ${data.items?.length || 0} tracks from ${timeRange}`);
+                log.info(`✓ Got ${data.items?.length || 0} tracks from ${timeRange}`);
               }
             } catch (err) {
-              console.warn(`[Spotify Ritual]   ⚠️ Could not fetch ${timeRange} tracks:`, err.message);
+              log.warn(`⚠️ Could not fetch ${timeRange} tracks:`, err.message);
             }
           }
 
           // Remove duplicates by track ID
           const uniqueTracks = Array.from(new Map(allTopTracks.map(t => [t.id, t])).values());
-          console.log(`[Spotify Ritual]   ✓ Got ${uniqueTracks.length} unique tracks total`);
+          log.info(`✓ Got ${uniqueTracks.length} unique tracks total`);
 
           if (uniqueTracks.length > 0) {
             // Get audio features for all tracks (in batches of 100)
@@ -682,11 +685,11 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
                   audioFeatures.push(...(data.audio_features || []).filter(f => f !== null));
                 }
               } catch (err) {
-                console.warn(`[Spotify Ritual]   ⚠️ Could not fetch audio features batch:`, err.message);
+                log.warn(`⚠️ Could not fetch audio features batch:`, err.message);
               }
             }
 
-            console.log(`[Spotify Ritual]   ✓ Got audio features for ${audioFeatures.length} tracks`);
+            log.info(`✓ Got audio features for ${audioFeatures.length} tracks`);
 
             // Score each track based on how well it matches the target energy profile
             const scoredTracks = uniqueTracks
@@ -708,7 +711,7 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
               .sort((a, b) => a.score - b.score)
               .slice(0, 20); // Top 20 best matches
 
-            console.log(`[Spotify Ritual]   ✅ Generated ${scoredTracks.length} personalized recommendations`);
+            log.info(`✅ Generated ${scoredTracks.length} personalized recommendations`);
 
             scoredTracks.forEach(({ track }) => {
               recommendations.push({
@@ -724,18 +727,18 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
               });
             });
           } else {
-            console.log(`[Spotify Ritual]   ⚠️ No listening history found - cannot generate recommendations`);
+            log.info(`⚠️ No listening history found - cannot generate recommendations`);
           }
         }
       } catch (recError) {
-        console.warn('[Spotify Ritual] ⚠️ Failed to generate recommendations:', recError.message);
+        log.warn('⚠️ Failed to generate recommendations:', recError.message);
         // Continue without recommendations
       }
     } else {
-      console.log(`[Spotify Ritual] ⚠️ DEBUG: Skipping recommendations - energyLevel is falsy or undefined`);
+      log.info(`⚠️ DEBUG: Skipping recommendations - energyLevel is falsy or undefined`);
     }
 
-    console.log('[Spotify Ritual] Returning', scoredPlaylists.length, 'playlists +', recommendations.length, 'recommendations');
+    log.info('Returning', scoredPlaylists.length, 'playlists +', recommendations.length, 'recommendations');
     res.json({
       success: true,
       data: {
@@ -754,8 +757,8 @@ router.get('/playlists/filtered', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Filtered playlists error:', error);
-    console.error('[Spotify Ritual] Error stack:', error.stack);
+    log.error('Filtered playlists error:', error);
+    log.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch filtered playlists',
@@ -774,7 +777,7 @@ router.post('/track-selection', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     const { selectionType, selectionId, selectionName, energyLevel, eventContext } = req.body;
 
-    console.log('[Spotify Learning] Track selection:', {
+    log.info('Track selection:', {
       userId,
       selectionType,
       selectionId,
@@ -836,18 +839,18 @@ router.post('/track-selection', authenticateUser, async (req, res) => {
       .insert(selectionData);
 
     if (insertError) {
-      console.error('[Spotify Learning] Error storing selection:', insertError);
+      log.error('Error storing selection:', insertError);
       return res.status(500).json({
         success: false,
         error: 'Failed to track selection'
       });
     }
 
-    console.log('[Spotify Learning] ✅ Selection tracked successfully');
+    log.info('✅ Selection tracked successfully');
 
     // If there's an upcoming event, this selection will be used to learn patterns
     if (upcomingEvent) {
-      console.log(`[Spotify Learning] 🎓 Learning: User selected "${selectionName}" (${energyLevel}) ${upcomingEvent.minutes_until}min before ${upcomingEvent.event_type} event`);
+      log.info(`🎓 Learning: User selected "${selectionName}" (${energyLevel}) ${upcomingEvent.minutes_until}min before ${upcomingEvent.event_type} event`);
     }
 
     res.json({
@@ -860,7 +863,7 @@ router.post('/track-selection', authenticateUser, async (req, res) => {
       } : null
     });
   } catch (error) {
-    console.error('[Spotify Learning] Track selection error:', error);
+    log.error('Track selection error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to track selection',
@@ -952,7 +955,7 @@ router.get('/playback', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Playback state error:', error);
+    log.error('Playback state error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get playback state',
@@ -1034,14 +1037,14 @@ router.post('/play', authenticateUser, async (req, res) => {
       throw new Error(errorData.error?.message || `Spotify API error: ${response.status}`);
     }
 
-    console.log(`[Spotify Ritual] Started playback for user ${userId}`);
+    log.info(`Started playback for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Playback started'
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Play error:', error);
+    log.error('Play error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to start playback',
@@ -1098,14 +1101,14 @@ router.post('/pause', authenticateUser, async (req, res) => {
       throw new Error(`Spotify API error: ${response.status}`);
     }
 
-    console.log(`[Spotify Ritual] Paused playback for user ${userId}`);
+    log.info(`Paused playback for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Playback paused'
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Pause error:', error);
+    log.error('Pause error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to pause playback',
@@ -1183,7 +1186,7 @@ router.post('/music-session', authenticateUser, async (req, res) => {
       throw error;
     }
 
-    console.log(`[Spotify Ritual] Music session logged for user ${userId}`);
+    log.info(`Music session logged for user ${userId}`);
 
     res.json({
       success: true,
@@ -1191,7 +1194,7 @@ router.post('/music-session', authenticateUser, async (req, res) => {
       message: 'Music session logged successfully'
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Music session logging error:', error);
+    log.error('Music session logging error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to log music session',
@@ -1225,14 +1228,14 @@ router.post('/disconnect', authenticateUser, async (req, res) => {
       throw error;
     }
 
-    console.log(`[Spotify Ritual] Disconnected for user ${userId}`);
+    log.info(`Disconnected for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Spotify disconnected successfully'
     });
   } catch (error) {
-    console.error('[Spotify Ritual] Disconnect error:', error);
+    log.error('Disconnect error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect Spotify',
@@ -1271,7 +1274,7 @@ async function getValidAccessToken(userId) {
 
     return decryptToken(connection.access_token);
   } catch (error) {
-    console.error('[Spotify Ritual] Error getting access token:', error);
+    log.error('Error getting access token:', error);
     return null;
   }
 }
@@ -1298,7 +1301,7 @@ async function refreshSpotifyToken(userId, encryptedRefreshToken) {
     });
 
     if (!response.ok) {
-      console.error('[Spotify Ritual] Token refresh failed:', response.status);
+      log.error('Token refresh failed:', response.status);
       return null;
     }
 
@@ -1321,14 +1324,14 @@ async function refreshSpotifyToken(userId, encryptedRefreshToken) {
       .eq('user_id', userId)
       .eq('platform', 'spotify');
     if (tokenUpdateErr) {
-      console.error(`[Spotify Ritual] Failed to persist refreshed tokens for user ${userId}:`, tokenUpdateErr.message);
+      log.error(`Failed to persist refreshed tokens for user ${userId}:`, tokenUpdateErr.message);
       return null;
     }
 
-    console.log(`[Spotify Ritual] Token refreshed for user ${userId}`);
+    log.info(`Token refreshed for user ${userId}`);
     return newAccessToken;
   } catch (error) {
-    console.error('[Spotify Ritual] Token refresh error:', error);
+    log.error('Token refresh error:', error);
     return null;
   }
 }

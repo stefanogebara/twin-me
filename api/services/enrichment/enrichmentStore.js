@@ -10,12 +10,15 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Enrichmentstore');
 
 /**
  * Save enrichment data to database
  */
 export async function saveEnrichment(userId, email, enrichmentData) {
-  console.log(`[ProfileEnrichment] Saving enrichment for user ${userId}`);
+  log.info(`Saving enrichment for user ${userId}`);
 
   try {
     const dbFields = {
@@ -68,14 +71,14 @@ export async function saveEnrichment(userId, email, enrichmentData) {
       .single();
 
     if (error) {
-      console.error('[ProfileEnrichment] Failed to save enrichment:', error);
+      log.error('Failed to save enrichment:', error);
       throw error;
     }
 
-    console.log(`[ProfileEnrichment] Enrichment saved successfully:`, data.id);
+    log.info(`Enrichment saved successfully:`, data.id);
     return { success: true, data };
   } catch (error) {
-    console.error('[ProfileEnrichment] Save error:', error);
+    log.error('Save error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -97,7 +100,7 @@ export async function getEnrichment(userId) {
 
     return { success: true, data: data || null };
   } catch (error) {
-    console.error('[ProfileEnrichment] Get error:', error);
+    log.error('Get error:', error);
     return { success: false, error: error.message, data: null };
   }
 }
@@ -106,7 +109,7 @@ export async function getEnrichment(userId) {
  * Confirm enrichment data with user corrections
  */
 export async function confirmEnrichment(userId, confirmedData, corrections = null) {
-  console.log(`[ProfileEnrichment] Confirming enrichment for user ${userId}`);
+  log.info(`Confirming enrichment for user ${userId}`);
 
   try {
     const { data, error } = await supabaseAdmin
@@ -122,14 +125,14 @@ export async function confirmEnrichment(userId, confirmedData, corrections = nul
       .single();
 
     if (error) {
-      console.error('[ProfileEnrichment] Failed to confirm enrichment:', error);
+      log.error('Failed to confirm enrichment:', error);
       throw error;
     }
 
-    console.log(`[ProfileEnrichment] Enrichment confirmed for user ${userId}`);
+    log.info(`Enrichment confirmed for user ${userId}`);
     return { success: true, data };
   } catch (error) {
-    console.error('[ProfileEnrichment] Confirm error:', error);
+    log.error('Confirm error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -170,7 +173,7 @@ export async function getEnrichmentStatus(userId) {
       identityConfidence: data.identity_confidence,
     };
   } catch (error) {
-    console.error('[ProfileEnrichment] Status error:', error);
+    log.error('Status error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -179,7 +182,7 @@ export async function getEnrichmentStatus(userId) {
  * Reset confirmation status for testing
  */
 export async function resetConfirmation(userId) {
-  console.log(`[ProfileEnrichment] Resetting confirmation for user ${userId}`);
+  log.info(`Resetting confirmation for user ${userId}`);
 
   try {
     const { data, error } = await supabaseAdmin
@@ -193,7 +196,7 @@ export async function resetConfirmation(userId) {
       .single();
 
     if (error) {
-      console.error('[ProfileEnrichment] Reset error:', error);
+      log.error('Reset error:', error);
       return { success: false, error: error.message };
     }
 
@@ -203,7 +206,7 @@ export async function resetConfirmation(userId) {
       data
     };
   } catch (error) {
-    console.error('[ProfileEnrichment] Reset error:', error);
+    log.error('Reset error:', error);
     return { success: false, error: error.message };
   }
 }

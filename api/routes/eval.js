@@ -14,6 +14,9 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { getFeatureFlags, setFeatureFlag, getAllFlagsForUser } from '../services/featureFlagsService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Eval');
 
 const router = express.Router();
 
@@ -70,7 +73,7 @@ router.post('/run', authenticateUser, async (req, res) => {
 
     res.json({ run });
   } catch (err) {
-    console.error('[eval] run error:', err.message);
+    log.error('run error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -134,7 +137,7 @@ router.post('/score', authenticateUser, async (req, res) => {
 
     res.json({ run: updated });
   } catch (err) {
-    console.error('[eval] score error:', err.message);
+    log.error('score error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -169,7 +172,7 @@ router.get('/history', authenticateUser, async (req, res) => {
 
     res.json({ runs: data || [], trend });
   } catch (err) {
-    console.error('[eval] history error:', err.message);
+    log.error('history error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

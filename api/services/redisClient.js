@@ -10,6 +10,9 @@
  */
 
 import Redis from 'ioredis';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Redis');
 
 /**
  * Redis client instance
@@ -31,13 +34,13 @@ function getRedisClient() {
     const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
 
     if (!redisUrl) {
-      console.warn('⚠️ Redis URL not configured - caching disabled (using database fallback)');
+      log.warn('Redis URL not configured - caching disabled (using database fallback)');
       redis = null;
       redisAvailable = false;
       return null;
     }
 
-    console.log('🔌 Connecting to Redis...');
+    log.info('Connecting to Redis...');
     redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
       retryStrategy(times) {
@@ -45,29 +48,29 @@ function getRedisClient() {
         return delay;
       },
       reconnectOnError(err) {
-        console.error('Redis reconnection error:', err.message);
+        log.error('Redis reconnection error:', err.message);
         return true; // Always try to reconnect
       }
     });
 
     redis.on('connect', () => {
-      console.log('✅ Redis connected successfully');
+      log.info('Redis connected successfully');
       redisAvailable = true;
     });
 
     redis.on('error', (err) => {
-      console.error('❌ Redis error:', err.message);
+      log.error('Redis error:', err.message);
       redisAvailable = false;
     });
 
     redis.on('close', () => {
-      console.warn('⚠️ Redis connection closed');
+      log.warn('Redis connection closed');
       redisAvailable = false;
     });
 
     return redis;
   } catch (error) {
-    console.error('❌ Failed to initialize Redis:', error.message);
+    log.error('Failed to initialize Redis:', error.message);
     redis = null;
     redisAvailable = false;
     return null;
@@ -83,6 +86,7 @@ const CACHE_TTL = {
   SOUL_SIGNATURE: 900,       // 15 minutes - soul signature data
   EXTRACTION_JOB: 60,        // 1 minute - extraction job status (more dynamic)
   IDENTITY_CONTEXT: 14400,   // 4 hours - identity context (matches twin summary TTL)
+  DASHBOARD_CONTEXT: 120,    // 2 minutes - unified dashboard payload
 };
 
 /**
@@ -94,6 +98,7 @@ const CACHE_KEYS = {
   soulSignature: (userId) => `soul_signature:${userId}`,
   extractionJob: (jobId) => `extraction_job:${jobId}`,
   identityContext: (userId) => `identity_context:${userId}`,
+  dashboardContext: (userId) => `dashboardCtx:${userId}`,
 };
 
 /**
@@ -110,14 +115,14 @@ async function getCachedPlatformStatus(userId) {
     const cached = await client.get(key);
 
     if (cached) {
-      console.log(`✅ Cache HIT: platform_status for user ${userId}`);
+      log.info(`Cache HIT: platform_status for user ${userId}`);
       return JSON.parse(cached);
     }
 
-    console.log(`❌ Cache MISS: platform_status for user ${userId}`);
+    log.info(`Cache MISS: platform_status for user ${userId}`);
     return null;
   } catch (error) {
-    console.error('Error getting cached platform status:', error.message);
+    log.error('Error getting cached platform status:', error.message);
     return null; // Fail gracefully
   }
 }
@@ -135,9 +140,9 @@ async function setCachedPlatformStatus(userId, status, ttl = CACHE_TTL.PLATFORM_
   try {
     const key = CACHE_KEYS.platformStatus(userId);
     await client.setex(key, ttl, JSON.stringify(status));
-    console.log(`✅ Cached platform_status for user ${userId} (TTL: ${ttl}s)`);
+    log.info(`Cached platform_status for user ${userId} (TTL: ${ttl}s)`);
   } catch (error) {
-    console.error('Error setting cached platform status:', error.message);
+    log.error('Error setting cached platform status:', error.message);
     // Fail gracefully - don't throw
   }
 }
@@ -156,10 +161,10 @@ async function invalidatePlatformStatusCache(userId) {
     const deleted = await client.del(key);
 
     if (deleted) {
-      console.log(`🗑️ Invalidated platform_status cache for user ${userId}`);
+      log.info(`Invalidated platform_status cache for user ${userId}`);
     }
   } catch (error) {
-    console.error('Error invalidating platform status cache:', error.message);
+    log.error('Error invalidating platform status cache:', error.message);
   }
 }
 
@@ -176,7 +181,7 @@ async function get(key) {
     const value = await client.get(key);
     return value ? JSON.parse(value) : null;
   } catch (error) {
-    console.error(`Error getting cache key ${key}:`, error.message);
+    log.error(`Error getting cache key ${key}:`, error.message);
     return null;
   }
 }
@@ -193,9 +198,9 @@ async function set(key, value, ttl = 300) {
 
   try {
     await client.setex(key, ttl, JSON.stringify(value));
-    console.log(`✅ Cached key ${key} (TTL: ${ttl}s)`);
+    log.info(`Cached key ${key} (TTL: ${ttl}s)`);
   } catch (error) {
-    console.error(`Error setting cache key ${key}:`, error.message);
+    log.error(`Error setting cache key ${key}:`, error.message);
   }
 }
 
@@ -209,9 +214,9 @@ async function del(key) {
 
   try {
     await client.del(key);
-    console.log(`🗑️ Deleted cache key ${key}`);
+    log.info(`Deleted cache key ${key}`);
   } catch (error) {
-    console.error(`Error deleting cache key ${key}:`, error.message);
+    log.error(`Error deleting cache key ${key}:`, error.message);
   }
 }
 

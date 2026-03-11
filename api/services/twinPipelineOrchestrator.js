@@ -19,6 +19,9 @@ import personalityAggregator from './personalityAggregator.js';
 import twinFormationService from './twinFormationService.js';
 import twinEvolutionService from './twinEvolutionService.js';
 import behavioralEvidencePipeline from './behavioralEvidencePipeline.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinPipelineOrchestrator');
 
 // Pipeline status constants
 const PIPELINE_STATUS = {
@@ -70,9 +73,9 @@ class TwinPipelineOrchestrator {
     });
 
     try {
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`🚀 [TwinPipeline] Starting full pipeline for user ${userId}`);
-      console.log(`${'='.repeat(60)}`);
+      log.info(`\n${'='.repeat(60)}`);
+      log.info(`Starting full pipeline for user ${userId}`);
+      log.info(`${'='.repeat(60)}`);
 
       // Stage 1: Validate Connections
       this.updateStage(userId, PIPELINE_STATUS.VALIDATING);
@@ -90,7 +93,7 @@ class TwinPipelineOrchestrator {
         });
       }
 
-      console.log(`   ✅ Found ${connectionResult.connectedPlatforms.length} connected platform(s)`);
+      log.info(`Found ${connectionResult.connectedPlatforms.length} connected platform(s)`);
 
       // Stage 2: Extract from all platforms
       this.updateStage(userId, PIPELINE_STATUS.EXTRACTING);
@@ -100,16 +103,16 @@ class TwinPipelineOrchestrator {
         throw new Error('All platform extractions failed');
       }
 
-      console.log(`   ✅ Extracted from ${extractionResult.successful}/${extractionResult.total} platform(s)`);
+      log.info(`Extracted from ${extractionResult.successful}/${extractionResult.total} platform(s)`);
 
       // Stage 2.5: Generate behavioral evidence
       this.updateStage(userId, PIPELINE_STATUS.GENERATING_EVIDENCE);
       const evidenceResult = await this.generateBehavioralEvidence(userId);
 
       if (evidenceResult.success) {
-        console.log(`   ✅ Generated ${evidenceResult.evidenceGenerated || 0} evidence items from ${evidenceResult.platformsProcessed?.length || 0} platform(s)`);
+        log.info(`Generated ${evidenceResult.evidenceGenerated || 0} evidence items from ${evidenceResult.platformsProcessed?.length || 0} platform(s)`);
       } else {
-        console.log(`   ⚠️ Evidence generation: ${evidenceResult.message || evidenceResult.error || 'No features available'}`);
+        log.info(`Evidence generation: ${evidenceResult.message || evidenceResult.error || 'No features available'}`);
       }
 
       // Stage 3: Aggregate personality scores
@@ -120,7 +123,7 @@ class TwinPipelineOrchestrator {
         throw new Error(`Aggregation failed: ${aggregationResult.error}`);
       }
 
-      console.log(`   ✅ Aggregated ${aggregationResult.featureCount} features into personality scores`);
+      log.info(`Aggregated ${aggregationResult.featureCount} features into personality scores`);
 
       // Stage 4: Form the digital twin
       this.updateStage(userId, PIPELINE_STATUS.FORMING);
@@ -130,16 +133,16 @@ class TwinPipelineOrchestrator {
         throw new Error(`Twin formation failed: ${formationResult.error}`);
       }
 
-      console.log(`   ✅ Formed twin as ${formationResult.twin.archetype.name}`);
+      log.info(`Formed twin as ${formationResult.twin.archetype.name}`);
 
       // Stage 5: Record evolution (if previous data exists)
       this.updateStage(userId, PIPELINE_STATUS.RECORDING);
       const evolutionResult = await this.recordEvolution(userId, aggregationResult.scores);
 
       if (evolutionResult.evolutionDetected) {
-        console.log(`   ✅ Evolution detected and recorded`);
+        log.info(`Evolution detected and recorded`);
       } else {
-        console.log(`   ℹ️ No significant evolution detected`);
+        log.info(`No significant evolution detected`);
       }
 
       // Stage 6: Update status and complete
@@ -152,9 +155,9 @@ class TwinPipelineOrchestrator {
       });
 
       const duration = (Date.now() - startTime.getTime()) / 1000;
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`✨ [TwinPipeline] Complete in ${duration.toFixed(1)}s`);
-      console.log(`${'='.repeat(60)}\n`);
+      log.info(`\n${'='.repeat(60)}`);
+      log.info(`Complete in ${duration.toFixed(1)}s`);
+      log.info(`${'='.repeat(60)}\n`);
 
       return this.completePipeline(userId, {
         success: true,
@@ -175,7 +178,7 @@ class TwinPipelineOrchestrator {
       });
 
     } catch (error) {
-      console.error(`❌ [TwinPipeline] Failed:`, error);
+      log.error(`Failed:`, error);
 
       this.updateStage(userId, PIPELINE_STATUS.FAILED);
       await this.updatePipelineRecord(userId, pipelineId, 'failed', {
@@ -197,7 +200,7 @@ class TwinPipelineOrchestrator {
    * @param {string} platform - Platform to refresh
    */
   async runIncrementalUpdate(userId, platform) {
-    console.log(`🔄 [TwinPipeline] Incremental update for ${platform}`);
+    log.info(`Incremental update for ${platform}`);
 
     try {
       // Extract from single platform
@@ -233,7 +236,7 @@ class TwinPipelineOrchestrator {
       };
 
     } catch (error) {
-      console.error(`❌ [TwinPipeline] Incremental update failed:`, error);
+      log.error(`Incremental update failed:`, error);
       return {
         success: false,
         platform,
@@ -279,7 +282,7 @@ class TwinPipelineOrchestrator {
       };
 
     } catch (error) {
-      console.error('[TwinPipeline] Connection validation error:', error);
+      log.error('Connection validation error:', error);
       return {
         success: false,
         error: error.message
@@ -304,7 +307,7 @@ class TwinPipelineOrchestrator {
       const result = await behavioralEvidencePipeline.runPipeline(userId);
       return result;
     } catch (error) {
-      console.error('[TwinPipeline] Evidence generation error:', error);
+      log.error('Evidence generation error:', error);
       return {
         success: false,
         error: error.message
@@ -410,7 +413,7 @@ class TwinPipelineOrchestrator {
       };
 
     } catch (error) {
-      console.error('[TwinPipeline] Status check error:', error);
+      log.error('Status check error:', error);
       return {
         success: false,
         error: error.message
@@ -426,7 +429,7 @@ class TwinPipelineOrchestrator {
     if (pipeline) {
       pipeline.stage = stage;
       pipeline.stages[stage] = new Date().toISOString();
-      console.log(`📍 [TwinPipeline] Stage: ${stage}`);
+      log.info(`Stage: ${stage}`);
     }
   }
 
@@ -456,7 +459,7 @@ class TwinPipelineOrchestrator {
       });
 
     if (error) {
-      console.error('[TwinPipeline] Failed to record pipeline:', error.message);
+      log.error('Failed to record pipeline:', error.message);
     }
   }
 }

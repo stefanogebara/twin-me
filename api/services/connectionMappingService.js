@@ -4,10 +4,13 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ConnectionMapping');
 
 export async function getConnectionId(userId, platform) {
   if (!supabaseAdmin) {
-    console.log(`[ConnectionMapping] Database not available, returning null for ${platform}`);
+    log.info(`Database not available, returning null for ${platform}`);
     return null;
   }
 
@@ -20,7 +23,7 @@ export async function getConnectionId(userId, platform) {
     .single();
 
   if (error || !data) {
-    console.log(`[ConnectionMapping] No mapping found for ${platform} (user: ${userId})`);
+    log.info(`No mapping found for ${platform} (user: ${userId})`);
     return null;
   }
 
@@ -29,7 +32,7 @@ export async function getConnectionId(userId, platform) {
 
 export async function saveConnectionMapping(userId, platform, nangoConnectionId, providerConfigKey) {
   if (!supabaseAdmin) {
-    console.error('[ConnectionMapping] Database not available');
+    log.error('Database not available');
     throw new Error('Database not available');
   }
 
@@ -49,17 +52,17 @@ export async function saveConnectionMapping(userId, platform, nangoConnectionId,
     .single();
 
   if (error) {
-    console.error(`[ConnectionMapping] Error saving mapping:`, error);
+    log.error(`Error saving mapping:`, error);
     throw error;
   }
 
-  console.log(`[ConnectionMapping] Saved mapping for ${platform} (user: ${userId})`);
+  log.info(`Saved mapping for ${platform} (user: ${userId})`);
   return data;
 }
 
 export async function deleteConnectionMapping(userId, platform) {
   if (!supabaseAdmin) {
-    console.error('[ConnectionMapping] Database not available');
+    log.error('Database not available');
     throw new Error('Database not available');
   }
 
@@ -70,16 +73,16 @@ export async function deleteConnectionMapping(userId, platform) {
     .eq('platform', platform);
 
   if (error) {
-    console.error(`[ConnectionMapping] Error deleting mapping:`, error);
+    log.error(`Error deleting mapping:`, error);
     throw error;
   }
 
-  console.log(`[ConnectionMapping] Disconnected ${platform} for user ${userId}`);
+  log.info(`Disconnected ${platform} for user ${userId}`);
 }
 
 export async function getAllUserConnections(userId) {
   if (!supabaseAdmin) {
-    console.log('[ConnectionMapping] Database not available');
+    log.info('Database not available');
     return [];
   }
 
@@ -90,7 +93,7 @@ export async function getAllUserConnections(userId) {
     .eq('status', 'active');
 
   if (error) {
-    console.error(`[ConnectionMapping] Error getting connections:`, error);
+    log.error(`Error getting connections:`, error);
     return [];
   }
 
@@ -107,7 +110,7 @@ export async function updateLastSynced(userId, platform) {
     .update({ last_synced_at: new Date().toISOString() })
     .eq('user_id', userId)
     .eq('platform', platform);
-  if (updateErr) console.warn('[ConnectionMapping] Error updating last_synced_at:', updateErr.message);
+  if (updateErr) log.warn('Error updating last_synced_at:', updateErr.message);
 }
 
 export default {

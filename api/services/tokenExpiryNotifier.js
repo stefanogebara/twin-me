@@ -10,6 +10,9 @@
 
 import cron from 'node-cron';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TokenExpiryNotifier');
 
 // Platform-specific refresh token lifetimes (in days)
 const REFRESH_TOKEN_LIFETIMES = {
@@ -26,7 +29,7 @@ const WARNING_THRESHOLD_DAYS = 2;
  * Check for tokens that are about to expire and create notifications
  */
 async function checkExpiringTokens() {
-  console.log('🔔 [Token Notifier] Checking for expiring tokens...');
+  log.info('Checking for expiring tokens...');
 
   try {
 
@@ -40,16 +43,16 @@ async function checkExpiringTokens() {
       .neq('access_token', 'NANGO_MANAGED');
 
     if (error) {
-      console.error('❌ [Token Notifier] Error fetching connections:', error.message);
+      log.error('Error fetching connections:', error.message);
       return;
     }
 
     if (!connections || connections.length === 0) {
-      console.log('✅ [Token Notifier] No connections to check');
+      log.info('No connections to check');
       return;
     }
 
-    console.log(`📊 [Token Notifier] Checking ${connections.length} connections`);
+    log.info(`Checking ${connections.length} connections`);
 
     const now = new Date();
     const notificationsToCreate = [];
@@ -57,7 +60,7 @@ async function checkExpiringTokens() {
     for (const conn of connections) {
       // CASE 1: Already expired - immediate notification
       if (conn.status === 'expired' || conn.status === 'token_expired') {
-        console.log(`🚨 [Token Notifier] ${conn.platform} for user ${conn.user_id} is ALREADY EXPIRED`);
+        log.info(`${conn.platform} for user ${conn.user_id} is ALREADY EXPIRED`);
 
         notificationsToCreate.push({
           user_id: conn.user_id,
@@ -88,7 +91,7 @@ async function checkExpiringTokens() {
       if (daysSinceActivity >= warningDays) {
         const daysUntilExpiry = Math.max(0, lifetime - daysSinceActivity);
 
-        console.log(`⚠️ [Token Notifier] ${conn.platform} for user ${conn.user_id} expires in ~${Math.round(daysUntilExpiry)} days`);
+        log.info(`${conn.platform} for user ${conn.user_id} expires in ~${Math.round(daysUntilExpiry)} days`);
 
         notificationsToCreate.push({
           user_id: conn.user_id,
@@ -109,7 +112,7 @@ async function checkExpiringTokens() {
 
     // Check if notifications table exists, create notifications
     if (notificationsToCreate.length > 0) {
-      console.log(`📨 [Token Notifier] Creating ${notificationsToCreate.length} notifications`);
+      log.info(`Creating ${notificationsToCreate.length} notifications`);
 
       // Store notifications
       try {
@@ -125,7 +128,7 @@ async function checkExpiringTokens() {
             .maybeSingle();  // Use maybeSingle to avoid error when no match
 
           if (checkError) {
-            console.error('❌ [Token Notifier] Check error:', checkError.message);
+            log.error('Check error:', checkError.message);
           }
 
           if (!existing) {
@@ -134,26 +137,26 @@ async function checkExpiringTokens() {
               .insert(notification);
 
             if (insertError) {
-              console.error(`❌ [Token Notifier] Insert failed for ${notification.platform}:`, insertError.message);
+              log.error(`Insert failed for ${notification.platform}:`, insertError.message);
             } else {
-              console.log(`✅ [Token Notifier] Created notification for ${notification.platform}`);
+              log.info(`Created notification for ${notification.platform}`);
             }
           } else {
-            console.log(`ℹ️ [Token Notifier] Notification already exists for ${notification.platform}`);
+            log.info(`Notification already exists for ${notification.platform}`);
           }
         }
 
-        console.log('✅ [Token Notifier] Notifications processing complete');
+        log.info('Notifications processing complete');
       } catch (insertError) {
-        console.error('❌ [Token Notifier] Error creating notifications:', insertError.message);
-        console.log('📋 [Token Notifier] Failed notifications:', JSON.stringify(notificationsToCreate, null, 2));
+        log.error('Error creating notifications:', insertError.message);
+        log.info('Failed notifications:', JSON.stringify(notificationsToCreate, null, 2));
       }
     } else {
-      console.log('✅ [Token Notifier] No tokens expiring soon');
+      log.info('No tokens expiring soon');
     }
 
   } catch (error) {
-    console.error('❌ [Token Notifier] Error:', error.message);
+    log.error('Error:', error.message);
   }
 }
 
@@ -162,7 +165,7 @@ async function checkExpiringTokens() {
  * Call this periodically for platforms with short-lived refresh tokens
  */
 async function keepTokenAlive(userId, platform) {
-  console.log(`🔄 [Token Notifier] Keeping ${platform} token alive for user ${userId}`);
+  log.info(`Keeping ${platform} token alive for user ${userId}`);
 
   try {
     // Make a simple API call to use the token
@@ -176,7 +179,7 @@ async function keepTokenAlive(userId, platform) {
       .single();
 
     if (!conn) {
-      console.warn(`⚠️ [Token Notifier] No ${platform} connection found`);
+      log.warn(`No ${platform} connection found`);
       return false;
     }
 
@@ -190,13 +193,13 @@ async function keepTokenAlive(userId, platform) {
       .eq('user_id', userId)
       .eq('platform', platform);
 
-    if (keepAliveErr) console.warn('[TokenExpiry] Error updating keep-alive:', keepAliveErr.message);
+    if (keepAliveErr) log.warn('Error updating keep-alive:', keepAliveErr.message);
 
-    console.log(`✅ [Token Notifier] Token activity updated for ${platform}`);
+    log.info(`Token activity updated for ${platform}`);
     return true;
 
   } catch (error) {
-    console.error(`❌ [Token Notifier] Keep-alive failed:`, error.message);
+    log.error(`Keep-alive failed:`, error.message);
     return false;
   }
 }
@@ -208,16 +211,16 @@ let notifierJob = null;
  * Runs daily to check for expiring tokens
  */
 function startTokenExpiryNotifier() {
-  console.log('🔔 [Token Notifier] Starting token expiry notification service...');
+  log.info('Starting token expiry notification service...');
 
   if (notifierJob) {
-    console.warn('⚠️ [Token Notifier] Job already running');
+    log.warn('Job already running');
     return;
   }
 
   // Run daily at 9 AM UTC
   notifierJob = cron.schedule('0 9 * * *', () => {
-    console.log('⏰ [Token Notifier] Running daily check');
+    log.info('Running daily check');
     checkExpiringTokens();
   }, {
     scheduled: true,
@@ -227,7 +230,7 @@ function startTokenExpiryNotifier() {
   // Also run immediately on startup
   checkExpiringTokens();
 
-  console.log('✅ [Token Notifier] Service started (runs daily at 9 AM UTC)');
+  log.info('Service started (runs daily at 9 AM UTC)');
 }
 
 /**
@@ -237,7 +240,7 @@ function stopTokenExpiryNotifier() {
   if (notifierJob) {
     notifierJob.stop();
     notifierJob = null;
-    console.log('🛑 [Token Notifier] Service stopped');
+    log.info('Service stopped');
   }
 }
 

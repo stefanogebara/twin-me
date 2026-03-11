@@ -13,6 +13,9 @@ import path from 'path';
 import os from 'os';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('ClaudeSync');
 
 const router = express.Router();
 
@@ -83,7 +86,7 @@ async function extractConversationsFromLevelDB(dbPath) {
 
   try {
     if (!fs.existsSync(dbPath)) {
-      console.log(`[Claude Sync] Path not found: ${dbPath}`);
+      log.info(`Path not found: ${dbPath}`);
       return conversations;
     }
 
@@ -102,7 +105,7 @@ async function extractConversationsFromLevelDB(dbPath) {
       } catch (fileErr) {
         // Skip locked files
         if (fileErr.code !== 'EBUSY' && fileErr.code !== 'EACCES') {
-          console.error(`[Claude Sync] Error reading ${file}:`, fileErr.message);
+          log.error(`Error reading ${file}:`, fileErr.message);
         }
       }
     }
@@ -124,14 +127,14 @@ async function extractConversationsFromHistory(historyPath) {
 
   try {
     if (!fs.existsSync(historyPath)) {
-      console.log(`[Claude Sync] History file not found: ${historyPath}`);
+      log.info(`History file not found: ${historyPath}`);
       return conversations;
     }
 
     const content = fs.readFileSync(historyPath, 'utf8');
     const lines = content.split('\n').filter(line => line.trim());
 
-    console.log(`[Claude Sync] Processing ${lines.length} history entries`);
+    log.info(`Processing ${lines.length} history entries`);
 
     for (const line of lines) {
       try {
@@ -162,7 +165,7 @@ async function extractConversationsFromHistory(historyPath) {
       }
     }
   } catch (err) {
-    console.error('[Claude Sync] Error reading history.jsonl:', err.message);
+    log.error('Error reading history.jsonl:', err.message);
   }
 
   return conversations;
@@ -176,12 +179,12 @@ async function extractConversationsFromProjects(projectsPath) {
 
   try {
     if (!fs.existsSync(projectsPath)) {
-      console.log(`[Claude Sync] Projects folder not found: ${projectsPath}`);
+      log.info(`Projects folder not found: ${projectsPath}`);
       return conversations;
     }
 
     const projectDirs = fs.readdirSync(projectsPath);
-    console.log(`[Claude Sync] Found ${projectDirs.length} project directories`);
+    log.info(`Found ${projectDirs.length} project directories`);
 
     for (const projectDir of projectDirs) {
       const projectPath = path.join(projectsPath, projectDir);
@@ -225,7 +228,7 @@ async function extractConversationsFromProjects(projectsPath) {
       }
     }
   } catch (err) {
-    console.error('[Claude Sync] Error reading projects:', err.message);
+    log.error('Error reading projects:', err.message);
   }
 
   return conversations;
@@ -289,7 +292,7 @@ router.post('/run', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`[Claude Sync] Starting sync for user ${userId}`);
+    log.info(`Starting sync for user ${userId}`);
 
     // Check if any Claude data exists (Desktop or Code CLI)
     const hasDesktop = fs.existsSync(CLAUDE_DESKTOP_PATH);
@@ -302,7 +305,7 @@ router.post('/run', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Claude Sync] Found: Desktop=${hasDesktop}, Code=${hasCode}`);
+    log.info(`Found: Desktop=${hasDesktop}, Code=${hasCode}`);
 
     // Extract conversations from all sources
     let allConversations = [];
@@ -311,10 +314,10 @@ router.post('/run', authenticateUser, async (req, res) => {
     if (hasCode && fs.existsSync(CLAUDE_HISTORY_PATH)) {
       try {
         const historyConvs = await extractConversationsFromHistory(CLAUDE_HISTORY_PATH);
-        console.log(`[Claude Sync] Extracted ${historyConvs.length} from history.jsonl`);
+        log.info(`Extracted ${historyConvs.length} from history.jsonl`);
         allConversations.push(...historyConvs);
       } catch (err) {
-        console.error('[Claude Sync] Error reading history:', err.message);
+        log.error('Error reading history:', err.message);
       }
     }
 
@@ -322,10 +325,10 @@ router.post('/run', authenticateUser, async (req, res) => {
     if (hasCode && fs.existsSync(CLAUDE_PROJECTS_PATH)) {
       try {
         const projectConvs = await extractConversationsFromProjects(CLAUDE_PROJECTS_PATH);
-        console.log(`[Claude Sync] Extracted ${projectConvs.length} from projects`);
+        log.info(`Extracted ${projectConvs.length} from projects`);
         allConversations.push(...projectConvs);
       } catch (err) {
-        console.error('[Claude Sync] Error reading projects:', err.message);
+        log.error('Error reading projects:', err.message);
       }
     }
 
@@ -336,7 +339,7 @@ router.post('/run', authenticateUser, async (req, res) => {
         allConversations.push(...localStorageConvs);
       } catch (err) {
         if (err.message.includes('Claude Desktop is running')) {
-          console.log('[Claude Sync] Claude Desktop is running, skipping LevelDB');
+          log.info('Claude Desktop is running, skipping LevelDB');
         }
       }
 
@@ -348,10 +351,10 @@ router.post('/run', authenticateUser, async (req, res) => {
       }
     }
 
-    console.log(`[Claude Sync] Raw extractions: ${allConversations.length}`);
+    log.info(`Raw extractions: ${allConversations.length}`);
 
     const cleaned = cleanConversations(allConversations);
-    console.log(`[Claude Sync] After deduplication: ${cleaned.length}`);
+    log.info(`After deduplication: ${cleaned.length}`);
 
     // Get existing conversations to avoid duplicates
     const { data: existing } = await supabaseAdmin
@@ -370,7 +373,7 @@ router.post('/run', authenticateUser, async (req, res) => {
       return !existingFingerprints.has(fingerprint);
     });
 
-    console.log(`[Claude Sync] New conversations to sync: ${newConversations.length}`);
+    log.info(`New conversations to sync: ${newConversations.length}`);
 
     // Save new conversations
     let savedCount = 0;
@@ -397,7 +400,7 @@ router.post('/run', authenticateUser, async (req, res) => {
       }
     }
 
-    console.log(`[Claude Sync] Saved ${savedCount} new conversations`);
+    log.info(`Saved ${savedCount} new conversations`);
 
     res.json({
       success: true,
@@ -410,7 +413,7 @@ router.post('/run', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Claude Sync] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       error: 'Sync failed',
       message: error.message || 'An unexpected error occurred'

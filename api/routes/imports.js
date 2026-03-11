@@ -15,6 +15,9 @@ import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { processGdprImport, listUserImports } from '../services/gdprImportService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Imports');
 
 const router = Router();
 
@@ -50,7 +53,7 @@ router.post('/upload-url', authenticateUser, async (req, res) => {
       .createSignedUploadUrl(storagePath);
 
     if (error) {
-      console.error('[ImportsRoute] Failed to create signed URL:', error.message);
+      log.error('Failed to create signed URL:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to generate upload URL' });
     }
 
@@ -61,7 +64,7 @@ router.post('/upload-url', authenticateUser, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('[ImportsRoute] upload-url error:', err.message);
+    log.error('upload-url error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to generate upload URL' });
   }
 });
@@ -87,7 +90,7 @@ router.post('/process', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Invalid storagePath' });
     }
 
-    console.log(`[ImportsRoute] Processing: user=${userId} platform=${platform} path=${storagePath}`);
+    log.info(`Processing: user=${userId} platform=${platform} path=${storagePath}`);
 
     // Download from Storage
     const { data: blob, error: dlError } = await supabaseAdmin.storage
@@ -95,7 +98,7 @@ router.post('/process', authenticateUser, async (req, res) => {
       .download(storagePath);
 
     if (dlError || !blob) {
-      console.error('[ImportsRoute] Download failed:', dlError?.message);
+      log.error('Download failed:', dlError?.message);
       return res.status(404).json({ success: false, error: 'File not found in storage' });
     }
 
@@ -106,7 +109,7 @@ router.post('/process', authenticateUser, async (req, res) => {
 
     // Clean up — best-effort, don't fail the request if delete errors
     supabaseAdmin.storage.from('gdpr-imports').remove([storagePath]).catch((e) => {
-      console.warn('[ImportsRoute] Storage cleanup failed:', e.message);
+      log.warn('Storage cleanup failed:', e.message);
     });
 
     if (result.error) {
@@ -125,7 +128,7 @@ router.post('/process', authenticateUser, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('[ImportsRoute] process error:', err.message);
+    log.error('process error:', err.message);
     return res.status(500).json({
       success: false,
       error: 'Failed to process import',
@@ -144,7 +147,7 @@ router.get('/', authenticateUser, async (req, res) => {
     const imports = await listUserImports(userId);
     return res.json({ success: true, data: imports });
   } catch (err) {
-    console.error('[ImportsRoute] List error:', err.message);
+    log.error('List error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to list imports' });
   }
 });

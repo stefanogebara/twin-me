@@ -10,6 +10,9 @@ import { supabaseAdmin } from '../services/database.js';
 import { renderSoulCard, renderFallbackCard } from '../services/soulCardRenderer.js';
 import { get as cacheGet, set as cacheSet, del as cacheDel } from '../services/redisClient.js';
 import jwt from 'jsonwebtoken';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OGImage');
 
 const router = express.Router();
 
@@ -118,7 +121,7 @@ router.get('/og/soul-card', async (req, res) => {
 
     return sendPng(res, png, 3600);
   } catch (err) {
-    console.error('[OG Card] Error:', err);
+    log.error('Error:', err);
     try {
       const fallback = await renderFallbackCard();
       return sendPng(res, fallback, 60);
@@ -174,7 +177,7 @@ router.get('/s/:userId', async (req, res) => {
       redirectUrl: `/s/${userId}`,
     });
   } catch (err) {
-    console.error('[OG HTML] Error:', err);
+    log.error('Error:', err);
     return sendOgHtml(res, {
       title: 'Soul Signature | Twin Me',
       description: 'Discover what makes you authentically you',

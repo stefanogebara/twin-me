@@ -18,6 +18,9 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { get as redisGet, set as redisSet } from '../services/redisClient.js';
 import { getTwinReadinessScore } from '../services/memoryStreamService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('MemoryHealth');
 
 const router = express.Router();
 const CACHE_TTL_SECONDS = 5 * 60; // 5-minute cache — health data doesn't need sub-second freshness
@@ -200,7 +203,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
     res.json({ success: true, ...responseData, cached: false });
   } catch (err) {
-    console.error('[memory-health] Error:', err.message);
+    log.error('Error', { error: err });
     res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Failed to load memory health data' });
   }
 });

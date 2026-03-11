@@ -5,6 +5,9 @@
 
 import { supabaseAdmin } from '../database.js';
 import { ensureFreshToken } from '../tokenRefreshService.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('TiktokExtractor');
 
 class TikTokExtractor {
   constructor(userId, platform = 'tiktok') {
@@ -17,7 +20,7 @@ class TikTokExtractor {
    * Main extraction method - extracts all TikTok data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[TikTok] Starting full extraction for user: ${userId}`);
+    log.info(`Starting full extraction for user: ${userId}`);
 
     try {
       // Create extraction job
@@ -32,10 +35,10 @@ class TikTokExtractor {
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[TikTok] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return { success: true, itemsExtracted: totalItems };
     } catch (error) {
-      console.error('[TikTok] Extraction error:', error);
+      log.error('Extraction error:', error);
       throw error;
     }
   }
@@ -75,7 +78,7 @@ class TikTokExtractor {
 
       // Handle 401 - token expired, retry once with fresh token
       if (response.status === 401 && retries > 0) {
-        console.log('[TikTok] Token expired, fetching fresh token and retrying...');
+        log.info('Token expired, fetching fresh token and retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         return this.makeRequest(endpoint, params, method, retries - 1);
       }
@@ -94,7 +97,7 @@ class TikTokExtractor {
 
       return data;
     } catch (error) {
-      console.error(`[TikTok] Request error for ${endpoint}:`, error);
+      log.error(`Request error for ${endpoint}:`, error);
       throw error;
     }
   }
@@ -103,7 +106,7 @@ class TikTokExtractor {
    * Extract user profile information
    */
   async extractUserInfo(userId) {
-    console.log(`[TikTok] Extracting user info...`);
+    log.info(`Extracting user info...`);
 
     try {
       // Get user profile info
@@ -129,13 +132,13 @@ class TikTokExtractor {
           extracted_at: new Date().toISOString()
         }, user.profile_deep_link);
 
-        console.log(`[TikTok] Extracted user info for ${user.display_name}`);
+        log.info(`Extracted user info for ${user.display_name}`);
         return 1;
       }
 
       return 0;
     } catch (error) {
-      console.error('[TikTok] Error extracting user info:', error);
+      log.error('Error extracting user info:', error);
       return 0;
     }
   }
@@ -144,7 +147,7 @@ class TikTokExtractor {
    * Extract user's videos
    */
   async extractUserVideos(userId) {
-    console.log(`[TikTok] Extracting user videos...`);
+    log.info(`Extracting user videos...`);
 
     try {
       let totalVideos = 0;
@@ -196,15 +199,15 @@ class TikTokExtractor {
 
         // Safety limit to prevent infinite loops
         if (totalVideos >= 200) {
-          console.log('[TikTok] Reached 200 videos limit, stopping pagination');
+          log.info('Reached 200 videos limit, stopping pagination');
           break;
         }
       }
 
-      console.log(`[TikTok] Extracted ${totalVideos} videos`);
+      log.info(`Extracted ${totalVideos} videos`);
       return totalVideos;
     } catch (error) {
-      console.error('[TikTok] Error extracting videos:', error);
+      log.error('Error extracting videos:', error);
       return 0;
     }
   }
@@ -229,11 +232,11 @@ class TikTokExtractor {
         });
 
       if (error) {
-        console.error(`[TikTok] Error storing ${dataType} data:`, error);
+        log.error(`Error storing ${dataType} data:`, error);
         throw error;
       }
     } catch (error) {
-      console.error(`[TikTok] Error in storeRawData:`, error);
+      log.error(`Error in storeRawData:`, error);
       throw error;
     }
   }
@@ -255,7 +258,7 @@ class TikTokExtractor {
       .single();
 
     if (error) {
-      console.error('[TikTok] Error creating extraction job:', error);
+      log.error('Error creating extraction job:', error);
       throw error;
     }
 
@@ -276,7 +279,7 @@ class TikTokExtractor {
       .eq('id', jobId);
 
     if (error) {
-      console.error('[TikTok] Error completing extraction job:', error);
+      log.error('Error completing extraction job:', error);
       throw error;
     }
   }

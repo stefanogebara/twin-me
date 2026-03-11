@@ -14,6 +14,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('LifeEventInference');
 
 class LifeEventInferenceService {
   constructor() {
@@ -281,7 +284,7 @@ class LifeEventInferenceService {
    * Main inference method - analyzes all events and returns inferred life events
    */
   async inferLifeEvents(userId, events) {
-    console.log(`🔍 [Life Event Inference] Analyzing ${events.length} events for user ${userId}`);
+    log.info(`Analyzing ${events.length} events for user ${userId}`);
 
     const inferredEvents = [];
 
@@ -296,7 +299,7 @@ class LifeEventInferenceService {
     inferredEvents.push(...training);
     inferredEvents.push(...holidays);
 
-    console.log(`📋 [Life Event Inference] Found ${inferredEvents.length} life events:`, {
+    log.info(`Found ${inferredEvents.length} life events:`, {
       vacations: vacations.length,
       conferences: conferences.length,
       training: training.length,
@@ -329,11 +332,11 @@ class LifeEventInferenceService {
           .eq('source_event_id', event.sourceEventId)
           .single();
         if (existingErr && existingErr.code !== 'PGRST116') {
-          console.warn('[LifeEvent] Error checking existing context:', existingErr.message);
+          log.warn('Error checking existing context:', existingErr.message);
         }
 
         if (existing) {
-          console.log(`⏭️ [Life Event Inference] Event already exists, skipping: ${event.title}`);
+          log.info(`Event already exists, skipping: ${event.title}`);
           continue;
         }
 
@@ -359,13 +362,13 @@ class LifeEventInferenceService {
           .single();
 
         if (error) {
-          console.error(`❌ [Life Event Inference] Failed to store event: ${error.message}`);
+          log.error(`Failed to store event: ${error.message}`);
         } else {
-          console.log(`✅ [Life Event Inference] Stored: ${event.type} - "${event.title}" (confidence: ${event.confidence})`);
+          log.info(`Stored: ${event.type} - "${event.title}" (confidence: ${event.confidence})`);
           storedEvents.push(data);
         }
       } catch (err) {
-        console.error(`❌ [Life Event Inference] Error processing event: ${err.message}`);
+        log.error(`Error processing event: ${err.message}`);
       }
     }
 
@@ -389,7 +392,7 @@ class LifeEventInferenceService {
       .order('start_date', { ascending: false });
 
     if (error) {
-      console.error(`❌ [Life Event Inference] Failed to get active context: ${error.message}`);
+      log.error(`Failed to get active context: ${error.message}`);
       return [];
     }
 
@@ -414,7 +417,7 @@ class LifeEventInferenceService {
       .order('start_date', { ascending: true });
 
     if (error) {
-      console.error(`❌ [Life Event Inference] Failed to get upcoming context: ${error.message}`);
+      log.error(`Failed to get upcoming context: ${error.message}`);
       return [];
     }
 

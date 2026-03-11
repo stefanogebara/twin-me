@@ -21,7 +21,9 @@ import { supabaseAdmin } from './database.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { retrieveMemories } from './memoryStreamService.js';
 import { generateEmbedding, vectorToString } from './embeddingService.js';
+import { createLogger } from './logger.js';
 
+const log = createLogger('PersonalityProfile');
 const SERVICE = 'personality-profile';
 
 // ---------------------------------------------------------------------------
@@ -59,14 +61,12 @@ export async function extractOCEAN(userId) {
       .limit(50);
 
     if (error) {
-      console.warn(`[${SERVICE}] extractOCEAN fetch error:`, error.message);
+      log.warn('extractOCEAN fetch error', { error });
       return null;
     }
 
     if (!memories || memories.length < 20) {
-      console.log(
-        `[${SERVICE}] extractOCEAN: only ${memories?.length ?? 0} memories — need ≥20, skipping`,
-      );
+      log.info('extractOCEAN: insufficient memories, skipping', { count: memories?.length ?? 0, required: 20 });
       return null;
     }
 
@@ -114,7 +114,7 @@ export async function extractOCEAN(userId) {
       neuroticism: clampScore(parsed.neuroticism),
     };
   } catch (err) {
-    console.warn(`[${SERVICE}] extractOCEAN error:`, err.message);
+    log.warn('extractOCEAN error', { error: err });
     return null;
   }
 }
@@ -158,7 +158,7 @@ export async function computeStylometrics(userId) {
       .limit(100);
 
     if (error) {
-      console.warn(`[${SERVICE}] computeStylometrics fetch error:`, error.message);
+      log.warn('computeStylometrics fetch error', { error });
       return null;
     }
 
@@ -228,7 +228,7 @@ export async function computeStylometrics(userId) {
       punctuation_style: punctuationStyle,
     };
   } catch (err) {
-    console.warn(`[${SERVICE}] computeStylometrics error:`, err.message);
+    log.warn('computeStylometrics error', { error: err });
     return null;
   }
 }
@@ -308,7 +308,7 @@ export async function buildPersonalityEmbedding(userId) {
       .limit(100);
 
     if (error) {
-      console.warn(`[${SERVICE}] buildPersonalityEmbedding fetch error:`, error.message);
+      log.warn('buildPersonalityEmbedding fetch error', { error });
       return null;
     }
 
@@ -363,7 +363,7 @@ export async function buildPersonalityEmbedding(userId) {
 
     return centroid.map((v) => v / magnitude);
   } catch (err) {
-    console.warn(`[${SERVICE}] buildPersonalityEmbedding error:`, err.message);
+    log.warn('buildPersonalityEmbedding error', { error: err });
     return null;
   }
 }
@@ -390,7 +390,7 @@ export async function buildProfile(userId) {
     ]);
 
     if (!ocean) {
-      console.log(`[${SERVICE}] buildProfile: OCEAN null for user ${userId} — not enough memories`);
+      log.info('buildProfile: OCEAN null, not enough memories', { userId });
       return null;
     }
 
@@ -441,12 +441,12 @@ export async function buildProfile(userId) {
       .upsert(profile, { onConflict: 'user_id' });
 
     if (upsertError) {
-      console.warn(`[${SERVICE}] buildProfile upsert error:`, upsertError.message);
+      log.warn('buildProfile upsert error', { error: upsertError });
     }
 
     return profile;
   } catch (err) {
-    console.warn(`[${SERVICE}] buildProfile error:`, err.message);
+    log.warn('buildProfile error', { error: err });
     return null;
   }
 }
@@ -473,7 +473,7 @@ export async function getProfile(userId) {
 
     // PGRST116 = no rows found — expected for new users; all other errors are real
     if (error && error.code !== 'PGRST116') {
-      console.warn(`[${SERVICE}] getProfile fetch error:`, error.message);
+      log.warn('getProfile fetch error', { error });
     }
 
     if (existing?.last_built_at) {
@@ -485,7 +485,7 @@ export async function getProfile(userId) {
 
     return buildProfile(userId);
   } catch (err) {
-    console.warn(`[${SERVICE}] getProfile error:`, err.message);
+    log.warn('getProfile error', { error: err });
     return null;
   }
 }

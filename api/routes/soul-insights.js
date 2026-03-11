@@ -10,6 +10,9 @@ import graphProcessor from '../services/graphProcessor.js';
 import insightCache from '../services/insightCache.js';
 import spotifyInsightGenerator from '../services/spotifyInsightGenerator.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('SoulInsights');
 
 const router = express.Router();
 
@@ -23,12 +26,12 @@ router.get('/:userId', authenticateUser, async (req, res) => {
     if (userId !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
-    console.log(`[SoulInsights] Generating insights for user ${userId}`);
+    log.info(`Generating insights for user ${userId}`);
 
     // Check cache first
     const cachedInsights = insightCache.get(userId, 'soul-insights');
     if (cachedInsights) {
-      console.log(`[SoulInsights] Returning cached insights for user ${userId}`);
+      log.info(`Returning cached insights for user ${userId}`);
       return res.json(cachedInsights);
     }
 
@@ -156,13 +159,13 @@ router.get('/:userId', authenticateUser, async (req, res) => {
 
     // Cache the response (5 minutes TTL)
     insightCache.set(userId, response, 'soul-insights', 5 * 60 * 1000);
-    console.log(`[SoulInsights] Cached insights for user ${userId}`);
+    log.info(`Cached insights for user ${userId}`);
 
     // Return user-friendly response
     res.json(response);
 
   } catch (error) {
-    console.error('[SoulInsights] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate insights'
@@ -203,7 +206,7 @@ router.get('/:userId/compatibility/:targetUserId', authenticateUser, async (req,
     });
 
   } catch (error) {
-    console.error('[SoulInsights] Compatibility error:', error);
+    log.error('Compatibility error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to calculate compatibility'
@@ -224,7 +227,7 @@ router.post('/:userId/share', authenticateUser, async (req, res) => {
     const { insightId, share } = req.body;
 
     // In production, this would update database
-    console.log(`[SoulInsights] Updated sharing for insight ${insightId}: ${share}`);
+    log.info(`Updated sharing for insight ${insightId}: ${share}`);
 
     res.json({
       success: true,
@@ -232,7 +235,7 @@ router.post('/:userId/share', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[SoulInsights] Share error:', error);
+    log.error('Share error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update sharing preferences'
@@ -250,13 +253,13 @@ router.get('/:userId/spotify-personality', authenticateUser, async (req, res) =>
     if (userId !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
-    console.log(`[SoulInsights] Getting Spotify personality for user ${userId}`);
+    log.info(`Getting Spotify personality for user ${userId}`);
 
     // Check cache first
     const cacheKey = `spotify-personality-${userId}`;
     const cachedData = insightCache.get(userId, cacheKey);
     if (cachedData) {
-      console.log(`[SoulInsights] Returning cached Spotify personality for user ${userId}`);
+      log.info(`Returning cached Spotify personality for user ${userId}`);
       return res.json(cachedData);
     }
 
@@ -279,7 +282,7 @@ router.get('/:userId/spotify-personality', authenticateUser, async (req, res) =>
     res.json(response);
 
   } catch (error) {
-    console.error('[SoulInsights] Spotify personality error:', error);
+    log.error('Spotify personality error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get Spotify personality insights'
@@ -297,7 +300,7 @@ router.get('/:userId/spotify-mood', authenticateUser, async (req, res) => {
     if (userId !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
-    console.log(`[SoulInsights] Getting Spotify mood for user ${userId}`);
+    log.info(`Getting Spotify mood for user ${userId}`);
 
     // Get current mood from Spotify data
     const moodInsights = await spotifyInsightGenerator.getCurrentMoodInsights(userId);
@@ -318,7 +321,7 @@ router.get('/:userId/spotify-mood', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[SoulInsights] Spotify mood error:', error);
+    log.error('Spotify mood error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get Spotify mood'
@@ -337,7 +340,7 @@ router.get('/:userId/personality-integrated', authenticateUser, async (req, res)
     if (userId !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
-    console.log(`[SoulInsights] Getting personality-integrated insights for user ${userId}`);
+    log.info(`Getting personality-integrated insights for user ${userId}`);
 
     // Dynamic import for CommonJS module in ESM context
     const insightGeneratorModule = await import('../services/insightGenerator.js');
@@ -352,7 +355,7 @@ router.get('/:userId/personality-integrated', authenticateUser, async (req, res)
       .single();
 
     if (bigFiveError && bigFiveError.code !== 'PGRST116') {
-      console.error('[SoulInsights] Error fetching Big Five scores:', bigFiveError);
+      log.error('Error fetching Big Five scores:', bigFiveError);
     }
 
     // 2. Get behavioral personality estimates
@@ -363,7 +366,7 @@ router.get('/:userId/personality-integrated', authenticateUser, async (req, res)
       .single();
 
     if (behavioralError && behavioralError.code !== 'PGRST116') {
-      console.error('[SoulInsights] Error fetching behavioral scores:', behavioralError);
+      log.error('Error fetching behavioral scores:', behavioralError);
     }
 
     // 3. Get platform data for context
@@ -452,7 +455,7 @@ router.get('/:userId/personality-integrated', authenticateUser, async (req, res)
     res.json(response);
 
   } catch (error) {
-    console.error('[SoulInsights] Personality integrated error:', error);
+    log.error('Personality integrated error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate personality-integrated insights'

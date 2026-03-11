@@ -4,6 +4,9 @@ import Stripe from 'stripe';
 import { authenticateToken } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Billing');
 
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
@@ -12,7 +15,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const safeError = (err) => isDev ? err.message : 'Internal server error';
 
 if (!stripe) {
-  console.warn('[Billing] STRIPE_SECRET_KEY not set — billing routes disabled');
+  log.warn('STRIPE_SECRET_KEY not set — billing routes disabled');
 }
 
 // POST /api/billing/webhook  (raw body — must be mounted BEFORE express.json)
@@ -21,7 +24,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     return res.status(503).json({ error: 'Billing not configured' });
   }
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('[Billing] STRIPE_WEBHOOK_SECRET not configured');
+    log.error('STRIPE_WEBHOOK_SECRET not configured');
     return res.status(503).json({ error: 'Webhook verification not configured' });
   }
   const sig = req.headers['stripe-signature'];
@@ -78,7 +81,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
     res.json({ received: true });
   } catch (err) {
-    console.error('[Billing] Webhook error:', err);
+    log.error('Webhook error:', err);
     res.status(500).json({ error: safeError(err) });
   }
 });
@@ -132,7 +135,7 @@ router.post('/checkout', authenticateToken, async (req, res) => {
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error('[Billing] Checkout error:', err);
+    log.error('Checkout error:', err);
     res.status(500).json({ error: safeError(err) });
   }
 });

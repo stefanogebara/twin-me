@@ -4,6 +4,9 @@ import { serverDb, supabaseAdmin } from '../services/database.js';
 import { authenticateUser, requireProfessor, userRateLimit } from '../middleware/auth.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 import dotenv from 'dotenv';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Twins');
 
 dotenv.config();
 
@@ -86,7 +89,7 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
     });
 
   } catch (error) {
-    console.error('Error fetching twins:', error);
+    log.error('Error fetching twins:', error);
     res.status(500).json({
       error: 'Failed to fetch digital twins',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -136,7 +139,7 @@ router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (
     });
 
   } catch (error) {
-    console.error('Error fetching twin:', error);
+    log.error('Error fetching twin:', error);
     res.status(500).json({
       error: 'Failed to fetch digital twin',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -148,7 +151,7 @@ router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (
 router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTwinRequest, handleValidationErrors, async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log('✅ Twin creation request:', {
+    log.info('Twin creation request:', {
       userId,
       userName: req.user.email,
       body: req.body
@@ -180,7 +183,7 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
     let connected_platforms = [];
 
     try {
-      console.log('🎨 Building soul signature from extracted data...');
+      log.info('Building soul signature from extracted data...');
       const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
       const soulResult = await soulBuilder.buildSoulSignature(userId);
 
@@ -191,26 +194,26 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
         // Use soul signature data if no manual traits provided
         if (Object.keys(requestedTraits).length === 0 && soulData.personality_traits) {
           personality_traits = soulData.personality_traits;
-          console.log('✅ Using soul signature personality traits');
+          log.info('Using soul signature personality traits');
         }
 
         if (requestedPhrases.length === 0 && soulData.common_phrases) {
           common_phrases = soulData.common_phrases;
-          console.log('✅ Using soul signature common phrases');
+          log.info('Using soul signature common phrases');
         }
 
         if (requestedAnalogies.length === 0 && soulData.favorite_analogies) {
           favorite_analogies = soulData.favorite_analogies;
-          console.log('✅ Using soul signature favorite analogies');
+          log.info('Using soul signature favorite analogies');
         }
 
         if (soulData.data_sources) {
           connected_platforms = soulData.data_sources;
-          console.log('✅ Using soul signature connected platforms:', connected_platforms);
+          log.info('Using soul signature connected platforms:', connected_platforms);
         }
       }
     } catch (soulError) {
-      console.warn('⚠️ Soul signature building failed, using manual data:', soulError.message);
+      log.warn('Soul signature building failed, using manual data:', soulError.message);
       // Continue with manual data if soul signature fails
     }
 
@@ -250,7 +253,7 @@ router.post('/', authenticateUser, userRateLimit(20, 15 * 60 * 1000), validateTw
     });
 
   } catch (error) {
-    console.error('❌ Error creating twin:', {
+    log.error('Error creating twin:', {
       message: error.message,
       stack: error.stack,
       code: error.code,
@@ -351,7 +354,7 @@ router.put('/:id', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validate
     });
 
   } catch (error) {
-    console.error('Error updating twin:', error);
+    log.error('Error updating twin:', error);
     res.status(500).json({
       error: 'Failed to update digital twin',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -410,7 +413,7 @@ router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async
     });
 
   } catch (error) {
-    console.error('Error deleting twin:', error);
+    log.error('Error deleting twin:', error);
     res.status(500).json({
       error: 'Failed to delete digital twin',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -444,7 +447,7 @@ router.get('/public/active', userRateLimit(100, 15 * 60 * 1000), async (req, res
     });
 
   } catch (error) {
-    console.error('Error fetching active professor twins:', error);
+    log.error('Error fetching active professor twins:', error);
     res.status(500).json({
       error: 'Failed to fetch active professor twins',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

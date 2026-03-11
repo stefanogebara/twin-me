@@ -19,6 +19,9 @@ import rateLimit from 'express-rate-limit';
 import { ipKeyGenerator } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OAuthRateLimiter');
 
 // =========================================================================
 // Configuration
@@ -72,7 +75,7 @@ let redisStore = null;
  */
 async function initializeRedisStore() {
   if (!process.env.REDIS_URL) {
-    console.log('⚠️ [Rate Limiter] No REDIS_URL configured, using in-memory store');
+    log.warn('No REDIS_URL configured, using in-memory store');
     return null;
   }
 
@@ -82,7 +85,7 @@ async function initializeRedisStore() {
       socket: {
         reconnectStrategy: (retries) => {
           if (retries > 10) {
-            console.error('❌ [Rate Limiter] Redis reconnection failed after 10 attempts');
+            log.error('Redis reconnection failed after 10 attempts');
             return new Error('Redis connection failed');
           }
           return Math.min(retries * 100, 3000);
@@ -91,11 +94,11 @@ async function initializeRedisStore() {
     });
 
     redisClient.on('error', (err) => {
-      console.error('❌ [Rate Limiter] Redis error:', err.message);
+      log.error('Redis error', { error: err });
     });
 
     redisClient.on('connect', () => {
-      console.log('✅ [Rate Limiter] Redis connected for distributed rate limiting');
+      log.info('Redis connected for distributed rate limiting');
     });
 
     await redisClient.connect();
@@ -107,8 +110,8 @@ async function initializeRedisStore() {
 
     return redisStore;
   } catch (error) {
-    console.error('❌ [Rate Limiter] Redis initialization failed:', error.message);
-    console.log('⚠️ [Rate Limiter] Falling back to in-memory store');
+    log.error('Redis initialization failed', { error });
+    log.warn('Falling back to in-memory store');
     return null;
   }
 }
@@ -194,7 +197,7 @@ export const oauthAuthorizationLimiter = rateLimit({
 
   // Custom handler when limit is exceeded
   handler: (req, res) => {
-    console.warn(`🚨 [Rate Limiter] Authorization limit exceeded`, {
+    log.warn('Authorization limit exceeded', {
       ip: req.ip,
       userId: req.body?.userId || req.user?.id || 'anonymous',
       platform: req.params?.platform || req.body?.platform,
@@ -225,7 +228,7 @@ export const oauthCallbackLimiter = rateLimit({
   },
 
   handler: (req, res) => {
-    console.warn(`🚨 [Rate Limiter] Callback limit exceeded`, {
+    log.warn('Callback limit exceeded', {
       ip: req.ip,
       state: req.body?.state?.substring(0, 10) + '...',
       path: req.path
@@ -255,7 +258,7 @@ export const oauthRefreshLimiter = rateLimit({
   },
 
   handler: (req, res) => {
-    console.warn(`🚨 [Rate Limiter] Refresh limit exceeded`, {
+    log.warn('Refresh limit exceeded', {
       userId: req.user?.id || 'anonymous',
       platform: req.body?.platform,
       path: req.path
@@ -287,7 +290,7 @@ export const globalOAuthLimiter = rateLimit({
   keyGenerator: ipKeyGenerator,
 
   handler: (req, res) => {
-    console.error(`🚨 [Rate Limiter] Global OAuth limit exceeded`, {
+    log.error('Global OAuth limit exceeded', {
       ip: req.ip,
       path: req.path,
       method: req.method
@@ -310,22 +313,22 @@ export const globalOAuthLimiter = rateLimit({
  * Call this in server.js on startup
  */
 export async function initializeRateLimiter() {
-  console.log('🔧 [Rate Limiter] Initializing OAuth rate limiting...');
+  log.info('Initializing OAuth rate limiting');
 
   const store = await initializeRedisStore();
 
   if (store) {
-    console.log('✅ [Rate Limiter] Using Redis distributed store');
+    log.info('Using Redis distributed store');
   } else {
-    console.log('⚠️ [Rate Limiter] Using in-memory store (single-server only)');
+    log.warn('Using in-memory store (single-server only)');
   }
 
-  console.log('✅ [Rate Limiter] OAuth rate limiting initialized');
-  console.log('📊 [Rate Limiter] Limits configured:');
-  console.log('   - Authorization: 10 requests / 15 minutes');
-  console.log('   - Callback: 20 requests / 15 minutes');
-  console.log('   - Refresh: 5 requests / 20 minutes');
-  console.log('   - Global: 100 requests / 1 hour');
+  log.info('OAuth rate limiting initialized', {
+    authorization: '10 requests / 15 minutes',
+    callback: '20 requests / 15 minutes',
+    refresh: '5 requests / 20 minutes',
+    global: '100 requests / 1 hour'
+  });
 }
 
 /**
@@ -333,9 +336,9 @@ export async function initializeRateLimiter() {
  */
 export async function shutdownRateLimiter() {
   if (redisClient) {
-    console.log('🔧 [Rate Limiter] Closing Redis connection...');
+    log.info('Closing Redis connection');
     await redisClient.quit();
-    console.log('✅ [Rate Limiter] Redis connection closed');
+    log.info('Redis connection closed');
   }
 }
 

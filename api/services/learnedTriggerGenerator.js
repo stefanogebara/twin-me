@@ -15,6 +15,9 @@ import { supabaseAdmin } from './database.js';
 import correlationEngine from './correlationDiscoveryEngine.js';
 import hypothesisEngine from './patternHypothesisEngine.js';
 import baselineEngine from './baselineEngine.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('LearnedTriggerGenerator');
 
 /**
  * Generate triggers from learned correlations
@@ -63,11 +66,11 @@ export async function generateLearnedTriggers(userId) {
       }
     }
 
-    console.log(`[LearnedTriggerGenerator] Generated ${triggers.length} triggers for user ${userId}`);
+    log.info(`Generated ${triggers.length} triggers for user ${userId}`);
     return triggers;
 
   } catch (error) {
-    console.error('[LearnedTriggerGenerator] Error:', error);
+    log.error('Error:', error);
     return [];
   }
 }
@@ -193,7 +196,7 @@ async function hypothesisToTrigger(hypothesis, baselineMap, userId) {
       .select('*')
       .eq('id', correlation_id)
       .single();
-    if (error && error.code !== 'PGRST116') console.warn('[LearnedTrigger] Error fetching correlation:', error.message);
+    if (error && error.code !== 'PGRST116') log.warn('Error fetching correlation:', error.message);
     correlation = data;
   }
 
@@ -409,7 +412,7 @@ export async function syncPlatformDataToPatternLearning(userId, platform, days =
       .order('extracted_at', { ascending: true });
 
     if (error || !platformData) {
-      console.error(`[LearnedTriggerGenerator] Error fetching ${platform} data:`, error);
+      log.error(`Error fetching ${platform} data:`, error);
       return { synced: 0 };
     }
 
@@ -436,11 +439,11 @@ export async function syncPlatformDataToPatternLearning(userId, platform, days =
       if (!insertError) synced++;
     }
 
-    console.log(`[LearnedTriggerGenerator] Synced ${synced} ${platform} events for user ${userId}`);
+    log.info(`Synced ${synced} ${platform} events for user ${userId}`);
     return { synced };
 
   } catch (error) {
-    console.error('[LearnedTriggerGenerator] Sync error:', error);
+    log.error('Sync error:', error);
     return { synced: 0, error: error.message };
   }
 }
@@ -495,7 +498,7 @@ function buildEventContext(record) {
  * Run full pattern learning pipeline for a user
  */
 export async function runPatternLearningPipeline(userId) {
-  console.log(`[PatternLearning] Running full pipeline for user ${userId}`);
+  log.info(`Running full pipeline for user ${userId}`);
 
   const results = {
     dataSync: {},
@@ -525,7 +528,7 @@ export async function runPatternLearningPipeline(userId) {
     // 5. Generate learned triggers
     results.triggers = await generateLearnedTriggers(userId);
 
-    console.log(`[PatternLearning] Pipeline complete:`, {
+    log.info(`Pipeline complete:`, {
       dataSynced: Object.values(results.dataSync).reduce((sum, r) => sum + (r.synced || 0), 0),
       baselines: results.baselines.computed || 0,
       correlations: results.correlations.discovered || 0,
@@ -536,7 +539,7 @@ export async function runPatternLearningPipeline(userId) {
     return results;
 
   } catch (error) {
-    console.error('[PatternLearning] Pipeline error:', error);
+    log.error('Pipeline error:', error);
     return { ...results, error: error.message };
   }
 }
@@ -606,11 +609,11 @@ export async function generateBaselineInsights(userId) {
       }
     }
 
-    console.log(`[LearnedTriggerGenerator] Generated ${insights.length} baseline insights for user ${userId}`);
+    log.info(`Generated ${insights.length} baseline insights for user ${userId}`);
     return insights;
 
   } catch (error) {
-    console.error('[LearnedTriggerGenerator] Error generating baseline insights:', error);
+    log.error('Error generating baseline insights:', error);
     return [];
   }
 }

@@ -10,6 +10,9 @@ import { Resvg } from '@resvg/resvg-js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createLogger } from './logger.js';
+
+const log = createLogger('SoulCardRenderer');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,7 +33,7 @@ function loadFonts() {
     try {
       interRegular = fs.readFileSync(path.join(dir, 'Inter-Regular.woff'));
       interBold = fs.readFileSync(path.join(dir, 'Inter-Bold.woff'));
-      console.log(`[SoulCardRenderer] Fonts loaded from ${dir}`);
+      log.info(`Fonts loaded from ${dir}`);
       return;
     } catch {
       // try next

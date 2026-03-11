@@ -11,6 +11,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('BaselineEngine');
 
 // Default windows for baseline computation
 const DEFAULT_WINDOWS = [7, 30, 90];
@@ -215,7 +218,7 @@ export async function computeBaselines(userId, windows = DEFAULT_WINDOWS) {
             });
 
           if (error) {
-            console.error(`Failed to upsert baseline for ${metricName}:`, error);
+            log.error(`Failed to upsert baseline for ${metricName}:`, error);
             results.failed++;
           } else {
             results.computed++;
@@ -225,7 +228,7 @@ export async function computeBaselines(userId, windows = DEFAULT_WINDOWS) {
           }
         }
       } catch (err) {
-        console.error(`Error computing baseline for ${metricName}:`, err);
+        log.error(`Error computing baseline for ${metricName}:`, err);
         results.failed++;
       }
     }
@@ -276,7 +279,7 @@ export async function getAllBaselines(userId, windowDays = null) {
   const { data, error } = await query.order('metric_name');
 
   if (error) {
-    console.error('Error fetching baselines:', error);
+    log.error('Error fetching baselines:', error);
     return [];
   }
 

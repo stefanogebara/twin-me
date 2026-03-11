@@ -12,6 +12,9 @@ import { authenticateUser } from '../middleware/auth.js';
 import { getProfile, buildProfile } from '../services/personalityProfileService.js';
 import { checkDrift } from '../services/personalityDriftService.js';
 import { getPersonalityHistory } from '../services/personalityEvaluationService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PersonalityProfile');
 
 const router = Router();
 
@@ -32,7 +35,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
     res.json({ success: true, profile: safeProfile });
   } catch (err) {
-    console.error('[PersonalityProfile] GET error:', err.message);
+    log.error('GET error', { error: err });
     res.status(500).json({ success: false, error: 'Failed to retrieve personality profile.' });
   }
 });
@@ -53,7 +56,7 @@ router.post('/rebuild', authenticateUser, async (req, res) => {
 
     res.json({ success: true, profile: safeProfile, rebuilt: true });
   } catch (err) {
-    console.error('[PersonalityProfile] rebuild error:', err.message);
+    log.error('rebuild error', { error: err });
     res.status(500).json({ success: false, error: 'Failed to rebuild personality profile.' });
   }
 });
@@ -64,7 +67,7 @@ router.get('/drift', authenticateUser, async (req, res) => {
     const result = await checkDrift(req.user.id);
     res.json({ success: true, ...result });
   } catch (err) {
-    console.error('[PersonalityProfile] drift check error:', err.message);
+    log.error('drift check error', { error: err });
     res.status(500).json({ success: false, error: 'Failed to check personality drift.' });
   }
 });
@@ -75,7 +78,7 @@ router.get('/history', authenticateUser, async (req, res) => {
     const history = await getPersonalityHistory(req.user.id, parseInt(req.query.limit) || 12);
     res.json({ success: true, assessments: history });
   } catch (err) {
-    console.error('[PersonalityProfile] History fetch error:', err.message);
+    log.error('History fetch error', { error: err });
     res.status(500).json({ success: false, error: 'Failed to fetch personality history' });
   }
 });

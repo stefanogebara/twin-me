@@ -15,6 +15,9 @@
 
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Mem0BrainSync');
 
 // Classification prompt for Claude
 const CLASSIFICATION_PROMPT = `You are a knowledge classifier for a personal digital twin system.
@@ -73,7 +76,7 @@ async function classifyFact(factText) {
     }
     return null;
   } catch (error) {
-    console.error('[Mem0Sync] Classification error:', error.message);
+    log.error('Classification error:', error.message);
     return null;
   }
 }
@@ -90,7 +93,7 @@ async function findSimilarNodes(userId, label, keywords) {
       .eq('user_id', userId)
       .ilike('label', `%${label.split(' ')[0]}%`)
       .limit(5);
-    if (labelErr) console.warn('[Mem0Sync] Error searching nodes by label:', labelErr.message);
+    if (labelErr) log.warn('Error searching nodes by label:', labelErr.message);
 
     // Search by keywords in tags
     const { data: tagMatches, error: tagErr } = await supabaseAdmin
@@ -99,7 +102,7 @@ async function findSimilarNodes(userId, label, keywords) {
       .eq('user_id', userId)
       .overlaps('tags', keywords)
       .limit(5);
-    if (tagErr) console.warn('[Mem0Sync] Error searching nodes by tags:', tagErr.message);
+    if (tagErr) log.warn('Error searching nodes by tags:', tagErr.message);
 
     // Combine and dedupe
     const allMatches = [...(labelMatches || []), ...(tagMatches || [])];
@@ -109,7 +112,7 @@ async function findSimilarNodes(userId, label, keywords) {
 
     return unique;
   } catch (error) {
-    console.error('[Mem0Sync] Error finding similar nodes:', error.message);
+    log.error('Error finding similar nodes:', error.message);
     return [];
   }
 }
@@ -153,10 +156,10 @@ async function createBrainNode(userId, fact, classification) {
 
     if (error) throw error;
 
-    console.log(`[Mem0Sync] Created brain node: "${classification.label}" (${data.id})`);
+    log.info(`Created brain node: "${classification.label}" (${data.id})`);
     return data;
   } catch (error) {
-    console.error('[Mem0Sync] Error creating node:', error.message);
+    log.error('Error creating node:', error.message);
     return null;
   }
 }
@@ -172,7 +175,7 @@ async function reinforceNode(nodeId, fact) {
       .select('strength, confidence, data')
       .eq('id', nodeId)
       .single();
-    if (nodeErr && nodeErr.code !== 'PGRST116') console.warn('[Mem0Sync] Error fetching node for reinforce:', nodeErr.message);
+    if (nodeErr && nodeErr.code !== 'PGRST116') log.warn('Error fetching node for reinforce:', nodeErr.message);
 
     if (!node) return null;
 
@@ -198,10 +201,10 @@ async function reinforceNode(nodeId, fact) {
 
     if (error) throw error;
 
-    console.log(`[Mem0Sync] Reinforced node ${nodeId}: strength ${newStrength.toFixed(2)}`);
+    log.info(`Reinforced node ${nodeId}: strength ${newStrength.toFixed(2)}`);
     return { nodeId, newStrength };
   } catch (error) {
-    console.error('[Mem0Sync] Error reinforcing node:', error.message);
+    log.error('Error reinforcing node:', error.message);
     return null;
   }
 }
@@ -219,7 +222,7 @@ async function createEdgesBetweenKeywords(userId, newNodeId, keywords) {
       .neq('id', newNodeId)
       .overlaps('tags', keywords)
       .limit(5);
-    if (relatedErr) console.warn('[Mem0Sync] Error finding related nodes:', relatedErr.message);
+    if (relatedErr) log.warn('Error finding related nodes:', relatedErr.message);
 
     if (!relatedNodes || relatedNodes.length === 0) return [];
 
@@ -257,11 +260,11 @@ async function createEdgesBetweenKeywords(userId, newNodeId, keywords) {
     }
 
     if (edges.length > 0) {
-      console.log(`[Mem0Sync] Created ${edges.length} edges for node`);
+      log.info(`Created ${edges.length} edges for node`);
     }
     return edges;
   } catch (error) {
-    console.error('[Mem0Sync] Error creating edges:', error.message);
+    log.error('Error creating edges:', error.message);
     return [];
   }
 }
@@ -277,7 +280,7 @@ async function markFactAsSynced(factId, brainNodeId) {
       .select('metadata')
       .eq('id', factId)
       .single();
-    if (memErr && memErr.code !== 'PGRST116') console.warn('[Mem0Sync] Error fetching memory for sync mark:', memErr.message);
+    if (memErr && memErr.code !== 'PGRST116') log.warn('Error fetching memory for sync mark:', memErr.message);
 
     if (mem) {
       const { error } = await supabaseAdmin
@@ -293,11 +296,11 @@ async function markFactAsSynced(factId, brainNodeId) {
         .eq('id', factId);
 
       if (error) {
-        console.error('[Mem0Sync] Error updating metadata:', error.message);
+        log.error('Error updating metadata:', error.message);
       }
     }
   } catch (error) {
-    console.error('[Mem0Sync] Error marking synced:', error.message);
+    log.error('Error marking synced:', error.message);
   }
 }
 
@@ -318,7 +321,7 @@ async function getUnsyncedFacts(userId, limit = 20) {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('[Mem0Sync] Error fetching unsynced facts:', error.message);
+    log.error('Error fetching unsynced facts:', error.message);
     return [];
   }
 }
@@ -330,8 +333,8 @@ async function getUnsyncedFacts(userId, limit = 20) {
 export async function syncMem0ToBrain(userId, options = {}) {
   const { limit = 20, dryRun = false } = options;
 
-  console.log(`\n[Mem0Sync] Starting sync for user ${userId}`);
-  console.log(`[Mem0Sync] Options: limit=${limit}, dryRun=${dryRun}`);
+  log.info(`\n[Mem0Sync] Starting sync for user ${userId}`);
+  log.info(`Options: limit=${limit}, dryRun=${dryRun}`);
 
   const results = {
     processed: 0,
@@ -345,7 +348,7 @@ export async function syncMem0ToBrain(userId, options = {}) {
   try {
     // Get unsynced facts
     const facts = await getUnsyncedFacts(userId, limit);
-    console.log(`[Mem0Sync] Found ${facts.length} unsynced facts`);
+    log.info(`Found ${facts.length} unsynced facts`);
 
     if (facts.length === 0) {
       return { success: true, message: 'No unsynced facts', results };
@@ -356,16 +359,16 @@ export async function syncMem0ToBrain(userId, options = {}) {
 
       try {
         // 1. Classify the fact
-        console.log(`\n[Mem0Sync] Processing: "${fact.content?.substring(0, 50)}..."`);
+        log.info(`\n[Mem0Sync] Processing: "${fact.content?.substring(0, 50)}..."`);
         const classification = await classifyFact(fact.content);
 
         if (!classification) {
-          console.log('[Mem0Sync] Could not classify, skipping');
+          log.info('Could not classify, skipping');
           results.skipped++;
           continue;
         }
 
-        console.log(`[Mem0Sync] Classified as: ${classification.node_type}/${classification.category} - "${classification.label}"`);
+        log.info(`Classified as: ${classification.node_type}/${classification.category} - "${classification.label}"`);
 
         // 2. Check for similar existing nodes
         const similarNodes = await findSimilarNodes(
@@ -375,7 +378,7 @@ export async function syncMem0ToBrain(userId, options = {}) {
         );
 
         if (dryRun) {
-          console.log(`[Mem0Sync] DRY RUN - would create/reinforce node`);
+          log.info(`DRY RUN - would create/reinforce node`);
           results.created++;
           continue;
         }
@@ -429,7 +432,7 @@ export async function syncMem0ToBrain(userId, options = {}) {
         }
 
       } catch (factError) {
-        console.error(`[Mem0Sync] Error processing fact:`, factError.message);
+        log.error(`Error processing fact:`, factError.message);
         results.errors++;
       }
 
@@ -437,13 +440,13 @@ export async function syncMem0ToBrain(userId, options = {}) {
       await new Promise(r => setTimeout(r, 500));
     }
 
-    console.log(`\n[Mem0Sync] Sync complete!`);
-    console.log(`[Mem0Sync] Results:`, results);
+    log.info(`\n[Mem0Sync] Sync complete!`);
+    log.info(`Results:`, results);
 
     return { success: true, results };
 
   } catch (error) {
-    console.error('[Mem0Sync] Sync failed:', error);
+    log.error('Sync failed:', error);
     return { success: false, error: error.message, results };
   }
 }
@@ -459,7 +462,7 @@ export async function getSyncStatus(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('memory_type', 'fact');
-    if (factsErr) console.warn('[Mem0Sync] Error counting total facts:', factsErr.message);
+    if (factsErr) log.warn('Error counting total facts:', factsErr.message);
 
     // Count synced facts
     const { data: syncedData, error: syncedErr } = await supabaseAdmin
@@ -469,7 +472,7 @@ export async function getSyncStatus(userId) {
       .eq('memory_type', 'fact')
       .not('metadata->synced_to_brain', 'is', null)
       .eq('metadata->synced_to_brain', true);
-    if (syncedErr) console.warn('[Mem0Sync] Error counting synced facts:', syncedErr.message);
+    if (syncedErr) log.warn('Error counting synced facts:', syncedErr.message);
 
     const syncedFacts = syncedData?.length || 0;
 
@@ -479,7 +482,7 @@ export async function getSyncStatus(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('source_type', 'mem0_sync');
-    if (brainNodesErr) console.warn('[Mem0Sync] Error counting brain nodes:', brainNodesErr.message);
+    if (brainNodesErr) log.warn('Error counting brain nodes:', brainNodesErr.message);
 
     return {
       totalFacts,
@@ -489,7 +492,7 @@ export async function getSyncStatus(userId) {
       syncPercentage: totalFacts > 0 ? Math.round((syncedFacts / totalFacts) * 100) : 0
     };
   } catch (error) {
-    console.error('[Mem0Sync] Error getting status:', error.message);
+    log.error('Error getting status:', error.message);
     return null;
   }
 }

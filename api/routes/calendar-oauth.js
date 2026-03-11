@@ -17,6 +17,9 @@ import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
 // Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
 import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefresh.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CalendarOAuth');
 
 const router = express.Router();
 
@@ -137,7 +140,7 @@ router.get('/connect', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const returnUrl = req.query.returnUrl || '/get-started';
 
-    console.log(`[Calendar OAuth] Initiating connect for user: ${userId}`);
+    log.info(`Initiating connect for user: ${userId}`);
 
     // Generate OAuth URL using existing pattern
     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
@@ -168,7 +171,7 @@ router.get('/connect', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Calendar OAuth] Connect error:', error);
+    log.error('Connect error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to initiate calendar OAuth',
@@ -186,13 +189,13 @@ router.get('/events', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`[Calendar Events] Fetching events for user: ${userId}`);
+    log.info(`Fetching events for user: ${userId}`);
 
     // Get valid access token
     const { accessToken, error: tokenError, needsReconnect } = await getValidAccessToken(userId);
 
     if (tokenError) {
-      console.log(`[Calendar Events] Token error: ${tokenError}`);
+      log.info(`Token error: ${tokenError}`);
       return res.status(needsReconnect ? 401 : 404).json({
         success: false,
         error: tokenError,
@@ -211,20 +214,20 @@ router.get('/events', authenticateUser, async (req, res) => {
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);
 
-    console.log(`[Calendar Events] Fetching from ${startOfToday.toISOString()} to ${endOfTomorrow.toISOString()}`);
+    log.info(`Fetching from ${startOfToday.toISOString()} to ${endOfTomorrow.toISOString()}`);
 
     // First, list ALL calendars the user has access to (including imported calendars)
-    console.log(`[Calendar Events] Fetching calendar list...`);
+    log.info(`Fetching calendar list...`);
     const calendarListResponse = await calendar.calendarList.list();
     const calendars = calendarListResponse.data.items || [];
 
-    console.log(`[Calendar Events] Found ${calendars.length} calendars:`, calendars.map(c => c.summary).join(', '));
+    log.info(`Found ${calendars.length} calendars:`, calendars.map(c => c.summary).join(', '));
 
     // Fetch events from ALL calendars
     const allRawEvents = [];
     for (const cal of calendars) {
       try {
-        console.log(`[Calendar Events]   → Fetching events from "${cal.summary}" (${cal.id})`);
+        log.info(`→ Fetching events from "${cal.summary}" (${cal.id})`);
         const eventsResponse = await calendar.events.list({
           calendarId: cal.id,
           timeMin: startOfToday.toISOString(),
@@ -235,7 +238,7 @@ router.get('/events', authenticateUser, async (req, res) => {
         });
 
         const calendarEvents = eventsResponse.data.items || [];
-        console.log(`[Calendar Events]   ✓ Found ${calendarEvents.length} events in "${cal.summary}"`);
+        log.info(`✓ Found ${calendarEvents.length} events in "${cal.summary}"`);
 
         // Tag each event with its source calendar
         calendarEvents.forEach(event => {
@@ -248,14 +251,14 @@ router.get('/events', authenticateUser, async (req, res) => {
 
         allRawEvents.push(...calendarEvents);
       } catch (calError) {
-        console.warn(`[Calendar Events]   ✗ Failed to fetch from "${cal.summary}":`, calError.message);
+        log.warn(`✗ Failed to fetch from "${cal.summary}":`, calError.message);
         // Continue with other calendars even if one fails
       }
     }
 
     const rawEvents = allRawEvents;
 
-    console.log(`[Calendar Events] Found ${rawEvents.length} total events across all calendars`);
+    log.info(`Found ${rawEvents.length} total events across all calendars`);
 
     // Transform events to Dashboard format
     const events = rawEvents.map(event => {
@@ -305,8 +308,8 @@ router.get('/events', authenticateUser, async (req, res) => {
           });
         if (upsertErr) storeErrors++;
       }
-      if (storeErrors > 0) console.warn(`[Calendar Events] Failed to store ${storeErrors}/${events.length} events`);
-      else console.log(`[Calendar Events] Stored ${events.length} events in database`);
+      if (storeErrors > 0) log.warn(`Failed to store ${storeErrors}/${events.length} events`);
+      else log.info(`Stored ${events.length} events in database`);
     }
 
     // Update last sync time in platform_connections
@@ -325,7 +328,7 @@ router.get('/events', authenticateUser, async (req, res) => {
       .eq('platform', 'google_calendar');
 
     if (syncUpdateErr) {
-      console.warn('[Calendar Events] Failed to update last_sync:', syncUpdateErr.message);
+      log.warn('Failed to update last_sync:', syncUpdateErr.message);
     }
 
     res.json({
@@ -342,7 +345,7 @@ router.get('/events', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Calendar Events] Error:', error);
+    log.error('Error:', error);
 
     // Check for specific Google API errors
     if (error.code === 401 || error.message?.includes('invalid_grant')) {
@@ -388,7 +391,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { daysAhead = 7 } = req.body;
 
-    console.log(`[Calendar Sync] Manual sync for user: ${userId}, days ahead: ${daysAhead}`);
+    log.info(`Manual sync for user: ${userId}, days ahead: ${daysAhead}`);
 
     // Get valid access token
     const { accessToken, error: tokenError, needsReconnect } = await getValidAccessToken(userId);
@@ -413,17 +416,17 @@ router.post('/sync', authenticateUser, async (req, res) => {
     const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysAhead);
 
     // First, list ALL calendars the user has access to (including imported calendars)
-    console.log(`[Calendar Sync] Fetching calendar list...`);
+    log.info(`Fetching calendar list...`);
     const calendarListResponse = await calendar.calendarList.list();
     const calendars = calendarListResponse.data.items || [];
 
-    console.log(`[Calendar Sync] Found ${calendars.length} calendars:`, calendars.map(c => c.summary).join(', '));
+    log.info(`Found ${calendars.length} calendars:`, calendars.map(c => c.summary).join(', '));
 
     // Fetch events from ALL calendars
     const allRawEvents = [];
     for (const cal of calendars) {
       try {
-        console.log(`[Calendar Sync]   → Fetching events from "${cal.summary}" (${cal.id})`);
+        log.info(`→ Fetching events from "${cal.summary}" (${cal.id})`);
         const eventsResponse = await calendar.events.list({
           calendarId: cal.id,
           timeMin: startOfToday.toISOString(),
@@ -434,7 +437,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
         });
 
         const calendarEvents = eventsResponse.data.items || [];
-        console.log(`[Calendar Sync]   ✓ Found ${calendarEvents.length} events in "${cal.summary}"`);
+        log.info(`✓ Found ${calendarEvents.length} events in "${cal.summary}"`);
 
         // Tag each event with its source calendar
         calendarEvents.forEach(event => {
@@ -447,14 +450,14 @@ router.post('/sync', authenticateUser, async (req, res) => {
 
         allRawEvents.push(...calendarEvents);
       } catch (calError) {
-        console.warn(`[Calendar Sync]   ✗ Failed to fetch from "${cal.summary}":`, calError.message);
+        log.warn(`✗ Failed to fetch from "${cal.summary}":`, calError.message);
         // Continue with other calendars even if one fails
       }
     }
 
     const rawEvents = allRawEvents;
 
-    console.log(`[Calendar Sync] Synced ${rawEvents.length} total events across all calendars`);
+    log.info(`Synced ${rawEvents.length} total events across all calendars`);
 
     // Transform and store events
     const events = [];
@@ -500,7 +503,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
         }, {
           onConflict: 'user_id,google_event_id'
         });
-      if (eventUpsertErr) console.warn(`[Calendar Sync] Failed to store event ${transformedEvent.id}:`, eventUpsertErr.message);
+      if (eventUpsertErr) log.warn(`Failed to store event ${transformedEvent.id}:`, eventUpsertErr.message);
     }
 
     // Update platform connection
@@ -520,7 +523,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
       .eq('platform', 'google_calendar');
 
     if (manualSyncErr) {
-      console.warn('[Calendar Sync] Failed to update connection after sync:', manualSyncErr.message);
+      log.warn('Failed to update connection after sync:', manualSyncErr.message);
     }
 
     // AUTO-INFER life events from calendar (vacation, conferences, etc.)
@@ -528,10 +531,10 @@ router.post('/sync', authenticateUser, async (req, res) => {
     try {
       inferredLifeEvents = await lifeEventInferenceService.inferAndStoreLifeEvents(userId, events);
       if (inferredLifeEvents.length > 0) {
-        console.log(`[Calendar Sync] Auto-stored ${inferredLifeEvents.length} life events for user ${userId}`);
+        log.info(`Auto-stored ${inferredLifeEvents.length} life events for user ${userId}`);
       }
     } catch (inferenceError) {
-      console.warn('[Calendar Sync] Life event inference failed:', inferenceError.message);
+      log.warn('Life event inference failed:', inferenceError.message);
       // Non-blocking - sync still succeeds even if inference fails
     }
 
@@ -546,7 +549,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Calendar Sync] Error:', error);
+    log.error('Error:', error);
 
     // Update sync status to failed
     const { error: failStatusErr } = await supabaseAdmin
@@ -564,7 +567,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
       .eq('platform', 'google_calendar');
 
     if (failStatusErr) {
-      console.warn('[Calendar Sync] Failed to mark sync as failed:', failStatusErr.message);
+      log.warn('Failed to mark sync as failed:', failStatusErr.message);
     }
 
     res.status(500).json({
@@ -619,7 +622,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Calendar Status] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get calendar status',
@@ -636,7 +639,7 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`[Calendar Disconnect] Disconnecting for user: ${userId}`);
+    log.info(`Disconnecting for user: ${userId}`);
 
     // Update connection status
     const { error: disconnectErr } = await supabaseAdmin
@@ -646,7 +649,7 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
       .eq('platform', 'google_calendar');
 
     if (disconnectErr) {
-      console.error('[Calendar Disconnect] Failed to update connection status:', disconnectErr.message);
+      log.error('Failed to update connection status:', disconnectErr.message);
       return res.status(500).json({ success: false, error: 'Failed to disconnect calendar' });
     }
 
@@ -658,8 +661,8 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
       .from('calendar_events')
       .delete()
       .eq('user_id', userId);
-    if (eventsDeleteErr) console.warn(`[Calendar Disconnect] Failed to delete events:`, eventsDeleteErr.message);
-    else console.log(`[Calendar Disconnect] Deleted cached events for user: ${userId}`);
+    if (eventsDeleteErr) log.warn(`Failed to delete events:`, eventsDeleteErr.message);
+    else log.info(`Deleted cached events for user: ${userId}`);
 
     res.json({
       success: true,
@@ -667,7 +670,7 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Calendar Disconnect] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect calendar',

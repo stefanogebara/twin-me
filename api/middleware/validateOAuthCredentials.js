@@ -4,6 +4,10 @@
  * Runs on server startup to catch configuration issues early
  */
 
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OAuthValidation');
+
 /**
  * Validate OAuth credentials for all configured platforms
  * @returns {Object} Validation results with warnings and errors
@@ -55,7 +59,7 @@ export function validateOAuthCredentials() {
     }
   };
 
-  console.log('\n🔐 Validating OAuth Credentials...\n');
+  log.info('Validating OAuth credentials');
 
   for (const [platform, config] of Object.entries(platformCredentials)) {
     const missingRequired = [];
@@ -85,24 +89,23 @@ export function validateOAuthCredentials() {
         platform: config.name,
         credentials: missingRequired
       });
-      console.log(`❌ ${config.name}: Missing required credentials`);
-      missingRequired.forEach(cred => console.log(`   - ${cred}`));
+      log.warn('Missing required credentials', { platform: config.name, missing: missingRequired });
     } else {
       results.valid.push(config.name);
-      console.log(`✅ ${config.name}: All required credentials present`);
+      log.info('All required credentials present', { platform: config.name });
 
       if (missingOptional.length > 0) {
         results.warnings.push({
           platform: config.name,
           credentials: missingOptional
         });
-        console.log(`   ⚠️  Optional credentials missing: ${missingOptional.join(', ')}`);
+        log.warn('Optional credentials missing', { platform: config.name, missing: missingOptional });
       }
     }
   }
 
   // Check core security credentials
-  console.log('\n🔒 Validating Security Credentials...\n');
+  log.info('Validating security credentials');
 
   const securityCredentials = [
     'ENCRYPTION_KEY',
@@ -113,14 +116,14 @@ export function validateOAuthCredentials() {
   for (const credential of securityCredentials) {
     if (!process.env[credential] || process.env[credential].trim() === '') {
       results.errors.push(`Missing ${credential}`);
-      console.log(`❌ ${credential}: Missing or empty`);
+      log.error('Security credential missing or empty', { credential });
     } else {
-      console.log(`✅ ${credential}: Present`);
+      log.info('Security credential present', { credential });
     }
   }
 
   // Check redirect URI configuration
-  console.log('\n🌐 Validating Redirect URI Configuration...\n');
+  log.info('Validating redirect URI configuration');
 
   const appUrl = process.env.VITE_APP_URL || process.env.APP_URL;
   if (!appUrl) {
@@ -128,25 +131,21 @@ export function validateOAuthCredentials() {
       platform: 'General',
       credentials: ['VITE_APP_URL or APP_URL not set - using default http://localhost:8086']
     });
-    console.log('⚠️  VITE_APP_URL or APP_URL not set - using default http://localhost:8086');
+    log.warn('VITE_APP_URL or APP_URL not set - using default http://localhost:8086');
   } else {
-    console.log(`✅ App URL: ${appUrl}`);
-    console.log(`   OAuth callbacks will use: ${appUrl}/oauth/callback`);
+    log.info('App URL configured', { appUrl, callbackUrl: `${appUrl}/oauth/callback` });
   }
 
   // Summary
-  console.log('\n📊 Validation Summary:\n');
-  console.log(`✅ Valid platforms: ${results.valid.length}`);
-  console.log(`⚠️  Warnings: ${results.warnings.length}`);
-  console.log(`❌ Missing credentials: ${results.missing.length}`);
-  console.log(`❌ Errors: ${results.errors.length}\n`);
+  log.info('Validation summary', {
+    validPlatforms: results.valid.length,
+    warnings: results.warnings.length,
+    missingCredentials: results.missing.length,
+    errors: results.errors.length
+  });
 
   if (results.missing.length > 0) {
-    console.log('💡 To fix missing credentials:');
-    console.log('   1. Visit the platform\'s developer console');
-    console.log('   2. Create an OAuth application');
-    console.log('   3. Add credentials to your .env file');
-    console.log('   4. Restart the server\n');
+    log.info('To fix missing credentials: visit platform developer console, create OAuth app, add to .env, restart server');
   }
 
   return results;

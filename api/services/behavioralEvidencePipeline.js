@@ -24,6 +24,9 @@ import {
   formatEvidenceResponse
 } from './evidenceGeneratorService.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('BehavioralEvidence');
 
 class BehavioralEvidencePipeline {
   constructor() {
@@ -46,12 +49,12 @@ class BehavioralEvidencePipeline {
    * @returns {Object} Generated evidence and confidence scores
    */
   async runPipeline(userId, platforms = null) {
-    console.log(`🔬 [Evidence Pipeline] Starting for user ${userId}`);
+    log.info(`Starting for user ${userId}`);
 
     try {
       // 1. Determine which platforms to process
       const connectedPlatforms = platforms || await this.getConnectedPlatforms(userId);
-      console.log(`🔬 [Evidence Pipeline] Processing platforms: ${connectedPlatforms.join(', ')}`);
+      log.info(`Processing platforms: ${connectedPlatforms.join(', ')}`);
 
       // 2. Extract features from each platform
       const platformFeatures = {};
@@ -60,12 +63,12 @@ class BehavioralEvidencePipeline {
       for (const platform of connectedPlatforms) {
         const extractor = this.extractors[platform];
         if (!extractor) {
-          console.log(`⚠️ [Evidence Pipeline] No extractor for platform: ${platform}`);
+          log.info(`No extractor for platform: ${platform}`);
           continue;
         }
 
         try {
-          console.log(`🔬 [Evidence Pipeline] Extracting ${platform} features...`);
+          log.info(`Extracting ${platform} features...`);
           const features = await extractor.extractFeatures(userId);
 
           if (features && features.length > 0) {
@@ -75,12 +78,12 @@ class BehavioralEvidencePipeline {
               days: 90, // Default lookback
               events: features.length
             };
-            console.log(`✅ [Evidence Pipeline] Extracted ${features.length} features from ${platform}`);
+            log.info(`Extracted ${features.length} features from ${platform}`);
           } else {
-            console.log(`⚠️ [Evidence Pipeline] No features extracted from ${platform}`);
+            log.info(`No features extracted from ${platform}`);
           }
         } catch (error) {
-          console.error(`❌ [Evidence Pipeline] Error extracting ${platform} features:`, error.message);
+          log.error(`Error extracting ${platform} features:`, error.message);
         }
       }
 
@@ -91,21 +94,21 @@ class BehavioralEvidencePipeline {
       );
 
       if (totalFeatures === 0) {
-        console.log(`⚠️ [Evidence Pipeline] No features extracted from any platform`);
+        log.info(`No features extracted from any platform`);
         return {
           success: false,
           message: 'No behavioral features could be extracted. Ensure platforms have synced data.'
         };
       }
 
-      console.log(`🔬 [Evidence Pipeline] Total features extracted: ${totalFeatures}`);
+      log.info(`Total features extracted: ${totalFeatures}`);
 
       // 4. Generate evidence from features
       const evidence = generateAllEvidence(platformFeatures);
 
       // Count evidence items
       const evidenceCount = Object.values(evidence).reduce((sum, arr) => sum + arr.length, 0);
-      console.log(`🔬 [Evidence Pipeline] Generated ${evidenceCount} evidence items`);
+      log.info(`Generated ${evidenceCount} evidence items`);
 
       // 5. Calculate confidence scores
       const confidence = calculateConfidenceScores(evidence, dataSources);
@@ -113,9 +116,9 @@ class BehavioralEvidencePipeline {
       // 6. Store evidence in database
       try {
         await storeEvidence(userId, evidence);
-        console.log(`✅ [Evidence Pipeline] Evidence stored in database`);
+        log.info(`Evidence stored in database`);
       } catch (storeError) {
-        console.warn(`⚠️ [Evidence Pipeline] Could not store evidence:`, storeError.message);
+        log.warn(`Could not store evidence:`, storeError.message);
       }
 
       // 7. Update personality scores based on behavioral evidence
@@ -133,7 +136,7 @@ class BehavioralEvidencePipeline {
       };
 
     } catch (error) {
-      console.error(`❌ [Evidence Pipeline] Error:`, error);
+      log.error(`Error:`, error);
       return {
         success: false,
         error: error.message
@@ -150,7 +153,7 @@ class BehavioralEvidencePipeline {
       .select('platform')
       .eq('user_id', userId)
       .in('status', ['connected', 'token_refreshed', 'pending']);
-    if (connErr) console.warn('[BehavioralEvidencePipeline] Failed to fetch connected platforms:', connErr.message);
+    if (connErr) log.warn('Failed to fetch connected platforms:', connErr.message);
 
     if (!connections || connections.length === 0) {
       return [];
@@ -184,13 +187,13 @@ class BehavioralEvidencePipeline {
         // Store raw values for template interpolation
         if (f.metadata?.raw_value || f.evidence?.raw_value) {
           obj._rawValues[featureName] = f.metadata?.raw_value || f.evidence?.raw_value;
-          console.log(`🔬 [Evidence Pipeline] Found raw_value for ${featureName}:`, obj._rawValues[featureName]);
+          log.info(`Found raw_value for ${featureName}:`, obj._rawValues[featureName]);
         }
       }
     }
 
-    console.log(`[Evidence Pipeline] Converted ${Object.keys(obj).filter(k => !k.startsWith('_')).length} features to object format`);
-    console.log(`🔬 [Evidence Pipeline] _rawValues keys:`, Object.keys(obj._rawValues));
+    log.info(`Converted ${Object.keys(obj).filter(k => !k.startsWith('_')).length} features to object format`);
+    log.info(`_rawValues keys:`, Object.keys(obj._rawValues));
     return obj;
   }
 
@@ -260,13 +263,13 @@ class BehavioralEvidencePipeline {
         });
 
       if (error) {
-        console.warn(`⚠️ [Evidence Pipeline] Could not update personality_scores:`, error.message);
+        log.warn(`Could not update personality_scores:`, error.message);
       } else {
-        console.log(`✅ [Evidence Pipeline] Updated behavioral personality scores:`, scores);
+        log.info(`Updated behavioral personality scores:`, scores);
       }
 
     } catch (error) {
-      console.error(`❌ [Evidence Pipeline] Error updating personality:`, error);
+      log.error(`Error updating personality:`, error);
     }
   }
 

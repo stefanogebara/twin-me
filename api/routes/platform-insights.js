@@ -18,6 +18,9 @@ import platformReflectionService from '../services/platformReflectionService.js'
 import { supabaseAdmin } from '../services/database.js';
 import { seedPatternFromInsight } from '../services/twinPatternService.js';
 import { get as redisGet, set as redisSet } from '../services/redisClient.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PlatformInsights');
 
 const router = express.Router();
 
@@ -53,13 +56,13 @@ const PLATFORM_DB_NAMES = {
 router.get('/all/summary', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
-  console.log(`[Insights API] GET /all/summary for user ${userId}`);
+  log.info('GET /all/summary', { userId });
 
   try {
     // 1. Check Redis cache first — instant response
     const cached = await redisGet(SUMMARY_CACHE_KEY(userId));
     if (cached) {
-      console.log(`[Insights API] Cache HIT for summary, user ${userId}`);
+      log.info('Cache HIT for summary', { userId });
       return res.json({
         success: true,
         summary: cached,
@@ -68,7 +71,7 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
     }
 
     // 2. Cache miss — return "generating" immediately, don't block
-    console.log(`[Insights API] Cache MISS for summary, user ${userId} — generating in background`);
+    log.info('Cache MISS for summary - generating in background', { userId });
     res.json({
       success: true,
       summary: {
@@ -82,10 +85,10 @@ router.get('/all/summary', authenticateUser, async (req, res) => {
 
     // 3. Fire background generation (non-blocking — response already sent)
     generateAndCacheSummary(userId).catch(err =>
-      console.error(`[Insights API] Background summary generation failed for ${userId}:`, err.message)
+      log.error('Background summary generation failed', { userId, error: err })
     );
   } catch (error) {
-    console.error(`[Insights API] Summary error:`, error);
+    log.error('Summary error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to get insights summary',
@@ -118,7 +121,7 @@ export async function generateAndCacheSummary(userId) {
   const hasData = Object.values(summary).some(s => s.connected);
   const ttl = hasData ? SUMMARY_CACHE_TTL : 300; // 4h for real data, 5min for empty
   await redisSet(SUMMARY_CACHE_KEY(userId), summary, ttl);
-  console.log(`[Insights API] Cached summary for user ${userId} (TTL: ${ttl}s, hasData: ${hasData})`);
+  log.info('Cached summary', { userId, ttl, hasData });
 
   return summary;
 }
@@ -139,7 +142,7 @@ router.get('/proactive/engagement-stats', authenticateUser, async (req, res) => 
     .gte('created_at', since);
 
   if (error) {
-    console.error('[Insights] engagement-stats error:', error.message);
+    log.error('engagement-stats error', { error });
     return res.status(500).json({ success: false, error: error.message });
   }
 
@@ -189,7 +192,7 @@ router.get('/proactive', authenticateUser, async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-      console.error('[Insights] GET /proactive error:', error.message);
+      log.error('GET /proactive error', { error });
       return res.status(500).json({ success: false, error: error.message });
     }
 
@@ -203,7 +206,7 @@ router.get('/proactive', authenticateUser, async (req, res) => {
 
     res.json({ success: true, insights: sorted });
   } catch (error) {
-    console.error('[Insights] GET /proactive error:', error);
+    log.error('GET /proactive error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch proactive insights' });
   }
 });
@@ -216,7 +219,7 @@ router.get('/:platform', authenticateUser, async (req, res) => {
   const { platform } = req.params;
   const userId = req.user.id;
 
-  console.log(`🪞 [Insights API] GET /${platform} for user ${userId}`);
+  log.info('GET platform insights', { platform, userId });
 
   // Validate platform
   if (!VALID_PLATFORMS.includes(platform)) {
@@ -237,7 +240,7 @@ router.get('/:platform', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .eq('platform', dbPlatformName)
       .single();
-    if (connErr && connErr.code !== 'PGRST116') console.error('[PlatformInsights] Connection fetch error:', connErr.message);
+    if (connErr && connErr.code !== 'PGRST116') log.error('Connection fetch error', { error: connErr });
 
     if (!connection) {
       return res.json({
@@ -262,7 +265,7 @@ router.get('/:platform', authenticateUser, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error(`[Insights API] Error:`, error);
+    log.error('Platform insights error', { platform, error });
     const isTimeout = error.message?.includes('timed out');
     res.json({
       success: true,
@@ -283,7 +286,7 @@ router.post('/:platform/refresh', authenticateUser, async (req, res) => {
   const { platform } = req.params;
   const userId = req.user.id;
 
-  console.log(`🪞 [Insights API] POST /${platform}/refresh for user ${userId}`);
+  log.info('POST platform refresh', { platform, userId });
 
   // Validate platform
   if (!VALID_PLATFORMS.includes(platform)) {
@@ -302,7 +305,7 @@ router.post('/:platform/refresh', authenticateUser, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error(`❌ [Insights API] Refresh error:`, error);
+    log.error('Refresh error', { platform, error });
     const isTimeout = error.message?.includes('timed out');
     res.status(isTimeout ? 504 : 500).json({
       success: false,
@@ -328,7 +331,7 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
     .eq('user_id', userId); // security: user can only engage their own insights
 
   if (error) {
-    console.error('[Insights] engage error:', error.message);
+    log.error('Engage error', { id, error });
     return res.status(500).json({ success: false, error: error.message });
   }
 
@@ -345,7 +348,7 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
       if (!data?.content) return;
       const patternName = data.category || 'engaged_insight';
       seedPatternFromInsight(userId, patternName, data.content)
-        .catch(err => console.warn('[Insights] Pattern seed failed:', err.message));
+        .catch(err => log.warn('Pattern seed failed', { error: err }));
     })
     .catch(() => {});
 });

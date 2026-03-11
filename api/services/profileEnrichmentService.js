@@ -102,6 +102,9 @@ import {
 
 // Identity verification
 import { computeIdentityConfidence } from './enrichment/identityVerifier.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ProfileEnrichment');
 
 
 class ProfileEnrichmentService {
@@ -378,12 +381,12 @@ class ProfileEnrichmentService {
     if (!name || !name.includes(' ')) {
       const inferred = inferNameFromEmail(email);
       if (inferred.includes(' ')) {
-        console.log(`[ProfileEnrichment] Inferred full name from email pattern`);
+        log.info(`Inferred full name from email pattern`);
         name = inferred;
       }
     }
-    console.log(`[ProfileEnrichment] Starting enrichment`);
-    console.log(`[ProfileEnrichment] API keys loaded:`, {
+    log.info(`Starting enrichment`);
+    log.info(`API keys loaded:`, {
       scrapin: !!process.env.SCRAPIN_API_KEY,
       pdl: !!process.env.PDL_API_KEY,
       openrouter: !!process.env.OPENROUTER_API_KEY
@@ -397,7 +400,7 @@ class ProfileEnrichmentService {
     // =================================================================
     // STEP 0: INSTANT FREE LOOKUPS (Gravatar + GitHub) - < 1 second
     // =================================================================
-    console.log('[ProfileEnrichment] Step 0: Running free instant lookups (Gravatar + GitHub + Social probing)...');
+    log.info('Step 0: Running free instant lookups (Gravatar + GitHub + Social probing)...');
     const quickResult = await quickEnrich(email, name);
     if (quickResult.success && quickResult.data) {
       const q = quickResult.data;
@@ -432,11 +435,11 @@ class ProfileEnrichmentService {
     // =================================================================
     // STEP 1: Brave Search -> Gemini/Sonar fallback
     // =================================================================
-    console.log('[ProfileEnrichment] Step 1: Running comprehensive search (Brave -> Gemini fallback)...');
+    log.info('Step 1: Running comprehensive search (Brave -> Gemini fallback)...');
     const comprehensiveData = await comprehensivePersonSearch(name, email, {});
     if (comprehensiveData) {
       const isBraveResult = comprehensiveData._source === 'brave';
-      console.log(`[ProfileEnrichment] ${isBraveResult ? 'Brave Search' : 'Gemini'} found comprehensive data!`);
+      log.info(`${isBraveResult ? 'Brave Search' : 'Gemini'} found comprehensive data!`);
 
       if (isBraveResult) {
         // Verified sources (Gravatar/GitHub) take priority for identity fields.
@@ -500,10 +503,10 @@ class ProfileEnrichmentService {
     // STEP 2: PDL - Additional database lookup (if configured)
     // =================================================================
     if (pdlKey && !enrichedData.discovered_company) {
-      console.log('[ProfileEnrichment] Step 2: Trying People Data Labs...');
+      log.info('Step 2: Trying People Data Labs...');
       const pdlResult = await callPeopleDataLabsAPI(email, name, pdlKey);
       if (pdlResult.success && pdlResult.data) {
-        console.log('[ProfileEnrichment] PDL found profile!');
+        log.info('PDL found profile!');
         const pdlData = convertPDLToEnrichment(pdlResult.data);
         enrichedData = {
           ...enrichedData,
@@ -518,7 +521,7 @@ class ProfileEnrichmentService {
     // =================================================================
     // STEP 3: Search for additional social profiles
     // =================================================================
-    console.log('[ProfileEnrichment] Step 3: Searching for additional social profiles...');
+    log.info('Step 3: Searching for additional social profiles...');
     const webSearchResult = await searchWebForSocialProfiles(email, name, enrichedData);
 
     // Combine all enrichment sources
@@ -527,7 +530,7 @@ class ProfileEnrichmentService {
     // =================================================================
     // STEP 4: Generate narrative summary
     // =================================================================
-    console.log('[ProfileEnrichment] Step 4: Generating narrative summary...');
+    log.info('Step 4: Generating narrative summary...');
     const detailedNarrative = await generateDetailedNarrative(combinedData, name);
     const summary = detailedNarrative || buildFactualSummary(combinedData);
 
@@ -540,7 +543,7 @@ class ProfileEnrichmentService {
       email,
       searchName: name,
     });
-    console.log(`[ProfileEnrichment] Identity confidence: ${confidenceResult.score} | signals: ${JSON.stringify(confidenceResult.signals)} | flags: [${confidenceResult.flags.join(', ')}]`);
+    log.info(`Identity confidence: ${confidenceResult.score} | signals: ${JSON.stringify(confidenceResult.signals)} | flags: [${confidenceResult.flags.join(', ')}]`);
 
     return {
       success: true,

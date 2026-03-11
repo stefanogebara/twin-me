@@ -12,6 +12,9 @@ import express from 'express';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../services/database.js';
 import { extractPlatformData } from '../services/nangoService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('NangoWebhooks');
 
 const router = express.Router();
 
@@ -23,12 +26,12 @@ function verifyWebhookSignature(req) {
   const webhookSecret = process.env.NANGO_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.warn('[Nango Webhooks] NANGO_WEBHOOK_SECRET not set, rejecting webhook');
+    log.warn('NANGO_WEBHOOK_SECRET not set, rejecting webhook');
     return false;
   }
 
   if (!signature) {
-    console.warn('[Nango Webhooks] No signature provided');
+    log.warn('No signature provided');
     return false;
   }
 
@@ -53,13 +56,13 @@ router.post('/', express.json(), async (req, res) => {
   try {
     // Verify signature
     if (!verifyWebhookSignature(req)) {
-      console.error('[Nango Webhooks] Invalid signature');
+      log.error('Invalid signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
     const { type, operation, connectionId, provider, providerConfigKey, success, endUser, error } = req.body;
 
-    console.log(`[Nango Webhooks] Received: ${type}/${operation} for ${provider} (user: ${endUser?.endUserId})`);
+    log.info(`Received: ${type}/${operation} for ${provider} (user: ${endUser?.endUserId})`);
 
     // Handle different webhook types
     switch (type) {
@@ -70,12 +73,12 @@ router.post('/', express.json(), async (req, res) => {
         await handleSyncWebhook(req.body);
         break;
       default:
-        console.log(`[Nango Webhooks] Unknown webhook type: ${type}`);
+        log.info(`Unknown webhook type: ${type}`);
     }
 
     res.json({ received: true });
   } catch (error) {
-    console.error('[Nango Webhooks] Error processing webhook:', error);
+    log.error('Error processing webhook:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
@@ -88,12 +91,12 @@ async function handleAuthWebhook(data) {
 
   const userId = endUser?.endUserId;
   if (!userId) {
-    console.error('[Nango Webhooks] No user ID in auth webhook');
+    log.error('No user ID in auth webhook');
     return;
   }
 
   if (operation === 'creation' && success) {
-    console.log(`[Nango Webhooks] New connection: ${provider} for user ${userId}`);
+    log.info(`New connection: ${provider} for user ${userId}`);
 
     // Record the connection in our database
     const { error: upsertErr } = await supabaseAdmin
@@ -114,14 +117,14 @@ async function handleAuthWebhook(data) {
         onConflict: 'user_id,platform'
       });
     if (upsertErr) {
-      console.error(`[Nango Webhooks] Failed to record connection for ${provider}:`, upsertErr.message);
+      log.error(`Failed to record connection for ${provider}:`, upsertErr.message);
     }
 
     // Trigger initial data extraction in background
     extractPlatformData(userId, providerConfigKey)
       .then(result => {
         if (result.success) {
-          console.log(`[Nango Webhooks] Initial extraction complete for ${providerConfigKey}`);
+          log.info(`Initial extraction complete for ${providerConfigKey}`);
 
           // Store extracted data (fire-and-forget — don't block webhook response)
           supabaseAdmin
@@ -133,17 +136,17 @@ async function handleAuthWebhook(data) {
               extracted_at: new Date().toISOString()
             })
             .then(({ error: insertErr }) => {
-              if (insertErr) console.error(`[Nango Webhooks] Failed to store extracted data:`, insertErr.message);
-              else console.log(`[Nango Webhooks] Stored extracted data for ${providerConfigKey}`);
+              if (insertErr) log.error(`Failed to store extracted data:`, insertErr.message);
+              else log.info(`Stored extracted data for ${providerConfigKey}`);
             });
         }
       })
       .catch(err => {
-        console.error(`[Nango Webhooks] Initial extraction failed:`, err.message);
+        log.error(`Initial extraction failed:`, err.message);
       });
 
   } else if (operation === 'refresh' && !success) {
-    console.error(`[Nango Webhooks] Token refresh failed for ${provider}: ${error?.description}`);
+    log.error(`Token refresh failed for ${provider}: ${error?.description}`);
 
     // Update connection status
     const { error: statusErr } = await supabaseAdmin
@@ -156,7 +159,7 @@ async function handleAuthWebhook(data) {
       .eq('user_id', userId)
       .eq('platform', providerConfigKey);
     if (statusErr) {
-      console.error(`[Nango Webhooks] Failed to update error status for ${provider}:`, statusErr.message);
+      log.error(`Failed to update error status for ${provider}:`, statusErr.message);
     }
 
     // Create notification for user
@@ -172,7 +175,7 @@ async function handleAuthWebhook(data) {
         created_at: new Date().toISOString()
       });
     if (notifErr) {
-      console.error(`[Nango Webhooks] Failed to create notification for ${provider}:`, notifErr.message);
+      log.error(`Failed to create notification for ${provider}:`, notifErr.message);
     }
   }
 }
@@ -186,7 +189,7 @@ async function handleSyncWebhook(data) {
   const userId = endUser?.endUserId;
   if (!userId) return;
 
-  console.log(`[Nango Webhooks] Sync ${success ? 'completed' : 'failed'}: ${providerConfigKey} (${modelsCount} models)`);
+  log.info(`Sync ${success ? 'completed' : 'failed'}: ${providerConfigKey} (${modelsCount} models)`);
 
   if (success) {
     // Update last sync timestamp
@@ -198,7 +201,7 @@ async function handleSyncWebhook(data) {
       .eq('user_id', userId)
       .eq('platform', providerConfigKey);
     if (syncErr) {
-      console.error(`[Nango Webhooks] Failed to update last_sync_at for ${providerConfigKey}:`, syncErr.message);
+      log.error(`Failed to update last_sync_at for ${providerConfigKey}:`, syncErr.message);
     }
   }
 }

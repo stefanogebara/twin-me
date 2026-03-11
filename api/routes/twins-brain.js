@@ -7,6 +7,9 @@
 
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TwinsBrainRoute');
 import {
   twinsBrainService,
   NODE_TYPES,
@@ -49,7 +52,7 @@ router.get('/nodes', authenticateToken, async (req, res) => {
       nodes
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting nodes:', error);
+    log.error('Error getting nodes:', error);
     res.status(500).json({ error: 'Failed to get brain nodes', message: error.message });
   }
 });
@@ -74,7 +77,7 @@ router.get('/nodes/:nodeId', authenticateToken, async (req, res) => {
       neighbors
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting node:', error);
+    log.error('Error getting node:', error);
     res.status(500).json({ error: 'Failed to get node', message: error.message });
   }
 });
@@ -119,7 +122,7 @@ router.post('/nodes', authenticateToken, async (req, res) => {
       node
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error adding node:', error);
+    log.error('Error adding node:', error);
     res.status(500).json({ error: 'Failed to add node', message: error.message });
   }
 });
@@ -137,7 +140,7 @@ router.delete('/nodes/:nodeId', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Node deleted' });
   } catch (error) {
-    console.error('[Twins Brain API] Error deleting node:', error);
+    log.error('Error deleting node:', error);
     res.status(500).json({ error: 'Failed to delete node', message: error.message });
   }
 });
@@ -165,7 +168,7 @@ router.post('/nodes/search', authenticateToken, async (req, res) => {
       nodes
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error searching nodes:', error);
+    log.error('Error searching nodes:', error);
     res.status(500).json({ error: 'Failed to search nodes', message: error.message });
   }
 });
@@ -189,7 +192,7 @@ router.get('/nodes/stale', authenticateToken, async (req, res) => {
       staleNodes
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting stale nodes:', error);
+    log.error('Error getting stale nodes:', error);
     res.status(500).json({ error: 'Failed to get stale nodes', message: error.message });
   }
 });
@@ -222,7 +225,7 @@ router.get('/nodes/temporal', authenticateToken, async (req, res) => {
       nodes
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting temporal nodes:', error);
+    log.error('Error getting temporal nodes:', error);
     res.status(500).json({ error: 'Failed to get temporal data', message: error.message });
   }
 });
@@ -256,7 +259,7 @@ router.post('/nodes/:nodeId/reinforce', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error reinforcing node:', error);
+    log.error('Error reinforcing node:', error);
     res.status(500).json({ error: 'Failed to reinforce node', message: error.message });
   }
 });
@@ -285,7 +288,7 @@ router.post('/reinforce/platform', authenticateToken, async (req, res) => {
       stats
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error batch reinforcing:', error);
+    log.error('Error batch reinforcing:', error);
     res.status(500).json({ error: 'Failed to batch reinforce', message: error.message });
   }
 });
@@ -351,7 +354,7 @@ router.get('/knowledge-gaps', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error identifying knowledge gaps:', error);
+    log.error('Error identifying knowledge gaps:', error);
     res.status(500).json({ error: 'Failed to identify knowledge gaps', message: error.message });
   }
 });
@@ -378,7 +381,7 @@ router.get('/learning-suggestions', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error generating suggestions:', error);
+    log.error('Error generating suggestions:', error);
     res.status(500).json({ error: 'Failed to generate suggestions', message: error.message });
   }
 });
@@ -424,7 +427,7 @@ router.post('/edges', authenticateToken, async (req, res) => {
       edge
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error creating edge:', error);
+    log.error('Error creating edge:', error);
     res.status(500).json({ error: 'Failed to create edge', message: error.message });
   }
 });
@@ -447,7 +450,7 @@ router.get('/nodes/:nodeId/neighbors', authenticateToken, async (req, res) => {
       neighbors
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting neighbors:', error);
+    log.error('Error getting neighbors:', error);
     res.status(500).json({ error: 'Failed to get neighbors', message: error.message });
   }
 });
@@ -477,7 +480,7 @@ router.get('/graph', authenticateToken, async (req, res) => {
       ...graph
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting graph:', error);
+    log.error('Error getting graph:', error);
     res.status(500).json({ error: 'Failed to get brain graph', message: error.message });
   }
 });
@@ -496,7 +499,7 @@ router.get('/health', authenticateToken, async (req, res) => {
       health
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting health:', error);
+    log.error('Error getting health:', error);
     res.status(500).json({ error: 'Failed to get brain health', message: error.message });
   }
 });
@@ -515,7 +518,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
       ...summary
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting summary:', error);
+    log.error('Error getting summary:', error);
     res.status(500).json({ error: 'Failed to get brain summary', message: error.message });
   }
 });
@@ -550,7 +553,7 @@ router.post('/snapshots', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error creating snapshot:', error);
+    log.error('Error creating snapshot:', error);
     res.status(500).json({ error: 'Failed to create snapshot', message: error.message });
   }
 });
@@ -575,7 +578,7 @@ router.get('/snapshots', authenticateToken, async (req, res) => {
       snapshots
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting snapshots:', error);
+    log.error('Error getting snapshots:', error);
     res.status(500).json({ error: 'Failed to get snapshots', message: error.message });
   }
 });
@@ -596,7 +599,7 @@ router.get('/snapshots/:snapshotId', authenticateToken, async (req, res) => {
       snapshot
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting snapshot:', error);
+    log.error('Error getting snapshot:', error);
     res.status(500).json({ error: 'Failed to get snapshot', message: error.message });
   }
 });
@@ -629,7 +632,7 @@ router.post('/process/behavioral-pattern', authenticateToken, async (req, res) =
       node
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error processing pattern:', error);
+    log.error('Error processing pattern:', error);
     res.status(500).json({ error: 'Failed to process pattern', message: error.message });
   }
 });
@@ -658,7 +661,7 @@ router.post('/process/moltbot-event', authenticateToken, async (req, res) => {
       node
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error processing MoltBot event:', error);
+    log.error('Error processing MoltBot event:', error);
     res.status(500).json({ error: 'Failed to process event', message: error.message });
   }
 });
@@ -688,7 +691,7 @@ router.post('/process/claude-conversation', authenticateToken, async (req, res) 
       nodes
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error processing conversation:', error);
+    log.error('Error processing conversation:', error);
     res.status(500).json({ error: 'Failed to process conversation', message: error.message });
   }
 });
@@ -866,7 +869,7 @@ router.get('/visualization', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Twins Brain API] Visualization error:', error);
+    log.error('Visualization error:', error);
     res.status(500).json({ error: 'Failed to get visualization data', message: error.message });
   }
 });
@@ -941,7 +944,7 @@ router.post('/edges/causal', authenticateToken, async (req, res) => {
       edge
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error creating causal edge:', error);
+    log.error('Error creating causal edge:', error);
     res.status(500).json({ error: 'Failed to create causal edge', message: error.message });
   }
 });
@@ -969,7 +972,7 @@ router.get('/edges/analyze-causality', authenticateToken, async (req, res) => {
       analysis
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error analyzing causality:', error);
+    log.error('Error analyzing causality:', error);
     res.status(500).json({ error: 'Failed to analyze causality', message: error.message });
   }
 });
@@ -994,7 +997,7 @@ router.get('/nodes/:nodeId/causal-chain', authenticateToken, async (req, res) =>
       chain
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting causal chain:', error);
+    log.error('Error getting causal chain:', error);
     res.status(500).json({ error: 'Failed to get causal chain', message: error.message });
   }
 });
@@ -1013,7 +1016,7 @@ router.get('/causal/summary', authenticateToken, async (req, res) => {
       summary
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting causal summary:', error);
+    log.error('Error getting causal summary:', error);
     res.status(500).json({ error: 'Failed to get causal summary', message: error.message });
   }
 });
@@ -1046,7 +1049,7 @@ router.post('/edges/upgrade-to-causal', authenticateToken, async (req, res) => {
       edge
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error upgrading to causal:', error);
+    log.error('Error upgrading to causal:', error);
     res.status(500).json({ error: 'Failed to upgrade to causal', message: error.message });
   }
 });
@@ -1101,7 +1104,7 @@ router.post('/nodes/:nodeId/context', authenticateToken, async (req, res) => {
       node
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error setting context expression:', error);
+    log.error('Error setting context expression:', error);
     res.status(500).json({ error: 'Failed to set context expression', message: error.message });
   }
 });
@@ -1122,7 +1125,7 @@ router.get('/nodes/:nodeId/context', authenticateToken, async (req, res) => {
       ...expressions
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting context expressions:', error);
+    log.error('Error getting context expressions:', error);
     res.status(500).json({ error: 'Failed to get context expressions', message: error.message });
   }
 });
@@ -1147,7 +1150,7 @@ router.get('/context/:context/graph', authenticateToken, async (req, res) => {
       ...graph
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting context graph:', error);
+    log.error('Error getting context graph:', error);
     res.status(500).json({ error: 'Failed to get context graph', message: error.message });
   }
 });
@@ -1166,7 +1169,7 @@ router.get('/context/summary', authenticateToken, async (req, res) => {
       summary
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error getting context summary:', error);
+    log.error('Error getting context summary:', error);
     res.status(500).json({ error: 'Failed to get context summary', message: error.message });
   }
 });
@@ -1185,7 +1188,7 @@ router.get('/context/detect', authenticateToken, async (req, res) => {
       ...patterns
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error detecting context patterns:', error);
+    log.error('Error detecting context patterns:', error);
     res.status(500).json({ error: 'Failed to detect context patterns', message: error.message });
   }
 });
@@ -1213,7 +1216,7 @@ router.post('/context/apply-suggestions', authenticateToken, async (req, res) =>
       results
     });
   } catch (error) {
-    console.error('[Twins Brain API] Error applying context suggestions:', error);
+    log.error('Error applying context suggestions:', error);
     res.status(500).json({ error: 'Failed to apply context suggestions', message: error.message });
   }
 });
@@ -1248,7 +1251,7 @@ router.post('/migrate', authenticateToken, async (req, res) => {
     // Dynamic import to avoid circular dependencies
     const { brainMigrationService } = await import('../services/brainMigrationService.js');
 
-    console.log(`[Twins Brain API] Starting migration for user ${userId}, dryRun=${dryRun}`);
+    log.info(`Starting migration for user ${userId}, dryRun=${dryRun}`);
 
     const stats = await brainMigrationService.migrateAllData(userId, { dryRun, limit });
 
@@ -1258,7 +1261,7 @@ router.post('/migrate', authenticateToken, async (req, res) => {
       stats
     });
   } catch (error) {
-    console.error('[Twins Brain API] Migration error:', error);
+    log.error('Migration error:', error);
     res.status(500).json({ error: 'Migration failed', message: error.message });
   }
 });

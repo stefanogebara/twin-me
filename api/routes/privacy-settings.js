@@ -1,6 +1,9 @@
 import express from 'express';
 import supabase from '../config/supabase.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PrivacySettings');
 import {
   getOrCreatePrivacyProfile,
   updateGlobalPrivacyLevel,
@@ -23,7 +26,7 @@ router.get('/', async (req, res) => {
     if (!result.success) return res.status(500).json({ error: result.error });
     res.json({ success: true, settings: result.profile });
   } catch (error) {
-    console.error('Get privacy settings error:', error);
+    log.error('Get privacy settings error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -56,7 +59,7 @@ router.put('/', async (req, res) => {
 
     res.json({ success: true, settings: profile });
   } catch (error) {
-    console.error('Update privacy settings error:', error);
+    log.error('Update privacy settings error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -70,14 +73,14 @@ router.get('/presets', async (req, res) => {
       .order('sort_order', { ascending: true });
 
     if (error) {
-      console.error('Failed to fetch presets:', error);
+      log.error('Failed to fetch presets:', error);
       // Return built-in presets as fallback
       return res.json({ success: true, presets: [] });
     }
 
     res.json({ success: true, presets: presets || [] });
   } catch (error) {
-    console.error('Get presets error:', error);
+    log.error('Get presets error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -115,7 +118,7 @@ router.post('/presets/:presetKey/apply', async (req, res) => {
 
     res.json({ success: true, settings: result.profile });
   } catch (error) {
-    console.error('Apply preset error:', error);
+    log.error('Apply preset error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -133,7 +136,7 @@ router.get('/twins', async (req, res) => {
 
     if (error) {
       // Table may not exist yet — return empty list gracefully
-      console.warn('Failed to fetch twins (table may not exist):', error.message);
+      log.warn('Failed to fetch twins (table may not exist):', error.message);
       return res.json({ success: true, twins: [] });
     }
 
@@ -141,7 +144,7 @@ router.get('/twins', async (req, res) => {
 
     res.json({ success: true, twins: mappedTwins });
   } catch (error) {
-    console.error('Get twins error:', error);
+    log.error('Get twins error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -159,13 +162,13 @@ router.post('/twins', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Failed to create twin:', error);
+      log.error('Failed to create twin:', error);
       return res.status(500).json({ error: 'Failed to create twin' });
     }
 
     res.json({ success: true, twin });
   } catch (error) {
-    console.error('Create twin error:', error);
+    log.error('Create twin error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -181,13 +184,13 @@ router.post('/twins/deactivate', async (req, res) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Failed to deactivate twins:', error);
+      log.error('Failed to deactivate twins:', error);
       return res.status(500).json({ error: 'Failed to deactivate twins' });
     }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Deactivate twins error:', error);
+    log.error('Deactivate twins error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -218,7 +221,7 @@ router.post('/twins/:id/activate', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Failed to activate twin:', error);
+      log.error('Failed to activate twin:', error);
       return res.status(500).json({ error: 'Failed to activate twin' });
     }
 
@@ -228,7 +231,7 @@ router.post('/twins/:id/activate', async (req, res) => {
 
     res.json({ success: true, twin });
   } catch (error) {
-    console.error('Activate twin error:', error);
+    log.error('Activate twin error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -249,7 +252,7 @@ router.put('/twins/:id', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Failed to update twin:', error);
+      log.error('Failed to update twin:', error);
       return res.status(500).json({ error: 'Failed to update twin' });
     }
 
@@ -259,7 +262,7 @@ router.put('/twins/:id', async (req, res) => {
 
     res.json({ success: true, twin });
   } catch (error) {
-    console.error('Update twin error:', error);
+    log.error('Update twin error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -277,13 +280,13 @@ router.delete('/twins/:id', async (req, res) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Failed to delete twin:', error);
+      log.error('Failed to delete twin:', error);
       return res.status(500).json({ error: 'Failed to delete twin' });
     }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Delete twin error:', error);
+    log.error('Delete twin error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -314,7 +317,7 @@ router.get('/clusters', async (req, res) => {
 
     res.json({ success: true, settings });
   } catch (error) {
-    console.error('Get clusters error:', error);
+    log.error('Get clusters error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -335,7 +338,7 @@ router.put('/clusters/:id/privacy', async (req, res) => {
 
     res.json({ success: true, profile: result.profile });
   } catch (error) {
-    console.error('Update cluster privacy error:', error);
+    log.error('Update cluster privacy error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -358,7 +361,7 @@ router.put('/clusters/:id/toggle', async (req, res) => {
 
     res.json({ success: true, profile: result.profile });
   } catch (error) {
-    console.error('Toggle cluster error:', error);
+    log.error('Toggle cluster error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -371,7 +374,7 @@ router.get('/statistics', async (req, res) => {
     if (!result.success) return res.status(500).json({ error: result.error });
     res.json({ success: true, statistics: result.stats });
   } catch (error) {
-    console.error('Get statistics error:', error);
+    log.error('Get statistics error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

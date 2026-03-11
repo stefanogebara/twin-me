@@ -26,6 +26,9 @@ import {
 } from './websocketService.js';
 import { invalidatePlatformStatusCache } from './redisClient.js';
 import { addPlatformMemory } from './mem0Service.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('DataExtraction');
 
 
 class DataExtractionService {
@@ -33,7 +36,7 @@ class DataExtractionService {
    * Extract data from a specific platform
    */
   async extractPlatformData(userId, platform) {
-    console.log(`[DataExtraction] Starting extraction for ${platform}...`);
+    log.info(`Starting extraction for ${platform}...`);
 
     // Create extraction job record
     let jobId = null;
@@ -70,10 +73,10 @@ class DataExtractionService {
         .single();
 
       if (jobError) {
-        console.error(`[DataExtraction] Failed to create job record:`, jobError);
+        log.error(`Failed to create job record:`, jobError);
       } else {
         jobId = job.id;
-        console.log(`[DataExtraction] Created job ${jobId} for ${platform}`);
+        log.info(`Created job ${jobId} for ${platform}`);
       }
 
       // Update job to 'running' status
@@ -82,7 +85,7 @@ class DataExtractionService {
           .from('data_extraction_jobs')
           .update({ status: 'running' })
           .eq('id', jobId);
-        if (runningErr) console.warn('[DataExtraction] Failed to update job to running:', runningErr.message);
+        if (runningErr) log.warn('Failed to update job to running:', runningErr.message);
 
         // Notify user via WebSocket that extraction has started
         notifyExtractionStarted(userId, jobId, platform);
@@ -100,7 +103,7 @@ class DataExtractionService {
               .from('data_extraction_jobs')
               .update({ status: 'completed', items_extracted: ytItems, completed_at: new Date().toISOString() })
               .eq('id', jobId);
-            if (ytCompleteErr) console.warn('[DataExtraction] Failed to mark YouTube job completed:', ytCompleteErr.message);
+            if (ytCompleteErr) log.warn('Failed to mark YouTube job completed:', ytCompleteErr.message);
           }
           return { success: true, platform, message: 'YouTube data extracted via Nango', itemsExtracted: ytItems, skipped: false };
         }
@@ -109,7 +112,7 @@ class DataExtractionService {
             .from('data_extraction_jobs')
             .update({ status: 'failed', error_message: ytResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
-          if (ytFailErr) console.warn('[DataExtraction] Failed to mark YouTube job failed:', ytFailErr.message);
+          if (ytFailErr) log.warn('Failed to mark YouTube job failed:', ytFailErr.message);
         }
         return { success: false, platform, message: ytResult.error || 'YouTube extraction failed', itemsExtracted: 0, skipped: false };
       }
@@ -125,7 +128,7 @@ class DataExtractionService {
               .from('data_extraction_jobs')
               .update({ status: 'completed', items_extracted: twitchItems, completed_at: new Date().toISOString() })
               .eq('id', jobId);
-            if (twitchCompleteErr) console.warn('[DataExtraction] Failed to mark Twitch job completed:', twitchCompleteErr.message);
+            if (twitchCompleteErr) log.warn('Failed to mark Twitch job completed:', twitchCompleteErr.message);
           }
           return { success: true, platform, message: 'Twitch data extracted via Nango', itemsExtracted: twitchItems, skipped: false };
         }
@@ -134,29 +137,29 @@ class DataExtractionService {
             .from('data_extraction_jobs')
             .update({ status: 'failed', error_message: twitchResult.error || 'Nango extraction failed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
-          if (twitchFailErr) console.warn('[DataExtraction] Failed to mark Twitch job failed:', twitchFailErr.message);
+          if (twitchFailErr) log.warn('Failed to mark Twitch job failed:', twitchFailErr.message);
         }
         return { success: false, platform, message: twitchResult.error || 'Twitch extraction failed', itemsExtracted: 0, skipped: false };
       }
 
       if (platform === 'whoop') {
-        console.log(`[DataExtraction] Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
+        log.info(`Whoop uses direct API extraction via featureExtractor - skipping raw data storage`);
         if (jobId) {
           const { error: whoopErr } = await supabaseAdmin
             .from('data_extraction_jobs')
             .update({ status: 'completed', completed_at: new Date().toISOString() })
             .eq('id', jobId);
-          if (whoopErr) console.warn('[DataExtraction] Failed to mark Whoop job completed:', whoopErr.message);
+          if (whoopErr) log.warn('Failed to mark Whoop job completed:', whoopErr.message);
         }
         return { success: true, platform, message: 'Whoop data will be extracted during soul signature generation', itemsExtracted: 0, skipped: false };
       }
 
       // --- Legacy platforms: get valid access token (auto-refresh if expired) ---
-      console.log(`[DataExtraction] Getting valid access token for ${platform}...`);
+      log.info(`Getting valid access token for ${platform}...`);
       const tokenResult = await getValidAccessToken(userId, platform);
 
       if (!tokenResult.success) {
-        console.warn(`[DataExtraction] Failed to get valid token for ${platform}: ${tokenResult.error}`);
+        log.warn(`Failed to get valid token for ${platform}: ${tokenResult.error}`);
 
         if (jobId) {
           const { error: tokenFailErr } = await supabaseAdmin
@@ -167,7 +170,7 @@ class DataExtractionService {
               completed_at: new Date().toISOString()
             })
             .eq('id', jobId);
-          if (tokenFailErr) console.warn(`[DataExtraction] Error marking job ${jobId} as failed (token):`, tokenFailErr.message);
+          if (tokenFailErr) log.warn(`Error marking job ${jobId} as failed (token):`, tokenFailErr.message);
 
           notifyExtractionFailed(userId, jobId, platform, new Error(tokenResult.error || 'Token refresh failed'));
           notifyConnectionStatus(userId, platform, 'needs_reauth', 'Please reconnect your account');
@@ -184,7 +187,7 @@ class DataExtractionService {
       }
 
       const accessToken = tokenResult.accessToken;
-      console.log(`[DataExtraction] [OK] Valid access token obtained for ${platform}`);
+      log.info(`[OK] Valid access token obtained for ${platform}`);
 
       // Create appropriate extractor for legacy platforms
       let extractor;
@@ -245,9 +248,9 @@ class DataExtractionService {
             }
           })
           .eq('id', jobId);
-        if (jobUpdateErr) console.warn(`[DataExtraction] Error updating job ${jobId} status:`, jobUpdateErr.message);
+        if (jobUpdateErr) log.warn(`Error updating job ${jobId} status:`, jobUpdateErr.message);
 
-        console.log(`[DataExtraction] Updated job ${jobId} to ${result.success ? 'completed' : 'failed'}`);
+        log.info(`Updated job ${jobId} to ${result.success ? 'completed' : 'failed'}`);
 
         // Notify user via WebSocket
         if (result.success) {
@@ -260,7 +263,7 @@ class DataExtractionService {
             extractedAt: new Date().toISOString(),
             jobId,
             dataTypes: result.dataTypes || ['default']
-          }).catch(err => console.warn(`[DataExtraction] Failed to store in Mem0:`, err.message));
+          }).catch(err => log.warn(`Failed to store in Mem0:`, err.message));
         } else {
           notifyExtractionFailed(userId, jobId, platform, new Error(result.error || result.message || 'Extraction failed'));
         }
@@ -274,7 +277,7 @@ class DataExtractionService {
 
       return result;
     } catch (error) {
-      console.error(`[DataExtraction] Error extracting from ${platform}:`, error);
+      log.error(`Error extracting from ${platform}:`, error);
 
       // Mark job as failed
       if (jobId) {
@@ -286,7 +289,7 @@ class DataExtractionService {
             completed_at: new Date().toISOString()
           })
           .eq('id', jobId);
-        if (catchJobErr) console.warn(`[DataExtraction] Error marking job ${jobId} as failed:`, catchJobErr.message);
+        if (catchJobErr) log.warn(`Error marking job ${jobId} as failed:`, catchJobErr.message);
 
         // Notify user via WebSocket that extraction failed
         notifyExtractionFailed(userId, jobId, platform, error);
@@ -294,7 +297,7 @@ class DataExtractionService {
 
       // Handle specific error types
       if (error.status === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-        console.warn(`[DataExtraction] 401 Unauthorized for ${platform} - token likely expired or revoked`);
+        log.warn(`401 Unauthorized for ${platform} - token likely expired or revoked`);
 
         // Mark connector as disconnected
         const { error: connStatusErr } = await supabaseAdmin
@@ -309,7 +312,7 @@ class DataExtractionService {
           .eq('user_id', userId)
           .eq('platform', platform);
         if (connStatusErr) {
-          console.error(`[DataExtraction] Failed to update connector status:`, connStatusErr.message);
+          log.error(`Failed to update connector status:`, connStatusErr.message);
         }
 
         // Notify user via WebSocket about connection status
@@ -333,7 +336,7 @@ class DataExtractionService {
    * Extract data from all connected platforms
    */
   async extractAllPlatforms(userId) {
-    console.log(`[DataExtraction] Starting extraction for all platforms...`);
+    log.info(`Starting extraction for all platforms...`);
 
     try {
       // Get all connected platforms
@@ -343,7 +346,7 @@ class DataExtractionService {
         .eq('user_id', userId);
 
       if (error) {
-        console.error('[DataExtraction] Supabase error fetching connectors:', error);
+        log.error('Supabase error fetching connectors:', error);
         throw new Error(`Failed to fetch connectors: ${error.message || JSON.stringify(error)}`);
       }
 
@@ -362,7 +365,7 @@ class DataExtractionService {
           const result = await this.extractPlatformData(userId, connector.platform);
           results[connector.platform] = result;
         } catch (error) {
-          console.error(`[DataExtraction] Failed to extract from ${connector.platform}:`, error);
+          log.error(`Failed to extract from ${connector.platform}:`, error);
           results[connector.platform] = {
             success: false,
             error: error.message
@@ -380,7 +383,7 @@ class DataExtractionService {
         successfulPlatforms: Object.values(results).filter(r => r.success).length
       };
     } catch (error) {
-      console.error('[DataExtraction] Error in extractAllPlatforms:', error);
+      log.error('Error in extractAllPlatforms:', error);
       throw error;
     }
   }
@@ -404,9 +407,9 @@ class DataExtractionService {
           last_sync_status: extractionResult.success ? 'success' : 'failed'
         })
         .eq('id', connectorId);
-      if (metaErr) console.warn('[DataExtraction] Error updating connector metadata:', metaErr.message);
+      if (metaErr) log.warn('Error updating connector metadata:', metaErr.message);
     } catch (error) {
-      console.error('[DataExtraction] Error updating metadata:', error);
+      log.error('Error updating metadata:', error);
     }
   }
 
@@ -414,7 +417,7 @@ class DataExtractionService {
    * Trigger processing pipeline for extracted data
    */
   async triggerProcessing(userId) {
-    console.log(`[DataExtraction] Triggering processing pipeline for user ${userId}...`);
+    log.info(`Triggering processing pipeline for user ${userId}...`);
 
     try {
       // Get all unprocessed data
@@ -429,7 +432,7 @@ class DataExtractionService {
         throw new Error('Failed to fetch unprocessed data');
       }
 
-      console.log(`[DataExtraction] Found ${unprocessedData?.length || 0} unprocessed items`);
+      log.info(`Found ${unprocessedData?.length || 0} unprocessed items`);
 
       // Processing will be handled by ETL pipeline (next step)
       // For now, just log
@@ -437,7 +440,7 @@ class DataExtractionService {
         unprocessedCount: unprocessedData?.length || 0
       };
     } catch (error) {
-      console.error('[DataExtraction] Error triggering processing:', error);
+      log.error('Error triggering processing:', error);
     }
   }
 
@@ -468,7 +471,7 @@ class DataExtractionService {
         lastSync: jobs?.[0]?.completed_at || null
       };
     } catch (error) {
-      console.error('[DataExtraction] Error getting status:', error);
+      log.error('Error getting status:', error);
       throw error;
     }
   }
@@ -479,7 +482,7 @@ class DataExtractionService {
   async scheduleIncrementalSync(userId, platform, intervalHours = 24) {
     // NOTE: Platform syncing is handled by cron routes (cron-platform-polling, cron-observation-ingestion).
     // This method stores schedule metadata only; actual polling runs via Vercel cron.
-    console.log(`[DataExtraction] Scheduling ${platform} sync every ${intervalHours} hours`);
+    log.info(`Scheduling ${platform} sync every ${intervalHours} hours`);
 
     // For now, store schedule in connector metadata
     const { data: connector } = await supabaseAdmin
@@ -502,7 +505,7 @@ class DataExtractionService {
         .update({ metadata })
         .eq('user_id', userId)
         .eq('platform', platform);
-      if (scheduleErr) console.warn('[DataExtraction] Error updating sync schedule:', scheduleErr.message);
+      if (scheduleErr) log.warn('Error updating sync schedule:', scheduleErr.message);
     }
 
     return { scheduled: true, intervalHours };

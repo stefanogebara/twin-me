@@ -13,6 +13,9 @@ import { createClient } from '@supabase/supabase-js';
 import insightCache from '../services/insightCache.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { applyPrivacyFilter } from '../middleware/privacyFilter.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TestExtraction');
 
 const router = express.Router();
 
@@ -32,7 +35,7 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
   }
 
-  console.log(`🧪 [TEST MODE] Generating Spotify test data for user: ${userId}`);
+  log.info(`Generating Spotify test data for user: ${userId}`);
 
   try {
     // Create extraction job
@@ -178,7 +181,7 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
         items_extracted: dataPoints.length
       })
       .eq('id', job.id);
-    if (jobUpdateErr) console.error('[TestExtraction] Failed to update extraction job:', jobUpdateErr.message);
+    if (jobUpdateErr) log.error('Failed to update extraction job:', jobUpdateErr.message);
 
     // Update platform_connections last_sync
     const { error: syncUpdateErr } = await supabase
@@ -190,9 +193,9 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
-    if (syncUpdateErr) console.error('[TestExtraction] Failed to update last_sync:', syncUpdateErr.message);
+    if (syncUpdateErr) log.error('Failed to update last_sync:', syncUpdateErr.message);
 
-    console.log(`✅ [TEST MODE] Stored ${dataPoints.length} Spotify data points for user ${userId}`);
+    log.info(`Stored ${dataPoints.length} Spotify data points for user ${userId}`);
 
     res.json({
       success: true,
@@ -211,7 +214,7 @@ router.post('/spotify/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ [TEST MODE] Error generating test data:', error);
+    log.error('Error generating test data:', error);
 
     res.status(500).json({
       success: false,
@@ -275,7 +278,7 @@ router.get('/soul-data/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error retrieving soul data:', error);
+    log.error('Error retrieving soul data:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -316,7 +319,7 @@ router.get('/data-counts/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error retrieving data counts:', error);
+    log.error('Error retrieving data counts:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -347,7 +350,7 @@ router.get('/spotify-insights/:userId',
     // Check cache first
     const cachedInsights = insightCache.get(userId, 'spotify-insights');
   if (cachedInsights) {
-    console.log(`[SpotifyInsights] Returning cached data for user ${userId}`);
+    log.info(`Returning cached data for user ${userId}`);
     return res.json(cachedInsights);
   }
 
@@ -415,7 +418,7 @@ router.get('/spotify-insights/:userId',
 
     // Check if we have any actual data
     if (data.length === 0) {
-      console.log(`[SpotifyInsights] No data available for user ${userId} - returning 404`);
+      log.info(`No data available for user ${userId} - returning 404`);
       return res.status(404).json({
         success: false,
         error: 'NO_DATA',
@@ -438,12 +441,12 @@ router.get('/spotify-insights/:userId',
 
     // Cache the insights (10 minutes TTL)
     insightCache.set(userId, response, 'spotify-insights', 10 * 60 * 1000);
-    console.log(`[SpotifyInsights] Cached insights for user ${userId} with ${data.length} data points`);
+    log.info(`Cached insights for user ${userId} with ${data.length} data points`);
 
     res.json(response);
 
   } catch (error) {
-    console.error('❌ Error retrieving Spotify insights:', error);
+    log.error('Error retrieving Spotify insights:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -462,7 +465,7 @@ router.get('/netflix-insights/:userId',
   applyPrivacyFilter('netflix'),
   async (req, res) => {
     const { userId } = req.params;
-    console.log(`🎬 [TEST MODE] Generating Netflix insights for user: ${userId}`);
+    log.info(`Generating Netflix insights for user: ${userId}`);
 
     // Security: Ensure user can only access their own data
     if (req.user.id !== userId) {
@@ -475,14 +478,14 @@ router.get('/netflix-insights/:userId',
     // Check cache first
     const cachedInsights = insightCache.get(userId, 'netflix-insights');
   if (cachedInsights) {
-    console.log(`[NetflixInsights] Returning cached data for user ${userId}`);
+    log.info(`Returning cached data for user ${userId}`);
     return res.json(cachedInsights);
   }
 
   try {
     // DISABLED: Mock data removed - return 404 to show empty state
     // Netflix API integration not yet implemented
-    console.log(`[NetflixInsights] No real data available for user ${userId} - returning 404`);
+    log.info(`No real data available for user ${userId} - returning 404`);
     return res.status(404).json({
       success: false,
       error: 'NO_DATA',
@@ -490,7 +493,7 @@ router.get('/netflix-insights/:userId',
     });
 
   } catch (error) {
-    console.error('❌ Error generating Netflix insights:', error);
+    log.error('Error generating Netflix insights:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -510,7 +513,7 @@ router.get('/youtube-insights/:userId',
   applyPrivacyFilter('youtube'),
   async (req, res) => {
     const { userId } = req.params;
-    console.log(`📺 [TEST MODE] Generating YouTube insights for user: ${userId}`);
+    log.info(`Generating YouTube insights for user: ${userId}`);
 
     // Security: Ensure user can only access their own data
     if (req.user.id !== userId) {
@@ -523,14 +526,14 @@ router.get('/youtube-insights/:userId',
     // Check cache first
     const cachedInsights = insightCache.get(userId, 'youtube-insights');
   if (cachedInsights) {
-    console.log(`[YouTubeInsights] Returning cached data for user ${userId}`);
+    log.info(`Returning cached data for user ${userId}`);
     return res.json(cachedInsights);
   }
 
   try {
     // DISABLED: Mock data removed - return 404 to show empty state
     // YouTube API integration not yet implemented
-    console.log(`[YouTubeInsights] No real data available for user ${userId} - returning 404`);
+    log.info(`No real data available for user ${userId} - returning 404`);
     return res.status(404).json({
       success: false,
       error: 'NO_DATA',
@@ -538,7 +541,7 @@ router.get('/youtube-insights/:userId',
     });
 
   } catch (error) {
-    console.error('❌ Error generating YouTube insights:', error);
+    log.error('Error generating YouTube insights:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -572,7 +575,7 @@ router.delete('/soul-data/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error clearing soul data:', error);
+    log.error('Error clearing soul data:', error);
     res.status(500).json({
       success: false,
       error: error.message

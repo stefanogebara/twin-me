@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Braincontext');
 import {
   NODE_TYPES,
   CATEGORIES,
@@ -64,7 +67,7 @@ export async function setNodeContextExpression(userId, nodeId, context, expressi
     notes
   });
 
-  console.log(`[TwinsBrain] Set context expression: node ${nodeId} = ${expressionLevel} in ${context}`);
+  log.info(`Set context expression: node ${nodeId} = ${expressionLevel} in ${context}`);
   return updated;
 }
 
@@ -387,6 +390,6 @@ export async function applyContextSuggestions(userId, suggestions, deps) {
     }
   }
 
-  console.log(`[TwinsBrain] Applied ${results.applied} context suggestions, ${results.failed} failed`);
+  log.info(`Applied ${results.applied} context suggestions, ${results.failed} failed`);
   return results;
 }

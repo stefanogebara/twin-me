@@ -25,6 +25,10 @@ import { supabaseAdmin } from './database.js';
 import { traverseLinksForRetrieval } from './memoryLinksService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('MemoryStream');
+
 // ====================================================================
 // Importance Rating
 // ====================================================================
@@ -58,7 +62,7 @@ async function rateImportance(content) {
     const score = match ? parseInt(match[1], 10) : NaN;
     return (score >= 1 && score <= 10) ? score : 5;
   } catch (error) {
-    console.warn('[MemoryStream] Importance rating failed, defaulting to 5:', error.message);
+    log.warn('Importance rating failed, defaulting to 5', { error });
     return 5;
   }
 }
@@ -162,14 +166,14 @@ async function maybeReviseExistingMemory(userId, content, memoryType, embedding,
         .eq('id', row.id);
 
       if (!error) {
-        console.log(`[MemoryStream] S5.1 Revised existing ${memoryType} (cosine=${sim.toFixed(3)}, id=${row.id})`);
+        log.info('S5.1 Revised existing memory', { memoryType, cosine: sim.toFixed(3), id: row.id });
         return { id: row.id, importance_score: row.importance_score };
       }
     }
 
     return null;
   } catch (err) {
-    console.warn('[MemoryStream] Proposition revision check failed (non-fatal):', err.message);
+    log.warn('Proposition revision check failed (non-fatal)', { error: err });
     return null;
   }
 }
@@ -257,7 +261,7 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
         p_memory_id: u.id,
         p_new_confidence: u.confidence,
       })
-        .then(() => console.log(`[GUM] ${u.verdict} → confidence=${u.confidence.toFixed(2)} for ${u.id}`))
+        .then(() => log.info('GUM confidence updated', { verdict: u.verdict, confidence: u.confidence.toFixed(2), id: u.id }))
         .catch(() => {});
 
       // GUM Step 4: Contradiction cascade — when a memory is contradicted,
@@ -268,7 +272,7 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
     }
   } catch (err) {
     // Fully non-fatal
-    console.warn('[GUM] Bayesian revision check failed (non-fatal):', err.message);
+    log.warn('Bayesian revision check failed (non-fatal)', { error: err });
   }
 }
 
@@ -292,19 +296,19 @@ async function cascadeContradiction(contradictedId) {
       supabaseAdmin.from('user_memories')
         .update({ confidence: newConf })
         .eq('id', row.id)
-        .then(() => console.log(`[GUM] Cascade: reflection ${row.id} confidence → ${newConf.toFixed(2)}`))
+        .then(() => log.info('Cascade: reflection confidence updated', { id: row.id, confidence: newConf.toFixed(2) }))
         .catch(() => {});
     }
-    console.log(`[GUM] Contradiction cascade: ${downstream.length} downstream reflections affected`);
+    log.info('Contradiction cascade complete', { affectedReflections: downstream.length });
   } catch (err) {
-    console.warn('[GUM] Contradiction cascade failed (non-fatal):', err.message);
+    log.warn('Contradiction cascade failed (non-fatal)', { error: err });
   }
 }
 
 async function addMemory(userId, content, memoryType = 'observation', metadata = {}, options = {}) {
   if (!content || !userId) return null;
   if (!VALID_MEMORY_TYPES.has(memoryType)) {
-    console.error(`[MemoryStream] Invalid memory type: "${memoryType}". Allowed: ${[...VALID_MEMORY_TYPES].join(', ')}`);
+    log.error('Invalid memory type', { memoryType, allowed: [...VALID_MEMORY_TYPES] });
     return null;
   }
 
@@ -362,14 +366,14 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       .single();
 
     if (error) {
-      console.error('[MemoryStream] Failed to store memory:', error.message);
+      log.error('Failed to store memory', { error });
       return null;
     }
 
-    console.log(`[MemoryStream] Stored memory (type=${memoryType}, importance=${importanceScore}, hasEmbedding=${!!embedding}) for user ${userId}`);
+    log.info('Stored memory', { memoryType, importance: importanceScore, hasEmbedding: !!embedding, userId });
     return data;
   } catch (error) {
-    console.error('[MemoryStream] addMemory error:', error.message);
+    log.error('addMemory error', { error });
     return null;
   }
 }
@@ -400,10 +404,10 @@ async function decaySourceMemories(userId, evidenceIds) {
 
     if (error) throw error;
     const count = decayed?.length ?? 0;
-    console.log(`[MemoryStream] S5.2 Decayed ${count} source memories for user ${userId}`);
+    log.info('S5.2 Decayed source memories', { count, userId });
     return count;
   } catch (err) {
-    console.warn('[MemoryStream] Source decay failed (non-fatal):', err.message);
+    log.warn('Source decay failed (non-fatal)', { error: err });
     return 0;
   }
 }
@@ -626,7 +630,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     : { ...RETRIEVAL_WEIGHTS.default, ...weights };
 
   if (typeof w.recency !== 'number' || typeof w.importance !== 'number' || typeof w.relevance !== 'number') {
-    console.warn('[MemoryStream] Invalid weight types, falling back to defaults');
+    log.warn('Invalid weight types, falling back to defaults');
     Object.assign(w, RETRIEVAL_WEIGHTS.default);
   }
 
@@ -634,7 +638,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     const queryEmbedding = await generateEmbedding(query);
 
     if (!queryEmbedding) {
-      console.warn('[MemoryStream] Could not generate query embedding, falling back to keyword search');
+      log.warn('Could not generate query embedding, falling back to keyword search');
       return fallbackKeywordSearch(userId, query, limit);
     }
 
@@ -650,7 +654,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     });
 
     if (error) {
-      console.error('[MemoryStream] Vector search failed:', error.message);
+      log.error('Vector search failed', { error });
       return fallbackKeywordSearch(userId, query, limit);
     }
 
@@ -688,21 +692,20 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
         }
       }
     } catch (graphErr) {
-      console.warn('[MemoryStream] Graph traversal failed (non-fatal):', graphErr.message);
+      log.warn('Graph traversal failed (non-fatal)', { error: graphErr });
     }
 
     // Touch accessed memories (update last_accessed_at) - non-blocking
     const memoryIds = reranked.map(m => m.id);
     supabaseAdmin.rpc('touch_memories', { p_memory_ids: memoryIds })
       .then(() => {})
-      .catch(err => console.warn('[MemoryStream] Failed to touch memories:', err.message));
+      .catch(err => log.warn('Failed to touch memories', { error: err }));
 
     const weightLabel = typeof weights === 'string' ? weights : 'custom';
-    const graphSuffix = graphCount > 0 ? `, +${graphCount} graph-linked` : '';
-    console.log(`[MemoryStream] Retrieved ${reranked.length} memories (weights=${weightLabel}, MMR from ${data.length} candidates${graphSuffix}, top score: ${reranked[0]?.score?.toFixed(3)})`);
+    log.info('Retrieved memories', { count: reranked.length, weights: weightLabel, candidates: data.length, graphLinked: graphCount, topScore: reranked[0]?.score?.toFixed(3) });
     return reranked;
   } catch (error) {
-    console.error('[MemoryStream] retrieveMemories error:', error.message);
+    log.error('retrieveMemories error', { error });
     return fallbackKeywordSearch(userId, query, limit);
   }
 }
@@ -735,7 +738,7 @@ async function fallbackKeywordSearch(userId, query, limit = 10) {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   } catch (error) {
-    console.error('[MemoryStream] Fallback search failed:', error.message);
+    log.error('Fallback search failed', { error });
     return [];
   }
 }
@@ -752,13 +755,13 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
     });
 
     if (error) {
-      console.warn('[MemoryStream] Could not get importance sum:', error.message);
+      log.warn('Could not get importance sum', { error });
       return 0;
     }
 
     return data || 0;
   } catch (error) {
-    console.warn('[MemoryStream] getRecentImportanceSum error:', error.message);
+    log.warn('getRecentImportanceSum error', { error });
     return 0;
   }
 }
@@ -789,7 +792,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
   const [reflectionResults, factResults, platformResults, conversationResults] = await Promise.all([
     // Reflections: semantic search over-fetches, then we cap at maxReflections
     retrieveMemories(userId, query, maxReflections * 2, reflectionWeights).catch(err => {
-      console.warn('[MemoryStream] Diverse reflections fetch failed:', err.message);
+      log.warn('Diverse reflections fetch failed', { error: err });
       return [];
     }),
 
@@ -802,7 +805,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
       .order('importance_score', { ascending: false })
       .limit(maxFacts)
       .then(({ data, error }) => {
-        if (error) console.warn('[MemoryStream] Diverse facts fetch failed:', error.message);
+        if (error) log.warn('Diverse facts fetch failed', { error });
         return data || [];
       }),
 
@@ -815,7 +818,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
       .order('created_at', { ascending: false })
       .limit(maxPlatformData)
       .then(({ data, error }) => {
-        if (error) console.warn('[MemoryStream] Diverse platform_data fetch failed:', error.message);
+        if (error) log.warn('Diverse platform_data fetch failed', { error });
         return data || [];
       }),
 
@@ -824,7 +827,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
       ? retrieveMemories(userId, query, maxConversations * 2, 'default')
           .then(mems => mems.filter(m => m.memory_type === 'conversation').slice(0, maxConversations))
           .catch(err => {
-            console.warn('[MemoryStream] Diverse conversations fetch failed:', err.message);
+            log.warn('Diverse conversations fetch failed', { error: err });
             return [];
           })
       : Promise.resolve([]),
@@ -840,16 +843,17 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
   // Graph expansion: expand context using Zettelkasten memory_links (A-MEM, Xu et al., 2025)
   // Fetches 1-hop linked memories for the top retrieved reflections to enrich context
   const expanded = await _expandWithMemoryLinks(userId, combined, 5).catch(err => {
-    console.warn('[MemoryStream] Graph expansion failed:', err.message);
+    log.warn('Graph expansion failed', { error: err });
     return combined;
   });
 
-  console.log(
-    `[MemoryStream] Diverse retrieval: ${topReflections.length} reflections, ` +
-    `${factResults.length} facts, ${platformResults.length} platform_data, ` +
-    `${conversationResults.length} conversations` +
-    (expanded.length > combined.length ? `, +${expanded.length - combined.length} graph-linked` : '')
-  );
+  log.info('Diverse retrieval complete', {
+    reflections: topReflections.length,
+    facts: factResults.length,
+    platformData: platformResults.length,
+    conversations: conversationResults.length,
+    graphLinked: expanded.length - combined.length,
+  });
   return expanded;
 }
 
@@ -906,13 +910,13 @@ async function getRecentMemories(userId, limit = 50) {
       .limit(limit);
 
     if (error) {
-      console.error('[MemoryStream] getRecentMemories failed:', error.message);
+      log.error('getRecentMemories failed', { error });
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('[MemoryStream] getRecentMemories error:', error.message);
+    log.error('getRecentMemories error', { error });
     return [];
   }
 }
@@ -989,7 +993,7 @@ async function isDuplicateFact(userId, factText) {
       .eq('content', factText)
       .limit(1);
     if (exact && exact.length > 0) {
-      console.log(`[MemoryStream] Fact dedup: exact match found, skipping.`);
+      log.info('Fact dedup: exact match found, skipping');
       return true;
     }
 
@@ -1021,7 +1025,7 @@ async function isDuplicateFact(userId, factText) {
         }
         const sim = normA && normB ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0;
         if (sim > FACT_DEDUP_COSINE_THRESHOLD) {
-          console.log(`[MemoryStream] Fact dedup: cosine ${sim.toFixed(3)} > ${FACT_DEDUP_COSINE_THRESHOLD}, skipping: "${factText.substring(0, 60)}"`);
+          log.info('Fact dedup: cosine similarity exceeded threshold, skipping', { cosine: sim.toFixed(3), threshold: FACT_DEDUP_COSINE_THRESHOLD, fact: factText.substring(0, 60) });
           return true;
         }
       } catch {
@@ -1030,7 +1034,7 @@ async function isDuplicateFact(userId, factText) {
     }
     return false;
   } catch (error) {
-    console.warn('[MemoryStream] isDuplicateFact error:', error.message);
+    log.warn('isDuplicateFact error', { error });
     return false; // fail open — store it if dedup check fails
   }
 }
@@ -1067,7 +1071,7 @@ async function extractConversationFacts(userId, userMessage) {
       const cleaned = text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
       facts = JSON.parse(cleaned);
     } catch {
-      console.warn('[MemoryStream] Could not parse fact extraction response:', text.substring(0, 100));
+      log.warn('Could not parse fact extraction response', { response: text.substring(0, 100) });
       return [];
     }
 
@@ -1087,12 +1091,12 @@ async function extractConversationFacts(userId, userMessage) {
     }
 
     if (stored.length > 0) {
-      console.log(`[MemoryStream] Extracted ${stored.length} new facts from conversation for user ${userId}`);
+      log.info('Extracted new facts from conversation', { count: stored.length, userId });
     }
 
     return stored;
   } catch (error) {
-    console.error('[MemoryStream] extractConversationFacts error:', error.message);
+    log.error('extractConversationFacts error', { error });
     return [];
   }
 }
@@ -1164,9 +1168,9 @@ async function extractCommunicationStyle(userId, userMessage) {
       });
     }
 
-    console.log(`[MemoryStream] Communication style extraction ran for user ${userId}`);
+    log.info('Communication style extraction ran', { userId });
   } catch (error) {
-    console.warn('[MemoryStream] extractCommunicationStyle error (non-fatal):', error.message);
+    log.warn('extractCommunicationStyle error (non-fatal)', { error });
   }
 }
 
@@ -1210,7 +1214,7 @@ async function getMemoryStats(userId) {
 
     return { total, byType };
   } catch (error) {
-    console.error('[MemoryStream] getMemoryStats error:', error.message);
+    log.error('getMemoryStats error', { error });
     return defaultStats;
   }
 }
@@ -1260,7 +1264,7 @@ async function getTwinReadinessScore(userId) {
 
     return { score, label, breakdown, total, byType };
   } catch (err) {
-    console.warn('[MemoryStream] getTwinReadinessScore error:', err.message);
+    log.warn('getTwinReadinessScore error', { error: err });
     return { score: 0, label: 'Just getting started', breakdown: {}, total: 0, byType: {} };
   }
 }
@@ -1282,17 +1286,17 @@ async function archiveOldMemories(userId) {
     });
 
     if (error) {
-      console.warn('[MemoryStream] archiveOldMemories RPC failed:', error.message);
+      log.warn('archiveOldMemories RPC failed', { error });
       return 0;
     }
 
     const count = data || 0;
     if (count > 0) {
-      console.log(`[MemoryStream] Archived ${count} old memories for user ${userId}`);
+      log.info('Archived old memories', { count, userId });
     }
     return count;
   } catch (error) {
-    console.error('[MemoryStream] archiveOldMemories error:', error.message);
+    log.error('archiveOldMemories error', { error });
     return 0;
   }
 }

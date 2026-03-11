@@ -14,6 +14,9 @@
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ConversationAIAnalyzer');
 
 /**
  * Analysis prompt template for Claude Sonnet
@@ -138,7 +141,7 @@ export async function analyzeConversation(userMessage, context = {}) {
     const processingTimeMs = Date.now() - startTime;
     const tokensUsed = result.usage?.input_tokens + result.usage?.output_tokens;
 
-    console.log('[ConversationAIAnalyzer] Analysis completed:', {
+    log.info('Analysis completed:', {
       engagement: analysis.engagement?.level,
       depth: analysis.depth?.level,
       dominantTone: analysis.tone?.dominant,
@@ -159,7 +162,7 @@ export async function analyzeConversation(userMessage, context = {}) {
     };
 
   } catch (error) {
-    console.error('[ConversationAIAnalyzer] Analysis failed:', error);
+    log.error('Analysis failed:', error);
     return {
       success: false,
       error: error.message,
@@ -217,7 +220,7 @@ export async function analyzeAndUpdateConversationLog(conversationLogId) {
           completed_at: new Date().toISOString()
         })
         .eq('conversation_log_id', conversationLogId);
-      if (failUpdateErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as failed:', failUpdateErr.message);
+      if (failUpdateErr) log.warn('Failed to mark job as failed:', failUpdateErr.message);
 
       return result;
     }
@@ -240,16 +243,16 @@ export async function analyzeAndUpdateConversationLog(conversationLogId) {
       .eq('id', conversationLogId);
 
     if (updateError) {
-      console.error('[ConversationAIAnalyzer] Failed to update log:', updateError);
+      log.error('Failed to update log:', updateError);
       throw updateError;
     }
 
-    console.log('[ConversationAIAnalyzer] Conversation log updated:', conversationLogId);
+    log.info('Conversation log updated:', conversationLogId);
 
     return result;
 
   } catch (error) {
-    console.error('[ConversationAIAnalyzer] Error:', error);
+    log.error('Error:', error);
     return {
       success: false,
       error: error.message
@@ -332,9 +335,9 @@ Respond with ONLY a valid JSON object:
         updated_at: new Date().toISOString()
       })
       .eq('id', sessionId);
-    if (sessionUpdateErr) console.warn('[ConversationAIAnalyzer] Failed to update session summary:', sessionUpdateErr.message);
+    if (sessionUpdateErr) log.warn('Failed to update session summary:', sessionUpdateErr.message);
 
-    console.log('[ConversationAIAnalyzer] Session analyzed:', sessionId);
+    log.info('Session analyzed:', sessionId);
 
     return {
       success: true,
@@ -342,7 +345,7 @@ Respond with ONLY a valid JSON object:
     };
 
   } catch (error) {
-    console.error('[ConversationAIAnalyzer] Session analysis failed:', error);
+    log.error('Session analysis failed:', error);
     return {
       success: false,
       error: error.message
@@ -377,11 +380,11 @@ export async function createAnalysisJob(userId, conversationLogId, sessionId = n
       throw error;
     }
 
-    console.log('[ConversationAIAnalyzer] Analysis job created:', data.id);
+    log.info('Analysis job created:', data.id);
     return { success: true, jobId: data.id };
 
   } catch (error) {
-    console.error('[ConversationAIAnalyzer] Failed to create job:', error);
+    log.error('Failed to create job:', error);
     return { success: false, error: error.message };
   }
 }
@@ -410,7 +413,7 @@ export async function processPendingJobs(limit = 10) {
       return { success: true, processed: 0, message: 'No pending jobs' };
     }
 
-    console.log(`[ConversationAIAnalyzer] Processing ${jobs.length} pending jobs`);
+    log.info(`Processing ${jobs.length} pending jobs`);
 
     let processed = 0;
     let failed = 0;
@@ -425,7 +428,7 @@ export async function processPendingJobs(limit = 10) {
             started_at: new Date().toISOString()
           })
           .eq('id', job.id);
-        if (processingErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as processing:', processingErr.message);
+        if (processingErr) log.warn('Failed to mark job as processing:', processingErr.message);
 
         // Process the job
         const startTime = Date.now();
@@ -444,7 +447,7 @@ export async function processPendingJobs(limit = 10) {
               analysis_result: result.analysis
             })
             .eq('id', job.id);
-          if (completedErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as completed:', completedErr.message);
+          if (completedErr) log.warn('Failed to mark job as completed:', completedErr.message);
 
           processed++;
         } else {
@@ -460,7 +463,7 @@ export async function processPendingJobs(limit = 10) {
             error_message: jobError.message
           })
           .eq('id', job.id);
-        if (jobFailErr) console.warn('[ConversationAIAnalyzer] Failed to mark job as failed:', jobFailErr.message);
+        if (jobFailErr) log.warn('Failed to mark job as failed:', jobFailErr.message);
 
         failed++;
       }
@@ -469,7 +472,7 @@ export async function processPendingJobs(limit = 10) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    console.log(`[ConversationAIAnalyzer] Processed ${processed} jobs, ${failed} failed`);
+    log.info(`Processed ${processed} jobs, ${failed} failed`);
 
     return {
       success: true,
@@ -479,7 +482,7 @@ export async function processPendingJobs(limit = 10) {
     };
 
   } catch (error) {
-    console.error('[ConversationAIAnalyzer] Job processing failed:', error);
+    log.error('Job processing failed:', error);
     return {
       success: false,
       error: error.message
@@ -541,7 +544,7 @@ export async function getAnalysisStats(userId) {
     };
 
   } catch (error) {
-    console.error('[ConversationAIAnalyzer] Stats error:', error);
+    log.error('Stats error:', error);
     return { error: error.message };
   }
 }

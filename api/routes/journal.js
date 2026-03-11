@@ -2,6 +2,9 @@ import express from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Journal');
 
 const router = express.Router();
 
@@ -42,7 +45,7 @@ router.get('/entries', asyncHandler(async (req, res) => {
     .range(offset, offset + limit - 1);
 
   if (error) {
-    console.error('[Journal] Error fetching entries:', error);
+    log.error('Error fetching entries:', error);
     return res.status(500).json({ error: 'Failed to fetch journal entries' });
   }
 
@@ -95,7 +98,7 @@ router.post('/entries', asyncHandler(async (req, res) => {
     .single();
 
   if (error) {
-    console.error('[Journal] Error creating entry:', error);
+    log.error('Error creating entry:', error);
     return res.status(500).json({ error: 'Failed to create journal entry' });
   }
 
@@ -145,7 +148,7 @@ router.put('/entries/:id', asyncHandler(async (req, res) => {
     .single();
 
   if (error) {
-    console.error('[Journal] Error updating entry:', error);
+    log.error('Error updating entry:', error);
     return res.status(500).json({ error: 'Failed to update journal entry' });
   }
 
@@ -174,7 +177,7 @@ router.delete('/entries/:id', asyncHandler(async (req, res) => {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[Journal] Error deleting entry:', error);
+    log.error('Error deleting entry:', error);
     return res.status(500).json({ error: 'Failed to delete journal entry' });
   }
 
@@ -252,7 +255,7 @@ Return a JSON object with exactly this structure (no markdown, just raw JSON):
     const jsonStr = responseText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
     analysis = JSON.parse(jsonStr);
   } catch (parseError) {
-    console.error('[Journal] Failed to parse AI response:', parseError);
+    log.error('Failed to parse AI response:', parseError);
     return res.status(500).json({ error: 'Failed to parse AI analysis' });
   }
 
@@ -272,7 +275,7 @@ Return a JSON object with exactly this structure (no markdown, just raw JSON):
     .single();
 
   if (saveError) {
-    console.error('[Journal] Error saving analysis:', saveError);
+    log.error('Error saving analysis:', saveError);
     return res.status(500).json({ error: 'Failed to save analysis' });
   }
 
@@ -281,14 +284,14 @@ Return a JSON object with exactly this structure (no markdown, just raw JSON):
     .from('journal_entries')
     .update({ is_analyzed: true })
     .eq('id', id);
-  if (analyzedErr) console.error('[Journal] Error marking entry as analyzed:', analyzedErr.message);
+  if (analyzedErr) log.error('Error marking entry as analyzed:', analyzedErr.message);
 
   // =========================================================================
   // INTEGRATION: Push journal insights to Twins Brain, Mem0, and Soul Signature
   // Fire-and-forget so we don't block the response
   // =========================================================================
   pushJournalToIntegrations(userId, entry, savedAnalysis).catch(err => {
-    console.warn('[Journal] Integration push failed (non-blocking):', err.message);
+    log.warn('Integration push failed (non-blocking):', err.message);
   });
 
   res.json({ analysis: savedAnalysis });
@@ -313,7 +316,7 @@ router.get('/insights', asyncHandler(async (req, res) => {
     .limit(500);
 
   if (error) {
-    console.error('[Journal] Error fetching insights:', error);
+    log.error('Error fetching insights:', error);
     return res.status(500).json({ error: 'Failed to fetch insights' });
   }
 
@@ -326,7 +329,7 @@ router.get('/insights', asyncHandler(async (req, res) => {
     .order('created_at', { ascending: false });
 
   if (entriesError) {
-    console.error('[Journal] Error fetching entry stats:', entriesError);
+    log.error('Error fetching entry stats:', entriesError);
   }
 
   // Aggregate themes
@@ -398,7 +401,7 @@ router.get('/insights', asyncHandler(async (req, res) => {
 // Integration: Push journal insights to Twins Brain, Mem0, and Soul Signature
 // ============================================================================
 async function pushJournalToIntegrations(userId, entry, analysis) {
-  console.log(`[Journal Integration] Pushing insights for entry ${entry.id} to brain, memory, and soul signature`);
+  log.info(`Pushing insights for entry ${entry.id} to brain, memory, and soul signature`);
 
   // 1. Push personality signals as Twins Brain nodes
   try {
@@ -498,9 +501,9 @@ async function pushJournalToIntegrations(userId, entry, analysis) {
       } catch (_) { /* best effort */ }
     }
 
-    console.log('[Journal Integration] Pushed to Twins Brain successfully');
+    log.info('Pushed to Twins Brain successfully');
   } catch (brainErr) {
-    console.warn('[Journal Integration] Twins Brain push failed:', brainErr.message);
+    log.warn('Twins Brain push failed:', brainErr.message);
   }
 
   // 2. Push facts to Mem0 long-term memory
@@ -533,18 +536,18 @@ async function pushJournalToIntegrations(userId, entry, analysis) {
       });
     }
 
-    console.log('[Journal Integration] Pushed to Mem0 successfully');
+    log.info('Pushed to Mem0 successfully');
   } catch (memErr) {
-    console.warn('[Journal Integration] Mem0 push failed:', memErr.message);
+    log.warn('Mem0 push failed:', memErr.message);
   }
 
   // 3. Trigger soul signature rebuild (fire-and-forget)
   try {
     const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
     const result = await soulBuilder.buildSoulSignature(userId);
-    console.log(`[Journal Integration] Soul signature rebuilt: ${result.success ? 'success' : 'no data'}`);
+    log.info(`Soul signature rebuilt: ${result.success ? 'success' : 'no data'}`);
   } catch (soulErr) {
-    console.warn('[Journal Integration] Soul signature rebuild failed:', soulErr.message);
+    log.warn('Soul signature rebuild failed:', soulErr.message);
   }
 }
 

@@ -13,6 +13,9 @@
 
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('CitationExtraction');
 
 /**
  * Extract which memories were cited (used) in a twin response.
@@ -82,7 +85,7 @@ export async function incrementCitationCounts(memoryIds) {
   if (error) {
     // Fallback: individual updates if RPC doesn't exist yet
     if (error.message?.includes('function') || error.code === '42883') {
-      console.warn('[Citations] RPC not found, falling back to individual updates');
+      log.warn('RPC not found, falling back to individual updates');
       for (const id of memoryIds) {
         // Fetch current count, then increment
         const { data: mem } = await supabaseAdmin
@@ -100,7 +103,7 @@ export async function incrementCitationCounts(memoryIds) {
         }
       }
     } else {
-      console.warn('[Citations] incrementCitationCounts error:', error.message);
+      log.warn('incrementCitationCounts error:', error.message);
     }
   }
 }
@@ -125,7 +128,7 @@ export async function runCitationPipeline({ memoriesInContext, twinResponse, use
 
     if (citedIds.length === 0) return [];
 
-    console.log(`[Citations] Extracted ${citedIds.length} citations from ${memoriesInContext.length} memories`);
+    log.info(`Extracted ${citedIds.length} citations from ${memoriesInContext.length} memories`);
 
     // Store cited_memory_ids in the most recent assistant message's metadata
     if (conversationId) {
@@ -152,7 +155,7 @@ export async function runCitationPipeline({ memoriesInContext, twinResponse, use
 
     return citedIds;
   } catch (err) {
-    console.warn('[Citations] Pipeline error:', err.message);
+    log.warn('Pipeline error:', err.message);
     return [];
   }
 }

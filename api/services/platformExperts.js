@@ -30,6 +30,9 @@ import {
 } from './memoryStreamService.js';
 import { supabaseAdmin } from './database.js';
 import { generateEmbedding } from './embeddingService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PlatformExperts');
 
 // ────────────────────────────────────────────────────────────────────────────
 // Dedup helpers (same thresholds as reflectionEngine.js)
@@ -99,7 +102,7 @@ async function isDuplicatePlatformReflection(userId, expertId, platformId, newOb
           if (!existingVec) continue;
           const sim = cosineSim(newVec, existingVec);
           if (sim > DEDUP_COSINE_THRESHOLD) {
-            console.log(`[PlatformExpert:${expertId}] Dedup skip: cosine ${sim.toFixed(3)} > ${DEDUP_COSINE_THRESHOLD}`);
+            log.info(`[PlatformExpert:${expertId}] Dedup skip: cosine ${sim.toFixed(3)} > ${DEDUP_COSINE_THRESHOLD}`);
             return true;
           }
         }
@@ -109,12 +112,12 @@ async function isDuplicatePlatformReflection(userId, expertId, platformId, newOb
 
     const maxSim = Math.max(...data.map(r => bigramSimilarity(newObservation, r.content)));
     if (maxSim > DEDUP_BIGRAM_THRESHOLD) {
-      console.log(`[PlatformExpert:${expertId}] Dedup skip: bigram ${maxSim.toFixed(2)} > ${DEDUP_BIGRAM_THRESHOLD}`);
+      log.info(`[PlatformExpert:${expertId}] Dedup skip: bigram ${maxSim.toFixed(2)} > ${DEDUP_BIGRAM_THRESHOLD}`);
       return true;
     }
     return false;
   } catch (err) {
-    console.warn(`[PlatformExpert:${expertId}] Dedup check failed (non-fatal):`, err.message);
+    log.warn(`[PlatformExpert:${expertId}] Dedup check failed (non-fatal):`, err.message);
     return false;
   }
 }
@@ -411,7 +414,7 @@ Reply with exactly one word from the list above.`,
       };
     }
   } catch (err) {
-    console.warn('[PlatformExperts] Domain classification failed (non-fatal):', err.message);
+    log.warn('Domain classification failed (non-fatal):', err.message);
   }
 
   return { domain: 'general', expertId: null, expertPlatform: null, confidence: 'general' };
@@ -447,14 +450,14 @@ function platformToDomain(platform) {
 export async function runPlatformExpert(userId, platform, recentObservationIds = [], opts = {}) {
   const expert = EXPERTS_BY_PLATFORM.get(platform);
   if (!expert) {
-    console.warn(`[PlatformExperts] No expert for platform: ${platform}`);
+    log.warn(`No expert for platform: ${platform}`);
     return 0;
   }
 
   const maxReflections = opts.maxReflections ?? 5;
 
   try {
-    console.log(`[PlatformExpert:${expert.id}] Running for user ${userId} (${platform})`);
+    log.info(`[PlatformExpert:${expert.id}] Running for user ${userId} (${platform})`);
 
     // Step 1: Fetch recent platform observations for this platform
     const { data: recentObs } = await supabaseAdmin
@@ -467,7 +470,7 @@ export async function runPlatformExpert(userId, platform, recentObservationIds =
       .limit(30);
 
     if (!recentObs || recentObs.length === 0) {
-      console.log(`[PlatformExpert:${expert.id}] No observations found, skipping`);
+      log.info(`[PlatformExpert:${expert.id}] No observations found, skipping`);
       return 0;
     }
 
@@ -498,7 +501,7 @@ export async function runPlatformExpert(userId, platform, recentObservationIds =
     const responseText = (result.content || '').trim();
 
     if (responseText === 'INSUFFICIENT_EVIDENCE' || responseText.length < 20) {
-      console.log(`[PlatformExpert:${expert.id}] Insufficient evidence`);
+      log.info(`[PlatformExpert:${expert.id}] Insufficient evidence`);
       return 0;
     }
 
@@ -551,15 +554,15 @@ export async function runPlatformExpert(userId, platform, recentObservationIds =
 
       if (reflectionResult) {
         stored++;
-        console.log(`[PlatformExpert:${expert.id}] Stored: "${observation.substring(0, 70)}..."`);
+        log.info(`[PlatformExpert:${expert.id}] Stored: "${observation.substring(0, 70)}..."`);
       }
     }
 
-    console.log(`[PlatformExpert:${expert.id}] Stored ${stored}/${observations.length} reflections for ${platform}`);
+    log.info(`[PlatformExpert:${expert.id}] Stored ${stored}/${observations.length} reflections for ${platform}`);
     return stored;
 
   } catch (error) {
-    console.warn(`[PlatformExpert:${expert.id}] Error:`, error.message);
+    log.warn(`[PlatformExpert:${expert.id}] Error:`, error.message);
     return 0;
   }
 }
@@ -599,7 +602,7 @@ export async function retrieveExpertMemories(userId, expertId, queryText, limit 
     const merged = [...platformReflections, ...other].slice(0, limit);
     return merged;
   } catch (err) {
-    console.warn(`[PlatformExperts] retrieveExpertMemories failed (non-fatal):`, err.message);
+    log.warn(`retrieveExpertMemories failed (non-fatal):`, err.message);
     return [];
   }
 }

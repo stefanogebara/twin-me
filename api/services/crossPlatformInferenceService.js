@@ -17,6 +17,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('CrossPlatformInference');
 
 class CrossPlatformInferenceService {
   constructor() {
@@ -62,7 +65,7 @@ class CrossPlatformInferenceService {
    * Main inference method - analyzes cross-platform data
    */
   async inferBehavioralPatterns(userId, data) {
-    console.log(`🔍 [CrossPlatform] Analyzing patterns for user ${userId}`);
+    log.info(`Analyzing patterns for user ${userId}`);
 
     const { whoop, spotify, calendar } = data;
     const inferences = [];
@@ -89,7 +92,7 @@ class CrossPlatformInferenceService {
       inferences.push(travelInference);
     }
 
-    console.log(`📊 [CrossPlatform] Found ${inferences.length} behavioral patterns`);
+    log.info(`Found ${inferences.length} behavioral patterns`);
 
     return inferences;
   }
@@ -585,13 +588,13 @@ class CrossPlatformInferenceService {
         .single();
 
       if (error) {
-        console.error('[CrossPlatform] Failed to store inference:', error.message);
+        log.error('Failed to store inference:', error.message);
         return null;
       }
 
       return data;
     } catch (err) {
-      console.error('[CrossPlatform] Error storing inference:', err.message);
+      log.error('Error storing inference:', err.message);
       return null;
     }
   }
@@ -611,14 +614,14 @@ class CrossPlatformInferenceService {
         .eq('id', inferenceId);
 
       if (error) {
-        console.error('[CrossPlatform] Failed to record feedback:', error.message);
+        log.error('Failed to record feedback:', error.message);
         return false;
       }
 
-      console.log(`✅ [CrossPlatform] Feedback recorded: inference ${inferenceId} was ${isCorrect ? 'correct' : 'incorrect'}`);
+      log.info(`Feedback recorded: inference ${inferenceId} was ${isCorrect ? 'correct' : 'incorrect'}`);
       return true;
     } catch (err) {
-      console.error('[CrossPlatform] Error recording feedback:', err.message);
+      log.error('Error recording feedback:', err.message);
       return false;
     }
   }

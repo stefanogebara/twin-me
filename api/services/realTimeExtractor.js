@@ -7,6 +7,9 @@
 
 import PersonalityAnalyzer from './personalityAnalyzer.js';
 import { supabaseAdmin } from '../config/supabase.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('RealTimeExtractor');
 
 export class RealTimeExtractor {
   constructor() {
@@ -20,11 +23,11 @@ export class RealTimeExtractor {
    */
   async extractSpotifySignature(accessToken, userId) {
     try {
-      console.log(`🎵 Extracting Spotify soul signature for user ${userId}`);
+      log.info(`Extracting Spotify soul signature for user ${userId}`);
 
       // Check rate limits
       if (this.isRateLimited('spotify', userId)) {
-        console.log('⏰ Rate limited, using cached data');
+        log.info('Rate limited, using cached data');
         return this.getCachedExtraction('spotify', userId);
       }
 
@@ -32,7 +35,7 @@ export class RealTimeExtractor {
       const spotifyData = await this.fetchSpotifyData(accessToken);
 
       if (!spotifyData.success) {
-        console.log('❌ Spotify API failed - no data available');
+        log.info('Spotify API failed - no data available');
         return {
           success: false,
           platform: 'spotify',
@@ -55,7 +58,7 @@ export class RealTimeExtractor {
       };
 
     } catch (error) {
-      console.error('❌ Spotify extraction error:', error);
+      log.error('Spotify extraction error:', error);
       return {
         success: false,
         platform: 'spotify',
@@ -108,7 +111,7 @@ export class RealTimeExtractor {
       };
 
     } catch (error) {
-      console.error('Spotify API error:', error);
+      log.error('Spotify API error:', error);
       return { success: false, error: error.message };
     }
   }
@@ -128,7 +131,7 @@ export class RealTimeExtractor {
         if (response.status === 429) {
           // Rate limited
           const retryAfter = response.headers.get('Retry-After') || 1;
-          console.log(`⏰ Rate limited, waiting ${retryAfter} seconds`);
+          log.info(`Rate limited, waiting ${retryAfter} seconds`);
           await this.sleep(retryAfter * 1000);
           continue;
         }
@@ -141,7 +144,7 @@ export class RealTimeExtractor {
 
       } catch (error) {
         if (i === maxRetries) throw error;
-        console.log(`🔄 Retry ${i + 1}/${maxRetries} for ${url}`);
+        log.info(`Retry ${i + 1}/${maxRetries} for ${url}`);
         await this.sleep(1000 * (i + 1)); // Exponential backoff
       }
     }
@@ -154,7 +157,7 @@ export class RealTimeExtractor {
    */
   async extractYouTubeSignature(accessToken, userId) {
     try {
-      console.log(`📺 YouTube extraction requested for user ${userId}`);
+      log.info(`YouTube extraction requested for user ${userId}`);
 
       // YouTube doesn't provide watch history API
       // Requires browser extension for data collection
@@ -166,7 +169,7 @@ export class RealTimeExtractor {
       };
 
     } catch (error) {
-      console.error('❌ YouTube extraction error:', error);
+      log.error('YouTube extraction error:', error);
       return {
         success: false,
         platform: 'youtube',
@@ -233,7 +236,7 @@ export class RealTimeExtractor {
    * Extract multi-platform soul signature
    */
   async extractMultiPlatformSignature(platforms, userId) {
-    console.log(`🌟 Extracting multi-platform soul signature for user ${userId}`);
+    log.info(`Extracting multi-platform soul signature for user ${userId}`);
 
     const extractions = {};
     const promises = [];
@@ -368,7 +371,7 @@ export class RealTimeExtractor {
   }
 
   async generateGenericPlatformData(platform, userId) {
-    console.log(`🎭 Generating ${platform} personality data`);
+    log.info(`Generating ${platform} personality data`);
 
     const genericSignatures = {
       netflix: {
@@ -412,7 +415,7 @@ export class RealTimeExtractor {
    * No OAuth token required — data comes from user_platform_data table
    */
   async aggregateWebBrowsingSignature(userId) {
-    console.log(`[Web Extraction] Aggregating browsing signature for user ${userId}`);
+    log.info(`Aggregating browsing signature for user ${userId}`);
 
     const supabase = supabaseAdmin;
 

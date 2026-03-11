@@ -15,6 +15,9 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createLogger } from './logger.js';
+
+const log = createLogger('EvidenceGenerator');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,9 +27,9 @@ let CORRELATIONS = null;
 try {
   const correlationsPath = join(__dirname, '../data/validated-correlations.json');
   CORRELATIONS = JSON.parse(readFileSync(correlationsPath, 'utf-8'));
-  console.log('[EvidenceGenerator] Loaded validated correlations');
+  log.info('Loaded validated correlations');
 } catch (error) {
-  console.warn('[EvidenceGenerator] Could not load correlations:', error.message);
+  log.warn('Could not load correlations:', error.message);
 }
 
 // Use shared Supabase client
@@ -288,7 +291,7 @@ export function generateAllEvidence(platformFeatures) {
 
     // Extract raw values if present
     const rawValues = features._rawValues || {};
-    console.log(`🔬 [EvidenceGen] Platform ${platform} _rawValues keys:`, Object.keys(rawValues));
+    log.info(`Platform ${platform} _rawValues keys:`, Object.keys(rawValues));
 
     for (const [featureName, featureValue] of Object.entries(features)) {
       // Skip internal properties
@@ -300,7 +303,7 @@ export function generateAllEvidence(platformFeatures) {
 
       // Debug log for features with templates that need rawValue
       if (['hiit_preference', 'workout_bout_duration', 'physical_activity_level'].includes(featureName)) {
-        console.log(`🔬 [EvidenceGen] Feature ${featureName} rawValue:`, JSON.stringify(featureRawValue));
+        log.info(`Feature ${featureName} rawValue:`, JSON.stringify(featureRawValue));
       }
 
       const evidence = generateFeatureEvidence(
@@ -390,7 +393,7 @@ export async function storeEvidence(userId, evidence) {
       for (const item of items) {
         // Debug log for features with templates
         if (['hiit_preference', 'workout_bout_duration', 'physical_activity_level'].includes(item.feature)) {
-          console.log(`🔬 [storeEvidence] ${item.feature} rawValue:`, JSON.stringify(item.rawValue));
+          log.info(`${item.feature} rawValue:`, JSON.stringify(item.rawValue));
         }
 
         records.push({
@@ -418,14 +421,14 @@ export async function storeEvidence(userId, evidence) {
       });
 
     if (error) {
-      console.error('[EvidenceGenerator] Error storing evidence:', error);
+      log.error('Error storing evidence:', error);
       throw error;
     }
 
-    console.log(`[EvidenceGenerator] Stored ${records.length} evidence records for user ${userId}`);
+    log.info(`Stored ${records.length} evidence records for user ${userId}`);
 
   } catch (error) {
-    console.error('[EvidenceGenerator] Error in storeEvidence:', error);
+    log.error('Error in storeEvidence:', error);
     throw error;
   }
 }
@@ -504,7 +507,7 @@ export async function getUserEvidence(userId) {
     return evidence;
 
   } catch (error) {
-    console.error('[EvidenceGenerator] Error getting user evidence:', error);
+    log.error('Error getting user evidence:', error);
     throw error;
   }
 }

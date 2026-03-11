@@ -1,5 +1,8 @@
 import DOMPurify from 'isomorphic-dompurify';
 import xss from 'xss';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Sanitization');
 
 // Comprehensive input sanitization middleware
 const sanitizeInput = (req, res, next) => {
@@ -29,7 +32,7 @@ const sanitizeInput = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Input sanitization error:', error);
+    log.error('Input sanitization error', { error });
     return res.status(400).json({
       error: 'Invalid input data',
       message: 'Input contains potentially harmful content'

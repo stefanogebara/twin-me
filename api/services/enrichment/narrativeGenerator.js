@@ -1,3 +1,7 @@
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Narrativegenerator');
+
 /**
  * Narrative Generator Functions
  *
@@ -13,11 +17,11 @@
  * Creates a comprehensive paragraph covering career history, education, achievements, etc.
  */
 export async function generateDetailedNarrative(data, name) {
-  console.error('[ProfileEnrichment] === generateDetailedNarrative CALLED ===');
-  console.error('[ProfileEnrichment] Name:', name);
+  log.error('=== generateDetailedNarrative CALLED ===');
+  log.error('Name:', name);
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    console.error('[ProfileEnrichment] No API key for narrative generation');
+    log.error('No API key for narrative generation');
     return null;
   }
 
@@ -75,7 +79,7 @@ export async function generateDetailedNarrative(data, name) {
 
   // Check if we have ACTUAL career data
   const rawData = (data.raw_comprehensive || '') + ' ' + (data.career_timeline || '');
-  console.error('[ProfileEnrichment] Data fields for check:', JSON.stringify({
+  log.error('Data fields for check:', JSON.stringify({
     hasRawComprehensive: !!data.raw_comprehensive,
     rawComprehensiveLength: data.raw_comprehensive?.length || 0,
     hasCareerTimeline: !!data.career_timeline,
@@ -87,13 +91,13 @@ export async function generateDetailedNarrative(data, name) {
   const hasCompanyPositions = /\b(CEO|CTO|CFO|COO|VP|Vice President|Director|President|Chairman|Founder|Co-founder)\b/i.test(rawData);
 
   const hasRichData = hasJobDates || hasMoneyAmounts || hasDegreeDetails || hasCompanyPositions;
-  console.error('[ProfileEnrichment] Rich data check:', JSON.stringify({ hasJobDates, hasMoneyAmounts, hasDegreeDetails, hasCompanyPositions, hasRichData }));
+  log.error('Rich data check:', JSON.stringify({ hasJobDates, hasMoneyAmounts, hasDegreeDetails, hasCompanyPositions, hasRichData }));
 
   // Check if we have at least basic profile data worth narrating
   const hasBasicProfile = data.discovered_name && (data.discovered_title || data.discovered_company || data.discovered_location);
 
   if (!hasBasicProfile && dataPoints.length < 2) {
-    console.log('[ProfileEnrichment] Not enough data for any narrative');
+    log.info('Not enough data for any narrative');
     return null;
   }
 
@@ -116,7 +120,7 @@ export async function generateDetailedNarrative(data, name) {
            !(dpLower.includes('linkedin.com/in/') && dpLower.length < 100);
   });
 
-  console.log(`[ProfileEnrichment] Generating narrative: ${filteredDataPoints.length}/${dataPoints.length} data points used`);
+  log.info(`Generating narrative: ${filteredDataPoints.length}/${dataPoints.length} data points used`);
 
   const prompt = `Write a SHORT biography (3-4 sentences max) covering only verified facts.
 
@@ -143,8 +147,8 @@ RULES:
 Write the biography:`;
 
   try {
-    console.log('[ProfileEnrichment] Generating detailed narrative with AI...');
-    console.log('[ProfileEnrichment] Data points:', dataPoints.length);
+    log.info('Generating detailed narrative with AI...');
+    log.info('Data points:', dataPoints.length);
 
     const useOpenRouter = !!process.env.OPENROUTER_API_KEY;
     const endpoint = useOpenRouter
@@ -183,7 +187,7 @@ Write the biography:`;
     });
 
     if (!response.ok) {
-      console.log('[ProfileEnrichment] AI narrative generation failed:', response.status);
+      log.info('AI narrative generation failed:', response.status);
       return null;
     }
 
@@ -227,7 +231,7 @@ Write the biography:`;
 
       // If the entire narrative was a refusal, return null
       if (cleanNarrative.length < 30) {
-        console.log('[ProfileEnrichment] Narrative was a refusal, falling back to factual summary');
+        log.info('Narrative was a refusal, falling back to factual summary');
         return null;
       }
 
@@ -276,7 +280,7 @@ Write the biography:`;
                                    rawDataLower.includes('vice president');
 
       if (hasStudentClaims && hasProfessionalData) {
-        console.log('[ProfileEnrichment] REJECTED: AI fabricated student content for a professional');
+        log.info('REJECTED: AI fabricated student content for a professional');
         return buildFactualSummary(data);
       }
 
@@ -301,17 +305,17 @@ Write the biography:`;
       ];
       const isFillerNarrative = fillerNarrativePatterns.some(p => lowerNarrative.includes(p));
       if (isFillerNarrative) {
-        console.log('[ProfileEnrichment] REJECTED: AI generated filler "no info" narrative');
+        log.info('REJECTED: AI generated filler "no info" narrative');
         return null;
       }
 
-      console.log('[ProfileEnrichment] Generated detailed narrative:', cleanNarrative.substring(0, 200) + '...');
+      log.info('Generated detailed narrative:', cleanNarrative.substring(0, 200) + '...');
       return cleanNarrative;
     }
 
     return null;
   } catch (error) {
-    console.error('[ProfileEnrichment] AI narrative generation error:', error);
+    log.error('AI narrative generation error:', error);
     return null;
   }
 }
@@ -320,7 +324,7 @@ Write the biography:`;
  * Generate a rich narrative summary from all collected career data
  */
 export async function generateRichSummary(combinedData, webFindings) {
-  console.log('[ProfileEnrichment] Generating comprehensive career summary...');
+  log.info('Generating comprehensive career summary...');
 
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
@@ -387,7 +391,7 @@ IMPORTANT: Write ONLY the summary. No prefixes, no "Based on...", no meta-commen
     });
 
     if (!response.ok) {
-      console.error('[ProfileEnrichment] Summary API error:', response.status);
+      log.error('Summary API error:', response.status);
       return buildFallbackSummary(combinedData);
     }
 
@@ -403,13 +407,13 @@ IMPORTANT: Write ONLY the summary. No prefixes, no "Based on...", no meta-commen
       for (const pattern of prefixPatterns) {
         summary = summary.replace(pattern, '');
       }
-      console.log('[ProfileEnrichment] Generated rich summary:', summary.substring(0, 100) + '...');
+      log.info('Generated rich summary:', summary.substring(0, 100) + '...');
       return summary.trim();
     }
 
     return buildFallbackSummary(combinedData);
   } catch (error) {
-    console.error('[ProfileEnrichment] Rich summary generation failed:', error.message);
+    log.error('Rich summary generation failed:', error.message);
     return buildFallbackSummary(combinedData);
   }
 }
@@ -418,7 +422,7 @@ IMPORTANT: Write ONLY the summary. No prefixes, no "Based on...", no meta-commen
  * Generate a narrative summary from structured profile data
  */
 export async function generateSummary(profileData) {
-  console.log('[ProfileEnrichment] Generating narrative summary...');
+  log.info('Generating narrative summary...');
 
   const name = profileData.discovered_name || 'Unknown';
   const company = profileData.discovered_company || 'Unknown company';
@@ -442,7 +446,7 @@ IMPORTANT: Write ONLY the summary paragraph. Do not include any prefixes like "H
   try {
     const apiKey = process.env.OPENROUTER_API_KEY || process.env.PERPLEXITY_API_KEY;
     if (!apiKey) {
-      console.log('[ProfileEnrichment] No API key for summary generation');
+      log.info('No API key for summary generation');
       return null;
     }
 
@@ -468,7 +472,7 @@ IMPORTANT: Write ONLY the summary paragraph. Do not include any prefixes like "H
     });
 
     if (!response.ok) {
-      console.error('[ProfileEnrichment] Summary generation API error:', response.status);
+      log.error('Summary generation API error:', response.status);
       return null;
     }
 
@@ -486,13 +490,13 @@ IMPORTANT: Write ONLY the summary paragraph. Do not include any prefixes like "H
       }
       summary = summary.trim();
 
-      console.log('[ProfileEnrichment] Generated summary:', summary);
+      log.info('Generated summary:', summary);
       return summary;
     }
 
     return null;
   } catch (error) {
-    console.error('[ProfileEnrichment] Summary generation failed:', error.message);
+    log.error('Summary generation failed:', error.message);
     return null;
   }
 }

@@ -4,6 +4,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('CalendarExtractor');
 
 class CalendarExtractor {
   constructor(accessToken) {
@@ -15,7 +18,7 @@ class CalendarExtractor {
    * Main extraction method - extracts all Calendar data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[Calendar] Starting full extraction for user: ${userId}`);
+    log.info(`Starting full extraction for user: ${userId}`);
 
     try {
       // Create extraction job
@@ -31,10 +34,10 @@ class CalendarExtractor {
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[Calendar] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return { success: true, itemsExtracted: totalItems };
     } catch (error) {
-      console.error('[Calendar] Extraction error:', error);
+      log.error('Extraction error:', error);
       throw error;
     }
   }
@@ -67,7 +70,7 @@ class CalendarExtractor {
    * Extract user's calendars
    */
   async extractCalendars(userId) {
-    console.log(`[Calendar] Extracting calendars...`);
+    log.info(`Extracting calendars...`);
     let calendarCount = 0;
 
     try {
@@ -90,10 +93,10 @@ class CalendarExtractor {
         }
       }
 
-      console.log(`[Calendar] Extracted ${calendarCount} calendars`);
+      log.info(`Extracted ${calendarCount} calendars`);
       return calendarCount;
     } catch (error) {
-      console.error('[Calendar] Error extracting calendars:', error);
+      log.error('Error extracting calendars:', error);
       return calendarCount;
     }
   }
@@ -102,7 +105,7 @@ class CalendarExtractor {
    * Extract recent events (last 90 days)
    */
   async extractRecentEvents(userId) {
-    console.log(`[Calendar] Extracting recent events...`);
+    log.info(`Extracting recent events...`);
     let eventCount = 0;
 
     try {
@@ -111,7 +114,7 @@ class CalendarExtractor {
       const primaryCalendar = calendarsData.items?.find(cal => cal.primary);
 
       if (!primaryCalendar) {
-        console.warn('[Calendar] No primary calendar found');
+        log.warn('No primary calendar found');
         return 0;
       }
 
@@ -163,10 +166,10 @@ class CalendarExtractor {
         }
       }
 
-      console.log(`[Calendar] Extracted ${eventCount} recent events`);
+      log.info(`Extracted ${eventCount} recent events`);
       return eventCount;
     } catch (error) {
-      console.error('[Calendar] Error extracting recent events:', error);
+      log.error('Error extracting recent events:', error);
       return eventCount;
     }
   }
@@ -175,7 +178,7 @@ class CalendarExtractor {
    * Extract upcoming events (next 90 days)
    */
   async extractUpcomingEvents(userId) {
-    console.log(`[Calendar] Extracting upcoming events...`);
+    log.info(`Extracting upcoming events...`);
     let eventCount = 0;
 
     try {
@@ -184,7 +187,7 @@ class CalendarExtractor {
       const primaryCalendar = calendarsData.items?.find(cal => cal.primary);
 
       if (!primaryCalendar) {
-        console.warn('[Calendar] No primary calendar found');
+        log.warn('No primary calendar found');
         return 0;
       }
 
@@ -228,10 +231,10 @@ class CalendarExtractor {
         }
       }
 
-      console.log(`[Calendar] Extracted ${eventCount} upcoming events`);
+      log.info(`Extracted ${eventCount} upcoming events`);
       return eventCount;
     } catch (error) {
-      console.error('[Calendar] Error extracting upcoming events:', error);
+      log.error('Error extracting upcoming events:', error);
       return eventCount;
     }
   }
@@ -264,10 +267,10 @@ class CalendarExtractor {
         });
 
       if (error) {
-        console.error('[Calendar] Error storing data:', error);
+        log.error('Error storing data:', error);
       }
     } catch (error) {
-      console.error('[Calendar] Exception storing data:', error);
+      log.error('Exception storing data:', error);
     }
   }
 
@@ -289,7 +292,7 @@ class CalendarExtractor {
       .single();
 
     if (error) {
-      console.error('[Calendar] Error creating job:', error);
+      log.error('Error creating job:', error);
       throw error;
     }
 
@@ -310,7 +313,7 @@ class CalendarExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
-    if (updateErr) console.warn('[Calendar] Error completing extraction job:', updateErr.message);
+    if (updateErr) log.warn('Error completing extraction job:', updateErr.message);
   }
 }
 

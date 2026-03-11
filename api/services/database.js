@@ -1,6 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Database');
 
 // Load .env from api directory
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -13,10 +16,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 let supabaseAdmin = null;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.warn('⚠️  Missing Supabase configuration. Database operations will not be available.');
-  console.warn('Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
-  console.warn(`Current values: URL=${supabaseUrl ? 'SET' : 'MISSING'}, KEY=${supabaseServiceKey ? 'SET' : 'MISSING'}`);
-  console.warn('📋 Server will continue running with limited functionality.');
+  log.warn('Missing Supabase configuration. Database operations will not be available.');
+  log.warn('Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  log.warn(`Current values: URL=${supabaseUrl ? 'SET' : 'MISSING'}, KEY=${supabaseServiceKey ? 'SET' : 'MISSING'}`);
+  log.warn('Server will continue running with limited functionality.');
 } else {
   try {
     // Server-side client that bypasses RLS (Row Level Security) with connection pooling
@@ -34,9 +37,9 @@ if (!supabaseUrl || !supabaseServiceKey) {
         }
       }
     });
-    console.log('✅ Supabase client initialized successfully');
+    log.info('Supabase client initialized successfully');
   } catch (error) {
-    console.error('❌ Failed to initialize Supabase client:', error.message);
+    log.error('Failed to initialize Supabase client:', error.message);
   }
 }
 
@@ -67,7 +70,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating profile:', error);
+      log.error('Error creating profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -84,7 +87,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error fetching profile:', error);
+      log.error('Error fetching profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -102,7 +105,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error updating profile:', error);
+      log.error('Error updating profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -120,7 +123,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating digital twin:', error);
+      log.error('Error creating digital twin:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -137,7 +140,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error fetching digital twin:', error);
+      log.error('Error fetching digital twin:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -154,7 +157,7 @@ export const serverDb = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching digital twins:', error);
+      log.error('Error fetching digital twins:', error);
       return { data: [], error };
     }
     return { data, error: null };
@@ -172,7 +175,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error updating digital twin:', error);
+      log.error('Error updating digital twin:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -188,7 +191,7 @@ export const serverDb = {
       .eq('id', twinId);
 
     if (error) {
-      console.error('Error deleting digital twin:', error);
+      log.error('Error deleting digital twin:', error);
       return { success: false, error };
     }
     return { success: true, error: null };
@@ -207,7 +210,7 @@ export const serverDb = {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-      console.error('Error getting platform connection:', error);
+      log.error('Error getting platform connection:', error);
       return null;
     }
     return data;
@@ -225,7 +228,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating training material:', error);
+      log.error('Error creating training material:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -242,7 +245,7 @@ export const serverDb = {
       .order('uploaded_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching training materials:', error);
+      log.error('Error fetching training materials:', error);
       return { data: [], error };
     }
     return { data, error: null };
@@ -260,7 +263,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error updating training material:', error);
+      log.error('Error updating training material:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -278,7 +281,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating conversation:', error);
+      log.error('Error creating conversation:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -295,7 +298,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error fetching conversation:', error);
+      log.error('Error fetching conversation:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -312,7 +315,7 @@ export const serverDb = {
       .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching conversations:', error);
+      log.error('Error fetching conversations:', error);
       return { data: [], error };
     }
     return { data, error: null };
@@ -328,7 +331,7 @@ export const serverDb = {
       .eq('id', conversationId);
 
     if (error) {
-      console.error('Error updating conversation last message time:', error);
+      log.error('Error updating conversation last message time:', error);
       return { success: false, error };
     }
     return { success: true, error: null };
@@ -344,7 +347,7 @@ export const serverDb = {
       .eq('id', conversationId);
 
     if (error) {
-      console.error('Error deleting conversation:', error);
+      log.error('Error deleting conversation:', error);
       return { success: false, error };
     }
     return { success: true, error: null };
@@ -362,7 +365,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating message:', error);
+      log.error('Error creating message:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -380,7 +383,7 @@ export const serverDb = {
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching messages:', error);
+      log.error('Error fetching messages:', error);
       return { data: [], error };
     }
     return { data, error: null };
@@ -398,7 +401,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating student profile:', error);
+      log.error('Error creating student profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -415,7 +418,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error fetching student profile:', error);
+      log.error('Error fetching student profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -433,7 +436,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error updating student profile:', error);
+      log.error('Error updating student profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -451,7 +454,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error creating voice profile:', error);
+      log.error('Error creating voice profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -468,7 +471,7 @@ export const serverDb = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching voice profiles:', error);
+      log.error('Error fetching voice profiles:', error);
       return { data: [], error };
     }
     return { data, error: null };
@@ -486,7 +489,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error updating voice profile:', error);
+      log.error('Error updating voice profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -503,7 +506,7 @@ export const serverDb = {
       .single();
 
     if (error) {
-      console.error('Error fetching voice profile:', error);
+      log.error('Error fetching voice profile:', error);
       return { data: null, error };
     }
     return { data, error: null };
@@ -519,7 +522,7 @@ export const serverDb = {
       .eq('id', profileId);
 
     if (error) {
-      console.error('Error deleting voice profile:', error);
+      log.error('Error deleting voice profile:', error);
       return { success: false, error };
     }
     return { success: true, error: null };
@@ -538,7 +541,7 @@ export const serverDb = {
       .select('count', { count: 'exact', head: true });
 
     if (error) {
-      console.error('Database health check failed:', error);
+      log.error('Database health check failed:', error);
       return { healthy: false, error, responseTime: Date.now() - startTime };
     }
 

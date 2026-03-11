@@ -6,6 +6,9 @@ import express from 'express';
 import supabase from '../config/supabase.js';
 import { decryptToken } from '../services/encryption.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('DataVerification');
 const router = express.Router();
 
 /**
@@ -37,14 +40,14 @@ router.get('/gmail', authenticateUser, async (req, res) => {
     try {
       accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
-      console.error('Token decryption error:', decryptError);
+      log.error('Token decryption error:', decryptError);
       return res.status(500).json({
         success: false,
         error: 'Failed to decrypt access token'
       });
     }
 
-    console.log('📧 Fetching Gmail messages for verification...');
+    log.info('Fetching Gmail messages for verification...');
 
     // First get total and unread counts
     let totalEmails = 0;
@@ -81,7 +84,7 @@ router.get('/gmail', authenticateUser, async (req, res) => {
         unreadCount = unreadData.resultSizeEstimate || 0;
       }
     } catch (e) {
-      console.log('Could not fetch email counts:', e);
+      log.info('Could not fetch email counts:', e);
     }
 
     // Fetch recent messages from Gmail API
@@ -142,7 +145,7 @@ router.get('/gmail', authenticateUser, async (req, res) => {
       }
     }
 
-    console.log(`✅ Successfully fetched ${messages.length} Gmail messages`);
+    log.info(`Successfully fetched ${messages.length} Gmail messages`);
 
     res.json({
       success: true,
@@ -158,7 +161,7 @@ router.get('/gmail', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching Gmail data:', error);
+    log.error('Error fetching Gmail data:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch Gmail data'
@@ -195,14 +198,14 @@ router.get('/calendar', authenticateUser, async (req, res) => {
     try {
       accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
-      console.error('Token decryption error:', decryptError);
+      log.error('Token decryption error:', decryptError);
       return res.status(500).json({
         success: false,
         error: 'Failed to decrypt access token'
       });
     }
 
-    console.log('📅 Fetching Calendar events for verification...');
+    log.info('Fetching Calendar events for verification...');
 
     // Get calendar list first
     const calendarsResponse = await fetch(
@@ -268,7 +271,7 @@ router.get('/calendar', authenticateUser, async (req, res) => {
         'No description'
     }));
 
-    console.log(`✅ Successfully fetched ${events.length} Calendar events`);
+    log.info(`Successfully fetched ${events.length} Calendar events`);
 
     res.json({
       success: true,
@@ -284,7 +287,7 @@ router.get('/calendar', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching Calendar data:', error);
+    log.error('Error fetching Calendar data:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch Calendar data'
@@ -315,11 +318,11 @@ async function verifyGmailAccess(userId) {
     try {
       accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
-      console.error('Token decryption error:', decryptError);
+      log.error('Token decryption error:', decryptError);
       return { error: 'Failed to decrypt access token' };
     }
 
-    console.log('📧 Fetching Gmail messages for verification...');
+    log.info('Fetching Gmail messages for verification...');
 
     // Fetch recent messages from Gmail API
     const messagesResponse = await fetch(
@@ -372,7 +375,7 @@ async function verifyGmailAccess(userId) {
       }
     }
 
-    console.log(`✅ Successfully fetched ${messages.length} Gmail messages`);
+    log.info(`Successfully fetched ${messages.length} Gmail messages`);
 
     return {
       provider: 'Gmail',
@@ -383,7 +386,7 @@ async function verifyGmailAccess(userId) {
     };
 
   } catch (error) {
-    console.error('Error verifying Gmail:', error);
+    log.error('Error verifying Gmail:', error);
     return { error: 'Failed to verify Gmail access' };
   }
 }
@@ -411,11 +414,11 @@ async function verifyCalendarAccess(userId) {
     try {
       accessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
-      console.error('Token decryption error:', decryptError);
+      log.error('Token decryption error:', decryptError);
       return { error: 'Failed to decrypt access token' };
     }
 
-    console.log('📅 Fetching Calendar events for verification...');
+    log.info('Fetching Calendar events for verification...');
 
     // Get calendar list first
     const calendarsResponse = await fetch(
@@ -475,7 +478,7 @@ async function verifyCalendarAccess(userId) {
         'No description'
     }));
 
-    console.log(`✅ Successfully fetched ${events.length} Calendar events`);
+    log.info(`Successfully fetched ${events.length} Calendar events`);
 
     return {
       provider: 'Google Calendar',
@@ -488,7 +491,7 @@ async function verifyCalendarAccess(userId) {
     };
 
   } catch (error) {
-    console.error('Error verifying Calendar:', error);
+    log.error('Error verifying Calendar:', error);
     return { error: 'Failed to verify Calendar access' };
   }
 }
@@ -534,7 +537,7 @@ router.get('/all', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error verifying all connections:', error);
+    log.error('Error verifying all connections:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to verify connections'

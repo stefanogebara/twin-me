@@ -18,6 +18,9 @@ import { ensureFreshToken } from './tokenRefreshService.js';
 import { lifeEventInferenceService } from './lifeEventInferenceService.js';
 import { whoop as nangoWhoop, getConnection as getNangoConnection } from './nangoService.js';
 import axios from 'axios';
+import { createLogger } from './logger.js';
+
+const log = createLogger('UserContextAggregator');
 
 const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 
@@ -31,7 +34,7 @@ class UserContextAggregator {
    * Get complete user context from all platforms
    */
   async aggregateUserContext(userId, options = {}) {
-    console.log(`🧠 [Context Aggregator] Building context for user ${userId}`);
+    log.info(`Building context for user ${userId}`);
 
     const { forceRefresh = false, platforms = ['whoop', 'spotify', 'calendar', 'youtube', 'twitch', 'web'] } = options;
 
@@ -40,7 +43,7 @@ class UserContextAggregator {
     if (!forceRefresh) {
       const cached = this.contextCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) {
-        console.log(`📦 [Context Aggregator] Using cached context`);
+        log.info(`Using cached context`);
         return cached.context;
       }
     }
@@ -51,7 +54,7 @@ class UserContextAggregator {
       try {
         return await fn();
       } catch (error) {
-        console.error(`❌ [Context Aggregator] ${name} failed:`, error.message);
+        log.error(`${name} failed:`, error.message);
         return null;
       }
     };
@@ -96,7 +99,7 @@ class UserContextAggregator {
       context
     });
 
-    console.log(`✅ [Context Aggregator] Context built successfully`);
+    log.info(`Context built successfully`);
     return context;
   }
 
@@ -106,13 +109,13 @@ class UserContextAggregator {
    * Uses Nango for authentication when available, falls back to legacy platform_connections
    */
   async getWhoopContext(userId) {
-    console.log(`💪 [Context Aggregator] Fetching Whoop context...`);
+    log.info(`Fetching Whoop context...`);
 
     try {
       // Check Nango connection status first
       const connectionStatus = await getNangoConnection(userId, 'whoop');
       if (!connectionStatus.connected) {
-        console.log(`⚠️ [Context Aggregator] Whoop not connected via Nango (reason: ${connectionStatus.error || 'not found'}), trying Nango proxy directly...`);
+        log.info(`Whoop not connected via Nango (reason: ${connectionStatus.error || 'not found'}), trying Nango proxy directly...`);
 
         // Even if getConnection fails, the Nango proxy might still work
         // (e.g. when connection exists but status check had a transient error)
@@ -122,7 +125,7 @@ class UserContextAggregator {
             nangoWhoop.getCycles(userId, 1).catch(() => ({ success: false }))
           ]);
           if (testCycle.success) {
-            console.log(`✅ [Context Aggregator] Nango proxy works despite connection check failure, continuing...`);
+            log.info(`Nango proxy works despite connection check failure, continuing...`);
             // Fall through to the normal Nango proxy path below
           } else {
             // Nango proxy also failed, try legacy
@@ -133,7 +136,7 @@ class UserContextAggregator {
             return null;
           }
         } catch (proxyErr) {
-          console.log(`⚠️ [Context Aggregator] Nango proxy also failed: ${proxyErr.message}`);
+          log.info(`Nango proxy also failed: ${proxyErr.message}`);
           const legacyResult = await this.getLegacyWhoopContext(userId);
           if (legacyResult) {
             return legacyResult;
@@ -146,18 +149,18 @@ class UserContextAggregator {
       // Nango handles token refresh automatically
       const [cycleResult, recoveryResult] = await Promise.all([
         nangoWhoop.getCycles(userId, 1).catch(err => {
-          console.log(`⚠️ [Context Aggregator] Cycle API error: ${err.message}`);
+          log.info(`Cycle API error: ${err.message}`);
           return { success: false, data: { records: [] } };
         }),
         nangoWhoop.getRecovery(userId, 7).catch(err => {
-          console.log(`⚠️ [Context Aggregator] Recovery API error: ${err.message}`);
+          log.info(`Recovery API error: ${err.message}`);
           return { success: false, data: { records: [] } };
         })
       ]);
 
       // Handle auth errors from Nango
       if (!cycleResult.success && cycleResult.status === 401) {
-        console.log(`⚠️ [Context Aggregator] Whoop auth expired`);
+        log.info(`Whoop auth expired`);
         return { connected: false, needsReauth: true };
       }
 
@@ -166,8 +169,8 @@ class UserContextAggregator {
       const recoveryRes = { data: recoveryResult.success ? recoveryResult.data : { records: [] } };
 
       // Log raw API responses for debugging
-      console.log(`📊 [Context Aggregator] Cycle response:`, JSON.stringify(cycleRes.data).substring(0, 500));
-      console.log(`📊 [Context Aggregator] Recovery response:`, JSON.stringify(recoveryRes.data).substring(0, 500));
+      log.info(`Cycle response:`, JSON.stringify(cycleRes.data).substring(0, 500));
+      log.info(`Recovery response:`, JSON.stringify(recoveryRes.data).substring(0, 500));
 
       const latestCycle = cycleRes.data?.records?.[0] || cycleRes.data?.[0];
       const recoveries = recoveryRes.data?.records || recoveryRes.data || [];
@@ -186,16 +189,16 @@ class UserContextAggregator {
 
       // Try recovery endpoint first (most accurate)
       if (latestRecovery) {
-        console.log(`📊 [Context Aggregator] latestRecovery object:`, JSON.stringify(latestRecovery).substring(0, 300));
+        log.info(`latestRecovery object:`, JSON.stringify(latestRecovery).substring(0, 300));
         recovery = latestRecovery.score?.recovery_score ?? latestRecovery.recovery_score ?? null;
         hrv = latestRecovery.score?.hrv_rmssd_milli ?? latestRecovery.hrv_rmssd_milli ?? null;
         rhr = latestRecovery.score?.resting_heart_rate ?? latestRecovery.resting_heart_rate ?? null;
         // New metrics from Whoop V2 API
         spo2 = latestRecovery.score?.spo2_percentage ?? null;
         skinTemp = latestRecovery.score?.skin_temp_celsius ?? null;
-        console.log(`📊 [Context Aggregator] Extracted: recovery=${recovery}, hrv=${hrv}, rhr=${rhr}, spo2=${spo2}, skinTemp=${skinTemp}`);
+        log.info(`Extracted: recovery=${recovery}, hrv=${hrv}, rhr=${rhr}, spo2=${spo2}, skinTemp=${skinTemp}`);
       } else {
-        console.log(`⚠️ [Context Aggregator] No latestRecovery found, recoveries array length: ${recoveries.length}`);
+        log.info(`No latestRecovery found, recoveries array length: ${recoveries.length}`);
       }
 
       // Fall back to cycle data if recovery endpoint didn't have the data
@@ -203,12 +206,12 @@ class UserContextAggregator {
         recovery = latestCycle.score?.recovery_score ?? latestCycle.recovery?.score ?? null;
         hrv = hrv ?? latestCycle.score?.hrv_rmssd_milli ?? latestCycle.recovery?.hrv_rmssd_milli ?? null;
         rhr = rhr ?? latestCycle.score?.resting_heart_rate ?? latestCycle.recovery?.resting_heart_rate ?? null;
-        console.log(`📊 [Context Aggregator] Recovery from /cycle endpoint: ${recovery}%`);
+        log.info(`Recovery from /cycle endpoint: ${recovery}%`);
       }
 
       // Get strain from cycle data
       const strain = latestCycle?.score?.strain ?? latestCycle?.strain?.score ?? 0;
-      console.log(`📊 [Context Aggregator] Strain: ${strain}, Recovery: ${recovery}%`);
+      log.info(`Strain: ${strain}, Recovery: ${recovery}%`);
 
       // Calculate HRV trend from recent data
       const hrvValues = recoveries
@@ -267,7 +270,7 @@ class UserContextAggregator {
       };
 
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Whoop error:`, error.message);
+      log.error(`Whoop error:`, error.message);
       return { connected: false, error: error.message };
     }
   }
@@ -277,7 +280,7 @@ class UserContextAggregator {
    * Used as fallback when Nango connection is not available
    */
   async getLegacyWhoopContext(userId) {
-    console.log(`💪 [Context Aggregator] Trying legacy Whoop connection...`);
+    log.info(`Trying legacy Whoop connection...`);
 
     try {
       // Check platform_connections table
@@ -290,7 +293,7 @@ class UserContextAggregator {
         .single();
 
       if (error || !connection) {
-        console.log(`⚠️ [Context Aggregator] No legacy Whoop connection found`);
+        log.info(`No legacy Whoop connection found`);
         return null;
       }
 
@@ -299,15 +302,15 @@ class UserContextAggregator {
       const tokenExpired = new Date(connection.token_expires_at) < new Date();
 
       if (tokenExpired && connection.refresh_token) {
-        console.log(`🔄 [Context Aggregator] Legacy Whoop token expired, refreshing...`);
+        log.info(`Legacy Whoop token expired, refreshing...`);
         const refreshedToken = await ensureFreshToken(userId, 'whoop');
         if (!refreshedToken) {
-          console.log(`❌ [Context Aggregator] Failed to refresh legacy Whoop token`);
+          log.info(`Failed to refresh legacy Whoop token`);
           return { connected: false, needsReauth: true };
         }
         accessToken = refreshedToken;
       } else if (!accessToken) {
-        console.log(`❌ [Context Aggregator] No access token for Whoop`);
+        log.info(`No access token for Whoop`);
         return null;
       }
 
@@ -373,7 +376,7 @@ class UserContextAggregator {
       // Process sleep data
       const sleepData = await this.processLegacySleepData(sleepRes.records || []);
 
-      console.log(`✅ [Context Aggregator] Legacy Whoop data retrieved: recovery=${recovery}%, strain=${strain}`);
+      log.info(`Legacy Whoop data retrieved: recovery=${recovery}%, strain=${strain}`);
 
       return {
         connected: true,
@@ -405,7 +408,7 @@ class UserContextAggregator {
       };
 
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Legacy Whoop error:`, error.message);
+      log.error(`Legacy Whoop error:`, error.message);
       return null;
     }
   }
@@ -447,7 +450,7 @@ class UserContextAggregator {
       const sleepResult = await nangoWhoop.getSleep(userId, 5);
 
       if (!sleepResult.success) {
-        console.log(`⚠️ [Context Aggregator] Sleep API error: ${sleepResult.error}`);
+        log.info(`Sleep API error: ${sleepResult.error}`);
         return null;
       }
 
@@ -495,7 +498,7 @@ class UserContextAggregator {
       const respiratoryRate = latestSleep.score?.respiratory_rate || null;
       const disturbances = latestSleep.score?.disturbance_count || stageSummary.disturbance_count || null;
 
-      console.log(`[UserContext] Total sleep: ${hoursRounded}h from ${todaysSleeps.length} records (main: ${(mainSleepMs / 3600000).toFixed(1)}h, naps: ${(napMs / 3600000).toFixed(1)}h)`);
+      log.info(`Total sleep: ${hoursRounded}h from ${todaysSleeps.length} records (main: ${(mainSleepMs / 3600000).toFixed(1)}h, naps: ${(napMs / 3600000).toFixed(1)}h)`);
 
       return {
         hours: hoursRounded,
@@ -527,7 +530,7 @@ class UserContextAggregator {
    * Returns: recent tracks, current mood, audio features
    */
   async getSpotifyContext(userId) {
-    console.log(`🎵 [Context Aggregator] Fetching Spotify context...`);
+    log.info(`Fetching Spotify context...`);
 
     try {
       const { data: connection, error } = await supabaseAdmin
@@ -545,9 +548,9 @@ class UserContextAggregator {
       let accessToken;
       try {
         accessToken = await ensureFreshToken(userId, 'spotify');
-        console.log(`✅ [Context Aggregator] Got fresh Spotify token`);
+        log.info(`Got fresh Spotify token`);
       } catch (refreshError) {
-        console.log(`⚠️ [Context Aggregator] Spotify token refresh failed: ${refreshError.message}`);
+        log.info(`Spotify token refresh failed: ${refreshError.message}`);
         return { connected: false, needsReauth: true };
       }
 
@@ -605,7 +608,7 @@ class UserContextAggregator {
       };
 
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Spotify error:`, error.message);
+      log.error(`Spotify error:`, error.message);
       return { connected: false, error: error.message };
     }
   }
@@ -614,7 +617,7 @@ class UserContextAggregator {
    * Get upcoming calendar events
    */
   async getCalendarContext(userId) {
-    console.log(`📅 [Context Aggregator] Fetching calendar context...`);
+    log.info(`Fetching calendar context...`);
 
     try {
       // First check for Google Calendar connection
@@ -624,10 +627,10 @@ class UserContextAggregator {
         .eq('user_id', userId)
         .eq('platform', 'google_calendar')
         .single();
-      if (connErr && connErr.code !== 'PGRST116') console.warn('[Context Aggregator] Calendar connection fetch error:', connErr.message);
+      if (connErr && connErr.code !== 'PGRST116') log.warn('Calendar connection fetch error:', connErr.message);
 
       if (!connection) {
-        console.log(`⚠️ [Context Aggregator] Google Calendar not connected`);
+        log.info(`Google Calendar not connected`);
         return null;
       }
 
@@ -635,9 +638,9 @@ class UserContextAggregator {
       let accessToken;
       try {
         accessToken = await ensureFreshToken(userId, 'google_calendar');
-        console.log(`✅ [Context Aggregator] Got fresh Calendar token`);
+        log.info(`Got fresh Calendar token`);
       } catch (refreshError) {
-        console.log(`⚠️ [Context Aggregator] Calendar token refresh failed: ${refreshError.message}`);
+        log.info(`Calendar token refresh failed: ${refreshError.message}`);
         return { connected: false, needsReauth: true };
       }
 
@@ -653,7 +656,7 @@ class UserContextAggregator {
       );
 
       const calendars = calendarListRes.data?.items || [];
-      console.log(`📅 [Context Aggregator] Found ${calendars.length} calendars`);
+      log.info(`Found ${calendars.length} calendars`);
 
       // Fetch events from all calendars
       let allEvents = [];
@@ -675,7 +678,7 @@ class UserContextAggregator {
           const calItems = calendarResponse.data?.items || [];
           allEvents = allEvents.concat(calItems);
         } catch (err) {
-          console.log(`⚠️ [Context Aggregator] Skipping calendar ${calendar.summary}: ${err.message}`);
+          log.info(`Skipping calendar ${calendar.summary}: ${err.message}`);
         }
       }
 
@@ -687,7 +690,7 @@ class UserContextAggregator {
       });
 
       const items = allEvents.slice(0, 15); // Limit to 15 events
-      console.log(`📅 [Context Aggregator] Found ${items.length} calendar events from all calendars`);
+      log.info(`Found ${items.length} calendar events from all calendars`);
 
       // Format events for context
       const events = items.map(event => ({
@@ -703,7 +706,7 @@ class UserContextAggregator {
       return this.formatCalendarEvents(events);
 
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Calendar error:`, error.message);
+      log.error(`Calendar error:`, error.message);
       // Fall back to database if API fails
       const { data: events, error: eventsErr } = await supabaseAdmin
         .from('calendar_events')
@@ -712,7 +715,7 @@ class UserContextAggregator {
         .gte('start_time', new Date().toISOString())
         .order('start_time', { ascending: true })
         .limit(5);
-      if (eventsErr) console.warn('[Context Aggregator] Calendar fallback fetch error:', eventsErr.message);
+      if (eventsErr) log.warn('Calendar fallback fetch error:', eventsErr.message);
 
       if (events && events.length > 0) {
         return this.formatCalendarEvents(events);
@@ -774,10 +777,10 @@ class UserContextAggregator {
         .select('*')
         .eq('user_id', userId)
         .single();
-      if (estErr && estErr.code !== 'PGRST116') console.warn('[Context Aggregator] personality_estimates fetch error:', estErr.message);
+      if (estErr && estErr.code !== 'PGRST116') log.warn('personality_estimates fetch error:', estErr.message);
 
       if (estimates && estimates.total_questions_answered > 0) {
-        console.log(`🧠 [Context Aggregator] Found personality assessment: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
+        log.info(`Found personality assessment: ${estimates.archetype_code} (${estimates.total_questions_answered} questions)`);
         return {
           source: 'assessment',
           archetype: estimates.archetype_code,
@@ -798,11 +801,11 @@ class UserContextAggregator {
         .select('*')
         .eq('user_id', userId)
         .single();
-      if (scoresErr && scoresErr.code !== 'PGRST116') console.warn('[Context Aggregator] personality_scores fetch error:', scoresErr.message);
+      if (scoresErr && scoresErr.code !== 'PGRST116') log.warn('personality_scores fetch error:', scoresErr.message);
 
       if (!scores) return null;
 
-      console.log(`🧠 [Context Aggregator] Using behavioral personality scores`);
+      log.info(`Using behavioral personality scores`);
       return {
         source: 'behavioral',
         openness: scores.openness,
@@ -815,7 +818,7 @@ class UserContextAggregator {
       };
 
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Error fetching personality:`, error);
+      log.error(`Error fetching personality:`, error);
       return null;
     }
   }
@@ -836,7 +839,7 @@ class UserContextAggregator {
    * morning_person, stress_coping, music_emotional_strategy, etc.
    */
   async getPersonalityQuiz(userId) {
-    console.log(`🧩 [Context Aggregator] Fetching personality quiz for user ${userId}`);
+    log.info(`Fetching personality quiz for user ${userId}`);
 
     try {
       const { data: user, error } = await supabaseAdmin
@@ -846,7 +849,7 @@ class UserContextAggregator {
         .single();
 
       if (error || !user?.personality_quiz || user.personality_quiz.skipped) {
-        console.log(`⚠️ [Context Aggregator] No personality quiz data`);
+        log.info(`No personality quiz data`);
         return null;
       }
 
@@ -885,7 +888,7 @@ class UserContextAggregator {
       };
 
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Personality quiz error:`, error.message);
+      log.error(`Personality quiz error:`, error.message);
       return null;
     }
   }
@@ -965,7 +968,7 @@ class UserContextAggregator {
    * Returns: subscriptions, liked videos, content categories
    */
   async getYouTubeContext(userId) {
-    console.log(`📺 [Context Aggregator] Fetching YouTube context...`);
+    log.info(`Fetching YouTube context...`);
 
     try {
       const { data: youtubeData, error } = await supabaseAdmin
@@ -1072,7 +1075,7 @@ class UserContextAggregator {
         lastUpdated
       };
     } catch (error) {
-      console.error(`❌ [Context Aggregator] YouTube error:`, error.message);
+      log.error(`YouTube error:`, error.message);
       return null;
     }
   }
@@ -1082,7 +1085,7 @@ class UserContextAggregator {
    * Returns: followed channels, gaming preferences
    */
   async getTwitchContext(userId) {
-    console.log(`🎮 [Context Aggregator] Fetching Twitch context...`);
+    log.info(`Fetching Twitch context...`);
 
     try {
       const { data: twitchData, error } = await supabaseAdmin
@@ -1179,7 +1182,7 @@ class UserContextAggregator {
         lastUpdated
       };
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Twitch error:`, error.message);
+      log.error(`Twitch error:`, error.message);
       return null;
     }
   }
@@ -1189,7 +1192,7 @@ class UserContextAggregator {
    * Returns: top categories, recent searches, reading profile, top domains, top topics
    */
   async getWebBrowsingContext(userId) {
-    console.log(`[Context Aggregator] Fetching Web browsing context...`);
+    log.info(`Fetching Web browsing context...`);
 
     try {
       const { data: webData, error } = await supabaseAdmin
@@ -1301,7 +1304,7 @@ class UserContextAggregator {
         lastUpdated
       };
     } catch (error) {
-      console.error(`[Context Aggregator] Web browsing error:`, error.message);
+      log.error(`Web browsing error:`, error.message);
       return null;
     }
   }
@@ -1571,7 +1574,7 @@ class UserContextAggregator {
    * Uses the LifeEventInferenceService to get current and upcoming life events
    */
   async getLifeContext(userId) {
-    console.log(`🌴 [Context Aggregator] Fetching life context for user ${userId}`);
+    log.info(`Fetching life context for user ${userId}`);
 
     try {
       const lifeContextSummary = await lifeEventInferenceService.buildLifeContextSummary(userId);
@@ -1592,7 +1595,7 @@ class UserContextAggregator {
                        lifeContextSummary.isHoliday ? 'holiday' : 'normal'
       };
     } catch (error) {
-      console.error(`❌ [Context Aggregator] Life context error: ${error.message}`);
+      log.error(`Life context error: ${error.message}`);
       return {
         connected: false,
         isOnVacation: false,

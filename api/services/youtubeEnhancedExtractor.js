@@ -1,3 +1,7 @@
+import { createLogger } from './logger.js';
+
+const log = createLogger('YouTubeEnhancedExtractor');
+
 /**
  * YouTube Enhanced Extractor
  *
@@ -26,11 +30,11 @@ class YouTubeEnhancedExtractor {
    * @returns {Promise<Object>} Enhanced profile with 12+ behavioral dimensions
    */
   async extractComprehensiveProfile(accessToken, userId) {
-    console.log(`📺 [YouTube Enhanced] Starting comprehensive extraction for user ${userId}`);
+    log.info(`Starting comprehensive extraction for user ${userId}`);
 
     try {
       // Step 1: Fetch data in parallel for performance
-      console.log(`📺 [YouTube Enhanced] Fetching YouTube data...`);
+      log.info(`Fetching YouTube data...`);
       const [
         likedVideos,
         subscriptions,
@@ -45,7 +49,7 @@ class YouTubeEnhancedExtractor {
         this.getSearchHistory(accessToken, 50).catch(() => null) // Search history might not be available
       ]);
 
-      console.log(`📺 [YouTube Enhanced] Data fetched: ${likedVideos.length} liked, ${subscriptions.length} subscriptions, ${watchHistory.length} watch history`);
+      log.info(`Data fetched: ${likedVideos.length} liked, ${subscriptions.length} subscriptions, ${watchHistory.length} watch history`);
 
       // Step 2: Fetch video details for analysis
       const allVideoIds = [
@@ -55,7 +59,7 @@ class YouTubeEnhancedExtractor {
 
       const videoDetails = await this.getVideoDetails(accessToken, allVideoIds);
 
-      console.log(`📺 [YouTube Enhanced] Analyzing ${videoDetails.length} videos...`);
+      log.info(`Analyzing ${videoDetails.length} videos...`);
 
       // Step 3: Perform comprehensive analyses
       const analyses = {
@@ -102,7 +106,7 @@ class YouTubeEnhancedExtractor {
         videoDetails: videoDetails.length
       });
 
-      console.log(`📺 [YouTube Enhanced] Extraction complete - Quality: ${dataQuality.quality}`);
+      log.info(`Extraction complete - Quality: ${dataQuality.quality}`);
 
       return {
         success: true,
@@ -121,7 +125,7 @@ class YouTubeEnhancedExtractor {
       };
 
     } catch (error) {
-      console.error(`📺 [YouTube Enhanced] Extraction error:`, error);
+      log.error(`Extraction error:`, error);
       return {
         success: false,
         error: error.message,
@@ -136,7 +140,7 @@ class YouTubeEnhancedExtractor {
    * Analyzes when and how user watches content
    */
   async analyzeWatchPatterns(watchHistory, videoDetails) {
-    console.log(`📺 [YouTube Enhanced] Analyzing watch patterns...`);
+    log.info(`Analyzing watch patterns...`);
 
     // Extract watch times (if available from history)
     const watchTimes = watchHistory
@@ -200,7 +204,7 @@ class YouTubeEnhancedExtractor {
    * Analyzes what types of content user prefers
    */
   async analyzeContentPreferences(videoDetails, likedVideos) {
-    console.log(`📺 [YouTube Enhanced] Analyzing content preferences...`);
+    log.info(`Analyzing content preferences...`);
 
     // Categorize videos by type
     const categories = {
@@ -271,7 +275,7 @@ class YouTubeEnhancedExtractor {
    * Analyzes relationship with content creators
    */
   async analyzeCreatorLoyalty(subscriptions, watchHistory, videoDetails) {
-    console.log(`📺 [YouTube Enhanced] Analyzing creator loyalty...`);
+    log.info(`Analyzing creator loyalty...`);
 
     // Build creator watch frequency map
     const creatorWatchCounts = {};
@@ -315,7 +319,7 @@ class YouTubeEnhancedExtractor {
    * Identifies how user learns from content
    */
   async analyzeLearningStyle(videoDetails, watchHistory, searchHistory) {
-    console.log(`📺 [YouTube Enhanced] Analyzing learning style...`);
+    log.info(`Analyzing learning style...`);
 
     // Identify tutorial/educational content
     const learningKeywords = {
@@ -373,7 +377,7 @@ class YouTubeEnhancedExtractor {
    * Analyzes breadth and depth of interests
    */
   async analyzeCuriosityProfile(videoDetails, searchHistory, subscriptions) {
-    console.log(`📺 [YouTube Enhanced] Analyzing curiosity profile...`);
+    log.info(`Analyzing curiosity profile...`);
 
     // Extract topics from video titles
     const topics = new Set();
@@ -421,7 +425,7 @@ class YouTubeEnhancedExtractor {
    * Analyzes content duration preferences
    */
   async analyzeAttentionPatterns(videoDetails, watchHistory) {
-    console.log(`📺 [YouTube Enhanced] Analyzing attention patterns...`);
+    log.info(`Analyzing attention patterns...`);
 
     // Categorize by video duration
     const durations = videoDetails
@@ -468,7 +472,7 @@ class YouTubeEnhancedExtractor {
    * Analyzes active vs passive consumption
    */
   async analyzeEngagementBehavior(likedVideos, playlists, subscriptions) {
-    console.log(`📺 [YouTube Enhanced] Analyzing engagement behavior...`);
+    log.info(`Analyzing engagement behavior...`);
 
     const likeCount = likedVideos.length;
     const playlistCount = playlists.length;
@@ -500,7 +504,7 @@ class YouTubeEnhancedExtractor {
    * Tracks how viewing preferences change over time
    */
   async analyzeContentEvolution(watchHistory, videoDetails) {
-    console.log(`📺 [YouTube Enhanced] Analyzing content evolution...`);
+    log.info(`Analyzing content evolution...`);
 
     // Sort by watch date
     const sortedHistory = watchHistory
@@ -573,7 +577,7 @@ class YouTubeEnhancedExtractor {
    * How user finds new content
    */
   async analyzeDiscoveryBehavior(subscriptions, watchHistory, searchHistory) {
-    console.log(`📺 [YouTube Enhanced] Analyzing discovery behavior...`);
+    log.info(`Analyzing discovery behavior...`);
 
     const recentSubscriptions = subscriptions.slice(0, 20);
     const totalSubscriptions = subscriptions.length;
@@ -597,7 +601,7 @@ class YouTubeEnhancedExtractor {
    * Learning commitment and depth
    */
   async analyzeEducationalDepth(videoDetails, playlists, watchHistory) {
-    console.log(`📺 [YouTube Enhanced] Analyzing educational depth...`);
+    log.info(`Analyzing educational depth...`);
 
     const educationalVideos = videoDetails.filter(v => {
       const text = `${v.title || ''} ${v.description || ''}`.toLowerCase();
@@ -622,7 +626,7 @@ class YouTubeEnhancedExtractor {
    * Calculate overall personality metrics from all analyses
    */
   calculateOverallMetrics(analyses) {
-    console.log(`📺 [YouTube Enhanced] Calculating overall metrics...`);
+    log.info(`Calculating overall metrics...`);
 
     // Openness (curiosity, discovery, diversity)
     const opennessScore = (
@@ -713,7 +717,7 @@ class YouTubeEnhancedExtractor {
       const data = await response.json();
       return data.items || [];
     } catch (error) {
-      console.error('Error fetching liked videos:', error);
+      log.error('Error fetching liked videos:', error);
       return [];
     }
   }
@@ -734,7 +738,7 @@ class YouTubeEnhancedExtractor {
       const data = await response.json();
       return data.items || [];
     } catch (error) {
-      console.error('Error fetching subscriptions:', error);
+      log.error('Error fetching subscriptions:', error);
       return [];
     }
   }
@@ -755,7 +759,7 @@ class YouTubeEnhancedExtractor {
       const data = await response.json();
       return data.items || [];
     } catch (error) {
-      console.error('Error fetching playlists:', error);
+      log.error('Error fetching playlists:', error);
       return [];
     }
   }
@@ -775,7 +779,7 @@ class YouTubeEnhancedExtractor {
       );
 
       if (!response.ok) {
-        console.warn(`[YouTube Enhanced] Watch history unavailable (HTTP ${response.status}) — falling back to activities API`);
+        log.warn(`Watch history unavailable (HTTP ${response.status}) — falling back to activities API`);
         return this.getWatchHistoryFallback(accessToken, maxResults);
       }
 
@@ -792,7 +796,7 @@ class YouTubeEnhancedExtractor {
         source: 'history_playlist',
       }));
     } catch (error) {
-      console.error('[YouTube Enhanced] Watch history error:', error.message);
+      log.error('Watch history error:', error.message);
       return this.getWatchHistoryFallback(accessToken, maxResults);
     }
   }
@@ -858,7 +862,7 @@ class YouTubeEnhancedExtractor {
         );
 
         if (!response.ok) {
-          console.error(`YouTube API error: ${response.status}`);
+          log.error(`YouTube API error: ${response.status}`);
           continue;
         }
 
@@ -880,7 +884,7 @@ class YouTubeEnhancedExtractor {
 
       return allDetails;
     } catch (error) {
-      console.error('Error fetching video details:', error);
+      log.error('Error fetching video details:', error);
       return [];
     }
   }

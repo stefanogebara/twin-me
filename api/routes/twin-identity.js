@@ -16,6 +16,9 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { inferIdentityContext } from '../services/identityContextService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TwinIdentity');
 
 const router = express.Router();
 
@@ -40,12 +43,12 @@ async function fetchProfile(userId) {
       .maybeSingle();
 
     if (error) {
-      console.warn('[TwinIdentity] profile fetch error (non-fatal):', error.message);
+      log.warn('profile fetch error (non-fatal):', error.message);
       return null;
     }
     return data ?? null;
   } catch (err) {
-    console.warn('[TwinIdentity] profile fetch threw (non-fatal):', err.message);
+    log.warn('profile fetch threw (non-fatal):', err.message);
     return null;
   }
 }
@@ -70,13 +73,13 @@ async function fetchExpertReflections(userId) {
           .limit(3);
 
         if (error) {
-          console.warn(`[TwinIdentity] reflection fetch for ${expertKey} failed (non-fatal):`, error.message);
+          log.warn(`reflection fetch for ${expertKey} failed (non-fatal):`, error.message);
           result[expertKey] = [];
           return;
         }
         result[expertKey] = (data ?? []).map((m) => m.content);
       } catch (err) {
-        console.warn(`[TwinIdentity] reflection fetch for ${expertKey} threw (non-fatal):`, err.message);
+        log.warn(`reflection fetch for ${expertKey} threw (non-fatal):`, err.message);
         result[expertKey] = [];
       }
     })
@@ -98,12 +101,12 @@ async function fetchCalibration(userId) {
       .maybeSingle();
 
     if (error) {
-      console.warn('[TwinIdentity] calibration fetch error (non-fatal):', error.message);
+      log.warn('calibration fetch error (non-fatal):', error.message);
       return null;
     }
     return data ?? null;
   } catch (err) {
-    console.warn('[TwinIdentity] calibration fetch threw (non-fatal):', err.message);
+    log.warn('calibration fetch threw (non-fatal):', err.message);
     return null;
   }
 }
@@ -123,12 +126,12 @@ async function fetchTwinSummary(userId) {
       .maybeSingle();
 
     if (error) {
-      console.warn('[TwinIdentity] twin_summaries fetch error (non-fatal):', error.message);
+      log.warn('twin_summaries fetch error (non-fatal):', error.message);
       return null;
     }
     return data ?? null;
   } catch (err) {
-    console.warn('[TwinIdentity] twin_summaries fetch threw (non-fatal):', err.message);
+    log.warn('twin_summaries fetch threw (non-fatal):', err.message);
     return null;
   }
 }
@@ -153,7 +156,7 @@ router.get('/identity', authenticateUser, async (req, res) => {
   // Run all data fetches in parallel for maximum throughput
   const [identity, profile, expertInsights, summaryRow, calibration] = await Promise.all([
     inferIdentityContext(userId).catch((err) => {
-      console.warn('[TwinIdentity] inferIdentityContext failed (non-fatal):', err.message);
+      log.warn('inferIdentityContext failed (non-fatal):', err.message);
       return null;
     }),
     fetchProfile(userId),

@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Brainnodeops');
 
 /**
  * Add or update a node in the brain
@@ -65,7 +68,7 @@ export async function addNode(userId, nodeData, logActivity) {
       new_confidence: newConfidence
     }, source_type);
 
-    console.log(`[TwinsBrain] Updated node: "${label}" (confidence: ${newConfidence.toFixed(2)})`);
+    log.info(`Updated node: "${label}" (confidence: ${newConfidence.toFixed(2)})`);
     return updated;
   }
 
@@ -99,7 +102,7 @@ export async function addNode(userId, nodeData, logActivity) {
     label
   }, source_type);
 
-  console.log(`[TwinsBrain] Created node: "${label}" (type: ${node_type}, category: ${category})`);
+  log.info(`Created node: "${label}" (type: ${node_type}, category: ${category})`);
   return newNode;
 }
 

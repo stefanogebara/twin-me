@@ -6,6 +6,9 @@
 
 import { supabaseAdmin } from '../database.js';
 import { GithubTokenManager } from '../tokenManagers/githubTokenManager.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('GithubExtractor');
 
 class GithubExtractor {
   constructor(userId, platform = 'github') {
@@ -18,7 +21,7 @@ class GithubExtractor {
    * Main extraction method - extracts all GitHub data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[GitHub] Starting full extraction for user: ${userId}`);
+    log.info(`Starting full extraction for user: ${userId}`);
 
     let job = null;
     try {
@@ -42,18 +45,18 @@ class GithubExtractor {
       // Analyze technical profile from extracted data
       let analysis = null;
       try {
-        console.log(`[GitHub] Analyzing technical profile...`);
+        log.info(`Analyzing technical profile...`);
         analysis = await this.analyzeTechnicalProfile(userId);
-        console.log(`[GitHub] Technical profile analysis complete`);
+        log.info(`Technical profile analysis complete`);
       } catch (analysisError) {
-        console.error('[GitHub] Error analyzing technical profile:', analysisError);
+        log.error('Error analyzing technical profile:', analysisError);
         // Don't fail the extraction if analysis fails
       }
 
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[GitHub] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return {
         success: true,
         itemsExtracted: totalItems,
@@ -61,7 +64,7 @@ class GithubExtractor {
         analysis: analysis
       };
     } catch (error) {
-      console.error('[GitHub] Extraction error:', error);
+      log.error('Extraction error:', error);
 
       // Mark the job as failed if it was created
       if (job && job.id) {
@@ -102,7 +105,7 @@ class GithubExtractor {
 
       // Handle 401 with retry
       if (response.status === 401 && retryCount < 2) {
-        console.log(`[GitHub] 401 error, retrying (attempt ${retryCount + 1}/2)`);
+        log.info(`401 error, retrying (attempt ${retryCount + 1}/2)`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         return this.makeRequest(endpoint, params, retryCount + 1);
       }
@@ -115,11 +118,11 @@ class GithubExtractor {
         if (rateLimitRemaining === '0' && rateLimitReset) {
           const resetTime = new Date(parseInt(rateLimitReset) * 1000);
           const waitTime = resetTime.getTime() - Date.now();
-          console.warn(`[GitHub] Rate limit exceeded. Reset at ${resetTime.toISOString()}`);
+          log.warn(`Rate limit exceeded. Reset at ${resetTime.toISOString()}`);
 
           // If reset is within 5 minutes, wait. Otherwise, throw error
           if (waitTime > 0 && waitTime < 300000) {
-            console.log(`[GitHub] Waiting ${Math.ceil(waitTime / 1000)}s for rate limit reset...`);
+            log.info(`Waiting ${Math.ceil(waitTime / 1000)}s for rate limit reset...`);
             await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
             return this.makeRequest(endpoint, params, retryCount);
           }
@@ -136,7 +139,7 @@ class GithubExtractor {
       return response.json();
     } catch (error) {
       if (error.message.includes('Token refresh failed') || error.message.includes('Not authenticated')) {
-        console.error('[GitHub] Token refresh failed - marking connection as needs_reauth');
+        log.error('Token refresh failed - marking connection as needs_reauth');
         const authError = new Error('GitHub authentication failed - please reconnect');
         authError.status = 401;
         throw authError;
@@ -149,7 +152,7 @@ class GithubExtractor {
    * Extract user profile information
    */
   async extractProfile(userId) {
-    console.log(`[GitHub] Extracting user profile...`);
+    log.info(`Extracting user profile...`);
 
     try {
       const profile = await this.makeRequest('/user');
@@ -175,10 +178,10 @@ class GithubExtractor {
         url: profile.html_url
       });
 
-      console.log(`[GitHub] Extracted profile for ${profile.login}`);
+      log.info(`Extracted profile for ${profile.login}`);
       return 1;
     } catch (error) {
-      console.error('[GitHub] Error extracting profile:', error);
+      log.error('Error extracting profile:', error);
       return 0;
     }
   }
@@ -187,7 +190,7 @@ class GithubExtractor {
    * Extract user commits from all repositories
    */
   async extractCommits(userId, username) {
-    console.log(`[GitHub] Extracting commits...`);
+    log.info(`Extracting commits...`);
     let commitCount = 0;
 
     try {
@@ -197,7 +200,7 @@ class GithubExtractor {
         { per_page: 100, affiliation: 'owner,collaborator' }
       );
 
-      console.log(`[GitHub] Found ${repos.length} repositories`);
+      log.info(`Found ${repos.length} repositories`);
 
       for (const repo of repos.slice(0, 20)) { // Limit to 20 repos for initial version
         try {
@@ -230,14 +233,14 @@ class GithubExtractor {
             commitCount++;
           }
         } catch (repoError) {
-          console.warn(`[GitHub] Skipping repo ${repo.full_name}:`, repoError.message);
+          log.warn(`Skipping repo ${repo.full_name}:`, repoError.message);
         }
       }
 
-      console.log(`[GitHub] Extracted ${commitCount} commits`);
+      log.info(`Extracted ${commitCount} commits`);
       return commitCount;
     } catch (error) {
-      console.error('[GitHub] Error extracting commits:', error);
+      log.error('Error extracting commits:', error);
       return commitCount;
     }
   }
@@ -246,7 +249,7 @@ class GithubExtractor {
    * Extract issues and issue comments
    */
   async extractIssues(userId, username) {
-    console.log(`[GitHub] Extracting issues and comments...`);
+    log.info(`Extracting issues and comments...`);
     let itemCount = 0;
 
     try {
@@ -308,14 +311,14 @@ class GithubExtractor {
             }
           }
         } catch (commentError) {
-          console.warn(`[GitHub] Error fetching comments for issue #${issue.number}:`, commentError.message);
+          log.warn(`Error fetching comments for issue #${issue.number}:`, commentError.message);
         }
       }
 
-      console.log(`[GitHub] Extracted ${itemCount} issues and comments`);
+      log.info(`Extracted ${itemCount} issues and comments`);
       return itemCount;
     } catch (error) {
-      console.error('[GitHub] Error extracting issues:', error);
+      log.error('Error extracting issues:', error);
       return itemCount;
     }
   }
@@ -324,7 +327,7 @@ class GithubExtractor {
    * Extract pull requests
    */
   async extractPullRequests(userId, username) {
-    console.log(`[GitHub] Extracting pull requests...`);
+    log.info(`Extracting pull requests...`);
     let prCount = 0;
 
     try {
@@ -369,14 +372,14 @@ class GithubExtractor {
             }
           }
         } catch (repoError) {
-          console.warn(`[GitHub] Skipping PRs for ${repo.full_name}:`, repoError.message);
+          log.warn(`Skipping PRs for ${repo.full_name}:`, repoError.message);
         }
       }
 
-      console.log(`[GitHub] Extracted ${prCount} pull requests`);
+      log.info(`Extracted ${prCount} pull requests`);
       return prCount;
     } catch (error) {
-      console.error('[GitHub] Error extracting PRs:', error);
+      log.error('Error extracting PRs:', error);
       return prCount;
     }
   }
@@ -385,7 +388,7 @@ class GithubExtractor {
    * Extract code reviews
    */
   async extractCodeReviews(userId, username) {
-    console.log(`[GitHub] Extracting code reviews...`);
+    log.info(`Extracting code reviews...`);
     let reviewCount = 0;
 
     try {
@@ -438,14 +441,14 @@ class GithubExtractor {
             }
           }
         } catch (repoError) {
-          console.warn(`[GitHub] Skipping reviews for ${repo.full_name}`);
+          log.warn(`Skipping reviews for ${repo.full_name}`);
         }
       }
 
-      console.log(`[GitHub] Extracted ${reviewCount} code reviews`);
+      log.info(`Extracted ${reviewCount} code reviews`);
       return reviewCount;
     } catch (error) {
-      console.error('[GitHub] Error extracting reviews:', error);
+      log.error('Error extracting reviews:', error);
       return reviewCount;
     }
   }
@@ -454,7 +457,7 @@ class GithubExtractor {
    * Extract repository metadata
    */
   async extractRepositories(userId, username) {
-    console.log(`[GitHub] Extracting repository metadata...`);
+    log.info(`Extracting repository metadata...`);
     let repoCount = 0;
 
     try {
@@ -488,10 +491,10 @@ class GithubExtractor {
         repoCount++;
       }
 
-      console.log(`[GitHub] Extracted ${repoCount} repositories`);
+      log.info(`Extracted ${repoCount} repositories`);
       return repoCount;
     } catch (error) {
-      console.error('[GitHub] Error extracting repositories:', error);
+      log.error('Error extracting repositories:', error);
       return repoCount;
     }
   }
@@ -517,10 +520,10 @@ class GithubExtractor {
         });
 
       if (error) {
-        console.error('[GitHub] Error storing data:', error);
+        log.error('Error storing data:', error);
       }
     } catch (error) {
-      console.error('[GitHub] Exception storing data:', error);
+      log.error('Exception storing data:', error);
     }
   }
 
@@ -542,7 +545,7 @@ class GithubExtractor {
       .single();
 
     if (error) {
-      console.error('[GitHub] Error creating job:', error);
+      log.error('Error creating job:', error);
       throw error;
     }
 
@@ -563,7 +566,7 @@ class GithubExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
-    if (updateErr) console.warn('[GitHub] Error completing extraction job:', updateErr.message);
+    if (updateErr) log.warn('Error completing extraction job:', updateErr.message);
   }
 }
 

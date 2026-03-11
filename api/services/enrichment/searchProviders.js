@@ -14,6 +14,9 @@
  */
 
 import { validateUrl, extractUrl } from './enrichmentUtils.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Searchproviders');
 
 // ============================================================
 // LinkedIn URL Discovery & Career History Web Search
@@ -25,7 +28,7 @@ import { validateUrl, extractUrl } from './enrichmentUtils.js';
 export async function findLinkedInUrlViaWebSearch(email, name) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.log('[ProfileEnrichment] No OpenRouter API key for web search');
+    log.info('No OpenRouter API key for web search');
     return null;
   }
 
@@ -36,7 +39,7 @@ export async function findLinkedInUrlViaWebSearch(email, name) {
     : '';
 
   const searchQuery = `site:linkedin.com/in "${name || email}"${companyHint ? ` ${companyHint}` : ''} Return ONLY the LinkedIn URL.`;
-  console.log('[ProfileEnrichment] LinkedIn URL search query:', searchQuery);
+  log.info('LinkedIn URL search query:', searchQuery);
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -55,13 +58,13 @@ export async function findLinkedInUrlViaWebSearch(email, name) {
     });
 
     if (!response.ok) {
-      console.log('[ProfileEnrichment] LinkedIn URL search failed:', response.status);
+      log.info('LinkedIn URL search failed:', response.status);
       return null;
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
-    console.log('[ProfileEnrichment] LinkedIn URL search result:', content.substring(0, 300));
+    log.info('LinkedIn URL search result:', content.substring(0, 300));
 
     let linkedInMatch = content.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[\w-]+/i);
     if (!linkedInMatch) {
@@ -69,19 +72,19 @@ export async function findLinkedInUrlViaWebSearch(email, name) {
       if (linkedInMatch) {
         const username = linkedInMatch[1];
         const fullUrl = `https://www.linkedin.com/in/${username}`;
-        console.log('[ProfileEnrichment] Found LinkedIn URL (constructed):', fullUrl);
+        log.info('Found LinkedIn URL (constructed):', fullUrl);
         return fullUrl;
       }
     }
     if (linkedInMatch) {
-      console.log('[ProfileEnrichment] Found LinkedIn URL:', linkedInMatch[0]);
+      log.info('Found LinkedIn URL:', linkedInMatch[0]);
       return linkedInMatch[0];
     }
 
-    console.log('[ProfileEnrichment] No LinkedIn URL found in response');
+    log.info('No LinkedIn URL found in response');
     return null;
   } catch (error) {
-    console.error('[ProfileEnrichment] LinkedIn URL search error:', error);
+    log.error('LinkedIn URL search error:', error);
     return null;
   }
 }
@@ -92,7 +95,7 @@ export async function findLinkedInUrlViaWebSearch(email, name) {
 export async function searchWebForCareerHistory(name, currentCompany = null) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.log('[ProfileEnrichment] No API key for career search');
+    log.info('No API key for career search');
     return null;
   }
 
@@ -117,7 +120,7 @@ EDUCATION:
 Be thorough and accurate. Only include information you can verify from sources.`;
 
   try {
-    console.log('[ProfileEnrichment] Searching web for career history of:', name);
+    log.info('Searching web for career history of:', name);
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -135,26 +138,26 @@ Be thorough and accurate. Only include information you can verify from sources.`
     });
 
     if (!response.ok) {
-      console.log('[ProfileEnrichment] Career search failed:', response.status);
+      log.info('Career search failed:', response.status);
       return null;
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
-    console.log('[ProfileEnrichment] Career search result length:', content.length);
+    log.info('Career search result length:', content.length);
 
     const careerTimeline = parseCareerFromWebSearch(content);
     const education = parseEducationFromWebSearch(content);
 
     if (!careerTimeline && !education) {
-      console.log('[ProfileEnrichment] Could not parse career data from response');
+      log.info('Could not parse career data from response');
       return null;
     }
 
     return { career_timeline: careerTimeline, education: education, raw_response: content };
 
   } catch (error) {
-    console.error('[ProfileEnrichment] Career search error:', error);
+    log.error('Career search error:', error);
     return null;
   }
 }
@@ -208,7 +211,7 @@ export async function callPerplexityAPI(query) {
   const useOpenRouter = !!openRouterKey;
 
   if (!apiKey) {
-    console.warn('[ProfileEnrichment] No API key configured (OPENROUTER_API_KEY or PERPLEXITY_API_KEY)');
+    log.warn('No API key configured (OPENROUTER_API_KEY or PERPLEXITY_API_KEY)');
     return { success: false, error: 'API key not configured', content: null, raw: null };
   }
 
@@ -218,7 +221,7 @@ export async function callPerplexityAPI(query) {
 
   const model = useOpenRouter ? 'perplexity/sonar-pro' : 'sonar';
 
-  console.log(`[ProfileEnrichment] Using ${useOpenRouter ? 'OpenRouter (Sonar Pro)' : 'Perplexity'} API`);
+  log.info(`Using ${useOpenRouter ? 'OpenRouter (Sonar Pro)' : 'Perplexity'} API`);
 
   try {
     const headers = {
@@ -270,19 +273,19 @@ Return your findings as JSON with these exact fields:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[ProfileEnrichment] API error:', errorText);
+      log.error('API error:', errorText);
       return { success: false, error: `API error: ${response.status}`, content: null, raw: null };
     }
 
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content || '';
 
-    console.log('[ProfileEnrichment] Raw API response:', JSON.stringify(result, null, 2).substring(0, 2000));
-    console.log('[ProfileEnrichment] Extracted content:', content.substring(0, 1000));
+    log.info('Raw API response:', JSON.stringify(result, null, 2).substring(0, 2000));
+    log.info('Extracted content:', content.substring(0, 1000));
 
     return { success: true, content, raw: result };
   } catch (error) {
-    console.error('[ProfileEnrichment] API request failed:', error);
+    log.error('API request failed:', error);
     return { success: false, error: error.message, content: null, raw: null };
   }
 }
@@ -291,7 +294,7 @@ Return your findings as JSON with these exact fields:
  * Enrich profile from a provided LinkedIn URL
  */
 export async function enrichFromLinkedIn(linkedinUrl, name = null) {
-  console.log(`[ProfileEnrichment] Enriching from LinkedIn URL: ${linkedinUrl}`);
+  log.info(`Enriching from LinkedIn URL: ${linkedinUrl}`);
 
   const usernameMatch = linkedinUrl.match(/linkedin\.com\/in\/([^\/\?]+)/i);
   const linkedinUsername = usernameMatch ? usernameMatch[1] : null;
@@ -321,7 +324,7 @@ Return the findings in JSON format.`;
     const searchResponse = await callPerplexityAPI(query);
 
     if (!searchResponse.success) {
-      console.error('[ProfileEnrichment] LinkedIn API call failed:', searchResponse.error);
+      log.error('LinkedIn API call failed:', searchResponse.error);
       return { success: false, error: searchResponse.error, data: null };
     }
 
@@ -333,7 +336,7 @@ Return the findings in JSON format.`;
 
     enrichmentData.discovered_linkedin_url = linkedinUrl;
 
-    console.log(`[ProfileEnrichment] LinkedIn enrichment complete:`, {
+    log.info(`LinkedIn enrichment complete:`, {
       hasCompany: !!enrichmentData.discovered_company,
       hasTitle: !!enrichmentData.discovered_title,
       hasLinkedIn: !!enrichmentData.discovered_linkedin_url
@@ -349,7 +352,7 @@ Return the findings in JSON format.`;
       }
     };
   } catch (error) {
-    console.error('[ProfileEnrichment] LinkedIn enrichment error:', error);
+    log.error('LinkedIn enrichment error:', error);
     return { success: false, error: error.message, data: null };
   }
 }
@@ -464,7 +467,7 @@ export function parseEnrichmentResponse(content, email, providedName) {
       }
     }
   } catch (error) {
-    console.warn('[ProfileEnrichment] Failed to parse response:', error.message);
+    log.warn('Failed to parse response:', error.message);
   }
 
   return enrichment;
@@ -478,7 +481,7 @@ export function parseEnrichmentResponse(content, email, providedName) {
  * Search web ONLY for additional social profiles
  */
 export async function searchWebForSocialProfiles(email, name, linkedInData) {
-  console.log('[ProfileEnrichment] Searching for additional social profiles...');
+  log.info('Searching for additional social profiles...');
 
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
@@ -526,19 +529,19 @@ Format your response as JSON ONLY:
     });
 
     if (!response.ok) {
-      console.log('[ProfileEnrichment] Social profile search failed:', response.status);
+      log.info('Social profile search failed:', response.status);
       return { success: false, webFindings: null };
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '';
-    console.log('[ProfileEnrichment] Social profile search result:', content.substring(0, 200));
+    log.info('Social profile search result:', content.substring(0, 200));
 
     const webFindings = parseSocialProfileResponse(content);
     return { success: true, webFindings, rawContent: content };
 
   } catch (error) {
-    console.error('[ProfileEnrichment] Social profile search error:', error);
+    log.error('Social profile search error:', error);
     return { success: false, webFindings: null };
   }
 }
@@ -574,7 +577,7 @@ export function parseSocialProfileResponse(content) {
       }
     }
   } catch (e) {
-    console.log('[ProfileEnrichment] Could not parse social profile JSON:', e.message);
+    log.info('Could not parse social profile JSON:', e.message);
   }
 
   return findings;
@@ -584,11 +587,11 @@ export function parseSocialProfileResponse(content) {
  * Search the web for comprehensive career/life information about a person
  */
 export async function searchWebForPerson(email, name, linkedInData) {
-  console.log('[ProfileEnrichment] Starting comprehensive career search...');
+  log.info('Starting comprehensive career search...');
 
   const apiKey = process.env.OPENROUTER_API_KEY || process.env.PERPLEXITY_API_KEY;
   if (!apiKey) {
-    console.log('[ProfileEnrichment] No API key for web search');
+    log.info('No API key for web search');
     return { success: false, webFindings: null };
   }
 
@@ -686,20 +689,20 @@ ADDITIONAL_PROFILES:
     });
 
     if (!response.ok) {
-      console.error('[ProfileEnrichment] Web search API error:', response.status);
+      log.error('Web search API error:', response.status);
       return { success: false, webFindings: null };
     }
 
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content || '';
 
-    console.log('[ProfileEnrichment] Web search response received, length:', content.length);
+    log.info('Web search response received, length:', content.length);
 
     const webFindings = parseWebSearchResponse(content);
 
     return { success: true, webFindings, rawContent: content };
   } catch (error) {
-    console.error('[ProfileEnrichment] Web search failed:', error.message);
+    log.error('Web search failed:', error.message);
     return { success: false, webFindings: null };
   }
 }
@@ -767,7 +770,7 @@ export function parseWebSearchResponse(content) {
       findings.blog_url = profiles.blog_url || null;
       findings.other_urls = profiles.other_urls || [];
     } catch (e) {
-      console.log('[ProfileEnrichment] Could not parse ADDITIONAL_PROFILES JSON');
+      log.info('Could not parse ADDITIONAL_PROFILES JSON');
     }
   }
 

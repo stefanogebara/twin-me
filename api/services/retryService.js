@@ -1,3 +1,7 @@
+import { createLogger } from './logger.js';
+
+const log = createLogger('Retry');
+
 /**
  * Retry Service
  * Provides exponential backoff retry logic for API calls
@@ -33,7 +37,7 @@ export async function withRetry(fn, options = {}) {
         maxDelay
       );
 
-      console.log(`[Retry] Attempt ${attempt + 1}/${maxRetries} failed, retrying in ${Math.round(delay)}ms`);
+      log.info(`Attempt ${attempt + 1}/${maxRetries} failed, retrying in ${Math.round(delay)}ms`);
 
       if (onRetry) {
         onRetry(attempt, error, delay);

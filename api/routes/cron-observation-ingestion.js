@@ -9,18 +9,21 @@
 
 import { runObservationIngestion } from '../services/observationIngestion.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronObservation');
 
 /**
  * Vercel Cron Job Handler
  * Called every 30 minutes by Vercel Cron
  */
 export default async function handler(req, res) {
-  console.log('[CRON] Observation ingestion endpoint called');
+  log.info('Observation ingestion endpoint called');
 
   // Security: Verify cron secret (timing-safe)
   const authResult = verifyCronSecret(req);
   if (!authResult.authorized) {
-    console.error('[CRON] Unauthorized cron request - invalid secret');
+    log.error('Unauthorized cron request - invalid secret');
     return res.status(authResult.status).json({
       success: false,
       error: authResult.error,
@@ -36,11 +39,11 @@ export default async function handler(req, res) {
         const { twinsBrainService } = await import('../services/twinsBrainService.js');
         for (const uid of result.processedUserIds) {
           twinsBrainService.createSnapshot(uid, 'automatic').catch(e =>
-            console.warn('[CRON] Auto-snapshot failed for', uid, e.message)
+            log.warn('Auto-snapshot failed', { userId: uid, error: e.message })
           );
         }
       } catch (e) {
-        console.warn('[CRON] Auto-snapshot setup failed:', e.message);
+        log.warn('Auto-snapshot setup failed', { error: e.message });
       }
 
       // Pre-warm insights summary cache for processed users
@@ -48,17 +51,17 @@ export default async function handler(req, res) {
         const { generateAndCacheSummary } = await import('./platform-insights.js');
         for (const uid of result.processedUserIds) {
           generateAndCacheSummary(uid).catch(e =>
-            console.warn('[CRON] Insights summary pre-warm failed for', uid, e.message)
+            log.warn('Insights summary pre-warm failed', { userId: uid, error: e.message })
           );
         }
       } catch (e) {
-        console.warn('[CRON] Insights summary pre-warm setup failed:', e.message);
+        log.warn('Insights summary pre-warm setup failed', { error: e.message });
       }
     }
 
     const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;
 
-    console.log('[CRON] Observation ingestion completed:', result);
+    log.info('Observation ingestion completed', { result });
 
     return res.status(status).json({
       success: status === 200,
@@ -67,7 +70,7 @@ export default async function handler(req, res) {
       cronType: 'observation-ingestion',
     });
   } catch (error) {
-    console.error('[CRON] Observation ingestion failed:', error.message);
+    log.error('Observation ingestion failed', { error: error.message });
     return res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',

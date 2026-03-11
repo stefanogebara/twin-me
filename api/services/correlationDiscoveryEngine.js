@@ -13,6 +13,9 @@
 
 import { supabaseAdmin } from './database.js';
 import baselineEngine from './baselineEngine.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('CorrelationDiscovery');
 
 // Minimum sample size for meaningful correlation
 const MIN_SAMPLE_SIZE = 10;
@@ -328,7 +331,7 @@ export async function discoverCorrelations(userId, includeLagged = true) {
           }
         }
       } catch (err) {
-        console.error(`Error computing correlation ${metricA}/${metricB}:`, err);
+        log.error(`Error computing correlation ${metricA}/${metricB}:`, err);
       }
     }
   }
@@ -388,7 +391,7 @@ export async function validateExistingCorrelations(userId) {
           validation_count: (corr.validation_count || 1) + 1
         })
         .eq('id', corr.id);
-      if (validationUpdateErr) console.warn('[CorrelationDiscovery] Error updating correlation validation:', validationUpdateErr.message);
+      if (validationUpdateErr) log.warn('Error updating correlation validation:', validationUpdateErr.message);
 
       if (stillValid) {
         results.validated++;
@@ -396,7 +399,7 @@ export async function validateExistingCorrelations(userId) {
         results.invalidated++;
       }
     } catch (err) {
-      console.error(`Error validating correlation ${corr.id}:`, err);
+      log.error(`Error validating correlation ${corr.id}:`, err);
       results.unchanged++;
     }
   }
@@ -425,7 +428,7 @@ export async function getActiveCorrelations(userId, minStrength = null) {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching correlations:', error);
+    log.error('Error fetching correlations:', error);
     return [];
   }
 
@@ -448,7 +451,7 @@ export async function getCorrelationsForMetric(userId, metricName) {
     .order('correlation_coefficient', { ascending: false });
 
   if (error) {
-    console.error('Error fetching correlations:', error);
+    log.error('Error fetching correlations:', error);
     return [];
   }
 
@@ -522,7 +525,7 @@ export async function findPredictiveCorrelations(userId) {
     .order('time_lag_hours', { ascending: true });
 
   if (error) {
-    console.error('Error fetching predictive correlations:', error);
+    log.error('Error fetching predictive correlations:', error);
     return [];
   }
 

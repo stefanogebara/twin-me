@@ -1,3 +1,7 @@
+import { createLogger } from './logger.js';
+
+const log = createLogger('InsightCache');
+
 /**
  * Insight Cache Service
  * Caches soul insights to reduce redundant calculations
@@ -43,7 +47,7 @@ class InsightCache {
       expiresAt: Date.now() + expirationTime
     });
 
-    console.log(`[InsightCache] Cached insights for ${key}, expires in ${expirationTime}ms`);
+    log.info(`Cached insights for ${key}, expires in ${expirationTime}ms`);
   }
 
   /**
@@ -57,19 +61,19 @@ class InsightCache {
     const entry = this.cache.get(key);
 
     if (!entry) {
-      console.log(`[InsightCache] Cache miss for ${key}`);
+      log.info(`Cache miss for ${key}`);
       return null;
     }
 
     // Check if expired
     if (Date.now() > entry.expiresAt) {
-      console.log(`[InsightCache] Cache expired for ${key}`);
+      log.info(`Cache expired for ${key}`);
       this.cache.delete(key);
       return null;
     }
 
     const age = Date.now() - entry.timestamp;
-    console.log(`[InsightCache] Cache hit for ${key}, age: ${age}ms`);
+    log.info(`Cache hit for ${key}, age: ${age}ms`);
     return entry.data;
   }
 
@@ -94,7 +98,7 @@ class InsightCache {
     const deleted = this.cache.delete(key);
 
     if (deleted) {
-      console.log(`[InsightCache] Invalidated cache for ${key}`);
+      log.info(`Invalidated cache for ${key}`);
     }
   }
 
@@ -113,7 +117,7 @@ class InsightCache {
     }
 
     if (deletedCount > 0) {
-      console.log(`[InsightCache] Invalidated ${deletedCount} cache entries for user ${userId}`);
+      log.info(`Invalidated ${deletedCount} cache entries for user ${userId}`);
     }
   }
 
@@ -123,7 +127,7 @@ class InsightCache {
   clear() {
     const size = this.cache.size;
     this.cache.clear();
-    console.log(`[InsightCache] Cleared ${size} cache entries`);
+    log.info(`Cleared ${size} cache entries`);
   }
 
   /**
@@ -168,7 +172,7 @@ class InsightCache {
 
     if (oldestKey) {
       this.cache.delete(oldestKey);
-      console.log(`[InsightCache] Evicted oldest entry: ${oldestKey}`);
+      log.info(`Evicted oldest entry: ${oldestKey}`);
     }
   }
 
@@ -187,7 +191,7 @@ class InsightCache {
     }
 
     if (cleanedCount > 0) {
-      console.log(`[InsightCache] Cleaned up ${cleanedCount} expired entries`);
+      log.info(`Cleaned up ${cleanedCount} expired entries`);
     }
   }
 

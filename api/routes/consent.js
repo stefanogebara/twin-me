@@ -1,6 +1,9 @@
 import express from 'express';
 import supabase from '../config/supabase.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Consent');
 
 const router = express.Router();
 
@@ -19,13 +22,13 @@ router.get('/', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to fetch consents:', error);
+      log.error('Failed to fetch consents:', error);
       return res.status(500).json({ error: 'Failed to fetch consents' });
     }
 
     res.json({ success: true, consents: consents || [] });
   } catch (error) {
-    console.error('Get consents error:', error);
+    log.error('Get consents error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -62,13 +65,13 @@ router.post('/', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Failed to grant consent:', error);
+      log.error('Failed to grant consent:', error);
       return res.status(500).json({ error: 'Failed to grant consent' });
     }
 
     res.json({ success: true, consent });
   } catch (error) {
-    console.error('Grant consent error:', error);
+    log.error('Grant consent error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -93,7 +96,7 @@ router.delete('/:consentType/:platform', async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Failed to revoke consent:', error);
+      log.error('Failed to revoke consent:', error);
       return res.status(500).json({ error: 'Failed to revoke consent' });
     }
 
@@ -103,7 +106,7 @@ router.delete('/:consentType/:platform', async (req, res) => {
 
     res.json({ success: true, consent });
   } catch (error) {
-    console.error('Revoke consent error:', error);
+    log.error('Revoke consent error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

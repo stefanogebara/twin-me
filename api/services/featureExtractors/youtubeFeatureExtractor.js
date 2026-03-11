@@ -20,6 +20,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Youtubefeatureextractor');
 
 class YouTubeFeatureExtractor {
   constructor() {
@@ -30,7 +33,7 @@ class YouTubeFeatureExtractor {
    * Extract all behavioral features from YouTube data
    */
   async extractFeatures(userId) {
-    console.log(`📺 [YouTube Extractor] Extracting features for user ${userId}`);
+    log.info(`Extracting features for user ${userId}`);
 
     try {
       const cutoffDate = new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -44,7 +47,7 @@ class YouTubeFeatureExtractor {
         .order('extracted_at', { ascending: false });
 
       if (platformError) {
-        console.warn('⚠️ [YouTube Extractor] Error fetching data:', platformError.message);
+        log.warn('Error fetching data:', platformError.message);
       }
 
       // Also check soul_data
@@ -56,7 +59,7 @@ class YouTubeFeatureExtractor {
         .order('created_at', { ascending: false });
 
       if (soulError) {
-        console.warn('⚠️ [YouTube Extractor] Error fetching soul_data:', soulError.message);
+        log.warn('Error fetching soul_data:', soulError.message);
       }
 
       const normalizedPlatformData = (platformData || []).map(entry => ({
@@ -73,11 +76,11 @@ class YouTubeFeatureExtractor {
       const youtubeData = [...normalizedPlatformData, ...normalizedSoulData];
 
       if (youtubeData.length === 0) {
-        console.log('⚠️ [YouTube Extractor] No YouTube data found');
+        log.info('No YouTube data found');
         return [];
       }
 
-      console.log(`📊 [YouTube Extractor] Found ${youtubeData.length} YouTube data entries`);
+      log.info(`Found ${youtubeData.length} YouTube data entries`);
 
       const features = [];
 
@@ -165,11 +168,11 @@ class YouTubeFeatureExtractor {
         }));
       }
 
-      console.log(`✅ [YouTube Extractor] Extracted ${features.length} features`);
+      log.info(`Extracted ${features.length} features`);
       return features;
 
     } catch (error) {
-      console.error('❌ [YouTube Extractor] Error:', error);
+      log.error('Error:', error);
       throw error;
     }
   }
@@ -556,7 +559,7 @@ class YouTubeFeatureExtractor {
   async saveFeatures(features) {
     if (features.length === 0) return { success: true, saved: 0 };
 
-    console.log(`[YouTube Extractor] Saving ${features.length} features to database...`);
+    log.info(`Saving ${features.length} features to database...`);
 
     try {
       const { data, error } = await supabaseAdmin
@@ -568,10 +571,10 @@ class YouTubeFeatureExtractor {
 
       if (error) throw error;
 
-      console.log(`[YouTube Extractor] Saved ${data.length} features successfully`);
+      log.info(`Saved ${data.length} features successfully`);
       return { success: true, saved: data.length, data };
     } catch (error) {
-      console.error('[YouTube Extractor] Error saving features:', error);
+      log.error('Error saving features:', error);
       return { success: false, error: error.message };
     }
   }

@@ -13,13 +13,16 @@ import {
   setupGmailPushNotifications,
 } from '../services/webhookReceiverService.js';
 import { encryptToken, decryptToken, decryptState } from '../services/encryption.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OAuthCallback');
 
 const router = express.Router();
 
 // Encryption key for OAuth tokens
 const ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY;
 if (!ENCRYPTION_KEY) {
-  console.error('[OAuth Callback] TOKEN_ENCRYPTION_KEY environment variable is required');
+  log.error('TOKEN_ENCRYPTION_KEY environment variable is required');
 }
 
 /**
@@ -33,7 +36,7 @@ router.get('/callback', async (req, res) => {
 
     // Handle OAuth errors
     if (oauthError) {
-      console.error('OAuth error:', oauthError);
+      log.error('OAuth error:', oauthError);
       return res.redirect(`${appUrl}/soul-signature?error=${oauthError}`);
     }
 
@@ -47,7 +50,7 @@ router.get('/callback', async (req, res) => {
     try {
       stateData = decryptState(state);
     } catch (err) {
-      console.error('Failed to decrypt state:', err);
+      log.error('Failed to decrypt state:', err);
       return res.redirect(`${appUrl}/soul-signature?error=invalid_state`);
     }
 
@@ -56,11 +59,11 @@ router.get('/callback', async (req, res) => {
     // Validate state is fresh to prevent replay attacks (10-minute window)
     const STATE_MAX_AGE_MS = 10 * 60 * 1000;
     if (timestamp && (Date.now() - timestamp) > STATE_MAX_AGE_MS) {
-      console.warn('[OAuth Callback] State parameter too old, possible replay attack');
+      log.warn('State parameter too old, possible replay attack');
       return res.redirect(`${appUrl}/soul-signature?error=state_expired`);
     }
 
-    console.log(`📥 OAuth callback received for ${provider} - User: ${userId}`);
+    log.info(`OAuth callback received for ${provider} - User: ${userId}`);
 
     // Exchange authorization code for access token
     const tokens = await exchangeCodeForTokens(provider, code);
@@ -69,18 +72,18 @@ router.get('/callback', async (req, res) => {
       throw new Error(`Failed to exchange code for tokens: ${provider}`);
     }
 
-    console.log(`🔑 Tokens obtained for ${provider}`);
+    log.info(`Tokens obtained for ${provider}`);
 
     // Store tokens securely in database
     const connectorId = await storeOAuthTokens(userId, provider, tokens);
 
-    console.log(`💾 Tokens stored in database - Connector ID: ${connectorId}`);
+    log.info(`Tokens stored in database - Connector ID: ${connectorId}`);
 
     // Register webhooks for supported platforms (GitHub, Gmail, Slack)
     await registerWebhooksIfSupported(userId, provider, tokens.access_token);
 
     // Trigger immediate data extraction
-    console.log(`📊 Starting data extraction for ${provider}...`);
+    log.info(`Starting data extraction for ${provider}...`);
 
     // Extract data in background (don't wait for completion)
     extractDataInBackground(userId, provider, tokens.access_token, connectorId);
@@ -89,7 +92,7 @@ router.get('/callback', async (req, res) => {
     res.redirect(`${appUrl}/soul-signature?connected=${provider}`);
 
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    log.error('OAuth callback error:', error);
     res.redirect(`${appUrl}/soul-signature?error=connection_failed`);
   }
 });
@@ -145,10 +148,10 @@ async function exchangeSpotifyCode(code, redirectUri) {
     throw new Error('Spotify credentials not configured');
   }
 
-  console.log('🔑 [Spotify OAuth] Exchanging authorization code for tokens...');
-  console.log('   Code length:', code.length);
-  console.log('   Redirect URI:', redirectUri);
-  console.log('   Client ID:', clientId);
+  log.info('Exchanging authorization code for tokens...');
+  log.info('Code length:', code.length);
+  log.info('Redirect URI:', redirectUri);
+  log.info('Client ID:', clientId);
 
   const response = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -163,26 +166,26 @@ async function exchangeSpotifyCode(code, redirectUri) {
     })
   });
 
-  console.log('🔑 [Spotify OAuth] Token exchange response status:', response.status);
+  log.info('Token exchange response status:', response.status);
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('❌ [Spotify OAuth] Token exchange failed!');
-    console.error('   Status:', response.status);
-    console.error('   Error body:', errorText);
+    log.error('Token exchange failed!');
+    log.error('Status:', response.status);
+    log.error('Error body:', errorText);
 
     // Try to parse JSON error response
     try {
       const errorJson = JSON.parse(errorText);
-      console.error('   Error JSON:', JSON.stringify(errorJson, null, 2));
+      log.error('Error JSON:', JSON.stringify(errorJson, null, 2));
     } catch (e) {
-      console.error('   Raw error (not JSON):', errorText);
+      log.error('Raw error (not JSON):', errorText);
     }
 
     throw new Error(`Spotify token exchange failed (${response.status}): ${errorText}`);
   }
 
-  console.log('✅ [Spotify OAuth] Token exchange successful!');
+  log.info('Token exchange successful!');
   return await response.json();
 }
 
@@ -445,7 +448,7 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
       provider
     );
 
-    console.log(`✅ Data extraction completed for ${provider}:`, result);
+    log.info(`Data extraction completed for ${provider}:`, result);
 
     // Update connector with last sync time
     await serverDb.query(`
@@ -455,7 +458,7 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
     `, [result.itemsExtracted || 0, connectorId]);
 
   } catch (error) {
-    console.error(`❌ Background extraction failed for ${provider}:`, error);
+    log.error(`Background extraction failed for ${provider}:`, error);
 
     // Update connector with error status
     await serverDb.query(`
@@ -475,7 +478,7 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
     const { provider } = req.params;
     const userId = req.user.id;
 
-    console.log(`🔄 Manual extraction requested for ${provider} - User: ${userId}`);
+    log.info(`Manual extraction requested for ${provider} - User: ${userId}`);
 
     // Get stored tokens from database
     const connector = await serverDb.query(`
@@ -533,7 +536,7 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Manual extraction error:', error);
+    log.error('Manual extraction error:', error);
     res.status(500).json({
       error: 'Extraction failed',
       message: error.message
@@ -575,7 +578,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Status fetch error:', error);
+    log.error('Status fetch error:', error);
     res.status(500).json({
       error: 'Failed to fetch status',
       message: error.message
@@ -604,7 +607,7 @@ router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Disconnect error:', error);
+    log.error('Disconnect error:', error);
     res.status(500).json({
       error: 'Failed to disconnect',
       message: error.message
@@ -618,14 +621,14 @@ router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
  */
 async function registerWebhooksIfSupported(userId, provider, accessToken) {
   try {
-    console.log(`🔔 Checking webhook support for ${provider}...`);
+    log.info(`Checking webhook support for ${provider}...`);
 
     switch (provider) {
       case 'github':
         // GitHub supports webhooks - register for all user repos
         // Note: This requires additional API call to get user's repos
         // For now, we'll log that it's available
-        console.log(`✅ GitHub webhook registration available - will register on first repo activity`);
+        log.info(`GitHub webhook registration available - will register on first repo activity`);
         // TODO: Get user's repos and register webhooks for each
         // const repos = await fetchUserRepos(accessToken);
         // for (const repo of repos) {
@@ -636,27 +639,27 @@ async function registerWebhooksIfSupported(userId, provider, accessToken) {
       case 'google_gmail':
       case 'gmail':
         // Gmail supports push notifications via Pub/Sub
-        console.log(`📧 Setting up Gmail push notifications...`);
+        log.info(`Setting up Gmail push notifications...`);
         const gmailResult = await setupGmailPushNotifications(userId, accessToken);
 
         if (gmailResult.success) {
-          console.log(`✅ Gmail push notifications enabled for user ${userId}`);
+          log.info(`Gmail push notifications enabled for user ${userId}`);
         } else {
-          console.warn(`⚠️  Gmail push setup failed:`, gmailResult.error);
+          log.warn(`Gmail push setup failed:`, gmailResult.error);
         }
         break;
 
       case 'slack':
         // Slack supports event subscriptions, but requires additional setup
         // in the Slack app configuration (event subscription URL)
-        console.log(`💬 Slack webhooks require app-level configuration`);
-        console.log(`   Configure event subscriptions at: https://api.slack.com/apps`);
+        log.info(`Slack webhooks require app-level configuration`);
+        log.info(`Configure event subscriptions at: https://api.slack.com/apps`);
         break;
 
       case 'discord':
         // Discord does NOT support outgoing webhooks for user events
         // Continue using polling approach
-        console.log(`🎮 Discord does not support webhooks - using polling`);
+        log.info(`Discord does not support webhooks - using polling`);
         break;
 
       case 'spotify':
@@ -664,11 +667,11 @@ async function registerWebhooksIfSupported(userId, provider, accessToken) {
       case 'google_calendar':
       default:
         // These platforms don't support webhooks - continue using polling
-        console.log(`ℹ️  ${provider} does not support webhooks - using polling`);
+        log.info(`${provider} does not support webhooks - using polling`);
         break;
     }
   } catch (error) {
-    console.error(`❌ Webhook registration failed for ${provider}:`, error);
+    log.error(`Webhook registration failed for ${provider}:`, error);
     // Don't throw - webhook registration is optional, platform will still work with polling
   }
 }

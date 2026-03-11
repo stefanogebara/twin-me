@@ -23,6 +23,9 @@ import { getConnectionId as getDbConnectionId, updateLastSynced } from './connec
 import { withRetry } from './retryService.js';
 import { formatExtractionResult, categorizeError } from './extractionErrorHandler.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Nango');
 
 // Initialize Nango client (lazy - only if secret key is available)
 let nango = null;
@@ -31,7 +34,7 @@ if (process.env.NANGO_SECRET_KEY) {
     secretKey: process.env.NANGO_SECRET_KEY
   });
 } else {
-  console.warn('[NangoService] NANGO_SECRET_KEY not configured - Nango integrations disabled');
+  log.warn('NANGO_SECRET_KEY not configured - Nango integrations disabled');
 }
 
 // Fallback connection IDs (for backwards compatibility during migration)
@@ -331,7 +334,7 @@ export async function createConnectSession(userId, userEmail, options = {}) {
       allowed_integrations: allowedIntegrations
     };
 
-    console.log(`[Nango] Creating connect session for user ${userId} with integrations:`, allowedIntegrations);
+    log.info(`Creating connect session for user ${userId} with integrations:`, allowedIntegrations);
 
     const response = await nango.createConnectSession(sessionParams);
 
@@ -340,10 +343,10 @@ export async function createConnectSession(userId, userEmail, options = {}) {
     const token = sessionData.token || sessionData.connect_token;
     const connectLink = sessionData.connect_link || `https://connect.nango.dev?session_token=${token}`;
 
-    console.log(`[Nango] Created connect session for user ${userId}, token: ${token?.substring(0, 20)}...`);
+    log.info(`Created connect session for user ${userId}, token: ${token?.substring(0, 20)}...`);
     return { success: true, token, connectLink };
   } catch (error) {
-    console.error('[Nango] Error creating connect session:', error.message, error.response?.data || '');
+    log.error('Error creating connect session:', error.message, error.response?.data || '');
     return { success: false, error: error.message };
   }
 }
@@ -378,7 +381,7 @@ export async function getConnection(userId, platform) {
     if (error.message?.includes('not found') || error.status === 404) {
       return { success: true, connected: false, platform };
     }
-    console.error(`[Nango] Error getting connection for ${platform}:`, error.message);
+    log.error(`Error getting connection for ${platform}:`, error.message);
     return { success: false, error: error.message };
   }
 }
@@ -408,7 +411,7 @@ export async function getAccessToken(userId, platform) {
 
     return { success: false, error: `No access token in Nango connection for ${platform}` };
   } catch (error) {
-    console.error(`[Nango] Error getting access token for ${platform}:`, error.message);
+    log.error(`Error getting access token for ${platform}:`, error.message);
     return { success: false, error: error.message };
   }
 }
@@ -441,10 +444,10 @@ export async function deleteConnection(userId, platform) {
     // Use the connection ID mapping
     const connectionId = await getConnectionId(platform, userId);
     await nango.deleteConnection(config.providerConfigKey, connectionId);
-    console.log(`[Nango] Deleted connection for ${platform} (user: ${userId})`);
+    log.info(`Deleted connection for ${platform} (user: ${userId})`);
     return { success: true };
   } catch (error) {
-    console.error(`[Nango] Error deleting connection for ${platform}:`, error.message);
+    log.error(`Error deleting connection for ${platform}:`, error.message);
     return { success: false, error: error.message };
   }
 }
@@ -479,12 +482,12 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
   };
 
   const makeRequest = async () => {
-    console.log(`[Nango] Proxy request to ${platform}: ${endpoint} (connectionId: ${connectionId})`);
+    log.info(`Proxy request to ${platform}: ${endpoint} (connectionId: ${connectionId})`);
     const response = await nango.proxy(requestConfig);
 
     // Check if response is HTML (error page) instead of JSON
     if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE') || response.data?.includes?.('<html')) {
-      console.error(`[Nango] Received HTML response instead of JSON for ${platform}`);
+      log.error(`Received HTML response instead of JSON for ${platform}`);
       throw new Error(`${platform} connection may be invalid or expired. Please reconnect.`);
     }
 
@@ -496,11 +499,11 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
       maxRetries: options.maxRetries || 3,
       baseDelay: 1000,
       onRetry: (attempt, error) => {
-        console.log(`[Nango] Retry ${attempt + 1} for ${platform}:${endpoint} after error: ${error.message}`);
+        log.info(`Retry ${attempt + 1} for ${platform}:${endpoint} after error: ${error.message}`);
       }
     });
   } catch (error) {
-    console.error(`[Nango] Proxy request failed for ${platform}:`, error.message);
+    log.error(`Proxy request failed for ${platform}:`, error.message);
 
     // Detect HTML error responses
     const errorData = error.response?.data;
@@ -516,7 +519,7 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
     // 424 = Nango says the upstream connection failed (expired/revoked token)
     const status = error.response?.status;
     if (status === 424) {
-      console.warn(`[Nango] 424 for ${platform} — marking connection as needs_reconnect`);
+      log.warn(`424 for ${platform} — marking connection as needs_reconnect`);
       if (supabaseAdmin) {
         supabaseAdmin
           .from('nango_connection_mappings')
@@ -524,7 +527,7 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
           .eq('user_id', userId)
           .eq('platform', platform)
           .then(({ error: dbErr }) => {
-            if (dbErr) console.warn(`[Nango] Failed to mark ${platform} needs_reconnect:`, dbErr.message);
+            if (dbErr) log.warn(`Failed to mark ${platform} needs_reconnect:`, dbErr.message);
           });
       }
       return {
@@ -553,7 +556,7 @@ export async function extractPlatformData(userId, platform) {
     return { success: false, error: `Unknown platform: ${platform}` };
   }
 
-  console.log(`[Nango] Extracting data from ${platform} for user ${userId}`);
+  log.info(`Extracting data from ${platform} for user ${userId}`);
 
   const data = {};
   const errors = [];
@@ -649,7 +652,7 @@ export async function extractPlatformData(userId, platform) {
   }
 
   // Update last synced timestamp in nango_connection_mappings
-  await updateLastSynced(userId, platform).catch(err => console.warn(`[NangoService] updateLastSynced failed for ${platform}:`, err.message));
+  await updateLastSynced(userId, platform).catch(err => log.warn(`updateLastSynced failed for ${platform}:`, err.message));
 
   // Also update platform_connections.last_sync_at so the status endpoint reflects the sync
   const platformKeyMap = {
@@ -670,10 +673,10 @@ export async function extractPlatformData(userId, platform) {
         .eq('user_id', userId)
         .eq('platform', dbPlatformKey);
       if (syncErr) {
-        console.warn(`[Nango] Failed to update platform_connections sync status:`, syncErr.message);
+        log.warn(`Failed to update platform_connections sync status:`, syncErr.message);
       }
     } catch (err) {
-      console.warn(`[Nango] Failed to update platform_connections sync status:`, err.message);
+      log.warn(`Failed to update platform_connections sync status:`, err.message);
     }
   }
 
@@ -715,10 +718,10 @@ export async function storeNangoExtractionData(userId, platform, extractionResul
       .eq('platform', dbPlatform)
       .in('data_type', dataKeys);
     if (deleteErr) {
-      console.warn(`[Nango] Failed to clean old ${dbPlatform} data:`, deleteErr.message);
+      log.warn(`Failed to clean old ${dbPlatform} data:`, deleteErr.message);
     }
   } catch (err) {
-    console.warn(`[Nango] Failed to clean old ${dbPlatform} data:`, err.message);
+    log.warn(`Failed to clean old ${dbPlatform} data:`, err.message);
   }
 
   // Insert fresh data
@@ -733,13 +736,13 @@ export async function storeNangoExtractionData(userId, platform, extractionResul
         extracted_at: new Date().toISOString()
       });
       if (error) {
-        console.warn(`[Nango] Failed to store ${dbPlatform}/${key}:`, error.message);
+        log.warn(`Failed to store ${dbPlatform}/${key}:`, error.message);
       }
     } catch (err) {
-      console.warn(`[Nango] Failed to store ${dbPlatform}/${key}:`, err.message);
+      log.warn(`Failed to store ${dbPlatform}/${key}:`, err.message);
     }
   }
-  console.log(`[Nango] Stored ${dataKeys.length} data types for ${dbPlatform}`);
+  log.info(`Stored ${dataKeys.length} data types for ${dbPlatform}`);
 }
 
 /**

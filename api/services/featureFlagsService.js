@@ -14,6 +14,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('FeatureFlags');
 
 // In-memory cache: userId → { flags, fetchedAt }
 const cache = new Map();
@@ -39,7 +42,7 @@ export async function getFeatureFlags(userId) {
       .eq('user_id', userId);
 
     if (error) {
-      console.warn('[featureFlags] DB error:', error.message);
+      log.warn('DB error:', error.message);
       return {};
     }
 
@@ -51,7 +54,7 @@ export async function getFeatureFlags(userId) {
     cache.set(userId, { flags, fetchedAt: Date.now() });
     return flags;
   } catch (err) {
-    console.warn('[featureFlags] Unexpected error:', err.message);
+    log.warn('Unexpected error:', err.message);
     return {};
   }
 }
