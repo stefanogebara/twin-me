@@ -15,6 +15,9 @@
 
 import SpecialistAgentBase from './SpecialistAgentBase.js';
 import { extractSpotifyFeatures } from '../behavioralLearningService.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Musicpsychologistagent');
 
 class MusicPsychologistAgent extends SpecialistAgentBase {
   constructor() {
@@ -157,7 +160,7 @@ OUTPUT FORMAT (JSON):
    * Main analysis method
    */
   async analyze(userId, spotifyData) {
-    console.log(`🎵 [MusicPsychologistAgent] Analyzing music data for user ${userId}`);
+    log.info(`Analyzing music data for user ${userId}`);
 
     if (!spotifyData) {
       return {
@@ -210,7 +213,7 @@ OUTPUT FORMAT (JSON):
       };
 
     } catch (error) {
-      console.error(`❌ [MusicPsychologistAgent] Analysis failed:`, error);
+      log.error(`Analysis failed:`, error);
       return {
         success: false,
         domain: 'music',

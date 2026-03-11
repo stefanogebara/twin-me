@@ -13,13 +13,16 @@ import nangoService from '../services/nangoService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { saveConnectionMapping, deleteConnectionMapping } from '../services/connectionMappingService.js';
 import { runPostOnboardingIngestion } from '../services/observationIngestion.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('NangoRoutes');
 
 // Direct Nango client for connection lookups by end_user
 let nango = null;
 if (process.env.NANGO_SECRET_KEY) {
   nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
 } else {
-  console.warn('[Nango Routes] NANGO_SECRET_KEY not configured - Nango routes will return errors');
+  log.warn('NANGO_SECRET_KEY not configured - Nango routes will return errors');
 }
 
 const router = express.Router();
@@ -51,7 +54,7 @@ router.post('/connect-session', authenticateUser, async (req, res) => {
     const userEmail = req.user.email;
     const { integrationId, allowedIntegrations } = req.body;
 
-    console.log(`[Nango API] Creating connect session for user ${userId}`);
+    log.info(`Creating connect session for user ${userId}`);
 
     const result = await nangoService.createConnectSession(userId, userEmail, {
       integrationId,
@@ -71,7 +74,7 @@ router.post('/connect-session', authenticateUser, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('[Nango API] Connect session error:', error);
+    log.error('Connect session error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create connect session'
@@ -107,11 +110,11 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       'linkedin', 'linkedin-getting-started',
     ]);
     if (!ALLOWED_INTEGRATION_IDS.has(integrationId)) {
-      console.warn(`[Nango API] Rejected unknown integrationId: ${integrationId}`);
+      log.warn(`Rejected unknown integrationId: ${integrationId}`);
       return res.status(400).json({ success: false, error: 'Unknown integration' });
     }
 
-    console.log(`[Nango API] Verifying connection for ${integrationId} (user: ${userId})`);
+    log.info(`Verifying connection for ${integrationId} (user: ${userId})`);
 
     // Query Nango for connections belonging to this end_user and integration
     // We use listConnections instead of getConnection because getConnection requires
@@ -168,17 +171,17 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       });
 
     if (upsertError) {
-      console.error(`[Nango API] DB upsert error for ${platformKey}:`, upsertError);
+      log.error(`DB upsert error for ${platformKey}:`, upsertError);
       // Still return connected=true since Nango has the connection
     } else {
-      console.log(`[Nango API] Registered ${platformKey} connection for user ${userId}`);
+      log.info(`Registered ${platformKey} connection for user ${userId}`);
     }
 
     // Save connection mapping for Nango connection ID lookups
     try {
       await saveConnectionMapping(userId, integrationId, nangoConnectionId, integrationId);
     } catch (mappingErr) {
-      console.error(`[Nango API] Connection mapping error:`, mappingErr);
+      log.error(`Connection mapping error:`, mappingErr);
     }
 
     // Trigger initial data extraction in background (non-blocking)
@@ -187,11 +190,11 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       .then(async (result) => {
         if (result.success) {
           await nangoService.storeNangoExtractionData(userId, integrationId, result);
-          console.log(`[Nango API] Initial extraction stored for ${integrationId}`);
+          log.info(`Initial extraction stored for ${integrationId}`);
 
           // Immediately ingest extracted data into memory stream (don't wait for 30-min cron)
           runPostOnboardingIngestion(userId).catch(err =>
-            console.warn(`[Nango] Post-connection ingestion error for ${integrationId}:`, err.message)
+            log.warn(`Post-connection ingestion error for ${integrationId}:`, err.message)
           );
 
           // Run feature extraction after raw data is stored
@@ -207,16 +210,16 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
               const features = await extractor.extractFeatures(userId);
               if (features.length > 0) {
                 await extractor.saveFeatures(features);
-                console.log(`[Nango API] Extracted ${features.length} behavioral features for ${integrationId}`);
+                log.info(`Extracted ${features.length} behavioral features for ${integrationId}`);
               }
             }
           } catch (featureErr) {
-            console.warn(`[Nango API] Feature extraction skipped for ${integrationId}:`, featureErr.message);
+            log.warn(`Feature extraction skipped for ${integrationId}:`, featureErr.message);
           }
         }
       })
       .catch(err => {
-        console.error(`[Nango API] Background extraction error for ${integrationId}:`, err.message);
+        log.error(`Background extraction error for ${integrationId}:`, err.message);
       });
 
     res.json({
@@ -226,7 +229,7 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       connectionId: nangoConnectionId
     });
   } catch (error) {
-    console.error('[Nango API] Verify connection error:', error);
+    log.error('Verify connection error:', error);
 
     // If the error is a "not found" type, the user likely cancelled
     if (error.message?.includes('not found') || error.status === 404) {
@@ -258,7 +261,7 @@ router.get('/connections', authenticateUser, async (req, res) => {
       connections
     });
   } catch (error) {
-    console.error('[Nango API] Get connections error:', error);
+    log.error('Get connections error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get connections'
@@ -278,7 +281,7 @@ router.get('/connections/:platform', authenticateUser, async (req, res) => {
 
     res.json(connection);
   } catch (error) {
-    console.error(`[Nango API] Get connection error for ${req.params.platform}:`, error);
+    log.error(`Get connection error for ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to get connection'
@@ -305,7 +308,7 @@ router.delete('/connections/:platform', authenticateUser, async (req, res) => {
         .eq('platform', platform);
 
       if (deleteErr) {
-        console.error(`[Nango API] Failed to remove ${platform} connection from DB:`, deleteErr.message);
+        log.error(`Failed to remove ${platform} connection from DB:`, deleteErr.message);
         return res.status(500).json({ success: false, error: 'Failed to remove connection record' });
       }
 
@@ -317,7 +320,7 @@ router.delete('/connections/:platform', authenticateUser, async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    console.error(`[Nango API] Disconnect error for ${req.params.platform}:`, error);
+    log.error(`Disconnect error for ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to disconnect'
@@ -342,7 +345,7 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
     };
     platform = platformNameMap[platform] || platform;
 
-    console.log(`[Nango API] Extracting data from ${platform} for user ${userId}`);
+    log.info(`Extracting data from ${platform} for user ${userId}`);
 
     const result = await nangoService.extractPlatformData(userId, platform);
 
@@ -352,7 +355,7 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
 
       // Immediately ingest into memory stream after on-demand extraction
       runPostOnboardingIngestion(userId).catch(err =>
-        console.warn(`[Nango] Post-extraction ingestion error for ${platform}:`, err.message)
+        log.warn(`Post-extraction ingestion error for ${platform}:`, err.message)
       );
 
       // Also update platform_connections.last_sync_at so the frontend shows the correct sync date
@@ -364,7 +367,7 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
         .eq('user_id', userId)
         .eq('platform', platformKey);
       if (syncUpdateErr) {
-        console.error(`[Nango API] Failed to update last_sync_at for ${platformKey}:`, syncUpdateErr.message);
+        log.error(`Failed to update last_sync_at for ${platformKey}:`, syncUpdateErr.message);
       }
 
       // Run feature extraction after raw data is stored
@@ -380,11 +383,11 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
           const features = await extractor.extractFeatures(userId);
           if (features.length > 0) {
             await extractor.saveFeatures(features);
-            console.log(`[Nango API] Extracted ${features.length} behavioral features for ${platform}`);
+            log.info(`Extracted ${features.length} behavioral features for ${platform}`);
           }
         }
       } catch (featureErr) {
-        console.warn(`[Nango API] Feature extraction skipped for ${platform}:`, featureErr.message);
+        log.warn(`Feature extraction skipped for ${platform}:`, featureErr.message);
       }
 
       res.json(result);
@@ -392,7 +395,7 @@ router.get('/extract/:platform', authenticateUser, async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    console.error(`[Nango API] Extract error for ${req.params.platform}:`, error);
+    log.error(`Extract error for ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to extract data'
@@ -407,7 +410,7 @@ router.get('/extract-all', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`[Nango API] Extracting data from all platforms for user ${userId}`);
+    log.info(`Extracting data from all platforms for user ${userId}`);
 
     const result = await nangoService.extractAllPlatformData(userId);
 
@@ -423,7 +426,7 @@ router.get('/extract-all', authenticateUser, async (req, res) => {
           .eq('user_id', userId)
           .eq('platform', platformKey);
         if (syncErr) {
-          console.error(`[Nango API] Failed to update last_sync_at for ${platformKey}:`, syncErr.message);
+          log.error(`Failed to update last_sync_at for ${platformKey}:`, syncErr.message);
         }
       }
     }
@@ -433,7 +436,7 @@ router.get('/extract-all', authenticateUser, async (req, res) => {
       ...result
     });
   } catch (error) {
-    console.error('[Nango API] Extract all error:', error);
+    log.error('Extract all error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to extract data'
@@ -470,7 +473,7 @@ router.post('/proxy/:platform', authenticateUser, async (req, res) => {
       res.status(result.status || 400).json(result);
     }
   } catch (error) {
-    console.error(`[Nango API] Proxy error for ${req.params.platform}:`, error);
+    log.error(`Proxy error for ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: 'Proxy request failed'
@@ -777,7 +780,7 @@ router.post('/webhook', async (req, res) => {
   if (webhookSecret) {
     const signature = req.headers['x-nango-signature'];
     if (!signature) {
-      console.warn('[Nango Webhook] Missing signature header — rejecting');
+      log.warn('Missing signature header — rejecting');
       return res.status(401).json({ success: false, error: 'Missing webhook signature' });
     }
     // Body has already been parsed by express.json(), re-serialize for HMAC
@@ -786,17 +789,17 @@ router.post('/webhook', async (req, res) => {
     const sigBuf = Buffer.from(signature);
     const expBuf = Buffer.from(expected);
     if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      console.warn('[Nango Webhook] Signature mismatch — rejecting');
+      log.warn('Signature mismatch — rejecting');
       return res.status(401).json({ success: false, error: 'Invalid webhook signature' });
     }
   } else {
-    console.warn('[Nango Webhook] NANGO_WEBHOOK_SECRET not set — skipping signature verification');
+    log.warn('NANGO_WEBHOOK_SECRET not set — skipping signature verification');
   }
 
   try {
     const { type, connectionId, providerConfigKey, endUser } = req.body;
 
-    console.log(`[Nango Webhook] Received: ${type} for ${providerConfigKey}`);
+    log.info(`Received: ${type} for ${providerConfigKey}`);
 
     if (type === 'connection.created' || type === 'connection.updated') {
       // Extract user ID from endUser object
@@ -807,7 +810,7 @@ router.post('/webhook', async (req, res) => {
         const platform = providerConfigKey.replace('-getting-started', '');
 
         await saveConnectionMapping(userId, platform, connectionId, providerConfigKey);
-        console.log(`[Nango Webhook] Saved connection mapping for ${platform}`);
+        log.info(`Saved connection mapping for ${platform}`);
       }
     }
 
@@ -817,13 +820,13 @@ router.post('/webhook', async (req, res) => {
 
       if (userId && platform) {
         await deleteConnectionMapping(userId, platform);
-        console.log(`[Nango Webhook] Deleted connection mapping for ${platform}`);
+        log.info(`Deleted connection mapping for ${platform}`);
       }
     }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('[Nango Webhook] Error:', error);
+    log.error('Error:', error);
     res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });

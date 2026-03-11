@@ -8,6 +8,9 @@ import cron from 'node-cron';
 import { supabaseAdmin } from './database.js';
 import { ensureFreshToken } from './tokenRefreshService.js';
 import axios from 'axios';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PlatformPolling');
 
 // Platform-specific polling configurations
 const POLLING_CONFIGS = {
@@ -85,7 +88,7 @@ async function pollPlatform(userId, platform, accessToken) {
   const config = POLLING_CONFIGS[platform];
 
   if (!config) {
-    console.log(`ℹ️  No polling config for platform: ${platform}`);
+    log.info(`No polling config for platform: ${platform}`);
     return null;
   }
 
@@ -93,7 +96,7 @@ async function pollPlatform(userId, platform, accessToken) {
 
   for (const endpoint of config.endpoints) {
     try {
-      console.log(`📡 Polling ${platform} - ${endpoint.name} for user ${userId}`);
+      log.info(`Polling ${platform} - ${endpoint.name} for user ${userId}`);
 
       let url = endpoint.url;
 
@@ -108,7 +111,7 @@ async function pollPlatform(userId, platform, accessToken) {
           .single();
 
         if (connErr) {
-          console.warn(`⚠️  Failed to fetch connection for ${platform} username placeholder:`, connErr.message);
+          log.warn(`Failed to fetch connection for ${platform} username placeholder:`, connErr.message);
         }
 
         const username = connection?.platform_user_id || connection?.metadata?.username;
@@ -123,7 +126,7 @@ async function pollPlatform(userId, platform, accessToken) {
         params: endpoint.params || {},
       });
 
-      console.log(`✅ Successfully polled ${platform} - ${endpoint.name}`);
+      log.info(`Successfully polled ${platform} - ${endpoint.name}`);
 
       // Store the raw data
       const { error: insertErr } = await supabaseAdmin.from('user_platform_data').insert({
@@ -135,7 +138,7 @@ async function pollPlatform(userId, platform, accessToken) {
       });
 
       if (insertErr) {
-        console.error(`❌ Failed to store polled data for ${platform} - ${endpoint.name}:`, insertErr.message);
+        log.error(`Failed to store polled data for ${platform} - ${endpoint.name}:`, insertErr.message);
       }
 
       results.push({
@@ -144,7 +147,7 @@ async function pollPlatform(userId, platform, accessToken) {
         itemCount: Array.isArray(response.data) ? response.data.length : response.data.items?.length || 1,
       });
     } catch (error) {
-      console.error(`❌ Error polling ${platform} - ${endpoint.name}:`, error.response?.data || error.message);
+      log.error(`Error polling ${platform} - ${endpoint.name}:`, error.response?.data || error.message);
 
       results.push({
         endpoint: endpoint.name,
@@ -165,7 +168,7 @@ async function pollPlatform(userId, platform, accessToken) {
           .eq('platform', platform);
 
         if (reauthErr) {
-          console.warn(`⚠️  Failed to mark ${platform} as needs_reauth:`, reauthErr.message);
+          log.warn(`Failed to mark ${platform} as needs_reauth:`, reauthErr.message);
         }
       }
     }
@@ -179,7 +182,7 @@ async function pollPlatform(userId, platform, accessToken) {
  */
 async function pollAllPlatformsForUser(userId) {
   try {
-    console.log(`🔍 Polling all platforms for user: ${userId}`);
+    log.info(`Polling all platforms for user: ${userId}`);
 
     // Get all connected platforms for this user
     const { data: connections, error } = await supabaseAdmin
@@ -189,22 +192,22 @@ async function pollAllPlatformsForUser(userId) {
       .eq('status', 'connected');
 
     if (error) {
-      console.error('❌ Error fetching connections:', error);
+      log.error('Error fetching connections:', error);
       return;
     }
 
     if (!connections || connections.length === 0) {
-      console.log(`ℹ️  No connected platforms for user: ${userId}`);
+      log.info(`No connected platforms for user: ${userId}`);
       return;
     }
 
-    console.log(`📡 Found ${connections.length} connected platforms`);
+    log.info(`Found ${connections.length} connected platforms`);
 
     const pollPromises = connections.map(async (connection) => {
       try {
         // Handle Nango-managed tokens (YouTube, Twitch, etc.)
         if (connection.access_token === 'NANGO_MANAGED') {
-          console.log(`📡 Polling ${connection.platform} via Nango for user ${userId}`);
+          log.info(`Polling ${connection.platform} via Nango for user ${userId}`);
           const nangoService = await import('./nangoService.js');
           const result = await nangoService.extractPlatformData(userId, connection.platform);
           if (result.success) {
@@ -218,7 +221,7 @@ async function pollAllPlatformsForUser(userId) {
               .eq('id', connection.id);
 
             if (nangoSyncErr) {
-              console.warn(`⚠️  Failed to update last_sync for ${connection.platform} (Nango):`, nangoSyncErr.message);
+              log.warn(`Failed to update last_sync for ${connection.platform} (Nango):`, nangoSyncErr.message);
             }
           }
           return {
@@ -231,7 +234,7 @@ async function pollAllPlatformsForUser(userId) {
         const accessToken = await ensureFreshToken(userId, connection.platform);
 
         if (!accessToken) {
-          console.error(`❌ Could not get fresh token for ${connection.platform}`);
+          log.error(`Could not get fresh token for ${connection.platform}`);
           return null;
         }
 
@@ -248,7 +251,7 @@ async function pollAllPlatformsForUser(userId) {
           .eq('id', connection.id);
 
         if (legacySyncErr) {
-          console.warn(`⚠️  Failed to update last_sync for ${connection.platform} (legacy):`, legacySyncErr.message);
+          log.warn(`Failed to update last_sync for ${connection.platform} (legacy):`, legacySyncErr.message);
         }
 
         return {
@@ -256,7 +259,7 @@ async function pollAllPlatformsForUser(userId) {
           results,
         };
       } catch (error) {
-        console.error(`❌ Error polling ${connection.platform}:`, error.message);
+        log.error(`Error polling ${connection.platform}:`, error.message);
         return {
           platform: connection.platform,
           error: error.message,
@@ -266,11 +269,11 @@ async function pollAllPlatformsForUser(userId) {
 
     const pollResults = await Promise.all(pollPromises);
 
-    console.log(`✅ Completed polling for user ${userId}:`, pollResults);
+    log.info(`Completed polling for user ${userId}:`, pollResults);
 
     return pollResults;
   } catch (error) {
-    console.error(`❌ Error polling all platforms for user ${userId}:`, error);
+    log.error(`Error polling all platforms for user ${userId}:`, error);
   }
 }
 
@@ -280,7 +283,7 @@ async function pollAllPlatformsForUser(userId) {
  */
 async function pollAllUsers() {
   try {
-    console.log('🌍 Starting background polling for all users...');
+    log.info('Starting background polling for all users...');
 
     // Get all unique user IDs with at least one connected platform
     const { data: connections, error } = await supabaseAdmin
@@ -289,19 +292,19 @@ async function pollAllUsers() {
       .eq('status', 'connected');
 
     if (error) {
-      console.error('❌ Error fetching users:', error);
+      log.error('Error fetching users:', error);
       return;
     }
 
     if (!connections || connections.length === 0) {
-      console.log('ℹ️  No connected platforms found');
+      log.info('No connected platforms found');
       return;
     }
 
     // Get unique user IDs
     const uniqueUserIds = [...new Set(connections.map(c => c.user_id))];
 
-    console.log(`👥 Found ${uniqueUserIds.length} users with connected platforms`);
+    log.info(`Found ${uniqueUserIds.length} users with connected platforms`);
 
     // Poll each user's platforms (with a small delay between users to avoid rate limits)
     for (const userId of uniqueUserIds) {
@@ -311,9 +314,9 @@ async function pollAllUsers() {
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
-    console.log('✅ Completed background polling for all users');
+    log.info('Completed background polling for all users');
   } catch (error) {
-    console.error('❌ Error in background polling:', error);
+    log.error('Error in background polling:', error);
   }
 }
 
@@ -322,51 +325,51 @@ async function pollAllUsers() {
  * Each platform has its own polling schedule based on POLLING_CONFIGS
  */
 function startPlatformPolling() {
-  console.log('🚀 Starting platform polling service...');
+  log.info('Starting platform polling service...');
 
   // Spotify - Every 30 minutes
   cron.schedule('*/30 * * * *', async () => {
-    console.log('⏰ Running Spotify polling job');
+    log.info('Running Spotify polling job');
     await pollPlatformForAllUsers('spotify');
   });
 
   // YouTube - Every 2 hours
   cron.schedule('0 */2 * * *', async () => {
-    console.log('⏰ Running YouTube polling job');
+    log.info('Running YouTube polling job');
     await pollPlatformForAllUsers('youtube');
   });
 
   // GitHub - Every 6 hours
   cron.schedule('0 */6 * * *', async () => {
-    console.log('⏰ Running GitHub polling job');
+    log.info('Running GitHub polling job');
     await pollPlatformForAllUsers('github');
   });
 
   // Discord - Every 4 hours
   cron.schedule('0 */4 * * *', async () => {
-    console.log('⏰ Running Discord polling job');
+    log.info('Running Discord polling job');
     await pollPlatformForAllUsers('discord');
   });
 
   // Gmail - Every 1 hour
   cron.schedule('0 */1 * * *', async () => {
-    console.log('⏰ Running Gmail polling job');
+    log.info('Running Gmail polling job');
     await pollPlatformForAllUsers('google_gmail');
   });
 
   // Twitch - Every 3 hours
   cron.schedule('0 */3 * * *', async () => {
-    console.log('⏰ Running Twitch polling job');
+    log.info('Running Twitch polling job');
     await pollPlatformForAllUsers('twitch');
   });
 
   // LinkedIn - Every 6 hours
   cron.schedule('0 */6 * * *', async () => {
-    console.log('⏰ Running LinkedIn polling job');
+    log.info('Running LinkedIn polling job');
     await pollPlatformForAllUsers('linkedin');
   });
 
-  console.log('✅ Platform polling service started with multiple schedules');
+  log.info('Platform polling service started with multiple schedules');
 }
 
 /**
@@ -374,7 +377,7 @@ function startPlatformPolling() {
  */
 async function pollPlatformForAllUsers(platform) {
   try {
-    console.log(`📡 Polling ${platform} for all users...`);
+    log.info(`Polling ${platform} for all users...`);
 
     const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
@@ -383,18 +386,18 @@ async function pollPlatformForAllUsers(platform) {
       .eq('status', 'connected');
 
     if (error) {
-      console.error(`❌ Error fetching ${platform} connections:`, error);
+      log.error(`Error fetching ${platform} connections:`, error);
       return;
     }
 
     if (!connections || connections.length === 0) {
-      console.log(`ℹ️  No connected ${platform} accounts found`);
+      log.info(`No connected ${platform} accounts found`);
       return;
     }
 
     const uniqueUserIds = [...new Set(connections.map(c => c.user_id))];
 
-    console.log(`👥 Polling ${platform} for ${uniqueUserIds.length} users`);
+    log.info(`Polling ${platform} for ${uniqueUserIds.length} users`);
 
     for (const userId of uniqueUserIds) {
       try {
@@ -408,7 +411,7 @@ async function pollPlatformForAllUsers(platform) {
           .single();
 
         if (conn?.access_token === 'NANGO_MANAGED') {
-          console.log(`📡 Polling ${platform} via Nango for user ${userId}`);
+          log.info(`Polling ${platform} via Nango for user ${userId}`);
           const nangoService = await import('./nangoService.js');
           const result = await nangoService.extractPlatformData(userId, platform);
           if (result.success) {
@@ -420,7 +423,7 @@ async function pollPlatformForAllUsers(platform) {
                 updated_at: new Date().toISOString(),
               })
               .eq('id', conn.id);
-            if (pollUpdateErr) console.warn('[PlatformPolling] Error updating connection:', pollUpdateErr.message);
+            if (pollUpdateErr) log.warn('Error updating connection:', pollUpdateErr.message);
           }
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
@@ -429,7 +432,7 @@ async function pollPlatformForAllUsers(platform) {
         const accessToken = await ensureFreshToken(userId, platform);
 
         if (!accessToken) {
-          console.error(`❌ Could not get fresh token for ${platform} (user: ${userId})`);
+          log.error(`Could not get fresh token for ${platform} (user: ${userId})`);
           continue;
         }
 
@@ -444,18 +447,18 @@ async function pollPlatformForAllUsers(platform) {
           })
           .eq('user_id', userId)
           .eq('platform', platform);
-        if (syncUpdateErr) console.warn(`[PlatformPolling] Error updating last_sync for ${platform}:`, syncUpdateErr.message);
+        if (syncUpdateErr) log.warn(`Error updating last_sync for ${platform}:`, syncUpdateErr.message);
 
         // Wait 2 seconds between users to avoid rate limits
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
-        console.error(`❌ Error polling ${platform} for user ${userId}:`, error.message);
+        log.error(`Error polling ${platform} for user ${userId}:`, error.message);
       }
     }
 
-    console.log(`✅ Completed ${platform} polling`);
+    log.info(`Completed ${platform} polling`);
   } catch (error) {
-    console.error(`❌ Error in ${platform} polling:`, error);
+    log.error(`Error in ${platform} polling:`, error);
   }
 }
 

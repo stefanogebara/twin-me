@@ -26,6 +26,9 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { addPlatformObservation, addMemory } from '../services/memoryStreamService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('WhatsAppImport');
 
 const router = express.Router();
 
@@ -285,7 +288,7 @@ router.post('/import', authenticateUser, async (req, res) => {
       stored++;
     }
 
-    console.log(`[WhatsApp] Stored ${stored} observations for user ${userId} from ${messages.length} messages`);
+    log.info(`Stored ${stored} observations for user ${userId} from ${messages.length} messages`);
 
     res.json({
       success: true,
@@ -295,7 +298,7 @@ router.post('/import', authenticateUser, async (req, res) => {
       spanDays: patterns?.spanDays || 0,
     });
   } catch (err) {
-    console.error('[WhatsApp] Import error:', err.message);
+    log.error('Import error:', err.message);
     res.status(500).json({ error: 'Failed to process WhatsApp export' });
   }
 });

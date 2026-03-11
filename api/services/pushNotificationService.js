@@ -20,6 +20,9 @@
 
 import Expo from 'expo-server-sdk';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PushNotification');
 
 const expo = new Expo({ useFcmV1: true });
 
@@ -74,7 +77,7 @@ export async function sendPushToUser(userId, {
   force = false,
 }) {
   if (!force && isQuietHours()) {
-    console.log(`[PushNotifications] Quiet hours — skipping push for user ${userId}`);
+    log.info(`Quiet hours — skipping push for user ${userId}`);
     return;
   }
 
@@ -110,7 +113,7 @@ export async function sendPushToUser(userId, {
       const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
       receipts.push(...ticketChunk);
     } catch (err) {
-      console.error('[PushNotifications] Send error:', err.message);
+      log.error('Send error:', err.message);
     }
   }
 
@@ -122,7 +125,7 @@ export async function sendPushToUser(userId, {
       if (ticket.details?.error === 'DeviceNotRegistered') {
         staleTokens.push(expoRows[i].token);
       } else {
-        console.error('[PushNotifications] Ticket error:', ticket.message);
+        log.error('Ticket error:', ticket.message);
       }
     }
   }

@@ -19,6 +19,9 @@
 
 import { supabaseAdmin } from './database.js';
 import userContextAggregator from './userContextAggregator.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PurposeLearning');
 
 // Available purposes in the system
 const PURPOSES = ['focus', 'workout', 'relax', 'party', 'sleep', 'general'];
@@ -81,7 +84,7 @@ class PurposeLearningService {
    * Returns suggestion with confidence and reasoning
    */
   async detectOptimalPurpose(userId, providedContext = null) {
-    console.log(`🎯 [Purpose Learning] Detecting optimal purpose for user ${userId}`);
+    log.info(`Detecting optimal purpose for user ${userId}`);
 
     try {
       // Get user context if not provided
@@ -95,12 +98,12 @@ class PurposeLearningService {
 
       // Extract features from current context
       const features = this.extractContextFeatures(context);
-      console.log(`📊 [Purpose Learning] Extracted features:`, features);
+      log.info(`Extracted features:`, features);
 
       // Check patterns first - high confidence patterns take priority
       const patternMatch = this.checkPatterns(features, patterns);
       if (patternMatch && patternMatch.confidence >= 0.8) {
-        console.log(`✨ [Purpose Learning] Pattern match: ${patternMatch.patternName} -> ${patternMatch.purpose}`);
+        log.info(`Pattern match: ${patternMatch.patternName} -> ${patternMatch.purpose}`);
         return {
           success: true,
           suggestion: patternMatch.purpose,
@@ -115,7 +118,7 @@ class PurposeLearningService {
 
       // Calculate weighted scores for each purpose
       const scores = this.calculatePurposeScores(features, userWeights);
-      console.log(`📈 [Purpose Learning] Purpose scores:`, scores);
+      log.info(`Purpose scores:`, scores);
 
       // Find the best purpose
       const sortedPurposes = Object.entries(scores)
@@ -146,7 +149,7 @@ class PurposeLearningService {
       };
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Error detecting purpose:`, error);
+      log.error(`Error detecting purpose:`, error);
       return {
         success: false,
         suggestion: 'general',
@@ -420,7 +423,7 @@ class PurposeLearningService {
 
     const wasOverride = suggestedPurpose !== selectedPurpose;
 
-    console.log(`📝 [Purpose Learning] Recording selection: suggested=${suggestedPurpose}, selected=${selectedPurpose}, override=${wasOverride}`);
+    log.info(`Recording selection: suggested=${suggestedPurpose}, selected=${selectedPurpose}, override=${wasOverride}`);
 
     try {
       // Insert feedback record
@@ -447,13 +450,13 @@ class PurposeLearningService {
         wasOverride,
         contextSnapshot
       }).catch(err => {
-        console.error(`❌ [Purpose Learning] Async learning error:`, err);
+        log.error(`Async learning error:`, err);
       });
 
       return { success: true, feedbackId: feedback.id, wasOverride };
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Record selection error:`, error);
+      log.error(`Record selection error:`, error);
       return { success: false, error: error.message };
     }
   }
@@ -464,7 +467,7 @@ class PurposeLearningService {
   async learnFromSelection(userId, feedback) {
     const { suggestedPurpose, selectedPurpose, wasOverride, contextSnapshot } = feedback;
 
-    console.log(`🧠 [Purpose Learning] Learning from selection for user ${userId}`);
+    log.info(`Learning from selection for user ${userId}`);
 
     try {
       // Get or create user weights
@@ -539,10 +542,10 @@ class PurposeLearningService {
       // Attempt pattern discovery
       await this.discoverPatterns(userId);
 
-      console.log(`✅ [Purpose Learning] Updated weights: feedback_count=${newFeedbackCount}, override_rate=${overrideRate.toFixed(3)}`);
+      log.info(`Updated weights: feedback_count=${newFeedbackCount}, override_rate=${overrideRate.toFixed(3)}`);
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Learning error:`, error);
+      log.error(`Learning error:`, error);
     }
   }
 
@@ -550,7 +553,7 @@ class PurposeLearningService {
    * Discover recurring patterns from user's selection history
    */
   async discoverPatterns(userId) {
-    console.log(`🔍 [Purpose Learning] Discovering patterns for user ${userId}`);
+    log.info(`Discovering patterns for user ${userId}`);
 
     try {
       // Get recent feedback with context
@@ -631,9 +634,9 @@ class PurposeLearningService {
             }, {
               onConflict: 'user_id,pattern_name'
             });
-          if (upsertErr) console.error('[PurposeLearning] Error upserting context pattern:', upsertErr.message);
+          if (upsertErr) log.error('Error upserting context pattern:', upsertErr.message);
 
-          console.log(`✨ [Purpose Learning] Pattern discovered: ${patternKey} -> ${topPurpose} (${Math.round(successRate * 100)}%)`);
+          log.info(`Pattern discovered: ${patternKey} -> ${topPurpose} (${Math.round(successRate * 100)}%)`);
         }
       }
 
@@ -641,7 +644,7 @@ class PurposeLearningService {
       this.patternsCache.delete(userId);
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Pattern discovery error:`, error);
+      log.error(`Pattern discovery error:`, error);
     }
   }
 
@@ -732,7 +735,7 @@ class PurposeLearningService {
       return patterns || [];
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Get patterns error:`, error);
+      log.error(`Get patterns error:`, error);
       return [];
     }
   }
@@ -776,7 +779,7 @@ class PurposeLearningService {
       return userWeights;
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Get weights error:`, error);
+      log.error(`Get weights error:`, error);
       return {
         context_weights: DEFAULT_CONTEXT_WEIGHTS,
         user_adjustments: DEFAULT_ADJUSTMENTS,
@@ -828,7 +831,7 @@ class PurposeLearningService {
       };
 
     } catch (error) {
-      console.error(`❌ [Purpose Learning] Get stats error:`, error);
+      log.error(`Get stats error:`, error);
       return { success: false, error: error.message };
     }
   }

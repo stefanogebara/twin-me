@@ -20,6 +20,9 @@
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import personalityAnalyzerService from './personalityAnalyzerService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('SoulSignatureGenerator');
 
 class SoulSignatureGenerator {
 
@@ -27,7 +30,7 @@ class SoulSignatureGenerator {
    * Generate complete soul signature for a user
    */
   async generateSoulSignature(userId, options = {}) {
-    console.log(`✨ [Soul Signature] Generating soul signature for user ${userId}`);
+    log.info(`Generating soul signature for user ${userId}`);
 
     try {
       // 1. Get or calculate personality scores
@@ -39,7 +42,7 @@ class SoulSignatureGenerator {
 
       if (scoresError && scoresError.code === 'PGRST116') {
         // No scores exist, run personality analysis first
-        console.log('📊 [Soul Signature] No personality scores found, running analysis...');
+        log.info('No personality scores found, running analysis...');
         const analysisResult = await personalityAnalyzerService.analyzePersonality(userId);
 
         if (!analysisResult.success) {
@@ -105,7 +108,7 @@ class SoulSignatureGenerator {
 
       if (saveError) throw saveError;
 
-      console.log(`✅ [Soul Signature] Generated: "${saved.archetype_name}"`);
+      log.info(`Generated: "${saved.archetype_name}"`);
 
       return {
         success: true,
@@ -114,7 +117,7 @@ class SoulSignatureGenerator {
       };
 
     } catch (error) {
-      console.error('❌ [Soul Signature] Error:', error);
+      log.error('Error:', error);
       return {
         success: false,
         error: error.message
@@ -126,7 +129,7 @@ class SoulSignatureGenerator {
    * Generate archetype using Claude AI
    */
   async generateArchetypeWithClaude(personalityScores, features, patterns) {
-    console.log(`🤖 [Soul Signature] Generating archetype with Claude AI...`);
+    log.info(`Generating archetype with Claude AI...`);
 
     const featureSummary = features.slice(0, 10).map(f => ({
       platform: f.platform,
@@ -201,7 +204,7 @@ Respond ONLY with JSON in this exact format (no markdown):
       });
 
       let responseText = result.content.trim();
-      console.log(`📝 [Soul Signature] Claude generated archetype`);
+      log.info(`Claude generated archetype`);
 
       // Strip markdown code blocks if present
       if (responseText.startsWith('```')) {
@@ -218,7 +221,7 @@ Respond ONLY with JSON in this exact format (no markdown):
       };
 
     } catch (error) {
-      console.error('⚠️ [Soul Signature] Claude generation failed:', error);
+      log.error('Claude generation failed:', error);
 
       // Fallback archetype generation
       return this.generateFallbackArchetype(personalityScores);
@@ -343,7 +346,7 @@ Respond ONLY with JSON in this exact format (no markdown):
    * Regenerate soul signature with fresh AI generation
    */
   async regenerateSoulSignature(userId) {
-    console.log(`🔄 [Soul Signature] Regenerating for user ${userId}`);
+    log.info(`Regenerating for user ${userId}`);
 
     // Delete existing signature
     const { error: deleteErr } = await supabaseAdmin
@@ -351,7 +354,7 @@ Respond ONLY with JSON in this exact format (no markdown):
       .delete()
       .eq('user_id', userId);
     if (deleteErr) {
-      console.error('[Soul Signature] Error deleting signature:', deleteErr);
+      log.error('Error deleting signature:', deleteErr);
       throw deleteErr;
     }
 

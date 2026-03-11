@@ -30,6 +30,10 @@ import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingServic
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('ObservationIngestion');
+
 // Lazy-load to avoid circular dependency
 let supabaseAdmin = null;
 async function getSupabase() {
@@ -134,7 +138,7 @@ async function isDuplicate(userId, platform, content, contentType) {
 
     return false;
   } catch (err) {
-    console.warn('[ObservationIngestion] De-dup check failed, proceeding:', err.message);
+    log.warn('De-dup check failed, proceeding', { error: err });
     return false;
   }
 }
@@ -152,7 +156,7 @@ async function fetchSpotifyObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'spotify');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Spotify: no valid token for user', userId);
+    log.warn('Spotify: no valid token', { userId });
     return observations;
   }
 
@@ -192,7 +196,7 @@ async function fetchSpotifyObservations(userId) {
       observations.push(`Listened to '${track}' by ${artist} at ${timeStr}`);
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Spotify recently-played error:', e.message);
+    log.warn('Spotify recently-played error', { error: e });
   }
 
   // Top artists (short term) — generate one summary observation
@@ -208,7 +212,7 @@ async function fetchSpotifyObservations(userId) {
       observations.push(`Top artist this week: ${topArtists[0].name}`);
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Spotify top-artists error:', e.message);
+    log.warn('Spotify top-artists error', { error: e });
   }
 
   // --- Richer observation templates ---
@@ -289,7 +293,7 @@ async function fetchCalendarObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'google_calendar');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Calendar: no valid token for user', userId);
+    log.warn('Calendar: no valid token', { userId });
     return observations;
   }
 
@@ -369,7 +373,7 @@ async function fetchCalendarObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Calendar error:', e.message);
+    log.warn('Calendar error', { error: e });
   }
 
   return observations;
@@ -408,13 +412,13 @@ async function fetchYouTubeObservations(userId) {
       subsItems = subsResult.success ? (subsResult.data?.items || []) : [];
       likedItems = likedResult.success ? (likedResult.data?.items || []) : [];
     } catch (e) {
-      console.warn('[ObservationIngestion] YouTube Nango fetch error:', e.message);
+      log.warn('YouTube Nango fetch error', { error: e });
       return observations;
     }
   } else {
     const tokenResult = await getValidAccessToken(userId, 'youtube');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      console.warn('[ObservationIngestion] YouTube: no valid token for user', userId);
+      log.warn('YouTube: no valid token', { userId });
       return observations;
     }
     const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
@@ -426,7 +430,7 @@ async function fetchYouTubeObservations(userId) {
       );
       subsItems = subsRes.data?.items || [];
     } catch (e) {
-      console.warn('[ObservationIngestion] YouTube subscriptions error:', e.message);
+      log.warn('YouTube subscriptions error', { error: e });
     }
 
     try {
@@ -436,7 +440,7 @@ async function fetchYouTubeObservations(userId) {
       );
       likedItems = likedRes.data?.items || [];
     } catch (e) {
-      console.warn('[ObservationIngestion] YouTube liked videos error:', e.message);
+      log.warn('YouTube liked videos error', { error: e });
     }
 
     // Watch activity (activities endpoint — direct token only, not available via Nango proxy)
@@ -534,7 +538,7 @@ async function fetchDiscordObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'discord');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Discord: no valid token for user', userId);
+    log.warn('Discord: no valid token', { userId });
     return observations;
   }
 
@@ -610,7 +614,7 @@ async function fetchDiscordObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Discord guilds error:', e.message);
+    log.warn('Discord guilds error', { error: e });
   }
 
   return observations;
@@ -625,7 +629,7 @@ async function fetchLinkedInObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'linkedin');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] LinkedIn: no valid token for user', userId);
+    log.warn('LinkedIn: no valid token', { userId });
     return observations;
   }
 
@@ -665,7 +669,7 @@ async function fetchLinkedInObservations(userId) {
       if (country) locale = country;
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] LinkedIn userinfo error:', e.message);
+    log.warn('LinkedIn userinfo error', { error: e });
   }
 
   // Emit observations only for fields that have real signal
@@ -737,7 +741,7 @@ async function fetchSlackObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'slack');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Slack: no valid token for user', userId);
+    log.warn('Slack: no valid token', { userId });
     return observations;
   }
 
@@ -762,7 +766,7 @@ async function fetchSlackObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Slack profile error:', e.message);
+    log.warn('Slack profile error', { error: e });
   }
 
   // Channel membership — reveals project areas and interests
@@ -787,7 +791,7 @@ async function fetchSlackObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Slack channels error:', e.message);
+    log.warn('Slack channels error', { error: e });
   }
 
   return observations;
@@ -802,7 +806,7 @@ async function fetchRedditObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'reddit');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Reddit: no valid token for user', userId);
+    log.warn('Reddit: no valid token', { userId });
     return observations;
   }
 
@@ -820,7 +824,7 @@ async function fetchRedditObservations(userId) {
     );
     subreddits = (subRes.data?.data?.children || []).map(c => c.data);
   } catch (e) {
-    console.warn('[ObservationIngestion] Reddit subreddits error:', e.message);
+    log.warn('Reddit subreddits error', { error: e });
     return observations;
   }
 
@@ -880,7 +884,7 @@ async function fetchGmailObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'google_gmail');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Gmail: no valid token for user', userId);
+    log.warn('Gmail: no valid token', { userId });
     return observations;
   }
 
@@ -893,7 +897,7 @@ async function fetchGmailObservations(userId) {
     const profileRes = await axios.get(`${BASE}/profile`, { headers, timeout: 10000 });
     totalMessages = profileRes.data?.messagesTotal ?? null;
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail profile error:', e.message);
+    log.warn('Gmail profile error', { error: e });
     return observations;
   }
 
@@ -921,7 +925,7 @@ async function fetchGmailObservations(userId) {
       });
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail labels error:', e.message);
+    log.warn('Gmail labels error', { error: e });
   }
 
   // ── 3. Weekly volume estimate (INBOX + SENT) ────────────────────────────────
@@ -944,7 +948,7 @@ async function fetchGmailObservations(userId) {
       });
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail volume estimate error:', e.message);
+    log.warn('Gmail volume estimate error', { error: e });
   }
 
   // ── 4. Time-of-day peak from recent sent messages ──────────────────────────
@@ -980,7 +984,7 @@ async function fetchGmailObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail time-of-day error:', e.message);
+    log.warn('Gmail time-of-day error', { error: e });
   }
 
   // ── 5. Sender domain diversity from last 30 days ───────────────────────────
@@ -1014,7 +1018,7 @@ async function fetchGmailObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail sender diversity error:', e.message);
+    log.warn('Gmail sender diversity error', { error: e });
   }
 
   // ── 6. Subject line pattern analysis from 30 SENT messages ────────────────
@@ -1068,7 +1072,7 @@ async function fetchGmailObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail subject pattern error:', e.message);
+    log.warn('Gmail subject pattern error', { error: e });
   }
 
   // ── 7. Day-of-week sending pattern from recent SENT messages ──────────────
@@ -1113,7 +1117,7 @@ async function fetchGmailObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail day-of-week pattern error:', e.message);
+    log.warn('Gmail day-of-week pattern error', { error: e });
   }
 
   // ── 8. Sent network size (unique To: domains from last 30 SENT messages) ──
@@ -1152,7 +1156,7 @@ async function fetchGmailObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail sent network size error:', e.message);
+    log.warn('Gmail sent network size error', { error: e });
   }
 
   // ── 9. Top sender domains (who emails you most) ────────────────────────────
@@ -1190,7 +1194,7 @@ async function fetchGmailObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Gmail top senders error:', e.message);
+    log.warn('Gmail top senders error', { error: e });
   }
 
   return observations;
@@ -1217,7 +1221,7 @@ async function fetchOutlookObservations(userId) {
 
   const isNangoManaged = await _hasNangoMapping(supabase, userId, 'outlook');
   if (!isNangoManaged) {
-    console.warn('[ObservationIngestion] Outlook: no Nango connection for user', userId);
+    log.warn('Outlook: no Nango connection', { userId });
     return observations;
   }
 
@@ -1225,7 +1229,7 @@ async function fetchOutlookObservations(userId) {
   try {
     nangoService = await import('./nangoService.js');
   } catch (e) {
-    console.warn('[ObservationIngestion] Outlook: nangoService import failed:', e.message);
+    log.warn('Outlook: nangoService import failed', { error: e });
     return observations;
   }
 
@@ -1245,7 +1249,7 @@ async function fetchOutlookObservations(userId) {
       customFolderCount = folders.filter(f => !systemNames.has(f.displayName)).length;
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Outlook mail folders error:', e.message);
+    log.warn('Outlook mail folders error', { error: e });
   }
 
   if (inboxCount !== null) {
@@ -1275,7 +1279,7 @@ async function fetchOutlookObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Outlook contacts error:', e.message);
+    log.warn('Outlook contacts error', { error: e });
   }
 
   // ── 3. Subject classification from recent inbox messages ─────────────────
@@ -1340,7 +1344,7 @@ async function fetchOutlookObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Outlook subject/sender analysis error:', e.message);
+    log.warn('Outlook subject/sender analysis error', { error: e });
   }
 
   // ── 4. Meeting pattern analysis from calendar events ─────────────────────
@@ -1399,7 +1403,7 @@ async function fetchOutlookObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Outlook calendar meeting pattern error:', e.message);
+    log.warn('Outlook calendar meeting pattern error', { error: e });
   }
 
   return observations;
@@ -1426,7 +1430,7 @@ async function fetchStravaObservations(userId) {
 
   const isNangoManaged = await _hasNangoMapping(supabase, userId, 'strava');
   if (!isNangoManaged) {
-    console.warn('[ObservationIngestion] Strava: no Nango connection for user', userId);
+    log.warn('Strava: no Nango connection', { userId });
     return observations;
   }
 
@@ -1434,7 +1438,7 @@ async function fetchStravaObservations(userId) {
   try {
     nangoService = await import('./nangoService.js');
   } catch (e) {
-    console.warn('[ObservationIngestion] Strava: nangoService import failed:', e.message);
+    log.warn('Strava: nangoService import failed', { error: e });
     return observations;
   }
 
@@ -1462,7 +1466,7 @@ async function fetchStravaObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Strava athlete profile error:', e.message);
+    log.warn('Strava athlete profile error', { error: e });
   }
 
   // ── 2. Recent activities (last 50, analyze last 10 + weekly window) ───────
@@ -1473,7 +1477,7 @@ async function fetchStravaObservations(userId) {
       activities = activitiesResult.data;
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Strava activities error:', e.message);
+    log.warn('Strava activities error', { error: e });
   }
 
   if (activities.length > 0) {
@@ -1541,7 +1545,7 @@ async function fetchStravaObservations(userId) {
         });
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Strava training load error:', e.message);
+      log.warn('Strava training load error', { error: e });
     }
 
     // ── Activity streak: ≥5 active days in last 7 ───────────────────────────
@@ -1559,7 +1563,7 @@ async function fetchStravaObservations(userId) {
         });
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Strava streak error:', e.message);
+      log.warn('Strava streak error', { error: e });
     }
 
     // ── Intensity distribution from average heart rate ────────────────────
@@ -1584,7 +1588,7 @@ async function fetchStravaObservations(userId) {
         });
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Strava intensity distribution error:', e.message);
+      log.warn('Strava intensity distribution error', { error: e });
     }
 
     // ── Personal records ──────────────────────────────────────────────────
@@ -1604,7 +1608,7 @@ async function fetchStravaObservations(userId) {
         });
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Strava personal records error:', e.message);
+      log.warn('Strava personal records error', { error: e });
     }
 
     // ── Gear insight: dominant gear per activity type ──────────────────────
@@ -1636,7 +1640,7 @@ async function fetchStravaObservations(userId) {
         });
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Strava gear insight error:', e.message);
+      log.warn('Strava gear insight error', { error: e });
     }
   }
 
@@ -1659,7 +1663,7 @@ async function fetchStravaObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Strava zones error:', e.message);
+    log.warn('Strava zones error', { error: e });
   }
 
   return observations;
@@ -1685,7 +1689,7 @@ async function fetchGarminObservations(userId) {
 
   const isNangoManaged = await _hasNangoMapping(supabase, userId, 'garmin');
   if (!isNangoManaged) {
-    console.warn('[ObservationIngestion] Garmin: no Nango connection for user', userId);
+    log.warn('Garmin: no Nango connection', { userId });
     return observations;
   }
 
@@ -1693,7 +1697,7 @@ async function fetchGarminObservations(userId) {
   try {
     nangoService = await import('./nangoService.js');
   } catch (e) {
-    console.warn('[ObservationIngestion] Garmin: nangoService import failed:', e.message);
+    log.warn('Garmin: nangoService import failed', { error: e });
     return observations;
   }
 
@@ -1728,7 +1732,7 @@ async function fetchGarminObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Garmin daily summary error:', e.message);
+    log.warn('Garmin daily summary error', { error: e });
   }
 
   // ── 2. Sleep data ─────────────────────────────────────────────────────────
@@ -1754,7 +1758,7 @@ async function fetchGarminObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Garmin sleep error:', e.message);
+    log.warn('Garmin sleep error', { error: e });
   }
 
   // ── 3. Recent activities ──────────────────────────────────────────────────
@@ -1783,7 +1787,7 @@ async function fetchGarminObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Garmin activities error:', e.message);
+    log.warn('Garmin activities error', { error: e });
   }
 
   return observations;
@@ -1809,7 +1813,7 @@ async function fetchFitbitObservations(userId) {
 
   const isNangoManaged = await _hasNangoMapping(supabase, userId, 'fitbit');
   if (!isNangoManaged) {
-    console.warn('[ObservationIngestion] Fitbit: no Nango connection for user', userId);
+    log.warn('Fitbit: no Nango connection', { userId });
     return observations;
   }
 
@@ -1817,7 +1821,7 @@ async function fetchFitbitObservations(userId) {
   try {
     nangoService = await import('./nangoService.js');
   } catch (e) {
-    console.warn('[ObservationIngestion] Fitbit: nangoService import failed:', e.message);
+    log.warn('Fitbit: nangoService import failed', { error: e });
     return observations;
   }
 
@@ -1845,7 +1849,7 @@ async function fetchFitbitObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Fitbit activity error:', e.message);
+    log.warn('Fitbit activity error', { error: e });
   }
 
   // ── 2. Sleep ──────────────────────────────────────────────────────────────
@@ -1865,7 +1869,7 @@ async function fetchFitbitObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Fitbit sleep error:', e.message);
+    log.warn('Fitbit sleep error', { error: e });
   }
 
   // ── 3. Resting heart rate ─────────────────────────────────────────────────
@@ -1887,7 +1891,7 @@ async function fetchFitbitObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Fitbit heart rate error:', e.message);
+    log.warn('Fitbit heart rate error', { error: e });
   }
 
   return observations;
@@ -1980,7 +1984,7 @@ async function fetchTwitchObservations(userId) {
     try {
       nangoService = await import('./nangoService.js');
     } catch (e) {
-      console.warn('[ObservationIngestion] Twitch: failed to load nangoService:', e.message);
+      log.warn('Twitch: failed to load nangoService', { error: e });
       return observations;
     }
 
@@ -2000,7 +2004,7 @@ async function fetchTwitchObservations(userId) {
         });
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Twitch Nango getUser error:', e.message);
+      log.warn('Twitch Nango getUser error', { error: e });
       return observations;
     }
 
@@ -2011,7 +2015,7 @@ async function fetchTwitchObservations(userId) {
       const channels = followResult.success ? (followResult.data?.data || []) : [];
       _buildTwitchChannelObservations(observations, channels);
     } catch (e) {
-      console.warn('[ObservationIngestion] Twitch Nango getFollowedChannels error:', e.message);
+      log.warn('Twitch Nango getFollowedChannels error', { error: e });
     }
 
     return observations;
@@ -2020,14 +2024,14 @@ async function fetchTwitchObservations(userId) {
   // ── Direct OAuth path ─────────────────────────────────────────────────────
   const tokenResult = await getValidAccessToken(userId, 'twitch');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    console.warn('[ObservationIngestion] Twitch: no valid token for user', userId);
+    log.warn('Twitch: no valid token', { userId });
     return observations;
   }
 
   // Twitch API requires both Authorization and Client-Id headers
   const clientId = process.env.TWITCH_CLIENT_ID;
   if (!clientId) {
-    console.warn('[ObservationIngestion] Twitch: TWITCH_CLIENT_ID not set');
+    log.warn('Twitch: TWITCH_CLIENT_ID not set');
     return observations;
   }
 
@@ -2055,7 +2059,7 @@ async function fetchTwitchObservations(userId) {
       });
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Twitch getUser error:', e.message);
+    log.warn('Twitch getUser error', { error: e });
     return observations;
   }
 
@@ -2070,7 +2074,7 @@ async function fetchTwitchObservations(userId) {
     const channels = followRes.data?.data || [];
     _buildTwitchChannelObservations(observations, channels);
   } catch (e) {
-    console.warn('[ObservationIngestion] Twitch getFollowedChannels error:', e.message);
+    log.warn('Twitch getFollowedChannels error', { error: e });
   }
 
   return observations;
@@ -2084,7 +2088,7 @@ async function fetchOuraObservations(userId) {
 
   const hasConnection = await _hasNangoMapping(supabase, userId, 'oura');
   if (!hasConnection) {
-    console.warn('[ObservationIngestion] Oura: no Nango connection for user', userId);
+    log.warn('Oura: no Nango connection', { userId });
     return observations;
   }
 
@@ -2092,7 +2096,7 @@ async function fetchOuraObservations(userId) {
   try {
     nangoService = await import('./nangoService.js');
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura: failed to load nangoService:', e.message);
+    log.warn('Oura: failed to load nangoService', { error: e });
     return observations;
   }
 
@@ -2118,7 +2122,7 @@ async function fetchOuraObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura readiness error:', e.message);
+    log.warn('Oura readiness error', { error: e });
   }
 
   // ── 2. Daily stress → stress pattern / chronotype signals ────────────────
@@ -2138,7 +2142,7 @@ async function fetchOuraObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura stress error:', e.message);
+    log.warn('Oura stress error', { error: e });
   }
 
   // ── 3. Daily resilience → long-term trend ────────────────────────────────
@@ -2156,7 +2160,7 @@ async function fetchOuraObservations(userId) {
       });
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura resilience error:', e.message);
+    log.warn('Oura resilience error', { error: e });
   }
 
   // ── 4. Sleep time → chronotype (bedtime/wake midpoint) ───────────────────
@@ -2181,7 +2185,7 @@ async function fetchOuraObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura sleep time error:', e.message);
+    log.warn('Oura sleep time error', { error: e });
   }
 
   // ── 5. Workouts → type + time-of-day preference ──────────────────────────
@@ -2211,7 +2215,7 @@ async function fetchOuraObservations(userId) {
       });
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura workouts error:', e.message);
+    log.warn('Oura workouts error', { error: e });
   }
 
   // ── 6. Enhanced tags → user self-annotations ─────────────────────────────
@@ -2230,7 +2234,7 @@ async function fetchOuraObservations(userId) {
       });
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Oura enhanced tags error:', e.message);
+    log.warn('Oura enhanced tags error', { error: e });
   }
 
   return observations;
@@ -2347,9 +2351,9 @@ async function storeWhoopPlatformData(userId, supabase, { recoveryData, recovery
     .upsert(rows, { onConflict: 'user_id,platform,data_type,source_url' });
 
   if (error) {
-    console.warn('[ObservationIngestion] Whoop user_platform_data upsert error:', error.message);
+    log.warn('Whoop user_platform_data upsert error', { error });
   } else {
-    console.log(`[ObservationIngestion] Whoop: stored ${rows.length} platform data rows for user ${userId}`);
+    log.info('Whoop: stored platform data rows', { count: rows.length, userId });
   }
 }
 
@@ -2391,7 +2395,7 @@ async function fetchWhoopObservations(userId) {
       recoveryData = recoveryHistory[0] || null;
       sleepData = sleepResult.success ? (sleepResult.data?.records || []) : [];
     } catch (e) {
-      console.warn('[ObservationIngestion] Whoop Nango fetch error:', e.message);
+      log.warn('Whoop Nango fetch error', { error: e });
       return observations;
     }
 
@@ -2403,12 +2407,12 @@ async function fetchWhoopObservations(userId) {
         workoutData = workoutResult.success ? (workoutResult.data?.records || []) : [];
       }
     } catch (e) {
-      console.warn('[ObservationIngestion] Whoop workout fetch error:', e.message);
+      log.warn('Whoop workout fetch error', { error: e });
     }
   } else {
     const tokenResult = await getValidAccessToken(userId, 'whoop');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      console.warn('[ObservationIngestion] Whoop: no valid token for user', userId);
+      log.warn('Whoop: no valid token', { userId });
       return observations;
     }
     directHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };
@@ -2421,7 +2425,7 @@ async function fetchWhoopObservations(userId) {
       recoveryData = recoveryHistory[0] || null;
       sleepData = sleepRes.data?.records || [];
     } catch (e) {
-      console.warn('[ObservationIngestion] Whoop direct API error:', e.message);
+      log.warn('Whoop direct API error', { error: e });
       return observations;
     }
 
@@ -2433,7 +2437,7 @@ async function fetchWhoopObservations(userId) {
       );
       workoutData = workoutRes.data?.records || [];
     } catch (e) {
-      console.warn('[ObservationIngestion] Whoop workout direct API error:', e.message);
+      log.warn('Whoop workout direct API error', { error: e });
     }
   }
 
@@ -2441,7 +2445,7 @@ async function fetchWhoopObservations(userId) {
   try {
     storeWhoopPlatformData(userId, supabase, { recoveryData, recoveryHistory, sleepData, workoutData });
   } catch (e) {
-    console.warn('[ObservationIngestion] Whoop platform data store error:', e.message);
+    log.warn('Whoop platform data store error', { error: e });
   }
 
   // ── Recovery observation ──────────────────────────────────────────────────
@@ -2481,7 +2485,7 @@ async function fetchWhoopObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Whoop recovery streak error:', e.message);
+    log.warn('Whoop recovery streak error', { error: e });
   }
 
   // ── Sleep observation ─────────────────────────────────────────────────────
@@ -2531,7 +2535,7 @@ async function fetchWhoopObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Whoop sleep consistency error:', e.message);
+    log.warn('Whoop sleep consistency error', { error: e });
   }
 
   // ── Workout data: type, strain, HR zone breakdown ─────────────────────────
@@ -2598,7 +2602,7 @@ async function fetchWhoopObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Whoop workout observation error:', e.message);
+    log.warn('Whoop workout observation error', { error: e });
   }
 
   return observations;
@@ -2790,7 +2794,7 @@ export async function ingestWebObservations(userId, events) {
   }
 
   if (stored > 0) {
-    console.log(`[WebBrowsing] Stored ${stored}/${observations.length} observations for user ${userId}`);
+    log.info('Stored observations', { stored, total: observations.length, userId });
   }
   return observations;
 }
@@ -2843,7 +2847,7 @@ async function _markGitHubNeedsReauth(supabase, userId) {
     .eq('user_id', userId)
     .eq('platform', 'github');
   if (error) {
-    console.warn('[GitHub] Failed to mark needs_reauth:', error.message);
+    log.warn('Failed to mark needs_reauth', { error });
   }
 }
 
@@ -2900,7 +2904,7 @@ async function fetchGitHubObservations(userId) {
   }
 
   if (!accessToken) {
-    console.warn('[GitHub] No valid token (OAuth or PAT) for user', userId);
+    log.warn('No valid token (OAuth or PAT)', { userId });
     return observations;
   }
 
@@ -2919,15 +2923,15 @@ async function fetchGitHubObservations(userId) {
     } catch (err) {
       if (err.response?.status === 401) {
         await _markGitHubNeedsReauth(supabase, userId);
-        console.warn('[GitHub] 401 fetching /user — marked needs_reauth for user', userId);
+        log.warn('401 fetching /user — marked needs_reauth', { userId });
         return observations;
       }
-      console.warn('[GitHub] Could not resolve username:', err.message);
+      log.warn('Could not resolve username', { error: err });
     }
   }
 
   if (!githubUsername) {
-    console.warn('[GitHub] Username could not be determined for user', userId);
+    log.warn('Username could not be determined', { userId });
     return observations;
   }
 
@@ -2942,10 +2946,10 @@ async function fetchGitHubObservations(userId) {
   } catch (err) {
     if (err.response?.status === 401) {
       await _markGitHubNeedsReauth(supabase, userId);
-      console.warn('[GitHub] 401 on events — marked needs_reauth for user', userId);
+      log.warn('401 on events — marked needs_reauth', { userId });
       return observations;
     }
-    console.warn('[GitHub] Events fetch error:', err.message);
+    log.warn('Events fetch error', { error: err });
   }
 
   // ── 4. Fetch repos (most recently updated, up to 30) ─────────────────────
@@ -2959,10 +2963,10 @@ async function fetchGitHubObservations(userId) {
   } catch (err) {
     if (err.response?.status === 401) {
       await _markGitHubNeedsReauth(supabase, userId);
-      console.warn('[GitHub] 401 on repos — marked needs_reauth for user', userId);
+      log.warn('401 on repos — marked needs_reauth', { userId });
       return observations;
     }
-    console.warn('[GitHub] Repos fetch error (non-fatal):', err.message);
+    log.warn('Repos fetch error (non-fatal)', { error: err });
   }
 
   // ── 5. Build event-based observations ────────────────────────────────────
@@ -3138,7 +3142,7 @@ async function fetchGitHubObservations(userId) {
     }
   }
 
-  console.log(`[GitHub] Generated ${observations.length} observations for ${githubUsername} (user ${userId})`);
+  log.info('Generated GitHub observations', { count: observations.length, githubUsername, userId });
 
   // Update last_synced_at in user_github_config if row exists (non-blocking)
   supabase
@@ -3178,7 +3182,7 @@ async function fetchRecentWebEvents(userId) {
  * @returns {{ usersProcessed, observationsStored, reflectionsTriggered, errors }}
  */
 async function runObservationIngestion() {
-  console.log('[ObservationIngestion] Starting ingestion run...');
+  log.info('Starting ingestion run...');
   const startTime = Date.now();
 
   const stats = {
@@ -3192,7 +3196,7 @@ async function runObservationIngestion() {
   try {
     const supabase = await getSupabase();
     if (!supabase) {
-      console.warn('[ObservationIngestion] Database not available, skipping');
+      log.warn('Database not available, skipping');
       return stats;
     }
 
@@ -3215,15 +3219,15 @@ async function runObservationIngestion() {
         .select('user_id')
         .not('access_token', 'is', null),
     ]);
-    if (pcRes.error) console.warn('[ObservationIngestion] platform_connections fetch error:', pcRes.error.message);
-    if (nangoRes.error) console.warn('[ObservationIngestion] nango_connection_mappings fetch error:', nangoRes.error.message);
+    if (pcRes.error) log.warn('platform_connections fetch error', { error: pcRes.error });
+    if (nangoRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoRes.error });
     const pcResult = pcRes.data || [];
     const nangoResult = nangoRes.data || [];
     const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
 
     const allConnections = [...pcResult, ...nangoResult, ...githubResult];
     if (allConnections.length === 0) {
-      console.log('[ObservationIngestion] No active platform connections found');
+      log.info('No active platform connections found');
       return stats;
     }
 
@@ -3240,7 +3244,7 @@ async function runObservationIngestion() {
       userPlatforms.set(uid, [...set]);
     }
 
-    console.log(`[ObservationIngestion] Found ${userPlatforms.size} users with ${allConnections.length} connections (pc: ${pcResult.length}, nango: ${nangoResult.length})`);
+    log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
 
     // Process each user
     for (const [userId, platforms] of userPlatforms) {
@@ -3371,7 +3375,7 @@ async function runObservationIngestion() {
             // Non-blocking: capped at 5 reflections per platform per sync.
             if (platformObsCount > 0) {
               runPlatformExpert(userId, platform).catch(err =>
-                console.warn(`[ObservationIngestion] Platform expert (${platform}) failed for ${userId}:`, err.message)
+                log.warn('Platform expert failed', { platform, userId, error: err })
               );
             }
 
@@ -3396,7 +3400,7 @@ async function runObservationIngestion() {
             }
           } catch (platformErr) {
             const errMsg = `${platform} for user ${userId}: ${platformErr.message}`;
-            console.warn(`[ObservationIngestion] Platform error - ${errMsg}`);
+            log.warn('Platform error', { message: errMsg });
             stats.errors.push(errMsg);
           }
         }
@@ -3406,10 +3410,10 @@ async function runObservationIngestion() {
           const webEvents = await fetchRecentWebEvents(userId);
           if (webEvents.length > 0) {
             await ingestWebObservations(userId, webEvents);
-            console.log(`[ObservationIngestion] Web: ingested ${webEvents.length} events for ${userId}`);
+            log.info('Web: ingested events', { count: webEvents.length, userId });
           }
         } catch (err) {
-          console.warn('[ObservationIngestion] Web events failed (non-fatal):', err.message);
+          log.warn('Web events failed (non-fatal)', { error: err });
         }
 
         stats.usersProcessed++;
@@ -3420,41 +3424,41 @@ async function runObservationIngestion() {
           try {
             const shouldReflect = await shouldTriggerReflection(userId);
             if (shouldReflect) {
-              console.log(`[ObservationIngestion] Triggering reflections for user ${userId}`);
+              log.info('Triggering reflections', { userId });
               // Run in background — don't block the ingestion loop
               generateReflections(userId).catch(err =>
-                console.warn(`[ObservationIngestion] Reflection error for ${userId}:`, err.message)
+                log.warn('Reflection error', { userId, error: err })
               );
               stats.reflectionsTriggered++;
             }
           } catch (reflErr) {
-            console.warn(`[ObservationIngestion] Reflection check failed for ${userId}:`, reflErr.message);
+            log.warn('Reflection check failed', { userId, error: reflErr });
           }
 
           // After reflection trigger, also generate proactive insights
           generateProactiveInsights(userId).catch(err =>
-            console.warn(`[ObservationIngestion] Proactive insights failed for ${userId}:`, err.message)
+            log.warn('Proactive insights failed', { userId, error: err })
           );
 
           // Evaluate nudge outcomes: check if user followed through on past suggestions (non-blocking)
           evaluateNudgeOutcomes(userId).catch(err =>
-            console.warn(`[ObservationIngestion] Nudge evaluation failed for ${userId}:`, err.message)
+            log.warn('Nudge evaluation failed', { userId, error: err })
           );
 
           // Track goal progress from ingested platform data (non-blocking)
           trackGoalProgress(userId, null).catch(err =>
-            console.warn(`[ObservationIngestion] Goal tracking failed for ${userId}:`, err.message)
+            log.warn('Goal tracking failed', { userId, error: err })
           );
 
           // Generate goal suggestions based on observed patterns (throttled: max once/24h)
           generateGoalSuggestions(userId).catch(err =>
-            console.warn(`[ObservationIngestion] Goal suggestions failed for ${userId}:`, err.message)
+            log.warn('Goal suggestions failed', { userId, error: err })
           );
 
           // Check for personality drift (non-blocking)
           import('./personalityDriftService.js').then(({ checkDrift }) =>
             checkDrift(userId).catch(err =>
-              console.warn(`[ObservationIngestion] Personality drift check failed for ${userId}:`, err.message)
+              log.warn('Personality drift check failed', { userId, error: err })
             )
           ).catch(() => { /* module load failure — non-fatal */ });
 
@@ -3463,29 +3467,31 @@ async function runObservationIngestion() {
           // unref() ensures this timer doesn't prevent graceful process shutdown.
           const summaryTimer = setTimeout(() => {
             generateTwinSummary(userId).catch(err =>
-              console.warn(`[ObservationIngestion] Twin summary error for ${userId}:`, err.message)
+              log.warn('Twin summary error', { userId, error: err })
             );
           }, 45000); // 45s delay: reflections have priority, then summary
           summaryTimer.unref();
         }
       } catch (userErr) {
         const errMsg = `User ${userId}: ${userErr.message}`;
-        console.warn(`[ObservationIngestion] User error - ${errMsg}`);
+        log.warn('User error', { message: errMsg });
         stats.errors.push(errMsg);
       }
     }
   } catch (error) {
-    console.error('[ObservationIngestion] Fatal error:', error.message);
+    log.error('Fatal error', { error });
     stats.errors.push(`Fatal: ${error.message}`);
   }
 
   const durationMs = Date.now() - startTime;
   const elapsed = (durationMs / 1000).toFixed(1);
-  console.log(
-    `[ObservationIngestion] Completed in ${elapsed}s: ` +
-    `${stats.usersProcessed} users, ${stats.observationsStored} observations, ` +
-    `${stats.reflectionsTriggered} reflections, ${stats.errors.length} errors`
-  );
+  log.info('Ingestion completed', {
+    elapsed,
+    usersProcessed: stats.usersProcessed,
+    observationsStored: stats.observationsStored,
+    reflectionsTriggered: stats.reflectionsTriggered,
+    errors: stats.errors.length,
+  });
 
   // Log to ingestion_health_log (4E - Production Hardening)
   try {
@@ -3503,11 +3509,11 @@ async function runObservationIngestion() {
           error_details: stats.errors.length > 0 ? { messages: stats.errors } : null,
         });
       if (logError) {
-        console.warn('[ObservationIngestion] Failed to log health record:', logError.message);
+        log.warn('Failed to log health record', { error: logError });
       }
     }
   } catch (healthLogErr) {
-    console.warn('[ObservationIngestion] Health logging error (non-fatal):', healthLogErr.message);
+    log.warn('Health logging error (non-fatal)', { error: healthLogErr });
   }
 
   return stats;
@@ -3526,25 +3532,25 @@ let ingestionInterval = null;
  */
 function startObservationIngestion() {
   if (ingestionInterval) {
-    console.warn('[ObservationIngestion] Already running, skipping duplicate start');
+    log.warn('Already running, skipping duplicate start');
     return;
   }
 
   const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
-  console.log('[ObservationIngestion] Starting background ingestion (every 10 minutes)');
+  log.info('Starting background ingestion (every 10 minutes)');
 
   // Run once on startup after a short delay (let tokens warm up)
   setTimeout(() => {
     runObservationIngestion().catch(err =>
-      console.error('[ObservationIngestion] Initial run failed:', err.message)
+      log.error('Initial run failed', { error: err })
     );
   }, 60 * 1000); // 1 minute delay
 
   // Then run on interval
   ingestionInterval = setInterval(() => {
     runObservationIngestion().catch(err =>
-      console.error('[ObservationIngestion] Interval run failed:', err.message)
+      log.error('Interval run failed', { error: err })
     );
   }, INTERVAL_MS);
 }
@@ -3556,7 +3562,7 @@ function stopObservationIngestion() {
   if (ingestionInterval) {
     clearInterval(ingestionInterval);
     ingestionInterval = null;
-    console.log('[ObservationIngestion] Stopped background ingestion');
+    log.info('Stopped background ingestion');
   }
 }
 
@@ -3569,10 +3575,10 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 async function runPostOnboardingIngestion(userId) {
   if (!userId || !UUID_RE.test(userId)) {
-    console.warn('[ObservationIngestion] runPostOnboardingIngestion: invalid userId', userId);
+    log.warn('runPostOnboardingIngestion: invalid userId', { userId });
     return { observationsStored: 0 };
   }
-  console.log(`[ObservationIngestion] Running post-onboarding ingestion for user ${userId}`);
+  log.info('Running post-onboarding ingestion', { userId });
 
   try {
     const supabase = await getSupabase();
@@ -3594,8 +3600,8 @@ async function runPostOnboardingIngestion(userId) {
         .eq('status', 'active')
         .in('platform', SUPPORTED_PLATFORMS),
     ]);
-    if (pcConnsRes.error) console.warn('[PostOnboarding] platform_connections fetch error:', pcConnsRes.error.message);
-    if (nangoConnsRes.error) console.warn('[PostOnboarding] nango_connection_mappings fetch error:', nangoConnsRes.error.message);
+    if (pcConnsRes.error) log.warn('platform_connections fetch error', { error: pcConnsRes.error });
+    if (nangoConnsRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoConnsRes.error });
     const pcConns = pcConnsRes.data || [];
     const nangoConns = nangoConnsRes.data || [];
 
@@ -3686,7 +3692,7 @@ async function runPostOnboardingIngestion(userId) {
           if (result) totalStored++;
         }
       } catch (err) {
-        console.warn(`[ObservationIngestion] Post-onboarding ${platform} error:`, err.message);
+        log.warn('Post-onboarding platform error', { platform, error: err });
       }
     }
 
@@ -3699,16 +3705,16 @@ async function runPostOnboardingIngestion(userId) {
         .from('user_memories')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId);
-      if (countErr) console.warn('[PostOnboarding] Memory count error:', countErr.message);
+      if (countErr) log.warn('Memory count error', { error: countErr });
       if ((count || 0) < 10) {
         const seedResult = await seedMemoriesFromEnrichment(userId);
         if (seedResult.memoriesStored > 0) {
           totalStored += seedResult.memoriesStored;
-          console.log(`[PostOnboarding] Seeded ${seedResult.memoriesStored} memories from enrichment for user ${userId}`);
+          log.info('Seeded memories from enrichment', { count: seedResult.memoriesStored, userId });
         }
       }
     } catch (err) {
-      console.warn('[PostOnboarding] Enrichment memory seeding error:', err.message);
+      log.warn('Enrichment memory seeding error', { error: err });
     }
 
     // Trigger reflections if enough data
@@ -3717,18 +3723,18 @@ async function runPostOnboardingIngestion(userId) {
         const shouldReflect = await shouldTriggerReflection(userId);
         if (shouldReflect) {
           generateReflections(userId).catch(err =>
-            console.warn(`[ObservationIngestion] Post-onboarding reflection error:`, err.message)
+            log.warn('Post-onboarding reflection error', { error: err })
           );
         }
       } catch { /* non-critical */ }
 
       // Generate proactive insights immediately — don't wait for cron
       generateProactiveInsights(userId).catch(err =>
-        console.warn(`[ObservationIngestion] Post-onboarding proactive insights error:`, err.message)
+        log.warn('Post-onboarding proactive insights error', { error: err })
       );
 
       generateGoalSuggestions(userId).catch(err =>
-        console.warn(`[ObservationIngestion] Post-onboarding goal suggestion error:`, err.message)
+        log.warn('Post-onboarding goal suggestion error', { error: err })
       );
 
       // Regenerate twin summary after a delay to allow reflections to complete
@@ -3736,16 +3742,16 @@ async function runPostOnboardingIngestion(userId) {
       // unref() ensures this timer doesn't prevent graceful process shutdown.
       const summaryTimer = setTimeout(() => {
         generateTwinSummary(userId).catch(err =>
-          console.warn(`[PostOnboarding] Twin summary regeneration error:`, err.message)
+          log.warn('Twin summary regeneration error', { error: err })
         );
       }, 30000); // 30s delay gives reflection engine time to complete
       summaryTimer.unref();
     }
 
-    console.log(`[ObservationIngestion] Post-onboarding: stored ${totalStored} observations for user ${userId}`);
+    log.info('Post-onboarding: stored observations', { count: totalStored, userId });
     return { observationsStored: totalStored };
   } catch (err) {
-    console.error(`[ObservationIngestion] Post-onboarding error:`, err.message);
+    log.error('Post-onboarding error', { error: err });
     return { observationsStored: 0 };
   }
 }
@@ -3827,9 +3833,9 @@ export async function ingestLocationClusters(userId, clusters) {
       await addPlatformObservation(userId, obs, 'location', { ingestion_source: 'location_clusters' });
     }
 
-    console.log(`[Location] Stored ${observations.length} NL observations for user ${userId}`);
+    log.info('Stored NL observations', { count: observations.length, userId });
   } catch (err) {
-    console.error('[Location] ingestLocationClusters error:', err.message);
+    log.error('ingestLocationClusters error', { error: err });
   }
 }
 
@@ -3849,7 +3855,7 @@ async function fetchAppleMusicObservations(userId) {
     // Fallback: check platform_connections for user-provided token
     const tokenResult = await getValidAccessToken(userId, 'apple_music');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      console.warn('[ObservationIngestion] Apple Music: no valid token for user', userId);
+      log.warn('Apple Music: no valid token', { userId });
       return observations;
     }
   }
@@ -3911,7 +3917,7 @@ async function fetchAppleMusicObservations(userId) {
       }
     }
   } catch (e) {
-    console.warn('[ObservationIngestion] Apple Music error:', e.message);
+    log.warn('Apple Music error', { error: e });
   }
 
   return observations;

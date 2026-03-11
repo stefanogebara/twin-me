@@ -13,6 +13,9 @@ import express from 'express';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TwinFirstMessage');
 
 const router = express.Router();
 
@@ -97,13 +100,13 @@ Write a first message to them (3-4 sentences max):
       });
       text = message?.content?.trim() || "I'm here. Let's figure each other out.";
     } catch (llmError) {
-      console.error('[Twin First Message] LLM error, using fallback:', llmError.message);
+      log.error('LLM error, using fallback:', llmError.message);
       text = "I'm here. Let's figure each other out.";
     }
 
     return res.json({ success: true, message: text });
   } catch (error) {
-    console.error('[Twin First Message] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to generate first message' });
   }
 });

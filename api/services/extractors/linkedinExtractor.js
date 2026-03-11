@@ -5,6 +5,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('LinkedinExtractor');
 
 class LinkedInExtractor {
   constructor(accessToken) {
@@ -16,7 +19,7 @@ class LinkedInExtractor {
    * Main extraction method
    */
   async extractAll(userId, connectorId) {
-    console.log(`[LinkedIn] Starting extraction for user: ${userId}`);
+    log.info(`Starting extraction for user: ${userId}`);
 
     try {
       const job = await this.createExtractionJob(userId, connectorId);
@@ -33,10 +36,10 @@ class LinkedInExtractor {
 
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[LinkedIn] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return { success: true, itemsExtracted: totalItems };
     } catch (error) {
-      console.error('[LinkedIn] Extraction error:', error);
+      log.error('Extraction error:', error);
       throw error;
     }
   }
@@ -45,7 +48,7 @@ class LinkedInExtractor {
    * Extract user profile
    */
   async extractUserProfile(userId) {
-    console.log(`[LinkedIn] Extracting user profile...`);
+    log.info(`Extracting user profile...`);
 
     try {
       // Get basic profile using OpenID Connect
@@ -72,10 +75,10 @@ class LinkedInExtractor {
         locale: profile.locale
       });
 
-      console.log(`[LinkedIn] Extracted profile for ${profile.name}`);
+      log.info(`Extracted profile for ${profile.name}`);
       return 1;
     } catch (error) {
-      console.error('[LinkedIn] Error extracting profile:', error);
+      log.error('Error extracting profile:', error);
       return 0;
     }
   }
@@ -84,7 +87,7 @@ class LinkedInExtractor {
    * Extract email address
    */
   async extractEmailAddress(userId) {
-    console.log(`[LinkedIn] Extracting email...`);
+    log.info(`Extracting email...`);
 
     try {
       const response = await fetch(`${this.baseUrl}/emailAddress?q=members&projection=(elements*(handle~))`, {
@@ -110,7 +113,7 @@ class LinkedInExtractor {
 
       return 0;
     } catch (error) {
-      console.error('[LinkedIn] Error extracting email:', error);
+      log.error('Error extracting email:', error);
       return 0;
     }
   }
@@ -136,10 +139,10 @@ class LinkedInExtractor {
         });
 
       if (error) {
-        console.error('[LinkedIn] Error storing data:', error);
+        log.error('Error storing data:', error);
       }
     } catch (error) {
-      console.error('[LinkedIn] Exception storing data:', error);
+      log.error('Exception storing data:', error);
     }
   }
 
@@ -161,7 +164,7 @@ class LinkedInExtractor {
       .single();
 
     if (error) {
-      console.error('[LinkedIn] Error creating job:', error);
+      log.error('Error creating job:', error);
       throw error;
     }
 
@@ -185,7 +188,7 @@ class LinkedInExtractor {
         }
       })
       .eq('id', jobId);
-    if (updateErr) console.warn('[LinkedIn] Error completing extraction job:', updateErr.message);
+    if (updateErr) log.warn('Error completing extraction job:', updateErr.message);
   }
 }
 

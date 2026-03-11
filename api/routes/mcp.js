@@ -6,6 +6,9 @@
 import express from 'express';
 import mcpClient from '../services/mcp-client.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('MCPRoute');
 
 const router = express.Router();
 
@@ -29,7 +32,7 @@ router.get('/status', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error getting MCP status:', error);
+    log.error('Error getting MCP status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get MCP status'
@@ -71,7 +74,7 @@ router.get('/platform/:platform/status', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(`Error checking platform ${req.params.platform}:`, error);
+    log.error(`Error checking platform ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to check platform status'
@@ -113,7 +116,7 @@ router.post('/extract/:platform', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`Error extracting data from ${req.params.platform}:`, error);
+    log.error(`Error extracting data from ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: `Failed to extract data from ${req.params.platform}`
@@ -152,7 +155,7 @@ router.post('/initialize/:platform', async (req, res) => {
     });
 
   } catch (error) {
-    console.error(`Error initializing MCP server for ${req.params.platform}:`, error);
+    log.error(`Error initializing MCP server for ${req.params.platform}:`, error);
     res.status(500).json({
       success: false,
       error: `Failed to initialize MCP server for ${req.params.platform}`
@@ -199,7 +202,7 @@ router.get('/platforms', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error listing platforms:', error);
+    log.error('Error listing platforms:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to list platforms'

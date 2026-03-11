@@ -15,6 +15,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('UniquePatternDetector');
 
 class UniquePatternDetector {
   constructor() {
@@ -48,7 +51,7 @@ class UniquePatternDetector {
    * Detect unique patterns for a user
    */
   async detectUniquePatterns(userId) {
-    console.log(`🔍 [Pattern Detector] Detecting unique patterns for user ${userId}`);
+    log.info(`Detecting unique patterns for user ${userId}`);
 
     try {
       // 1. Fetch user's behavioral features
@@ -60,11 +63,11 @@ class UniquePatternDetector {
       if (error) throw error;
 
       if (!features || features.length === 0) {
-        console.log('⚠️ [Pattern Detector] No behavioral features found');
+        log.info('No behavioral features found');
         return { success: true, patterns: [] };
       }
 
-      console.log(`📊 [Pattern Detector] Analyzing ${features.length} features`);
+      log.info(`Analyzing ${features.length} features`);
 
       const patterns = [];
 
@@ -94,7 +97,7 @@ class UniquePatternDetector {
 
         if (saveError) throw saveError;
 
-        console.log(`✅ [Pattern Detector] Saved ${saved.length} unique patterns`);
+        log.info(`Saved ${saved.length} unique patterns`);
 
         return {
           success: true,
@@ -106,7 +109,7 @@ class UniquePatternDetector {
       return { success: true, patterns: [] };
 
     } catch (error) {
-      console.error('❌ [Pattern Detector] Error:', error);
+      log.error('Error:', error);
       return { success: false, error: error.message };
     }
   }

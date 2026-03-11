@@ -1,3 +1,7 @@
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Quickenrichment');
+
 /**
  * Quick Enrichment Functions
  *
@@ -12,7 +16,7 @@
  * Used for the "wow moment" during onboarding.
  */
 export async function quickEnrich(email, name = null) {
-  console.log(`[ProfileEnrichment] Quick enrichment starting`);
+  log.info(`Quick enrichment starting`);
   const startTime = Date.now();
   const username = email.split('@')[0];
 
@@ -70,7 +74,7 @@ export async function quickEnrich(email, name = null) {
   };
 
   const elapsed = Date.now() - startTime;
-  console.log(`[ProfileEnrichment] Quick enrichment done in ${elapsed}ms:`, {
+  log.info(`Quick enrichment done in ${elapsed}ms:`, {
     hasPhoto: !!data.discovered_photo,
     hasName: !!data.discovered_name,
     hasBio: !!data.discovered_bio,
@@ -121,7 +125,7 @@ export async function lookupGravatar(email) {
       socialLinks,
     };
   } catch (err) {
-    console.log('[ProfileEnrichment] Gravatar lookup failed:', err.message);
+    log.info('Gravatar lookup failed:', err.message);
     return null;
   }
 }
@@ -150,7 +154,7 @@ export async function lookupGitHub(email) {
     const login = searchData.items[0].login;
     return fetchGitHubProfile(login, headers);
   } catch (err) {
-    console.log('[ProfileEnrichment] GitHub email lookup failed:', err.message);
+    log.info('GitHub email lookup failed:', err.message);
     return null;
   }
 }
@@ -164,7 +168,7 @@ export async function lookupGitHubByUsername(username) {
     const headers = getGitHubHeaders();
     return fetchGitHubProfile(username, headers);
   } catch (err) {
-    console.log('[ProfileEnrichment] GitHub username lookup failed:', err.message);
+    log.info('GitHub username lookup failed:', err.message);
     return null;
   }
 }
@@ -211,7 +215,7 @@ async function fetchGitHubProfile(login, headers) {
     };
   } catch (err) {
     clearTimeout(timeout);
-    console.log('[ProfileEnrichment] GitHub profile fetch failed:', err.message);
+    log.info('GitHub profile fetch failed:', err.message);
     return null;
   }
 }

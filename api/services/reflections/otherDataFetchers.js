@@ -5,6 +5,9 @@
  */
 
 import { supabaseAdmin } from '../../config/supabase.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Otherdatafetchers');
 
 /**
  * Get YouTube data for reflection
@@ -98,7 +101,7 @@ export async function getYouTubeData(userId) {
     const total = learningCategories + entertainmentCategories || 1;
     const learningRatio = Math.round((learningCategories / total) * 100);
 
-    console.log(`[Reflection] Found ${subscriptions.length} subs, ${likedVideos.length} liked, ${extensionWatches.length} extension watches for user ${userId}`);
+    log.info(`Found ${subscriptions.length} subs, ${likedVideos.length} liked, ${extensionWatches.length} extension watches for user ${userId}`);
 
     return {
       success: subscriptions.length > 0 || likedVideos.length > 0 || extensionWatches.length > 0,
@@ -118,7 +121,7 @@ export async function getYouTubeData(userId) {
       }
     };
   } catch (error) {
-    console.error('[Reflection] YouTube data error:', error);
+    log.error('YouTube data error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -206,7 +209,7 @@ export async function getTwitchData(userId) {
     // Re-sort and re-normalize
     gamingCategories.sort((a, b) => b.percentage - a.percentage);
 
-    console.log(`[Reflection] Found ${followedChannels.length} followed, ${extensionStreamWatches.length} extension watches for user ${userId}`);
+    log.info(`Found ${followedChannels.length} followed, ${extensionStreamWatches.length} extension watches for user ${userId}`);
 
     return {
       success: followedChannels.length > 0 || extensionStreamWatches.length > 0,
@@ -225,7 +228,7 @@ export async function getTwitchData(userId) {
       }
     };
   } catch (error) {
-    console.error('[Reflection] Twitch data error:', error);
+    log.error('Twitch data error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -287,7 +290,7 @@ export async function getDiscordData(userId) {
     }
 
     const rawSummary = contents.slice(0, 3).join('\n');
-    console.log(`[Reflection] Found ${memories.length} Discord observations for user ${userId}`);
+    log.info(`Found ${memories.length} Discord observations for user ${userId}`);
 
     return {
       success: servers.length > 0 || totalServers > 0,
@@ -301,7 +304,7 @@ export async function getDiscordData(userId) {
       }
     };
   } catch (error) {
-    console.error('[Reflection] Discord data error:', error);
+    log.error('Discord data error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -366,7 +369,7 @@ export async function getLinkedInData(userId) {
     }
 
     const rawSummary = contents.slice(0, 3).join('\n');
-    console.log(`[Reflection] Found ${memories.length} LinkedIn observations for user ${userId}`);
+    log.info(`Found ${memories.length} LinkedIn observations for user ${userId}`);
 
     return {
       success: !!(headline || industry || skills.length > 0),
@@ -381,7 +384,7 @@ export async function getLinkedInData(userId) {
       }
     };
   } catch (error) {
-    console.error('[Reflection] LinkedIn data error:', error);
+    log.error('LinkedIn data error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -497,7 +500,7 @@ export async function getWebBrowsingData(userId) {
       timestamp: d.raw_data?.timestamp
     }));
 
-    console.log(`[Reflection] Found ${pageVisits.length} page visits, ${searchEvents.length} searches for user ${userId}`);
+    log.info(`Found ${pageVisits.length} page visits, ${searchEvents.length} searches for user ${userId}`);
 
     return {
       success: pageVisits.length > 0,
@@ -520,7 +523,7 @@ export async function getWebBrowsingData(userId) {
       }
     };
   } catch (error) {
-    console.error('[Reflection] Web browsing data error:', error);
+    log.error('Web browsing data error:', error);
     return { success: false, error: error.message };
   }
 }

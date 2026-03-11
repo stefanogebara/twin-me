@@ -18,6 +18,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Calendarextractor');
 
 class CalendarFeatureExtractor {
   constructor() {
@@ -29,7 +32,7 @@ class CalendarFeatureExtractor {
    * Extract all behavioral features from Calendar data
    */
   async extractFeatures(userId) {
-    console.log(`📅 [Calendar Extractor] Extracting features for user ${userId}`);
+    log.info(`Extracting features for user ${userId}`);
 
     try {
       // Fetch calendar data from user_platform_data (where raw data is stored)
@@ -43,7 +46,7 @@ class CalendarFeatureExtractor {
       if (error) throw error;
 
       if (!platformData || platformData.length === 0) {
-        console.log('⚠️ [Calendar Extractor] No calendar data found in user_platform_data');
+        log.info('No calendar data found in user_platform_data');
         return [];
       }
 
@@ -66,15 +69,15 @@ class CalendarFeatureExtractor {
       let events = allEvents.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
       if (events.length === 0) {
-        console.log('⚠️ [Calendar Extractor] No calendar events found for user in lookback period');
+        log.info('No calendar events found for user in lookback period');
         return [];
       }
 
-      console.log(`📊 [Calendar Extractor] Found ${events.length} calendar events from ${platformData.length} raw data records`);
+      log.info(`Found ${events.length} calendar events from ${platformData.length} raw data records`);
 
       // Sample if too many events (for performance - conflict detection is O(n²))
       if (events.length > this.MAX_EVENTS) {
-        console.log(`⚠️ [Calendar Extractor] Sampling ${this.MAX_EVENTS} most recent events for performance`);
+        log.info(`Sampling ${this.MAX_EVENTS} most recent events for performance`);
         events = events.slice(-this.MAX_EVENTS);
       }
 
@@ -222,11 +225,11 @@ class CalendarFeatureExtractor {
         }));
       }
 
-      console.log(`✅ [Calendar Extractor] Extracted ${features.length} features`);
+      log.info(`Extracted ${features.length} features`);
       return features;
 
     } catch (error) {
-      console.error('❌ [Calendar Extractor] Error:', error);
+      log.error('Error:', error);
       throw error;
     }
   }
@@ -261,7 +264,7 @@ class CalendarFeatureExtractor {
         raw_data: googleEvent
       };
     } catch (error) {
-      console.warn('⚠️ [Calendar Extractor] Error transforming event:', error.message);
+      log.warn('Error transforming event:', error.message);
       return null;
     }
   }
@@ -853,7 +856,7 @@ class CalendarFeatureExtractor {
   async saveFeatures(features) {
     if (features.length === 0) return { success: true, saved: 0 };
 
-    console.log(`💾 [Calendar Extractor] Saving ${features.length} features to database...`);
+    log.info(`Saving ${features.length} features to database...`);
 
     try {
       const { data, error } = await supabaseAdmin
@@ -865,11 +868,11 @@ class CalendarFeatureExtractor {
 
       if (error) throw error;
 
-      console.log(`✅ [Calendar Extractor] Saved ${data.length} features successfully`);
+      log.info(`Saved ${data.length} features successfully`);
       return { success: true, saved: data.length, data };
 
     } catch (error) {
-      console.error('❌ [Calendar Extractor] Error saving features:', error);
+      log.error('Error saving features:', error);
       return { success: false, error: error.message };
     }
   }

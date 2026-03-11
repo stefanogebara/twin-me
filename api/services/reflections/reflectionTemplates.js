@@ -1,3 +1,7 @@
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Reflectiontemplates');
+
 /**
  * Reflection Templates
  *
@@ -35,7 +39,7 @@ export function generateTemplateReflection(platform, data) {
         return null;
     }
   } catch (error) {
-    console.error(`[Reflection] Template generation failed for ${platform}:`, error);
+    log.error(`Template generation failed for ${platform}:`, error);
     return null;
   }
 }

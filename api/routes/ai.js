@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { successResponse, errorResponse } from '../middleware/errorHandler.js';
 import { sanitizeUnicode } from '../utils/unicodeSanitizer.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('AI');
 
 // Ensure environment variables are loaded
 dotenv.config();
@@ -322,7 +325,7 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
         relevantContext = await documentProcessor.searchRelevantContext(twinId, sanitizedMessage, 3);
       }
     } catch (ragError) {
-      console.warn('RAG context search failed:', ragError);
+      log.warn('RAG context search failed:', ragError);
       // Continue without RAG context rather than failing the entire request
     }
 
@@ -358,7 +361,7 @@ router.post('/chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000), valida
     }, 'AI response generated successfully');
 
   } catch (error) {
-    console.error('Claude API Error:', error);
+    log.error('Claude API Error:', error);
 
     // Handle specific error types
     if (error.status === 429) {
@@ -418,7 +421,7 @@ router.post('/follow-up-questions', authenticateUser, userRateLimit(50, 15 * 60 
     }
 
   } catch (error) {
-    console.error('Follow-up questions error:', error);
+    log.error('Follow-up questions error:', error);
     res.status(500).json({
       error: 'Failed to generate follow-up questions',
       questions: []
@@ -472,7 +475,7 @@ router.post('/assess-understanding', authenticateUser, userRateLimit(20, 15 * 60
     }
 
   } catch (error) {
-    console.error('Assessment error:', error);
+    log.error('Assessment error:', error);
     res.status(500).json({
       error: 'Failed to assess understanding',
       assessment: { understanding_level: 'medium' }
@@ -523,7 +526,7 @@ router.post('/openai-chat', authenticateUser, userRateLimit(30, 15 * 60 * 1000),
     }
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    log.error('OpenAI API Error:', error);
 
     // Handle specific error types
     if (error.status === 429) {
@@ -588,7 +591,7 @@ router.post('/openai-follow-up-questions', authenticateUser, userRateLimit(50, 1
     }
 
   } catch (error) {
-    console.error('OpenAI follow-up questions error:', error);
+    log.error('OpenAI follow-up questions error:', error);
     res.status(500).json({
       error: 'Failed to generate follow-up questions',
       questions: []
@@ -647,7 +650,7 @@ router.post('/openai-assess-understanding', authenticateUser, userRateLimit(20, 
     }
 
   } catch (error) {
-    console.error('OpenAI assessment error:', error);
+    log.error('OpenAI assessment error:', error);
     res.status(500).json({
       error: 'Failed to assess understanding',
       assessment: { understanding_level: 'medium' }

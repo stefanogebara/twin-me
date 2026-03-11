@@ -5,6 +5,9 @@ import { authenticateUser, requireProfessor, userRateLimit } from '../middleware
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs/promises';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Documents');
 
 dotenv.config();
 
@@ -98,7 +101,7 @@ router.post('/upload', authenticateUser, userRateLimit(50, 15 * 60 * 1000), uplo
     const filePath = req.file.path;
     const mimeType = req.file.mimetype;
 
-    console.log(`Processing uploaded file: ${req.file.originalname} for twin ${twinId}`);
+    log.info(`Processing uploaded file: ${req.file.originalname} for twin ${twinId}`);
 
     // Process the document
     const documentProcessor = await getDocumentProcessor();
@@ -119,7 +122,7 @@ router.post('/upload', authenticateUser, userRateLimit(50, 15 * 60 * 1000), uplo
     try {
       await fs.unlink(filePath);
     } catch (cleanupError) {
-      console.warn('Failed to clean up uploaded file:', cleanupError);
+      log.warn('Failed to clean up uploaded file:', cleanupError);
     }
 
     res.json({
@@ -134,14 +137,14 @@ router.post('/upload', authenticateUser, userRateLimit(50, 15 * 60 * 1000), uplo
     });
 
   } catch (error) {
-    console.error('Document upload error:', error);
+    log.error('Document upload error:', error);
 
     // Clean up file on error
     if (req.file) {
       try {
         await fs.unlink(req.file.path);
       } catch (cleanupError) {
-        console.warn('Failed to clean up file after error:', cleanupError);
+        log.warn('Failed to clean up file after error:', cleanupError);
       }
     }
 
@@ -166,7 +169,7 @@ router.get('/stats/:twinId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Stats retrieval error:', error);
+    log.error('Stats retrieval error:', error);
     res.status(500).json({
       error: 'Failed to retrieve document statistics'
     });
@@ -205,7 +208,7 @@ router.post('/search', authenticateUser, [
     });
 
   } catch (error) {
-    console.error('Context search error:', error);
+    log.error('Context search error:', error);
     res.status(500).json({
       error: 'Failed to search documents',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -236,7 +239,7 @@ router.delete('/clear/:twinId', authenticateUser, requireProfessor, async (req, 
     });
 
   } catch (error) {
-    console.error('Document clearing error:', error);
+    log.error('Document clearing error:', error);
     res.status(500).json({
       error: 'Failed to clear documents'
     });
@@ -256,7 +259,7 @@ router.get('/twins', authenticateUser, requireProfessor, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Twins listing error:', error);
+    log.error('Twins listing error:', error);
     res.status(500).json({
       error: 'Failed to list processed twins'
     });

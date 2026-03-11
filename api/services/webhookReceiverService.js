@@ -8,6 +8,9 @@ import crypto from 'crypto';
 import { supabaseAdmin } from './database.js';
 import { notifyNewData, notifyConnectionStatus } from './websocketService.js';
 import * as sseService from './sseService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('WebhookReceiver');
 
 /**
  * Verify GitHub webhook signature
@@ -34,7 +37,7 @@ function verifySlackSignature(body, timestamp, signature, secret) {
  * Supported events: push, issues, pull_request, release, etc.
  */
 async function handleGitHubWebhook(event, payload, userId) {
-  console.log(`📡 GitHub webhook received: ${event} for user ${userId}`);
+  log.info(`GitHub webhook received: ${event} for user ${userId}`);
 
   try {
     // Store the raw event data
@@ -49,7 +52,7 @@ async function handleGitHubWebhook(event, payload, userId) {
       });
 
     if (error) {
-      console.error('❌ Error storing GitHub webhook data:', error);
+      log.error('Error storing GitHub webhook data:', error);
       return { success: false, error };
     }
 
@@ -60,17 +63,17 @@ async function handleGitHubWebhook(event, payload, userId) {
       .eq('user_id', userId)
       .eq('platform', 'github');
 
-    if (githubSyncErr) console.error('[Webhook] Error updating GitHub last_sync:', githubSyncErr.message);
+    if (githubSyncErr) log.error('Error updating GitHub last_sync:', githubSyncErr.message);
 
     // Notify user via WebSocket and SSE
     notifyNewData(userId, 'github', event, 1);
     sseService.notifyWebhookReceived(userId, 'github', event, { repository: payload.repository?.name });
 
-    console.log(`✅ GitHub ${event} event processed for user ${userId}`);
+    log.info(`GitHub ${event} event processed for user ${userId}`);
 
     return { success: true };
   } catch (error) {
-    console.error('❌ Error handling GitHub webhook:', error);
+    log.error('Error handling GitHub webhook:', error);
     return { success: false, error: error.message };
   }
 }
@@ -80,7 +83,7 @@ async function handleGitHubWebhook(event, payload, userId) {
  * Requires Google Cloud Pub/Sub setup
  */
 async function handleGmailPushNotification(message, userId) {
-  console.log(`📧 Gmail push notification received for user ${userId}`);
+  log.info(`Gmail push notification received for user ${userId}`);
 
   try {
     // Decode the Pub/Sub message
@@ -104,7 +107,7 @@ async function handleGmailPushNotification(message, userId) {
         extracted_at: new Date().toISOString(),
       });
 
-    if (gmailInsertErr) console.error('[Webhook] Error storing Gmail push notification data:', gmailInsertErr.message);
+    if (gmailInsertErr) log.error('Error storing Gmail push notification data:', gmailInsertErr.message);
 
     // Update last sync
     const { error: gmailSyncErr } = await supabaseAdmin
@@ -113,17 +116,17 @@ async function handleGmailPushNotification(message, userId) {
       .eq('user_id', userId)
       .eq('platform', 'google_gmail');
 
-    if (gmailSyncErr) console.error('[Webhook] Error updating Gmail last_sync:', gmailSyncErr.message);
+    if (gmailSyncErr) log.error('Error updating Gmail last_sync:', gmailSyncErr.message);
 
     // Notify user via WebSocket and SSE
     notifyNewData(userId, 'google_gmail', 'new_email', 1);
     sseService.notifyWebhookReceived(userId, 'google_gmail', 'new_email', { historyId });
 
-    console.log(`✅ Gmail push notification processed for user ${userId}`);
+    log.info(`Gmail push notification processed for user ${userId}`);
 
     return { success: true };
   } catch (error) {
-    console.error('❌ Error handling Gmail push notification:', error);
+    log.error('Error handling Gmail push notification:', error);
     return { success: false, error: error.message };
   }
 }
@@ -133,7 +136,7 @@ async function handleGmailPushNotification(message, userId) {
  * https://api.slack.com/apis/connections/events-api
  */
 async function handleSlackEvent(event, payload, userId) {
-  console.log(`💬 Slack event received: ${event.type} for user ${userId}`);
+  log.info(`Slack event received: ${event.type} for user ${userId}`);
 
   try {
     // Handle URL verification challenge
@@ -152,7 +155,7 @@ async function handleSlackEvent(event, payload, userId) {
         extracted_at: new Date().toISOString(),
       });
 
-    if (slackInsertErr) console.error('[Webhook] Error storing Slack event data:', slackInsertErr.message);
+    if (slackInsertErr) log.error('Error storing Slack event data:', slackInsertErr.message);
 
     // Update last sync
     const { error: slackSyncErr } = await supabaseAdmin
@@ -161,17 +164,17 @@ async function handleSlackEvent(event, payload, userId) {
       .eq('user_id', userId)
       .eq('platform', 'slack');
 
-    if (slackSyncErr) console.error('[Webhook] Error updating Slack last_sync:', slackSyncErr.message);
+    if (slackSyncErr) log.error('Error updating Slack last_sync:', slackSyncErr.message);
 
     // Notify user via WebSocket and SSE
     notifyNewData(userId, 'slack', event.type, 1);
     sseService.notifyWebhookReceived(userId, 'slack', event.type, event);
 
-    console.log(`✅ Slack ${event.type} event processed for user ${userId}`);
+    log.info(`Slack ${event.type} event processed for user ${userId}`);
 
     return { success: true };
   } catch (error) {
-    console.error('❌ Error handling Slack event:', error);
+    log.error('Error handling Slack event:', error);
     return { success: false, error: error.message };
   }
 }
@@ -217,7 +220,7 @@ async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
 
     const webhook = await response.json();
 
-    console.log(`✅ GitHub webhook registered for ${repoOwner}/${repoName}`);
+    log.info(`GitHub webhook registered for ${repoOwner}/${repoName}`);
 
     // Store webhook info in database
     const { error: webhookInsertErr } = await supabaseAdmin
@@ -234,11 +237,11 @@ async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
         },
       });
 
-    if (webhookInsertErr) console.error('[Webhook] Error storing GitHub webhook registration:', webhookInsertErr.message);
+    if (webhookInsertErr) log.error('Error storing GitHub webhook registration:', webhookInsertErr.message);
 
     return { success: true, webhook };
   } catch (error) {
-    console.error('❌ Error registering GitHub webhook:', error);
+    log.error('Error registering GitHub webhook:', error);
     return { success: false, error: error.message };
   }
 }
@@ -273,7 +276,7 @@ async function setupGmailPushNotifications(userId, accessToken) {
 
     const watchResponse = await response.json();
 
-    console.log(`✅ Gmail push notifications enabled for user ${userId}`);
+    log.info(`Gmail push notifications enabled for user ${userId}`);
 
     // Store watch info
     const { error: gmailWatchInsertErr } = await supabaseAdmin
@@ -289,11 +292,11 @@ async function setupGmailPushNotifications(userId, accessToken) {
         },
       });
 
-    if (gmailWatchInsertErr) console.error('[Webhook] Error storing Gmail watch registration:', gmailWatchInsertErr.message);
+    if (gmailWatchInsertErr) log.error('Error storing Gmail watch registration:', gmailWatchInsertErr.message);
 
     return { success: true, watchResponse };
   } catch (error) {
-    console.error('❌ Error setting up Gmail push notifications:', error);
+    log.error('Error setting up Gmail push notifications:', error);
     return { success: false, error: error.message };
   }
 }
@@ -307,7 +310,7 @@ async function refreshGmailWatch(userId, accessToken) {
     // Simply call watch again - this extends the watch period
     return await setupGmailPushNotifications(userId, accessToken);
   } catch (error) {
-    console.error('❌ Error refreshing Gmail watch:', error);
+    log.error('Error refreshing Gmail watch:', error);
     return { success: false, error: error.message };
   }
 }
@@ -357,7 +360,7 @@ async function getWebhookInfo(userId, platform) {
     .eq('platform', platform);
 
   if (error) {
-    console.error('❌ Error fetching webhook info:', error);
+    log.error('Error fetching webhook info:', error);
     return null;
   }
 

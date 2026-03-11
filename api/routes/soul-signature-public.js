@@ -8,13 +8,16 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('SoulSignaturePublic');
 // Lazy import to avoid crashing if OG image module fails to load
 let invalidateOgCache = async () => {};
 try {
   const ogModule = await import('./og-image.js');
   if (ogModule.invalidateOgCache) invalidateOgCache = ogModule.invalidateOgCache;
 } catch {
-  console.warn('[Soul Signature Public] OG image module not available, cache invalidation disabled');
+  log.warn('OG image module not available, cache invalidation disabled');
 }
 
 const router = express.Router();
@@ -69,7 +72,7 @@ router.get('/public/:userId', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('[Public Signature] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch signature' });
   }
 });
@@ -101,13 +104,13 @@ router.patch('/visibility', authenticateUser, async (req, res) => {
       .single();
 
     if (error) {
-      console.error('[Signature Visibility] Error:', error.message);
+      log.error('Error:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to update visibility' });
     }
 
     // Invalidate OG card cache when visibility changes
     await invalidateOgCache(userId).catch(err =>
-      console.warn('[Signature Visibility] Cache invalidation failed:', err.message)
+      log.warn('Cache invalidation failed:', err.message)
     );
 
     return res.json({
@@ -115,7 +118,7 @@ router.patch('/visibility', authenticateUser, async (req, res) => {
       is_public: data.is_public,
     });
   } catch (error) {
-    console.error('[Signature Visibility] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to update visibility' });
   }
 });
@@ -150,7 +153,7 @@ router.get('/share-status', authenticateUser, async (req, res) => {
       share_url: data.is_public ? `/api/s/${userId}` : null,
     });
   } catch (error) {
-    console.error('[Share Status] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch share status' });
   }
 });

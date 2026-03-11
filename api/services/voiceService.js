@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Voice');
 
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
@@ -14,7 +17,7 @@ class VoiceService {
     this.defaultVoiceId = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
     if (!this.apiKey || this.apiKey === 'your_elevenlabs_api_key_here') {
-      console.warn('ElevenLabs API key not configured. Voice features will be disabled.');
+      log.warn('ElevenLabs API key not configured. Voice features will be disabled.');
       this.enabled = false;
     } else {
       this.enabled = true;
@@ -28,7 +31,7 @@ class VoiceService {
       });
       this.speechToTextEnabled = true;
     } else {
-      console.warn('OpenAI API key not configured. Speech-to-text will be disabled.');
+      log.warn('OpenAI API key not configured. Speech-to-text will be disabled.');
       this.speechToTextEnabled = false;
     }
   }
@@ -69,7 +72,7 @@ class VoiceService {
         }))
       };
     } catch (error) {
-      console.error('Failed to fetch voices:', error);
+      log.error('Failed to fetch voices:', error);
       return {
         success: false,
         error: error.response?.data?.detail || error.message
@@ -123,7 +126,7 @@ class VoiceService {
         contentType: 'audio/mpeg'
       };
     } catch (error) {
-      console.error('Text-to-speech failed:', error);
+      log.error('Text-to-speech failed:', error);
       return {
         success: false,
         error: error.response?.data ? new TextDecoder().decode(error.response.data) : error.message
@@ -160,7 +163,7 @@ class VoiceService {
         message: 'Voice cloned successfully'
       };
     } catch (error) {
-      console.error('Voice cloning failed:', error);
+      log.error('Voice cloning failed:', error);
       return {
         success: false,
         error: error.response?.data?.detail || error.message
@@ -188,7 +191,7 @@ class VoiceService {
         message: 'Voice deleted successfully'
       };
     } catch (error) {
-      console.error('Voice deletion failed:', error);
+      log.error('Voice deletion failed:', error);
       return {
         success: false,
         error: error.response?.data?.detail || error.message
@@ -216,7 +219,7 @@ class VoiceService {
         settings: response.data
       };
     } catch (error) {
-      console.error('Failed to get voice settings:', error);
+      log.error('Failed to get voice settings:', error);
       return {
         success: false,
         error: error.response?.data?.detail || error.message
@@ -245,7 +248,7 @@ class VoiceService {
         message: 'Voice settings updated successfully'
       };
     } catch (error) {
-      console.error('Failed to update voice settings:', error);
+      log.error('Failed to update voice settings:', error);
       return {
         success: false,
         error: error.response?.data?.detail || error.message
@@ -273,7 +276,7 @@ class VoiceService {
         user: response.data
       };
     } catch (error) {
-      console.error('Failed to get user info:', error);
+      log.error('Failed to get user info:', error);
       return {
         success: false,
         error: error.response?.data?.detail || error.message
@@ -300,7 +303,7 @@ class VoiceService {
         filename
       };
     } catch (error) {
-      console.error('Failed to save audio file:', error);
+      log.error('Failed to save audio file:', error);
       return {
         success: false,
         error: error.message
@@ -342,7 +345,7 @@ class VoiceService {
         filePath: saveResult.filePath
       };
     } catch (error) {
-      console.error('Failed to generate twin speech:', error);
+      log.error('Failed to generate twin speech:', error);
       return {
         success: false,
         error: error.message
@@ -378,7 +381,7 @@ class VoiceService {
         message: 'Voice successfully cloned for twin'
       };
     } catch (error) {
-      console.error('Failed to process twin voice upload:', error);
+      log.error('Failed to process twin voice upload:', error);
       return {
         success: false,
         error: error.message
@@ -407,7 +410,7 @@ class VoiceService {
         transcription: transcription.trim()
       };
     } catch (error) {
-      console.error('Speech-to-text failed:', error);
+      log.error('Speech-to-text failed:', error);
       return {
         success: false,
         error: error.message

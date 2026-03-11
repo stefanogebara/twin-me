@@ -18,6 +18,9 @@ import cron from 'node-cron';
 import { refreshAccessToken } from './tokenRefreshService.js';
 import { decryptToken, encryptToken } from './encryption.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TokenLifecycle');
 
 // Nango-managed tokens use placeholder values - don't try to refresh them ourselves
 const NANGO_PLACEHOLDER_TOKENS = ['NANGO_MANAGED', 'nango_managed', 'managed_by_nango'];
@@ -62,7 +65,7 @@ let oauthCleanupJob = null;
  */
 const tokenRefreshJobHandler = async () => {
   const startTime = Date.now();
-  console.log('🔄 [Token Lifecycle] Starting token refresh job...');
+  log.info('Starting token refresh job...');
 
   try {
 
@@ -78,44 +81,44 @@ const tokenRefreshJobHandler = async () => {
       .or(`and(status.eq.connected,token_expires_at.lt.${fiveMinutesFromNow}),status.eq.expired`);
 
     if (error) {
-      console.error('❌ [Token Lifecycle] Error fetching expiring tokens:', error.message);
+      log.error('Error fetching expiring tokens:', error.message);
       return;
     }
 
     if (!expiringTokens || expiringTokens.length === 0) {
-      console.log('✅ [Token Lifecycle] No tokens need refresh. Job complete.');
+      log.info('No tokens need refresh. Job complete.');
       return;
     }
 
     // Filter out Nango-managed tokens - those are handled by Nango automatically
     const tokensToRefresh = expiringTokens.filter(token => {
       if (isNangoManagedToken(token.access_token) || isNangoManagedToken(token.refresh_token)) {
-        console.log(`ℹ️  [Token Lifecycle] Skipping ${token.platform} - Nango-managed token`);
+        log.info(`Skipping ${token.platform} - Nango-managed token`);
         return false;
       }
       return true;
     });
 
-    console.log(`📊 [Token Lifecycle] Token states: ${expiringTokens.map(t => `${t.platform}(${t.status})`).join(', ')}`);
+    log.info(`Token states: ${expiringTokens.map(t => `${t.platform}(${t.status})`).join(', ')}`);
 
     if (tokensToRefresh.length === 0) {
-      console.log('✅ [Token Lifecycle] No tokens need refresh (all Nango-managed). Job complete.');
+      log.info('No tokens need refresh (all Nango-managed). Job complete.');
       return;
     }
 
-    console.log(`📊 [Token Lifecycle] Found ${tokensToRefresh.length} tokens to refresh`);
+    log.info(`Found ${tokensToRefresh.length} tokens to refresh`);
 
     // Refresh each expiring token
     const results = await Promise.allSettled(
       tokensToRefresh.map(async (token) => {
         try {
-          console.log(`🔄 [Token Lifecycle] Refreshing ${token.platform} token for user ${token.user_id}`);
+          log.info(`Refreshing ${token.platform} token for user ${token.user_id}`);
 
           // Decrypt the refresh token before using it
           const decryptedRefreshToken = decryptToken(token.refresh_token);
 
           if (!decryptedRefreshToken) {
-            console.error(`❌ [Token Lifecycle] Could not decrypt refresh token for ${token.platform}`);
+            log.error(`Could not decrypt refresh token for ${token.platform}`);
             return {
               success: false,
               userId: token.user_id,
@@ -145,9 +148,9 @@ const tokenRefreshJobHandler = async () => {
               .eq('user_id', token.user_id)
               .eq('platform', token.platform);
 
-            if (tokenUpdateErr) console.error('[TokenLifecycle] Error saving refreshed token:', tokenUpdateErr.message);
+            if (tokenUpdateErr) log.error('Error saving refreshed token:', tokenUpdateErr.message);
 
-            console.log(`✅ [Token Lifecycle] Successfully refreshed ${token.platform} token`);
+            log.info(`Successfully refreshed ${token.platform} token`);
           } else {
             throw new Error('refreshAccessToken returned null');
           }
@@ -158,7 +161,7 @@ const tokenRefreshJobHandler = async () => {
             platform: token.platform
           };
         } catch (error) {
-          console.error(`❌ [Token Lifecycle] Failed to refresh ${token.platform} token:`, error.message);
+          log.error(`Failed to refresh ${token.platform} token:`, error.message);
 
           // Mark connection as expired if refresh fails
           {
@@ -170,7 +173,7 @@ const tokenRefreshJobHandler = async () => {
               })
               .eq('user_id', token.user_id)
               .eq('platform', token.platform);
-            if (expiredUpdateErr) console.error('[TokenLifecycle] Error marking token as expired:', expiredUpdateErr.message);
+            if (expiredUpdateErr) log.error('Error marking token as expired:', expiredUpdateErr.message);
           }
 
           return {
@@ -188,13 +191,13 @@ const tokenRefreshJobHandler = async () => {
     const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
     const duration = Date.now() - startTime;
 
-    console.log(`✅ [Token Lifecycle] Token refresh job complete`);
-    console.log(`📊 [Token Lifecycle] Results: ${successful} successful, ${failed} failed`);
-    console.log(`⏱️ [Token Lifecycle] Duration: ${duration}ms`);
+    log.info(`Token refresh job complete`);
+    log.info(`Results: ${successful} successful, ${failed} failed`);
+    log.info(`Duration: ${duration}ms`);
 
   } catch (error) {
-    console.error('❌ [Token Lifecycle] Token refresh job failed:', error.message);
-    console.error('Stack trace:', error.stack);
+    log.error('Token refresh job failed:', error.message);
+    log.error('Stack trace:', error.stack);
   }
 };
 
@@ -218,7 +221,7 @@ const tokenRefreshJobHandler = async () => {
  */
 const oauthCleanupJobHandler = async () => {
   const startTime = Date.now();
-  console.log('🧹 [Token Lifecycle] Starting OAuth state cleanup job...');
+  log.info('Starting OAuth state cleanup job...');
 
   try {
 
@@ -230,10 +233,10 @@ const oauthCleanupJobHandler = async () => {
       .select('id');
 
     if (expiredError) {
-      console.error('❌ [Token Lifecycle] Error deleting expired states:', expiredError.message);
+      log.error('Error deleting expired states:', expiredError.message);
     } else {
       const expiredCount = expiredStates?.length || 0;
-      console.log(`✅ [Token Lifecycle] Deleted ${expiredCount} expired OAuth states`);
+      log.info(`Deleted ${expiredCount} expired OAuth states`);
     }
 
     // Delete used oauth_states older than 1 hour (keep recent ones for debugging)
@@ -246,22 +249,22 @@ const oauthCleanupJobHandler = async () => {
       .select('id');
 
     if (usedError) {
-      console.error('❌ [Token Lifecycle] Error deleting used states:', usedError.message);
+      log.error('Error deleting used states:', usedError.message);
     } else {
       const usedCount = usedStates?.length || 0;
-      console.log(`✅ [Token Lifecycle] Deleted ${usedCount} old used OAuth states`);
+      log.info(`Deleted ${usedCount} old used OAuth states`);
     }
 
     const totalCleaned = (expiredStates?.length || 0) + (usedStates?.length || 0);
     const duration = Date.now() - startTime;
 
-    console.log(`✅ [Token Lifecycle] OAuth cleanup job complete`);
-    console.log(`📊 [Token Lifecycle] Total cleaned: ${totalCleaned} states`);
-    console.log(`⏱️ [Token Lifecycle] Duration: ${duration}ms`);
+    log.info(`OAuth cleanup job complete`);
+    log.info(`Total cleaned: ${totalCleaned} states`);
+    log.info(`Duration: ${duration}ms`);
 
   } catch (error) {
-    console.error('❌ [Token Lifecycle] OAuth cleanup job failed:', error.message);
-    console.error('Stack trace:', error.stack);
+    log.error('OAuth cleanup job failed:', error.message);
+    log.error('Stack trace:', error.stack);
   }
 };
 
@@ -278,11 +281,11 @@ const oauthCleanupJobHandler = async () => {
  * @returns {Object} Object containing both job instances
  */
 export function startBackgroundJobs() {
-  console.log('🚀 [Token Lifecycle] Starting background jobs...');
+  log.info('Starting background jobs...');
 
   // Token Refresh Job - Every 5 minutes
   if (tokenRefreshJob) {
-    console.warn('⚠️ [Token Lifecycle] Token refresh job already running, stopping old instance');
+    log.warn('Token refresh job already running, stopping old instance');
     tokenRefreshJob.stop();
   }
 
@@ -291,11 +294,11 @@ export function startBackgroundJobs() {
     timezone: 'UTC'
   });
 
-  console.log('✅ [Token Lifecycle] Token refresh job scheduled (every 5 minutes)');
+  log.info('Token refresh job scheduled (every 5 minutes)');
 
   // OAuth State Cleanup Job - Every 15 minutes
   if (oauthCleanupJob) {
-    console.warn('⚠️ [Token Lifecycle] OAuth cleanup job already running, stopping old instance');
+    log.warn('OAuth cleanup job already running, stopping old instance');
     oauthCleanupJob.stop();
   }
 
@@ -304,27 +307,27 @@ export function startBackgroundJobs() {
     timezone: 'UTC'
   });
 
-  console.log('✅ [Token Lifecycle] OAuth cleanup job scheduled (every 15 minutes)');
+  log.info('OAuth cleanup job scheduled (every 15 minutes)');
 
   // Defer initial jobs to avoid blocking server startup
-  console.log('🔄 [Token Lifecycle] Deferring initial jobs by 60s to let server start...');
+  log.info('Deferring initial jobs by 60s to let server start...');
   setTimeout(() => {
-    console.log('🔄 [Token Lifecycle] Running deferred initial token refresh...');
+    log.info('Running deferred initial token refresh...');
     tokenRefreshJobHandler().catch(error => {
-      console.error('❌ [Token Lifecycle] Initial token refresh failed:', error.message);
+      log.error('Initial token refresh failed:', error.message);
     });
   }, 60000);
 
   setTimeout(() => {
     oauthCleanupJobHandler().catch(error => {
-      console.error('❌ [Token Lifecycle] Initial OAuth cleanup failed:', error.message);
+      log.error('Initial OAuth cleanup failed:', error.message);
     });
   }, 65000);
 
-  console.log('✅ [Token Lifecycle] All background jobs started successfully');
-  console.log('📋 [Token Lifecycle] Job schedule:');
-  console.log('   - Token Refresh: Every 5 minutes (UTC)');
-  console.log('   - OAuth Cleanup: Every 15 minutes (UTC)');
+  log.info('All background jobs started successfully');
+  log.info('Job schedule:');
+  log.info('- Token Refresh: Every 5 minutes (UTC)');
+  log.info('- OAuth Cleanup: Every 15 minutes (UTC)');
 
   return {
     tokenRefreshJob,
@@ -339,7 +342,7 @@ export function startBackgroundJobs() {
  * This should be called on graceful server shutdown.
  */
 export function stopBackgroundJobs() {
-  console.log('🛑 [Token Lifecycle] Stopping background jobs...');
+  log.info('Stopping background jobs...');
 
   let stopped = 0;
 
@@ -347,20 +350,20 @@ export function stopBackgroundJobs() {
     tokenRefreshJob.stop();
     tokenRefreshJob = null;
     stopped++;
-    console.log('✅ [Token Lifecycle] Token refresh job stopped');
+    log.info('Token refresh job stopped');
   }
 
   if (oauthCleanupJob) {
     oauthCleanupJob.stop();
     oauthCleanupJob = null;
     stopped++;
-    console.log('✅ [Token Lifecycle] OAuth cleanup job stopped');
+    log.info('OAuth cleanup job stopped');
   }
 
   if (stopped === 0) {
-    console.warn('⚠️ [Token Lifecycle] No jobs were running');
+    log.warn('No jobs were running');
   } else {
-    console.log(`✅ [Token Lifecycle] Stopped ${stopped} background jobs`);
+    log.info(`Stopped ${stopped} background jobs`);
   }
 }
 
@@ -372,7 +375,7 @@ export function stopBackgroundJobs() {
  * @returns {Promise<void>}
  */
 export async function runTokenRefreshNow() {
-  console.log('🔄 [Token Lifecycle] Running token refresh job immediately...');
+  log.info('Running token refresh job immediately...');
   await tokenRefreshJobHandler();
 }
 
@@ -384,7 +387,7 @@ export async function runTokenRefreshNow() {
  * @returns {Promise<void>}
  */
 export async function runOAuthCleanupNow() {
-  console.log('🧹 [Token Lifecycle] Running OAuth cleanup job immediately...');
+  log.info('Running OAuth cleanup job immediately...');
   await oauthCleanupJobHandler();
 }
 
@@ -443,7 +446,7 @@ export function getJobStatus() {
  * import { getJobStatus } from './services/tokenLifecycleJob.js';
  *
  * const status = getJobStatus();
- * console.log('Job Status:', status);
+ * log.info('Job Status:', status);
  */
 
 export default {

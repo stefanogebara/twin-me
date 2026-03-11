@@ -9,6 +9,9 @@ import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { getQueues, getQueueStats, areQueuesAvailable } from '../services/queueService.js';
 import { authenticateUser, requireProfessor } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('QueueDashboard');
 
 const router = express.Router();
 
@@ -24,7 +27,7 @@ function initializeBullBoard() {
   const { extractionQueue, soulSignatureQueue } = getQueues();
 
   if (!extractionQueue || !soulSignatureQueue) {
-    console.warn('⚠️ Bull Board not initialized - queues not available');
+    log.warn('Bull Board not initialized - queues not available');
     return null;
   }
 
@@ -37,10 +40,10 @@ function initializeBullBoard() {
       serverAdapter,
     });
 
-    console.log('✅ Bull Board initialized at /api/queues/dashboard');
+    log.info('Bull Board initialized at /api/queues/dashboard');
     return serverAdapter;
   } catch (error) {
-    console.error('❌ Failed to initialize Bull Board:', error);
+    log.error('Failed to initialize Bull Board:', error);
     return null;
   }
 }
@@ -86,7 +89,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error('Error getting queue stats:', error);
+    log.error('Error getting queue stats:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get queue stats',
@@ -113,7 +116,7 @@ router.get('/health', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error checking queue health:', error);
+    log.error('Error checking queue health:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to check queue health',

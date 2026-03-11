@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ConversationLearning');
 
 /**
  * Log a conversation exchange to the database.
@@ -25,10 +28,10 @@ export async function logConversationToDatabase({ userId, role, content, metadat
       });
 
     if (error) {
-      console.warn('[ConversationLearning] Log error:', error.message);
+      log.warn('Log error:', error.message);
     }
   } catch (err) {
-    console.warn('[ConversationLearning] logConversationToDatabase error:', err.message);
+    log.warn('logConversationToDatabase error:', err.message);
   }
 }
 
@@ -66,7 +69,7 @@ export async function getUserWritingProfile(userId) {
       averageWordCount: Math.round(words.length / messages.length),
     };
   } catch (err) {
-    console.warn('[ConversationLearning] getUserWritingProfile error:', err.message);
+    log.warn('getUserWritingProfile error:', err.message);
     return null;
   }
 }
@@ -90,7 +93,7 @@ export async function getRecentMcpConversations(userId, limit = 10) {
     if (error) return [];
     return data || [];
   } catch (err) {
-    console.warn('[ConversationLearning] getRecentMcpConversations error:', err.message);
+    log.warn('getRecentMcpConversations error:', err.message);
     return [];
   }
 }
@@ -142,7 +145,7 @@ export async function getConversationStats(userId) {
     .from('mcp_conversation_logs')
     .select('mcp_client, topics_detected, intent, created_at')
     .eq('user_id', userId);
-  if (logsErr) console.error('[ConversationLearning] Failed to fetch conversation logs:', logsErr.message);
+  if (logsErr) log.error('Failed to fetch conversation logs:', logsErr.message);
 
   if (!logs || logs.length === 0) {
     return {

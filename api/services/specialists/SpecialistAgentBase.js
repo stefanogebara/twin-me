@@ -15,6 +15,9 @@ import AgentBase from '../agents/AgentBase.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Specialistagentbase');
 
 // Load validated correlations
 const __filename = fileURLToPath(import.meta.url);
@@ -30,9 +33,9 @@ try {
     acc[s.id] = s;
     return acc;
   }, {}) || {};
-  console.log('[SpecialistAgentBase] Loaded validated correlations');
+  log.info('Loaded validated correlations');
 } catch (error) {
-  console.warn('[SpecialistAgentBase] Could not load validated-correlations.json');
+  log.warn('Could not load validated-correlations.json');
 }
 
 /**

@@ -30,6 +30,9 @@ import { retrieveMemories, addMemory } from './memoryStreamService.js';
 import { complete } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { get as redisGet, set as redisSet, del as redisDel, CACHE_TTL, CACHE_KEYS } from './redisClient.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('IdentityContext');
 
 const CACHE_TTL_MS = CACHE_TTL.IDENTITY_CONTEXT * 1000; // 4 hours in ms (matches twin summary TTL)
 const CACHE_TTL_S = CACHE_TTL.IDENTITY_CONTEXT;          // 4 hours in seconds (for Redis)
@@ -49,7 +52,7 @@ export async function inferIdentityContext(userId) {
   try {
     const redisCached = await redisGet(CACHE_KEYS.identityContext(userId));
     if (redisCached) {
-      console.log(`[IdentityContext] Redis cache HIT for ${userId}`);
+      log.info('Redis cache HIT', { userId });
       return redisCached;
     }
   } catch { /* Redis unavailable — fall through */ }
@@ -82,7 +85,7 @@ export async function inferIdentityContext(userId) {
       }
     }
   } catch (err) {
-    console.warn('[IdentityContext] DB cache check failed (non-fatal):', err.message);
+    log.warn('DB cache check failed (non-fatal)', { error: err });
   }
 
   // 3. Gather signals from memory stream in parallel
@@ -90,12 +93,12 @@ export async function inferIdentityContext(userId) {
   try {
     signals = await gatherSignals(userId);
   } catch (err) {
-    console.warn('[IdentityContext] Signal gathering failed:', err.message);
+    log.warn('Signal gathering failed', { error: err });
     return defaultIdentityContext();
   }
 
   if (!signals.hasEnoughData) {
-    console.log('[IdentityContext] Insufficient signals, returning unknown context');
+    log.info('Insufficient signals, returning unknown context');
     return defaultIdentityContext();
   }
 
@@ -104,19 +107,19 @@ export async function inferIdentityContext(userId) {
   try {
     identityContext = await runIdentityInference(signals);
   } catch (err) {
-    console.warn('[IdentityContext] LLM inference failed:', err.message);
+    log.warn('LLM inference failed', { error: err });
     return defaultIdentityContext();
   }
 
   // 5. Store as importance=8 fact memory (non-blocking) so it persists across server restarts
   storeIdentityFact(userId, identityContext).catch(err =>
-    console.warn('[IdentityContext] Failed to store fact:', err.message)
+    log.warn('Failed to store fact', { error: err })
   );
 
   // 6. Cache in Redis + in-memory fallback
   _setIdentityCache(userId, identityContext);
 
-  console.log(`[IdentityContext] Inferred for ${userId}: lifeStage=${identityContext.lifeStage}, career=${identityContext.careerSalience}, age≈${identityContext.approximateAge}`);
+  log.info('Inferred identity context', { userId, lifeStage: identityContext.lifeStage, careerSalience: identityContext.careerSalience, approximateAge: identityContext.approximateAge });
   return identityContext;
 }
 
@@ -231,7 +234,7 @@ function parseInferenceResponse(raw) {
 
     return identityContext;
   } catch (err) {
-    console.warn('[IdentityContext] Failed to parse LLM response:', err.message, '| raw:', raw.substring(0, 200));
+    log.warn('Failed to parse LLM response', { error: err, rawPreview: raw.substring(0, 200) });
     return defaultIdentityContext();
   }
 }
@@ -332,7 +335,7 @@ async function storeIdentityFact(userId, identityContext) {
     skipImportance: true,
   });
 
-  console.log(`[IdentityContext] Stored identity fact for ${userId}`);
+  log.info('Stored identity fact', { userId });
 }
 
 function serializeIdentityContext(ctx) {

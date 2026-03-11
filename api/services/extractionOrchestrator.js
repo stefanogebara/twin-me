@@ -19,6 +19,10 @@ const linkedinFeatureExtractor = { extractFeatures: async () => ({}), saveFeatur
 // Pattern Learning Bridge
 import patternLearningBridge from './patternLearningBridge.js';
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('ExtractionOrchestrator');
+
 
 class ExtractionOrchestrator {
   constructor() {
@@ -32,7 +36,7 @@ class ExtractionOrchestrator {
    * @returns {Object} Extraction results for all platforms
    */
   async extractAllPlatforms(userId) {
-    console.log(`🌟 [Orchestrator] Starting extraction for all platforms - User: ${userId}`);
+    log.info('Starting extraction for all platforms', { userId });
 
     try {
       // 1. Get all connected platforms
@@ -47,7 +51,7 @@ class ExtractionOrchestrator {
       }
 
       if (!connections || connections.length === 0) {
-        console.log('⚠️ No connected platforms found');
+        log.info('No connected platforms found');
         return {
           success: true,
           message: 'No platforms connected yet',
@@ -55,7 +59,7 @@ class ExtractionOrchestrator {
         };
       }
 
-      console.log(`   Found ${connections.length} connected platform(s)`);
+      log.info('Found connected platforms', { count: connections.length });
 
       // 2. Extract from each platform in parallel
       const extractionPromises = connections.map(connection =>
@@ -75,9 +79,9 @@ class ExtractionOrchestrator {
         .delete()
         .eq('user_id', userId);
       if (invalidateErr) {
-        console.warn('[Orchestrator] twin_summaries invalidation failed (non-blocking):', invalidateErr.message);
+        log.warn('twin_summaries invalidation failed (non-blocking)', { error: invalidateErr });
       } else {
-        console.log('🗑️ [Orchestrator] Invalidated twin_summaries for fresh regeneration');
+        log.info('Invalidated twin_summaries for fresh regeneration');
       }
 
       // 4. Return summary
@@ -93,7 +97,7 @@ class ExtractionOrchestrator {
       };
 
     } catch (error) {
-      console.error('❌ [Orchestrator] Extraction failed:', error);
+      log.error('Extraction failed', { error });
       throw error;
     }
   }
@@ -109,7 +113,7 @@ class ExtractionOrchestrator {
 
     // Prevent duplicate jobs
     if (this.runningJobs.has(jobKey)) {
-      console.log(`⏳ [Orchestrator] Job already running for ${platform}`);
+      log.info('Job already running', { platform });
       return {
         success: false,
         platform,
@@ -120,7 +124,7 @@ class ExtractionOrchestrator {
     this.runningJobs.set(jobKey, { startedAt: new Date(), status: 'running' });
 
     try {
-      console.log(`📊 [Orchestrator] Extracting ${platform} data for user ${userId}`);
+      log.info('Extracting platform data', { platform, userId });
 
       // 1. Create extraction job record
       const jobId = await this.createExtractionJob(userId, platform);
@@ -139,10 +143,10 @@ class ExtractionOrchestrator {
             const features = await spotifyFeatureExtractor.extractFeatures(userId);
             if (features.length > 0) {
               await spotifyFeatureExtractor.saveFeatures(features);
-              console.log(`   📊 Extracted ${features.length} Spotify behavioral features`);
+              log.info('Extracted Spotify behavioral features', { count: features.length });
             }
           } catch (featureError) {
-            console.error(`   ⚠️ Spotify feature extraction error: ${featureError.message}`);
+            log.error('Spotify feature extraction error', { error: featureError });
           }
           break;
 
@@ -155,12 +159,12 @@ class ExtractionOrchestrator {
               await calendarFeatureExtractor.saveFeatures(features);
               itemsExtracted = features.length;
               result = { success: true, itemsExtracted };
-              console.log(`   📊 Extracted ${features.length} Calendar behavioral features`);
+              log.info('Extracted Calendar behavioral features', { count: features.length });
             } else {
               result = { success: true, itemsExtracted: 0, message: 'No Calendar data available' };
             }
           } catch (calendarError) {
-            console.error(`   ❌ Calendar extraction error: ${calendarError.message}`);
+            log.error('Calendar extraction error', { error: calendarError });
             result = { success: false, error: calendarError.message };
           }
           break;
@@ -198,12 +202,12 @@ class ExtractionOrchestrator {
               await gmailFeatureExtractor.saveFeatures(gmailFeatures);
               itemsExtracted = gmailFeatures.length;
               result = { success: true, itemsExtracted };
-              console.log(`   📊 Extracted ${gmailFeatures.length} Gmail behavioral features`);
+              log.info('Extracted Gmail behavioral features', { count: gmailFeatures.length });
             } else {
               result = { success: true, itemsExtracted: 0, message: 'No Gmail data available' };
             }
           } catch (gmailError) {
-            console.error(`   ❌ Gmail extraction error: ${gmailError.message}`);
+            log.error('Gmail extraction error', { error: gmailError });
             result = { success: false, error: gmailError.message };
           }
           break;
@@ -216,12 +220,12 @@ class ExtractionOrchestrator {
               await outlookFeatureExtractor.saveFeatures(outlookFeatures);
               itemsExtracted = outlookFeatures.length;
               result = { success: true, itemsExtracted };
-              console.log(`   📊 Extracted ${outlookFeatures.length} Outlook behavioral features`);
+              log.info('Extracted Outlook behavioral features', { count: outlookFeatures.length });
             } else {
               result = { success: true, itemsExtracted: 0, message: 'No Outlook data available' };
             }
           } catch (outlookError) {
-            console.error(`   ❌ Outlook extraction error: ${outlookError.message}`);
+            log.error('Outlook extraction error', { error: outlookError });
             result = { success: false, error: outlookError.message };
           }
           break;
@@ -234,12 +238,12 @@ class ExtractionOrchestrator {
               await linkedinFeatureExtractor.saveFeatures(linkedinFeatures);
               itemsExtracted = linkedinFeatures.length;
               result = { success: true, itemsExtracted };
-              console.log(`   📊 Extracted ${linkedinFeatures.length} LinkedIn behavioral features`);
+              log.info('Extracted LinkedIn behavioral features', { count: linkedinFeatures.length });
             } else {
               result = { success: true, itemsExtracted: 0, message: 'No LinkedIn data available' };
             }
           } catch (linkedinError) {
-            console.error(`   ❌ LinkedIn extraction error: ${linkedinError.message}`);
+            log.error('LinkedIn extraction error', { error: linkedinError });
             result = { success: false, error: linkedinError.message };
           }
           break;
@@ -250,40 +254,40 @@ class ExtractionOrchestrator {
             const observations = await fetchWhoopObservations(userId);
             itemsExtracted = observations.length;
             result = { success: true, itemsExtracted };
-            console.log(`   📊 Extracted ${itemsExtracted} Whoop observations`);
+            log.info('Extracted Whoop observations', { count: itemsExtracted });
           } catch (whoopError) {
-            console.error(`   ❌ Whoop extraction error: ${whoopError.message}`);
+            log.error('Whoop extraction error', { error: whoopError });
             result = { success: false, error: whoopError.message };
           }
           break;
 
         // Platforms not yet implemented
         case 'reddit':
-          console.log(`⚠️ [Orchestrator] Extractor for ${platform} not yet implemented`);
+          log.info('Extractor not yet implemented', { platform });
           result = { success: false, error: 'Extractor not implemented' };
           break;
 
         default:
-          console.log(`⚠️ [Orchestrator] Unknown platform: ${platform}`);
+          log.info('Unknown platform', { platform });
           result = { success: false, error: 'Unknown platform' };
       }
 
       // 3. Update job status
       if (result.success) {
         await this.updateExtractionJob(jobId, 'completed', itemsExtracted, null);
-        console.log(`✅ [Orchestrator] ${platform} extraction completed - ${itemsExtracted} items`);
+        log.info('Platform extraction completed', { platform, itemsExtracted });
 
         // 4. Push to Pattern Learning System (async, don't wait)
         patternLearningBridge.syncExistingPlatformData(userId, platform, 1).then(syncResult => {
           if (syncResult.synced > 0) {
-            console.log(`🧠 [Orchestrator] Pattern Learning: Synced ${syncResult.synced} ${platform} events`);
+            log.info('Pattern Learning synced', { synced: syncResult.synced, platform });
           }
         }).catch(err => {
-          console.error(`⚠️ [Orchestrator] Pattern Learning sync error: ${err.message}`);
+          log.error('Pattern Learning sync error', { error: err });
         });
       } else {
         await this.updateExtractionJob(jobId, 'failed', 0, result.error || 'Extraction failed');
-        console.log(`❌ [Orchestrator] ${platform} extraction failed: ${result.error}`);
+        log.info('Platform extraction failed', { platform, error: result.error });
       }
 
       this.runningJobs.delete(jobKey);
@@ -297,7 +301,7 @@ class ExtractionOrchestrator {
       };
 
     } catch (error) {
-      console.error(`❌ [Orchestrator] ${platform} extraction error:`, error);
+      log.error('Platform extraction error', { platform, error });
       this.runningJobs.delete(jobKey);
 
       return {
@@ -369,7 +373,7 @@ class ExtractionOrchestrator {
       };
 
     } catch (error) {
-      console.error('❌ [Orchestrator] Status check error:', error);
+      log.error('Status check error', { error });
       throw error;
     }
   }
@@ -379,7 +383,7 @@ class ExtractionOrchestrator {
    * @param {string} userId - User ID (optional, retry all if not provided)
    */
   async retryFailedExtractions(userId = null) {
-    console.log('🔄 [Orchestrator] Retrying failed extractions...');
+    log.info('Retrying failed extractions...');
 
     try {
       // Get failed jobs from the last 24 hours
@@ -402,11 +406,11 @@ class ExtractionOrchestrator {
       }
 
       if (!failedJobs || failedJobs.length === 0) {
-        console.log('✅ [Orchestrator] No failed jobs to retry');
+        log.info('No failed jobs to retry');
         return { success: true, retried: 0 };
       }
 
-      console.log(`   Found ${failedJobs.length} failed job(s) to retry`);
+      log.info('Found failed jobs to retry', { count: failedJobs.length });
 
       // Retry each failed extraction
       const retryPromises = failedJobs.map(job =>
@@ -416,7 +420,7 @@ class ExtractionOrchestrator {
       const results = await Promise.all(retryPromises);
       const successful = results.filter(r => r.success).length;
 
-      console.log(`✅ [Orchestrator] Retry complete: ${successful}/${failedJobs.length} successful`);
+      log.info('Retry complete', { successful, total: failedJobs.length });
 
       return {
         success: true,
@@ -425,7 +429,7 @@ class ExtractionOrchestrator {
       };
 
     } catch (error) {
-      console.error('❌ [Orchestrator] Retry failed:', error);
+      log.error('Retry failed', { error });
       throw error;
     }
   }
@@ -436,14 +440,14 @@ class ExtractionOrchestrator {
    */
   schedulePeriodicExtraction(intervalHours = 24) {
     if (this.periodicSyncInterval) {
-      console.log('⚠️ [Orchestrator] Periodic sync already scheduled');
+      log.info('Periodic sync already scheduled');
       return;
     }
 
     const intervalMs = intervalHours * 60 * 60 * 1000;
 
     this.periodicSyncInterval = setInterval(async () => {
-      console.log('⏰ [Orchestrator] Periodic extraction triggered');
+      log.info('Periodic extraction triggered');
 
       try {
         // Get all users with connected platforms (bounded to prevent loading entire table)
@@ -453,18 +457,18 @@ class ExtractionOrchestrator {
           .not('access_token', 'is', null)
           .limit(1000);
         if (usersErr) {
-          console.error('[Orchestrator] Failed to fetch users for periodic sync:', usersErr.message);
+          log.error('Failed to fetch users for periodic sync', { error: usersErr });
           return;
         }
 
         if (!users || users.length === 0) {
-          console.log('   No users to sync');
+          log.info('No users to sync');
           return;
         }
 
         // Get unique user IDs
         const uniqueUserIds = [...new Set(users.map(u => u.user_id))];
-        console.log(`   Syncing ${uniqueUserIds.length} user(s)`);
+        log.info('Syncing users', { count: uniqueUserIds.length });
 
         // Extract for each user (sequentially to avoid overwhelming APIs)
         for (const userId of uniqueUserIds) {
@@ -473,16 +477,16 @@ class ExtractionOrchestrator {
           await new Promise(resolve => setTimeout(resolve, 5000));
         }
 
-        console.log('✅ [Orchestrator] Periodic extraction complete');
+        log.info('Periodic extraction complete');
 
       } catch (error) {
-        console.error('❌ [Orchestrator] Periodic extraction error:', error);
+        log.error('Periodic extraction error', { error });
       }
     }, intervalMs);
     // Allow process to exit gracefully even if this interval is active
     this.periodicSyncInterval.unref();
 
-    console.log(`⏰ [Orchestrator] Periodic extraction scheduled (every ${intervalHours} hours)`);
+    log.info('Periodic extraction scheduled', { intervalHours });
   }
 
   /**
@@ -492,7 +496,7 @@ class ExtractionOrchestrator {
     if (this.periodicSyncInterval) {
       clearInterval(this.periodicSyncInterval);
       this.periodicSyncInterval = null;
-      console.log('🛑 [Orchestrator] Periodic extraction stopped');
+      log.info('Periodic extraction stopped');
     }
   }
 
@@ -512,7 +516,7 @@ class ExtractionOrchestrator {
       .single();
 
     if (error) {
-      console.error('❌ Failed to create extraction job:', error);
+      log.error('Failed to create extraction job', { error });
       return null;
     }
 
@@ -545,7 +549,7 @@ class ExtractionOrchestrator {
       .eq('id', jobId);
 
     if (error) {
-      console.error(`[Orchestrator] Failed to update job ${jobId} status to ${status}:`, error.message);
+      log.error('Failed to update job status', { jobId, status, error });
     }
   }
 }

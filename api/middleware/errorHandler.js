@@ -1,3 +1,7 @@
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('ErrorHandler');
+
 // Comprehensive error handling middleware for authentication and general errors
 
 class AuthError extends Error {
@@ -95,11 +99,10 @@ const handleAuthError = (error, req, res, next) => {
 
 // General error handler
 const handleGeneralError = (error, req, res, next) => {
-  console.error(`Error ${req.method} ${req.originalUrl}:`, {
-    message: error.message,
+  log.error(`Error ${req.method} ${req.originalUrl}`, {
+    error: error.message,
     stack: error.stack,
     user: req.user?.id || 'anonymous',
-    timestamp: new Date().toISOString()
   });
 
   // Handle validation errors

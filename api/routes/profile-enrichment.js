@@ -2,6 +2,9 @@ import express from 'express';
 import { profileEnrichmentService } from '../services/profileEnrichmentService.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { seedMemoriesFromEnrichment } from '../services/enrichmentMemoryBridge.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('ProfileEnrichmentRoute');
 
 const router = express.Router();
 
@@ -29,7 +32,7 @@ router.post('/quick', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
-    console.log(`[Enrichment API] Quick enrichment for user: ${userId || 'anonymous'}`);
+    log.info(`Quick enrichment for user: ${userId || 'anonymous'}`);
     const result = await profileEnrichmentService.quickEnrich(email, name);
 
     // Save to enriched_profiles if we found anything useful
@@ -41,7 +44,7 @@ router.post('/quick', authenticateUser, async (req, res) => {
           source: result.data.source,
         });
       } catch (saveErr) {
-        console.warn('[Enrichment API] Failed to save quick enrichment:', saveErr.message);
+        log.warn('Failed to save quick enrichment:', saveErr.message);
       }
     }
 
@@ -51,7 +54,7 @@ router.post('/quick', authenticateUser, async (req, res) => {
       elapsed: result.elapsed,
     });
   } catch (err) {
-    console.error('[Enrichment API] Quick enrichment error:', err);
+    log.error('Quick enrichment error:', err);
     return res.json({ success: true, data: { source: 'error' }, elapsed: 0 });
   }
 });
@@ -71,13 +74,13 @@ router.post('/search', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Enrichment API] Starting search for user ${userId}`);
+    log.info(`Starting search for user ${userId}`);
 
     // Perform enrichment
     const enrichmentResult = await profileEnrichmentService.enrichFromEmail(email, name);
 
     if (!enrichmentResult.success) {
-      console.warn(`[Enrichment API] Enrichment failed for user ${userId}:`, enrichmentResult.error);
+      log.warn(`Enrichment failed for user ${userId}:`, enrichmentResult.error);
       // Still save partial result for tracking
       await profileEnrichmentService.saveEnrichment(userId, email, {
         email,
@@ -105,7 +108,7 @@ router.post('/search', authenticateUser, async (req, res) => {
     const saveResult = await profileEnrichmentService.saveEnrichment(userId, email, enrichmentResult.data);
 
     if (!saveResult.success) {
-      console.error(`[Enrichment API] Failed to save enrichment:`, saveResult.error);
+      log.error(`Failed to save enrichment:`, saveResult.error);
     }
 
     // Determine if we found meaningful data
@@ -152,7 +155,7 @@ router.post('/search', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Enrichment API] Search error:', error);
+    log.error('Search error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to perform enrichment search',
@@ -249,7 +252,7 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
       )
     });
   } catch (error) {
-    console.error('[Enrichment API] Results fetch error:', error);
+    log.error('Results fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch enrichment results',
@@ -280,7 +283,7 @@ router.post('/confirm', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Enrichment API] Confirming enrichment for user ${userId}`);
+    log.info(`Confirming enrichment for user ${userId}`);
 
     const result = await profileEnrichmentService.confirmEnrichment(
       userId,
@@ -298,10 +301,10 @@ router.post('/confirm', authenticateUser, async (req, res) => {
     // Fire-and-forget: seed memories from enrichment data
     seedMemoriesFromEnrichment(userId).then(seedResult => {
       if (seedResult.memoriesStored > 0) {
-        console.log(`[Enrichment API] Seeded ${seedResult.memoriesStored} memories for user ${userId}`);
+        log.info(`Seeded ${seedResult.memoriesStored} memories for user ${userId}`);
       }
     }).catch(err => {
-      console.warn('[Enrichment API] Memory seeding failed (non-blocking):', err.message);
+      log.warn('Memory seeding failed (non-blocking):', err.message);
     });
 
     res.json({
@@ -316,7 +319,7 @@ router.post('/confirm', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Enrichment API] Confirm error:', error);
+    log.error('Confirm error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to confirm enrichment',
@@ -358,7 +361,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       identityConfidence: result.identityConfidence ?? null,
     });
   } catch (error) {
-    console.error('[Enrichment API] Status error:', error);
+    log.error('Status error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get enrichment status',
@@ -385,7 +388,7 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Enrichment API] Clearing enrichment for user ${userId}`);
+    log.info(`Clearing enrichment for user ${userId}`);
 
     // Delete the enrichment record
     const { createClient } = await import('@supabase/supabase-js');
@@ -400,7 +403,7 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('[Enrichment API] Clear error:', error);
+      log.error('Clear error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to clear enrichment',
@@ -413,7 +416,7 @@ router.delete('/clear/:userId', authenticateUser, async (req, res) => {
       message: 'Enrichment data cleared'
     });
   } catch (error) {
-    console.error('[Enrichment API] Clear error:', error);
+    log.error('Clear error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to clear enrichment',
@@ -446,13 +449,13 @@ router.post('/from-linkedin', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Enrichment API] Enriching from LinkedIn URL for user ${userId}: ${linkedinUrl}`);
+    log.info(`Enriching from LinkedIn URL for user ${userId}: ${linkedinUrl}`);
 
     // Use the enrichment service for web search via Sonar Pro
     const enrichmentResult = await profileEnrichmentService.enrichFromLinkedIn(linkedinUrl, name);
 
     if (!enrichmentResult.success) {
-      console.warn(`[Enrichment API] LinkedIn enrichment failed:`, enrichmentResult.error);
+      log.warn(`LinkedIn enrichment failed:`, enrichmentResult.error);
       return res.json({
         success: true,
         message: 'Could not extract information from LinkedIn URL',
@@ -477,7 +480,7 @@ router.post('/from-linkedin', authenticateUser, async (req, res) => {
     );
 
     if (!saveResult.success) {
-      console.error(`[Enrichment API] Failed to save LinkedIn enrichment:`, saveResult.error);
+      log.error(`Failed to save LinkedIn enrichment:`, saveResult.error);
     }
 
     // Check if we have at least basic profile info (for students, headline is enough)
@@ -492,11 +495,11 @@ router.post('/from-linkedin', authenticateUser, async (req, res) => {
 
     // Always generate a narrative if we have any profile data
     if (!discoveredSummary && (hasResults || combinedData.discovered_name)) {
-      console.log('[Enrichment API] Generating AI narrative for LinkedIn profile...');
+      log.info('Generating AI narrative for LinkedIn profile...');
       const narrative = await profileEnrichmentService.generateDetailedNarrative(combinedData, name || combinedData.discovered_name);
       if (narrative) {
         discoveredSummary = narrative;
-        console.log('[Enrichment API] Generated narrative:', narrative.substring(0, 100) + '...');
+        log.info('Generated narrative:', narrative.substring(0, 100) + '...');
       }
     }
 
@@ -518,7 +521,7 @@ router.post('/from-linkedin', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Enrichment API] LinkedIn enrichment error:', error);
+    log.error('LinkedIn enrichment error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to enrich from LinkedIn URL',
@@ -541,15 +544,15 @@ router.post('/skip', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Enrichment API] User ${userId} skipped enrichment`);
+    log.info(`User ${userId} skipped enrichment`);
 
     // Fire-and-forget: seed whatever was already discovered before skipping
     seedMemoriesFromEnrichment(userId).then(seedResult => {
       if (seedResult.memoriesStored > 0) {
-        console.log(`[Enrichment API] Seeded ${seedResult.memoriesStored} memories (skip path) for user ${userId}`);
+        log.info(`Seeded ${seedResult.memoriesStored} memories (skip path) for user ${userId}`);
       }
     }).catch(err => {
-      console.warn('[Enrichment API] Memory seeding on skip failed (non-blocking):', err.message);
+      log.warn('Memory seeding on skip failed (non-blocking):', err.message);
     });
 
     // Save a record indicating the user skipped
@@ -567,7 +570,7 @@ router.post('/skip', authenticateUser, async (req, res) => {
       skipped: true
     });
   } catch (error) {
-    console.error('[Enrichment API] Skip error:', error);
+    log.error('Skip error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to skip enrichment',
@@ -587,7 +590,7 @@ router.post('/reset', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`[Enrichment API] Resetting confirmation for user ${userId}`);
+    log.info(`Resetting confirmation for user ${userId}`);
 
     // Reset the user_confirmed flag
     const result = await profileEnrichmentService.resetConfirmation(userId);
@@ -598,7 +601,7 @@ router.post('/reset', authenticateUser, async (req, res) => {
       result
     });
   } catch (error) {
-    console.error('[Enrichment API] Reset error:', error);
+    log.error('Reset error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to reset confirmation',

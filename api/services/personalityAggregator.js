@@ -13,6 +13,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityAggregator');
 
 // Dimension definitions with expected feature sources
 const BIG_FIVE_DIMENSIONS = {
@@ -85,7 +88,7 @@ class PersonalityAggregator {
       };
 
     } catch (error) {
-      console.error('[PersonalityAggregator] Error aggregating features:', error);
+      log.error('Error aggregating features:', error);
       return {
         success: false,
         error: error.message,
@@ -343,7 +346,7 @@ class PersonalityAggregator {
       return { success: true, data };
 
     } catch (error) {
-      console.error('[PersonalityAggregator] Error saving scores:', error);
+      log.error('Error saving scores:', error);
       return { success: false, error: error.message };
     }
   }

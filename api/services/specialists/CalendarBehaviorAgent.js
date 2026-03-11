@@ -16,6 +16,9 @@
 
 import SpecialistAgentBase from './SpecialistAgentBase.js';
 import { extractCalendarFeatures } from '../behavioralLearningService.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Calendarbehavioragent');
 
 class CalendarBehaviorAgent extends SpecialistAgentBase {
   constructor() {
@@ -201,7 +204,7 @@ OUTPUT FORMAT (JSON):
    * Main analysis method
    */
   async analyze(userId, calendarData) {
-    console.log(`📅 [CalendarBehaviorAgent] Analyzing calendar data for user ${userId}`);
+    log.info(`Analyzing calendar data for user ${userId}`);
 
     if (!calendarData) {
       return {
@@ -254,7 +257,7 @@ OUTPUT FORMAT (JSON):
       };
 
     } catch (error) {
-      console.error(`❌ [CalendarBehaviorAgent] Analysis failed:`, error);
+      log.error(`Analysis failed:`, error);
       return {
         success: false,
         domain: 'calendar',

@@ -14,6 +14,9 @@
 import AgentBase from './AgentBase.js';
 import researchRAGService from '../researchRAGService.js';
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Webcuriosityagent');
 
 // Research-validated correlations from peer-reviewed studies
 const WEB_CURIOSITY_CORRELATIONS = {
@@ -237,7 +240,7 @@ Applies research-backed correlations to compute scores with confidence intervals
    * Tool: Get web browsing data for user
    */
   async getWebBrowsingData(userId) {
-    console.log(`[WebCuriosityAgent] Fetching web browsing data for ${userId}`);
+    log.info(`Fetching web browsing data for ${userId}`);
 
     // Get web browsing events from last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -545,7 +548,7 @@ Applies research-backed correlations to compute scores with confidence intervals
       const context = await researchRAGService.getResearchContext(dimension, feature);
       return context;
     } catch (error) {
-      console.error(`[WebCuriosityAgent] RAG error:`, error);
+      log.error(`RAG error:`, error);
       return {
         hasResearch: false,
         fallbackCorrelation: this.correlations[feature]?.[dimension] || null,
@@ -724,7 +727,7 @@ Applies research-backed correlations to compute scores with confidence intervals
    * Main analysis method - analyze user's web browsing for personality
    */
   async analyzeWebData(userId) {
-    console.log(`[WebCuriosityAgent] Starting analysis for user ${userId}`);
+    log.info(`Starting analysis for user ${userId}`);
 
     // Direct feature extraction (bypasses Claude for efficiency)
     try {
@@ -802,7 +805,7 @@ Applies research-backed correlations to compute scores with confidence intervals
       };
 
     } catch (error) {
-      console.error(`[WebCuriosityAgent] Analysis failed:`, error);
+      log.error(`Analysis failed:`, error);
       return {
         success: false,
         error: error.message

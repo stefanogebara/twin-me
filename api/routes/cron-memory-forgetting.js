@@ -23,6 +23,9 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronMemoryForgetting');
 
 const router = express.Router();
 
@@ -37,7 +40,7 @@ router.post('/', async (req, res) => {
       return res.status(authResult.status).json({ error: authResult.error });
     }
 
-    console.log('[Cron] memory-forgetting: starting weekly pass');
+    log.info('Starting weekly pass');
     const startTime = Date.now();
 
     const stats = {
@@ -70,14 +73,14 @@ router.post('/', async (req, res) => {
           const ids = tier1Rows.map(r => r.id);
           await supabaseAdmin.from('user_memories').delete().in('id', ids);
           stats.tier1Archived = tier1Rows.length;
-          console.log(`[Cron] memory-forgetting: Tier 1 archived ${tier1Rows.length} conversation memories`);
+          log.info('Tier 1 archived conversation memories', { count: tier1Rows.length });
         } else {
-          console.warn('[Cron] memory-forgetting: Tier 1 archive insert failed:', insertErr.message);
+          log.warn('Tier 1 archive insert failed', { error: insertErr.message });
           stats.errors.push(`tier1: ${insertErr.message}`);
         }
       }
     } catch (t1Err) {
-      console.warn('[Cron] memory-forgetting: Tier 1 error:', t1Err.message);
+      log.warn('Tier 1 error', { error: t1Err.message });
       stats.errors.push(`tier1: ${t1Err.message}`);
     }
 
@@ -103,14 +106,14 @@ router.post('/', async (req, res) => {
           const ids = tier2Rows.map(r => r.id);
           await supabaseAdmin.from('user_memories').delete().in('id', ids);
           stats.tier2Archived = tier2Rows.length;
-          console.log(`[Cron] memory-forgetting: Tier 2 archived ${tier2Rows.length} platform_data memories`);
+          log.info('Tier 2 archived platform_data memories', { count: tier2Rows.length });
         } else {
-          console.warn('[Cron] memory-forgetting: Tier 2 archive insert failed:', insertErr.message);
+          log.warn('Tier 2 archive insert failed', { error: insertErr.message });
           stats.errors.push(`tier2: ${insertErr.message}`);
         }
       }
     } catch (t2Err) {
-      console.warn('[Cron] memory-forgetting: Tier 2 error:', t2Err.message);
+      log.warn('Tier 2 error', { error: t2Err.message });
       stats.errors.push(`tier2: ${t2Err.message}`);
     }
 
@@ -140,10 +143,10 @@ router.post('/', async (req, res) => {
             stats.tier3Decayed++;
           }
         }
-        console.log(`[Cron] memory-forgetting: Tier 3 decayed ${stats.tier3Decayed} fact memories`);
+        log.info('Tier 3 decayed fact memories', { count: stats.tier3Decayed });
       }
     } catch (t3Err) {
-      console.warn('[Cron] memory-forgetting: Tier 3 error:', t3Err.message);
+      log.warn('Tier 3 error', { error: t3Err.message });
       stats.errors.push(`tier3: ${t3Err.message}`);
     }
 
@@ -186,10 +189,10 @@ router.post('/', async (req, res) => {
             stats.tier4LinksDecayed++;
           }
         }
-        console.log(`[Cron] memory-forgetting: Tier 4 STDP decayed ${stats.tier4LinksDecayed}, pruned ${stats.tier4LinksDeleted} co_citation links`);
+        log.info('Tier 4 STDP decay complete', { decayed: stats.tier4LinksDecayed, pruned: stats.tier4LinksDeleted });
       }
     } catch (t4Err) {
-      console.warn('[Cron] memory-forgetting: Tier 4 error:', t4Err.message);
+      log.warn('Tier 4 error', { error: t4Err.message });
       stats.errors.push(`tier4: ${t4Err.message}`);
     }
 
@@ -234,22 +237,22 @@ router.post('/', async (req, res) => {
               stats.tier5Shifted += shifted;
               stats.tier5UsersProcessed++;
               if (shifted > 0) {
-                console.log(`[Cron] memory-forgetting: Tier 5 user ${uid.substring(0, 8)}… shift ${direction}: mean=${mean_importance.toFixed(2)}, shifted ${shifted}`);
+                log.info('Tier 5 importance shift', { userId: uid.substring(0, 8), direction, mean: mean_importance.toFixed(2), shifted });
               }
             }
           }
         } catch (userErr) {
           // Non-fatal per-user error
-          console.warn(`[Cron] memory-forgetting: Tier 5 error for user ${uid.substring(0, 8)}:`, userErr.message);
+          log.warn('Tier 5 error for user', { userId: uid.substring(0, 8), error: userErr.message });
         }
       }
     } catch (t5Err) {
-      console.warn('[Cron] memory-forgetting: Tier 5 error:', t5Err.message);
+      log.warn('Tier 5 error', { error: t5Err.message });
       stats.errors.push(`tier5: ${t5Err.message}`);
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`[Cron] memory-forgetting: done in ${durationMs}ms. t1=${stats.tier1Archived} t2=${stats.tier2Archived} t3=${stats.tier3Decayed} t4_decayed=${stats.tier4LinksDecayed} t4_deleted=${stats.tier4LinksDeleted} t5=${stats.tier5Shifted} (${stats.tier5UsersProcessed} users)`);
+    log.info('Weekly pass complete', { durationMs, t1: stats.tier1Archived, t2: stats.tier2Archived, t3: stats.tier3Decayed, t4Decayed: stats.tier4LinksDecayed, t4Deleted: stats.tier4LinksDeleted, t5: stats.tier5Shifted, t5Users: stats.tier5UsersProcessed });
 
     res.json({
       success: true,
@@ -257,7 +260,7 @@ router.post('/', async (req, res) => {
       durationMs,
     });
   } catch (err) {
-    console.error('[Cron] memory-forgetting: unexpected error:', err.message);
+    log.error('Unexpected error', { error: err.message });
     res.status(500).json({ error: err.message });
   }
 });

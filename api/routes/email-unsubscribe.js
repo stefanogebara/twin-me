@@ -3,6 +3,9 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { verifyUnsubscribeToken } from '../services/emailService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('EmailUnsubscribe');
 
 const router = express.Router();
 const APP_URL = process.env.VITE_APP_URL || 'https://twin-ai-learn.vercel.app';
@@ -20,7 +23,7 @@ router.get('/unsubscribe', async (req, res) => {
     .eq('id', uid);
 
   if (error) {
-    console.error('[Unsubscribe] DB error:', error.message);
+    log.error('DB error:', error.message);
     return res.status(500).send(page('Something went wrong. Please try again.', false));
   }
 

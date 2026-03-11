@@ -6,6 +6,9 @@ import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser, optionalAuth } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('DataSources');
 
 const router = express.Router();
 
@@ -34,7 +37,7 @@ router.get('/connected', authenticateUser, async (req, res) => {
         .select('id')
         .eq('email', targetUserId)
         .single();
-      if (userLookupErr && userLookupErr.code !== 'PGRST116') console.error('[DataSources] User email lookup error:', userLookupErr.message);
+      if (userLookupErr && userLookupErr.code !== 'PGRST116') log.error('User email lookup error:', userLookupErr.message);
 
       if (userData) {
         userUuid = userData.id;
@@ -54,7 +57,7 @@ router.get('/connected', authenticateUser, async (req, res) => {
       .not('connected_at', 'is', null);
 
     if (error) {
-      console.error('Database error getting connections:', error);
+      log.error('Database error getting connections:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch connections',
@@ -81,7 +84,7 @@ router.get('/connected', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching data sources:', error);
+    log.error('Error fetching data sources:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch data sources',
@@ -110,7 +113,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
         .select('id')
         .eq('email', userId)
         .single();
-      if (userLookupErr2 && userLookupErr2.code !== 'PGRST116') console.error('[DataSources] User email lookup error:', userLookupErr2.message);
+      if (userLookupErr2 && userLookupErr2.code !== 'PGRST116') log.error('User email lookup error:', userLookupErr2.message);
       if (userData) userUuid = userData.id;
     }
 
@@ -121,7 +124,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       .not('connected_at', 'is', null);
 
     if (error) {
-      console.error('Database error getting connections:', error);
+      log.error('Database error getting connections:', error);
       throw error;
     }
 
@@ -154,7 +157,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error getting connection status:', error);
+    log.error('Error getting connection status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get connection status',

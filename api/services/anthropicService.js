@@ -6,6 +6,9 @@
  */
 
 import { complete, stream as llmStream, TIER_CHAT, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Anthropic');
 
 /**
  * Generate chat response using Claude API
@@ -21,8 +24,8 @@ export async function generateChatResponse(options) {
   } = options;
 
   try {
-    console.log('[AnthropicService] Generating chat response...');
-    console.log(`[AnthropicService] Messages count: ${messages.length}`);
+    log.info('Generating chat response...');
+    log.info(`Messages count: ${messages.length}`);
 
     // Format messages for Claude API
     const formattedMessages = messages.map(msg => ({
@@ -47,7 +50,7 @@ export async function generateChatResponse(options) {
       });
     }
   } catch (error) {
-    console.error('[AnthropicService] Error generating response:', error);
+    log.error('Error generating response:', error);
     throw error;
   }
 }
@@ -154,7 +157,7 @@ export function pruneConversationHistory(messages, systemPrompt, maxContextToken
     const msgTokens = estimateTokens(messages[i].content);
 
     if (totalTokens + msgTokens > maxContextTokens) {
-      console.log(`[AnthropicService] Pruned ${i + 1} older messages to stay within token limit`);
+      log.info(`Pruned ${i + 1} older messages to stay within token limit`);
       break;
     }
 
@@ -170,7 +173,7 @@ export function pruneConversationHistory(messages, systemPrompt, maxContextToken
     });
   }
 
-  console.log(`[AnthropicService] Context: ${prunedMessages.length} messages, ~${totalTokens} tokens`);
+  log.info(`Context: ${prunedMessages.length} messages, ~${totalTokens} tokens`);
 
   return prunedMessages;
 }
@@ -192,11 +195,11 @@ export async function generateConversationTitle(firstMessage) {
     });
 
     const title = result.content.trim();
-    console.log(`[AnthropicService] Generated title: "${title}"`);
+    log.info(`Generated title: "${title}"`);
 
     return title;
   } catch (error) {
-    console.error('[AnthropicService] Error generating title:', error);
+    log.error('Error generating title:', error);
     return 'New Conversation';
   }
 }
@@ -258,7 +261,7 @@ setInterval(() => {
     }
   }
 
-  console.log(`[AnthropicService] Rate limit cache cleaned: ${rateLimitCache.size} users tracked`);
+  log.info(`Rate limit cache cleaned: ${rateLimitCache.size} users tracked`);
 }, 5 * 60 * 1000); // Clean every 5 minutes
 
 /**

@@ -21,6 +21,9 @@ import {
   addPlatformMemory
 } from '../services/mem0Service.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Mem0Route');
 
 const router = express.Router();
 
@@ -40,7 +43,7 @@ router.get('/memories', authenticateUser, async (req, res) => {
       count: memories.length
     });
   } catch (error) {
-    console.error('[Mem0 API] Error fetching memories:', error);
+    log.error('Error fetching memories:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch memories'
@@ -72,7 +75,7 @@ router.get('/search', authenticateUser, async (req, res) => {
       query
     });
   } catch (error) {
-    console.error('[Mem0 API] Error searching memories:', error);
+    log.error('Error searching memories:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to search memories'
@@ -93,7 +96,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
       stats
     });
   } catch (error) {
-    console.error('[Mem0 API] Error fetching stats:', error);
+    log.error('Error fetching stats:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch memory statistics'
@@ -124,7 +127,7 @@ router.post('/fact', authenticateUser, async (req, res) => {
       result
     });
   } catch (error) {
-    console.error('[Mem0 API] Error adding fact:', error);
+    log.error('Error adding fact:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to add fact'
@@ -155,7 +158,7 @@ router.post('/platform', authenticateUser, async (req, res) => {
       result
     });
   } catch (error) {
-    console.error('[Mem0 API] Error adding platform memory:', error);
+    log.error('Error adding platform memory:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to add platform memory'
@@ -194,7 +197,7 @@ router.delete('/memory/:id', authenticateUser, async (req, res) => {
 
     res.json({ success: true, message: 'Memory deleted' });
   } catch (error) {
-    console.error('[Mem0 API] Error deleting memory:', error);
+    log.error('Error deleting memory:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to delete memory'
@@ -224,7 +227,7 @@ router.delete('/clear', authenticateUser, async (req, res) => {
       message: result ? 'All memories cleared' : 'Failed to clear memories'
     });
   } catch (error) {
-    console.error('[Mem0 API] Error clearing memories:', error);
+    log.error('Error clearing memories:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to clear memories'

@@ -13,6 +13,9 @@
 import AgentBase from './AgentBase.js';
 import researchRAGService from '../researchRAGService.js';
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Biometricagent');
 
 // Research-validated biometric correlations
 const BIOMETRIC_CORRELATIONS = {
@@ -225,7 +228,7 @@ Returns:
    * Tool: Get Whoop data for user
    */
   async getWhoopData(userId) {
-    console.log(`💪 [BiometricAgent] Fetching Whoop data for ${userId}`);
+    log.info(`Fetching Whoop data for ${userId}`);
 
     // Get extracted Whoop features
     const { data: features, error: featuresError } = await supabaseAdmin
@@ -726,7 +729,7 @@ Returns:
    * Main analysis method
    */
   async analyzeForPersonality(userId) {
-    console.log(`💪 [BiometricAgent] Starting analysis for user ${userId}`);
+    log.info(`Starting analysis for user ${userId}`);
 
     const prompt = `Analyze the Whoop biometric data for this user and provide Big Five personality inferences.
 
@@ -750,7 +753,7 @@ Focus particularly on:
         agentMetrics: this.getMetrics()
       };
     } catch (error) {
-      console.error(`[BiometricAgent] Failed to parse response:`, error);
+      log.error(`Failed to parse response:`, error);
       return {
         success: false,
         rawResponse: result.text,

@@ -37,6 +37,9 @@ import { getPromptForPlatform } from './reflections/reflectionPrompts.js';
 
 // Templates & fallbacks
 import { generateTemplateReflection, getFallbackReflection } from './reflections/reflectionTemplates.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PlatformReflection');
 
 // Store & formatting
 import {
@@ -59,13 +62,13 @@ class PlatformReflectionService {
    * @returns {Promise<Object>} Reflection data
    */
   async getReflections(userId, platform) {
-    console.log(`[Reflection] Getting ${platform} reflections for user ${userId}`);
+    log.info(`Getting ${platform} reflections for user ${userId}`);
 
     try {
       // 1. Check for valid cached reflection
       const cached = await getCachedReflection(userId, platform);
       if (cached && !isExpired(cached)) {
-        console.log(`[Reflection] Using cached ${platform} reflection`);
+        log.info(`Using cached ${platform} reflection`);
         const fullContext = await userContextAggregator.aggregateUserContext(userId);
         const lifeContext = fullContext?.lifeContext || null;
         // Also fetch fresh platform data for visual display (pass context to avoid duplicate calls)
@@ -106,7 +109,7 @@ class PlatformReflectionService {
 
       return formatResponse(reflection, history, lifeContext, platformData.data);
     } catch (error) {
-      console.error(`[Reflection] Error for ${platform}:`, error);
+      log.error(`Error for ${platform}:`, error);
       return {
         success: false,
         error: error.message
@@ -118,7 +121,7 @@ class PlatformReflectionService {
    * Force refresh a reflection (ignore cache)
    */
   async refreshReflection(userId, platform) {
-    console.log(`[Reflection] Force refreshing ${platform} reflection`);
+    log.info(`Force refreshing ${platform} reflection`);
 
     // Get both platform data and full context
     const [platformData, fullContext] = await Promise.all([
@@ -231,11 +234,11 @@ class PlatformReflectionService {
         }
       };
     } catch (error) {
-      console.error('[Reflection] Claude error:', error);
+      log.error('Claude error:', error);
       // Try template-based reflection using actual data before falling back to generic text
       const templateReflection = generateTemplateReflection(platform, rawPlatformData);
       if (templateReflection) {
-        console.log(`[Reflection] Using template-based reflection for ${platform}`);
+        log.info(`Using template-based reflection for ${platform}`);
         return templateReflection;
       }
       return getFallbackReflection(platform);

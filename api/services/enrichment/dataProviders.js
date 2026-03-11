@@ -1,3 +1,7 @@
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Dataproviders');
+
 /**
  * Data Provider Functions
  *
@@ -15,7 +19,7 @@
  * Call People Data Labs API for accurate profile enrichment
  */
 export async function callPeopleDataLabsAPI(email, name, apiKey) {
-  console.log('[ProfileEnrichment] Calling People Data Labs API...');
+  log.info('Calling People Data Labs API...');
 
   try {
     const params = new URLSearchParams({
@@ -35,7 +39,7 @@ export async function callPeopleDataLabsAPI(email, name, apiKey) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log(`[ProfileEnrichment] PDL API error: ${response.status} - ${errorText}`);
+      log.info(`PDL API error: ${response.status} - ${errorText}`);
       if (response.status === 404) {
         return { success: false, data: null, error: 'No match found' };
       }
@@ -43,15 +47,15 @@ export async function callPeopleDataLabsAPI(email, name, apiKey) {
     }
 
     const result = await response.json();
-    console.log('[ProfileEnrichment] PDL API response status:', result.status);
+    log.info('PDL API response status:', result.status);
 
     if (result.status !== 200 || !result.data) {
-      console.log('[ProfileEnrichment] PDL: No match found');
+      log.info('PDL: No match found');
       return { success: false, data: null };
     }
 
     const person = result.data;
-    console.log('[ProfileEnrichment] PDL found person:', person.full_name);
+    log.info('PDL found person:', person.full_name);
 
     const enrichmentData = {
       discovered_name: person.full_name || name,
@@ -75,7 +79,7 @@ export async function callPeopleDataLabsAPI(email, name, apiKey) {
     return { success: true, data: enrichmentData, raw: result };
 
   } catch (error) {
-    console.error('[ProfileEnrichment] PDL API request failed:', error);
+    log.error('PDL API request failed:', error);
     return { success: false, data: null, error: error.message };
   }
 }
@@ -169,7 +173,7 @@ export function formatPDLEducation(education) {
  * Call Scrapin.io API for email-to-profile resolution
  */
 export async function callScrapinAPI(email, name, apiKey) {
-  console.log('[ProfileEnrichment] Calling Scrapin.io API...');
+  log.info('Calling Scrapin.io API...');
 
   try {
     const params = new URLSearchParams({
@@ -184,22 +188,22 @@ export async function callScrapinAPI(email, name, apiKey) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log(`[ProfileEnrichment] Scrapin.io API error: ${response.status} - ${errorText}`);
+      log.info(`Scrapin.io API error: ${response.status} - ${errorText}`);
       if (response.status === 404) {
         return { success: false, data: null, error: 'No match found' };
       }
       if (response.status === 402 || response.status === 403) {
-        console.warn('[ProfileEnrichment] Scrapin.io: Insufficient credits or access denied');
+        log.warn('Scrapin.io: Insufficient credits or access denied');
         return { success: false, data: null, error: 'Insufficient credits' };
       }
       return { success: false, data: null, error: `API error: ${response.status}` };
     }
 
     const result = await response.json();
-    console.log('[ProfileEnrichment] Scrapin.io response:', JSON.stringify(result).substring(0, 500));
+    log.info('Scrapin.io response:', JSON.stringify(result).substring(0, 500));
 
     if (!result.success || !result.person) {
-      console.log('[ProfileEnrichment] Scrapin.io: No match found');
+      log.info('Scrapin.io: No match found');
       return { success: false, data: null };
     }
 
@@ -207,7 +211,7 @@ export async function callScrapinAPI(email, name, apiKey) {
     const positionHistory = person.positions?.positionHistory || [];
     const educationHistory = person.schools?.educationHistory || [];
 
-    console.log('[ProfileEnrichment] Scrapin.io found person:', {
+    log.info('Scrapin.io found person:', {
       name: `${person.firstName} ${person.lastName}`,
       headline: person.headline,
       linkedInUrl: person.linkedInUrl,
@@ -251,7 +255,7 @@ export async function callScrapinAPI(email, name, apiKey) {
     return { success: true, data: enrichmentData, raw: result };
 
   } catch (error) {
-    console.error('[ProfileEnrichment] Scrapin.io API request failed:', error);
+    log.error('Scrapin.io API request failed:', error);
     return { success: false, data: null, error: error.message };
   }
 }
@@ -260,7 +264,7 @@ export async function callScrapinAPI(email, name, apiKey) {
  * Fetch full LinkedIn profile from Scrapin.io using profile URL
  */
 export async function fetchScrapinFullProfile(linkedInUrl, apiKey) {
-  console.log('[ProfileEnrichment] Fetching full profile from Scrapin.io...');
+  log.info('Fetching full profile from Scrapin.io...');
 
   try {
     const params = new URLSearchParams({
@@ -274,12 +278,12 @@ export async function fetchScrapinFullProfile(linkedInUrl, apiKey) {
     });
 
     if (!response.ok) {
-      console.log(`[ProfileEnrichment] Scrapin profile API error: ${response.status}`);
+      log.info(`Scrapin profile API error: ${response.status}`);
       return { success: false, data: null };
     }
 
     const result = await response.json();
-    console.log('[ProfileEnrichment] Scrapin profile response keys:', Object.keys(result));
+    log.info('Scrapin profile response keys:', Object.keys(result));
 
     if (!result.success || !result.person) {
       return { success: false, data: null };
@@ -289,7 +293,7 @@ export async function fetchScrapinFullProfile(linkedInUrl, apiKey) {
     const positionHistory = person.positions?.positionHistory || [];
     const educationHistory = person.schools?.educationHistory || [];
 
-    console.log('[ProfileEnrichment] Full profile data:', {
+    log.info('Full profile data:', {
       headline: person.headline,
       hasPositions: positionHistory.length > 0,
       positionCount: positionHistory.length,
@@ -345,7 +349,7 @@ export async function fetchScrapinFullProfile(linkedInUrl, apiKey) {
     };
 
   } catch (error) {
-    console.error('[ProfileEnrichment] Scrapin profile fetch failed:', error);
+    log.error('Scrapin profile fetch failed:', error);
     return { success: false, data: null, error: error.message };
   }
 }
@@ -430,7 +434,7 @@ export function formatScrapinLocation(location) {
  * Call Reverse Contact API for real-time OSINT enrichment
  */
 export async function callReverseContactAPI(email, name, apiKey) {
-  console.log('[ProfileEnrichment] Calling Reverse Contact API...');
+  log.info('Calling Reverse Contact API...');
 
   try {
     const params = new URLSearchParams({
@@ -453,29 +457,29 @@ export async function callReverseContactAPI(email, name, apiKey) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log(`[ProfileEnrichment] Reverse Contact API error: ${response.status} - ${errorText}`);
+      log.info(`Reverse Contact API error: ${response.status} - ${errorText}`);
       if (response.status === 404) {
         return { success: false, data: null, error: 'No match found' };
       }
       if (response.status === 402) {
-        console.warn('[ProfileEnrichment] Reverse Contact: Insufficient credits');
+        log.warn('Reverse Contact: Insufficient credits');
         return { success: false, data: null, error: 'Insufficient credits' };
       }
       return { success: false, data: null, error: `API error: ${response.status}` };
     }
 
     const result = await response.json();
-    console.log('[ProfileEnrichment] Reverse Contact response:', JSON.stringify(result).substring(0, 500));
+    log.info('Reverse Contact response:', JSON.stringify(result).substring(0, 500));
 
     if (!result.success || (!result.person && !result.company)) {
-      console.log('[ProfileEnrichment] Reverse Contact: No match found');
+      log.info('Reverse Contact: No match found');
       return { success: false, data: null };
     }
 
     const person = result.person || {};
     const company = result.company || {};
 
-    console.log('[ProfileEnrichment] Reverse Contact found:', {
+    log.info('Reverse Contact found:', {
       hasPerson: !!result.person,
       hasCompany: !!result.company,
       personName: person.firstName ? `${person.firstName} ${person.lastName}` : null
@@ -507,7 +511,7 @@ export async function callReverseContactAPI(email, name, apiKey) {
     return { success: true, data: enrichmentData, raw: result };
 
   } catch (error) {
-    console.error('[ProfileEnrichment] Reverse Contact API request failed:', error);
+    log.error('Reverse Contact API request failed:', error);
     return { success: false, data: null, error: error.message };
   }
 }

@@ -7,6 +7,9 @@
 
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PortfolioPublic');
 
 const router = express.Router();
 
@@ -83,11 +86,11 @@ router.get('/public/:userId', async (req, res) => {
         .eq('status', 'active'),
     ]);
 
-    if (userResult.error) console.error('[Portfolio] User fetch error:', userResult.error.message);
-    if (personalityResult.error && personalityResult.error.code !== 'PGRST116') console.error('[Portfolio] Personality fetch error:', personalityResult.error.message);
-    if (featuresResult.error) console.error('[Portfolio] Features fetch error:', featuresResult.error.message);
-    if (enrichedResult.error && enrichedResult.error.code !== 'PGRST116') console.error('[Portfolio] Enriched profile fetch error:', enrichedResult.error.message);
-    if (platformsResult.error) console.error('[Portfolio] Platforms fetch error:', platformsResult.error.message);
+    if (userResult.error) log.error('User fetch error:', userResult.error.message);
+    if (personalityResult.error && personalityResult.error.code !== 'PGRST116') log.error('Personality fetch error:', personalityResult.error.message);
+    if (featuresResult.error) log.error('Features fetch error:', featuresResult.error.message);
+    if (enrichedResult.error && enrichedResult.error.code !== 'PGRST116') log.error('Enriched profile fetch error:', enrichedResult.error.message);
+    if (platformsResult.error) log.error('Platforms fetch error:', platformsResult.error.message);
 
     const user = userResult.data;
     const personality = personalityResult.data;
@@ -161,7 +164,7 @@ router.get('/public/:userId', async (req, res) => {
 
     return res.json({ success: true, portfolio });
   } catch (error) {
-    console.error('[Portfolio Public] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to fetch portfolio' });
   }
 });

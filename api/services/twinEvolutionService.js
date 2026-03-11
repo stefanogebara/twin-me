@@ -13,6 +13,9 @@
 
 import { supabaseAdmin } from './database.js';
 import { generateChatResponse } from './anthropicService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinEvolution');
 
 // Thresholds for detecting significant changes
 const CHANGE_THRESHOLDS = {
@@ -39,7 +42,7 @@ class TwinEvolutionService {
         .order('calculated_at', { ascending: false })
         .limit(1)
         .single();
-      if (recentSnapshotErr && recentSnapshotErr.code !== 'PGRST116') console.warn('[TwinEvolution] Failed to fetch recent snapshot:', recentSnapshotErr.message);
+      if (recentSnapshotErr && recentSnapshotErr.code !== 'PGRST116') log.warn('Failed to fetch recent snapshot:', recentSnapshotErr.message);
 
       const now = new Date();
 
@@ -107,7 +110,7 @@ class TwinEvolutionService {
       };
 
     } catch (error) {
-      console.error('[TwinEvolutionService] Error recording snapshot:', error);
+      log.error('Error recording snapshot:', error);
       return { success: false, error: error.message };
     }
   }
@@ -189,7 +192,7 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
       };
 
     } catch (error) {
-      console.error('[TwinEvolutionService] Error generating insight:', error);
+      log.error('Error generating insight:', error);
       return {
         insight: this.getFallbackInsight(change),
         error: error.message
@@ -245,7 +248,7 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
       return { success: true, data };
 
     } catch (error) {
-      console.error('[TwinEvolutionService] Error logging evolution event:', error);
+      log.error('Error logging evolution event:', error);
       return { success: false, error: error.message };
     }
   }
@@ -280,7 +283,7 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
       };
 
     } catch (error) {
-      console.error('[TwinEvolutionService] Error getting evolution history:', error);
+      log.error('Error getting evolution history:', error);
       return { success: false, error: error.message, events: [] };
     }
   }
@@ -349,7 +352,7 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
       };
 
     } catch (error) {
-      console.error('[TwinEvolutionService] Error getting score timeline:', error);
+      log.error('Error getting score timeline:', error);
       return { success: false, error: error.message, timeline: [] };
     }
   }
@@ -373,7 +376,7 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
         .order('calculated_at', { ascending: false })
         .limit(1)
         .single();
-      if (latestSnapshotErr && latestSnapshotErr.code !== 'PGRST116') console.warn('[TwinEvolution] Failed to fetch latest snapshot:', latestSnapshotErr.message);
+      if (latestSnapshotErr && latestSnapshotErr.code !== 'PGRST116') log.warn('Failed to fetch latest snapshot:', latestSnapshotErr.message);
 
       const summary = {
         hasEvolutionData: historyResult.events.length > 0 || timelineResult.hasData,
@@ -402,7 +405,7 @@ Consider behavioral factors like lifestyle changes, new habits, or life circumst
       };
 
     } catch (error) {
-      console.error('[TwinEvolutionService] Error getting evolution summary:', error);
+      log.error('Error getting evolution summary:', error);
       return { success: false, error: error.message };
     }
   }

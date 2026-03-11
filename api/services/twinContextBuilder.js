@@ -8,6 +8,9 @@
 
 import { supabaseAdmin } from './database.js';
 import { getValidAccessToken } from './tokenRefresh.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinContextBuilder');
 import { retrieveDiverseMemories } from './memoryStreamService.js';
 import { getTwinSummary } from './twinSummaryService.js';
 import { getUndeliveredInsights, getNudgeHistory } from './proactiveInsights.js';
@@ -59,7 +62,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   } = options;
 
   const ctxStart = Date.now();
-  const ctxLog = (label) => console.log(`[TwinContext] ${label} (${Date.now() - ctxStart}ms)`);
+  const ctxLog = (label) => log.info(`${label} (${Date.now() - ctxStart}ms)`);
 
   // Wrap each fetch with timing
   const timed = (label, promise) => promise.then(r => { ctxLog(`${label} done`); return r; });
@@ -73,84 +76,84 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   const fetchPromises = [
     fetchSoul
       ? timed('soulSignature', _fetchSoulSignature(userId).catch(err => {
-          console.warn('[TwinContext] Soul signature fetch failed:', err.message);
+          log.warn('Soul signature fetch failed:', err.message);
           return null;
         }))
       : Promise.resolve(null),
 
     fetchPlatforms
       ? timed('platformData', _fetchPlatformData(userId, platforms).catch(err => {
-          console.warn('[TwinContext] Platform data fetch failed:', err.message);
+          log.warn('Platform data fetch failed:', err.message);
           return {};
         }))
       : Promise.resolve({}),
 
     fetchPersonality
       ? timed('personalityScores', _fetchPersonalityScores(userId).catch(err => {
-          console.warn('[TwinContext] Personality scores fetch failed:', err.message);
+          log.warn('Personality scores fetch failed:', err.message);
           return null;
         }))
       : Promise.resolve(null),
 
     timed('writingProfile', _fetchWritingProfile(userId).catch(err => {
-      console.warn('[TwinContext] Writing profile fetch failed:', err.message);
+      log.warn('Writing profile fetch failed:', err.message);
       return null;
     })),
 
     timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights).catch(err => {
-      console.warn('[TwinContext] Memory retrieval failed:', err.message);
+      log.warn('Memory retrieval failed:', err.message);
       return [];
     })),
 
     timed('twinSummary', getTwinSummary(userId).catch(err => {
-      console.warn('[TwinContext] Twin summary fetch failed:', err.message);
+      log.warn('Twin summary fetch failed:', err.message);
       return null;
     })),
 
     timed('proactiveInsights', getUndeliveredInsights(userId, 3).catch(err => {
-      console.warn('[TwinContext] Proactive insights fetch failed:', err.message);
+      log.warn('Proactive insights fetch failed:', err.message);
       return [];
     })),
 
     // Enrichment fallback: fetch enriched_profiles for thin memory streams
     timed('enrichment', getEnrichment(userId).catch(err => {
-      console.warn('[TwinContext] Enrichment fetch failed:', err.message);
+      log.warn('Enrichment fetch failed:', err.message);
       return { success: false, data: null };
     })),
 
     // Voice examples: actual user messages for style mirroring
     timed('voiceExamples', _fetchVoiceExamples(userId).catch(err => {
-      console.warn('[TwinContext] Voice examples fetch failed:', err.message);
+      log.warn('Voice examples fetch failed:', err.message);
       return [];
     })),
 
     // Active goals: formatted context for goal accountability
     timed('activeGoals', getActiveGoalContext(userId).catch(err => {
-      console.warn('[TwinContext] Active goals fetch failed:', err.message);
+      log.warn('Active goals fetch failed:', err.message);
       return null;
     })),
 
     // Top learned patterns (EWC++ confidence-weighted topic affinities)
     timed('patterns', getTopPatterns(userId, 5).catch(err => {
-      console.warn('[TwinContext] Pattern fetch failed:', err.message);
+      log.warn('Pattern fetch failed:', err.message);
       return [];
     })),
 
     // P8: Identity context (cached 24h — near-zero on repeat calls)
     timed('identityContext', inferIdentityContext(userId).catch(err => {
-      console.warn('[TwinContext] Identity context fetch failed:', err.message);
+      log.warn('Identity context fetch failed:', err.message);
       return null;
     })),
 
     // P8: Deep interview calibration data
     timed('calibrationContext', _fetchCalibrationContext(userId).catch(err => {
-      console.warn('[TwinContext] Calibration context fetch failed:', err.message);
+      log.warn('Calibration context fetch failed:', err.message);
       return null;
     })),
 
     // Nudge history: recent evaluated nudges for embodied feedback loop
     timed('nudgeHistory', getNudgeHistory(userId, 5).catch(err => {
-      console.warn('[TwinContext] Nudge history fetch failed:', err.message);
+      log.warn('Nudge history fetch failed:', err.message);
       return [];
     })),
   ];
@@ -165,7 +168,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     ]);
   } catch (timeoutErr) {
     if (timeoutErr.message === 'fetchTwinContext timeout') {
-      console.warn(`[TwinContext] Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
+      log.warn(`Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
       // Snapshot already-resolved promises instead of discarding everything
       const settled = await Promise.allSettled(fetchPromises);
       contextResults = settled.map((result, i) =>
@@ -214,7 +217,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       if (ep.life_story) parts.push(`Life story: ${typeof ep.life_story === 'string' ? ep.life_story : JSON.stringify(ep.life_story)}`);
       if (parts.length > 0) {
         enrichmentContext = parts.join('\n');
-        console.log(`[TwinContext] Injecting enrichment fallback (${parts.length} fields) for user ${userId}`);
+        log.info(`Injecting enrichment fallback (${parts.length} fields) for user ${userId}`);
       }
     }
   }
@@ -317,7 +320,7 @@ async function _fetchVoiceExamples(userId) {
   // Select diverse examples for maximum style coverage
   const examples = _selectDiverseExamples(validMessages, 8);
 
-  console.log(`[TwinContext] Selected ${examples.length} voice examples from ${validMessages.length} valid messages`);
+  log.info(`Selected ${examples.length} voice examples from ${validMessages.length} valid messages`);
   setCache(cacheKey, examples);
   return examples;
 }
@@ -450,7 +453,7 @@ async function _fetchPlatformData(userId, platforms) {
 
   // Fetch all platforms in parallel instead of sequentially
   const platformFetchers = platforms.map(platform => _fetchSinglePlatform(userId, platform).catch(err => {
-    console.warn(`[TwinContext] Error fetching ${platform} data:`, err.message);
+    log.warn(`Error fetching ${platform} data:`, err.message);
     return null;
   }));
 
@@ -518,7 +521,7 @@ async function _fetchSinglePlatform(userId, platform) {
             };
           }
         } catch (spotifyErr) {
-          console.warn('[TwinContext] Spotify fetch failed:', spotifyErr.message);
+          log.warn('Spotify fetch failed:', spotifyErr.message);
         }
       }
 
@@ -556,7 +559,7 @@ async function _fetchSinglePlatform(userId, platform) {
             };
           }
         } catch (calErr) {
-          console.warn('[TwinContext] Calendar fetch failed:', calErr.message);
+          log.warn('Calendar fetch failed:', calErr.message);
         }
       }
 
@@ -568,7 +571,7 @@ async function _fetchSinglePlatform(userId, platform) {
             .eq('user_id', userId)
             .eq('platform', 'whoop')
             .single();
-          if (whoopConnErr && whoopConnErr.code !== 'PGRST116') console.warn('[TwinContext] Whoop connection fetch failed:', whoopConnErr.message);
+          if (whoopConnErr && whoopConnErr.code !== 'PGRST116') log.warn('Whoop connection fetch failed:', whoopConnErr.message);
 
           if (whoopConn?.access_token === 'NANGO_MANAGED') {
             const nangoService = await import('./nangoService.js');
@@ -640,7 +643,7 @@ async function _fetchSinglePlatform(userId, platform) {
             }
           }
         } catch (whoopErr) {
-          console.warn('[TwinContext] Whoop fetch failed:', whoopErr.message);
+          log.warn('Whoop fetch failed:', whoopErr.message);
         }
       }
 
@@ -689,11 +692,11 @@ async function _fetchSinglePlatform(userId, platform) {
             };
           }
         } catch (webErr) {
-          console.warn('[TwinContext] Web browsing fetch failed:', webErr.message);
+          log.warn('Web browsing fetch failed:', webErr.message);
         }
       }
   } catch (err) {
-    console.warn(`[TwinContext] Error fetching ${platform} data:`, err.message);
+    log.warn(`Error fetching ${platform} data:`, err.message);
   }
 
   return Object.keys(data).length > 0 ? data : null;

@@ -10,6 +10,9 @@
 
 import { getEnrichment } from './enrichment/enrichmentStore.js';
 import { addMemory } from './memoryStreamService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('EnrichmentMemoryBridge');
 
 /**
  * Seed user_memories with facts derived from enriched_profiles.
@@ -26,7 +29,7 @@ async function seedMemoriesFromEnrichment(userId) {
     const result = await getEnrichment(userId);
 
     if (!result.success || !result.data) {
-      console.log(`[EnrichmentBridge] No enrichment data found for user ${userId}`);
+      log.info(`No enrichment data found for user ${userId}`);
       return { success: true, memoriesStored: 0 };
     }
 
@@ -35,13 +38,13 @@ async function seedMemoriesFromEnrichment(userId) {
     // Gate on identity confidence: don't auto-seed wrong-person data
     const confidence = profile.identity_confidence;
     if (confidence !== null && confidence !== undefined && confidence < 0.5 && !profile.user_confirmed) {
-      console.log(`[EnrichmentBridge] Skipping memory seeding for user ${userId}: low confidence (${confidence}) and not user-confirmed`);
+      log.info(`Skipping memory seeding for user ${userId}: low confidence (${confidence}) and not user-confirmed`);
       return { success: true, memoriesStored: 0, skippedReason: 'low_confidence_unconfirmed' };
     }
 
     // Skip if this was a user-skipped record with no real data
     if (profile.source === 'user_skipped') {
-      console.log(`[EnrichmentBridge] User ${userId} skipped enrichment, nothing to seed`);
+      log.info(`User ${userId} skipped enrichment, nothing to seed`);
       return { success: true, memoriesStored: 0 };
     }
 
@@ -186,7 +189,7 @@ async function seedMemoriesFromEnrichment(userId) {
     }
 
     if (memoryEntries.length === 0) {
-      console.log(`[EnrichmentBridge] No meaningful enrichment fields for user ${userId}`);
+      log.info(`No meaningful enrichment fields for user ${userId}`);
       return { success: true, memoriesStored: 0 };
     }
 
@@ -201,11 +204,11 @@ async function seedMemoriesFromEnrichment(userId) {
     );
 
     const stored = results.filter(Boolean).length;
-    console.log(`[EnrichmentBridge] Seeded ${stored}/${memoryEntries.length} memories for user ${userId}`);
+    log.info(`Seeded ${stored}/${memoryEntries.length} memories for user ${userId}`);
 
     return { success: true, memoriesStored: stored };
   } catch (error) {
-    console.error(`[EnrichmentBridge] Error seeding memories for user ${userId}:`, error.message);
+    log.error(`Error seeding memories for user ${userId}:`, error.message);
     return { success: false, memoriesStored: 0, error: error.message };
   }
 }

@@ -15,6 +15,9 @@
  */
 
 import OpenAI from 'openai';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Embedding');
 
 const EMBEDDING_MODEL = 'openai/text-embedding-3-small';
 const EMBEDDING_DIMENSIONS = 1536;
@@ -89,7 +92,7 @@ async function generateEmbedding(text) {
 
   const client = getClient();
   if (!client) {
-    console.warn('[Embedding] No API key set (OPENROUTER_API_KEY or OPENAI_API_KEY)');
+    log.warn('No API key set (OPENROUTER_API_KEY or OPENAI_API_KEY)');
     return null;
   }
 
@@ -102,7 +105,7 @@ async function generateEmbedding(text) {
 
     const embedding = response.data?.[0]?.embedding;
     if (!embedding || embedding.length !== EMBEDDING_DIMENSIONS) {
-      console.error('[Embedding] Unexpected response format');
+      log.error('Unexpected response format');
       return null;
     }
 
@@ -114,7 +117,7 @@ async function generateEmbedding(text) {
 
     return embedding;
   } catch (error) {
-    console.error('[Embedding] Generation failed:', error.message);
+    log.error('Generation failed', { error });
     return null;
   }
 }
@@ -128,7 +131,7 @@ async function generateEmbeddings(texts) {
   if (!Array.isArray(texts) || texts.length === 0) return [];
   const client = getClient();
   if (!client) {
-    console.warn('[Embedding] No API key set');
+    log.warn('No API key set');
     return texts.map(() => null);
   }
 
@@ -176,9 +179,9 @@ async function generateEmbeddings(texts) {
         }
       }
 
-      console.log(`[Embedding] Batch ${Math.floor(batch / MAX_BATCH_SIZE) + 1}: generated ${batchInputs.length} embeddings via ${_clientType}`);
+      log.info('Batch completed', { batch: Math.floor(batch / MAX_BATCH_SIZE) + 1, count: batchInputs.length, clientType: _clientType });
     } catch (error) {
-      console.error(`[Embedding] Batch failed:`, error.message);
+      log.error('Batch failed', { error });
     }
   }
 

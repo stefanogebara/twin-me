@@ -13,6 +13,9 @@
 import AgentBase from './AgentBase.js';
 import researchRAGService from '../researchRAGService.js';
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Musicpsychologyagent');
 
 // Research-validated correlations from peer-reviewed studies
 const MUSIC_PERSONALITY_CORRELATIONS = {
@@ -246,7 +249,7 @@ Applies research-backed correlations to compute scores with confidence intervals
    * Tool: Get Spotify data for user
    */
   async getSpotifyData(userId) {
-    console.log(`🎵 [MusicPsychologyAgent] Fetching Spotify data for ${userId}`);
+    log.info(`Fetching Spotify data for ${userId}`);
 
     // Get extracted Spotify features
     const { data: features, error: featuresError } = await supabaseAdmin
@@ -443,7 +446,7 @@ Applies research-backed correlations to compute scores with confidence intervals
       const context = await researchRAGService.getResearchContext(dimension, feature);
       return context;
     } catch (error) {
-      console.error(`[MusicPsychologyAgent] RAG error:`, error);
+      log.error(`RAG error:`, error);
       return {
         hasResearch: false,
         fallbackCorrelation: this.correlations[feature]?.[dimension] || null,
@@ -693,7 +696,7 @@ Applies research-backed correlations to compute scores with confidence intervals
    * Main analysis method - analyze user's Spotify data for personality
    */
   async analyzeForPersonality(userId) {
-    console.log(`🎵 [MusicPsychologyAgent] Starting analysis for user ${userId}`);
+    log.info(`Starting analysis for user ${userId}`);
 
     const prompt = `Analyze the Spotify data for this user and provide Big Five personality inferences.
 
@@ -715,7 +718,7 @@ Be thorough and cite specific research for each inference.`;
         agentMetrics: this.getMetrics()
       };
     } catch (error) {
-      console.error(`[MusicPsychologyAgent] Failed to parse response:`, error);
+      log.error(`Failed to parse response:`, error);
       return {
         success: false,
         rawResponse: result.text,

@@ -2,6 +2,9 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Dashboard');
 
 const router = express.Router();
 
@@ -66,19 +69,19 @@ router.get('/stats', authenticateUser, async (req, res) => {
 
     // Process results
     if (platformsResult.error) {
-      console.error('Error fetching platforms:', platformsResult.error);
+      log.error('Error fetching platforms', { error: platformsResult.error });
     }
     if (dataPointsResult.error) {
-      console.error('Error fetching data points:', dataPointsResult.error);
+      log.error('Error fetching data points', { error: dataPointsResult.error });
     }
     if (soulProfileResult.error && soulProfileResult.error.code !== 'PGRST116') {
-      console.error('Error fetching soul signature profile:', soulProfileResult.error);
+      log.error('Error fetching soul signature profile', { error: soulProfileResult.error });
     }
     if (lastSyncResult.error && lastSyncResult.error.code !== 'PGRST116') {
-      console.error('Error fetching last sync:', lastSyncResult.error);
+      log.error('Error fetching last sync', { error: lastSyncResult.error });
     }
     if (modelResult.error && modelResult.error.code !== 'PGRST116') {
-      console.error('Error fetching model status:', modelResult.error);
+      log.error('Error fetching model status', { error: modelResult.error });
     }
 
     const connectedPlatforms = platformsResult.data?.length || 0;
@@ -110,7 +113,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
 
     res.json({ success: true, stats });
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    log.error('Error fetching dashboard stats', { error });
     res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
   }
 });
@@ -133,7 +136,7 @@ router.get('/activity', authenticateUser, async (req, res) => {
       .limit(limit * 2); // Get more to filter
 
     if (eventsError) {
-      console.error('Error fetching activity events:', eventsError);
+      log.error('Error fetching activity events', { error: eventsError });
     }
 
     const activity = [];
@@ -230,7 +233,7 @@ router.get('/activity', authenticateUser, async (req, res) => {
         .eq('is_active', true);
 
       if (platformsError) {
-        console.error('Error checking connected platforms:', platformsError);
+        log.error('Error checking connected platforms', { error: platformsError });
       }
 
       const hasConnections = connectedPlatforms && connectedPlatforms.length > 0;
@@ -258,7 +261,7 @@ router.get('/activity', authenticateUser, async (req, res) => {
 
     res.json({ success: true, activity });
   } catch (error) {
-    console.error('Error fetching dashboard activity:', error);
+    log.error('Error fetching dashboard activity', { error });
     res.status(500).json({ error: 'Failed to fetch activity feed' });
   }
 });

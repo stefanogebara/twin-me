@@ -18,6 +18,9 @@ import MusicPsychologistAgent from './MusicPsychologistAgent.js';
 import BiometricsSpecialistAgent from './BiometricsSpecialistAgent.js';
 import CalendarBehaviorAgent from './CalendarBehaviorAgent.js';
 import { RESEARCH_SOURCES } from './SpecialistAgentBase.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Specialistorchestrator');
 
 class SpecialistOrchestrator {
   constructor() {
@@ -33,7 +36,7 @@ class SpecialistOrchestrator {
 
     this.researchSources = RESEARCH_SOURCES;
 
-    console.log('[SpecialistOrchestrator] Initialized with science-backed specialist agents');
+    log.info('Initialized with science-backed specialist agents');
   }
 
   /**
@@ -44,7 +47,7 @@ class SpecialistOrchestrator {
    * @returns {Object} Unified personality analysis with citations
    */
   async analyze(userId, platformData) {
-    console.log(`🔬 [SpecialistOrchestrator] Starting science-backed analysis for user ${userId}`);
+    log.info(`Starting science-backed analysis for user ${userId}`);
 
     const startTime = Date.now();
     const results = {
@@ -88,7 +91,7 @@ class SpecialistOrchestrator {
         };
       }
 
-      console.log(`   📊 Active domains: ${activeDomains.join(', ')}`);
+      log.info(`Active domains: ${activeDomains.join(', ')}`);
 
       // 2. Analyze - Run specialists in parallel
       const analysisPromises = activeDomains.map(domain =>
@@ -130,14 +133,14 @@ class SpecialistOrchestrator {
       // Calculate timing
       results.duration = `${((Date.now() - startTime) / 1000).toFixed(2)}s`;
 
-      console.log(`✅ [SpecialistOrchestrator] Analysis complete in ${results.duration}`);
-      console.log(`   📈 Evidence items: ${results.methodology.totalEvidence}`);
-      console.log(`   📚 Citations: ${results.citations.length}`);
+      log.info(`Analysis complete in ${results.duration}`);
+      log.info(`Evidence items: ${results.methodology.totalEvidence}`);
+      log.info(`Citations: ${results.citations.length}`);
 
       return results;
 
     } catch (error) {
-      console.error(`❌ [SpecialistOrchestrator] Analysis failed:`, error);
+      log.error(`Analysis failed:`, error);
       return {
         success: false,
         error: error.message,
@@ -152,16 +155,16 @@ class SpecialistOrchestrator {
   async runAgentAnalysis(domain, userId, data) {
     const agent = this.agents[domain];
     if (!agent) {
-      console.warn(`[SpecialistOrchestrator] No agent for domain: ${domain}`);
+      log.warn(`No agent for domain: ${domain}`);
       return { success: false, domain, error: 'No agent available' };
     }
 
     try {
-      console.log(`   🔍 Running ${agent.name}...`);
+      log.info(`Running ${agent.name}...`);
       const result = await agent.analyze(userId, data);
       return result;
     } catch (error) {
-      console.error(`[SpecialistOrchestrator] ${domain} analysis failed:`, error);
+      log.error(`${domain} analysis failed:`, error);
       return { success: false, domain, error: error.message };
     }
   }

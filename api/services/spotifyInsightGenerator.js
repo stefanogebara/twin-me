@@ -9,6 +9,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('SpotifyInsightGenerator');
 
 class SpotifyInsightGenerator {
   constructor() {
@@ -77,7 +80,7 @@ class SpotifyInsightGenerator {
    * @returns {Promise<Object>} Formatted personality insights
    */
   async getPersonalityInsights(userId) {
-    console.log(`[SpotifyInsightGenerator] Getting personality insights for user ${userId}`);
+    log.info(`Getting personality insights for user ${userId}`);
 
     try {
       // Fetch the most recent Spotify extraction from soul_data
@@ -91,7 +94,7 @@ class SpotifyInsightGenerator {
         .single();
 
       if (error || !data) {
-        console.log('[SpotifyInsightGenerator] No Spotify data found for user');
+        log.info('No Spotify data found for user');
         return this.getDefaultInsights();
       }
 
@@ -123,7 +126,7 @@ class SpotifyInsightGenerator {
       };
 
     } catch (error) {
-      console.error('[SpotifyInsightGenerator] Error getting personality insights:', error);
+      log.error('Error getting personality insights:', error);
       return this.getDefaultInsights();
     }
   }
@@ -135,7 +138,7 @@ class SpotifyInsightGenerator {
    * @returns {Promise<Object>} Current mood insight
    */
   async getCurrentMoodInsights(userId) {
-    console.log(`[SpotifyInsightGenerator] Getting current mood for user ${userId}`);
+    log.info(`Getting current mood for user ${userId}`);
 
     try {
       // Get the most recent extraction
@@ -172,7 +175,7 @@ class SpotifyInsightGenerator {
       };
 
     } catch (error) {
-      console.error('[SpotifyInsightGenerator] Error getting mood insights:', error);
+      log.error('Error getting mood insights:', error);
       return null;
     }
   }

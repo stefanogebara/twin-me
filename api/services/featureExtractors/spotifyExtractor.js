@@ -21,6 +21,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Spotifyextractor');
 
 class SpotifyFeatureExtractor {
   constructor() {
@@ -31,7 +34,7 @@ class SpotifyFeatureExtractor {
    * Extract all behavioral features from Spotify data
    */
   async extractFeatures(userId) {
-    console.log(`🎵 [Spotify Extractor] Extracting features for user ${userId}`);
+    log.info(`Extracting features for user ${userId}`);
 
     try {
       const cutoffDate = new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -47,7 +50,7 @@ class SpotifyFeatureExtractor {
         .order('extracted_at', { ascending: false });
 
       if (platformError) {
-        console.warn('⚠️ [Spotify Extractor] Error fetching user_platform_data:', platformError.message);
+        log.warn('Error fetching user_platform_data:', platformError.message);
       }
 
       // Secondary source: soul_data (legacy, 18 records)
@@ -60,7 +63,7 @@ class SpotifyFeatureExtractor {
         .order('created_at', { ascending: false });
 
       if (soulError) {
-        console.warn('⚠️ [Spotify Extractor] Error fetching soul_data:', soulError.message);
+        log.warn('Error fetching soul_data:', soulError.message);
       }
 
       // Normalize data from both tables
@@ -79,11 +82,11 @@ class SpotifyFeatureExtractor {
       const spotifyData = [...normalizedPlatformData, ...normalizedSoulData];
 
       if (spotifyData.length === 0) {
-        console.log('⚠️ [Spotify Extractor] No Spotify data found for user in either table');
+        log.info('No Spotify data found for user in either table');
         return [];
       }
 
-      console.log(`📊 [Spotify Extractor] Found ${spotifyData.length} Spotify data entries (${normalizedPlatformData.length} from user_platform_data, ${normalizedSoulData.length} from soul_data)`);
+      log.info(`Found ${spotifyData.length} Spotify data entries (${normalizedPlatformData.length} from user_platform_data, ${normalizedSoulData.length} from soul_data)`);
 
       // Extract features
       const features = [];
@@ -239,11 +242,11 @@ class SpotifyFeatureExtractor {
         }));
       }
 
-      console.log(`✅ [Spotify Extractor] Extracted ${features.length} features`);
+      log.info(`Extracted ${features.length} features`);
       return features;
 
     } catch (error) {
-      console.error('❌ [Spotify Extractor] Error:', error);
+      log.error('Error:', error);
       throw error;
     }
   }
@@ -926,7 +929,7 @@ class SpotifyFeatureExtractor {
   async saveFeatures(features) {
     if (features.length === 0) return { success: true, saved: 0 };
 
-    console.log(`💾 [Spotify Extractor] Saving ${features.length} features to database...`);
+    log.info(`Saving ${features.length} features to database...`);
 
     try {
       const { data, error } = await supabaseAdmin
@@ -938,11 +941,11 @@ class SpotifyFeatureExtractor {
 
       if (error) throw error;
 
-      console.log(`✅ [Spotify Extractor] Saved ${data.length} features successfully`);
+      log.info(`Saved ${data.length} features successfully`);
       return { success: true, saved: data.length, data };
 
     } catch (error) {
-      console.error('❌ [Spotify Extractor] Error saving features:', error);
+      log.error('Error saving features:', error);
       return { success: false, error: error.message };
     }
   }

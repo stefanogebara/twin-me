@@ -6,6 +6,9 @@
 // Node.js 18+ has built-in fetch, no need for node-fetch
 import { supabaseAdmin } from '../database.js';
 import { ensureFreshToken } from '../tokenRefreshService.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('SpotifyExtractor');
 
 class SpotifyExtractor {
   constructor(userId, platform = 'spotify') {
@@ -18,7 +21,7 @@ class SpotifyExtractor {
    * Main extraction method - extracts all Spotify data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[Spotify] Starting full extraction for user: ${userId}`);
+    log.info(`Starting full extraction for user: ${userId}`);
 
     let job = null;
     try {
@@ -37,10 +40,10 @@ class SpotifyExtractor {
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[Spotify] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return { success: true, itemsExtracted: totalItems };
     } catch (error) {
-      console.error('[Spotify] Extraction error:', error);
+      log.error('Extraction error:', error);
 
       // Mark the job as failed if it was created
       if (job && job.id) {
@@ -73,7 +76,7 @@ class SpotifyExtractor {
 
       // Handle 401 with retry (token might have expired during long extraction)
       if (response.status === 401 && retryCount < 2) {
-        console.log(`[Spotify] 401 error, retrying with fresh token (attempt ${retryCount + 1}/2)`);
+        log.info(`401 error, retrying with fresh token (attempt ${retryCount + 1}/2)`);
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
         return this.makeRequest(endpoint, params, retryCount + 1);
       }
@@ -86,7 +89,7 @@ class SpotifyExtractor {
       return response.json();
     } catch (error) {
       if (error.message.includes('Token refresh failed') || error.message.includes('Not authenticated')) {
-        console.error('[Spotify] Token refresh failed - marking connection as needs_reauth');
+        log.error('Token refresh failed - marking connection as needs_reauth');
         const authError = new Error('Spotify authentication failed - please reconnect');
         authError.status = 401;
         throw authError;
@@ -99,7 +102,7 @@ class SpotifyExtractor {
    * Extract recently played tracks (last 50 tracks)
    */
   async extractRecentlyPlayed(userId) {
-    console.log(`[Spotify] Extracting recently played tracks...`);
+    log.info(`Extracting recently played tracks...`);
     let trackCount = 0;
 
     try {
@@ -131,10 +134,10 @@ class SpotifyExtractor {
         }
       }
 
-      console.log(`[Spotify] Extracted ${trackCount} recently played tracks`);
+      log.info(`Extracted ${trackCount} recently played tracks`);
       return trackCount;
     } catch (error) {
-      console.error('[Spotify] Error extracting recently played:', error);
+      log.error('Error extracting recently played:', error);
       return trackCount;
     }
   }
@@ -143,7 +146,7 @@ class SpotifyExtractor {
    * Extract top tracks (short, medium, and long term)
    */
   async extractTopTracks(userId) {
-    console.log(`[Spotify] Extracting top tracks...`);
+    log.info(`Extracting top tracks...`);
     let trackCount = 0;
 
     const timeRanges = [
@@ -184,10 +187,10 @@ class SpotifyExtractor {
         await this.sleep(100);
       }
 
-      console.log(`[Spotify] Extracted ${trackCount} top tracks`);
+      log.info(`Extracted ${trackCount} top tracks`);
       return trackCount;
     } catch (error) {
-      console.error('[Spotify] Error extracting top tracks:', error);
+      log.error('Error extracting top tracks:', error);
       return trackCount;
     }
   }
@@ -196,7 +199,7 @@ class SpotifyExtractor {
    * Extract top artists (short, medium, and long term)
    */
   async extractTopArtists(userId) {
-    console.log(`[Spotify] Extracting top artists...`);
+    log.info(`Extracting top artists...`);
     let artistCount = 0;
 
     const timeRanges = [
@@ -233,10 +236,10 @@ class SpotifyExtractor {
         await this.sleep(100);
       }
 
-      console.log(`[Spotify] Extracted ${artistCount} top artists`);
+      log.info(`Extracted ${artistCount} top artists`);
       return artistCount;
     } catch (error) {
-      console.error('[Spotify] Error extracting top artists:', error);
+      log.error('Error extracting top artists:', error);
       return artistCount;
     }
   }
@@ -245,7 +248,7 @@ class SpotifyExtractor {
    * Extract user's playlists
    */
   async extractPlaylists(userId) {
-    console.log(`[Spotify] Extracting playlists...`);
+    log.info(`Extracting playlists...`);
     let playlistCount = 0;
 
     try {
@@ -297,10 +300,10 @@ class SpotifyExtractor {
         await this.sleep(200); // Be nice to API
       }
 
-      console.log(`[Spotify] Extracted ${playlistCount} playlists`);
+      log.info(`Extracted ${playlistCount} playlists`);
       return playlistCount;
     } catch (error) {
-      console.error('[Spotify] Error extracting playlists:', error);
+      log.error('Error extracting playlists:', error);
       return playlistCount;
     }
   }
@@ -309,7 +312,7 @@ class SpotifyExtractor {
    * Extract saved tracks (liked songs)
    */
   async extractSavedTracks(userId) {
-    console.log(`[Spotify] Extracting saved tracks...`);
+    log.info(`Extracting saved tracks...`);
     let trackCount = 0;
 
     try {
@@ -355,10 +358,10 @@ class SpotifyExtractor {
         await this.sleep(200);
       }
 
-      console.log(`[Spotify] Extracted ${trackCount} saved tracks`);
+      log.info(`Extracted ${trackCount} saved tracks`);
       return trackCount;
     } catch (error) {
-      console.error('[Spotify] Error extracting saved tracks:', error);
+      log.error('Error extracting saved tracks:', error);
       return trackCount;
     }
   }
@@ -391,10 +394,10 @@ class SpotifyExtractor {
         });
 
       if (error) {
-        console.error('[Spotify] Error storing data:', error);
+        log.error('Error storing data:', error);
       }
     } catch (error) {
-      console.error('[Spotify] Exception storing data:', error);
+      log.error('Exception storing data:', error);
     }
   }
 
@@ -416,7 +419,7 @@ class SpotifyExtractor {
       .single();
 
     if (error) {
-      console.error('[Spotify] Error creating job:', error);
+      log.error('Error creating job:', error);
       throw error;
     }
 
@@ -437,7 +440,7 @@ class SpotifyExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
-    if (updateErr) console.warn('[Spotify] Error completing extraction job:', updateErr.message);
+    if (updateErr) log.warn('Error completing extraction job:', updateErr.message);
   }
 
   /**
@@ -452,7 +455,7 @@ class SpotifyExtractor {
         error_message: errorMessage
       })
       .eq('id', jobId);
-    if (failErr) console.warn('[Spotify] Error marking job as failed:', failErr.message);
+    if (failErr) log.warn('Error marking job as failed:', failErr.message);
   }
 }
 

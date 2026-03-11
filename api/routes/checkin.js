@@ -13,6 +13,9 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { addMemory } from '../services/memoryStreamService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Checkin');
 
 const router = express.Router();
 
@@ -56,7 +59,7 @@ router.post('/', authenticateUser, async (req, res) => {
       );
 
     if (error) {
-      console.error('[Checkin] Failed to upsert daily_checkins:', error.message);
+      log.error('Failed to upsert daily_checkins:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to save check-in' });
     }
 
@@ -76,7 +79,7 @@ router.post('/', authenticateUser, async (req, res) => {
 
     return res.json({ success: true });
   } catch (err) {
-    console.error('[Checkin] Error:', err.message);
+    log.error('Error:', err.message);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
@@ -100,13 +103,13 @@ router.get('/today', authenticateUser, async (req, res) => {
 
     if (error && error.code !== 'PGRST116') {
       // PGRST116 = "no rows found" — not an error for us
-      console.error('[Checkin] today query error:', error.message);
+      log.error('today query error:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to check today status' });
     }
 
     return res.json({ success: true, checkedIn: !!data, data: data || null });
   } catch (err) {
-    console.error('[Checkin] Error:', err.message);
+    log.error('Error:', err.message);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
@@ -151,7 +154,7 @@ router.get('/streak', authenticateUser, async (req, res) => {
 
     return res.json({ success: true, streak });
   } catch (err) {
-    console.error('[Checkin] Streak error:', err.message);
+    log.error('Streak error:', err.message);
     return res.json({ success: false, streak: 0 });
   }
 });

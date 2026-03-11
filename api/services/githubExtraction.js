@@ -8,6 +8,9 @@
 import axios from 'axios';
 import { supabaseAdmin } from './database.js';
 import { decryptToken } from './encryption.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('GitHubExtraction');
 
 /**
  * Main extraction function - retrieves all GitHub data
@@ -39,7 +42,7 @@ export async function extractGitHubData(userId) {
       'User-Agent': 'TwinMe-App'
     };
 
-    console.log(`🐙 Extracting GitHub data for user ${userId}...`);
+    log.info(`Extracting GitHub data for user ${userId}...`);
 
     // Extract multiple data types in parallel for performance
     const [
@@ -92,7 +95,7 @@ export async function extractGitHubData(userId) {
       soulData.starred.length +
       soulData.events.length;
 
-    console.log(`✅ Extracted ${totalItems} GitHub items`);
+    log.info(`Extracted ${totalItems} GitHub items`);
 
     // Save extracted data to soul_data table
     const { error: insertError } = await supabaseAdmin
@@ -115,7 +118,7 @@ export async function extractGitHubData(userId) {
       });
 
     if (insertError) {
-      console.error('Error saving GitHub data:', insertError);
+      log.error('Error saving GitHub data:', insertError);
     }
 
     // Update connection status
@@ -127,7 +130,7 @@ export async function extractGitHubData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'github');
-    if (syncSuccessErr) console.warn('[GitHub] Error updating connection status:', syncSuccessErr.message);
+    if (syncSuccessErr) log.warn('Error updating connection status:', syncSuccessErr.message);
 
     return {
       success: true,
@@ -138,7 +141,7 @@ export async function extractGitHubData(userId) {
     };
 
   } catch (error) {
-    console.error('GitHub extraction error:', error);
+    log.error('GitHub extraction error:', error);
 
     // Handle token expiration
     if (error.response?.status === 401) {
@@ -149,7 +152,7 @@ export async function extractGitHubData(userId) {
         })
         .eq('user_id', userId)
         .eq('platform', 'github');
-      if (reauthErr) console.warn('[GitHub] Error updating connection status:', reauthErr.message);
+      if (reauthErr) log.warn('Error updating connection status:', reauthErr.message);
 
       return {
         success: false,
@@ -177,7 +180,7 @@ export async function extractGitHubData(userId) {
       })
       .eq('user_id', userId)
       .eq('platform', 'github');
-    if (failedErr) console.warn('[GitHub] Error updating connection status:', failedErr.message);
+    if (failedErr) log.warn('Error updating connection status:', failedErr.message);
 
     throw error;
   }

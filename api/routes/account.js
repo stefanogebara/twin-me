@@ -8,6 +8,9 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Account');
 
 const router = express.Router();
 
@@ -64,18 +67,18 @@ router.delete('/', authenticateUser, async (req, res) => {
       .eq('id', userId);
 
     if (deleteError) {
-      console.error('[Account Delete] Database error:', deleteError.message);
+      log.error('Database error:', deleteError.message);
       return res.status(500).json({ success: false, error: 'Failed to delete account' });
     }
 
-    console.log(`[Account Delete] User ${userId} account deleted successfully`);
+    log.info(`User ${userId} account deleted successfully`);
 
     return res.json({
       success: true,
       message: 'Account and all associated data have been permanently deleted.',
     });
   } catch (error) {
-    console.error('[Account Delete] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to delete account' });
   }
 });
@@ -183,7 +186,7 @@ router.get('/export', authenticateUser, async (req, res) => {
       data: exportData,
     });
   } catch (error) {
-    console.error('[Account Export] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to export data' });
   }
 });

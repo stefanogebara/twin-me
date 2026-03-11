@@ -2,6 +2,9 @@
 import express from 'express';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Discovery');
 
 const router = express.Router();
 
@@ -34,7 +37,7 @@ async function rateLimit(ip) {
       return count <= RATE_LIMIT_MAX;
     }
   } catch (redisErr) {
-    console.warn('[Discovery] Redis rate limit failed, using in-memory fallback:', redisErr.message);
+    log.warn('Redis rate limit failed, using in-memory fallback:', redisErr.message);
   }
 
   // Fallback: in-memory Map (resets on cold start)
@@ -89,7 +92,7 @@ router.post('/scan', async (req, res) => {
 
     res.json({ success: true, discovered });
   } catch (err) {
-    console.error('[Discovery] Scan error:', err.message);
+    log.error('Scan error:', err.message);
     // Same response shape on error — prevents enumeration
     const elapsed = Date.now() - startTime;
     const delay = Math.max(0, MIN_RESPONSE_DELAY_MS - elapsed);

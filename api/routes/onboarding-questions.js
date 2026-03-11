@@ -8,6 +8,9 @@
 import express from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OnboardingQuestions');
 import {
   ONBOARDING_QUESTIONS,
   calculatePreferencesFromAnswers,
@@ -41,7 +44,7 @@ router.get('/questions', authenticateToken, (req, res) => {
       totalQuestions: questionsForClient.length
     });
   } catch (error) {
-    console.error('[Onboarding] Error fetching questions:', error);
+    log.error('Error fetching questions:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch questions'
@@ -65,7 +68,7 @@ router.post('/answers', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log(`[Onboarding] Saving answers for user ${userId}:`, Object.keys(answers).length, 'questions answered');
+    log.info(`Saving answers for user ${userId}:`, Object.keys(answers).length, 'questions answered');
 
     // Calculate preferences from answers
     const preferences = calculatePreferencesFromAnswers(answers);
@@ -88,7 +91,7 @@ router.post('/answers', authenticateToken, async (req, res) => {
       .eq('id', userId);
 
     if (error) {
-      console.error('[Onboarding] Error saving answers:', error);
+      log.error('Error saving answers:', error);
       throw error;
     }
 
@@ -102,9 +105,9 @@ router.post('/answers', authenticateToken, async (req, res) => {
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
-    if (stateUpsertErr) console.error('[Onboarding] Error updating onboarding state:', stateUpsertErr.message);
+    if (stateUpsertErr) log.error('Error updating onboarding state:', stateUpsertErr.message);
 
-    console.log(`[Onboarding] Successfully saved preferences for user ${userId}`);
+    log.info(`Successfully saved preferences for user ${userId}`);
 
     res.json({
       success: true,
@@ -118,7 +121,7 @@ router.post('/answers', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Onboarding] Error saving answers:', error);
+    log.error('Error saving answers:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to save answers'
@@ -141,7 +144,7 @@ router.get('/answers', authenticateToken, async (req, res) => {
       .single();
 
     if (error) {
-      console.error('[Onboarding] Error fetching answers:', error);
+      log.error('Error fetching answers:', error);
       throw error;
     }
 
@@ -157,7 +160,7 @@ router.get('/answers', authenticateToken, async (req, res) => {
       preferences
     });
   } catch (error) {
-    console.error('[Onboarding] Error fetching answers:', error);
+    log.error('Error fetching answers:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch answers'
@@ -180,7 +183,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       .single();
 
     if (error) {
-      console.error('[Onboarding] Error checking status:', error);
+      log.error('Error checking status:', error);
       throw error;
     }
 
@@ -197,7 +200,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       percentComplete: Math.round((answeredCount / ONBOARDING_QUESTIONS.length) * 100)
     });
   } catch (error) {
-    console.error('[Onboarding] Error checking status:', error);
+    log.error('Error checking status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to check status'
@@ -226,18 +229,18 @@ router.post('/skip', authenticateToken, async (req, res) => {
       .eq('id', userId);
 
     if (error) {
-      console.error('[Onboarding] Error skipping:', error);
+      log.error('Error skipping:', error);
       throw error;
     }
 
-    console.log(`[Onboarding] User ${userId} skipped questionnaire`);
+    log.info(`User ${userId} skipped questionnaire`);
 
     res.json({
       success: true,
       message: 'Questionnaire skipped'
     });
   } catch (error) {
-    console.error('[Onboarding] Error skipping:', error);
+    log.error('Error skipping:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to skip questionnaire'
@@ -262,18 +265,18 @@ router.delete('/answers', authenticateToken, async (req, res) => {
       .eq('id', userId);
 
     if (error) {
-      console.error('[Onboarding] Error resetting:', error);
+      log.error('Error resetting:', error);
       throw error;
     }
 
-    console.log(`[Onboarding] Reset questionnaire for user ${userId}`);
+    log.info(`Reset questionnaire for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Questionnaire reset'
     });
   } catch (error) {
-    console.error('[Onboarding] Error resetting:', error);
+    log.error('Error resetting:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to reset questionnaire'
@@ -345,7 +348,7 @@ router.get('/preferences-impact', authenticateToken, async (req, res) => {
       impacts
     });
   } catch (error) {
-    console.error('[Onboarding] Error fetching impacts:', error);
+    log.error('Error fetching impacts:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch preference impacts'

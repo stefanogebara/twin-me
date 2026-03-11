@@ -16,6 +16,9 @@ import { supabaseAdmin } from '../config/supabase.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { createLogger } from './logger.js';
+
+const log = createLogger('BehavioralLearning');
 
 // Use shared Supabase client
 const supabase = supabaseAdmin;
@@ -29,9 +32,9 @@ try {
   const correlationsPath = join(__dirname, '../data/validated-correlations.json');
   const correlationsData = JSON.parse(readFileSync(correlationsPath, 'utf-8'));
   VALIDATED_CORRELATIONS = correlationsData;
-  console.log('[BehavioralLearning] Loaded validated correlations from research data');
+  log.info('Loaded validated correlations from research data');
 } catch (error) {
-  console.warn('[BehavioralLearning] Could not load validated-correlations.json, using defaults');
+  log.warn('Could not load validated-correlations.json, using defaults');
 }
 
 /**
@@ -587,7 +590,7 @@ export async function updateFromBehavior(userId, platform, features) {
       .single();
 
     if (fetchError || !currentEstimate) {
-      console.log(`[BehavioralLearning] No existing estimate for user ${userId}, creating new`);
+      log.info(`No existing estimate for user ${userId}, creating new`);
       // Create initial estimate with defaults
       const { data: newEstimate, error: createError } = await supabase
         .from('personality_estimates')
@@ -666,8 +669,8 @@ export async function updateFromBehavior(userId, platform, features) {
 
     if (updateError) throw updateError;
 
-    console.log(`[BehavioralLearning] Updated personality for user ${userId} from ${platform}`);
-    console.log(`[BehavioralLearning] Features processed: ${Object.keys(features).join(', ')}`);
+    log.info(`Updated personality for user ${userId} from ${platform}`);
+    log.info(`Features processed: ${Object.keys(features).join(', ')}`);
 
     return {
       ...updatedEstimate,
@@ -675,7 +678,7 @@ export async function updateFromBehavior(userId, platform, features) {
     };
 
   } catch (error) {
-    console.error('[BehavioralLearning] Error updating from behavior:', error);
+    log.error('Error updating from behavior:', error);
     throw error;
   }
 }
@@ -736,10 +739,10 @@ export async function storeLearnedCorrelation(platform, featureName, dimension, 
 
     if (error) throw error;
 
-    console.log(`[BehavioralLearning] Stored correlation: ${platform}.${featureName} -> ${dimension}: ${coefficient}`);
+    log.info(`Stored correlation: ${platform}.${featureName} -> ${dimension}: ${coefficient}`);
 
   } catch (error) {
-    console.error('[BehavioralLearning] Error storing correlation:', error);
+    log.error('Error storing correlation:', error);
   }
 }
 
@@ -747,7 +750,7 @@ export async function storeLearnedCorrelation(platform, featureName, dimension, 
  * Seed initial correlations to database
  */
 export async function seedInitialCorrelations() {
-  console.log('[BehavioralLearning] Seeding initial correlations...');
+  log.info('Seeding initial correlations...');
 
   const records = [];
 
@@ -774,11 +777,11 @@ export async function seedInitialCorrelations() {
     });
 
   if (error) {
-    console.error('[BehavioralLearning] Error seeding correlations:', error);
+    log.error('Error seeding correlations:', error);
     throw error;
   }
 
-  console.log(`[BehavioralLearning] Seeded ${records.length} correlations`);
+  log.info(`Seeded ${records.length} correlations`);
 }
 
 export default {

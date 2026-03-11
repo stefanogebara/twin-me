@@ -20,6 +20,9 @@
 import { supabaseAdmin } from './database.js';
 import { getValidAccessToken } from './tokenRefresh.js';
 import axios from 'axios';
+import { createLogger } from './logger.js';
+
+const log = createLogger('CorrelationEngine');
 
 // ============================================================================
 // CONFIGURATION
@@ -55,7 +58,7 @@ async function fetchWhoopData(userId, days = CONFIG.ANALYSIS_DAYS) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'whoop');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      console.log('[CorrelationEngine] No Whoop token available');
+      log.info('No Whoop token available');
       return null;
     }
 
@@ -103,10 +106,10 @@ async function fetchWhoopData(userId, days = CONFIG.ANALYSIS_DAYS) {
       })).filter(s => s.totalSleepMins != null)
     };
 
-    console.log(`[CorrelationEngine] Fetched Whoop: ${data.recovery.length} recovery, ${data.workouts.length} workouts, ${data.sleep.length} sleep`);
+    log.info(`Fetched Whoop: ${data.recovery.length} recovery, ${data.workouts.length} workouts, ${data.sleep.length} sleep`);
     return data;
   } catch (error) {
-    console.error('[CorrelationEngine] Whoop fetch error:', error.message);
+    log.error('Whoop fetch error:', error.message);
     return null;
   }
 }
@@ -118,7 +121,7 @@ async function fetchCalendarData(userId, days = CONFIG.ANALYSIS_DAYS) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'google_calendar');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      console.log('[CorrelationEngine] No Calendar token available');
+      log.info('No Calendar token available');
       return null;
     }
 
@@ -153,10 +156,10 @@ async function fetchCalendarData(userId, days = CONFIG.ANALYSIS_DAYS) {
       eventType: classifyCalendarEvent(e.summary || '', e.attendees?.length || 0)
     }));
 
-    console.log(`[CorrelationEngine] Fetched Calendar: ${events.length} events`);
+    log.info(`Fetched Calendar: ${events.length} events`);
     return events;
   } catch (error) {
-    console.error('[CorrelationEngine] Calendar fetch error:', error.message);
+    log.error('Calendar fetch error:', error.message);
     return null;
   }
 }
@@ -168,7 +171,7 @@ async function fetchSpotifyData(userId, days = CONFIG.ANALYSIS_DAYS) {
   try {
     const tokenResult = await getValidAccessToken(userId, 'spotify');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      console.log('[CorrelationEngine] No Spotify token available');
+      log.info('No Spotify token available');
       return null;
     }
 
@@ -206,10 +209,10 @@ async function fetchSpotifyData(userId, days = CONFIG.ANALYSIS_DAYS) {
       });
     }
 
-    console.log(`[CorrelationEngine] Fetched Spotify: ${tracks.length} tracks`);
+    log.info(`Fetched Spotify: ${tracks.length} tracks`);
     return tracks;
   } catch (error) {
-    console.error('[CorrelationEngine] Spotify fetch error:', error.message);
+    log.error('Spotify fetch error:', error.message);
     return null;
   }
 }
@@ -588,8 +591,8 @@ function calculateConfidence(occurrences, consistency, effectSize) {
 export async function analyzeCorrelations(userId, options = {}) {
   const { days = CONFIG.ANALYSIS_DAYS, save = true } = options;
 
-  console.log(`\n[CorrelationEngine] Starting analysis for user ${userId}`);
-  console.log(`[CorrelationEngine] Analyzing ${days} days of data`);
+  log.info(`\n[CorrelationEngine] Starting analysis for user ${userId}`);
+  log.info(`Analyzing ${days} days of data`);
 
   const results = {
     correlations: [],
@@ -615,25 +618,25 @@ export async function analyzeCorrelations(userId, options = {}) {
     if (whoop) {
       const activityRecovery = detectActivityRecoveryCorrelations(whoop);
       results.correlations.push(...activityRecovery);
-      console.log(`[CorrelationEngine] Found ${activityRecovery.length} activity→recovery correlations`);
+      log.info(`Found ${activityRecovery.length} activity→recovery correlations`);
     }
 
     if (calendar && whoop) {
       const calendarBiometric = detectCalendarBiometricCorrelations(calendar, whoop);
       results.correlations.push(...calendarBiometric);
-      console.log(`[CorrelationEngine] Found ${calendarBiometric.length} calendar→biometric correlations`);
+      log.info(`Found ${calendarBiometric.length} calendar→biometric correlations`);
     }
 
     if (whoop && spotify) {
       const recoveryMusic = detectRecoveryMusicCorrelations(whoop, spotify);
       results.correlations.push(...recoveryMusic);
-      console.log(`[CorrelationEngine] Found ${recoveryMusic.length} recovery→music correlations`);
+      log.info(`Found ${recoveryMusic.length} recovery→music correlations`);
     }
 
     if (whoop && calendar) {
       const temporal = detectTemporalPatterns(whoop, calendar);
       results.correlations.push(...temporal);
-      console.log(`[CorrelationEngine] Found ${temporal.length} temporal patterns`);
+      log.info(`Found ${temporal.length} temporal patterns`);
     }
 
     // Filter by confidence threshold
@@ -642,7 +645,7 @@ export async function analyzeCorrelations(userId, options = {}) {
     // Sort by confidence
     results.correlations.sort((a, b) => b.confidence - a.confidence);
 
-    console.log(`\n[CorrelationEngine] Total significant correlations: ${results.correlations.length}`);
+    log.info(`\n[CorrelationEngine] Total significant correlations: ${results.correlations.length}`);
 
     // Save to database if requested
     if (save && results.correlations.length > 0) {
@@ -663,7 +666,7 @@ export async function analyzeCorrelations(userId, options = {}) {
     };
 
   } catch (error) {
-    console.error('[CorrelationEngine] Analysis error:', error);
+    log.error('Analysis error:', error);
     return {
       success: false,
       correlations: results.correlations,
@@ -681,7 +684,7 @@ export async function analyzeCorrelations(userId, options = {}) {
  * Save correlations to database and create brain nodes
  */
 async function saveCorrelations(userId, correlations) {
-  console.log(`[CorrelationEngine] Saving ${correlations.length} correlations`);
+  log.info(`Saving ${correlations.length} correlations`);
 
   for (const corr of correlations) {
     try {
@@ -707,7 +710,7 @@ async function saveCorrelations(userId, correlations) {
         });
 
       if (dbError) {
-        console.error('[CorrelationEngine] DB save error:', dbError.message);
+        log.error('DB save error:', dbError.message);
       }
 
       // Create brain node for high-confidence correlations
@@ -716,7 +719,7 @@ async function saveCorrelations(userId, correlations) {
       }
 
     } catch (error) {
-      console.error('[CorrelationEngine] Save error:', error.message);
+      log.error('Save error:', error.message);
     }
   }
 }
@@ -755,12 +758,12 @@ async function createCorrelationBrainNode(userId, correlation) {
       .insert(node);
 
     if (error && !error.message.includes('duplicate')) {
-      console.error('[CorrelationEngine] Brain node error:', error.message);
+      log.error('Brain node error:', error.message);
     } else {
-      console.log(`[CorrelationEngine] Created brain node: "${node.label}"`);
+      log.info(`Created brain node: "${node.label}"`);
     }
   } catch (error) {
-    console.error('[CorrelationEngine] Brain node creation error:', error.message);
+    log.error('Brain node creation error:', error.message);
   }
 }
 
@@ -781,7 +784,7 @@ export async function getStoredCorrelations(userId, options = {}) {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('[CorrelationEngine] Get correlations error:', error.message);
+    log.error('Get correlations error:', error.message);
     return [];
   }
 }
@@ -796,14 +799,14 @@ export async function getCorrelationStats(userId) {
       .from('discovered_correlations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
-    if (totalErr) console.warn('[CorrelationEngine] Failed to count correlations:', totalErr.message);
+    if (totalErr) log.warn('Failed to count correlations:', totalErr.message);
 
     // Count by correlation type
     const { data: byType, error: byTypeErr } = await supabaseAdmin
       .from('discovered_correlations')
       .select('correlation_type')
       .eq('user_id', userId);
-    if (byTypeErr) console.warn('[CorrelationEngine] Failed to fetch correlation types:', byTypeErr.message);
+    if (byTypeErr) log.warn('Failed to fetch correlation types:', byTypeErr.message);
 
     const typeCounts = (byType || []).reduce((acc, c) => {
       acc[c.correlation_type] = (acc[c.correlation_type] || 0) + 1;
@@ -816,7 +819,7 @@ export async function getCorrelationStats(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .gte('confidence', 0.7);
-    if (highConfErr) console.warn('[CorrelationEngine] Failed to count high confidence correlations:', highConfErr.message);
+    if (highConfErr) log.warn('Failed to count high confidence correlations:', highConfErr.message);
 
     // Count brain nodes from correlations
     const { count: brainNodes, error: brainErr } = await supabaseAdmin
@@ -824,7 +827,7 @@ export async function getCorrelationStats(userId) {
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('source_type', 'correlation_engine');
-    if (brainErr) console.warn('[CorrelationEngine] Failed to count brain nodes:', brainErr.message);
+    if (brainErr) log.warn('Failed to count brain nodes:', brainErr.message);
 
     // Get most recent analysis date
     const { data: latest, error: latestErr } = await supabaseAdmin
@@ -833,7 +836,7 @@ export async function getCorrelationStats(userId) {
       .eq('user_id', userId)
       .order('discovered_at', { ascending: false })
       .limit(1);
-    if (latestErr) console.warn('[CorrelationEngine] Failed to fetch latest correlation date:', latestErr.message);
+    if (latestErr) log.warn('Failed to fetch latest correlation date:', latestErr.message);
 
     return {
       totalCorrelations: totalCorrelations || 0,
@@ -843,7 +846,7 @@ export async function getCorrelationStats(userId) {
       lastAnalysis: latest?.[0]?.discovered_at || null
     };
   } catch (error) {
-    console.error('[CorrelationEngine] Get stats error:', error.message);
+    log.error('Get stats error:', error.message);
     return {
       totalCorrelations: 0,
       highConfidence: 0,

@@ -35,6 +35,10 @@ import {
 } from '../middleware/platformValidation.js';
 import { authenticateUser } from '../middleware/auth.js';
 
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('SoulExtraction');
+
 const router = express.Router();
 const extractor = new RealTimeExtractor();
 
@@ -62,7 +66,7 @@ router.post('/extract/platform/:platform',
     const { platform } = req.params;
     const userId = req.user.id;
 
-    console.log(`🎭 Soul extraction request for ${platform} from user ${userId}`);
+    log.info('Soul extraction request', { platform, userId });
 
     // Web browsing data comes from browser extension — no OAuth token needed
     if (platform.toLowerCase() === 'web') {
@@ -169,7 +173,7 @@ case 'github':
       })
       .eq('user_id', userId)
       .eq('platform', platform);
-    if (syncErr) console.warn('⚠️ Failed to update last_sync timestamp:', syncErr.message);
+    if (syncErr) log.warn('Failed to update last_sync timestamp', { error: syncErr });
 
     res.json({
       success: true,
@@ -203,7 +207,7 @@ router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(asyn
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-  console.log(`🎵 [Spotify Enhanced] Deep extraction request for user ${userId}`);
+  log.info('Deep extraction request', { userId });
 
   // Get valid access token (will auto-refresh if expired)
   const tokenResult = await getValidAccessToken(userId, 'spotify');
@@ -235,8 +239,8 @@ router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(asyn
       extracted_at: new Date().toISOString(),
       processed: false
     });
-  if (spotifyStoreErr) console.warn('⚠️ [Spotify Enhanced] Failed to store in database:', spotifyStoreErr.message);
-  else console.log(`✅ [Spotify Enhanced] Profile stored in database`);
+  if (spotifyStoreErr) log.warn('Failed to store in database', { error: spotifyStoreErr });
+  else log.info('Profile stored in database');
 
   // Update last_sync timestamp
   const { error: spotifyMetaErr } = await supabase
@@ -253,7 +257,7 @@ router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(asyn
     })
     .eq('user_id', userId)
     .eq('platform', 'spotify');
-  if (spotifyMetaErr) console.warn('⚠️ Failed to update connector metadata:', spotifyMetaErr.message);
+  if (spotifyMetaErr) log.warn('Failed to update connector metadata', { error: spotifyMetaErr });
 
   res.json({
     success: true,
@@ -290,7 +294,7 @@ router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(asyn
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-  console.log(`📺 [YouTube Enhanced] Deep extraction request for user ${userId}`);
+  log.info('Deep extraction request', { userId });
 
   // Get valid access token (will auto-refresh if expired)
   const tokenResult = await getValidAccessToken(userId, 'youtube');
@@ -322,8 +326,8 @@ router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(asyn
       extracted_at: new Date().toISOString(),
       processed: false
     });
-  if (youtubeStoreErr) console.warn('⚠️ [YouTube Enhanced] Failed to store in database:', youtubeStoreErr.message);
-  else console.log(`✅ [YouTube Enhanced] Profile stored in database`);
+  if (youtubeStoreErr) log.warn('Failed to store in database', { error: youtubeStoreErr });
+  else log.info('Profile stored in database');
 
   // Update last_sync timestamp
   const { error: youtubeMetaErr } = await supabase
@@ -340,7 +344,7 @@ router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(asyn
     })
     .eq('user_id', userId)
     .eq('platform', 'youtube');
-  if (youtubeMetaErr) console.warn('⚠️ Failed to update connector metadata:', youtubeMetaErr.message);
+  if (youtubeMetaErr) log.warn('Failed to update connector metadata', { error: youtubeMetaErr });
 
   res.json({
     success: true,
@@ -368,7 +372,7 @@ router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (r
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-  console.log(`[Web Deep] Personality inference request for user ${userId}`);
+  log.info('Personality inference request', { userId });
 
   // Verify user has web browsing data
   const { count, error: webCountErr } = await supabase
@@ -376,7 +380,7 @@ router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (r
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('platform', 'web');
-  if (webCountErr) console.error('[Web Deep] Failed to count web data:', webCountErr.message);
+  if (webCountErr) log.error('Failed to count web data', { error: webCountErr });
 
   if (!count || count < 5) {
     throw new InsufficientDataError('web', 5, count || 0, {
@@ -407,8 +411,8 @@ router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (r
     const { error: featuresErr } = await supabase
       .from('behavioral_features')
       .upsert(featureEntries, { onConflict: 'user_id,platform,feature_name' });
-    if (featuresErr) console.warn('[Web Deep] Failed to store behavioral features:', featuresErr.message);
-    else console.log(`[Web Deep] Stored ${featureEntries.length} behavioral features`);
+    if (featuresErr) log.warn('Failed to store behavioral features', { error: featuresErr });
+    else log.info('Stored behavioral features', { count: featureEntries.length });
   }
 
   // Store the full analysis result
@@ -422,7 +426,7 @@ router.post('/extract/web-deep/:userId', authenticateUser, asyncHandler(async (r
       extracted_at: new Date().toISOString(),
       processed: true
     });
-  if (webStoreErr) console.warn('[Web Deep] Failed to store analysis result:', webStoreErr.message);
+  if (webStoreErr) log.warn('Failed to store analysis result', { error: webStoreErr });
 
   res.json({
     success: true,
@@ -463,8 +467,8 @@ router.post('/extract/multi-platform',
     const { platforms } = req.body;
     const { connectedPlatforms, disconnectedPlatforms, platformConnections } = req;
 
-    console.log(`🌟 Multi-platform soul extraction for user ${userId}`);
-    console.log(`   Connected: ${connectedPlatforms.length}, Disconnected: ${disconnectedPlatforms.length}`);
+    log.info('Multi-platform soul extraction', { userId });
+    log.info('Multi-platform connection status', { connected: connectedPlatforms.length, disconnected: disconnectedPlatforms.length });
 
     // Format platforms for validation
     const validPlatforms = Array.isArray(platforms)
@@ -479,7 +483,7 @@ router.post('/extract/multi-platform',
       .in('platform', validPlatforms.map(p => p.name));
 
     if (dbError) {
-      console.error('❌ Database error fetching connections:', dbError);
+      log.error('Database error fetching connections', { error: dbError });
     }
 
     // Prepare platforms with decrypted access tokens
@@ -499,10 +503,10 @@ router.post('/extract/multi-platform',
               accessToken: accessToken
             });
           } else {
-            console.log(`⏰ Token expired for ${platform.name}`);
+            log.info('Token expired', { platform: platform.name });
           }
         } catch (decryptError) {
-          console.error(`❌ Failed to decrypt token for ${platform.name}:`, decryptError);
+          log.error('Failed to decrypt token', { platform: platform.name, error: decryptError });
         }
       }
     }
@@ -534,7 +538,7 @@ router.get('/demo/:platform', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Invalid platform' });
   }
 
-  console.log(`🎭 Demo request for ${platform} - redirecting to real connection`);
+  log.info('Demo request - redirecting to real connection', { platform });
 
   res.json({
     success: false,
@@ -555,7 +559,7 @@ router.post('/analyze/patterns', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { extractions, timeframe } = req.body;
 
-    console.log(`🔍 Pattern analysis for user ${userId} over ${timeframe || 'all time'}`);
+    log.info('Pattern analysis request', { userId, timeframe: timeframe || 'all time' });
 
     if (!userId || !extractions || !Array.isArray(extractions)) {
       return res.status(400).json({
@@ -576,7 +580,7 @@ router.post('/analyze/patterns', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Pattern analysis error:', error);
+    log.error('Pattern analysis error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to analyze personality patterns'
@@ -596,7 +600,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
     }
     const { includeRaw = false } = req.query;
 
-    console.log(`💎 Retrieving soul insights for user ${userId}`);
+    log.info('Retrieving soul insights', { userId });
 
     // Get cached extractions or return empty state
     const insights = await getStoredInsights(userId, includeRaw === 'true');
@@ -609,7 +613,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Insights retrieval error:', error);
+    log.error('Insights retrieval error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to retrieve personality insights'
@@ -626,7 +630,7 @@ router.post('/synthesize', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { platforms, preferences } = req.body;
 
-    console.log(`✨ Synthesizing complete soul signature for user ${userId}`);
+    log.info('Synthesizing complete soul signature', { userId });
 
     if (!userId) {
       return res.status(400).json({
@@ -646,7 +650,7 @@ router.post('/synthesize', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Soul synthesis error:', error);
+    log.error('Soul synthesis error', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to synthesize soul signature'
@@ -665,7 +669,7 @@ router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log('🧠 Extracting Gmail personality patterns for soul signature...');
+    log.info('Extracting Gmail personality patterns for soul signature...');
 
     // Get valid access token (will auto-refresh if expired)
     const tokenResult = await getValidAccessToken(userId, 'google_gmail');
@@ -732,7 +736,7 @@ router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
               });
             }
           } catch (e) {
-            console.log('Error fetching message details:', e);
+            log.warn('Error fetching message details', { error: e });
           }
         }
       }
@@ -837,7 +841,7 @@ router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
               }
             }
           } catch (e) {
-            console.log('Error analyzing inbox message:', e);
+            log.warn('Error analyzing inbox message', { error: e });
           }
         }
       }
@@ -870,7 +874,7 @@ router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
         'Self-directed and autonomous' : 'Balanced collaboration approach'
     };
 
-    console.log('✅ Gmail soul signature extracted successfully');
+    log.info('Gmail soul signature extracted successfully');
 
     res.json({
       success: true,
@@ -884,7 +888,7 @@ router.get('/extract/gmail/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error extracting Gmail soul signature:', error);
+    log.error('Error extracting Gmail soul signature', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to extract Gmail personality insights'
@@ -903,7 +907,7 @@ router.get('/extract/calendar/:userId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log('🗓️ Extracting Calendar patterns for soul signature...');
+    log.info('Extracting Calendar patterns for soul signature...');
 
     // Get valid access token (will auto-refresh if expired)
     const tokenResult = await getValidAccessToken(userId, 'google_calendar');
@@ -1059,7 +1063,7 @@ router.get('/extract/calendar/:userId', authenticateUser, async (req, res) => {
       }
     }
 
-    console.log('✅ Calendar soul signature extracted successfully');
+    log.info('Calendar soul signature extracted successfully');
 
     res.json({
       success: true,
@@ -1073,7 +1077,7 @@ router.get('/extract/calendar/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error extracting Calendar soul signature:', error);
+    log.error('Error extracting Calendar soul signature', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to extract Calendar personality insights'
@@ -1092,7 +1096,7 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log('💼 Generating complete professional soul signature...');
+    log.info('Generating complete professional soul signature...');
 
     const professionalSignature = {
       overallProfile: {},
@@ -1117,7 +1121,7 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
         });
       }
     } catch (e) {
-      console.log('Gmail insights not available:', e.message);
+      log.info('Gmail insights not available', { error: e });
     }
 
     // Fetch Calendar insights
@@ -1131,7 +1135,7 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
         });
       }
     } catch (e) {
-      console.log('Calendar insights not available:', e.message);
+      log.info('Calendar insights not available', { error: e });
     }
 
     // COMBINE INSIGHTS INTO COMPLETE PROFESSIONAL SOUL SIGNATURE
@@ -1188,7 +1192,7 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
       }
     }
 
-    console.log('✅ Professional soul signature generated successfully');
+    log.info('Professional soul signature generated successfully');
 
     res.json({
       success: true,
@@ -1199,7 +1203,7 @@ router.get('/extract/professional/:userId', authenticateUser, async (req, res) =
     });
 
   } catch (error) {
-    console.error('Error generating professional soul signature:', error);
+    log.error('Error generating professional soul signature', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to generate professional soul signature'
@@ -1303,7 +1307,7 @@ router.post('/trigger-extraction/:platform/:userId', authenticateUser, async (re
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log(`[Manual Extraction] Triggering extraction for ${platform}, user: ${userId}`);
+    log.info('Triggering extraction', { platform, userId });
 
     // Import DataExtractionService (it's a singleton instance)
     const { default: extractionService } = await import('../services/dataExtractionService.js');
@@ -1317,10 +1321,10 @@ router.post('/trigger-extraction/:platform/:userId', authenticateUser, async (re
       import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
         soulBuilder.buildSoulSignature(userId)
           .then(soulResult => {
-            console.log(`✅ Soul signature updated after manual ${platform} extraction`);
+            log.info('Soul signature updated after manual extraction', { platform });
           })
           .catch(error => {
-            console.warn(`⚠️ Soul signature building failed:`, error);
+            log.warn('Soul signature building failed', { error });
           });
       });
     }
@@ -1336,7 +1340,7 @@ router.post('/trigger-extraction/:platform/:userId', authenticateUser, async (re
     });
 
   } catch (error) {
-    console.error('[Manual Extraction] Error:', error);
+    log.error('Failed to trigger extraction', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to trigger extraction',
@@ -1356,7 +1360,7 @@ router.post('/trigger-extraction-all/:userId', authenticateUser, async (req, res
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log(`[Manual Extraction] Triggering extraction for ALL platforms, user: ${userId}`);
+    log.info('Triggering extraction for all platforms', { userId });
 
     // Import DataExtractionService (it's a singleton instance)
     const { default: extractionService } = await import('../services/dataExtractionService.js');
@@ -1368,10 +1372,10 @@ router.post('/trigger-extraction-all/:userId', authenticateUser, async (req, res
     import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
       soulBuilder.buildSoulSignature(userId)
         .then(soulResult => {
-          console.log(`✅ Soul signature updated after full extraction`);
+          log.info('Soul signature updated after full extraction');
         })
         .catch(error => {
-          console.warn(`⚠️ Soul signature building failed:`, error);
+          log.warn('Soul signature building failed', { error });
         });
     });
 
@@ -1383,7 +1387,7 @@ router.post('/trigger-extraction-all/:userId', authenticateUser, async (req, res
     });
 
   } catch (error) {
-    console.error('[Manual Extraction] Error:', error);
+    log.error('Failed to trigger extraction for all platforms', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to trigger extraction',
@@ -1403,7 +1407,7 @@ router.get('/extraction-status/:userId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log(`[Extraction Status] Getting status for user: ${userId}`);
+    log.info('Getting extraction status', { userId });
 
     // Get all connectors for this user
     const { data: connectors, error } = await supabase
@@ -1424,7 +1428,7 @@ router.get('/extraction-status/:userId', authenticateUser, async (req, res) => {
       .limit(20);
 
     if (jobsError) {
-      console.warn('[Extraction Status] Error fetching jobs:', jobsError);
+      log.warn('Error fetching jobs', { error: jobsError });
     }
 
     // Build status response
@@ -1457,7 +1461,7 @@ router.get('/extraction-status/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Extraction Status] Error:', error);
+    log.error('Failed to get extraction status', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to get extraction status',
@@ -1478,7 +1482,7 @@ router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
     }
 
-    console.log(`[SoulSignature] Building soul signature for user: ${userId}`);
+    log.info('Building soul signature', { userId });
 
     // Import soul signature builder (it's a singleton instance)
     const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
@@ -1486,7 +1490,7 @@ router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
     // Build soul signature from extracted data
     const soulSignature = await soulBuilder.buildSoulSignature(userId);
 
-    console.log(`[SoulSignature] Soul signature built successfully:`, {
+    log.info('Soul signature built successfully', {
       platforms: Object.keys(soulSignature.platforms || {}),
       traitCount: Object.keys(soulSignature.personality_traits || {}).length
     });
@@ -1505,7 +1509,7 @@ router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
       .eq('user_id', userId);
 
     if (twinsError) {
-      console.error('[SoulSignature] Error fetching twins:', twinsError);
+      log.error('Error fetching twins', { error: twinsError });
       throw twinsError;
     }
 
@@ -1536,7 +1540,7 @@ router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
 
     await Promise.all(updatePromises);
 
-    console.log(`[SoulSignature] Updated ${twins.length} digital twins with soul signature`);
+    log.info('Updated digital twins with soul signature', { count: twins.length });
 
     res.json({
       success: true,
@@ -1546,7 +1550,7 @@ router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
       twins: twins.map(t => ({ id: t.id, name: t.name }))
     });
   } catch (error) {
-    console.error('[SoulSignature] Error building soul signature:', error);
+    log.error('Error building soul signature', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to build soul signature',
@@ -1567,7 +1571,7 @@ router.post('/extension-tracking', async (req, res) => {
   try {
     const { userId, platform, eventType, data } = req.body;
 
-    console.log(`[Extension] Received ${eventType} from ${platform} for user ${userId}`);
+    log.info('Received extension tracking event', { eventType, platform, userId });
 
     // Validate required fields
     if (!userId || !platform || !eventType || !data) {
@@ -1600,7 +1604,7 @@ router.post('/extension-tracking', async (req, res) => {
       });
 
     if (error) {
-      console.error('[Extension] Error storing tracking data:', error);
+      log.error('Error storing tracking data', { error });
       return res.status(500).json({
         success: false,
         error: 'Failed to store tracking data',
@@ -1608,7 +1612,7 @@ router.post('/extension-tracking', async (req, res) => {
       });
     }
 
-    console.log(`[Extension] Successfully stored ${dataType} event for ${platform}`);
+    log.info('Successfully stored tracking event', { dataType, platform });
 
     res.json({
       success: true,
@@ -1617,7 +1621,7 @@ router.post('/extension-tracking', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Extension] Error processing tracking data:', error);
+    log.error('Error processing tracking data', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to process tracking data',
@@ -1634,7 +1638,7 @@ router.post('/extension-historical-import', async (req, res) => {
   try {
     const { userId, platform, videos, importedAt } = req.body;
 
-    console.log(`[Extension] Historical import: ${videos?.length || 0} videos from ${platform} for user ${userId}`);
+    log.info('Historical import request', { videoCount: videos?.length || 0, platform, userId });
 
     // Validate required fields
     if (!userId || !platform || !videos || !Array.isArray(videos)) {
@@ -1666,18 +1670,18 @@ router.post('/extension-historical-import', async (req, res) => {
           });
 
         if (error) {
-          console.error(`[Extension] Error storing video ${video.videoId}:`, error);
+          log.error('Error storing video', { videoId: video.videoId, error });
           errorCount++;
         } else {
           successCount++;
         }
       } catch (itemError) {
-        console.error(`[Extension] Exception storing video:`, itemError);
+        log.error('Exception storing video', { error: itemError });
         errorCount++;
       }
     }
 
-    console.log(`[Extension] Historical import complete: ${successCount} success, ${errorCount} errors`);
+    log.info('Historical import complete', { successCount, errorCount });
 
     res.json({
       success: true,
@@ -1688,7 +1692,7 @@ router.post('/extension-historical-import', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Extension] Error processing historical import:', error);
+    log.error('Error processing historical import', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to process historical import',
@@ -1712,7 +1716,7 @@ router.get('/style-profile', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Style Profile] Fetching for user: ${userId}`);
+    log.info('Fetching style profile', { userId });
 
     // Fetch extracted data from user_platform_data
     const { data: platformData, error: fetchError } = await supabase
@@ -1724,7 +1728,7 @@ router.get('/style-profile', authenticateUser, async (req, res) => {
       .limit(100);
 
     if (fetchError) {
-      console.error('[Style Profile] Error fetching data:', fetchError);
+      log.error('Error fetching data', { error: fetchError });
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch platform data',
@@ -1768,7 +1772,7 @@ router.get('/style-profile', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Style Profile] Error:', error);
+    log.error('Failed to generate style profile', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to generate style profile',
@@ -1793,7 +1797,7 @@ router.post('/analyze-style', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`[Analyze Style] Processing for user: ${userId}, platforms:`, platforms);
+    log.info('Processing style analysis', { userId, platforms });
 
     // Fetch data from specified platforms
     const { data: extractedData, error: fetchError } = await supabase
@@ -1804,7 +1808,7 @@ router.post('/analyze-style', authenticateUser, async (req, res) => {
       .order('extracted_at', { ascending: false });
 
     if (fetchError) {
-      console.error('[Analyze Style] Error fetching data:', fetchError);
+      log.error('Error fetching data', { error: fetchError });
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch data for analysis',
@@ -1887,7 +1891,7 @@ router.post('/analyze-style', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Analyze Style] Error:', error);
+    log.error('Failed to analyze communication style', { error });
     res.status(500).json({
       success: false,
       error: 'Failed to analyze communication style',

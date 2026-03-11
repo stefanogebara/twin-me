@@ -15,6 +15,9 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { getLinkedMemories } from '../services/memoryLinksService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('MemoryLinksRoute');
 
 const router = express.Router({ mergeParams: true });
 
@@ -36,7 +39,7 @@ router.get('/', authenticateUser, async (req, res) => {
     const links = await getLinkedMemories(memoryId, userId, limit);
     res.json({ success: true, data: links });
   } catch (err) {
-    console.error('[memory-links] GET /:memoryId/links error:', err.message);
+    log.error('[memory-links] GET /:memoryId/links error:', err.message);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV === 'development' ? err.message : 'Failed to load memory links',

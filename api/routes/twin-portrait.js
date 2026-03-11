@@ -13,6 +13,9 @@ import { getTwinSummaryWithDomains } from '../services/twinSummaryService.js';
 import { getMemoryStats } from '../services/memoryStreamService.js';
 import { getUserGoals } from '../services/goalTrackingService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TwinPortrait');
 
 const router = express.Router();
 
@@ -42,7 +45,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
     ] = await Promise.all([
       // 1. Twin summary with domain breakdowns
       getTwinSummaryWithDomains(userId, userName).catch(err => {
-        console.warn('[Portrait] Twin summary failed:', err.message);
+        log.warn('Twin summary failed:', err.message);
         return null;
       }),
 
@@ -160,7 +163,7 @@ router.get('/portrait', authenticateUser, async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('[Portrait] Error:', err);
+    log.error('Error:', err);
     res.status(500).json({ success: false, error: 'Failed to load portrait' });
   }
 });

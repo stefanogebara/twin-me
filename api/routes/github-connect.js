@@ -15,6 +15,9 @@ import express from 'express';
 import axios from 'axios';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('GitHubConnect');
 
 const router = express.Router();
 
@@ -44,7 +47,7 @@ router.get('/status', authenticateUser, async (req, res) => {
       scopes: data.scopes,
     });
   } catch (err) {
-    console.error('[GitHub] Status error:', err.message);
+    log.error('Status error:', err.message);
     res.status(500).json({ error: 'Failed to get GitHub status' });
   }
 });
@@ -101,7 +104,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
     // Trigger immediate ingestion (non-blocking)
     import('../services/observationIngestion.js').then(({ fetchGitHubObservations }) => {
       fetchGitHubObservations(userId).catch(err =>
-        console.warn('[GitHub] Initial ingestion failed:', err.message)
+        log.warn('Initial ingestion failed:', err.message)
       );
     }).catch(() => {});
 
@@ -111,7 +114,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
       scopes,
     });
   } catch (err) {
-    console.error('[GitHub] Connect error:', err.message);
+    log.error('Connect error:', err.message);
     res.status(500).json({ error: 'Failed to save GitHub config' });
   }
 });
@@ -130,7 +133,7 @@ router.delete('/connect', authenticateUser, async (req, res) => {
     if (error) throw error;
     res.json({ success: true });
   } catch (err) {
-    console.error('[GitHub] Disconnect error:', err.message);
+    log.error('Disconnect error:', err.message);
     res.status(500).json({ error: 'Failed to disconnect GitHub' });
   }
 });

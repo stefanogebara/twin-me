@@ -24,6 +24,9 @@ import crypto from 'crypto';
 import AdmZip from 'adm-zip';
 import { addPlatformObservation } from './memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('GDPRImport');
 
 // Lazy-load supabaseAdmin to avoid circular deps
 let _supabase = null;
@@ -93,7 +96,7 @@ async function writeObservations(userId, platform, observations, importId, exist
       if (err.message?.includes('duplicate key') || err.code === '23505') {
         skipped++;
       } else {
-        console.error(`[GdprImport] Failed to write observation: ${err.message}`);
+        log.error(`Failed to write observation: ${err.message}`);
       }
     }
   }
@@ -2150,7 +2153,7 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
   const factsCreated = 0;
 
   try {
-    console.log(`[GdprImport] Processing ${platform} export for user ${userId} (${fileBuffer.length} bytes)`);
+    log.info(`Processing ${platform} export for user ${userId} (${fileBuffer.length} bytes)`);
 
     switch (platform) {
       case 'spotify':
@@ -2190,13 +2193,13 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         throw new Error(`Unsupported platform: ${platform}`);
     }
 
-    console.log(`[GdprImport] Parsed ${observations.length} observations from ${platform}`);
+    log.info(`Parsed ${observations.length} observations from ${platform}`);
 
     const existingHashes = await loadExistingHashes(userId, platform);
     const result = await writeObservations(userId, platform, observations, importId, existingHashes);
     observationsCreated = result.created;
 
-    console.log(`[GdprImport] Wrote ${observationsCreated} new observations (${result.skipped} duplicates skipped)`);
+    log.info(`Wrote ${observationsCreated} new observations (${result.skipped} duplicates skipped)`);
 
     await finalizeImportRecord(importId, 'completed', observationsCreated, factsCreated);
 
@@ -2204,9 +2207,9 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
     if (observationsCreated > 20) {
       const shouldReflect = await shouldTriggerReflection(userId);
       if (shouldReflect) {
-        console.log(`[GdprImport] Triggering reflection for user ${userId}`);
+        log.info(`Triggering reflection for user ${userId}`);
         generateReflections(userId).catch((err) =>
-          console.error('[GdprImport] Reflection error:', err.message)
+          log.error('Reflection error:', err.message)
         );
       }
     }
@@ -2214,7 +2217,7 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
     return { importId, observationsCreated, factsCreated };
 
   } catch (err) {
-    console.error(`[GdprImport] Error processing ${platform} for user ${userId}:`, err.message);
+    log.error(`Error processing ${platform} for user ${userId}:`, err.message);
     await finalizeImportRecord(importId, 'error', observationsCreated, factsCreated, err.message);
     return { importId, observationsCreated, factsCreated, error: err.message };
   }

@@ -6,6 +6,9 @@
 
 import { supabaseAdmin } from '../database.js';
 import { RELATIONSHIP_TYPES } from './brainConstants.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Brainedgeops');
 
 /**
  * Connect two nodes with a relationship
@@ -56,7 +59,7 @@ export async function connectNodes(userId, fromNodeId, toNodeId, edgeData = {}, 
       new_strength: newStrength
     });
 
-    console.log(`[TwinsBrain] Strengthened edge: ${relationship_type} (strength: ${newStrength.toFixed(2)})`);
+    log.info(`Strengthened edge: ${relationship_type} (strength: ${newStrength.toFixed(2)})`);
     return data;
   }
 
@@ -84,7 +87,7 @@ export async function connectNodes(userId, fromNodeId, toNodeId, edgeData = {}, 
     to_node_id: toNodeId
   });
 
-  console.log(`[TwinsBrain] Created edge: ${relationship_type}`);
+  log.info(`Created edge: ${relationship_type}`);
   return data;
 }
 

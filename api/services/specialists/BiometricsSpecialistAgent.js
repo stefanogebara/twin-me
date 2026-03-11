@@ -17,6 +17,9 @@
 
 import SpecialistAgentBase from './SpecialistAgentBase.js';
 import { extractWhoopFeatures } from '../behavioralLearningService.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Biometricsspecialistagent');
 
 class BiometricsSpecialistAgent extends SpecialistAgentBase {
   constructor() {
@@ -195,7 +198,7 @@ OUTPUT FORMAT (JSON):
    * Main analysis method
    */
   async analyze(userId, whoopData) {
-    console.log(`💪 [BiometricsSpecialistAgent] Analyzing biometric data for user ${userId}`);
+    log.info(`Analyzing biometric data for user ${userId}`);
 
     if (!whoopData) {
       return {
@@ -248,7 +251,7 @@ OUTPUT FORMAT (JSON):
       };
 
     } catch (error) {
-      console.error(`❌ [BiometricsSpecialistAgent] Analysis failed:`, error);
+      log.error(`Analysis failed:`, error);
       return {
         success: false,
         domain: 'biometrics',

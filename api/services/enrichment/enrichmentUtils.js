@@ -1,3 +1,7 @@
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Enrichmentutils');
+
 /**
  * Enrichment Utility Functions
  *
@@ -172,7 +176,7 @@ export function verifyNameMatch(profileName, searchName) {
     if (firstMatch && lastMatch) return true;
   }
 
-  console.log(`[ProfileEnrichment] Name verification failed: "${profileName}" vs "${searchName}"`);
+  log.info(`Name verification failed: "${profileName}" vs "${searchName}"`);
   return false;
 }
 

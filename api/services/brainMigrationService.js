@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('BrainMigration');
 import {
   twinsBrainService,
   NODE_TYPES,
@@ -31,8 +34,8 @@ class BrainMigrationService {
   async migrateAllData(userId, options = {}) {
     const { dryRun = false, limit = 500 } = options;
 
-    console.log(`[BrainMigration] Starting migration for user ${userId}`);
-    console.log(`[BrainMigration] Options: dryRun=${dryRun}, limit=${limit}`);
+    log.info(`Starting migration for user ${userId}`);
+    log.info(`Options: dryRun=${dryRun}, limit=${limit}`);
 
     this.stats = { nodesCreated: 0, nodesUpdated: 0, edgesCreated: 0, errors: [] };
 
@@ -72,11 +75,11 @@ class BrainMigrationService {
         await twinsBrainService.createSnapshot(userId, 'milestone', 'Full data migration with personality integration');
       }
 
-      console.log(`[BrainMigration] Migration complete:`, this.stats);
+      log.info(`Migration complete:`, this.stats);
       return this.stats;
 
     } catch (error) {
-      console.error('[BrainMigration] Migration failed:', error);
+      log.error('Migration failed:', error);
       this.stats.errors.push(error.message);
       throw error;
     }
@@ -88,7 +91,7 @@ class BrainMigrationService {
   async migrateSpotifyData(userId, options = {}) {
     const { dryRun = false, limit = 500 } = options;
 
-    console.log('[BrainMigration] Processing Spotify data...');
+    log.info('Processing Spotify data...');
 
     // Get Spotify data
     const { data: spotifyData, error } = await this.supabase
@@ -100,11 +103,11 @@ class BrainMigrationService {
       .limit(limit);
 
     if (error) {
-      console.error('[BrainMigration] Error fetching Spotify data:', error);
+      log.error('Error fetching Spotify data:', error);
       return;
     }
 
-    console.log(`[BrainMigration] Found ${spotifyData?.length || 0} Spotify records`);
+    log.info(`Found ${spotifyData?.length || 0} Spotify records`);
 
     // Aggregate music preferences
     const genreCounts = {};
@@ -148,7 +151,7 @@ class BrainMigrationService {
     const genreNodes = [];
     for (const [genre, count] of topGenres) {
       if (dryRun) {
-        console.log(`[DryRun] Would create genre node: ${genre} (${count} occurrences)`);
+        log.info(`Would create genre node: ${genre} (${count} occurrences)`);
         continue;
       }
 
@@ -179,7 +182,7 @@ class BrainMigrationService {
     const artistNodes = [];
     for (const [artist, count] of topArtists) {
       if (dryRun) {
-        console.log(`[DryRun] Would create artist node: ${artist} (${count} plays)`);
+        log.info(`Would create artist node: ${artist} (${count} plays)`);
         continue;
       }
 
@@ -260,7 +263,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Spotify migration: ${genreNodes.length} genres, ${artistNodes.length} artists`);
+    log.info(`Spotify migration: ${genreNodes.length} genres, ${artistNodes.length} artists`);
   }
 
   /**
@@ -269,7 +272,7 @@ class BrainMigrationService {
   async migrateCalendarData(userId, options = {}) {
     const { dryRun = false, limit = 500 } = options;
 
-    console.log('[BrainMigration] Processing Calendar data...');
+    log.info('Processing Calendar data...');
 
     // Get calendar data
     const { data: calendarData, error } = await this.supabase
@@ -281,11 +284,11 @@ class BrainMigrationService {
       .limit(limit);
 
     if (error) {
-      console.error('[BrainMigration] Error fetching Calendar data:', error);
+      log.error('Error fetching Calendar data:', error);
       return;
     }
 
-    console.log(`[BrainMigration] Found ${calendarData?.length || 0} Calendar records`);
+    log.info(`Found ${calendarData?.length || 0} Calendar records`);
 
     // Analyze event patterns
     const eventTypes = {};
@@ -316,7 +319,7 @@ class BrainMigrationService {
 
     for (const [eventType, count] of topEventTypes) {
       if (dryRun) {
-        console.log(`[DryRun] Would create event type node: ${eventType} (${count} events)`);
+        log.info(`Would create event type node: ${eventType} (${count} events)`);
         continue;
       }
 
@@ -373,7 +376,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Calendar migration: ${topEventTypes.length} event types`);
+    log.info(`Calendar migration: ${topEventTypes.length} event types`);
   }
 
   /**
@@ -382,7 +385,7 @@ class BrainMigrationService {
   async migrateClaudeConversations(userId, options = {}) {
     const { dryRun = false, limit = 500 } = options;
 
-    console.log('[BrainMigration] Processing Claude conversations...');
+    log.info('Processing Claude conversations...');
 
     const { data: conversations, error } = await this.supabase
       .from('mcp_conversation_logs')
@@ -392,11 +395,11 @@ class BrainMigrationService {
       .limit(limit);
 
     if (error) {
-      console.error('[BrainMigration] Error fetching conversations:', error);
+      log.error('Error fetching conversations:', error);
       return;
     }
 
-    console.log(`[BrainMigration] Found ${conversations?.length || 0} conversations`);
+    log.info(`Found ${conversations?.length || 0} conversations`);
 
     // Aggregate topics
     const topicCounts = {};
@@ -426,7 +429,7 @@ class BrainMigrationService {
       if (count < 3) continue; // Skip rare topics
 
       if (dryRun) {
-        console.log(`[DryRun] Would create topic node: ${topic} (${count} mentions)`);
+        log.info(`Would create topic node: ${topic} (${count} mentions)`);
         continue;
       }
 
@@ -456,7 +459,7 @@ class BrainMigrationService {
 
     for (const [intent, count] of topIntents) {
       if (dryRun) {
-        console.log(`[DryRun] Would create intent node: ${intent} (${count} times)`);
+        log.info(`Would create intent node: ${intent} (${count} times)`);
         continue;
       }
 
@@ -494,7 +497,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Conversation migration: ${topicNodes.length} topics, ${topIntents.length} intents`);
+    log.info(`Conversation migration: ${topicNodes.length} topics, ${topIntents.length} intents`);
   }
 
   /**
@@ -503,7 +506,7 @@ class BrainMigrationService {
   async createCrossPlatformEdges(userId, options = {}) {
     const { dryRun = false } = options;
 
-    console.log('[BrainMigration] Creating cross-platform connections...');
+    log.info('Creating cross-platform connections...');
 
     // Get all nodes
     const nodes = await twinsBrainService.getAllNodes(userId);
@@ -526,7 +529,7 @@ class BrainMigrationService {
           evidence: [{ observation: 'Music preferences during work sessions' }]
         });
         this.stats.edgesCreated++;
-        console.log('[BrainMigration] Connected focus work to music preferences');
+        log.info('Connected focus work to music preferences');
       } catch (err) {
         // Ignore if already connected
       }
@@ -549,13 +552,13 @@ class BrainMigrationService {
           strength: 0.65
         });
         this.stats.edgesCreated++;
-        console.log('[BrainMigration] Connected coding interest to professional behavior');
+        log.info('Connected coding interest to professional behavior');
       } catch (err) {
         // Ignore
       }
     }
 
-    console.log(`[BrainMigration] Cross-platform edges created: ${this.stats.edgesCreated}`);
+    log.info(`Cross-platform edges created: ${this.stats.edgesCreated}`);
   }
 
   // ============================================================
@@ -569,7 +572,7 @@ class BrainMigrationService {
   async migratePersonalityScores(userId, options = {}) {
     const { dryRun = false } = options;
 
-    console.log('[BrainMigration] Processing Personality Scores (Big Five)...');
+    log.info('Processing Personality Scores (Big Five)...');
 
     // Get personality scores
     const { data: personality, error } = await this.supabase
@@ -579,11 +582,11 @@ class BrainMigrationService {
       .single();
 
     if (error || !personality) {
-      console.log('[BrainMigration] No personality scores found for user');
+      log.info('No personality scores found for user');
       return;
     }
 
-    console.log(`[BrainMigration] Found personality scores (source: ${personality.source_type})`);
+    log.info(`Found personality scores (source: ${personality.source_type})`);
 
     // Big Five dimension metadata
     const dimensions = [
@@ -638,7 +641,7 @@ class BrainMigrationService {
       const traitLabel = isHigh ? dim.highLabel : (isLow ? dim.lowLabel : `Moderate ${dim.label}`);
 
       if (dryRun) {
-        console.log(`[DryRun] Would create personality node: ${dim.label} = ${score} (${confidence}% confident)`);
+        log.info(`Would create personality node: ${dim.label} = ${score} (${confidence}% confident)`);
         continue;
       }
 
@@ -694,7 +697,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Personality migration: ${personalityNodes.length} dimension nodes created`);
+    log.info(`Personality migration: ${personalityNodes.length} dimension nodes created`);
   }
 
   /**
@@ -761,7 +764,7 @@ class BrainMigrationService {
   async migrateSoulSignatureTraits(userId, options = {}) {
     const { dryRun = false } = options;
 
-    console.log('[BrainMigration] Processing Soul Signature traits...');
+    log.info('Processing Soul Signature traits...');
 
     // Get soul signature
     const { data: soulSignature, error } = await this.supabase
@@ -771,11 +774,11 @@ class BrainMigrationService {
       .single();
 
     if (error || !soulSignature) {
-      console.log('[BrainMigration] No soul signature found for user');
+      log.info('No soul signature found for user');
       return;
     }
 
-    console.log(`[BrainMigration] Found soul signature: ${soulSignature.archetype_name}`);
+    log.info(`Found soul signature: ${soulSignature.archetype_name}`);
 
     // Create archetype node (Level 4 - Core Identity)
     if (!dryRun && soulSignature.archetype_name) {
@@ -815,7 +818,7 @@ class BrainMigrationService {
       if (!trait.trait) continue;
 
       if (dryRun) {
-        console.log(`[DryRun] Would create trait node: ${trait.trait} (score: ${trait.score}, evidence: ${trait.evidence})`);
+        log.info(`Would create trait node: ${trait.trait} (score: ${trait.score}, evidence: ${trait.evidence})`);
         continue;
       }
 
@@ -847,7 +850,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Soul signature migration: archetype + ${definingTraits.length} traits`);
+    log.info(`Soul signature migration: archetype + ${definingTraits.length} traits`);
   }
 
   /**
@@ -879,7 +882,7 @@ class BrainMigrationService {
   async migrateMoltbotMemories(userId, options = {}) {
     const { dryRun = false, limit = 100 } = options;
 
-    console.log('[BrainMigration] Processing MoltBot semantic memories...');
+    log.info('Processing MoltBot semantic memories...');
 
     // Get semantic memories from moltbot tables
     // Try multiple possible table names
@@ -894,7 +897,7 @@ class BrainMigrationService {
       .limit(limit);
 
     if (!eventsError && events?.length > 0) {
-      console.log(`[BrainMigration] Found ${events.length} MoltBot events`);
+      log.info(`Found ${events.length} MoltBot events`);
       memories = events;
     }
 
@@ -908,11 +911,11 @@ class BrainMigrationService {
       .limit(limit);
 
     if (!patternsError && patterns?.length > 0) {
-      console.log(`[BrainMigration] Found ${patterns.length} behavioral patterns`);
+      log.info(`Found ${patterns.length} behavioral patterns`);
 
       for (const pattern of patterns) {
         if (dryRun) {
-          console.log(`[DryRun] Would create pattern node: ${pattern.pattern_name}`);
+          log.info(`Would create pattern node: ${pattern.pattern_name}`);
           continue;
         }
 
@@ -958,11 +961,11 @@ class BrainMigrationService {
       .limit(limit);
 
     if (!factsError && facts?.length > 0) {
-      console.log(`[BrainMigration] Found ${facts.length} learned facts`);
+      log.info(`Found ${facts.length} learned facts`);
 
       for (const fact of facts) {
         if (dryRun) {
-          console.log(`[DryRun] Would create fact node: ${fact.fact || fact.description}`);
+          log.info(`Would create fact node: ${fact.fact || fact.description}`);
           continue;
         }
 
@@ -995,7 +998,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] MoltBot migration complete`);
+    log.info(`MoltBot migration complete`);
   }
 
   /**
@@ -1028,7 +1031,7 @@ class BrainMigrationService {
   async createPersonalityBehaviorEdges(userId, options = {}) {
     const { dryRun = false } = options;
 
-    console.log('[BrainMigration] Creating personality-behavior connections...');
+    log.info('Creating personality-behavior connections...');
 
     // Get all nodes
     const nodes = await twinsBrainService.getAllNodes(userId);
@@ -1046,7 +1049,7 @@ class BrainMigrationService {
     );
 
     if (personalityNodes.length === 0 || behaviorNodes.length === 0) {
-      console.log('[BrainMigration] Not enough nodes for personality-behavior connections');
+      log.info('Not enough nodes for personality-behavior connections');
       return;
     }
 
@@ -1078,7 +1081,7 @@ class BrainMigrationService {
 
       for (const bNode of matchingBehaviors.slice(0, 3)) { // Limit to top 3 per dimension
         if (dryRun) {
-          console.log(`[DryRun] Would connect ${pNode.label} → ${bNode.label}`);
+          log.info(`Would connect ${pNode.label} → ${bNode.label}`);
           continue;
         }
 
@@ -1100,7 +1103,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Created ${connectionsCreated} personality-behavior connections`);
+    log.info(`Created ${connectionsCreated} personality-behavior connections`);
   }
 
   /**
@@ -1110,7 +1113,7 @@ class BrainMigrationService {
   async buildProvenanceChains(userId, options = {}) {
     const { dryRun = false } = options;
 
-    console.log('[BrainMigration] Building provenance chains...');
+    log.info('Building provenance chains...');
 
     // Get all nodes grouped by abstraction level
     const { data: allNodes, error } = await this.supabase
@@ -1119,7 +1122,7 @@ class BrainMigrationService {
       .eq('user_id', userId);
 
     if (error || !allNodes) {
-      console.error('[BrainMigration] Error fetching nodes for provenance:', error);
+      log.error('Error fetching nodes for provenance:', error);
       return;
     }
 
@@ -1138,7 +1141,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Nodes by abstraction level: L1=${nodesByLevel[1].length}, L2=${nodesByLevel[2].length}, L3=${nodesByLevel[3].length}, L4=${nodesByLevel[4].length}`);
+    log.info(`Nodes by abstraction level: L1=${nodesByLevel[1].length}, L2=${nodesByLevel[2].length}, L3=${nodesByLevel[3].length}, L4=${nodesByLevel[4].length}`);
 
     let chainsCreated = 0;
 
@@ -1159,7 +1162,7 @@ class BrainMigrationService {
 
       for (const l3Node of relatedL3) {
         if (dryRun) {
-          console.log(`[DryRun] Would create provenance: "${l4Node.label}" DERIVED_FROM "${l3Node.label}"`);
+          log.info(`Would create provenance: "${l4Node.label}" DERIVED_FROM "${l3Node.label}"`);
           continue;
         }
 
@@ -1207,7 +1210,7 @@ class BrainMigrationService {
 
       for (const l2Node of relatedL2) {
         if (dryRun) {
-          console.log(`[DryRun] Would create provenance: "${l3Node.label}" AGGREGATES "${l2Node.label}"`);
+          log.info(`Would create provenance: "${l3Node.label}" AGGREGATES "${l2Node.label}"`);
           continue;
         }
 
@@ -1242,7 +1245,7 @@ class BrainMigrationService {
 
       for (const l1Node of relatedL1) {
         if (dryRun) {
-          console.log(`[DryRun] Would create provenance: "${l2Node.label}" DERIVED_FROM "${l1Node.label}"`);
+          log.info(`Would create provenance: "${l2Node.label}" DERIVED_FROM "${l1Node.label}"`);
           continue;
         }
 
@@ -1269,7 +1272,7 @@ class BrainMigrationService {
     }
 
     this.stats.edgesCreated += chainsCreated;
-    console.log(`[BrainMigration] Created ${chainsCreated} provenance chain connections`);
+    log.info(`Created ${chainsCreated} provenance chain connections`);
   }
 
   /**
@@ -1279,7 +1282,7 @@ class BrainMigrationService {
   async migrateWebBrowsingData(userId, options = {}) {
     const { dryRun = false, limit = 500 } = options;
 
-    console.log('[BrainMigration] Processing Web Browsing data...');
+    log.info('Processing Web Browsing data...');
 
     // Get web browsing events
     const { data: webData, error } = await this.supabase
@@ -1291,16 +1294,16 @@ class BrainMigrationService {
       .limit(limit);
 
     if (error) {
-      console.error('[BrainMigration] Error fetching web data:', error);
+      log.error('Error fetching web data:', error);
       return;
     }
 
     if (!webData?.length) {
-      console.log('[BrainMigration] No web browsing data found');
+      log.info('No web browsing data found');
       return;
     }
 
-    console.log(`[BrainMigration] Found ${webData.length} web browsing records`);
+    log.info(`Found ${webData.length} web browsing records`);
 
     // Aggregate browsing categories, domains, and topics
     const categoryCounts = {};
@@ -1349,7 +1352,7 @@ class BrainMigrationService {
     for (const [category, count] of topCategories) {
       if (category === 'uncategorized') continue;
       if (dryRun) {
-        console.log(`[DryRun] Would create interest node: ${category} (${count} visits)`);
+        log.info(`Would create interest node: ${category} (${count} visits)`);
         continue;
       }
 
@@ -1427,7 +1430,7 @@ class BrainMigrationService {
 
     for (const [topic, count] of topTopics) {
       if (dryRun) {
-        console.log(`[DryRun] Would create topic node: ${topic} (${count} mentions)`);
+        log.info(`Would create topic node: ${topic} (${count} mentions)`);
         continue;
       }
 
@@ -1469,7 +1472,7 @@ class BrainMigrationService {
       }
     }
 
-    console.log(`[BrainMigration] Web migration: ${interestNodes.length} interests, ${topTopics.length} topics, reading style: ${dominantBehavior}`);
+    log.info(`Web migration: ${interestNodes.length} interests, ${topTopics.length} topics, reading style: ${dominantBehavior}`);
   }
 
   /**

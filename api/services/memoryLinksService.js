@@ -16,6 +16,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('MemoryLinks');
 
 const LINK_THRESHOLD = 0.75; // cosine similarity threshold for auto-linking
 const MAX_LINKS_PER_MEMORY = 10; // max links created per memory
@@ -48,7 +51,7 @@ export async function autoLinkMemory(memoryId, userId, embedding) {
     });
 
     if (error) {
-      console.warn('[MemoryLinks] RPC error:', error.message);
+      log.warn('RPC error:', error.message);
       return;
     }
 
@@ -67,13 +70,13 @@ export async function autoLinkMemory(memoryId, userId, embedding) {
       .upsert(links, { onConflict: 'source_memory_id,target_memory_id', ignoreDuplicates: true });
 
     if (insertError) {
-      console.warn('[MemoryLinks] upsert error:', insertError.message);
+      log.warn('upsert error:', insertError.message);
       return;
     }
 
-    console.log(`[MemoryLinks] Linked memory ${memoryId} to ${similar.length} related memories`);
+    log.info(`Linked memory ${memoryId} to ${similar.length} related memories`);
   } catch (err) {
-    console.warn('[MemoryLinks] autoLinkMemory error:', err.message);
+    log.warn('autoLinkMemory error:', err.message);
   }
 }
 
@@ -108,10 +111,10 @@ export async function linkReflectionToSources(reflectionId, userId, sourceIds) {
       .upsert(links, { onConflict: 'source_memory_id,target_memory_id', ignoreDuplicates: true });
 
     if (error) {
-      console.warn('[MemoryLinks] linkReflectionToSources error:', error.message);
+      log.warn('linkReflectionToSources error:', error.message);
     }
   } catch (err) {
-    console.warn('[MemoryLinks] linkReflectionToSources error:', err.message);
+    log.warn('linkReflectionToSources error:', err.message);
   }
 }
 
@@ -188,9 +191,9 @@ export async function strengthenCoCitedLinks(userId, citedIds) {
       }
     }
 
-    console.log(`[MemoryLinks] STDP: strengthened ${pairs.length} co-citation pairs`);
+    log.info(`STDP: strengthened ${pairs.length} co-citation pairs`);
   } catch (err) {
-    console.warn('[MemoryLinks] strengthenCoCitedLinks error:', err.message);
+    log.warn('strengthenCoCitedLinks error:', err.message);
   }
 }
 
@@ -258,7 +261,7 @@ export async function traverseLinksForRetrieval(userId, seedIds, existingIdSet, 
       linkStrength: strengthMap.get(mem.id) || 0,
     }));
   } catch (err) {
-    console.warn('[MemoryLinks] traverseLinksForRetrieval error:', err.message);
+    log.warn('traverseLinksForRetrieval error:', err.message);
     return [];
   }
 }

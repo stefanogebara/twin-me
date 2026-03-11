@@ -18,6 +18,9 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronClaudeSync');
 
 const router = Router();
 
@@ -83,7 +86,7 @@ async function parseClaudeConversations(dataPath) {
     // For now, check if directory has conversation files
     const files = fs.readdirSync(dataPath);
 
-    console.log(`[Claude Sync] Found ${files.length} items in Claude data directory`);
+    log.info('Found items in Claude data directory', { count: files.length });
 
     // Parse each conversation file/entry
     for (const file of files) {
@@ -113,12 +116,12 @@ async function parseClaudeConversations(dataPath) {
           }
         }
       } catch (fileError) {
-        console.error(`[Claude Sync] Error parsing file ${file}:`, fileError.message);
+        log.error('Error parsing file', { file, error: fileError.message });
       }
     }
 
   } catch (error) {
-    console.error('[Claude Sync] Error reading Claude data:', error);
+    log.error('Error reading Claude data', { error });
   }
 
   return conversations;
@@ -139,7 +142,7 @@ async function importConversationsForUser(userId, conversations) {
     .select('external_id')
     .eq('user_id', userId)
     .in('external_id', allExternalIds);
-  if (existingErr) console.warn('[CronSync] Error checking existing conversations:', existingErr.message);
+  if (existingErr) log.warn('Error checking existing conversations', { error: existingErr.message });
   const importedIds = new Set((alreadyImported || []).map(r => r.external_id));
 
   for (const conversation of conversations) {
@@ -201,7 +204,7 @@ async function importConversationsForUser(userId, conversations) {
                 priority: 10, // Lower priority for historical imports
                 queued_at: new Date().toISOString(),
               });
-            if (analysisJobErr) console.warn('[CronSync] Analysis job queue error:', analysisJobErr.message);
+            if (analysisJobErr) log.warn('Analysis job queue error', { error: analysisJobErr.message });
           }
         }
       }
@@ -209,7 +212,7 @@ async function importConversationsForUser(userId, conversations) {
       imported++;
 
     } catch (convError) {
-      console.error(`[Claude Sync] Error importing conversation ${conversation.id}:`, convError.message);
+      log.error('Error importing conversation', { conversationId: conversation.id, error: convError.message });
       skipped++;
     }
   }
@@ -231,7 +234,7 @@ async function runSyncForUser(userId) {
     };
   }
 
-  console.log(`[Claude Sync] Found Claude data at: ${dataPath}`);
+  log.info('Found Claude data', { dataPath });
 
   // Check if Claude Desktop is running
   if (isClaudeDesktopRunning()) {
@@ -262,7 +265,7 @@ async function runSyncForUser(userId) {
     // Parse conversations from Claude Desktop
     const conversations = await parseClaudeConversations(dataPath);
 
-    console.log(`[Claude Sync] Found ${conversations.length} conversations to import`);
+    log.info('Found conversations to import', { count: conversations.length });
 
     if (conversations.length === 0) {
       const { error: emptyCompletedErr } = await supabaseAdmin
@@ -273,7 +276,7 @@ async function runSyncForUser(userId) {
           completed_at: new Date().toISOString(),
         })
         .eq('id', importRecord.id);
-      if (emptyCompletedErr) console.error('[Claude Sync] Failed to update import record (empty):', emptyCompletedErr.message);
+      if (emptyCompletedErr) log.error('Failed to update import record (empty)', { error: emptyCompletedErr.message });
 
       return {
         success: true,
@@ -299,7 +302,7 @@ async function runSyncForUser(userId) {
         completed_at: new Date().toISOString(),
       })
       .eq('id', importRecord.id);
-    if (completedErr) console.error('[Claude Sync] Failed to update import record:', completedErr.message);
+    if (completedErr) log.error('Failed to update import record', { error: completedErr.message });
 
     return {
       success: true,
@@ -319,7 +322,7 @@ async function runSyncForUser(userId) {
         completed_at: new Date().toISOString(),
       })
       .eq('id', importRecord.id);
-    if (failedErr) console.error('[Claude Sync] Failed to update import record with error:', failedErr.message);
+    if (failedErr) log.error('Failed to update import record with error', { error: failedErr.message });
 
     return {
       success: false,
@@ -340,7 +343,7 @@ router.post('/', async (req, res) => {
       return res.status(authResult.status).json({ error: authResult.error });
     }
 
-    console.log('[Claude Sync Cron] Starting scheduled sync...');
+    log.info('Starting scheduled sync');
 
     // Get users who have opted into Claude Desktop sync
     // For now, we'll just check for users with the feature enabled
@@ -351,7 +354,7 @@ router.post('/', async (req, res) => {
       .limit(100);
 
     if (usersError || !users || users.length === 0) {
-      console.log('[Claude Sync Cron] No users with Claude Desktop sync enabled');
+      log.info('No users with Claude Desktop sync enabled');
       return res.json({
         success: true,
         message: 'No users with Claude Desktop sync enabled',
@@ -368,7 +371,7 @@ router.post('/', async (req, res) => {
 
     const successCount = results.filter(r => r.success).length;
 
-    console.log(`[Claude Sync Cron] Completed: ${successCount}/${results.length} users synced`);
+    log.info('Sync completed', { successCount, totalUsers: results.length });
 
     return res.json({
       success: true,
@@ -378,7 +381,7 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Claude Sync Cron] Error:', error);
+    log.error('Cron error', { error });
     return res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
@@ -394,14 +397,14 @@ router.post('/run', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    console.log(`[Claude Sync] Manual sync requested for user: ${userId}`);
+    log.info('Manual sync requested', { userId });
 
     const result = await runSyncForUser(userId);
 
     return res.json(result);
 
   } catch (error) {
-    console.error('[Claude Sync] Error:', error);
+    log.error('Manual sync error', { error });
     return res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
@@ -445,7 +448,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Claude Sync] Status error:', error);
+    log.error('Status error', { error });
     return res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
@@ -473,7 +476,7 @@ router.post('/process-analysis', async (req, res) => {
     return res.json(result);
 
   } catch (error) {
-    console.error('[Claude Sync] Analysis processing error:', error);
+    log.error('Analysis processing error', { error });
     return res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',

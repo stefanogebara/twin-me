@@ -17,6 +17,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { PatternLearningService } from '../services/patternLearningService.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronPatternLearning');
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -52,10 +55,10 @@ async function logCronExecution(jobName, status, executionTimeMs, result, errorM
       .insert(logEntry);
     if (logErr) throw logErr;
 
-    console.log(`📊 [CRON] Execution logged to database`);
+    log.info('Execution logged to database');
   } catch (error) {
     // Don't fail the cron job if logging fails
-    console.error('⚠️  [CRON] Failed to log execution:', error.message);
+    log.error('Failed to log execution', { error: error.message });
   }
 }
 
@@ -65,14 +68,12 @@ async function logCronExecution(jobName, status, executionTimeMs, result, errorM
  */
 export default async function handler(req, res) {
   const startTime = Date.now();
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🌐 [CRON] Pattern learning endpoint called at ${new Date().toISOString()}`);
-  console.log(`${'='.repeat(60)}`);
+  log.info('Pattern learning endpoint called');
 
   // Security: Verify cron secret (timing-safe)
   const authResult = verifyCronSecret(req);
   if (!authResult.authorized) {
-    console.error('❌ Unauthorized cron request - invalid secret');
+    log.error('Unauthorized cron request - invalid secret');
     return res.status(authResult.status).json({
       success: false,
       error: authResult.error,
@@ -81,7 +82,7 @@ export default async function handler(req, res) {
 
   try {
     // Execute pattern learning for all users
-    console.log(`🔄 [CRON] Starting pattern learning batch processing...`);
+    log.info('Starting pattern learning batch processing');
     const results = await PatternLearningService.runForAllUsers();
 
     const executionTime = Date.now() - startTime;
@@ -111,13 +112,7 @@ export default async function handler(req, res) {
       null
     );
 
-    console.log(`\n${'='.repeat(60)}`);
-    console.log(`✅ [CRON] Pattern learning completed in ${executionTime}ms`);
-    console.log(`   - Users processed: ${usersProcessed}`);
-    console.log(`   - Successful: ${successCount}`);
-    console.log(`   - Feedback items: ${totalFeedbackProcessed}`);
-    console.log(`   - Insights generated: ${totalInsightsGenerated}`);
-    console.log(`${'='.repeat(60)}\n`);
+    log.info('Pattern learning completed', { executionTimeMs: executionTime, usersProcessed, successCount, totalFeedbackProcessed, totalInsightsGenerated });
 
     return res.status(200).json({
       ...resultSummary,
@@ -139,9 +134,7 @@ export default async function handler(req, res) {
       error.message
     );
 
-    console.error(`\n${'='.repeat(60)}`);
-    console.error(`❌ [CRON] Pattern learning failed in ${executionTime}ms:`, error);
-    console.error(`${'='.repeat(60)}\n`);
+    log.error('Pattern learning failed', { executionTimeMs: executionTime, error });
 
     return res.status(500).json({
       success: false,

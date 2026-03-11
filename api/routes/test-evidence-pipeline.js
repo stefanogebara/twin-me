@@ -1,5 +1,8 @@
 import express from 'express';
 import behavioralEvidencePipeline from '../services/behavioralEvidencePipeline.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TestEvidencePipeline');
 
 const router = express.Router();
 
@@ -8,11 +11,11 @@ const router = express.Router();
 router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log(`[Test] Triggering evidence pipeline for user ${userId}`);
+    log.info(`Triggering evidence pipeline for user ${userId}`);
     const result = await behavioralEvidencePipeline.runPipeline(userId);
     res.json(result);
   } catch (error) {
-    console.error('Test pipeline error:', error);
+    log.error('Test pipeline error:', error);
     res.status(500).json({ error: error.message });
   }
 });

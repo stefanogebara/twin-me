@@ -9,6 +9,9 @@ import { Router } from 'express';
 import { authenticateUser as authMiddleware } from '../middleware/auth.js';
 import { registerDeviceToken } from '../services/pushNotificationService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('DeviceTokens');
 
 const router = Router();
 router.use(authMiddleware);
@@ -32,7 +35,7 @@ router.post('/', async (req, res) => {
     await registerDeviceToken(userId, token, platform, token_type);
     res.json({ success: true });
   } catch (err) {
-    console.error('[DeviceTokens] Register error:', err.message);
+    log.error('Register error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to register device token' });
   }
 });
@@ -51,7 +54,7 @@ router.delete('/:token', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('[DeviceTokens] Delete error:', err.message);
+    log.error('Delete error:', err.message);
     res.status(500).json({ success: false, error: 'Failed to remove device token' });
   }
 });

@@ -2,6 +2,9 @@ import express from 'express';
 import { supabaseAdmin as supabase } from '../config/supabase.js';
 import rateLimit from 'express-rate-limit';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Analytics');
 
 const router = express.Router();
 
@@ -56,13 +59,13 @@ router.post('/events', analyticsLimiter, async (req, res) => {
       }]);
 
     if (error) {
-      console.error('Analytics insert error:', error);
+      log.error('Analytics insert error:', error);
       return res.status(500).json({ error: 'Failed to store analytics event' });
     }
 
     res.status(201).json({ success: true, data });
   } catch (error) {
-    console.error('Analytics event error:', error);
+    log.error('Analytics event error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -94,7 +97,7 @@ router.post('/session-end', analyticsLimiter, async (req, res) => {
       ended_at: end_time || new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    console.log('[Analytics] Upserting session data:', JSON.stringify(upsertData));
+    log.info('Upserting session data:', JSON.stringify(upsertData));
 
     const { data, error } = await supabase
       .from('analytics_sessions')
@@ -103,13 +106,13 @@ router.post('/session-end', analyticsLimiter, async (req, res) => {
       });
 
     if (error) {
-      console.error('Session end error:', error);
+      log.error('Session end error:', error);
       return res.status(500).json({ error: 'Failed to update session' });
     }
 
     res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Session end error:', error);
+    log.error('Session end error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -130,7 +133,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
     const { data: events, error } = await query.order('timestamp', { ascending: false });
 
     if (error) {
-      console.error('Analytics dashboard error:', error);
+      log.error('Analytics dashboard error:', error);
       return res.status(500).json({ error: 'Failed to fetch analytics data' });
     }
 
@@ -178,7 +181,7 @@ router.get('/dashboard', authenticateUser, async (req, res) => {
 
     res.json({ success: true, analytics, period_days: days });
   } catch (error) {
-    console.error('Analytics dashboard error:', error);
+    log.error('Analytics dashboard error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -7,6 +7,9 @@
 
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import fs from 'fs';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ResumeParser');
 
 // Lazy-load pdf-parse only when needed (optional dependency)
 let pdf;
@@ -28,7 +31,7 @@ class ResumeParserService {
    * @returns {Promise<Object>} Extracted resume data
    */
   async parseResume(fileContent, fileType, userName = null) {
-    console.log(`[ResumeParser] Parsing resume, type: ${fileType}`);
+    log.info(`Parsing resume, type: ${fileType}`);
 
     let textContent;
 
@@ -38,9 +41,9 @@ class ResumeParserService {
         const pdfParser = await getPdfParser();
         const pdfData = await pdfParser(fileContent);
         textContent = pdfData.text;
-        console.log(`[ResumeParser] Extracted ${textContent.length} chars from PDF`);
+        log.info(`Extracted ${textContent.length} chars from PDF`);
       } catch (error) {
-        console.error('[ResumeParser] PDF parsing failed:', error);
+        log.error('PDF parsing failed:', error);
         throw new Error('Failed to parse PDF file');
       }
     } else {
@@ -174,12 +177,12 @@ IMPORTANT:
       // Extract JSON from response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        console.error('[ResumeParser] No JSON found in response');
+        log.error('No JSON found in response');
         throw new Error('Failed to extract structured data from resume');
       }
 
       const parsed = JSON.parse(jsonMatch[0]);
-      console.log('[ResumeParser] Successfully extracted resume data');
+      log.info('Successfully extracted resume data');
 
       return {
         success: true,
@@ -187,7 +190,7 @@ IMPORTANT:
         raw_text: resumeText.substring(0, 1000) + '...' // Store preview of raw text
       };
     } catch (error) {
-      console.error('[ResumeParser] AI extraction failed:', error);
+      log.error('AI extraction failed:', error);
       return {
         success: false,
         error: error.message,

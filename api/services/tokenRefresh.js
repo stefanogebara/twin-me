@@ -14,6 +14,9 @@
  */
 
 import { encryptToken, decryptToken } from './encryption.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TokenRefresh');
 
 // Lazy load to avoid circular dependency issues
 let supabaseAdmin = null;
@@ -206,7 +209,7 @@ const CLIENT_CREDENTIALS = {
  */
 export async function refreshAccessToken(userId, provider) {
   try {
-    console.log(`🔄 Attempting to refresh ${provider} token for user ${userId}`);
+    log.info(`Attempting to refresh ${provider} token for user ${userId}`);
 
     // Get refresh configuration for this provider
     const config = REFRESH_CONFIGS[provider];
@@ -243,7 +246,7 @@ export async function refreshAccessToken(userId, provider) {
     try {
       refreshToken = decryptToken(connection.refresh_token);
     } catch (decryptError) {
-      console.error(`❌ Failed to decrypt refresh token for ${provider}:`, decryptError.message);
+      log.error(`Failed to decrypt refresh token for ${provider}:`, decryptError.message);
       throw new Error(`Token decryption failed - user must reconnect ${provider}`);
     }
 
@@ -255,7 +258,7 @@ export async function refreshAccessToken(userId, provider) {
     // Build request body
     const body = config.buildBody(credentials.clientId, credentials.clientSecret, refreshToken);
 
-    console.log(`🌐 Calling ${provider} token endpoint: ${config.tokenEndpoint}`);
+    log.info(`Calling ${provider} token endpoint: ${config.tokenEndpoint}`);
 
     // Make token refresh request
     const response = await fetch(config.tokenEndpoint, {
@@ -266,7 +269,7 @@ export async function refreshAccessToken(userId, provider) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ Token refresh failed for ${provider}:`, response.status, errorText);
+      log.error(`Token refresh failed for ${provider}:`, response.status, errorText);
       throw new Error(`Token refresh failed: ${response.status} ${errorText}`);
     }
 
@@ -302,12 +305,12 @@ export async function refreshAccessToken(userId, provider) {
       .eq('platform', provider);
 
     if (updateError) {
-      console.error(`❌ Failed to update tokens in database:`, updateError);
+      log.error(`Failed to update tokens in database:`, updateError);
       throw new Error(`Database update failed: ${updateError.message}`);
     }
 
-    console.log(`✅ Successfully refreshed ${provider} token for user ${userId}`);
-    console.log(`📅 New token expires at: ${newExpiryTime}`);
+    log.info(`Successfully refreshed ${provider} token for user ${userId}`);
+    log.info(`New token expires at: ${newExpiryTime}`);
 
     return {
       success: true,
@@ -316,7 +319,7 @@ export async function refreshAccessToken(userId, provider) {
     };
 
   } catch (error) {
-    console.error(`❌ Token refresh error for ${provider}:`, error.message);
+    log.error(`Token refresh error for ${provider}:`, error.message);
 
     // Update error status in database
     const supabaseClient = await getSupabaseClient();
@@ -329,7 +332,7 @@ export async function refreshAccessToken(userId, provider) {
       })
       .eq('user_id', userId)
       .eq('platform', provider);
-    if (statusErr) console.warn(`Failed to update error status:`, statusErr.message);
+    if (statusErr) log.warn(`Failed to update error status:`, statusErr.message);
 
     return {
       success: false,
@@ -348,7 +351,7 @@ export async function refreshAccessToken(userId, provider) {
  */
 export async function getValidAccessToken(userId, provider) {
   try {
-    console.log(`🔑 Getting valid access token for ${provider}`);
+    log.info(`Getting valid access token for ${provider}`);
 
     // Fetch connection from database
     const supabase = await getSupabaseClient();
@@ -376,7 +379,7 @@ export async function getValidAccessToken(userId, provider) {
 
     // Handle NANGO_MANAGED connections - get token from Nango instead of decrypting
     if (connection.access_token === 'NANGO_MANAGED') {
-      console.log(`🔄 [Token Refresh] ${provider} is NANGO_MANAGED, fetching token from Nango`);
+      log.info(`${provider} is NANGO_MANAGED, fetching token from Nango`);
       try {
         const nangoService = await import('./nangoService.js');
         const nangoResult = await nangoService.getAccessToken(userId, provider);
@@ -392,7 +395,7 @@ export async function getValidAccessToken(userId, provider) {
           error: `Nango connection for ${provider} has no valid token: ${nangoResult.error}`
         };
       } catch (nangoErr) {
-        console.error(`❌ [Token Refresh] Nango token fetch failed for ${provider}:`, nangoErr.message);
+        log.error(`Nango token fetch failed for ${provider}:`, nangoErr.message);
         return {
           success: false,
           error: `Failed to get ${provider} token from Nango: ${nangoErr.message}`
@@ -405,8 +408,8 @@ export async function getValidAccessToken(userId, provider) {
     try {
       currentAccessToken = decryptToken(connection.access_token);
     } catch (decryptError) {
-      console.error(`❌ Failed to decrypt access token for ${provider}:`, decryptError.message);
-      console.log(`🔄 Token decryption failed, will attempt to refresh...`);
+      log.error(`Failed to decrypt access token for ${provider}:`, decryptError.message);
+      log.info(`Token decryption failed, will attempt to refresh...`);
 
       // If we can't decrypt the access token, we need to refresh it
       // But refreshAccessToken will also fail if refresh_token can't be decrypted
@@ -424,7 +427,7 @@ export async function getValidAccessToken(userId, provider) {
     const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
 
     if (!expiryTime) {
-      console.log(`⚠️ No expiry time set for ${provider}, assuming token is valid`);
+      log.info(`No expiry time set for ${provider}, assuming token is valid`);
       return {
         success: true,
         accessToken: currentAccessToken
@@ -432,14 +435,14 @@ export async function getValidAccessToken(userId, provider) {
     }
 
     if (expiryTime > fiveMinutesFromNow) {
-      console.log(`✅ Token for ${provider} is still valid (expires at ${expiryTime.toISOString()})`);
+      log.info(`Token for ${provider} is still valid (expires at ${expiryTime.toISOString()})`);
       return {
         success: true,
         accessToken: currentAccessToken
       };
     }
 
-    console.log(`⏰ Token for ${provider} is expired or expiring soon, refreshing...`);
+    log.info(`Token for ${provider} is expired or expiring soon, refreshing...`);
 
     // Token is expired or expiring soon, refresh it
     const refreshResult = await refreshAccessToken(userId, provider);
@@ -457,7 +460,7 @@ export async function getValidAccessToken(userId, provider) {
     };
 
   } catch (error) {
-    console.error(`❌ Error getting valid access token for ${provider}:`, error);
+    log.error(`Error getting valid access token for ${provider}:`, error);
     return {
       success: false,
       error: error.message
@@ -484,7 +487,7 @@ export function requiresTokenRefresh(provider) {
  * @returns {Promise<{success: boolean, results: Object}>}
  */
 export async function batchRefreshTokens(userId, providers) {
-  console.log(`🔄 Batch refreshing tokens for user ${userId}: ${providers.join(', ')}`);
+  log.info(`Batch refreshing tokens for user ${userId}: ${providers.join(', ')}`);
 
   const results = {};
 
@@ -503,7 +506,7 @@ export async function batchRefreshTokens(userId, providers) {
   const successCount = Object.values(results).filter(r => r.success).length;
   const failureCount = providers.length - successCount;
 
-  console.log(`✅ Batch refresh complete: ${successCount} succeeded, ${failureCount} failed`);
+  log.info(`Batch refresh complete: ${successCount} succeeded, ${failureCount} failed`);
 
   return {
     success: failureCount === 0,

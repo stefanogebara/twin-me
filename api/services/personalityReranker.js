@@ -1,5 +1,8 @@
 import { complete, TIER_CHAT } from './llmGateway.js';
 import { generateEmbedding } from './embeddingService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityReranker');
 
 function cosineSimilarity(a, b) {
   let dot = 0;
@@ -70,13 +73,13 @@ export async function rerankByPersonality(
       }
     }
 
-    console.log(
+    log.info(
       `[PersonalityReranker] Selected candidate ${bestIdx + 1}/${candidates.length} (similarity: ${bestSim.toFixed(4)})`
     );
 
     return candidates[bestIdx];
   } catch (err) {
-    console.warn('[PersonalityReranker] Reranking failed, returning null:', err.message);
+    log.warn('Reranking failed, returning null:', err.message);
     return null;
   }
 }

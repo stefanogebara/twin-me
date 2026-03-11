@@ -1,5 +1,8 @@
 import { supabaseAdmin } from '../database.js';
 import { encryptToken, decryptToken } from '../encryption.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Githubtokenmanager');
 
 /**
  * GitHub Token Manager
@@ -37,7 +40,7 @@ export class GithubTokenManager {
       // Validate token is still active
       const isValid = await this.validateToken(accessToken);
       if (!isValid) {
-        console.error(`❌ GitHub token invalid for user ${userId}`);
+        log.error(`GitHub token invalid for user ${userId}`);
 
         // Mark connection as needs reauth
         const { error: reauthErr } = await supabaseAdmin
@@ -49,16 +52,16 @@ export class GithubTokenManager {
           })
           .eq('user_id', userId)
           .eq('platform', 'github');
-        if (reauthErr) console.warn('[GitHub] Error marking connection as needs_reauth:', reauthErr.message);
+        if (reauthErr) log.warn('Error marking connection as needs_reauth:', reauthErr.message);
 
         throw new Error('GitHub token has been revoked. User must reconnect.');
       }
 
-      console.log(`✅ GitHub token valid for user ${userId}`);
+      log.info(`GitHub token valid for user ${userId}`);
       return accessToken;
 
     } catch (error) {
-      console.error('GitHub token manager error:', error);
+      log.error('GitHub token manager error:', error);
       throw error;
     }
   }
@@ -78,7 +81,7 @@ export class GithubTokenManager {
 
       return response.ok;
     } catch (error) {
-      console.error('Token validation error:', error);
+      log.error('Token validation error:', error);
       return false;
     }
   }
@@ -111,7 +114,7 @@ export class GithubTokenManager {
       throw new Error('Failed to revoke GitHub connection');
     }
 
-    console.log(`🔓 GitHub connection revoked for user ${userId}`);
+    log.info(`GitHub connection revoked for user ${userId}`);
     return { success: true };
   }
 

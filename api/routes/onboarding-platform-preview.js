@@ -23,6 +23,9 @@ import {
 import { addPlatformObservation } from '../services/memoryStreamService.js';
 import { getValidAccessToken } from '../services/tokenRefresh.js';
 import axios from 'axios';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OnboardingPlatformPreview');
 
 const router = express.Router();
 
@@ -223,7 +226,7 @@ router.get('/platform-preview/:platform', authenticateUser, async (req, res) => 
     try {
       observations = await fetcher(userId);
     } catch (fetchErr) {
-      console.warn(`[PlatformPreview] Fetch error for ${platform}:`, fetchErr.message);
+      log.warn(`Fetch error for ${platform}:`, fetchErr.message);
       return res.json(genericResponse);
     }
 
@@ -245,7 +248,7 @@ router.get('/platform-preview/:platform', authenticateUser, async (req, res) => 
           dataPoints = extractGenericHighlights(observations);
       }
     } catch (extractErr) {
-      console.warn(`[PlatformPreview] Highlight extraction error for ${platform}:`, extractErr.message);
+      log.warn(`Highlight extraction error for ${platform}:`, extractErr.message);
     }
 
     // Generate insight from sample observations
@@ -270,7 +273,7 @@ ${dataPoints.length > 0 ? '\nHighlights: ' + dataPoints.map(d => `${d.label}: ${
       });
       insight = result.content.replace(/^["']|["']$/g, '').trim();
     } catch (llmErr) {
-      console.warn(`[PlatformPreview] LLM error for ${platform}:`, llmErr.message);
+      log.warn(`LLM error for ${platform}:`, llmErr.message);
       insight = sample[0] || 'Connected! Your twin is learning from your data.';
     }
 
@@ -291,10 +294,10 @@ ${dataPoints.length > 0 ? '\nHighlights: ' + dataPoints.map(d => `${d.label}: ${
     ).then(results => {
       const stored = results.filter(Boolean).length;
       if (stored > 0) {
-        console.log(`[PlatformPreview] Stored ${stored} ${platform} observations for user ${userId}`);
+        log.info(`Stored ${stored} ${platform} observations for user ${userId}`);
       }
     }).catch(err => {
-      console.warn(`[PlatformPreview] Observation storage failed (non-blocking):`, err.message);
+      log.warn(`Observation storage failed (non-blocking):`, err.message);
     });
 
     return res.json({
@@ -305,7 +308,7 @@ ${dataPoints.length > 0 ? '\nHighlights: ' + dataPoints.map(d => `${d.label}: ${
       rawCount: observations.length,
     });
   } catch (error) {
-    console.error('[PlatformPreview] Error:', error);
+    log.error('Error:', error);
     return res.json({
       success: true,
       insight: 'Connected! Your twin is learning from your data.',

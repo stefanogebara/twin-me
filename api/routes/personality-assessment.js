@@ -74,7 +74,7 @@ router.get('/questions', authenticateToken, (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Personality] Error fetching questions:', error);
+    log.error('Error fetching questions:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch questions'
@@ -109,7 +109,7 @@ router.post('/responses', authenticateToken, async (req, res) => {
       }
     }
 
-    console.log(`[Personality] Processing ${responses.length} responses for user ${userId}`);
+    log.info(`Processing ${responses.length} responses for user ${userId}`);
 
     const result = await saveAssessmentResponses(userId, responses, sessionId);
 
@@ -127,7 +127,7 @@ router.post('/responses', authenticateToken, async (req, res) => {
       completionPercentage: result.completionPercentage
     });
   } catch (error) {
-    console.error('[Personality] Error saving responses:', error);
+    log.error('Error saving responses:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to save responses'
@@ -180,7 +180,7 @@ router.get('/estimate', authenticateToken, async (req, res) => {
       insights
     });
   } catch (error) {
-    console.error('[Personality] Error fetching estimate:', error);
+    log.error('Error fetching estimate:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch estimate'
@@ -204,7 +204,7 @@ router.get('/archetypes', (req, res) => {
       archetypes
     });
   } catch (error) {
-    console.error('[Personality] Error fetching archetypes:', error);
+    log.error('Error fetching archetypes:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch archetypes'
@@ -236,7 +236,7 @@ router.get('/archetype/:code', (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Personality] Error fetching archetype:', error);
+    log.error('Error fetching archetype:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch archetype'
@@ -269,7 +269,7 @@ router.post('/calculate-preview', authenticateToken, (req, res) => {
       isPreview: true
     });
   } catch (error) {
-    console.error('[Personality] Error calculating preview:', error);
+    log.error('Error calculating preview:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to calculate preview'
@@ -293,7 +293,7 @@ router.post('/learn-from-behavior', authenticateToken, async (req, res) => {
       });
     }
 
-    console.log(`[Personality] Processing behavioral data for user ${userId}`);
+    log.info(`Processing behavioral data for user ${userId}`);
 
     const results = await processAllPlatformData(userId, platformData);
 
@@ -307,7 +307,7 @@ router.post('/learn-from-behavior', authenticateToken, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('[Personality] Error learning from behavior:', error);
+    log.error('Error learning from behavior:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to process behavioral data'
@@ -343,7 +343,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       hasBehavioralData: (estimate?.total_behavioral_signals || 0) > 0
     });
   } catch (error) {
-    console.error('[Personality] Error fetching status:', error);
+    log.error('Error fetching status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch status'
@@ -366,7 +366,7 @@ router.delete('/reset', authenticateToken, async (req, res) => {
       .eq('user_id', userId);
 
     if (responsesErr) {
-      console.error('[Personality] Failed to delete responses:', responsesErr.message);
+      log.error('Failed to delete responses:', responsesErr.message);
       return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
     }
 
@@ -377,18 +377,18 @@ router.delete('/reset', authenticateToken, async (req, res) => {
       .eq('user_id', userId);
 
     if (estimateErr) {
-      console.error('[Personality] Failed to delete estimate:', estimateErr.message);
+      log.error('Failed to delete estimate:', estimateErr.message);
       return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
     }
 
-    console.log(`[Personality] Reset assessment for user ${userId}`);
+    log.info(`Reset assessment for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Personality assessment reset'
     });
   } catch (error) {
-    console.error('[Personality] Error resetting:', error);
+    log.error('Error resetting:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to reset assessment'
@@ -408,20 +408,20 @@ router.post('/seed', async (req, res) => {
       return res.status(401).json({ error: authResult.reason || 'Unauthorized' });
     }
 
-    console.log('[Personality] Starting database seeding...');
+    log.info('Starting database seeding...');
 
     await seedQuestionsToDatabase();
     await seedArchetypesToDatabase();
     await seedInitialCorrelations();
 
-    console.log('[Personality] Database seeding complete');
+    log.info('Database seeding complete');
 
     res.json({
       success: true,
       message: 'Database seeded successfully'
     });
   } catch (error) {
-    console.error('[Personality] Error seeding:', error);
+    log.error('Error seeding:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to seed database'
@@ -456,11 +456,11 @@ router.get('/evidence', authenticateToken, async (req, res) => {
       // Return cached evidence
       const confidence = calculateConfidenceScores(cachedEvidence);
 
-      console.log('[Evidence API] Returning evidence for user:', userId);
-      console.log('[Evidence API] Evidence counts:', Object.fromEntries(
+      log.info('Returning evidence for user:', userId);
+      log.info('Evidence counts:', Object.fromEntries(
         Object.entries(cachedEvidence).map(([k, v]) => [k, v.length])
       ));
-      console.log('[Evidence API] Confidence scores:', confidence);
+      log.info('Confidence scores:', confidence);
 
       return res.json({
         success: true,
@@ -509,7 +509,7 @@ router.get('/evidence', authenticateToken, async (req, res) => {
       message: 'Connect platforms (Spotify, Calendar, Whoop) to see behavioral evidence'
     });
   } catch (error) {
-    console.error('[Personality] Error fetching evidence:', error);
+    log.error('Error fetching evidence:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch personality evidence'
@@ -527,7 +527,7 @@ router.post('/evidence/generate', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const { spotify, calendar, whoop } = req.body;
 
-    console.log(`[Personality] Generating evidence for user ${userId}`);
+    log.info(`Generating evidence for user ${userId}`);
 
     // Extract features from each platform
     const platformFeatures = {};
@@ -566,7 +566,7 @@ router.post('/evidence/generate', authenticateToken, async (req, res) => {
     try {
       await storeEvidence(userId, evidence);
     } catch (storeError) {
-      console.warn('[Personality] Could not store evidence (table may not exist):', storeError.message);
+      log.warn('Could not store evidence (table may not exist):', storeError.message);
     }
 
     // Get personality estimate
@@ -590,7 +590,7 @@ router.post('/evidence/generate', authenticateToken, async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error('[Personality] Error generating evidence:', error);
+    log.error('Error generating evidence:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate personality evidence'
@@ -604,13 +604,16 @@ router.post('/evidence/generate', authenticateToken, async (req, res) => {
  * Extracts features from all connected platforms and generates evidence
  */
 import behavioralEvidencePipeline from '../services/behavioralEvidencePipeline.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PersonalityAssessmentRoute');
 
 router.post('/evidence/pipeline', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { platforms } = req.body; // Optional: specific platforms to process
 
-    console.log(`[Personality] Running evidence pipeline for user ${userId}`);
+    log.info(`Running evidence pipeline for user ${userId}`);
 
     const result = await behavioralEvidencePipeline.runPipeline(userId, platforms);
 
@@ -633,7 +636,7 @@ router.post('/evidence/pipeline', authenticateToken, async (req, res) => {
       } : null
     });
   } catch (error) {
-    console.error('[Personality] Error running evidence pipeline:', error);
+    log.error('Error running evidence pipeline:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to run evidence pipeline',
@@ -666,7 +669,7 @@ router.get('/evidence/status', authenticateToken, async (req, res) => {
       .select('platform, status, last_sync_at')
       .eq('user_id', userId)
       .in('status', ['connected', 'token_refreshed', 'pending']);
-    if (connErr) console.error('[PersonalityAssessment] Connections fetch error:', connErr.message);
+    if (connErr) log.error('Connections fetch error:', connErr.message);
 
     res.json({
       success: true,
@@ -677,7 +680,7 @@ router.get('/evidence/status', authenticateToken, async (req, res) => {
       platformStatus: connections || []
     });
   } catch (error) {
-    console.error('[Personality] Error checking evidence status:', error);
+    log.error('Error checking evidence status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to check evidence status'

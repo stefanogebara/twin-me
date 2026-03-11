@@ -11,6 +11,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TemporalPattern');
 
 class TemporalPatternDetector {
   constructor() {
@@ -31,7 +34,7 @@ class TemporalPatternDetector {
       lookbackDays = 90
     } = options;
 
-    console.log(`🔍 [Pattern Detector] Analyzing patterns for user ${userId}...`);
+    log.info(`Analyzing patterns for user ${userId}...`);
 
     try {
       // Get calendar events from the last lookbackDays
@@ -43,11 +46,11 @@ class TemporalPatternDetector {
         .order('start_time', { ascending: false });
 
       if (eventsError) {
-        console.error('[Pattern Detector] Error fetching events:', eventsError);
+        log.error('Error fetching events:', eventsError);
         return [];
       }
 
-      console.log(`📅 [Pattern Detector] Found ${events?.length || 0} calendar events`);
+      log.info(`Found ${events?.length || 0} calendar events`);
 
       // Get music listening history
       const { data: musicHistory, error: musicError } = await supabaseAdmin
@@ -61,30 +64,30 @@ class TemporalPatternDetector {
         .limit(1000);
 
       if (musicError) {
-        console.error('[Pattern Detector] Error fetching music:', musicError);
+        log.error('Error fetching music:', musicError);
         return [];
       }
 
-      console.log(`🎵 [Pattern Detector] Found ${musicHistory?.length || 0} music activities`);
+      log.info(`Found ${musicHistory?.length || 0} music activities`);
 
       if (!events || !musicHistory || events.length === 0 || musicHistory.length === 0) {
-        console.log('⚠️ [Pattern Detector] Insufficient data for pattern detection');
+        log.info('Insufficient data for pattern detection');
         return [];
       }
 
       // Build temporal relationships
       const temporalRelationships = this.buildTemporalRelationships(events, musicHistory);
 
-      console.log(`🔗 [Pattern Detector] Found ${temporalRelationships.length} temporal relationships`);
+      log.info(`Found ${temporalRelationships.length} temporal relationships`);
 
       // Detect recurring patterns
       const patterns = this.aggregatePatterns(temporalRelationships, minOccurrences, minConfidence);
 
-      console.log(`✅ [Pattern Detector] Detected ${patterns.length} behavioral patterns`);
+      log.info(`Detected ${patterns.length} behavioral patterns`);
 
       return patterns;
     } catch (error) {
-      console.error('❌ [Pattern Detector] Error:', error);
+      log.error('Error:', error);
       return [];
     }
   }
@@ -245,7 +248,7 @@ class TemporalPatternDetector {
    * Get recommended music for upcoming event based on detected patterns
    */
   async getRecommendedMusicForEvent(userId, eventType, minutesUntilEvent) {
-    console.log(`🎯 [Pattern Detector] Finding music recommendations for ${eventType} event in ${minutesUntilEvent} minutes`);
+    log.info(`Finding music recommendations for ${eventType} event in ${minutesUntilEvent} minutes`);
 
     const patterns = await this.detectPatterns(userId);
 
@@ -256,14 +259,14 @@ class TemporalPatternDetector {
     );
 
     if (relevantPatterns.length === 0) {
-      console.log('⚠️ [Pattern Detector] No matching patterns found');
+      log.info('No matching patterns found');
       return null;
     }
 
     // Get the highest confidence pattern
     const bestPattern = relevantPatterns[0];
 
-    console.log(`✅ [Pattern Detector] Recommending "${bestPattern.response.genre}" music (confidence: ${bestPattern.confidence_score}%)`);
+    log.info(`Recommending "${bestPattern.response.genre}" music (confidence: ${bestPattern.confidence_score}%)`);
 
     return {
       recommendedGenre: bestPattern.response.genre,
@@ -278,7 +281,7 @@ class TemporalPatternDetector {
    * Save detected patterns to database for future use
    */
   async savePatterns(userId, patterns) {
-    console.log(`💾 [Pattern Detector] Saving ${patterns.length} patterns for user ${userId}...`);
+    log.info(`Saving ${patterns.length} patterns for user ${userId}...`);
 
     try {
       for (const pattern of patterns) {
@@ -306,14 +309,14 @@ class TemporalPatternDetector {
             onConflict: 'user_id,pattern_type,trigger_event,response_action'
           });
         if (upsertErr) {
-          console.error('[TemporalPattern] Error upserting pattern:', upsertErr.message);
+          log.error('Error upserting pattern:', upsertErr.message);
         }
       }
 
-      console.log('✅ [Pattern Detector] Patterns saved successfully');
+      log.info('Patterns saved successfully');
       return { success: true, savedCount: patterns.length };
     } catch (error) {
-      console.error('❌ [Pattern Detector] Error saving patterns:', error);
+      log.error('Error saving patterns:', error);
       return { success: false, error: error.message };
     }
   }

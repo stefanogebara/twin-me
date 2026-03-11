@@ -50,6 +50,9 @@ import * as edgeOps from './brain/brainEdgeOps.js';
 import * as graphQueries from './brain/brainGraphQueries.js';
 import * as causal from './brain/brainCausal.js';
 import * as contextMethods from './brain/brainContext.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('TwinsBrain');
 
 // ====================================================================
 // BRAIN SERVICE CLASS
@@ -203,7 +206,7 @@ class TwinsBrainService {
       .order('snapshot_date', { ascending: false })
       .limit(1)
       .single();
-    if (prevSnapErr && prevSnapErr.code !== 'PGRST116') console.warn('[TwinsBrain] Failed to fetch previous snapshot:', prevSnapErr.message);
+    if (prevSnapErr && prevSnapErr.code !== 'PGRST116') log.warn('Failed to fetch previous snapshot:', prevSnapErr.message);
 
     const nodesAdded = prevSnapshot ? Math.max(0, nodes.length - prevSnapshot.node_count) : nodes.length;
     const nodesRemoved = prevSnapshot ? Math.max(0, prevSnapshot.node_count - nodes.length) : 0;
@@ -238,7 +241,7 @@ class TwinsBrainService {
       edge_count: edges.length
     });
 
-    console.log(`[TwinsBrain] Created snapshot: ${nodes.length} nodes, ${edges.length} edges`);
+    log.info(`Created snapshot: ${nodes.length} nodes, ${edges.length} edges`);
     return data;
   }
 
@@ -486,7 +489,7 @@ class TwinsBrainService {
         trigger_source: triggerSource
       });
     if (error) {
-      console.error('[TwinsBrain] Failed to log activity:', error.message);
+      log.error('Failed to log activity:', error.message);
     }
   }
 

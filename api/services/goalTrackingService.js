@@ -26,6 +26,10 @@
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('GoalTracking');
+
 // Lazy-load to avoid circular dependency
 let supabaseAdmin = null;
 async function getSupabase() {
@@ -87,7 +91,7 @@ async function getUserGoals(userId, statusFilter = null, pagination) {
   const { data, count, error } = await query;
 
   if (error) {
-    console.warn('[GoalTracking] getUserGoals error:', error.message);
+    log.warn('getUserGoals error', { error });
     return paginated ? { data: [], total: 0 } : [];
   }
 
@@ -170,11 +174,11 @@ async function acceptGoal(goalId, userId) {
     .single();
 
   if (error) {
-    console.warn('[GoalTracking] acceptGoal error:', error.message);
+    log.warn('acceptGoal error', { error });
     return { success: false, error: error.message };
   }
 
-  console.log(`[GoalTracking] Goal accepted: "${data.title}" (${startDate} -> ${endDate})`);
+  log.info('Goal accepted', { title: data.title, startDate, endDate });
   return { success: true, data };
 }
 
@@ -194,7 +198,7 @@ async function abandonGoal(goalId, userId) {
     .single();
 
   if (error) {
-    console.warn('[GoalTracking] abandonGoal error:', error.message);
+    log.warn('abandonGoal error', { error });
     return { success: false, error: error.message };
   }
 
@@ -216,7 +220,7 @@ async function dismissGoal(goalId, userId) {
     .single();
 
   if (fetchError) {
-    console.warn('[GoalTracking] dismissGoal fetch error:', fetchError.message);
+    log.warn('dismissGoal fetch error', { error: fetchError });
     return { success: false, error: fetchError.message };
   }
 
@@ -232,7 +236,7 @@ async function dismissGoal(goalId, userId) {
     .single();
 
   if (error) {
-    console.warn('[GoalTracking] dismissGoal error:', error.message);
+    log.warn('dismissGoal error', { error });
     return { success: false, error: error.message };
   }
 
@@ -347,7 +351,7 @@ function extractMetricFromPlatformData(metricType, platformData) {
     }
 
     default:
-      console.warn(`[GoalTracking] Unknown metric type: ${metricType}`);
+      log.warn('Unknown metric type', { metricType });
       return null;
   }
 }
@@ -399,7 +403,7 @@ async function extractMetricFromMemories(userId, metricType) {
       const value = parseFloat(match[1]);
       const bounds = METRIC_BOUNDS[metricType];
       if (!isNaN(value) && bounds && value >= bounds.min && value <= bounds.max) {
-        console.log(`[GoalTracking] Extracted ${metricType}=${value} from memory: "${mem.content.substring(0, 60)}..."`);
+        log.info('Extracted metric from memory', { metricType, value, memoryPreview: mem.content.substring(0, 60) });
         return value;
       }
     }
@@ -490,7 +494,7 @@ async function generateGoalSuggestions(userId) {
       .eq('status', 'suggested');
 
     if (pendingErr) {
-      console.warn('[GoalTracking] Failed to check pending suggestions:', pendingErr.message);
+      log.warn('Failed to check pending suggestions', { error: pendingErr });
       return 0;
     }
 
@@ -501,7 +505,7 @@ async function generateGoalSuggestions(userId) {
     // Fetch recent memories for pattern detection
     const recentMemories = await getRecentMemories(userId, 50);
     if (recentMemories.length < 5) {
-      console.log(`[GoalTracking] Not enough memories (${recentMemories.length}) for suggestions`);
+      log.info('Not enough memories for suggestions', { count: recentMemories.length });
       return 0;
     }
 
@@ -540,7 +544,7 @@ async function generateGoalSuggestions(userId) {
       const jsonStr = text.replace(/^```json?\s*\n?/, '').replace(/\n?```\s*$/, '');
       suggestions = JSON.parse(jsonStr);
     } catch (parseError) {
-      console.warn('[GoalTracking] Failed to parse suggestion response:', text.substring(0, 100));
+      log.warn('Failed to parse suggestion response', { rawPreview: text.substring(0, 100) });
       return 0;
     }
 
@@ -576,9 +580,9 @@ async function generateGoalSuggestions(userId) {
 
       if (!error) {
         stored++;
-        console.log(`[GoalTracking] Suggested goal: "${s.title}" (${s.metric_type})`);
+        log.info('Suggested goal', { title: s.title, metricType: s.metric_type });
       } else {
-        console.warn('[GoalTracking] Failed to store suggestion:', error.message);
+        log.warn('Failed to store suggestion', { error });
       }
     }
 
@@ -586,10 +590,10 @@ async function generateGoalSuggestions(userId) {
     suggestionCooldowns.set(userId, Date.now());
     pruneSuggestionCooldowns();
 
-    console.log(`[GoalTracking] Generated ${stored} suggestions for user ${userId}`);
+    log.info('Generated suggestions', { stored, userId });
     return stored;
   } catch (error) {
-    console.error('[GoalTracking] generateGoalSuggestions error:', error.message);
+    log.error('generateGoalSuggestions error', { error });
     return 0;
   }
 }
@@ -622,7 +626,7 @@ async function trackGoalProgress(userId, platformData) {
       .select('goal_id')
       .in('goal_id', goalIds)
       .eq('tracked_date', today);
-    if (existingLogsErr) console.warn('[GoalTracking] Error fetching existing logs:', existingLogsErr.message);
+    if (existingLogsErr) log.warn('Error fetching existing logs', { error: existingLogsErr });
     const alreadyTracked = new Set((existingLogs || []).map(l => l.goal_id));
 
     for (const goal of activeGoals) {
@@ -650,7 +654,7 @@ async function trackGoalProgress(userId, platformData) {
         }, { onConflict: 'goal_id,tracked_date', ignoreDuplicates: true });
 
       if (insertErr) {
-        console.warn(`[GoalTracking] Progress upsert error for goal ${goal.id}:`, insertErr.message);
+        log.warn('Progress upsert error', { goalId: goal.id, error: insertErr });
         continue;
       }
 
@@ -701,23 +705,23 @@ async function trackGoalProgress(userId, platformData) {
         .eq('id', goal.id);
 
       if (updateErr) {
-        console.warn(`[GoalTracking] Goal update error for ${goal.id}:`, updateErr.message);
+        log.warn('Goal update error', { goalId: goal.id, error: updateErr });
       }
 
       tracked++;
 
       if (newStatus === 'completed') {
-        console.log(`[GoalTracking] Goal completed! "${goal.title}" (streak: ${newStreak}, best: ${newBestStreak})`);
+        log.info('Goal completed', { title: goal.title, streak: newStreak, bestStreak: newBestStreak });
       }
     }
 
     if (tracked > 0) {
-      console.log(`[GoalTracking] Tracked progress for ${tracked}/${activeGoals.length} goals for user ${userId}`);
+      log.info('Tracked progress', { tracked, totalGoals: activeGoals.length, userId });
     }
 
     return tracked;
   } catch (error) {
-    console.error('[GoalTracking] trackGoalProgress error:', error.message);
+    log.error('trackGoalProgress error', { error });
     return 0;
   }
 }

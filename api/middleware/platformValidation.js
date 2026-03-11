@@ -11,6 +11,9 @@ import {
   UserNotFoundError,
   asyncHandler
 } from './errors.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('PlatformValidation');
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
@@ -154,7 +157,7 @@ export const requirePlatformConnection = asyncHandler(async (req, res, next) => 
 
   // Skip check if platform doesn't require auth
   if (!platformConfig.requiresAuth) {
-    console.log(`⏭️ Skipping connection check for ${platform} (no auth required)`);
+    log.info('Skipping connection check (no auth required)', { platform });
     return next();
   }
 
@@ -199,7 +202,7 @@ export const requirePlatformConnection = asyncHandler(async (req, res, next) => 
   // Attach connection to request
   req.platformConnection = connection;
 
-  console.log(`✅ Platform connection validated for ${platform}`);
+  log.info('Platform connection validated', { platform });
   next();
 });
 
@@ -256,7 +259,7 @@ export const validateMultiplePlatforms = asyncHandler(async (req, res, next) => 
     .eq('status', 'connected');
 
   if (error) {
-    console.error('Error checking platform connections:', error);
+    log.error('Error checking platform connections', { error });
   }
 
   const connectedPlatforms = connections?.map(c => c.platform) || [];
@@ -272,7 +275,7 @@ export const validateMultiplePlatforms = asyncHandler(async (req, res, next) => 
 
   // Don't throw error, just warn - allow partial extraction
   if (disconnectedPlatforms.length > 0) {
-    console.warn(`⚠️ Some platforms not connected: ${disconnectedPlatforms.join(', ')}`);
+    log.warn('Some platforms not connected', { platforms: disconnectedPlatforms });
   }
 
   next();

@@ -4,6 +4,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('SlackExtractor');
 
 class SlackExtractor {
   constructor(accessToken) {
@@ -15,7 +18,7 @@ class SlackExtractor {
    * Main extraction method - extracts all Slack data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[Slack] Starting full extraction for user: ${userId}`);
+    log.info(`Starting full extraction for user: ${userId}`);
 
     try {
       // Create extraction job
@@ -32,10 +35,10 @@ class SlackExtractor {
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[Slack] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return { success: true, itemsExtracted: totalItems };
     } catch (error) {
-      console.error('[Slack] Extraction error:', error);
+      log.error('Extraction error:', error);
       throw error;
     }
   }
@@ -74,7 +77,7 @@ class SlackExtractor {
    * Extract user information
    */
   async extractUserInfo(userId) {
-    console.log(`[Slack] Extracting user info...`);
+    log.info(`Extracting user info...`);
 
     try {
       // Get authenticated user's identity
@@ -89,10 +92,10 @@ class SlackExtractor {
         extracted_at: new Date().toISOString()
       });
 
-      console.log(`[Slack] Extracted user info`);
+      log.info(`Extracted user info`);
       return 1;
     } catch (error) {
-      console.error('[Slack] Error extracting user info:', error);
+      log.error('Error extracting user info:', error);
       return 0;
     }
   }
@@ -101,7 +104,7 @@ class SlackExtractor {
    * Extract channels the user is a member of
    */
   async extractChannels(userId) {
-    console.log(`[Slack] Extracting channels...`);
+    log.info(`Extracting channels...`);
     let channelCount = 0;
 
     try {
@@ -133,10 +136,10 @@ class SlackExtractor {
         }
       }
 
-      console.log(`[Slack] Extracted ${channelCount} channels`);
+      log.info(`Extracted ${channelCount} channels`);
       return channelCount;
     } catch (error) {
-      console.error('[Slack] Error extracting channels:', error);
+      log.error('Error extracting channels:', error);
       return channelCount;
     }
   }
@@ -145,7 +148,7 @@ class SlackExtractor {
    * Extract recent messages from the user
    */
   async extractRecentMessages(userId) {
-    console.log(`[Slack] Extracting recent messages...`);
+    log.info(`Extracting recent messages...`);
     let messageCount = 0;
 
     try {
@@ -174,10 +177,10 @@ class SlackExtractor {
         }
       }
 
-      console.log(`[Slack] Extracted ${messageCount} messages`);
+      log.info(`Extracted ${messageCount} messages`);
       return messageCount;
     } catch (error) {
-      console.error('[Slack] Error extracting messages:', error);
+      log.error('Error extracting messages:', error);
       return messageCount;
     }
   }
@@ -186,7 +189,7 @@ class SlackExtractor {
    * Extract reactions given by the user
    */
   async extractReactions(userId) {
-    console.log(`[Slack] Extracting reactions...`);
+    log.info(`Extracting reactions...`);
     let reactionCount = 0;
 
     try {
@@ -213,10 +216,10 @@ class SlackExtractor {
         }
       }
 
-      console.log(`[Slack] Extracted ${reactionCount} reactions`);
+      log.info(`Extracted ${reactionCount} reactions`);
       return reactionCount;
     } catch (error) {
-      console.error('[Slack] Error extracting reactions:', error);
+      log.error('Error extracting reactions:', error);
       return reactionCount;
     }
   }
@@ -249,10 +252,10 @@ class SlackExtractor {
         });
 
       if (error) {
-        console.error('[Slack] Error storing data:', error);
+        log.error('Error storing data:', error);
       }
     } catch (error) {
-      console.error('[Slack] Exception storing data:', error);
+      log.error('Exception storing data:', error);
     }
   }
 
@@ -274,7 +277,7 @@ class SlackExtractor {
       .single();
 
     if (error) {
-      console.error('[Slack] Error creating job:', error);
+      log.error('Error creating job:', error);
       throw error;
     }
 
@@ -295,7 +298,7 @@ class SlackExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
-    if (updateErr) console.warn('[Slack] Error completing extraction job:', updateErr.message);
+    if (updateErr) log.warn('Error completing extraction job:', updateErr.message);
   }
 }
 

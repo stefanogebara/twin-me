@@ -15,6 +15,9 @@ import {
   getWebhookInfo,
 } from '../services/webhookReceiverService.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Webhooks');
 
 const router = express.Router();
 
@@ -37,7 +40,7 @@ router.post('/github/:userId', express.raw({ type: 'application/json' }), async 
     const event = req.headers['x-github-event'];
 
     if (!signature) {
-      console.warn('⚠️  GitHub webhook missing signature');
+      log.warn('GitHub webhook missing signature');
       return res.status(401).json({ error: 'Missing signature' });
     }
 
@@ -46,31 +49,31 @@ router.post('/github/:userId', express.raw({ type: 'application/json' }), async 
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
     if (!secret) {
-      console.error('❌ GITHUB_WEBHOOK_SECRET not configured');
+      log.error('GITHUB_WEBHOOK_SECRET not configured');
       return res.status(503).json({ error: 'Webhook verification not configured' });
     }
 
     if (!verifyGitHubSignature(payload, signature, secret)) {
-      console.warn('⚠️  GitHub webhook signature verification failed');
+      log.warn('GitHub webhook signature verification failed');
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
     // Parse payload after verification
     const webhookPayload = JSON.parse(payload);
 
-    console.log(`📡 GitHub webhook received: ${event} for user ${userId}`);
+    log.info(`GitHub webhook received: ${event} for user ${userId}`);
 
     // Handle the webhook event
     const result = await handleGitHubWebhook(event, webhookPayload, userId);
 
     if (!result.success) {
-      console.error('❌ Failed to process GitHub webhook:', result.error);
+      log.error('Failed to process GitHub webhook:', result.error);
       return res.status(500).json({ error: 'Failed to process webhook' });
     }
 
     res.status(200).json({ success: true, message: 'Webhook processed' });
   } catch (error) {
-    console.error('❌ Error processing GitHub webhook:', error);
+    log.error('Error processing GitHub webhook:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -86,14 +89,14 @@ router.post('/gmail', express.json(), async (req, res) => {
     const authHeader = req.headers.authorization;
     const expectedAudience = process.env.GMAIL_PUBSUB_AUDIENCE;
     if (expectedAudience && (!authHeader || !authHeader.startsWith('Bearer '))) {
-      console.warn('⚠️  Gmail push: missing auth token');
+      log.warn('Gmail push: missing auth token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const { message } = req.body;
 
     if (!message) {
-      console.warn('⚠️  Gmail push notification missing message');
+      log.warn('Gmail push notification missing message');
       return res.status(400).json({ error: 'Missing message' });
     }
 
@@ -106,7 +109,7 @@ router.post('/gmail', express.json(), async (req, res) => {
     const emailAddress = decodedData.emailAddress;
 
     if (!emailAddress) {
-      console.warn('⚠️  Gmail push notification missing email address');
+      log.warn('Gmail push notification missing email address');
       return res.status(400).json({ error: 'Missing email address' });
     }
 
@@ -114,22 +117,22 @@ router.post('/gmail', express.json(), async (req, res) => {
     const userId = await getUserIdByEmail(emailAddress);
 
     if (!userId) {
-      console.warn(`⚠️  Gmail push: no user found for email ${emailAddress}`);
+      log.warn(`Gmail push: no user found for email ${emailAddress}`);
       // Acknowledge to Pub/Sub so it doesn't keep retrying for unknown addresses
       return res.status(200).json({ success: true, message: 'Unknown recipient, acknowledged' });
     }
 
-    console.log(`📧 Gmail push notification received for user ${userId}`);
+    log.info(`Gmail push notification received for user ${userId}`);
 
     // Acknowledge immediately — Pub/Sub expects a fast 200 response
     res.status(200).json({ success: true, message: 'Notification received' });
 
     // Process in background (don't block response)
     handleGmailPushNotification(message, userId).catch(err =>
-      console.error('❌ Error processing Gmail push notification:', err)
+      log.error('Error processing Gmail push notification:', err)
     );
   } catch (error) {
-    console.error('❌ Error processing Gmail push notification:', error);
+    log.error('Error processing Gmail push notification:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -155,7 +158,7 @@ router.post('/slack/:userId', express.json(), async (req, res) => {
     // Verify request is recent (within 5 minutes)
     const fiveMinutesAgo = Math.floor(Date.now() / 1000) - (60 * 5);
     if (parseInt(slackTimestamp) < fiveMinutesAgo) {
-      console.warn('⚠️  Slack webhook timestamp too old');
+      log.warn('Slack webhook timestamp too old');
       return res.status(401).json({ error: 'Request timestamp too old' });
     }
 
@@ -164,15 +167,15 @@ router.post('/slack/:userId', express.json(), async (req, res) => {
     const secret = process.env.SLACK_SIGNING_SECRET;
 
     if (!verifySlackSignature(body, slackTimestamp, slackSignature, secret)) {
-      console.warn('⚠️  Slack webhook signature verification failed');
+      log.warn('Slack webhook signature verification failed');
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    console.log(`💬 Slack webhook received for user ${userId}`);
+    log.info(`Slack webhook received for user ${userId}`);
 
     // Handle URL verification challenge
     if (req.body.type === 'url_verification') {
-      console.log('✅ Slack URL verification challenge received');
+      log.info('Slack URL verification challenge received');
       return res.status(200).json({ challenge: req.body.challenge });
     }
 
@@ -184,13 +187,13 @@ router.post('/slack/:userId', express.json(), async (req, res) => {
     }
 
     if (!result.success) {
-      console.error('❌ Failed to process Slack event:', result.error);
+      log.error('Failed to process Slack event:', result.error);
       return res.status(500).json({ error: 'Failed to process event' });
     }
 
     res.status(200).json({ success: true, message: 'Event processed' });
   } catch (error) {
-    console.error('❌ Error processing Slack webhook:', error);
+    log.error('Error processing Slack webhook:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -209,7 +212,7 @@ router.post('/discord/:userId', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Invalid user ID format' });
     }
 
-    console.log(`🎮 Discord webhook received for user ${userId}`);
+    log.info(`Discord webhook received for user ${userId}`);
 
     // Discord doesn't currently support outgoing webhooks for user events
     // This endpoint is a placeholder for future Discord webhook support
@@ -220,7 +223,7 @@ router.post('/discord/:userId', express.json(), async (req, res) => {
       message: 'Using polling mechanism for Discord'
     });
   } catch (error) {
-    console.error('❌ Error processing Discord webhook:', error);
+    log.error('Error processing Discord webhook:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -240,7 +243,7 @@ router.get('/list', authenticateUser, async (req, res) => {
       webhooks,
     });
   } catch (error) {
-    console.error('❌ Error fetching webhooks:', error);
+    log.error('Error fetching webhooks:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

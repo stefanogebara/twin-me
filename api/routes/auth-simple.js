@@ -6,6 +6,9 @@ import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Auth');
 
 const AUTH_LOCKOUT_THRESHOLD = 10; // failed attempts before lockout
 const AUTH_LOCKOUT_TTL = 15 * 60; // 15 minutes in seconds
@@ -128,7 +131,7 @@ router.post('/signup', async (req, res) => {
       .single();
 
     if (insertError) {
-      console.error('Database error:', insertError);
+      log.error('Database error', { error: insertError });
       return res.status(500).json({ error: 'Failed to create user' });
     }
 
@@ -142,7 +145,7 @@ router.post('/signup', async (req, res) => {
       .update({ refresh_token_hash: refreshTokenHash })
       .eq('id', newUser.id);
     if (signupHashErr) {
-      console.error('Failed to store refresh token hash on signup:', signupHashErr.message);
+      log.error('Failed to store refresh token hash on signup', { error: signupHashErr });
     }
 
     // Trigger background enrichment for email signup users
@@ -153,8 +156,8 @@ router.post('/signup', async (req, res) => {
           return profileEnrichmentService.saveEnrichment(newUser.id, normalizedEmail, data);
         }
       })
-      .then(() => console.log('✅ Enrichment completed for email signup user:', newUser.id))
-      .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
+      .then(() => log.info('Enrichment completed for email signup user', { userId: newUser.id }))
+      .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
     res.json({
       success: true,
@@ -169,7 +172,7 @@ router.post('/signup', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    log.error('Signup error', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -227,7 +230,7 @@ router.post('/signin', async (req, res) => {
       .update({ refresh_token_hash: refreshTokenHash })
       .eq('id', user.id);
     if (signinHashErr) {
-      console.error('Failed to store refresh token hash on signin:', signinHashErr.message);
+      log.error('Failed to store refresh token hash on signin', { error: signinHashErr });
     }
 
     res.json({
@@ -243,7 +246,7 @@ router.post('/signin', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Signin error:', error);
+    log.error('Signin error', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -281,7 +284,7 @@ router.get('/verify', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Token verification error:', error);
+    log.error('Token verification error', { error });
     res.status(401).json({ error: 'Invalid token' });
   }
 });
@@ -318,7 +321,7 @@ router.post('/refresh', async (req, res) => {
       .update({ refresh_token_hash: newHash })
       .eq('id', user.id);
     if (rotateHashErr) {
-      console.error('Failed to rotate refresh token hash:', rotateHashErr.message);
+      log.error('Failed to rotate refresh token hash', { error: rotateHashErr });
       return res.status(500).json({ error: 'Internal server error' });
     }
 
@@ -335,7 +338,7 @@ router.post('/refresh', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Token refresh error:', error);
+    log.error('Token refresh error', { error });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -352,7 +355,7 @@ router.post('/logout', async (req, res) => {
           .from('users')
           .update({ refresh_token_hash: null })
           .eq('id', decoded.id);
-        if (clearTokenErr) console.warn('[Auth] Error clearing refresh token on logout:', clearTokenErr.message);
+        if (clearTokenErr) log.warn('Error clearing refresh token on logout', { error: clearTokenErr });
 
         // Blacklist the JWT until its natural expiry
         const { blacklistToken } = await import('../middleware/auth.js');
@@ -370,8 +373,8 @@ router.post('/logout', async (req, res) => {
 
 // OAuth routes - Google only (updated: redirect parameter support)
 router.get('/oauth/google', (req, res) => {
-  console.log('🔵 [OAuth Google GET] Initiating OAuth flow - v2');
-  console.log('🔵 [OAuth Google GET] Redirect parameter:', req.query.redirect);
+  log.info('Initiating OAuth flow - v2');
+  log.info('Redirect parameter', { redirect: req.query.redirect });
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
@@ -420,9 +423,9 @@ router.get('/oauth/google', (req, res) => {
     const isSafeRelative = /^\/[^/\\]/.test(redirectParam); // Must start with / but not // (protocol-relative)
     if (isSafeRelative) {
       stateData.redirectAfterAuth = redirectParam;
-      console.log('🔵 [OAuth Google GET] Including post-auth redirect in state:', redirectParam);
+      log.info('Including post-auth redirect in state', { redirect: redirectParam });
     } else {
-      console.warn('🔵 [OAuth Google GET] Ignoring unsafe redirect param:', redirectParam);
+      log.warn('Ignoring unsafe redirect param', { redirect: redirectParam });
     }
   }
 
@@ -430,7 +433,7 @@ router.get('/oauth/google', (req, res) => {
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
 
-  console.log('🔵 [OAuth Google GET] Redirecting to Google OAuth...');
+  log.info('Redirecting to Google OAuth');
   res.redirect(authUrl);
 });
 
@@ -438,25 +441,23 @@ router.get('/oauth/google', (req, res) => {
 // redirectUri can be the full callback URL, or we derive it from appUrl
 async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
   try {
-    console.log('🟢 exchangeGoogleCode START');
-    console.log('🟢 code:', code?.substring(0, 20) + '...');
-    console.log('🟢 appUrl:', appUrl);
+    log.info('exchangeGoogleCode START', { codePrefix: code?.substring(0, 20), appUrl });
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-    console.log('🟢 JWT_SECRET defined:', !!process.env.JWT_SECRET);
+    log.info('JWT_SECRET defined', { defined: !!process.env.JWT_SECRET });
 
     if (!clientId || !clientSecret) {
-      console.error('❌ Missing Google OAuth credentials');
+      log.error('Missing Google OAuth credentials');
       return null;
     }
 
     const redirectUri = overrideRedirectUri || `${appUrl}/oauth/callback`;
-    console.log('🟢 redirectUri:', redirectUri);
+    log.info('Using redirectUri', { redirectUri });
 
     // Exchange code for tokens
-    console.log('🟢 Calling Google token endpoint...');
+    log.info('Calling Google token endpoint');
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -469,37 +470,37 @@ async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
       })
     });
 
-    console.log('🟢 Token response status:', tokenResponse.status);
+    log.info('Token response status', { status: tokenResponse.status });
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('❌ Token exchange failed:', tokenResponse.status, errorText);
+      log.error('Token exchange failed', { status: tokenResponse.status, errorText });
       return null;
     }
 
     const tokens = await tokenResponse.json();
-    console.log('✅ Tokens received, has access_token:', !!tokens.access_token);
+    log.info('Tokens received', { hasAccessToken: !!tokens.access_token });
 
     // Get user info
-    console.log('🟢 Fetching user info from Google...');
+    log.info('Fetching user info from Google');
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { 'Authorization': `Bearer ${tokens.access_token}` }
     });
 
-    console.log('🟢 User info response status:', userResponse.status);
+    log.info('User info response status', { status: userResponse.status });
 
     if (!userResponse.ok) {
       const errorText = await userResponse.text();
-      console.error('❌ Failed to get user info:', userResponse.status, errorText);
+      log.error('Failed to get user info', { status: userResponse.status, errorText });
       return null;
     }
 
     const userData = await userResponse.json();
-    console.log('✅ User info received, hasGivenName:', !!userData.given_name);
+    log.info('User info received', { hasGivenName: !!userData.given_name });
 
     // nOAuth protection: reject unverified emails to prevent account takeover
     if (userData.verified_email === false) {
-      console.warn('[Auth] ⚠️ OAuth rejected: email not verified for', userData.email);
+      log.warn('OAuth rejected: email not verified', { email: userData.email });
       return null;
     }
 
@@ -512,11 +513,10 @@ async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
       refreshToken: tokens.refresh_token
     };
 
-    console.log('✅ exchangeGoogleCode SUCCESS - returning user data');
+    log.info('exchangeGoogleCode SUCCESS - returning user data');
     return result;
   } catch (error) {
-    console.error('❌ Google OAuth exception:', error);
-    console.error('❌ Exception stack:', error.stack);
+    log.error('Google OAuth exception', { error });
     return null;
   }
 }
@@ -533,12 +533,12 @@ router.get('/oauth/callback', async (req, res) => {
     const { code, state, error } = req.query;
 
     if (error) {
-      console.error('OAuth error:', error);
+      log.error('OAuth error', { error });
       return res.redirect(`${appUrl}/auth?error=${error}`);
     }
 
     if (!code) {
-      console.error('No authorization code received');
+      log.error('No authorization code received');
       return res.redirect(`${appUrl}/auth?error=no_code`);
     }
 
@@ -548,21 +548,21 @@ router.get('/oauth/callback', async (req, res) => {
     let isConnectorFlow = false;
     let stateData = null;
 
-    console.log('🔍 Auth GET callback - raw state:', state);
+    log.info('Auth GET callback - raw state received');
 
     try {
       stateData = decryptState(state);
       if (stateData) {
-        console.log('🔍 Auth GET callback - decoded state provider:', stateData.provider);
+        log.info('Auth GET callback - decoded state', { provider: stateData.provider });
         provider = stateData.provider || 'google';
         userId = stateData.userId;
         isConnectorFlow = !!userId; // If userId exists, this is a connector OAuth flow
-        console.log('🔍 Auth GET callback - flow detection:', { provider, userId, isConnectorFlow });
+        log.info('Auth GET callback - flow detection', { provider, userId, isConnectorFlow });
       } else {
-        console.log('Could not decode state (null result), defaulting to google');
+        log.info('Could not decode state (null result), defaulting to google');
       }
     } catch (e) {
-      console.log('Could not decode state, defaulting to google');
+      log.info('Could not decode state, defaulting to google');
     }
 
     let userData = null;
@@ -580,14 +580,14 @@ router.get('/oauth/callback', async (req, res) => {
 
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
-        console.error('Failed to exchange Google OAuth code for authentication');
+        log.error('Failed to exchange Google OAuth code for authentication');
         return res.redirect(`${appUrl}/auth?error=oauth_failed`);
       }
     }
 
     // For connector OAuth, we don't need real user data - just store the connection
     if (isConnectorFlow) {
-      console.log('Processing connector OAuth flow for:', provider);
+      log.info('Processing connector OAuth flow', { provider });
 
       // For Google-based connectors, exchange the code for tokens
       if (isGoogleBased && code) {
@@ -619,9 +619,9 @@ router.get('/oauth/callback', async (req, res) => {
             });
 
           if (dbError) {
-            console.error('Database error storing connector:', dbError);
+            log.error('Database error storing connector', { error: dbError });
           } else {
-            console.log(`✅ Successfully stored ${provider} connection for user ${userId} in database`);
+            log.info('Successfully stored connection in database', { provider, userId });
           }
         }
       }
@@ -630,14 +630,14 @@ router.get('/oauth/callback', async (req, res) => {
       // In development, create a mock user if OAuth exchange returned no data
       if (!userData) {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Auth] Using mock user for development (auth flow)');
+          log.warn('Using mock user for development (auth flow)');
           userData = {
             email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
             firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
             lastName: 'User'
           };
         } else {
-          console.error(`[Auth] OAuth exchange returned no user data for provider: ${provider}`);
+          log.error('OAuth exchange returned no user data', { provider });
           return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('OAuth authentication failed - no user data received')}`);
         }
       }
@@ -665,7 +665,7 @@ router.get('/oauth/callback', async (req, res) => {
         .single();
 
       if (insertError) {
-        console.error('Failed to create user:', insertError);
+        log.error('Failed to create user', { error: insertError });
         throw new Error('User creation failed');
       }
 
@@ -673,20 +673,20 @@ router.get('/oauth/callback', async (req, res) => {
 
       // Trigger background enrichment for new users
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-      console.log('🔍 Triggering background enrichment for new user:', user.id);
+      log.info('Triggering background enrichment for new user', { userId: user.id });
       profileEnrichmentService.enrichFromEmail(userData.email, fullName)
         .then(data => {
           if (data) {
             return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
           }
         })
-        .then(() => console.log('✅ Enrichment completed for user:', user.id))
-        .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
+        .then(() => log.info('Enrichment completed for user', { userId: user.id }))
+        .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
     }
 
     // Handle redirect for connector OAuth flow
     if (isConnectorFlow && userId) {
-      console.log('🔗 Processing connector OAuth in backend GET route');
+      log.info('Processing connector OAuth in backend GET route');
       // Redirect back to get-started page with connected=true
       const redirectUrl = `${appUrl}/get-started?connected=true&provider=${provider}`;
       return res.redirect(redirectUrl);
@@ -702,7 +702,7 @@ router.get('/oauth/callback', async (req, res) => {
       .update({ refresh_token_hash: refreshTokenHash })
       .eq('id', user.id);
     if (getCallbackHashErr) {
-      console.error('Failed to store refresh token hash in GET callback:', getCallbackHashErr.message);
+      log.error('Failed to store refresh token hash in GET callback', { error: getCallbackHashErr });
     }
 
     // Generate a one-time auth code to pass to the frontend — avoids tokens in the redirect URL
@@ -720,26 +720,26 @@ router.get('/oauth/callback', async (req, res) => {
 
     // Mobile app flow: redirect to deep link instead of web app
     if (stateData?.mobile) {
-      console.log('📱 Mobile OAuth flow — redirecting to deep link');
+      log.info('Mobile OAuth flow - redirecting to deep link');
       return res.redirect(`twinme://auth?auth_code=${authCode}`);
     }
 
     const redirectUrl = `${appUrl}/oauth/callback?auth_code=${authCode}&provider=${encodeURIComponent(provider)}`;
     res.redirect(redirectUrl);
   } catch (error) {
-    console.error('OAuth callback error:', error);
+    log.error('OAuth callback error', { error });
     res.redirect(`${appUrl}/auth?error=callback_failed`);
   }
 });
 
 // OAuth callback handler (POST for API calls)
 router.post('/oauth/callback', async (req, res) => {
-  console.log('🟡 POST /oauth/callback received');
+  log.info('POST /oauth/callback received');
 
   try {
     const { code, state, provider } = req.body;
 
-    console.log('🔵 POST /oauth/callback - received:', { hasCode: !!code, hasState: !!state, provider });
+    log.info('POST /oauth/callback - received', { hasCode: !!code, hasState: !!state, provider });
 
     // Auto-detect production URL from request or use environment variable
     let appUrl;
@@ -754,7 +754,7 @@ router.post('/oauth/callback', async (req, res) => {
       appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
     }
 
-    console.log('🔵 Detected appUrl:', appUrl);
+    log.info('Detected appUrl', { appUrl });
 
     // Decode state to check if this is a connector OAuth
     let stateData = null;
@@ -763,11 +763,10 @@ router.post('/oauth/callback', async (req, res) => {
       if (state) {
         stateData = decryptState(state);
         isConnectorFlow = !!stateData.userId;
-        console.log('🔵 Decoded state provider:', stateData.provider);
-        console.log('🔵 isConnectorFlow:', isConnectorFlow);
+        log.info('Decoded state', { provider: stateData.provider, isConnectorFlow });
       }
     } catch (e) {
-      console.log('Could not decode state');
+      log.info('Could not decode state');
     }
 
     let userData = null;
@@ -780,13 +779,13 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
       // Real Google OAuth for authentication
-      console.log('🔵 Calling exchangeGoogleCode with appUrl:', appUrl);
+      log.info('Calling exchangeGoogleCode', { appUrl });
       userData = await exchangeGoogleCode(code, appUrl);
-      console.log('🔵 exchangeGoogleCode result:', userData ? 'success' : 'null');
+      log.info('exchangeGoogleCode result', { success: !!userData });
 
       // If we failed to get real data, don't fall back to demo for auth flows
       if (!userData && isAuthFlow) {
-        console.error('Failed to exchange Google OAuth code for authentication (POST)');
+        log.error('Failed to exchange Google OAuth code for authentication (POST)');
         return res.status(400).json({
           success: false,
           error: 'Failed to authenticate with Google'
@@ -796,7 +795,7 @@ router.post('/oauth/callback', async (req, res) => {
 
     // For connector OAuth, we don't need real user data - just store the connection
     if (isConnectorFlow) {
-      console.log('Processing connector OAuth flow for:', provider);
+      log.info('Processing connector OAuth flow', { provider });
 
       // For Google-based connectors, exchange the code for tokens
       if (isGoogleBased && code) {
@@ -828,9 +827,9 @@ router.post('/oauth/callback', async (req, res) => {
             });
 
           if (dbError) {
-            console.error('Database error storing connector:', dbError);
+            log.error('Database error storing connector', { error: dbError });
           } else {
-            console.log(`✅ Successfully stored ${provider} connection for user ${stateData.userId} in database`);
+            log.info('Successfully stored connection in database', { provider, userId: stateData.userId });
           }
         }
       }
@@ -839,14 +838,14 @@ router.post('/oauth/callback', async (req, res) => {
       // In development, create a mock user if OAuth exchange returned no data
       if (!userData) {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('[Auth] Using mock user for development (auth flow)');
+          log.warn('Using mock user for development (auth flow)');
           userData = {
             email: provider === 'google' ? 'demo@google.com' : `demo@${provider}.com`,
             firstName: provider.charAt(0).toUpperCase() + provider.slice(1),
             lastName: 'User'
           };
         } else {
-          console.error(`[Auth] OAuth exchange returned no user data for provider: ${provider}`);
+          log.error('OAuth exchange returned no user data', { provider });
           return res.status(400).json({
             success: false,
             error: 'OAuth authentication failed - no user data received'
@@ -858,10 +857,10 @@ router.post('/oauth/callback', async (req, res) => {
     // Check if user exists or create new (only for auth flows, not connector flows)
     let user = null;
 
-    console.log('🔵 Checking user:', { isConnectorFlow, hasUserData: !!userData });
+    log.info('Checking user', { isConnectorFlow, hasUserData: !!userData });
 
     if (!isConnectorFlow && userData) {
-      console.log('🔵 Querying for existing user');
+      log.info('Querying for existing user');
       let existingUser, userFetchError;
       try {
         const result = await Promise.race([
@@ -877,15 +876,15 @@ router.post('/oauth/callback', async (req, res) => {
         existingUser = result.data;
         userFetchError = result.error;
       } catch (dbErr) {
-        console.error('❌ Auth DB query timed out or failed:', dbErr.message);
+        log.error('Auth DB query timed out or failed', { error: dbErr });
         return res.status(503).json({ success: false, error: 'Service temporarily unavailable. Please try again in a moment.' });
       }
 
-      console.log('🔵 Existing user query result:', { found: !!existingUser, error: userFetchError });
+      log.info('Existing user query result', { found: !!existingUser, error: userFetchError });
 
       if (!existingUser) {
         // Create new user
-        console.log('🔵 Creating new user');
+        log.info('Creating new user');
         let newUser, insertError;
         try {
           const insertResult = await Promise.race([
@@ -907,41 +906,41 @@ router.post('/oauth/callback', async (req, res) => {
           newUser = insertResult.data;
           insertError = insertResult.error;
         } catch (dbErr) {
-          console.error('❌ Auth user insert timed out or failed:', dbErr.message);
+          log.error('Auth user insert timed out or failed', { error: dbErr });
           return res.status(503).json({ success: false, error: 'Service temporarily unavailable. Please try again in a moment.' });
         }
 
         if (insertError) {
-          console.error('❌ Failed to create user:', insertError.message);
+          log.error('Failed to create user', { error: insertError });
           throw new Error('User creation failed');
         }
 
-        console.log('✅ New user created:', newUser.id);
+        log.info('New user created', { userId: newUser.id });
         user = newUser;
 
         // Trigger background enrichment for new users
         const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-        console.log('🔍 Triggering background enrichment for new user:', user.id);
+        log.info('Triggering background enrichment for new user', { userId: user.id });
         profileEnrichmentService.enrichFromEmail(userData.email, fullName)
           .then(data => {
             if (data) {
               return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
             }
           })
-          .then(() => console.log('✅ Enrichment completed for user:', user.id))
-          .catch(err => console.error('⚠️ Enrichment failed (non-blocking):', err.message));
+          .then(() => log.info('Enrichment completed for user', { userId: user.id }))
+          .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
       } else {
-        console.log('✅ Existing user found:', existingUser.id);
+        log.info('Existing user found', { userId: existingUser.id });
         user = existingUser;
       }
     }
 
     // Handle response based on flow type
-    console.log('🔵 Determining response type:', { isConnectorFlow, hasUser: !!user });
+    log.info('Determining response type', { isConnectorFlow, hasUser: !!user });
 
     if (isConnectorFlow) {
       // For connector flows, just return success
-      console.log('✅ Returning connector success');
+      log.info('Returning connector success');
       res.json({
         success: true,
         message: 'Connector authenticated successfully',
@@ -949,7 +948,7 @@ router.post('/oauth/callback', async (req, res) => {
       });
     } else if (user) {
       // Generate token pair for auth flows
-      console.log('✅ Generating token pair for user:', user.id);
+      log.info('Generating token pair for user', { userId: user.id });
       const { accessToken, refreshToken } = generateTokenPair(user);
       const refreshTokenHash = hashToken(refreshToken);
 
@@ -959,10 +958,10 @@ router.post('/oauth/callback', async (req, res) => {
         .update({ refresh_token_hash: refreshTokenHash })
         .eq('id', user.id);
       if (postCallbackHashErr) {
-        console.error('Failed to store refresh token hash in POST callback:', postCallbackHashErr.message);
+        log.error('Failed to store refresh token hash in POST callback', { error: postCallbackHashErr });
       }
 
-      console.log('✅ Returning auth success with token');
+      log.info('Returning auth success with token');
 
       // Build response data
       const responseData = {
@@ -981,17 +980,16 @@ router.post('/oauth/callback', async (req, res) => {
       // Include redirect parameter if present in state
       if (stateData && stateData.redirectAfterAuth) {
         responseData.redirectAfterAuth = stateData.redirectAfterAuth;
-        console.log('✅ Including redirect in response:', stateData.redirectAfterAuth);
+        log.info('Including redirect in response', { redirect: stateData.redirectAfterAuth });
       }
 
       res.json(responseData);
     } else {
-      console.error('❌ No user and not connector flow - authentication failed');
+      log.error('No user and not connector flow - authentication failed');
       throw new Error('Authentication failed');
     }
   } catch (error) {
-    console.error('❌ OAuth callback error (caught in catch block):', error);
-    console.error('❌ Error stack:', error.stack);
+    log.error('OAuth callback error (POST)', { error });
     res.status(500).json({ error: 'OAuth authentication failed' });
   }
 });

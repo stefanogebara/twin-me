@@ -4,6 +4,9 @@ import { serverDb, supabaseAdmin } from '../services/database.js';
 import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { getConversationStats, getUserWritingProfile } from '../services/conversationLearning.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Conversations');
 
 const router = express.Router();
 
@@ -85,7 +88,7 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
     });
 
   } catch (error) {
-    console.error('Error fetching conversations:', error);
+    log.error('Error fetching conversations:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch conversations',
@@ -134,7 +137,7 @@ router.get('/stats/:userId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching conversation stats:', error);
+    log.error('Error fetching conversation stats:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch conversation stats',
@@ -174,7 +177,7 @@ router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (
     });
 
   } catch (error) {
-    console.error('Error fetching conversation:', error);
+    log.error('Error fetching conversation:', error);
     res.status(500).json({
       error: 'Failed to fetch conversation',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -235,7 +238,7 @@ router.post('/', authenticateUser, userRateLimit(50, 15 * 60 * 1000), validateCo
     });
 
   } catch (error) {
-    console.error('Error creating conversation:', error);
+    log.error('Error creating conversation:', error);
     res.status(500).json({
       error: 'Failed to create conversation',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -277,7 +280,7 @@ router.delete('/:id', authenticateUser, userRateLimit(20, 15 * 60 * 1000), async
     });
 
   } catch (error) {
-    console.error('Error deleting conversation:', error);
+    log.error('Error deleting conversation:', error);
     res.status(500).json({
       error: 'Failed to delete conversation',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -327,7 +330,7 @@ router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000)
     });
 
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    log.error('Error fetching messages:', error);
     res.status(500).json({
       error: 'Failed to fetch messages',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -368,7 +371,7 @@ router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000
 
     // Update conversation's last message time
     const { error: updateConvoErr } = await serverDb.updateConversationLastMessage(conversationId);
-    if (updateConvoErr) console.error('[Conversations] Failed to update last message time:', updateConvoErr.message);
+    if (updateConvoErr) log.error('Failed to update last message time:', updateConvoErr.message);
 
     res.status(201).json({
       message,
@@ -376,7 +379,7 @@ router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000
     });
 
   } catch (error) {
-    console.error('Error creating message:', error);
+    log.error('Error creating message:', error);
     res.status(500).json({
       error: 'Failed to create message',
       message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

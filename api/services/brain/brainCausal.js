@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('Braincausal');
 import {
   CAUSAL_TYPES,
   CORRELATIONAL_TYPES,
@@ -55,7 +58,7 @@ export async function createCausalEdge(userId, sourceNodeId, targetNodeId, optio
   // Update edge strength based on confidence
   await strengthenEdge(userId, sourceNodeId, targetNodeId, confidence - 0.5);
 
-  console.log(`[TwinsBrain] Created causal edge: ${sourceNodeId} --${causalType}--> ${targetNodeId} (confidence: ${confidence})`);
+  log.info(`Created causal edge: ${sourceNodeId} --${causalType}--> ${targetNodeId} (confidence: ${confidence})`);
   return edge;
 }
 
@@ -394,6 +397,6 @@ export async function upgradeToCausal(userId, sourceNodeId, targetNodeId, option
     reason
   });
 
-  console.log(`[TwinsBrain] Upgraded edge to causal: ${edge.relationship_type} -> ${causalType}`);
+  log.info(`Upgraded edge to causal: ${edge.relationship_type} -> ${causalType}`);
   return updated;
 }

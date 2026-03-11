@@ -13,6 +13,9 @@
 import { supabaseAdmin } from './database.js';
 import { generateChatResponse } from './anthropicService.js';
 import correlationEngine from './correlationDiscoveryEngine.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PatternHypothesis');
 
 // Minimum confidence threshold for hypothesis generation
 const MIN_CONFIDENCE_THRESHOLD = 0.4;
@@ -172,7 +175,7 @@ Output only the hypothesis sentence, nothing else.`;
 
     return response.content.trim();
   } catch (error) {
-    console.error('Error generating AI hypothesis:', error);
+    log.error('Error generating AI hypothesis:', error);
     return generateRuleBasedHypothesis(correlation);
   }
 }
@@ -211,7 +214,7 @@ export async function generateHypotheses(userId, useAI = true) {
         .eq('correlation_id', correlation.id)
         .eq('is_active', true)
         .single();
-      if (existingErr && existingErr.code !== 'PGRST116') console.warn('[PatternHypothesis] Error checking existing hypothesis:', existingErr.message);
+      if (existingErr && existingErr.code !== 'PGRST116') log.warn('Error checking existing hypothesis:', existingErr.message);
 
       // Generate hypothesis text
       const hypothesisText = useAI
@@ -232,7 +235,7 @@ export async function generateHypotheses(userId, useAI = true) {
               category
             })
             .eq('id', existing.id);
-          if (updateHypErr) console.warn('[PatternHypothesis] Error updating hypothesis:', updateHypErr.message);
+          if (updateHypErr) log.warn('Error updating hypothesis:', updateHypErr.message);
 
           results.updated++;
         }
@@ -262,7 +265,7 @@ export async function generateHypotheses(userId, useAI = true) {
         }
       }
     } catch (err) {
-      console.error('Error generating hypothesis:', err);
+      log.error('Error generating hypothesis:', err);
       results.skipped++;
     }
   }
@@ -305,7 +308,7 @@ export async function getActiveHypotheses(userId, category = null, minConfidence
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching hypotheses:', error);
+    log.error('Error fetching hypotheses:', error);
     return [];
   }
 
@@ -360,7 +363,7 @@ export async function recordValidation(hypothesisId, validated) {
     .single();
 
   if (error) {
-    console.error('Error recording validation:', error);
+    log.error('Error recording validation:', error);
     return null;
   }
 
@@ -483,7 +486,7 @@ export async function deactivateStaleHypotheses(userId) {
       deactivation_reason: 'correlation_invalidated'
     })
     .in('id', toDeactivate);
-  if (deactivateErr) console.error('[PatternHypothesis] Error deactivating hypotheses:', deactivateErr.message);
+  if (deactivateErr) log.error('Error deactivating hypotheses:', deactivateErr.message);
 
   return toDeactivate.length;
 }

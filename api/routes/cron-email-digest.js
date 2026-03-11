@@ -4,6 +4,9 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { sendWeeklyDigest } from '../services/emailService.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronEmailDigest');
 
 const router = express.Router();
 
@@ -86,11 +89,11 @@ router.post('/', async (req, res) => {
 
       sent++;
     } catch (err) {
-      console.error(`[DigestCron] Failed for ${userId}:`, err.message);
+      log.error('Failed for user', { userId, error: err.message });
     }
   }
 
-  console.log(`[DigestCron] Sent: ${sent}, Skipped: ${skipped}`);
+  log.info('Digest run complete', { sent, skipped });
   res.json({ sent, skipped });
 });
 

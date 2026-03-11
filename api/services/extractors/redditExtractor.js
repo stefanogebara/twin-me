@@ -4,6 +4,9 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('RedditExtractor');
 
 class RedditExtractor {
   constructor(accessToken) {
@@ -15,7 +18,7 @@ class RedditExtractor {
    * Main extraction method - extracts all Reddit data for a user
    */
   async extractAll(userId, connectorId) {
-    console.log(`[Reddit] Starting full extraction for user: ${userId}`);
+    log.info(`Starting full extraction for user: ${userId}`);
 
     try {
       // Create extraction job
@@ -33,10 +36,10 @@ class RedditExtractor {
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
 
-      console.log(`[Reddit] Extraction complete. Total items: ${totalItems}`);
+      log.info(`Extraction complete. Total items: ${totalItems}`);
       return { success: true, itemsExtracted: totalItems, platform: 'reddit' };
     } catch (error) {
-      console.error('[Reddit] Extraction error:', error);
+      log.error('Extraction error:', error);
 
       // If 401, throw to trigger reauth flow
       if (error.status === 401 || error.message?.includes('401')) {
@@ -79,7 +82,7 @@ class RedditExtractor {
    * Extract user profile information
    */
   async extractUserProfile(userId) {
-    console.log(`[Reddit] Extracting user profile...`);
+    log.info(`Extracting user profile...`);
 
     try {
       const data = await this.makeRequest('/api/v1/me');
@@ -109,10 +112,10 @@ class RedditExtractor {
         }
       });
 
-      console.log(`[Reddit] Extracted user profile for u/${data.name}`);
+      log.info(`Extracted user profile for u/${data.name}`);
       return 1;
     } catch (error) {
-      console.error('[Reddit] Error extracting user profile:', error);
+      log.error('Error extracting user profile:', error);
       return 0;
     }
   }
@@ -121,7 +124,7 @@ class RedditExtractor {
    * Extract subscribed subreddits (user's interests)
    */
   async extractSubredditSubscriptions(userId) {
-    console.log(`[Reddit] Extracting subreddit subscriptions...`);
+    log.info(`Extracting subreddit subscriptions...`);
     let subCount = 0;
 
     try {
@@ -168,10 +171,10 @@ class RedditExtractor {
         await this.sleep(500); // Reddit rate limiting
       }
 
-      console.log(`[Reddit] Extracted ${subCount} subreddit subscriptions`);
+      log.info(`Extracted ${subCount} subreddit subscriptions`);
       return subCount;
     } catch (error) {
-      console.error('[Reddit] Error extracting subreddits:', error);
+      log.error('Error extracting subreddits:', error);
       return subCount;
     }
   }
@@ -180,7 +183,7 @@ class RedditExtractor {
    * Extract user's submitted posts
    */
   async extractUserPosts(userId) {
-    console.log(`[Reddit] Extracting user posts...`);
+    log.info(`Extracting user posts...`);
     let postCount = 0;
 
     try {
@@ -230,10 +233,10 @@ class RedditExtractor {
         await this.sleep(500);
       }
 
-      console.log(`[Reddit] Extracted ${postCount} posts`);
+      log.info(`Extracted ${postCount} posts`);
       return postCount;
     } catch (error) {
-      console.error('[Reddit] Error extracting posts:', error);
+      log.error('Error extracting posts:', error);
       return postCount;
     }
   }
@@ -242,7 +245,7 @@ class RedditExtractor {
    * Extract user's comments (communication style)
    */
   async extractUserComments(userId) {
-    console.log(`[Reddit] Extracting user comments...`);
+    log.info(`Extracting user comments...`);
     let commentCount = 0;
 
     try {
@@ -287,10 +290,10 @@ class RedditExtractor {
         await this.sleep(500);
       }
 
-      console.log(`[Reddit] Extracted ${commentCount} comments`);
+      log.info(`Extracted ${commentCount} comments`);
       return commentCount;
     } catch (error) {
-      console.error('[Reddit] Error extracting comments:', error);
+      log.error('Error extracting comments:', error);
       return commentCount;
     }
   }
@@ -299,7 +302,7 @@ class RedditExtractor {
    * Extract saved posts (bookmarked content)
    */
   async extractSavedPosts(userId) {
-    console.log(`[Reddit] Extracting saved posts...`);
+    log.info(`Extracting saved posts...`);
     let savedCount = 0;
 
     try {
@@ -341,10 +344,10 @@ class RedditExtractor {
         await this.sleep(500);
       }
 
-      console.log(`[Reddit] Extracted ${savedCount} saved items`);
+      log.info(`Extracted ${savedCount} saved items`);
       return savedCount;
     } catch (error) {
-      console.error('[Reddit] Error extracting saved items:', error);
+      log.error('Error extracting saved items:', error);
       return savedCount;
     }
   }
@@ -377,10 +380,10 @@ class RedditExtractor {
         });
 
       if (error) {
-        console.error('[Reddit] Error storing data:', error);
+        log.error('Error storing data:', error);
       }
     } catch (error) {
-      console.error('[Reddit] Exception storing data:', error);
+      log.error('Exception storing data:', error);
     }
   }
 
@@ -402,7 +405,7 @@ class RedditExtractor {
       .single();
 
     if (error) {
-      console.error('[Reddit] Error creating job:', error);
+      log.error('Error creating job:', error);
       throw error;
     }
 
@@ -423,7 +426,7 @@ class RedditExtractor {
         results: { message: 'Extraction completed successfully' }
       })
       .eq('id', jobId);
-    if (updateErr) console.warn('[Reddit] Error completing extraction job:', updateErr.message);
+    if (updateErr) log.warn('Error completing extraction job:', updateErr.message);
   }
 }
 

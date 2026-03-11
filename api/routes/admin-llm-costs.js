@@ -9,6 +9,9 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser, requireProfessor } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('AdminLLMCosts');
 
 const router = express.Router();
 
@@ -84,7 +87,7 @@ router.get('/llm-costs', async (req, res) => {
       breakdown,
     });
   } catch (error) {
-    console.error('[Admin LLM Costs] Summary error:', error.message);
+    log.error('Summary error:', error.message);
     res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
@@ -129,7 +132,7 @@ router.get('/llm-costs/daily', async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('[Admin LLM Costs] Daily error:', error.message);
+    log.error('Daily error:', error.message);
     res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
@@ -153,7 +156,7 @@ router.get('/llm-costs/realtime', async (req, res) => {
       calls: data || [],
     });
   } catch (error) {
-    console.error('[Admin LLM Costs] Realtime error:', error.message);
+    log.error('Realtime error:', error.message);
     res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });
@@ -175,7 +178,7 @@ router.get('/llm-costs/by-user', async (req, res) => {
     let users;
     if (error) {
       // Fallback: paginated client-side aggregation
-      console.warn('[Admin LLM Costs] RPC fallback, using paginated query:', error.message);
+      log.warn('RPC fallback, using paginated query:', error.message);
       const usersMap = {};
       let offset = 0;
       const pageSize = 1000;
@@ -237,7 +240,7 @@ router.get('/llm-costs/by-user', async (req, res) => {
           userEmails[u.id] = u.email || u.first_name || u.id.substring(0, 8);
         }
       } catch (lookupErr) {
-        console.warn('[Admin LLM Costs] User lookup failed:', lookupErr.message);
+        log.warn('User lookup failed:', lookupErr.message);
       }
     }
 
@@ -255,7 +258,7 @@ router.get('/llm-costs/by-user', async (req, res) => {
       users: result,
     });
   } catch (error) {
-    console.error('[Admin LLM Costs] By-user error:', error.message);
+    log.error('By-user error:', error.message);
     res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error' });
   }
 });

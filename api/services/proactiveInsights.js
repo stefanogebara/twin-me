@@ -23,6 +23,9 @@ import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ProactiveInsights');
 
 const INSIGHT_GENERATION_PROMPT = `You MUST generate exactly 2-3 insights as a JSON array. The FIRST insight MUST have category "nudge" with a nudge_action field.
 
@@ -78,7 +81,7 @@ async function isInsightDuplicate(userId, insightText) {
     const snippet = insightText.substring(0, 80).toLowerCase();
     return data.some(r => (r.insight || '').substring(0, 80).toLowerCase() === snippet);
   } catch (err) {
-    console.warn('[ProactiveInsights] isInsightDuplicate error:', err.message);
+    log.warn('isInsightDuplicate error', { error: err });
     return false; // fail open
   }
 }
@@ -97,13 +100,13 @@ async function generateProactiveInsights(userId) {
       .eq('delivered', true)
       .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .then(({ error }) => {
-        if (error) console.warn('[ProactiveInsights] Cleanup error:', error.message);
+        if (error) log.warn('Cleanup error', { error });
       });
 
     // 1. Fetch 200 memories to find enough platform signals (reflections dominate recent stream ~90%)
     const recentMemories = await getRecentMemories(userId, 200);
     if (recentMemories.length < 3) {
-      console.log(`[ProactiveInsights] Not enough memories (${recentMemories.length}) for insights`);
+      log.info('Not enough memories for insights', { count: recentMemories.length });
       return 0;
     }
 
@@ -156,7 +159,7 @@ async function generateProactiveInsights(userId) {
     try {
       insights = _parseInsightsJSON(text);
     } catch (parseError) {
-      console.warn('[ProactiveInsights] Failed to parse LLM response:', text.substring(0, 200));
+      log.warn('Failed to parse LLM response', { rawPreview: text.substring(0, 200) });
       return 0;
     }
 
@@ -180,7 +183,7 @@ async function generateProactiveInsights(userId) {
           nudge_action: first.nudge_action || _extractActionFromInsight(first.insight),
         };
       }
-      console.log('[ProactiveInsights] No nudge from LLM — promoted one insight to nudge category');
+      log.info('No nudge from LLM, promoted one insight to nudge category');
     }
 
     // 5. Store insights (max 3), with dedup against recent undelivered
@@ -214,15 +217,15 @@ async function generateProactiveInsights(userId) {
             body: item.insight.substring(0, 120),
             data: { type: 'proactive_insight', category: item.category ?? 'trend' },
           }).catch((err) =>
-            console.warn('[ProactiveInsights] Push failed:', err.message)
+            log.warn('Push failed', { error: err })
           );
         }
       } else {
-        console.warn('[ProactiveInsights] Failed to store insight:', error.message);
+        log.warn('Failed to store insight', { error });
       }
     }
 
-    console.log(`[ProactiveInsights] Generated ${stored} insights for user ${userId}`);
+    log.info('Generated insights', { stored, userId });
 
     // Weekly cross-platform correlation insights
     // Only run if no 'trend' category insight exists in the last 7 days
@@ -246,18 +249,18 @@ async function generateProactiveInsights(userId) {
               urgency: 'low',
               category: 'trend',
             });
-            console.log(`[ProactiveInsights] Stored correlation insight for user ${userId}`);
+            log.info('Stored correlation insight', { userId });
           }
         }
       }
     } catch (corrErr) {
       // Non-fatal — don't let correlation errors fail the whole function
-      console.warn('[ProactiveInsights] Correlation insights error:', corrErr.message);
+      log.warn('Correlation insights error', { error: corrErr });
     }
 
     return stored;
   } catch (error) {
-    console.error('[ProactiveInsights] Error:', error.message);
+    log.error('Error generating insights', { error });
     return 0;
   }
 }
@@ -291,7 +294,7 @@ async function getUndeliveredInsights(userId, limit = 3) {
 
     return sorted.slice(0, limit);
   } catch (err) {
-    console.warn('[ProactiveInsights] getUndeliveredInsights error:', err.message);
+    log.warn('getUndeliveredInsights error', { error: err });
     return [];
   }
 }
@@ -308,7 +311,7 @@ async function markInsightsDelivered(insightIds) {
   const validIds = insightIds.filter(id => typeof id === 'string' && UUID_RE.test(id));
   if (validIds.length === 0) return;
   if (validIds.length !== insightIds.length) {
-    console.warn(`[ProactiveInsights] markInsightsDelivered: ${insightIds.length - validIds.length} invalid IDs filtered out`);
+    log.warn('markInsightsDelivered: invalid IDs filtered out', { filteredCount: insightIds.length - validIds.length });
   }
   const safeIds = validIds;
 
@@ -318,7 +321,7 @@ async function markInsightsDelivered(insightIds) {
     .in('id', safeIds);
 
   if (deliveredErr) {
-    console.warn('[ProactiveInsights] Failed to mark delivered:', deliveredErr.message);
+    log.warn('Failed to mark delivered', { error: deliveredErr });
   }
 }
 
@@ -440,7 +443,7 @@ No other text.`,
     const parsed = JSON.parse(text.slice(start, end));
     return Array.isArray(parsed) ? parsed : null;
   } catch (err) {
-    console.warn('[ProactiveInsights] generateCorrelationInsights error:', err.message);
+    log.warn('generateCorrelationInsights error', { error: err });
     return null;
   }
 }
@@ -530,11 +533,11 @@ async function evaluateNudgeOutcomes(userId) {
     }
 
     if (evaluated > 0) {
-      console.log(`[ProactiveInsights] Evaluated ${evaluated} nudge outcomes for user ${userId}`);
+      log.info('Evaluated nudge outcomes', { evaluated, userId });
     }
     return evaluated;
   } catch (err) {
-    console.warn('[ProactiveInsights] evaluateNudgeOutcomes error:', err.message);
+    log.warn('evaluateNudgeOutcomes error', { error: err });
     return 0;
   }
 }
@@ -562,7 +565,7 @@ async function getNudgeHistory(userId, limit = 5) {
     if (error || !data) return [];
     return data;
   } catch (err) {
-    console.warn('[ProactiveInsights] getNudgeHistory error:', err.message);
+    log.warn('getNudgeHistory error', { error: err });
     return [];
   }
 }
@@ -594,7 +597,7 @@ async function getNudgeEffectivenessScore(userId) {
 
     return { score, followed, total };
   } catch (err) {
-    console.warn('[ProactiveInsights] getNudgeEffectivenessScore error:', err.message);
+    log.warn('getNudgeEffectivenessScore error', { error: err });
     return { score: null, followed: 0, total: 0 };
   }
 }

@@ -15,6 +15,9 @@ import { authenticateUser } from '../middleware/auth.js';
 import patternLearningService, { PatternLearningService } from '../services/patternLearningService.js';
 import patternLearningBridge from '../services/patternLearningBridge.js';
 import learnedTriggerGenerator from '../services/learnedTriggerGenerator.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('TestPatternLearning');
 
 const router = express.Router();
 
@@ -33,19 +36,19 @@ router.get('/trigger/:userId', authenticateUser, async (req, res) => {
   if (userId !== req.user.id) {
     return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
   }
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🧪 [TestPatternLearning] Manual trigger for user ${userId}`);
-  console.log(`${'='.repeat(60)}`);
+  log.info(`\n${'='.repeat(60)}`);
+  log.info(`Manual trigger for user ${userId}`);
+  log.info(`${'='.repeat(60)}`);
 
   try {
     const startTime = Date.now();
     const result = await patternLearningService.processUserFeedback(userId);
     const duration = Date.now() - startTime;
 
-    console.log(`✅ [TestPatternLearning] Completed in ${duration}ms`);
-    console.log(`   - Processed: ${result.processed || 0} feedback items`);
-    console.log(`   - Insights generated: ${result.insightsGenerated || 0}`);
-    console.log(`${'='.repeat(60)}\n`);
+    log.info(`Completed in ${duration}ms`);
+    log.info(`- Processed: ${result.processed || 0} feedback items`);
+    log.info(`- Insights generated: ${result.insightsGenerated || 0}`);
+    log.info(`${'='.repeat(60)}\n`);
 
     res.json({
       success: true,
@@ -54,7 +57,7 @@ router.get('/trigger/:userId', authenticateUser, async (req, res) => {
       result
     });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Error:`, error);
+    log.error(`Error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -64,9 +67,9 @@ router.get('/trigger/:userId', authenticateUser, async (req, res) => {
  * Trigger pattern learning for all users with pending feedback
  */
 router.get('/trigger-all', authenticateUser, async (req, res) => {
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🧪 [TestPatternLearning] Manual trigger for ALL users`);
-  console.log(`${'='.repeat(60)}`);
+  log.info(`\n${'='.repeat(60)}`);
+  log.info(`Manual trigger for ALL users`);
+  log.info(`${'='.repeat(60)}`);
 
   try {
     const startTime = Date.now();
@@ -77,12 +80,12 @@ router.get('/trigger-all', authenticateUser, async (req, res) => {
     const totalProcessed = results?.reduce((sum, r) => sum + (r.processed || 0), 0) || 0;
     const totalInsights = results?.reduce((sum, r) => sum + (r.insightsGenerated || 0), 0) || 0;
 
-    console.log(`✅ [TestPatternLearning] Batch complete in ${duration}ms`);
-    console.log(`   - Users processed: ${results?.length || 0}`);
-    console.log(`   - Successful: ${successCount}`);
-    console.log(`   - Total feedback items: ${totalProcessed}`);
-    console.log(`   - Total insights generated: ${totalInsights}`);
-    console.log(`${'='.repeat(60)}\n`);
+    log.info(`Batch complete in ${duration}ms`);
+    log.info(`- Users processed: ${results?.length || 0}`);
+    log.info(`- Successful: ${successCount}`);
+    log.info(`- Total feedback items: ${totalProcessed}`);
+    log.info(`- Total insights generated: ${totalInsights}`);
+    log.info(`${'='.repeat(60)}\n`);
 
     res.json({
       success: true,
@@ -94,7 +97,7 @@ router.get('/trigger-all', authenticateUser, async (req, res) => {
       results
     });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Error:`, error);
+    log.error(`Error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -108,19 +111,19 @@ router.get('/metrics/:userId', authenticateUser, async (req, res) => {
   if (userId !== req.user.id) {
     return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
   }
-  console.log(`📊 [TestPatternLearning] Getting metrics for user ${userId}`);
+  log.info(`Getting metrics for user ${userId}`);
 
   try {
     const metrics = await patternLearningService.getUserLearningMetrics(userId);
 
-    console.log(`✅ [TestPatternLearning] Metrics retrieved:`);
-    console.log(`   - Total feedback: ${metrics?.totalFeedbackGiven || 0}`);
-    console.log(`   - Positive rate: ${metrics?.positiveRate || 0}%`);
-    console.log(`   - Active insights: ${metrics?.activeInsights || 0}`);
+    log.info(`Metrics retrieved:`);
+    log.info(`- Total feedback: ${metrics?.totalFeedbackGiven || 0}`);
+    log.info(`- Positive rate: ${metrics?.positiveRate || 0}%`);
+    log.info(`- Active insights: ${metrics?.activeInsights || 0}`);
 
     res.json({ success: true, userId, metrics });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Metrics error:`, error);
+    log.error(`Metrics error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -130,7 +133,7 @@ router.get('/metrics/:userId', authenticateUser, async (req, res) => {
  * Check service status and database connectivity
  */
 router.get('/status', authenticateUser, async (req, res) => {
-  console.log(`🔍 [TestPatternLearning] Status check requested`);
+  log.info(`Status check requested`);
 
   try {
     // Count unprocessed feedback
@@ -140,7 +143,7 @@ router.get('/status', authenticateUser, async (req, res) => {
       .is('processed_at', null);
 
     if (feedbackError) {
-      console.error(`❌ [TestPatternLearning] Feedback query error:`, feedbackError);
+      log.error(`Feedback query error:`, feedbackError);
     }
 
     // Count generated insights
@@ -149,7 +152,7 @@ router.get('/status', authenticateUser, async (req, res) => {
       .select('*', { count: 'exact', head: true });
 
     if (insightsError) {
-      console.error(`❌ [TestPatternLearning] Insights query error:`, insightsError);
+      log.error(`Insights query error:`, insightsError);
     }
 
     // Count active (non-expired) insights
@@ -159,7 +162,7 @@ router.get('/status', authenticateUser, async (req, res) => {
       .gt('expires_at', new Date().toISOString());
 
     if (activeError) {
-      console.error(`❌ [TestPatternLearning] Active insights query error:`, activeError);
+      log.error(`Active insights query error:`, activeError);
     }
 
     // Get unique users with pending feedback
@@ -188,15 +191,15 @@ router.get('/status', authenticateUser, async (req, res) => {
       timestamp: new Date().toISOString()
     };
 
-    console.log(`✅ [TestPatternLearning] Status:`);
-    console.log(`   - Database: ${status.database.connected ? 'connected' : 'error'}`);
-    console.log(`   - Pending feedback: ${status.stats.pendingFeedback}`);
-    console.log(`   - Users waiting: ${status.stats.usersWithPendingFeedback}`);
-    console.log(`   - Total insights: ${status.stats.totalInsightsGenerated}`);
+    log.info(`Status:`);
+    log.info(`- Database: ${status.database.connected ? 'connected' : 'error'}`);
+    log.info(`- Pending feedback: ${status.stats.pendingFeedback}`);
+    log.info(`- Users waiting: ${status.stats.usersWithPendingFeedback}`);
+    log.info(`- Total insights: ${status.stats.totalInsightsGenerated}`);
 
     res.json(status);
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Status error:`, error);
+    log.error(`Status error:`, error);
     res.status(500).json({
       service: 'PatternLearningService',
       status: 'error',
@@ -217,7 +220,7 @@ router.get('/feedback/:userId', authenticateUser, async (req, res) => {
   }
   const { processed = 'all' } = req.query;
 
-  console.log(`📋 [TestPatternLearning] Getting feedback for user ${userId} (filter: ${processed})`);
+  log.info(`Getting feedback for user ${userId} (filter: ${processed})`);
 
   try {
     let query = supabase
@@ -238,7 +241,7 @@ router.get('/feedback/:userId', authenticateUser, async (req, res) => {
       throw error;
     }
 
-    console.log(`✅ [TestPatternLearning] Found ${feedback?.length || 0} feedback items`);
+    log.info(`Found ${feedback?.length || 0} feedback items`);
 
     res.json({
       success: true,
@@ -248,7 +251,7 @@ router.get('/feedback/:userId', authenticateUser, async (req, res) => {
       feedback
     });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Feedback query error:`, error);
+    log.error(`Feedback query error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -264,7 +267,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
   }
   const { active = 'true' } = req.query;
 
-  console.log(`💡 [TestPatternLearning] Getting insights for user ${userId} (active only: ${active})`);
+  log.info(`Getting insights for user ${userId} (active only: ${active})`);
 
   try {
     let query = supabase
@@ -283,7 +286,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
       throw error;
     }
 
-    console.log(`✅ [TestPatternLearning] Found ${insights?.length || 0} insights`);
+    log.info(`Found ${insights?.length || 0} insights`);
 
     res.json({
       success: true,
@@ -293,7 +296,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
       insights
     });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Insights query error:`, error);
+    log.error(`Insights query error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -313,24 +316,24 @@ router.post('/sync/:userId', authenticateUser, async (req, res) => {
   }
   const { platforms = ['spotify', 'calendar', 'whoop'], days = 90 } = req.body;
 
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🔄 [TestPatternLearning] Syncing platform data for user ${userId}`);
-  console.log(`   Platforms: ${platforms.join(', ')}`);
-  console.log(`   Days: ${days}`);
-  console.log(`${'='.repeat(60)}`);
+  log.info(`\n${'='.repeat(60)}`);
+  log.info(`Syncing platform data for user ${userId}`);
+  log.info(`Platforms: ${platforms.join(', ')}`);
+  log.info(`Days: ${days}`);
+  log.info(`${'='.repeat(60)}`);
 
   try {
     const results = {};
     for (const platform of platforms) {
       const result = await patternLearningBridge.syncExistingPlatformData(userId, platform, days);
       results[platform] = result;
-      console.log(`   ${platform}: ${result.synced || 0} events synced`);
+      log.info(`${platform}: ${result.synced || 0} events synced`);
     }
 
-    console.log(`✅ [TestPatternLearning] Sync complete`);
+    log.info(`Sync complete`);
     res.json({ success: true, userId, results });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Sync error:`, error);
+    log.error(`Sync error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -346,9 +349,9 @@ router.get('/run-pipeline/:userId', authenticateUser, async (req, res) => {
   }
   const { syncFirst = 'false' } = req.query;
 
-  console.log(`\n${'='.repeat(60)}`);
-  console.log(`🧠 [TestPatternLearning] Running FULL PIPELINE for user ${userId}`);
-  console.log(`${'='.repeat(60)}`);
+  log.info(`\n${'='.repeat(60)}`);
+  log.info(`Running FULL PIPELINE for user ${userId}`);
+  log.info(`${'='.repeat(60)}`);
 
   try {
     const startTime = Date.now();
@@ -356,25 +359,25 @@ router.get('/run-pipeline/:userId', authenticateUser, async (req, res) => {
     // Optional: Sync platform data first
     let syncResults = null;
     if (syncFirst === 'true') {
-      console.log(`📥 Step 0: Syncing platform data...`);
+      log.info(`Step 0: Syncing platform data...`);
       syncResults = {};
       for (const platform of ['spotify', 'calendar', 'whoop']) {
         const result = await patternLearningBridge.syncExistingPlatformData(userId, platform, 90);
         syncResults[platform] = result;
       }
-      console.log(`   Sync complete`);
+      log.info(`Sync complete`);
     }
 
     // Run the full pattern learning pipeline
-    console.log(`🔬 Running pattern discovery pipeline...`);
+    log.info(`Running pattern discovery pipeline...`);
     const pipelineResult = await learnedTriggerGenerator.runPatternLearningPipeline(userId);
 
     // Get the discovered patterns summary
     const learnedTriggers = await learnedTriggerGenerator.generateLearnedTriggers(userId);
 
     const duration = Date.now() - startTime;
-    console.log(`\n✅ [TestPatternLearning] Pipeline complete in ${duration}ms`);
-    console.log(`${'='.repeat(60)}\n`);
+    log.info(`\n✅ [TestPatternLearning] Pipeline complete in ${duration}ms`);
+    log.info(`${'='.repeat(60)}\n`);
 
     res.json({
       success: true,
@@ -388,7 +391,7 @@ router.get('/run-pipeline/:userId', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(`❌ [TestPatternLearning] Pipeline error:`, error);
+    log.error(`Pipeline error:`, error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

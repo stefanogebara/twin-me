@@ -8,6 +8,9 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { ingestLocationClusters } from '../services/observationIngestion.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('Location');
 
 let supabaseAdmin = null;
 async function getSupabase() {
@@ -55,17 +58,17 @@ router.post('/clusters', authenticateUser, async (req, res) => {
 
     const failed = upsertResults.filter((r) => r.status === 'rejected' || r.value?.error);
     if (failed.length > 0) {
-      console.warn(`[Location] ${failed.length}/${clusters.length} cluster upserts failed for user ${userId}`);
+      log.warn(`${failed.length}/${clusters.length} cluster upserts failed for user ${userId}`);
     }
 
     // Fire-and-forget NL ingestion — don't block the response
     ingestLocationClusters(userId, clusters).catch((err) =>
-      console.error('[Location] ingestLocationClusters error:', err.message)
+      log.error('ingestLocationClusters error:', err.message)
     );
 
     res.json({ success: true, clustersReceived: clusters.length });
   } catch (err) {
-    console.error('[Location] POST /clusters error:', err.message);
+    log.error('POST /clusters error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -104,7 +107,7 @@ router.post('/current', authenticateUser, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('[Location] POST /current error:', err.message);
+    log.error('POST /current error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -124,7 +127,7 @@ router.get('/current', authenticateUser, async (req, res) => {
 
     res.json({ success: true, location: data?.last_location || null });
   } catch (err) {
-    console.error('[Location] GET /current error:', err.message);
+    log.error('GET /current error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -141,7 +144,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     if (error) throw error;
     res.json({ success: true, clusterCount: count ?? 0 });
   } catch (err) {
-    console.error('[Location] GET /status error:', err.message);
+    log.error('GET /status error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

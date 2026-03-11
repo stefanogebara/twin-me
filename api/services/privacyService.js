@@ -6,6 +6,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Privacy');
 
 /**
  * Default life clusters with categories and default revelation levels
@@ -85,7 +88,7 @@ export async function getOrCreatePrivacyProfile(userId) {
       return { success: true, profile: existing };
     } else if (fetchError.code !== 'PGRST116') {
       // Real error, not just "no rows found"
-      console.error('[Privacy] Error fetching privacy settings:', fetchError.message);
+      log.error('Error fetching privacy settings:', fetchError.message);
       throw fetchError;
     }
     // PGRST116: no profile yet, fall through to create one
@@ -123,7 +126,7 @@ export async function getOrCreatePrivacyProfile(userId) {
 
     return { success: true, profile: created };
   } catch (error) {
-    console.error('Error getting/creating privacy profile:', error);
+    log.error('Error getting/creating privacy profile:', error);
     return { success: false, error: error.message };
   }
 }
@@ -151,7 +154,7 @@ export async function updateGlobalPrivacyLevel(userId, globalLevel) {
 
     return { success: true, profile: data };
   } catch (error) {
-    console.error('Error updating global privacy level:', error);
+    log.error('Error updating global privacy level:', error);
     return { success: false, error: error.message };
   }
 }
@@ -213,7 +216,7 @@ export async function updateClusterPrivacy(userId, clusterId, revelationLevel, i
 
     return { success: true, profile: data };
   } catch (error) {
-    console.error('Error updating cluster privacy:', error);
+    log.error('Error updating cluster privacy:', error);
     return { success: false, error: error.message };
   }
 }
@@ -261,7 +264,7 @@ export async function batchUpdateClusters(userId, clusterUpdates) {
 
     return { success: true, profile: data };
   } catch (error) {
-    console.error('Error batch updating clusters:', error);
+    log.error('Error batch updating clusters:', error);
     return { success: false, error: error.message };
   }
 }
@@ -289,7 +292,7 @@ export async function getEffectivePrivacyLevel(userId, clusterId, audienceId = '
     const cluster = (settings.clusters || []).find(c => c.id === clusterId);
     return cluster ? cluster.privacyLevel : 50;
   } catch (error) {
-    console.error('Error getting effective privacy level:', error);
+    log.error('Error getting effective privacy level:', error);
     return 50; // Default fallback
   }
 }
@@ -309,7 +312,7 @@ export async function filterDataByPrivacy(userId, data, platformName, audienceId
 
     if (error) {
       if (error.code !== 'PGRST116') {
-        console.error('[Privacy] Error fetching privacy settings:', error.message);
+        log.error('Error fetching privacy settings:', error.message);
       }
       return data; // Return unfiltered data as fallback
     }
@@ -346,7 +349,7 @@ export async function filterDataByPrivacy(userId, data, platformName, audienceId
     // Apply percentage-based filtering
     return applyPercentageFilter(data, averagePrivacy);
   } catch (error) {
-    console.error('Error filtering data by privacy:', error);
+    log.error('Error filtering data by privacy:', error);
     return data; // Return unfiltered on error
   }
 }
@@ -439,7 +442,7 @@ export async function getPrivacyStats(userId) {
       }
     };
   } catch (error) {
-    console.error('Error getting privacy stats:', error);
+    log.error('Error getting privacy stats:', error);
     return { success: false, error: error.message };
   }
 }
@@ -499,11 +502,11 @@ export async function resetPrivacySettings(userId) {
       action: 'reset_to_defaults',
       changed_at: new Date().toISOString()
     });
-    if (auditLogErr) console.warn('[Privacy] Error logging reset action:', auditLogErr.message);
+    if (auditLogErr) log.warn('Error logging reset action:', auditLogErr.message);
 
     return { success: true, profile: data };
   } catch (error) {
-    console.error('Error resetting privacy settings:', error);
+    log.error('Error resetting privacy settings:', error);
     return { success: false, error: error.message };
   }
 }
@@ -538,7 +541,7 @@ export async function updateContextPrivacy(userId, contextName, clusterOverrides
 
     return { success: true, profile: data };
   } catch (error) {
-    console.error('Error updating context privacy:', error);
+    log.error('Error updating context privacy:', error);
     return { success: false, error: error.message };
   }
 }
@@ -574,7 +577,7 @@ export async function shouldRevealData(userId, clusterId, dataSensitivity = 50, 
     const privacyLevel = await getEffectivePrivacyLevel(userId, clusterId, audienceId);
     return privacyLevel >= dataSensitivity;
   } catch (error) {
-    console.error('Error checking data revelation:', error);
+    log.error('Error checking data revelation:', error);
     return true; // Default to revealing on error
   }
 }

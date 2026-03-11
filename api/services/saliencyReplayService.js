@@ -21,6 +21,9 @@
 
 import { supabaseAdmin } from './database.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('SaliencyReplay');
 
 // Configuration
 const MAX_USERS_PER_RUN = 3;
@@ -65,12 +68,12 @@ export async function runSaliencyReplay(options = {}) {
 
     if (findErr) {
       stats.errors.push(`find_users: ${findErr.message}`);
-      console.warn('[SaliencyReplay] Failed to find candidate users:', findErr.message);
+      log.warn('Failed to find candidate users:', findErr.message);
       return stats;
     }
 
     if (!candidates?.length) {
-      console.log('[SaliencyReplay] No stale memories found — nothing to replay');
+      log.info('No stale memories found — nothing to replay');
       return stats;
     }
 
@@ -83,12 +86,12 @@ export async function runSaliencyReplay(options = {}) {
         await replayForUser(userId, memoriesPerUser, staleCutoff, stats);
         stats.usersProcessed++;
       } catch (userErr) {
-        console.warn(`[SaliencyReplay] Error for user ${userId.substring(0, 8)}:`, userErr.message);
+        log.warn(`Error for user ${userId.substring(0, 8)}:`, userErr.message);
         stats.errors.push(`user_${userId.substring(0, 8)}: ${userErr.message}`);
       }
     }
 
-    console.log(
+    log.info(
       `[SaliencyReplay] Done: ${stats.usersProcessed} users, ` +
       `${stats.memoriesReplayed} memories replayed, ` +
       `${stats.reflectionsTriggered} reflections triggered, ` +
@@ -97,7 +100,7 @@ export async function runSaliencyReplay(options = {}) {
 
     return stats;
   } catch (err) {
-    console.error('[SaliencyReplay] Unexpected error:', err.message);
+    log.error('Unexpected error:', err.message);
     stats.errors.push(`unexpected: ${err.message}`);
     return stats;
   }
@@ -131,7 +134,7 @@ async function replayForUser(userId, memoriesPerUser, staleCutoff, stats) {
     .in('id', memoryIds);
 
   if (touchErr) {
-    console.warn(`[SaliencyReplay] Failed to touch memories for ${userId.substring(0, 8)}:`, touchErr.message);
+    log.warn(`Failed to touch memories for ${userId.substring(0, 8)}:`, touchErr.message);
     // Non-fatal — continue to reflection step
   } else {
     stats.memoriesReplayed += memoryIds.length;
@@ -146,17 +149,17 @@ async function replayForUser(userId, memoriesPerUser, staleCutoff, stats) {
     try {
       const reflectionCount = await generateReflections(userId);
       stats.reflectionsTriggered += reflectionCount;
-      console.log(
+      log.info(
         `[SaliencyReplay] User ${userId.substring(0, 8)}: replayed ${memoryIds.length} memories, ` +
         `${reflectionCount} reflections generated`
       );
     } catch (reflErr) {
-      console.warn(`[SaliencyReplay] Reflection failed for ${userId.substring(0, 8)}:`, reflErr.message);
+      log.warn(`Reflection failed for ${userId.substring(0, 8)}:`, reflErr.message);
       // Non-fatal — recency refresh still provides value
     }
   } else {
     stats.reflectionsSkippedCooldown++;
-    console.log(
+    log.info(
       `[SaliencyReplay] User ${userId.substring(0, 8)}: replayed ${memoryIds.length} memories ` +
       `(reflections skipped — cooldown active)`
     );

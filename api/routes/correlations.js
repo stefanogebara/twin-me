@@ -6,6 +6,9 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CorrelationsRoute');
 import {
   analyzeCorrelations,
   getStoredCorrelations,
@@ -27,7 +30,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
       stats
     });
   } catch (error) {
-    console.error('[Correlations API] Stats error:', error);
+    log.error('Stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get correlation stats'
@@ -54,7 +57,7 @@ router.get('/', authenticateUser, async (req, res) => {
       correlations
     });
   } catch (error) {
-    console.error('[Correlations API] Get error:', error);
+    log.error('Get error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get correlations'
@@ -70,7 +73,7 @@ router.post('/analyze', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { days = 30, dryRun = false } = req.body;
 
-    console.log(`[Correlations API] Analysis requested for user ${userId}`);
+    log.info(`Analysis requested for user ${userId}`);
 
     const result = await analyzeCorrelations(userId, { days, dryRun });
 
@@ -82,7 +85,7 @@ router.post('/analyze', authenticateUser, async (req, res) => {
       error: result.error
     });
   } catch (error) {
-    console.error('[Correlations API] Analysis error:', error);
+    log.error('Analysis error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to run correlation analysis'
@@ -108,14 +111,14 @@ router.post('/analyze-background', authenticateUser, async (req, res) => {
     // Run in background
     analyzeCorrelations(userId, { days })
       .then(result => {
-        console.log(`[Correlations API] Background analysis complete:`, result.summary);
+        log.info(`Background analysis complete:`, result.summary);
       })
       .catch(err => {
-        console.error(`[Correlations API] Background analysis error:`, err);
+        log.error(`Background analysis error:`, err);
       });
 
   } catch (error) {
-    console.error('[Correlations API] Background analysis error:', error);
+    log.error('Background analysis error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to start analysis'

@@ -16,6 +16,9 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, decryptToken } from './encryption.js';
 import { applyPreferencesToMusicParams, generatePreferenceExplanation } from './onboardingQuestionsService.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('IntelligentMusic');
 
 const SPOTIFY_CONFIG = {
   tokenUrl: 'https://accounts.spotify.com/api/token',
@@ -41,14 +44,14 @@ class IntelligentMusicService {
         .single();
 
       if (error || !user?.personality_quiz?.preferences) {
-        console.log(`🎵 [IntelligentMusic] No personality preferences found for user ${userId}`);
+        log.info(`No personality preferences found for user ${userId}`);
         return null;
       }
 
-      console.log(`🎵 [IntelligentMusic] Loaded personality preferences for user ${userId}`);
+      log.info(`Loaded personality preferences for user ${userId}`);
       return user.personality_quiz.preferences;
     } catch (error) {
-      console.error('🎵 [IntelligentMusic] Error fetching user preferences:', error);
+      log.error('Error fetching user preferences:', error);
       return null;
     }
   }
@@ -63,10 +66,10 @@ class IntelligentMusicService {
    */
   async getUserMusicProfile(userId) {
     try {
-      console.log(`🎵 [IntelligentMusic] Fetching music profile for user ${userId}`);
+      log.info(`Fetching music profile for user ${userId}`);
 
       // Get top tracks from extracted data - try BOTH data_type formats
-      console.log(`🎵 [IntelligentMusic] Querying user_platform_data for user_id=${userId}, platform=spotify`);
+      log.info(`Querying user_platform_data for user_id=${userId}, platform=spotify`);
 
       const { data: topTracksSingular, error: tracksError1 } = await supabaseAdmin
         .from('user_platform_data')
@@ -77,7 +80,7 @@ class IntelligentMusicService {
         .order('extracted_at', { ascending: false })
         .limit(20);
 
-      console.log(`🎵 [IntelligentMusic] top_track query: ${topTracksSingular?.length || 0} rows, error: ${tracksError1?.message || 'none'}`);
+      log.info(`top_track query: ${topTracksSingular?.length || 0} rows, error: ${tracksError1?.message || 'none'}`);
 
       // Also try plural form (batch records with items array)
       const { data: topTracksPlural, error: tracksError2 } = await supabaseAdmin
@@ -89,7 +92,7 @@ class IntelligentMusicService {
         .order('extracted_at', { ascending: false })
         .limit(5);
 
-      console.log(`🎵 [IntelligentMusic] top_tracks query: ${topTracksPlural?.length || 0} rows, error: ${tracksError2?.message || 'none'}`);
+      log.info(`top_tracks query: ${topTracksPlural?.length || 0} rows, error: ${tracksError2?.message || 'none'}`);
 
       // Get top artists from extracted data
       const { data: topArtists, error: artistsError } = await supabaseAdmin
@@ -169,17 +172,17 @@ class IntelligentMusicService {
         }
       }
 
-      console.log(`🎵 [IntelligentMusic] Found ${profile.topTrackIds.length} top tracks, ${profile.topArtistIds.length} top artists`);
+      log.info(`Found ${profile.topTrackIds.length} top tracks, ${profile.topArtistIds.length} top artists`);
       if (profile.topTrackIds.length > 0) {
-        console.log(`🎵 [IntelligentMusic] Track IDs (first 5): ${profile.topTrackIds.slice(0, 5).join(', ')}`);
+        log.info(`Track IDs (first 5): ${profile.topTrackIds.slice(0, 5).join(', ')}`);
       }
       if (profile.topTrackNames.length > 0) {
-        console.log(`🎵 [IntelligentMusic] Top tracks: ${profile.topTrackNames.slice(0, 3).join(', ')}...`);
+        log.info(`Top tracks: ${profile.topTrackNames.slice(0, 3).join(', ')}...`);
       }
 
       return profile;
     } catch (error) {
-      console.error('🎵 [IntelligentMusic] Error fetching music profile:', error);
+      log.error('Error fetching music profile:', error);
       return null;
     }
   }
@@ -192,7 +195,7 @@ class IntelligentMusicService {
    * @returns {Promise<Object>} Recommendations with tracks, playlists, and explanations
    */
   async getRecommendations(userId, context, purpose = 'general') {
-    console.log(`🎵 [IntelligentMusic] Getting recommendations for user ${userId}, purpose: ${purpose}`);
+    log.info(`Getting recommendations for user ${userId}, purpose: ${purpose}`);
 
     try {
       // 1. Get Spotify access token
@@ -210,12 +213,12 @@ class IntelligentMusicService {
         this.getUserMusicProfile(userId),
         this.getUserPreferences(userId)
       ]);
-      console.log(`🎵 [IntelligentMusic] Music profile loaded:`, musicProfile ? 'yes' : 'no');
-      console.log(`🎵 [IntelligentMusic] Personality preferences loaded:`, userPreferences ? 'yes' : 'no');
+      log.info(`Music profile loaded:`, musicProfile ? 'yes' : 'no');
+      log.info(`Personality preferences loaded:`, userPreferences ? 'yes' : 'no');
 
       // 3. Analyze context to determine optimal audio features
       let audioFeatureTargets = this.analyzeContextForAudioFeatures(context, purpose);
-      console.log(`🎵 [IntelligentMusic] Base target features:`, audioFeatureTargets);
+      log.info(`Base target features:`, audioFeatureTargets);
 
       // 3b. Apply personality preferences if available (from onboarding questionnaire)
       let preferenceAdjustments = null;
@@ -249,7 +252,7 @@ class IntelligentMusicService {
           ));
         }
 
-        console.log(`🎵 [IntelligentMusic] Adjusted features based on preferences:`, audioFeatureTargets);
+        log.info(`Adjusted features based on preferences:`, audioFeatureTargets);
       }
 
       // 4. Generate search queries based on context
@@ -264,7 +267,7 @@ class IntelligentMusicService {
 
       if (musicProfile && musicProfile.topTrackIds.length > 0) {
         // Use user's actual top tracks as seeds for PERSONALIZED recommendations
-        console.log(`🎵 [IntelligentMusic] Using ${musicProfile.topTrackIds.length} top tracks as seeds for personalized recommendations`);
+        log.info(`Using ${musicProfile.topTrackIds.length} top tracks as seeds for personalized recommendations`);
         spotifyRecommendations = await this.getSpotifyRecommendations(
           accessToken,
           musicProfile.topTrackIds.slice(0, 5), // Use top 5 tracks as seeds
@@ -273,7 +276,7 @@ class IntelligentMusicService {
         seedSource = 'user_top_tracks';
       } else if (musicProfile && musicProfile.recentTrackIds.length > 0) {
         // Fallback to recently played tracks
-        console.log(`🎵 [IntelligentMusic] Using recently played tracks as seeds`);
+        log.info(`Using recently played tracks as seeds`);
         spotifyRecommendations = await this.getSpotifyRecommendations(
           accessToken,
           musicProfile.recentTrackIds.slice(0, 5),
@@ -282,7 +285,7 @@ class IntelligentMusicService {
         seedSource = 'recently_played';
       } else {
         // Fallback to generic search-based tracks
-        console.log(`🎵 [IntelligentMusic] No user data, falling back to search-based recommendations`);
+        log.info(`No user data, falling back to search-based recommendations`);
         const trackResults = await this.searchTracks(accessToken, searchQueries.track, audioFeatureTargets);
         spotifyRecommendations = await this.getSpotifyRecommendations(
           accessToken,
@@ -338,7 +341,7 @@ class IntelligentMusicService {
         }
       };
     } catch (error) {
-      console.error('❌ [IntelligentMusic] Error:', error);
+      log.error('Error:', error);
       return {
         success: false,
         error: error.message
@@ -372,7 +375,7 @@ class IntelligentMusicService {
           instrumentalness: { min: 0.3, max: 1, target: 0.6 },
           mood: 'calm'
         };
-        console.log(`🎵 [IntelligentMusic] Low recovery (${recovery}%) - recommending calm music`);
+        log.info(`Low recovery (${recovery}%) - recommending calm music`);
       } else if (recovery < 66) {
         // Medium recovery - balanced energy
         features = {
@@ -382,7 +385,7 @@ class IntelligentMusicService {
           instrumentalness: { min: 0.1, max: 0.7, target: 0.4 },
           mood: 'focused'
         };
-        console.log(`🎵 [IntelligentMusic] Medium recovery (${recovery}%) - recommending focused music`);
+        log.info(`Medium recovery (${recovery}%) - recommending focused music`);
       } else {
         // High recovery - can handle higher energy
         features = {
@@ -392,7 +395,7 @@ class IntelligentMusicService {
           instrumentalness: { min: 0, max: 0.5, target: 0.2 },
           mood: 'energizing'
         };
-        console.log(`🎵 [IntelligentMusic] High recovery (${recovery}%) - recommending energizing music`);
+        log.info(`High recovery (${recovery}%) - recommending energizing music`);
       }
     }
 
@@ -400,7 +403,7 @@ class IntelligentMusicService {
     if (context.whoop?.strain > 15) {
       features.energy.target = Math.max(0.2, features.energy.target - 0.15);
       features.energy.max = Math.max(0.4, features.energy.max - 0.1);
-      console.log(`🎵 [IntelligentMusic] High strain (${context.whoop.strain}) - reducing energy level`);
+      log.info(`High strain (${context.whoop.strain}) - reducing energy level`);
     }
 
     // Get recovery level for purpose-aware adjustments
@@ -417,13 +420,13 @@ class IntelligentMusicService {
           features.energy.target = Math.min(0.45, features.energy.target + 0.1);
           features.valence.target = Math.min(0.65, features.valence.target + 0.1);
           features.mood = 'focused';
-          console.log(`🎵 [IntelligentMusic] Pre-event with LOW recovery - calm confidence`);
+          log.info(`Pre-event with LOW recovery - calm confidence`);
         } else if (isHighRecovery) {
           // High recovery: full confidence boost
           features.energy.target = Math.min(0.85, features.energy.target + 0.15);
           features.valence.target = Math.min(0.9, features.valence.target + 0.15);
           features.mood = 'energizing';
-          console.log(`🎵 [IntelligentMusic] Pre-event with HIGH recovery - full confidence`);
+          log.info(`Pre-event with HIGH recovery - full confidence`);
         } else {
           // Medium recovery: balanced confidence
           features.energy.target = Math.min(0.65, features.energy.target + 0.1);
@@ -446,7 +449,7 @@ class IntelligentMusicService {
           features.tempo.target = 115;
           features.valence.target = 0.65;
           features.mood = 'energizing';
-          console.log(`🎵 [IntelligentMusic] Workout with LOW recovery - moderate intensity`);
+          log.info(`Workout with LOW recovery - moderate intensity`);
         } else {
           // Normal/high recovery: full workout intensity
           features.energy.target = 0.85;
@@ -655,7 +658,7 @@ class IntelligentMusicService {
           }
         }
       } catch (error) {
-        console.error(`🎵 [IntelligentMusic] Playlist search error for "${query}":`, error.message);
+        log.error(`Playlist search error for "${query}":`, error.message);
       }
     }
 
@@ -706,7 +709,7 @@ class IntelligentMusicService {
           }
         }
       } catch (error) {
-        console.error(`🎵 [IntelligentMusic] Track search error for "${query}":`, error.message);
+        log.error(`Track search error for "${query}":`, error.message);
       }
     }
 
@@ -719,13 +722,13 @@ class IntelligentMusicService {
    * We now use the user's top tracks directly with full track details from /v1/tracks
    */
   async getSpotifyRecommendations(accessToken, seedTrackIds, audioFeatures) {
-    console.log('🎵 [IntelligentMusic] Getting personalized tracks with:', {
+    log.info('Getting personalized tracks with:', {
       seedTrackIdsCount: seedTrackIds?.length || 0,
       hasAccessToken: !!accessToken
     });
 
     if (seedTrackIds.length === 0) {
-      console.log('🎵 [IntelligentMusic] No seed tracks available');
+      log.info('No seed tracks available');
       return [];
     }
 
@@ -734,7 +737,7 @@ class IntelligentMusicService {
       // Take up to 10 tracks for recommendations
       const trackIdsToFetch = seedTrackIds.slice(0, 10);
 
-      console.log(`🎵 [IntelligentMusic] Fetching ${trackIdsToFetch.length} tracks from user's top tracks`);
+      log.info(`Fetching ${trackIdsToFetch.length} tracks from user's top tracks`);
 
       const response = await fetch(
         `${SPOTIFY_CONFIG.apiBaseUrl}/tracks?ids=${trackIdsToFetch.join(',')}`,
@@ -743,12 +746,12 @@ class IntelligentMusicService {
         }
       );
 
-      console.log(`🎵 [IntelligentMusic] Spotify tracks API response status: ${response.status}`);
+      log.info(`Spotify tracks API response status: ${response.status}`);
 
       if (response.ok) {
         const data = await response.json();
         const tracks = data.tracks || [];
-        console.log(`🎵 [IntelligentMusic] Got ${tracks.length} tracks from user's library`);
+        log.info(`Got ${tracks.length} tracks from user's library`);
 
         return tracks.filter(track => track !== null).map(track => ({
           id: track.id,
@@ -765,10 +768,10 @@ class IntelligentMusicService {
         }));
       } else {
         const errorBody = await response.text();
-        console.error(`❌ [IntelligentMusic] Spotify tracks API failed: ${response.status} - ${errorBody}`);
+        log.error(`Spotify tracks API failed: ${response.status} - ${errorBody}`);
       }
     } catch (error) {
-      console.error('❌ [IntelligentMusic] Error fetching tracks:', error.message);
+      log.error('Error fetching tracks:', error.message);
     }
 
     return [];
@@ -861,13 +864,13 @@ class IntelligentMusicService {
 
       // Check if token is expired
       if (connection.token_expires_at && new Date(connection.token_expires_at) < new Date()) {
-        console.log('🎵 [IntelligentMusic] Token expired, refreshing...');
+        log.info('Token expired, refreshing...');
         accessToken = await this.refreshToken(userId, connection.refresh_token);
       }
 
       return accessToken;
     } catch (error) {
-      console.error('🎵 [IntelligentMusic] Token error:', error);
+      log.error('Token error:', error);
       return null;
     }
   }
@@ -894,7 +897,7 @@ class IntelligentMusicService {
       });
 
       if (!response.ok) {
-        console.error('🎵 [IntelligentMusic] Token refresh failed:', response.status);
+        log.error('Token refresh failed:', response.status);
         return null;
       }
 
@@ -912,12 +915,12 @@ class IntelligentMusicService {
         })
         .eq('user_id', userId)
         .eq('platform', 'spotify');
-      if (tokenUpdateErr) console.warn('[IntelligentMusic] Error updating connection status:', tokenUpdateErr.message);
+      if (tokenUpdateErr) log.warn('Error updating connection status:', tokenUpdateErr.message);
 
-      console.log('🎵 [IntelligentMusic] Token refreshed successfully');
+      log.info('Token refreshed successfully');
       return newAccessToken;
     } catch (error) {
-      console.error('🎵 [IntelligentMusic] Token refresh error:', error);
+      log.error('Token refresh error:', error);
       return null;
     }
   }
@@ -938,7 +941,7 @@ class IntelligentMusicService {
    * Useful for lighter-weight requests
    */
   async getQuickSuggestions(userId, mood = 'balanced') {
-    console.log(`🎵 [IntelligentMusic] Quick suggestions for mood: ${mood}`);
+    log.info(`Quick suggestions for mood: ${mood}`);
 
     const accessToken = await this.getValidAccessToken(userId);
     if (!accessToken) {

@@ -1,3 +1,7 @@
+import { createLogger } from './logger.js';
+
+const log = createLogger('SpotifyEnhancedExtractor');
+
 /**
  * Spotify Enhanced Extractor
  * Advanced personality analysis from Spotify data - far beyond basic listening patterns
@@ -17,7 +21,7 @@ class SpotifyEnhancedExtractor {
    * Main extraction method - gets comprehensive Spotify personality profile
    */
   async extractComprehensiveProfile(accessToken, userId) {
-    console.log('[Spotify Enhanced] Starting comprehensive profile extraction...');
+    log.info('Starting comprehensive profile extraction...');
 
     try {
       // Parallel data fetching for performance
@@ -45,7 +49,7 @@ class SpotifyEnhancedExtractor {
         this.getFollowedArtists(accessToken)
       ]);
 
-      console.log('[Spotify Enhanced] Data fetched successfully');
+      log.info('Data fetched successfully');
 
       // Extract audio features for all unique tracks
       const allTrackIds = this.extractUniqueTrackIds([
@@ -57,7 +61,7 @@ class SpotifyEnhancedExtractor {
 
       const audioFeatures = await this.getAudioFeaturesForTracks(accessToken, allTrackIds);
 
-      console.log('[Spotify Enhanced] Audio features retrieved');
+      log.info('Audio features retrieved');
 
       // Perform advanced analyses
       const analyses = {
@@ -71,7 +75,7 @@ class SpotifyEnhancedExtractor {
         emotionalProfile: await this.analyzeEmotionalProfile(audioFeatures, recentTracks)
       };
 
-      console.log('[Spotify Enhanced] All analyses complete');
+      log.info('All analyses complete');
 
       // Calculate overall metrics
       const overallMetrics = this.calculateOverallMetrics(analyses);
@@ -93,7 +97,7 @@ class SpotifyEnhancedExtractor {
       };
 
     } catch (error) {
-      console.error('[Spotify Enhanced] Error in comprehensive extraction:', error);
+      log.error('Error in comprehensive extraction:', error);
       return {
         success: false,
         error: error.message,
@@ -108,7 +112,7 @@ class SpotifyEnhancedExtractor {
    * When you listen reveals personality - night owls vs early birds, weekday vs weekend patterns
    */
   async analyzeTemporalPatterns(recentTracks, topShort, topMedium, topLong) {
-    console.log('[Spotify Enhanced] Analyzing temporal patterns...');
+    log.info('Analyzing temporal patterns...');
 
     if (!recentTracks.items || recentTracks.items.length === 0) {
       return this.getDefaultTemporalPatterns();
@@ -225,7 +229,7 @@ class SpotifyEnhancedExtractor {
    * How you explore music reveals openness to experience, conformity, cultural sophistication
    */
   async analyzeDiscoveryBehavior(topArtistsShort, topArtistsLong, followedArtists) {
-    console.log('[Spotify Enhanced] Analyzing discovery behavior...');
+    log.info('Analyzing discovery behavior...');
 
     // Calculate artist turnover rate
     const shortArtistIds = new Set(topArtistsShort.items.map(a => a.id));
@@ -315,7 +319,7 @@ class SpotifyEnhancedExtractor {
    * Audio features reveal emotional patterns, energy levels, complexity preferences
    */
   async analyzeAudioPersonality(audioFeatures) {
-    console.log('[Spotify Enhanced] Analyzing audio personality...');
+    log.info('Analyzing audio personality...');
 
     if (!audioFeatures || audioFeatures.length === 0) {
       return this.getDefaultAudioPersonality();
@@ -457,7 +461,7 @@ class SpotifyEnhancedExtractor {
    * How you organize music reveals conscientiousness, creativity, social openness
    */
   async analyzePlaylistBehavior(playlists) {
-    console.log('[Spotify Enhanced] Analyzing playlist behavior...');
+    log.info('Analyzing playlist behavior...');
 
     if (!playlists.items || playlists.items.length === 0) {
       return this.getDefaultPlaylistBehavior();
@@ -544,7 +548,7 @@ class SpotifyEnhancedExtractor {
    * How your genre preferences change over time reveals personality development
    */
   async analyzeGenreEvolution(topArtistsShort, topArtistsMedium, topArtistsLong) {
-    console.log('[Spotify Enhanced] Analyzing genre evolution...');
+    log.info('Analyzing genre evolution...');
 
     const shortGenres = this.extractGenres(topArtistsShort.items);
     const mediumGenres = this.extractGenres(topArtistsMedium.items);
@@ -592,7 +596,7 @@ class SpotifyEnhancedExtractor {
    * ARTIST LOYALTY ANALYSIS
    */
   async analyzeArtistLoyalty(topShort, topMedium, topLong) {
-    console.log('[Spotify Enhanced] Analyzing artist loyalty...');
+    log.info('Analyzing artist loyalty...');
 
     // Extract artist IDs from tracks
     const shortArtists = new Set(topShort.items.flatMap(t => t.artists.map(a => a.id)));
@@ -617,7 +621,7 @@ class SpotifyEnhancedExtractor {
    * MUSICAL SOPHISTICATION ANALYSIS
    */
   async analyzeMusicalSophistication(topArtistsLong, audioFeatures) {
-    console.log('[Spotify Enhanced] Analyzing musical sophistication...');
+    log.info('Analyzing musical sophistication...');
 
     const avgPopularity = topArtistsLong.items.reduce((sum, a) => sum + (a.popularity || 0), 0) / topArtistsLong.items.length;
 
@@ -654,7 +658,7 @@ class SpotifyEnhancedExtractor {
    * EMOTIONAL PROFILE
    */
   async analyzeEmotionalProfile(audioFeatures, recentTracks) {
-    console.log('[Spotify Enhanced] Analyzing emotional profile...');
+    log.info('Analyzing emotional profile...');
 
     const validFeatures = audioFeatures.filter(f => f && typeof f.valence === 'number');
 
@@ -849,7 +853,7 @@ class SpotifyEnhancedExtractor {
 
       return await response.json();
     } catch (error) {
-      console.error('[Spotify Enhanced] API request failed:', error);
+      log.error('API request failed:', error);
       throw error;
     }
   }

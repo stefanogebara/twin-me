@@ -15,6 +15,9 @@
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { runSaliencyReplay } from '../services/saliencyReplayService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('CronSaliencyReplay');
 
 const router = express.Router();
 
@@ -25,13 +28,13 @@ router.post('/', async (req, res) => {
       return res.status(authResult.status).json({ error: authResult.error });
     }
 
-    console.log('[Cron] memory-saliency-replay: starting daily pass');
+    log.info('Starting daily pass');
     const startTime = Date.now();
 
     const stats = await runSaliencyReplay();
 
     const durationMs = Date.now() - startTime;
-    console.log(`[Cron] memory-saliency-replay: done in ${durationMs}ms`);
+    log.info('Daily pass complete', { durationMs });
 
     res.json({
       success: true,
@@ -39,7 +42,7 @@ router.post('/', async (req, res) => {
       durationMs,
     });
   } catch (err) {
-    console.error('[Cron] memory-saliency-replay: unexpected error:', err.message);
+    log.error('Unexpected error', { error: err.message });
     res.status(500).json({ error: err.message });
   }
 });

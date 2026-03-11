@@ -10,6 +10,9 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('BigFiveAssessment');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -320,7 +323,7 @@ export async function saveResponses(userId, responses, sessionId = null) {
     });
 
   if (error) {
-    console.error('[BigFive] Error saving responses:', error);
+    log.error('Error saving responses:', error);
     throw error;
   }
 
@@ -368,7 +371,7 @@ export async function calculateAndSaveScores(userId, responses) {
     .single();
 
   if (scoresError) {
-    console.error('[BigFive] Error saving scores:', scoresError);
+    log.error('Error saving scores:', scoresError);
     throw scoresError;
   }
 
@@ -390,7 +393,7 @@ export async function calculateAndSaveScores(userId, responses) {
     .upsert(facetRecords, { onConflict: 'user_id,domain,facet_number' });
 
   if (facetError) {
-    console.error('[BigFive] Error saving facet scores:', facetError);
+    log.error('Error saving facet scores:', facetError);
     // Don't throw - main scores are saved
   }
 
@@ -440,7 +443,7 @@ async function syncToPersonalityEstimates(userId, scores) {
     });
     estimateRecord.archetype_code = archetype.code;
   } catch (err) {
-    console.warn('[BigFive] Could not calculate archetype:', err.message);
+    log.warn('Could not calculate archetype:', err.message);
   }
 
   const { error } = await supabaseAdmin
@@ -448,10 +451,10 @@ async function syncToPersonalityEstimates(userId, scores) {
     .upsert(estimateRecord, { onConflict: 'user_id' });
 
   if (error) {
-    console.error('[BigFive] Error syncing to personality_estimates:', error);
+    log.error('Error syncing to personality_estimates:', error);
     // Don't throw - this is a secondary operation
   } else {
-    console.log(`[BigFive] Synced scores to personality_estimates for user ${userId}`);
+    log.info(`Synced scores to personality_estimates for user ${userId}`);
   }
 }
 
@@ -478,7 +481,7 @@ export async function getUserScores(userId) {
     .single();
 
   if (error && error.code !== 'PGRST116') { // PGRST116 = not found
-    console.error('[BigFive] Error fetching scores:', error);
+    log.error('Error fetching scores:', error);
     throw error;
   }
 
@@ -499,7 +502,7 @@ export async function getUserFacetScores(userId) {
     .order('facet_number');
 
   if (error) {
-    console.error('[BigFive] Error fetching facet scores:', error);
+    log.error('Error fetching facet scores:', error);
     throw error;
   }
 
@@ -518,7 +521,7 @@ export async function getUserResponses(userId) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[BigFive] Error fetching responses:', error);
+    log.error('Error fetching responses:', error);
     throw error;
   }
 
@@ -828,7 +831,7 @@ export async function getUserBehavioralEvidence(userId) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('[BigFive] Error fetching behavioral features:', error);
+      log.error('Error fetching behavioral features:', error);
       return { O: [], C: [], E: [], A: [], N: [] };
     }
 
@@ -843,7 +846,7 @@ export async function getUserBehavioralEvidence(userId) {
 
     return generateBehavioralEvidence(platformData);
   } catch (err) {
-    console.error('[BigFive] Error getting behavioral evidence:', err);
+    log.error('Error getting behavioral evidence:', err);
     return { O: [], C: [], E: [], A: [], N: [] };
   }
 }

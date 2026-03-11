@@ -13,6 +13,9 @@
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityAnalyzerService');
 
 class PersonalityAnalyzerService {
 
@@ -20,7 +23,7 @@ class PersonalityAnalyzerService {
    * Analyze user's personality from behavioral features
    */
   async analyzePersonality(userId) {
-    console.log(`🧠 [Personality Analyzer] Starting analysis for user ${userId}`);
+    log.info(`Starting analysis for user ${userId}`);
 
     try {
       // 1. Fetch all behavioral features for the user
@@ -32,14 +35,14 @@ class PersonalityAnalyzerService {
       if (featuresError) throw featuresError;
 
       if (!features || features.length === 0) {
-        console.log('⚠️ [Personality Analyzer] No behavioral features found');
+        log.info('No behavioral features found');
         return {
           success: false,
           error: 'No behavioral data available. Connect platforms first.'
         };
       }
 
-      console.log(`📊 [Personality Analyzer] Found ${features.length} behavioral features`);
+      log.info(`Found ${features.length} behavioral features`);
 
       // 2. Group features by platform
       const platformFeatures = this.groupFeaturesByPlatform(features);
@@ -82,12 +85,12 @@ class PersonalityAnalyzerService {
 
       if (saveError) throw saveError;
 
-      console.log(`✅ [Personality Analyzer] Analysis complete`);
-      console.log(`   Openness: ${saved.openness}% (confidence: ${saved.openness_confidence}%)`);
-      console.log(`   Conscientiousness: ${saved.conscientiousness}% (confidence: ${saved.conscientiousness_confidence}%)`);
-      console.log(`   Extraversion: ${saved.extraversion}% (confidence: ${saved.extraversion_confidence}%)`);
-      console.log(`   Agreeableness: ${saved.agreeableness}% (confidence: ${saved.agreeableness_confidence}%)`);
-      console.log(`   Neuroticism: ${saved.neuroticism}% (confidence: ${saved.neuroticism_confidence}%)`);
+      log.info(`Analysis complete`);
+      log.info(`Openness: ${saved.openness}% (confidence: ${saved.openness_confidence}%)`);
+      log.info(`Conscientiousness: ${saved.conscientiousness}% (confidence: ${saved.conscientiousness_confidence}%)`);
+      log.info(`Extraversion: ${saved.extraversion}% (confidence: ${saved.extraversion_confidence}%)`);
+      log.info(`Agreeableness: ${saved.agreeableness}% (confidence: ${saved.agreeableness_confidence}%)`);
+      log.info(`Neuroticism: ${saved.neuroticism}% (confidence: ${saved.neuroticism_confidence}%)`);
 
       return {
         success: true,
@@ -97,7 +100,7 @@ class PersonalityAnalyzerService {
       };
 
     } catch (error) {
-      console.error('❌ [Personality Analyzer] Error:', error);
+      log.error('Error:', error);
       return {
         success: false,
         error: error.message
@@ -162,7 +165,7 @@ class PersonalityAnalyzerService {
    * Use Claude AI to refine and validate personality scores
    */
   async refineScoresWithClaude(features, platformFeatures, initialScores) {
-    console.log(`🤖 [Personality Analyzer] Refining scores with Claude AI...`);
+    log.info(`Refining scores with Claude AI...`);
 
     // Prepare feature summary for Claude
     const featureSummary = features.map(f => ({
@@ -220,7 +223,7 @@ Respond ONLY with a JSON object in this exact format (no markdown, no explanatio
       });
 
       let responseText = result.content.trim();
-      console.log(`📝 [Personality Analyzer] Claude response:`, responseText);
+      log.info(`Claude response:`, responseText);
 
       // Strip markdown code blocks if present
       if (responseText.startsWith('```')) {
@@ -230,7 +233,7 @@ Respond ONLY with a JSON object in this exact format (no markdown, no explanatio
       // Parse Claude's response
       const refined = JSON.parse(responseText);
 
-      console.log(`✅ [Personality Analyzer] Claude refinement: ${refined.reasoning}`);
+      log.info(`Claude refinement: ${refined.reasoning}`);
 
       return {
         openness: Math.round(refined.openness * 100) / 100,
@@ -241,7 +244,7 @@ Respond ONLY with a JSON object in this exact format (no markdown, no explanatio
       };
 
     } catch (error) {
-      console.error('⚠️ [Personality Analyzer] Claude refinement failed, using initial scores:', error);
+      log.error('Claude refinement failed, using initial scores:', error);
       // Fallback to initial scores if Claude fails
       return initialScores;
     }

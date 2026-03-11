@@ -13,6 +13,9 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { supabaseAdmin } from '../config/supabase.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('PersonalityAssessment');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,10 +33,10 @@ function loadQuestions() {
     const questionsPath = join(__dirname, '../data/personality-questions.json');
     const data = JSON.parse(readFileSync(questionsPath, 'utf-8'));
     PERSONALITY_QUESTIONS = data;
-    console.log(`[PersonalityAssessment] Loaded ${data.questions.length} personality questions`);
+    log.info(`Loaded ${data.questions.length} personality questions`);
     return PERSONALITY_QUESTIONS;
   } catch (error) {
-    console.error('[PersonalityAssessment] Failed to load questions:', error);
+    log.error('Failed to load questions:', error);
     return null;
   }
 }
@@ -303,7 +306,7 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
     const { data: existingQuestions, error: existingQErr } = await supabase
       .from('personality_questions')
       .select('id, question_text');
-    if (existingQErr) console.warn('[PersonalityAssessment] Error checking existing questions:', existingQErr.message);
+    if (existingQErr) log.warn('Error checking existing questions:', existingQErr.message);
 
     // If no questions in DB, seed them first
     if (!existingQuestions || existingQuestions.length === 0) {
@@ -349,7 +352,7 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
         });
 
       if (insertError) {
-        console.error('[PersonalityAssessment] Failed to save responses:', insertError);
+        log.error('Failed to save responses:', insertError);
       }
     }
 
@@ -398,11 +401,11 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
       .single();
 
     if (estimateError) {
-      console.error('[PersonalityAssessment] Failed to save estimate:', estimateError);
+      log.error('Failed to save estimate:', estimateError);
     }
 
-    console.log(`[PersonalityAssessment] Saved ${responses.length} responses for user ${userId}`);
-    console.log(`[PersonalityAssessment] Archetype: ${archetype.code} - ${archetype.name}`);
+    log.info(`Saved ${responses.length} responses for user ${userId}`);
+    log.info(`Archetype: ${archetype.code} - ${archetype.name}`);
 
     return {
       scores,
@@ -414,7 +417,7 @@ export async function saveAssessmentResponses(userId, responses, sessionId = nul
     };
 
   } catch (error) {
-    console.error('[PersonalityAssessment] Error saving assessment:', error);
+    log.error('Error saving assessment:', error);
     throw error;
   }
 }
@@ -462,7 +465,7 @@ export async function getPersonalityEstimate(userId) {
     };
 
   } catch (error) {
-    console.error('[PersonalityAssessment] Error getting estimate:', error);
+    log.error('Error getting estimate:', error);
     return null;
   }
 }
@@ -474,7 +477,7 @@ export async function seedQuestionsToDatabase() {
   const data = loadQuestions();
   if (!data) throw new Error('Failed to load questions');
 
-  console.log('[PersonalityAssessment] Seeding questions to database...');
+  log.info('Seeding questions to database...');
 
   const questionRecords = data.questions.map(q => ({
     dimension: q.dimension,
@@ -495,18 +498,18 @@ export async function seedQuestionsToDatabase() {
     });
 
   if (error) {
-    console.error('[PersonalityAssessment] Failed to seed questions:', error);
+    log.error('Failed to seed questions:', error);
     throw error;
   }
 
-  console.log(`[PersonalityAssessment] Seeded ${questionRecords.length} questions`);
+  log.info(`Seeded ${questionRecords.length} questions`);
 }
 
 /**
  * Seed archetypes to database
  */
 export async function seedArchetypesToDatabase() {
-  console.log('[PersonalityAssessment] Seeding archetypes to database...');
+  log.info('Seeding archetypes to database...');
 
   const archetypeRecords = Object.entries(ARCHETYPES).map(([code, info]) => ({
     code,
@@ -539,11 +542,11 @@ export async function seedArchetypesToDatabase() {
     .upsert(archetypeRecords, { onConflict: 'code' });
 
   if (error) {
-    console.error('[PersonalityAssessment] Failed to seed archetypes:', error);
+    log.error('Failed to seed archetypes:', error);
     throw error;
   }
 
-  console.log(`[PersonalityAssessment] Seeded ${archetypeRecords.length} archetypes`);
+  log.info(`Seeded ${archetypeRecords.length} archetypes`);
 }
 
 /**

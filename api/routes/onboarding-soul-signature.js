@@ -16,6 +16,9 @@ import { supabaseAdmin } from '../services/database.js';
 import { addMemory } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
 import { generateGoalSuggestions } from '../services/goalTrackingService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('OnboardingSoulSignature');
 
 const router = express.Router();
 
@@ -146,7 +149,7 @@ Respond in this exact JSON format:
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
       if (sigError) {
-        console.error('[Instant Signature] Failed to save signature:', sigError.message);
+        log.error('Failed to save signature:', sigError.message);
       }
     }
 
@@ -169,7 +172,7 @@ Respond in this exact JSON format:
         }, {
           skipImportance: true,
           importanceScore: 9,
-        }).catch(err => console.warn('[InstantSig] Failed to store archetype memory:', err.message));
+        }).catch(err => log.warn('Failed to store archetype memory:', err.message));
       }
     }
 
@@ -237,27 +240,27 @@ Respond in this exact JSON format:
       // Fire-and-forget: store memories, then trigger reflections + goals
       Promise.all(memoryPromises).then(async (results) => {
         const stored = results.filter(Boolean).length;
-        console.log(`[Instant Signature] Stored ${stored} calibration/signature memories for user ${userId}`);
+        log.info(`Stored ${stored} calibration/signature memories for user ${userId}`);
 
         // Post-onboarding hooks: trigger reflections + goal suggestions (non-blocking)
         try {
           const shouldReflect = await shouldTriggerReflection(userId);
           if (shouldReflect) {
-            console.log(`[Instant Signature] Triggering post-onboarding reflections for user ${userId}`);
+            log.info(`Triggering post-onboarding reflections for user ${userId}`);
             generateReflections(userId).catch(err =>
-              console.warn(`[Instant Signature] Reflection error:`, err.message)
+              log.warn(`Reflection error:`, err.message)
             );
           }
         } catch (reflErr) {
-          console.warn('[Instant Signature] Reflection check failed:', reflErr.message);
+          log.warn('Reflection check failed:', reflErr.message);
         }
 
         // Generate first goal suggestion
         generateGoalSuggestions(userId).catch(err =>
-          console.warn(`[Instant Signature] Goal suggestion error:`, err.message)
+          log.warn(`Goal suggestion error:`, err.message)
         );
       }).catch(err => {
-        console.error('[Instant Signature] Memory storage failed:', err.message);
+        log.error('Memory storage failed:', err.message);
       });
     }
 
@@ -268,7 +271,7 @@ Respond in this exact JSON format:
         .update({ onboarding_completed_at: new Date().toISOString() })
         .eq('id', userId);
       if (completionError) {
-        console.error('[Instant Signature] onboarding_completed_at update error:', completionError.message);
+        log.error('onboarding_completed_at update error:', completionError.message);
       }
     }
 
@@ -290,7 +293,7 @@ Their first impression: ${signature.first_impression}`,
       });
       twinIntro = introResult.content;
     } catch (introErr) {
-      console.warn('[Instant Signature] Twin intro generation failed:', introErr.message);
+      log.warn('Twin intro generation failed:', introErr.message);
       twinIntro = `Hey, I'm your twin. I'm ${signature.archetype_name} - ${signature.signature_quote}. Want to keep talking?`;
     }
 
@@ -300,7 +303,7 @@ Their first impression: ${signature.first_impression}`,
       twinIntro,
     });
   } catch (error) {
-    console.error('[Instant Signature] Error:', error);
+    log.error('Error:', error);
     return res.status(500).json({ success: false, error: 'Failed to generate signature' });
   }
 });

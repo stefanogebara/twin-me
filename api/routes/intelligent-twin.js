@@ -21,6 +21,9 @@ import spotifyInsightGenerator from '../services/spotifyInsightGenerator.js';
 import specialistOrchestrator from '../services/specialists/SpecialistOrchestrator.js';
 import { crossPlatformInferenceService } from '../services/crossPlatformInferenceService.js';
 import purposeLearningService from '../services/purposeLearningService.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('IntelligentTwin');
 
 // Initialize Supabase for feedback persistence
 const supabase = createClient(
@@ -45,7 +48,7 @@ router.get('/context', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting context for user ${userId}`);
+    log.info(`Getting context for user ${userId}`);
 
     const context = await userContextAggregator.aggregateUserContext(userId);
 
@@ -83,10 +86,10 @@ router.get('/context', authenticateUser, async (req, res) => {
       const inferences = await crossPlatformInferenceService.inferBehavioralPatterns(userId, inferenceData);
       if (inferences && inferences.length > 0) {
         behavioralInferences = crossPlatformInferenceService.formatForReflection(inferences);
-        console.log(`🔍 [Twin API] Found ${inferences.length} cross-platform inferences`);
+        log.info(`Found ${inferences.length} cross-platform inferences`);
       }
     } catch (inferenceError) {
-      console.warn('[Twin API] Cross-platform inference error:', inferenceError.message);
+      log.warn('Cross-platform inference error:', inferenceError.message);
     }
 
     res.json({
@@ -140,7 +143,7 @@ router.get('/context', authenticateUser, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('[Twin API] Context error:', error);
+    log.error('Context error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get user context',
@@ -165,7 +168,7 @@ router.get('/recommendations', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting recommendations for user ${userId}`);
+    log.info(`Getting recommendations for user ${userId}`);
 
     const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
       includeMusic: includeMusic === 'true'
@@ -183,7 +186,7 @@ router.get('/recommendations', authenticateUser, async (req, res) => {
       ...insights
     });
   } catch (error) {
-    console.error('[Twin API] Recommendations error:', error);
+    log.error('Recommendations error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get recommendations',
@@ -207,7 +210,7 @@ router.get('/insights', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting insights for user ${userId}`);
+    log.info(`Getting insights for user ${userId}`);
 
     const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
       includeMusic: false
@@ -227,7 +230,7 @@ router.get('/insights', authenticateUser, async (req, res) => {
       generatedAt: insights.generatedAt
     });
   } catch (error) {
-    console.error('[Twin API] Insights error:', error);
+    log.error('Insights error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get insights',
@@ -297,7 +300,7 @@ router.get('/reflections', authenticateUser, async (req, res) => {
 
     res.json({ success: true, reflections });
   } catch (err) {
-    console.error('[Twin API] Reflections error:', err);
+    log.error('Reflections error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -336,7 +339,7 @@ router.get('/memory-stats', authenticateUser, async (req, res) => {
 
     res.json({ success: true, totalMemories: totalCount || 0, byPlatform });
   } catch (err) {
-    console.error('[Twin API] memory-stats error:', err);
+    log.error('memory-stats error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -417,7 +420,7 @@ router.get('/evolution', authenticateUser, async (req, res) => {
       daysKnown,
     });
   } catch (err) {
-    console.error('[Twin API] evolution error:', err);
+    log.error('evolution error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -437,13 +440,13 @@ router.get('/status', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting quick status for user ${userId}`);
+    log.info(`Getting quick status for user ${userId}`);
 
     const status = await intelligentTwinEngine.getQuickStatus(userId);
 
     res.json(status);
   } catch (error) {
-    console.error('[Twin API] Status error:', error);
+    log.error('Status error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get status',
@@ -477,7 +480,7 @@ router.get('/music/:purpose', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting music for purpose: ${purpose}`);
+    log.info(`Getting music for purpose: ${purpose}`);
 
     // Get user context
     const context = await userContextAggregator.aggregateUserContext(userId);
@@ -510,7 +513,7 @@ router.get('/music/:purpose', authenticateUser, async (req, res) => {
       basedOn: recs.basedOn
     });
   } catch (error) {
-    console.error('[Twin API] Music error:', error);
+    log.error('Music error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get music recommendations',
@@ -536,13 +539,13 @@ router.get('/advice/:purpose', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting advice for purpose: ${purpose}`);
+    log.info(`Getting advice for purpose: ${purpose}`);
 
     const recommendation = await intelligentTwinEngine.getRecommendationFor(userId, purpose);
 
     res.json(recommendation);
   } catch (error) {
-    console.error('[Twin API] Advice error:', error);
+    log.error('Advice error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get advice',
@@ -566,13 +569,13 @@ router.get('/patterns', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting patterns for user ${userId}`);
+    log.info(`Getting patterns for user ${userId}`);
 
     const patterns = await intelligentTwinEngine.analyzePatterns(userId);
 
     res.json(patterns);
   } catch (error) {
-    console.error('[Twin API] Patterns error:', error);
+    log.error('Patterns error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get patterns',
@@ -607,16 +610,16 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     } = req.body;
 
     // 📥 Log incoming feedback with full details
-    console.log(`\n📥 [Feedback] Received feedback submission:`);
-    console.log(`   - User: ${userId || 'NOT AUTHENTICATED'}`);
-    console.log(`   - Recommendation ID: ${recommendationId}`);
-    console.log(`   - Type: ${recommendationType}`);
-    console.log(`   - Vote: ${thumbsVote || 'none'}`);
-    console.log(`   - Stars: ${starRating || 'none'}`);
-    if (comment) console.log(`   - Comment: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`);
+    log.info(`\n📥 [Feedback] Received feedback submission:`);
+    log.info(`- User: ${userId || 'NOT AUTHENTICATED'}`);
+    log.info(`- Recommendation ID: ${recommendationId}`);
+    log.info(`- Type: ${recommendationType}`);
+    log.info(`- Vote: ${thumbsVote || 'none'}`);
+    log.info(`- Stars: ${starRating || 'none'}`);
+    if (comment) log.info(`- Comment: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`);
 
     if (!userId) {
-      console.log(`❌ [Feedback] Rejected: User authentication required`);
+      log.info(`Rejected: User authentication required`);
       return res.status(401).json({
         success: false,
         error: 'User authentication required'
@@ -624,7 +627,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     }
 
     if (!recommendationId) {
-      console.log(`❌ [Feedback] Rejected: Missing recommendationId`);
+      log.info(`Rejected: Missing recommendationId`);
       return res.status(400).json({
         success: false,
         error: 'recommendationId is required'
@@ -633,7 +636,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
 
     // Validate thumbsVote if provided
     if (thumbsVote && !['up', 'down'].includes(thumbsVote)) {
-      console.log(`❌ [Feedback] Rejected: Invalid thumbsVote "${thumbsVote}"`);
+      log.info(`Rejected: Invalid thumbsVote "${thumbsVote}"`);
       return res.status(400).json({
         success: false,
         error: 'thumbsVote must be "up" or "down"'
@@ -642,7 +645,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
 
     // Validate starRating if provided
     if (starRating !== undefined && (starRating < 1 || starRating > 5)) {
-      console.log(`❌ [Feedback] Rejected: Invalid starRating "${starRating}"`);
+      log.info(`Rejected: Invalid starRating "${starRating}"`);
       return res.status(400).json({
         success: false,
         error: 'starRating must be between 1 and 5'
@@ -652,7 +655,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     // Validate recommendationType
     const validTypes = ['music', 'activity', 'insight', 'tip', 'pattern'];
     if (!validTypes.includes(recommendationType)) {
-      console.log(`❌ [Feedback] Rejected: Invalid recommendationType "${recommendationType}"`);
+      log.info(`Rejected: Invalid recommendationType "${recommendationType}"`);
       return res.status(400).json({
         success: false,
         error: `recommendationType must be one of: ${validTypes.join(', ')}`
@@ -660,7 +663,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     }
 
     // 💾 Log database operation
-    console.log(`💾 [Feedback] Persisting to recommendation_feedback table...`);
+    log.info(`Persisting to recommendation_feedback table...`);
 
     // Persist feedback to database (upsert to handle duplicates)
     const { data, error } = await supabase
@@ -681,7 +684,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
       .select();
 
     if (error) {
-      console.error(`❌ [Feedback] Database error:`, error);
+      log.error(`Database error:`, error);
       return res.status(500).json({
         success: false,
         error: 'Failed to save feedback',
@@ -690,11 +693,11 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     }
 
     // ✅ Log success with details
-    console.log(`✅ [Feedback] Saved successfully:`);
-    console.log(`   - Record ID: ${data?.[0]?.id}`);
-    console.log(`   - User: ${userId}`);
-    console.log(`   - Awaiting processing by PatternLearningService`);
-    console.log(`   - Will be processed in next cron run (every 6 hours)\n`);
+    log.info(`Saved successfully:`);
+    log.info(`- Record ID: ${data?.[0]?.id}`);
+    log.info(`- User: ${userId}`);
+    log.info(`- Awaiting processing by PatternLearningService`);
+    log.info(`- Will be processed in next cron run (every 6 hours)\n`);
 
     res.json({
       success: true,
@@ -702,7 +705,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
       feedbackId: data?.[0]?.id
     });
   } catch (error) {
-    console.error(`❌ [Feedback] Unexpected error:`, error);
+    log.error(`Unexpected error:`, error);
     res.status(500).json({
       success: false,
       error: 'Failed to submit feedback',
@@ -727,7 +730,7 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🧠 [Twin API] Getting today's insights for user ${userId}`);
+    log.info(`Getting today's insights for user ${userId}`);
 
     // Get aggregated context from all platforms
     const context = await userContextAggregator.aggregateUserContext(userId);
@@ -885,7 +888,7 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       try {
         moodInsight = await spotifyInsightGenerator.getCurrentMoodInsights(userId);
       } catch (err) {
-        console.log('[Twin API] Could not get enhanced Spotify mood:', err.message);
+        log.info('Could not get enhanced Spotify mood:', err.message);
       }
 
       let musicTitle, musicSummary, musicDetail, moodEmoji;
@@ -1050,7 +1053,7 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       sources
     });
   } catch (error) {
-    console.error('[Twin API] Today insights error:', error);
+    log.error('Today insights error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get today\'s insights',
@@ -1086,7 +1089,7 @@ router.get('/science-analysis', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🔬 [Twin API] Running science-backed analysis for user ${userId}`);
+    log.info(`Running science-backed analysis for user ${userId}`);
 
     // Get aggregated context from all platforms
     const context = await userContextAggregator.aggregateUserContext(userId);
@@ -1152,7 +1155,7 @@ router.get('/science-analysis', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Twin API] Science analysis error:', error);
+    log.error('Science analysis error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to run science-backed analysis',
@@ -1201,7 +1204,7 @@ router.get('/science-analysis/agents', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Twin API] Agent status error:', error);
+    log.error('Agent status error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get agent status',
@@ -1230,7 +1233,7 @@ router.get('/purpose-suggestion', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`🎯 [Twin API] Getting purpose suggestion for user ${userId}`);
+    log.info(`Getting purpose suggestion for user ${userId}`);
 
     // Get aggregated context
     const context = await userContextAggregator.aggregateUserContext(userId);
@@ -1252,7 +1255,7 @@ router.get('/purpose-suggestion', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Twin API] Purpose suggestion error:', error);
+    log.error('Purpose suggestion error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get purpose suggestion',
@@ -1290,7 +1293,7 @@ router.post('/purpose-selection', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`📝 [Twin API] Recording purpose selection: suggested=${suggestedPurpose}, selected=${selectedPurpose}`);
+    log.info(`Recording purpose selection: suggested=${suggestedPurpose}, selected=${selectedPurpose}`);
 
     // Get current context for snapshot
     const context = await userContextAggregator.aggregateUserContext(userId);
@@ -1338,7 +1341,7 @@ router.post('/purpose-selection', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Twin API] Purpose selection error:', error);
+    log.error('Purpose selection error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to record purpose selection',
@@ -1362,7 +1365,7 @@ router.get('/purpose-patterns', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log(`📊 [Twin API] Getting purpose patterns for user ${userId}`);
+    log.info(`Getting purpose patterns for user ${userId}`);
 
     const stats = await purposeLearningService.getLearningStats(userId);
 
@@ -1383,7 +1386,7 @@ router.get('/purpose-patterns', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Twin API] Purpose patterns error:', error);
+    log.error('Purpose patterns error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to get purpose patterns',

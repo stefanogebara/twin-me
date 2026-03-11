@@ -5,6 +5,9 @@
 
 import { supabaseAdmin } from './database.js';
 import OpenAI from 'openai';
+import { createLogger } from './logger.js';
+
+const log = createLogger('ResearchRAG');
 
 // Initialize OpenAI client
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({
@@ -24,11 +27,11 @@ class ResearchRAGService {
     this.useOpenAI = !!openai;
 
     if (this.useAzure) {
-      console.log('[ResearchRAG] Using Azure OpenAI for embeddings');
+      log.info('Using Azure OpenAI for embeddings');
     } else if (this.useOpenAI) {
-      console.log('[ResearchRAG] Using OpenAI for embeddings (Azure not configured)');
+      log.info('Using OpenAI for embeddings (Azure not configured)');
     } else {
-      console.warn('[ResearchRAG] ⚠️ No embedding provider configured');
+      log.warn('⚠️ No embedding provider configured');
     }
   }
 
@@ -46,7 +49,7 @@ class ResearchRAGService {
       return await this.generateEmbeddingOpenAI(text);
     }
 
-    console.error('[ResearchRAG] No embedding provider available');
+    log.error('No embedding provider available');
     return null;
   }
 
@@ -71,14 +74,14 @@ class ResearchRAGService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[ResearchRAG] Azure OpenAI API error:', response.status, errorText);
+        log.error('Azure OpenAI API error:', response.status, errorText);
         return null;
       }
 
       const data = await response.json();
       return data.data[0].embedding;
     } catch (error) {
-      console.error('[ResearchRAG] Error generating Azure embedding:', error);
+      log.error('Error generating Azure embedding:', error);
       return null;
     }
   }
@@ -95,7 +98,7 @@ class ResearchRAGService {
 
       return response.data[0].embedding;
     } catch (error) {
-      console.error('[ResearchRAG] Error generating OpenAI embedding:', error);
+      log.error('Error generating OpenAI embedding:', error);
       return null;
     }
   }
@@ -104,7 +107,7 @@ class ResearchRAGService {
    * Index all research papers with embeddings
    */
   async indexResearchPapers() {
-    console.log('[ResearchRAG] Starting research paper indexing...');
+    log.info('Starting research paper indexing...');
 
 
     try {
@@ -115,16 +118,16 @@ class ResearchRAGService {
         .is('embedding', null);
 
       if (error) {
-        console.error('[ResearchRAG] Error fetching papers:', error);
+        log.error('Error fetching papers:', error);
         throw error;
       }
 
       if (!papers || papers.length === 0) {
-        console.log('[ResearchRAG] All papers already have embeddings');
+        log.info('All papers already have embeddings');
         return { success: true, indexed: 0, message: 'All papers already indexed' };
       }
 
-      console.log(`[ResearchRAG] Indexing ${papers.length} papers...`);
+      log.info(`Indexing ${papers.length} papers...`);
 
       let indexed = 0;
       let errors = 0;
@@ -137,7 +140,7 @@ class ResearchRAGService {
           const embedding = await this.generateEmbedding(embeddingText);
 
           if (!embedding) {
-            console.error(`[ResearchRAG] Failed to generate embedding for ${paper.paper_id}`);
+            log.error(`Failed to generate embedding for ${paper.paper_id}`);
             errors++;
             continue;
           }
@@ -155,10 +158,10 @@ class ResearchRAGService {
             .eq('id', paper.id);
 
           if (updateError) {
-            console.error(`[ResearchRAG] Error updating ${paper.paper_id}:`, updateError);
+            log.error(`Error updating ${paper.paper_id}:`, updateError);
             errors++;
           } else {
-            console.log(`[ResearchRAG] ✅ Indexed: ${paper.paper_id} - ${paper.title}`);
+            log.info(`✅ Indexed: ${paper.paper_id} - ${paper.title}`);
             indexed++;
           }
 
@@ -166,16 +169,16 @@ class ResearchRAGService {
           await new Promise(resolve => setTimeout(resolve, 200));
 
         } catch (err) {
-          console.error(`[ResearchRAG] Error processing ${paper.paper_id}:`, err);
+          log.error(`Error processing ${paper.paper_id}:`, err);
           errors++;
         }
       }
 
-      console.log(`[ResearchRAG] Indexing complete: ${indexed} indexed, ${errors} errors`);
+      log.info(`Indexing complete: ${indexed} indexed, ${errors} errors`);
       return { success: true, indexed, errors, total: papers.length };
 
     } catch (error) {
-      console.error('[ResearchRAG] Error in indexResearchPapers:', error);
+      log.error('Error in indexResearchPapers:', error);
       throw error;
     }
   }
@@ -188,7 +191,7 @@ class ResearchRAGService {
    * @returns {Array} - Relevant research papers with similarity scores
    */
   async searchResearch(query, limit = 5, threshold = 0.3) {
-    console.log(`[ResearchRAG] Searching for: "${query}"`);
+    log.info(`Searching for: "${query}"`);
 
 
     try {
@@ -196,7 +199,7 @@ class ResearchRAGService {
       const queryEmbedding = await this.generateEmbedding(query);
 
       if (!queryEmbedding) {
-        console.error('[ResearchRAG] Failed to generate query embedding');
+        log.error('Failed to generate query embedding');
         return [];
       }
 
@@ -212,15 +215,15 @@ class ResearchRAGService {
 
       if (error) {
         // If function doesn't exist, fall back to manual similarity search
-        console.warn('[ResearchRAG] RPC function not found, using fallback search');
+        log.warn('RPC function not found, using fallback search');
         return await this.fallbackSearch(queryVector, limit, threshold);
       }
 
-      console.log(`[ResearchRAG] Found ${results?.length || 0} relevant papers`);
+      log.info(`Found ${results?.length || 0} relevant papers`);
       return results || [];
 
     } catch (error) {
-      console.error('[ResearchRAG] Error in searchResearch:', error);
+      log.error('Error in searchResearch:', error);
       return [];
     }
   }
@@ -266,7 +269,7 @@ class ResearchRAGService {
       return results;
 
     } catch (error) {
-      console.error('[ResearchRAG] Error in fallback search:', error);
+      log.error('Error in fallback search:', error);
       return [];
     }
   }

@@ -1,3 +1,7 @@
+import { createLogger } from './logger.js';
+
+const log = createLogger('InsightGenerator');
+
 /**
  * Insight Generation Service
  * Converts complex graph metrics and platform data into user-friendly insights
@@ -141,7 +145,7 @@ class InsightGenerator {
       }
 
     } catch (error) {
-      console.error('[InsightGenerator] Error generating Spotify insights:', error);
+      log.error('Error generating Spotify insights:', error);
     }
 
     return insights;
@@ -185,7 +189,7 @@ class InsightGenerator {
       }
 
     } catch (error) {
-      console.error('[InsightGenerator] Error generating YouTube insights:', error);
+      log.error('Error generating YouTube insights:', error);
     }
 
     return insights;
@@ -226,7 +230,7 @@ class InsightGenerator {
       }
 
     } catch (error) {
-      console.error('[InsightGenerator] Error generating GitHub insights:', error);
+      log.error('Error generating GitHub insights:', error);
     }
 
     return insights;
@@ -272,7 +276,7 @@ class InsightGenerator {
       });
 
     } catch (error) {
-      console.error('[InsightGenerator] Error generating cross-platform insights:', error);
+      log.error('Error generating cross-platform insights:', error);
     }
 
     return insights;
@@ -593,7 +597,7 @@ class InsightGenerator {
       }
 
     } catch (error) {
-      console.error('[InsightGenerator] Error generating personality insights:', error);
+      log.error('Error generating personality insights:', error);
     }
 
     return insights;

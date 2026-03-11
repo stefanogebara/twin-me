@@ -6,6 +6,9 @@
 
 import WebSocket from 'ws';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('WebSocket');
 
 let wss = null;
 const clients = new Map(); // userId -> WebSocket connection
@@ -16,10 +19,10 @@ const clients = new Map(); // userId -> WebSocket connection
 function initializeWebSocketServer(server) {
   wss = new WebSocket.Server({ server, path: '/ws' });
 
-  console.log('🔌 WebSocket server initialized on path /ws');
+  log.info('WebSocket server initialized on path /ws');
 
   wss.on('connection', (ws, req) => {
-    console.log('📱 New WebSocket connection');
+    log.info('New WebSocket connection');
 
     let userId = null;
 
@@ -32,7 +35,7 @@ function initializeWebSocketServer(server) {
           userId = data.userId;
           clients.set(userId, ws);
 
-          console.log(`✅ WebSocket authenticated for user: ${userId}`);
+          log.info(`WebSocket authenticated for user: ${userId}`);
 
           // Send confirmation
           ws.send(JSON.stringify({
@@ -53,19 +56,19 @@ function initializeWebSocketServer(server) {
           }));
         }
       } catch (error) {
-        console.error('❌ WebSocket message error:', error);
+        log.error('WebSocket message error:', error);
       }
     });
 
     ws.on('close', () => {
       if (userId) {
         clients.delete(userId);
-        console.log(`👋 WebSocket disconnected for user: ${userId}`);
+        log.info(`WebSocket disconnected for user: ${userId}`);
       }
     });
 
     ws.on('error', (error) => {
-      console.error('❌ WebSocket error:', error);
+      log.error('WebSocket error:', error);
       if (userId) {
         clients.delete(userId);
       }
@@ -92,7 +95,7 @@ async function sendPlatformStatus(userId) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('❌ Error fetching platform status:', error);
+      log.error('Error fetching platform status:', error);
       return;
     }
 
@@ -102,7 +105,7 @@ async function sendPlatformStatus(userId) {
       timestamp: new Date().toISOString(),
     }));
   } catch (error) {
-    console.error('❌ Error sending platform status:', error);
+    log.error('Error sending platform status:', error);
   }
 }
 

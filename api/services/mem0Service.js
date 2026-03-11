@@ -13,6 +13,9 @@
 
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Mem0');
 
 // Memory extraction prompt
 const MEMORY_EXTRACTION_PROMPT = `You are a memory extraction system. Analyze the conversation and extract key facts, preferences, and insights about the user.
@@ -65,13 +68,13 @@ async function extractFacts(userMessage, assistantResponse) {
       try {
         return JSON.parse(jsonMatch[0]);
       } catch {
-        console.warn('[Memory] Failed to parse fact extraction JSON:', jsonMatch[0].substring(0, 100));
+        log.warn('Failed to parse fact extraction JSON:', jsonMatch[0].substring(0, 100));
         return [];
       }
     }
     return [];
   } catch (error) {
-    console.error('[Memory] Fact extraction error:', error.message);
+    log.error('Fact extraction error:', error.message);
     return [];
   }
 }
@@ -105,7 +108,7 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
     if (convError) {
       // Table might not exist yet, create it
       if (convError.code === '42P01') {
-        console.warn('[Memory] user_memories table not found - creating...');
+        log.warn('user_memories table not found - creating...');
         await createMemoryTable();
         // Retry insert
         const { error: retryErr } = await supabaseAdmin.from('user_memories').insert({
@@ -116,10 +119,10 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
           metadata: { ...metadata, extracted_facts: facts.length }
         });
         if (retryErr) {
-          console.error('[Memory] Retry insert failed after table creation:', retryErr.message);
+          log.error('Retry insert failed after table creation:', retryErr.message);
         }
       } else {
-        console.error('[Memory] Failed to store conversation:', convError);
+        log.error('Failed to store conversation:', convError);
       }
     }
 
@@ -137,15 +140,15 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
 
       const { error: factsErr } = await supabaseAdmin.from('user_memories').insert(factRecords);
       if (factsErr) {
-        console.error('[Memory] Failed to store facts batch:', factsErr.message);
+        log.error('Failed to store facts batch:', factsErr.message);
       } else {
-        console.log(`[Memory] Stored ${facts.length} facts for user ${userId}`);
+        log.info(`Stored ${facts.length} facts for user ${userId}`);
       }
     }
 
     return { success: true, factsExtracted: facts.length };
   } catch (error) {
-    console.error('[Memory] addConversationMemory error:', error.message);
+    log.error('addConversationMemory error:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -176,7 +179,7 @@ async function searchMemories(userId, query, limit = 5) {
         // Table doesn't exist
         return [];
       }
-      console.error('[Memory] Search error:', error);
+      log.error('Search error:', error);
       return [];
     }
 
@@ -201,7 +204,7 @@ async function searchMemories(userId, query, limit = 5) {
         metadata: m.metadata
       }));
   } catch (error) {
-    console.error('[Memory] searchMemories error:', error.message);
+    log.error('searchMemories error:', error.message);
     return [];
   }
 }
@@ -228,14 +231,14 @@ async function addPlatformMemory(userId, platform, dataType, data) {
       });
 
     if (error) {
-      console.error('[Memory] Failed to store platform data:', error.message);
+      log.error('Failed to store platform data:', error.message);
       return null;
     }
 
-    console.log(`[Memory] Stored ${platform} ${dataType} for user ${userId}`);
+    log.info(`Stored ${platform} ${dataType} for user ${userId}`);
     return { success: true };
   } catch (error) {
-    console.error('[Memory] addPlatformMemory error:', error.message);
+    log.error('addPlatformMemory error:', error.message);
     return null;
   }
 }
@@ -290,7 +293,7 @@ async function getAllMemories(userId, limit = 20) {
 
     if (error) {
       if (error.code === '42P01') return [];
-      console.error('[Memory] getAllMemories error:', error);
+      log.error('getAllMemories error:', error);
       return [];
     }
 
@@ -302,7 +305,7 @@ async function getAllMemories(userId, limit = 20) {
       metadata: m.metadata
     }));
   } catch (error) {
-    console.error('[Memory] getAllMemories error:', error.message);
+    log.error('getAllMemories error:', error.message);
     return [];
   }
 }
@@ -326,14 +329,14 @@ async function addUserFact(userId, fact, category = 'general') {
       });
 
     if (error) {
-      console.error('[Memory] Failed to add fact:', error.message);
+      log.error('Failed to add fact:', error.message);
       return null;
     }
 
-    console.log(`[Memory] Added fact for user ${userId}: ${fact.substring(0, 50)}...`);
+    log.info(`Added fact for user ${userId}: ${fact.substring(0, 50)}...`);
     return { success: true };
   } catch (error) {
-    console.error('[Memory] addUserFact error:', error.message);
+    log.error('addUserFact error:', error.message);
     return null;
   }
 }
@@ -349,13 +352,13 @@ async function deleteMemory(memoryId) {
       .eq('id', memoryId);
 
     if (error) {
-      console.error('[Memory] Delete error:', error);
+      log.error('Delete error:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('[Memory] deleteMemory error:', error.message);
+    log.error('deleteMemory error:', error.message);
     return false;
   }
 }
@@ -371,14 +374,14 @@ async function clearUserMemories(userId) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('[Memory] Clear error:', error);
+      log.error('Clear error:', error);
       return false;
     }
 
-    console.log(`[Memory] Cleared all memories for user ${userId}`);
+    log.info(`Cleared all memories for user ${userId}`);
     return true;
   } catch (error) {
-    console.error('[Memory] clearUserMemories error:', error.message);
+    log.error('clearUserMemories error:', error.message);
     return false;
   }
 }
@@ -395,7 +398,7 @@ async function getMemoryStats(userId) {
 
     if (error) {
       if (error.code === '42P01') return { total: 0, byType: {} };
-      console.error('[Memory] Stats error:', error);
+      log.error('Stats error:', error);
       return { total: 0, byType: {} };
     }
 
@@ -409,7 +412,7 @@ async function getMemoryStats(userId) {
       byType
     };
   } catch (error) {
-    console.error('[Memory] getMemoryStats error:', error.message);
+    log.error('getMemoryStats error:', error.message);
     return { total: 0, byType: {} };
   }
 }
@@ -438,15 +441,15 @@ async function createMemoryTable() {
   const { error } = await supabaseAdmin.rpc('exec_sql', { sql });
   if (error) {
     // Table might already exist or exec_sql rpc not available
-    console.warn('[Memory] Could not create table via RPC:', error.message);
+    log.warn('Could not create table via RPC:', error.message);
   } else {
-    console.log('[Memory] Created user_memories table');
+    log.info('Created user_memories table');
   }
 }
 
 // Dummy functions for compatibility (mem0 interface)
 function initializeMemory() {
-  console.log('[Memory] Custom memory service initialized (using Claude + Supabase)');
+  log.info('Custom memory service initialized (using Claude + Supabase)');
   return true;
 }
 

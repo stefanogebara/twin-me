@@ -10,6 +10,9 @@
 
 import express from 'express';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('BigFive');
 import {
   getQuestions,
   getQuestionMetadata,
@@ -80,7 +83,7 @@ router.get('/questions', optionalAuth, async (req, res) => {
       facets: metadata.facets
     });
   } catch (error) {
-    console.error('[BigFive] Error fetching questions:', error);
+    log.error('Error fetching questions:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch questions'
@@ -115,7 +118,7 @@ router.post('/responses', authenticateToken, async (req, res) => {
       }
     }
 
-    console.log(`[BigFive] Processing ${responses.length} responses for user ${userId}`);
+    log.info(`Processing ${responses.length} responses for user ${userId}`);
 
     // Save responses to database
     await saveResponses(userId, responses, sessionId);
@@ -128,7 +131,7 @@ router.post('/responses', authenticateToken, async (req, res) => {
     if (final || allResponses.length >= 120) {
       // Full calculation and save to scores table
       result = await calculateAndSaveScores(userId, allResponses);
-      console.log(`[BigFive] Saved final scores for user ${userId}`);
+      log.info(`Saved final scores for user ${userId}`);
     } else {
       // Preview calculation (not saved to scores table)
       result = calculateAllScores(allResponses);
@@ -148,7 +151,7 @@ router.post('/responses', authenticateToken, async (req, res) => {
       savedAt: result.savedAt || null
     });
   } catch (error) {
-    console.error('[BigFive] Error saving responses:', error);
+    log.error('Error saving responses:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to save responses'
@@ -259,7 +262,7 @@ router.get('/scores', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[BigFive] Error fetching scores:', error);
+    log.error('Error fetching scores:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch scores'
@@ -331,7 +334,7 @@ router.get('/facets', authenticateToken, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('[BigFive] Error fetching facets:', error);
+    log.error('Error fetching facets:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch facets'
@@ -363,7 +366,7 @@ router.get('/status', authenticateToken, async (req, res) => {
       lastUpdated: scores?.updated_at || null
     });
   } catch (error) {
-    console.error('[BigFive] Error fetching status:', error);
+    log.error('Error fetching status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch status'
@@ -397,7 +400,7 @@ router.post('/calculate-preview', optionalAuth, async (req, res) => {
       completionPercentage: Math.round((responses.length / 120) * 100)
     });
   } catch (error) {
-    console.error('[BigFive] Error calculating preview:', error);
+    log.error('Error calculating preview:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to calculate preview'
@@ -422,7 +425,7 @@ router.delete('/reset', authenticateToken, async (req, res) => {
       .delete()
       .eq('user_id', userId);
     if (responsesErr) {
-      console.error('[BigFive] Failed to delete responses:', responsesErr.message);
+      log.error('Failed to delete responses:', responsesErr.message);
       return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
     }
 
@@ -432,7 +435,7 @@ router.delete('/reset', authenticateToken, async (req, res) => {
       .delete()
       .eq('user_id', userId);
     if (scoresErr) {
-      console.error('[BigFive] Failed to delete scores:', scoresErr.message);
+      log.error('Failed to delete scores:', scoresErr.message);
       return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
     }
 
@@ -442,18 +445,18 @@ router.delete('/reset', authenticateToken, async (req, res) => {
       .delete()
       .eq('user_id', userId);
     if (facetErr) {
-      console.error('[BigFive] Failed to delete facet scores:', facetErr.message);
+      log.error('Failed to delete facet scores:', facetErr.message);
       return res.status(500).json({ success: false, error: 'Failed to reset assessment' });
     }
 
-    console.log(`[BigFive] Reset assessment for user ${userId}`);
+    log.info(`Reset assessment for user ${userId}`);
 
     res.json({
       success: true,
       message: 'Big Five assessment reset successfully'
     });
   } catch (error) {
-    console.error('[BigFive] Error resetting:', error);
+    log.error('Error resetting:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to reset assessment'
@@ -538,7 +541,7 @@ router.get('/interpretation/:domain', authenticateToken, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('[BigFive] Error fetching interpretation:', error);
+    log.error('Error fetching interpretation:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch interpretation'

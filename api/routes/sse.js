@@ -8,6 +8,9 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('SSERoute');
 import {
   initializeSSEConnection,
   sendSSE,
@@ -36,11 +39,11 @@ router.get('/stream', authenticateUser, (req, res) => {
     });
   }
 
-  console.log(`📡 SSE stream requested for user: ${userId}`);
+  log.info(`SSE stream requested for user: ${userId}`);
 
   // Check if user already has an active connection
   if (hasActiveConnection(userId)) {
-    console.warn(`⚠️  User ${userId} already has an active SSE connection - closing old one`);
+    log.warn(`User ${userId} already has an active SSE connection - closing old one`);
     closeConnection(userId);
   }
 
