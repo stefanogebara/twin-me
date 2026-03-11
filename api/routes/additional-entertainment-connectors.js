@@ -489,7 +489,7 @@ router.post('/import/hbo-max', authenticateUser, async (req, res) => {
 });
 
 // Demo data generator for platforms without APIs
-router.get('/demo/:platform', async (req, res) => {
+router.get('/demo/:platform', authenticateUser, async (req, res) => {
   try {
     const { platform } = req.params;
 
