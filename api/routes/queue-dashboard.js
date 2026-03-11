@@ -8,7 +8,7 @@ import { createBullBoard } from '@bull-board/api';
 import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { getQueues, getQueueStats, areQueuesAvailable } from '../services/queueService.js';
-import { authenticateUser } from '../middleware/auth.js';
+import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -53,7 +53,7 @@ const bullBoard = initializeBullBoard();
  * Accessible at /api/queues/dashboard
  */
 if (bullBoard) {
-  router.use('/dashboard', authenticateUser, serverAdapter.getRouter());
+  router.use('/dashboard', authenticateUser, requireProfessor, serverAdapter.getRouter());
 } else {
   // Fallback route if Bull Board not available
   router.get('/dashboard', (req, res) => {
