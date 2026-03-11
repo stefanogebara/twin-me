@@ -33,7 +33,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 1.6, relevance: 1.2 },
+  identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
 
   // Recent context (what's happening now?) — recency dominant.
   // Used by: proactive insights, "how are you?" queries
