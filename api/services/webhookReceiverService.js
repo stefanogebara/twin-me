@@ -182,6 +182,9 @@ async function handleSlackEvent(event, payload, userId) {
  */
 async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
   try {
+    if (!process.env.GITHUB_WEBHOOK_SECRET) {
+      throw new Error('GITHUB_WEBHOOK_SECRET not configured');
+    }
     const webhookUrl = `${process.env.API_URL || 'http://localhost:3001'}/api/webhooks/github/${userId}`;
 
     const response = await fetch(
@@ -200,7 +203,7 @@ async function registerGitHubWebhook(userId, accessToken, repoOwner, repoName) {
           config: {
             url: webhookUrl,
             content_type: 'json',
-            secret: process.env.GITHUB_WEBHOOK_SECRET || crypto.randomBytes(20).toString('hex'),
+            secret: process.env.GITHUB_WEBHOOK_SECRET,
             insecure_ssl: process.env.NODE_ENV === 'development' ? '1' : '0',
           },
         }),

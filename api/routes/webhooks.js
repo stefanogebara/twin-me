@@ -45,6 +45,11 @@ router.post('/github/:userId', express.raw({ type: 'application/json' }), async 
     const payload = req.body.toString('utf8');
     const secret = process.env.GITHUB_WEBHOOK_SECRET;
 
+    if (!secret) {
+      console.error('❌ GITHUB_WEBHOOK_SECRET not configured');
+      return res.status(503).json({ error: 'Webhook verification not configured' });
+    }
+
     if (!verifyGitHubSignature(payload, signature, secret)) {
       console.warn('⚠️  GitHub webhook signature verification failed');
       return res.status(401).json({ error: 'Invalid signature' });
