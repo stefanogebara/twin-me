@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toSecondPerson } from '@/lib/utils';
+import { PersonalityCards } from '@/components/visualizations/PersonalityCards';
+import { RadarDataPoint } from '@/utils/dataTransformers';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -332,6 +334,29 @@ const IdentityPage: React.FC = () => {
     if (!user && !isDemoMode) navigate('/auth');
   }, [user, isDemoMode, navigate]);
 
+  interface PersonalityProfile {
+    openness: number;
+    conscientiousness: number;
+    extraversion: number;
+    agreeableness: number;
+    neuroticism: number;
+    temperature: number;
+    top_p: number;
+    confidence: number;
+    last_built_at: string;
+  }
+
+  const { data: personalityData } = useQuery<{ success: boolean; profile: PersonalityProfile }>({
+    queryKey: ['personality-profile'],
+    queryFn: async () => {
+      const res = await authFetch('/personality-profile');
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 12 * 60 * 60 * 1000,
+    enabled: !!user && !isDemoMode,
+  });
+
   const { data, isLoading, error } = useQuery<{ success: boolean; data: IdentityData }>({
     queryKey: ['twin-identity'],
     queryFn: async () => {
@@ -440,6 +465,18 @@ const IdentityPage: React.FC = () => {
       : null;
 
   const hasMusicSection = musicGenres.length > 0 || !!listeningPattern;
+
+  // OCEAN data for PersonalityCards
+  const pp = personalityData?.profile;
+  const oceanCards: RadarDataPoint[] | null = pp?.openness != null
+    ? [
+        { trait: 'Openness',          value: Math.round(pp.openness * 100) },
+        { trait: 'Conscientiousness', value: Math.round(pp.conscientiousness * 100) },
+        { trait: 'Extraversion',      value: Math.round(pp.extraversion * 100) },
+        { trait: 'Agreeableness',     value: Math.round(pp.agreeableness * 100) },
+        { trait: 'Neuroticism',       value: Math.round(pp.neuroticism * 100) },
+      ]
+    : null;
 
   // Identity meta pill (confidence-aware)
   const identityMetaPill =
@@ -663,6 +700,36 @@ const IdentityPage: React.FC = () => {
             ))}
           </Accordion>
         </div>
+
+        {/* OCEAN Big Five */}
+        {oceanCards && (
+          <div className="glass-card rounded-2xl p-8" style={{ marginBottom: '3rem' }}>
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p
+                  className="text-xs font-semibold uppercase tracking-widest mb-1"
+                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
+                >
+                  Soul Calibration
+                </p>
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Big Five personality dimensions — how your twin models your mind
+                </p>
+              </div>
+              {pp?.temperature != null && (
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    temp {pp.temperature.toFixed(2)} · top_p {pp.top_p.toFixed(3)}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    confidence {Math.round((pp.confidence ?? 0) * 100)}%
+                  </p>
+                </div>
+              )}
+            </div>
+            <PersonalityCards data={oceanCards} />
+          </div>
+        )}
 
         {/* Music Signature */}
         {hasMusicSection && (
