@@ -5,6 +5,15 @@
  * Based on skills/oauth-platform-integration/oauth-config-examples.md
  */
 
+/**
+ * Valid platform names for demo/validation routes (URL-facing names, not DB names).
+ * Single source of truth — import this instead of defining inline arrays.
+ */
+export const VALID_DEMO_PLATFORMS = [
+  'spotify', 'youtube', 'discord', 'twitch', 'linkedin',
+  'whoop', 'calendar', 'reddit', 'github', 'gmail',
+];
+
 export const PLATFORM_CONFIGS = {
   spotify: {
     name: 'Spotify',

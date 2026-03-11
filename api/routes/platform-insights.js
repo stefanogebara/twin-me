@@ -114,12 +114,11 @@ export async function generateAndCacheSummary(userId) {
     platforms.map((p, i) => [p, makeSummary(results[i])])
   );
 
-  // Only cache if at least one platform has data
+  // Cache result — longer TTL when we have data, shorter for empty to prevent miss storms
   const hasData = Object.values(summary).some(s => s.connected);
-  if (hasData) {
-    await redisSet(SUMMARY_CACHE_KEY(userId), summary, SUMMARY_CACHE_TTL);
-    console.log(`[Insights API] Cached summary for user ${userId} (TTL: ${SUMMARY_CACHE_TTL}s)`);
-  }
+  const ttl = hasData ? SUMMARY_CACHE_TTL : 300; // 4h for real data, 5min for empty
+  await redisSet(SUMMARY_CACHE_KEY(userId), summary, ttl);
+  console.log(`[Insights API] Cached summary for user ${userId} (TTL: ${ttl}s, hasData: ${hasData})`);
 
   return summary;
 }
