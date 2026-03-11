@@ -8,6 +8,8 @@ import { getUserSubscription } from '../services/subscriptionService.js';
 const router = express.Router();
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 const APP_URL = process.env.VITE_APP_URL || 'http://localhost:8086';
+const isDev = process.env.NODE_ENV === 'development';
+const safeError = (err) => isDev ? err.message : 'Internal server error';
 
 if (!stripe) {
   console.warn('[Billing] STRIPE_SECRET_KEY not set — billing routes disabled');
@@ -18,12 +20,16 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   if (!stripe) {
     return res.status(503).json({ error: 'Billing not configured' });
   }
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('[Billing] STRIPE_WEBHOOK_SECRET not configured');
+    return res.status(503).json({ error: 'Webhook verification not configured' });
+  }
   const sig = req.headers['stripe-signature'];
   let event;
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).json({ error: 'Invalid webhook signature' });
   }
 
   try {
@@ -73,7 +79,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     res.json({ received: true });
   } catch (err) {
     console.error('[Billing] Webhook error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeError(err) });
   }
 });
 
@@ -83,7 +89,7 @@ router.get('/subscription', authenticateToken, async (req, res) => {
     const sub = await getUserSubscription(req.user?.id);
     res.json({ subscription: sub });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeError(err) });
   }
 });
 
@@ -127,7 +133,7 @@ router.post('/checkout', authenticateToken, async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error('[Billing] Checkout error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeError(err) });
   }
 });
 
@@ -147,7 +153,7 @@ router.post('/portal', authenticateToken, async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: safeError(err) });
   }
 });
 
