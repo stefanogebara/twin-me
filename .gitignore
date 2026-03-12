@@ -103,3 +103,48 @@ mobile/app.json.bak
 
 # Serena config
 .serena/
+
+# Root-level screenshots and images (design explorations, not assets)
+*.jpeg
+*.png
+!public/**/*.png
+!public/**/*.jpeg
+!browser-extension/**/*.png
+!src/**/*.png
+!src/**/*.jpeg
+
+# Test screenshots directories
+test-screenshots/
+tests/e2e/screenshots/
+
+# Investigation and debug scripts
+brain-investigation/
+investigate-*.mjs
+trigger-reflections.mjs
+tests/liquid-glass-screenshots.mjs
+
+# One-off test/debug scripts in tests/e2e
+tests/e2e/audit-*.cjs
+tests/e2e/audit-*.js
+tests/e2e/dashboard-v2-*.mjs
+tests/e2e/playwright.design.config.ts
+
+# Playwright audit artifacts
+playwright.audit.config.ts
+playwright-report-audit/
+
+# XML UI dumps
+ui*.xml
+
+# Figma design token exports (generated, not source)
+figma-design-tokens.*
+
+# Prototype/Remotion explorations
+src/prototype/
+src/remotion/
+
+# Test data fixtures
+test-data/
+
+# Claude local launch config
+.claude/launch.json
