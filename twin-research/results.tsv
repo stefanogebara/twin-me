@@ -34,3 +34,4 @@ fa73289	0.800423	0.850238	0.961039	0.434963	discard	identity importance 1.8 — 
 99405c5	0.800058	0.850238	0.961039	0.433135	discard	identity relevance 1.5 — diversity dropped
 41df213	0.797739	0.850238	0.961039	0.418000	discard	recent recency 0.1 — diversity dropped
 7d3be92	0.800207	0.850238	0.961039	0.434810	discard	reflection importance 0.0 — q16 diversity dropped
+b505acf	0.831920	-	-	-	discard	reflection importance 1.5 marginal

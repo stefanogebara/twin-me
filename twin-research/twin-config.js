@@ -22,8 +22,10 @@
  * SESSION 1 BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5) — DB state 2026-03-11
  * SESSION 2 BEST: 0.801600 (+ recent recency=0.0) — DB state 2026-03-12 (q13 recall fixed, q18 structural gap)
  * SESSION 3 BEST: 0.837 (25 queries, type-aware MMR, q18 gold fix, DB dedup, eval v2) — DB state 2026-03-12
+ * SESSION 4 BEST: 0.845 (conversation boost: confidence 0.60→0.75, decay 3→14d, direct retrieval) — DB state 2026-03-12
  * Key insight: recency=0 consistently wins. Reflection decay_rate=90 makes recency bias favor reflections.
  * Type-aware MMR: TYPE_DIVERSITY_WEIGHT=0.25 breaks diversity ceiling from 0.46 → 0.49 without hurting precision.
+ * Conversation boost: direct importance+recency queries instead of semantic search (reflections dominated). Conv share 2.4%→21.6%.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────

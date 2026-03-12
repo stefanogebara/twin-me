@@ -85,12 +85,12 @@ const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'ob
 
 // Ebbinghaus-inspired decay stability (in days) per memory type.
 // Higher = decays slower. Used by the weekly forgetting cron.
-const DECAY_RATE_BY_TYPE = { conversation: 3, platform_data: 7, fact: 30, reflection: 90 };
+const DECAY_RATE_BY_TYPE = { conversation: 14, platform_data: 7, fact: 30, reflection: 90 };
 
 // GUM: Default confidence priors by memory type.
 // Platform data is high-confidence (directly observed), conversations are lower
 // (user may be speculative), facts and reflections inherit from options or default.
-const CONFIDENCE_BY_TYPE = { platform_data: 0.90, observation: 0.90, conversation: 0.60, fact: 0.70, reflection: 0.70 };
+const CONFIDENCE_BY_TYPE = { platform_data: 0.90, observation: 0.90, conversation: 0.75, fact: 0.70, reflection: 0.70 };
 
 // S5.1: Proposition revision — memory types where we prefer UPDATE over INSERT when
 // a very similar memory already exists (threshold higher than dedup to be conservative).
@@ -832,11 +832,32 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         return data || [];
       }),
 
-    // P3: Conversation memories — semantic search for relevant past exchanges
+    // P3: Conversation memories — direct query by importance (semantic search was dominated by reflections)
+    // Split: half by importance (most significant exchanges), half by recency (freshest context)
     maxConversations > 0
-      ? retrieveMemories(userId, query, maxConversations * 2, 'default')
-          .then(mems => mems.filter(m => m.memory_type === 'conversation').slice(0, maxConversations))
-          .catch(err => {
+      ? Promise.all([
+          supabaseAdmin
+            .from('user_memories')
+            .select(SELECT_COLS)
+            .eq('user_id', userId)
+            .eq('memory_type', 'conversation')
+            .order('importance_score', { ascending: false })
+            .limit(Math.ceil(maxConversations / 2)),
+          supabaseAdmin
+            .from('user_memories')
+            .select(SELECT_COLS)
+            .eq('user_id', userId)
+            .eq('memory_type', 'conversation')
+            .order('created_at', { ascending: false })
+            .limit(Math.ceil(maxConversations / 2)),
+        ]).then(([impRes, recRes]) => {
+          const seen = new Set();
+          const merged = [];
+          for (const m of [...(impRes.data || []), ...(recRes.data || [])]) {
+            if (!seen.has(m.id)) { seen.add(m.id); merged.push(m); }
+          }
+          return merged.slice(0, maxConversations);
+        }).catch(err => {
             log.warn('Diverse conversations fetch failed', { error: err });
             return [];
           })
