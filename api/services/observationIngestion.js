@@ -350,7 +350,41 @@ async function fetchCalendarObservations(userId) {
       }
     }
 
-    // --- Richer observation templates ---
+    // --- Daily calendar pattern summary ---
+    // High-level observation that semantically matches pattern-level queries
+    // about schedule, time management, and calendar habits.
+    if (events.length > 0) {
+      const timedEvents = events.filter(e => e.start?.dateTime);
+      const allDayEvents = events.filter(e => e.start?.date && !e.start?.dateTime);
+      const titles = events.map(e => sanitizeExternal(e.summary || 'event', 40));
+
+      // Determine time clustering
+      let timeCluster = '';
+      if (timedEvents.length > 0) {
+        const hours = timedEvents.map(e => new Date(e.start.dateTime).getHours());
+        const avgHour = hours.reduce((a, b) => a + b, 0) / hours.length;
+        timeCluster = avgHour < 12 ? 'morning-heavy' : avgHour < 17 ? 'afternoon-focused' : 'evening-loaded';
+      }
+
+      const parts = [`Calendar schedule today: ${events.length} event${events.length > 1 ? 's' : ''}`];
+      if (titles.length <= 4) {
+        parts.push(`(${titles.join(', ')})`);
+      } else {
+        parts.push(`(${titles.slice(0, 3).join(', ')} and ${titles.length - 3} more)`);
+      }
+      if (timeCluster) parts.push(`— ${timeCluster} scheduling`);
+      if (allDayEvents.length > 0) parts.push(`with ${allDayEvents.length} all-day event${allDayEvents.length > 1 ? 's' : ''}`);
+
+      observations.push({
+        content: parts.join(' '),
+        contentType: 'daily_summary',
+      });
+    } else {
+      observations.push({
+        content: 'Calendar schedule today: no meetings or events — completely open day for time management',
+        contentType: 'daily_summary',
+      });
+    }
 
     // Workload assessment: heavy meeting day
     if (events.length >= 5) {
