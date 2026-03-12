@@ -1,6 +1,7 @@
 {
-  "_doc": "Fixed test queries for twin-eval.js. DO NOT MODIFY — this is the ground truth.",
+  "_doc": "Test queries for twin-eval.js. Ground truth for retrieval quality measurement.",
   "_scoring": "For each query, the gold 'expected_types' lists memory types that SHOULD appear in top-5. Score = fraction found.",
+  "_updated": "2026-03-12 — Session 3: q18 reflection added, 5 new queries (q21-q25) for breadth",
   "queries": [
     {
       "id": "q01",
@@ -161,6 +162,46 @@
       "expected_types": ["reflection", "fact"],
       "expected_keywords": ["unique", "distinctive", "characteristic"],
       "weight": 1.5
+    },
+    {
+      "id": "q21",
+      "query": "What Discord communities is this person part of and what do they reveal?",
+      "retrieval_mode": "default",
+      "expected_types": ["platform_data", "reflection"],
+      "expected_keywords": ["discord", "community", "server"],
+      "weight": 1.0
+    },
+    {
+      "id": "q22",
+      "query": "What has this person told their twin directly in conversations?",
+      "retrieval_mode": "recent",
+      "expected_types": ["conversation"],
+      "expected_keywords": [],
+      "weight": 1.0
+    },
+    {
+      "id": "q23",
+      "query": "What are the known biographical facts about this person — name, location, education, work?",
+      "retrieval_mode": "identity",
+      "expected_types": ["fact"],
+      "expected_keywords": ["name", "born", "live", "work", "study"],
+      "weight": 1.2
+    },
+    {
+      "id": "q24",
+      "query": "How does this person balance night owl tendencies with morning responsibilities?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection", "fact", "conversation"],
+      "expected_keywords": ["night", "morning", "sleep", "schedule", "owl"],
+      "weight": 1.3
+    },
+    {
+      "id": "q25",
+      "query": "What fitness and recovery data shows about this person's physical patterns?",
+      "retrieval_mode": "default",
+      "expected_types": ["platform_data", "reflection", "observation"],
+      "expected_keywords": ["recovery", "whoop", "hrv", "workout", "strain"],
+      "weight": 1.0
     }
   ]
 }

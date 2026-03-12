@@ -244,6 +244,29 @@ async function fetchSpotifyObservations(userId) {
     observations.push({ content: `Extended listening session (${recentTracks.length} tracks recently)`, contentType: 'current_state' });
   }
 
+  // Daily music listening summary — pattern-level observation
+  // Combines top artist, recent tracks, and time-of-day for richer semantic matching
+  if (recentTracks.length > 0 || topArtistNames.length > 0) {
+    const parts = ['Spotify music listening pattern:'];
+    if (topArtistNames.length > 0) {
+      parts.push(`top artist is ${topArtistNames[0]}`);
+      if (topArtistNames.length > 1) parts.push(`also listening to ${topArtistNames.slice(1, 4).join(', ')}`);
+    }
+    if (recentTracks.length > 0) {
+      const recentArtists = [...new Set(recentTracks.map(item => item.track?.artists?.[0]?.name).filter(Boolean))].slice(0, 3);
+      parts.push(`recently played ${recentArtists.join(', ')}`);
+    }
+    if (hour >= 22 || hour < 5) {
+      parts.push('— late-night listening session');
+    } else if (hour < 9) {
+      parts.push('— morning music ritual');
+    }
+    observations.push({
+      content: parts.join(' '),
+      contentType: 'daily_summary',
+    });
+  }
+
   // Audio features analysis: mood detection from energy, valence, danceability
   if (recentItems.length > 0) {
     try {

@@ -193,6 +193,7 @@ async function evaluateQuery(testQuery) {
     recall_at_10: recallHit,
     diversity,
     count: rawResults.length,
+    top5_types: typeCounts,
   };
 }
 
@@ -212,6 +213,11 @@ async function evaluate() {
   let totalWeight = 0;
   let successCount = 0;
 
+  // Per-mode tracking
+  const modeStats = {};
+  // Global type distribution across all top-5 results
+  const globalTypeDist = {};
+
   for (let i = 0; i < TEST_QUERIES.length; i++) {
     const q = TEST_QUERIES[i];
     const weight = q.weight || 1.0;
@@ -224,8 +230,24 @@ async function evaluate() {
       totalWeight += weight;
       successCount++;
 
+      // Track per-mode stats
+      const mode = q.retrieval_mode;
+      if (!modeStats[mode]) modeStats[mode] = { precision: 0, recall: 0, diversity: 0, weight: 0, count: 0 };
+      modeStats[mode].precision += result.precision_at_5 * weight;
+      modeStats[mode].recall += result.recall_at_10 * weight;
+      modeStats[mode].diversity += result.diversity * weight;
+      modeStats[mode].weight += weight;
+      modeStats[mode].count++;
+
+      // Aggregate type distribution
+      if (result.top5_types) {
+        for (const [type, count] of Object.entries(result.top5_types)) {
+          globalTypeDist[type] = (globalTypeDist[type] || 0) + count;
+        }
+      }
+
       const icon = result.precision_at_5 >= 0.7 ? '✓' : result.precision_at_5 >= 0.4 ? '~' : '✗';
-      console.log(`${icon} q${String(i+1).padStart(2,'0')} [${q.retrieval_mode.padEnd(10)}] P@5=${result.precision_at_5.toFixed(3)} R@10=${result.recall_at_10} D=${result.diversity.toFixed(3)} n=${result.count}`);
+      console.log(`${icon} q${String(i+1).padStart(2,'0')} [${mode.padEnd(10)}] P@5=${result.precision_at_5.toFixed(3)} R@10=${result.recall_at_10} D=${result.diversity.toFixed(3)} n=${result.count}`);
     } catch (err) {
       console.log(`✗ q${String(i+1).padStart(2,'0')} FAILED: ${err.message}`);
       totalWeight += weight;
@@ -256,6 +278,24 @@ async function evaluate() {
   console.log(`twin_quality_score: ${twin_quality_score.toFixed(6)}`);
   console.log(`queries_completed:  ${successCount}/${TEST_QUERIES.length}`);
   console.log(`eval_seconds:       ${elapsed}`);
+
+  // Per-mode breakdown
+  console.log(`\n── Per-Mode Breakdown ──`);
+  for (const [mode, s] of Object.entries(modeStats).sort((a, b) => a[0].localeCompare(b[0]))) {
+    const p = s.weight > 0 ? s.precision / s.weight : 0;
+    const r = s.weight > 0 ? s.recall / s.weight : 0;
+    const d = s.weight > 0 ? s.diversity / s.weight : 0;
+    const score = 0.50 * p + 0.30 * r + 0.20 * d;
+    console.log(`  ${mode.padEnd(12)} (${s.count}q) P=${p.toFixed(3)} R=${r.toFixed(3)} D=${d.toFixed(3)} → ${score.toFixed(3)}`);
+  }
+
+  // Type distribution in top-5 results
+  console.log(`\n── Type Distribution (top-5 across all queries) ──`);
+  const totalTypes = Object.values(globalTypeDist).reduce((a, b) => a + b, 0);
+  for (const [type, count] of Object.entries(globalTypeDist).sort((a, b) => b[1] - a[1])) {
+    const pct = totalTypes > 0 ? (count / totalTypes * 100).toFixed(1) : '0.0';
+    console.log(`  ${type.padEnd(14)} ${String(count).padStart(3)} (${pct}%)`);
+  }
 
   return {
     twin_quality_score,
