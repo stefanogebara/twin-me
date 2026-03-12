@@ -7,6 +7,9 @@
  * All functions are PURE (no DB, no LLM, microseconds).
  */
 
+// Weights aligned with twin-research findings (sessions 1-2):
+// recency=0 consistently wins — reflection decay_rate=90 creates unfair recency advantage.
+// Identity-like weights (high importance + relevance, zero recency) outperform across domains.
 const NEUROPILS = {
   personality: {
     keywords: [
@@ -14,7 +17,7 @@ const NEUROPILS = {
       'character', 'trait', 'self', 'authentic', 'soul',
       'introvert', 'extrovert', 'attachment', 'big five', 'ocean',
     ],
-    weights: { recency: 0.3, importance: 0.8, relevance: 1.0 },
+    weights: { recency: 0.0, importance: 2.0, relevance: 1.2 },
     budgets: { reflections: 6, conversations: 6, facts: 4, platform_data: 2, observations: 2 },
   },
   lifestyle: {
@@ -23,7 +26,7 @@ const NEUROPILS = {
       'health', 'diet', 'workout', 'recovery', 'daily',
       'schedule', 'habit', 'rhythm', 'hrv', 'strain',
     ],
-    weights: { recency: 1.0, importance: 0.5, relevance: 0.8 },
+    weights: { recency: 0.0, importance: 0.5, relevance: 1.0 },
     budgets: { reflections: 2, conversations: 2, facts: 2, platform_data: 10, observations: 4 },
   },
   cultural: {
@@ -32,7 +35,7 @@ const NEUROPILS = {
       'taste', 'aesthetic', 'genre', 'style', 'culture',
       'spotify', 'youtube', 'watch', 'listen', 'read',
     ],
-    weights: { recency: 0.5, importance: 0.7, relevance: 1.0 },
+    weights: { recency: 0.0, importance: 0.5, relevance: 1.0 },
     budgets: { reflections: 4, conversations: 3, facts: 3, platform_data: 6, observations: 4 },
   },
   social: {
@@ -41,7 +44,7 @@ const NEUROPILS = {
       'community', 'discord', 'group', 'conversation', 'connect',
       'network', 'linkedin', 'team', 'collaborate', 'communicate',
     ],
-    weights: { recency: 0.7, importance: 0.6, relevance: 1.0 },
+    weights: { recency: 0.0, importance: 0.5, relevance: 1.0 },
     budgets: { reflections: 3, conversations: 8, facts: 3, platform_data: 3, observations: 3 },
   },
   motivation: {
@@ -50,7 +53,7 @@ const NEUROPILS = {
       'motivation', 'purpose', 'drive', 'plan', 'future',
       'success', 'progress', 'productivity', 'decision', 'challenge',
     ],
-    weights: { recency: 0.8, importance: 0.7, relevance: 1.0 },
+    weights: { recency: 0.0, importance: 1.0, relevance: 1.2 },
     budgets: { reflections: 3, conversations: 3, facts: 8, platform_data: 3, observations: 3 },
   },
 };

@@ -329,25 +329,23 @@ async function fetchCalendarObservations(userId) {
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
         const startTime = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         const endTime = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        observations.push(`Has a meeting '${title}' from ${startTime} to ${endTime}`);
+        observations.push({ content: `Has a meeting '${title}' from ${startTime} to ${endTime}`, contentType: 'daily_summary' });
       } else if (startRaw) {
-        observations.push(`Has an all-day event '${title}'`);
+        observations.push({ content: `Has an all-day event '${title}'`, contentType: 'daily_summary' });
       }
     }
 
-    // Detect free afternoon
+    // Detect free afternoon — use daily_summary to avoid per-hour duplicates
     if (events.length === 0) {
-      const hourNow = now.getHours();
-      if (hourNow >= 12) {
-        observations.push(`Free afternoon - no meetings after ${hourNow}:00`);
+      if (now.getHours() >= 12) {
+        observations.push({ content: 'Free afternoon - no meetings scheduled', contentType: 'daily_summary' });
       }
     } else {
       const lastEventEnd = events[events.length - 1]?.end?.dateTime;
       if (lastEventEnd) {
         const lastEnd = new Date(lastEventEnd);
         if (lastEnd.getHours() < 17) {
-          const freeFrom = lastEnd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-          observations.push(`Free afternoon - no meetings after ${freeFrom}`);
+          observations.push({ content: 'Free afternoon - meetings end before 5 PM', contentType: 'daily_summary' });
         }
       }
     }
