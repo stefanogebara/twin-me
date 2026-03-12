@@ -17,6 +17,7 @@ import ConnectedPlatformsSettings from './components/settings/ConnectedPlatforms
 import DataConsentSettings from './components/settings/DataConsentSettings';
 import ClaudeDesktopSync from './components/settings/ClaudeDesktopSync';
 import DataManagementSettings from './components/settings/DataManagementSettings';
+import PersonalityOracleSettings from './components/settings/PersonalityOracleSettings';
 import GitHubConnectCard from './components/settings/GitHubConnectCard';
 import WhatsAppImportCard from './components/settings/WhatsAppImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -398,6 +399,9 @@ const Settings = () => {
                 handleCopyUserId={handleCopyUserId}
                 cardStyle={cardStyle}
               />
+
+              {/* Enhanced Personality (Behavioral Finetuning) */}
+              <PersonalityOracleSettings cardStyle={cardStyle} />
             </>
           )}
 

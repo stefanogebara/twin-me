@@ -610,6 +610,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     const useNeurotransmitterModes = featureFlags.neurotransmitter_modes !== false;
     const useConnectomeNeuropils = featureFlags.connectome_neuropils !== false;
     const useEmbodiedFeedback = featureFlags.embodied_feedback_loop !== false;
+    const usePersonalityOracle = featureFlags.personality_oracle === true; // opt-in: requires trained model
 
     // Subscription gate: free users get 1 assistant reply, then paywall
     const sub = await getUserSubscription(userId);
@@ -738,9 +739,11 @@ router.post('/message', authenticateUser, async (req, res) => {
           .then(p => { personalityProfile = p; })
           .catch(err => { log.warn('Personality profile fetch failed', { error: err }); }),
         // Personality Oracle: finetuned model generates behavioral compass draft (800ms budget)
-        getOracleDraft(userId, message)
-          .then(draft => { oracleDraft = draft; })
-          .catch(() => { /* graceful fallback — oracle is optional */ }),
+        ...(usePersonalityOracle ? [
+          getOracleDraft(userId, message)
+            .then(draft => { oracleDraft = draft; })
+            .catch(() => { /* graceful fallback — oracle is optional */ }),
+        ] : []),
       ]);
       twinContext = ctx;
     } finally {
