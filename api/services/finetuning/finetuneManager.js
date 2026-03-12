@@ -13,7 +13,7 @@ import { createLogger } from '../logger.js';
 
 const log = createLogger('FinetuneManager');
 
-const BASE_MODEL = 'Qwen/Qwen2.5-7B-Instruct';
+const BASE_MODEL = 'meta-llama/Meta-Llama-3.1-8B-Instruct-Reference'; // Supports serverless LoRA inference
 const TOGETHER_API = 'https://api.together.xyz/v1';
 
 function getApiKey() {
