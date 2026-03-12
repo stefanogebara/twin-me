@@ -51,8 +51,10 @@ export async function getOracleDraft(userId, userMessage, topMemories = []) {
       ? `\n\n[RELEVANT MEMORIES]\n${topMemories.slice(0, 5).join('\n')}`
       : '';
 
+    const oracleInstruction = '\n\nIMPORTANT: You are a behavioral compass, NOT the twin itself. Describe how this person would respond in SECOND PERSON (e.g. "you\'d say...", "you tend to...", "your vibe here is..."). Be brief (1-2 sentences). Do NOT write the actual response — just describe the tone, angle, and personality that should come through.';
+
     const messages = [
-      { role: 'system', content: systemPrompt + memoryContext },
+      { role: 'system', content: systemPrompt + memoryContext + oracleInstruction },
       { role: 'user', content: userMessage },
     ];
 
@@ -109,10 +111,10 @@ export async function getOracleDraft(userId, userMessage, topMemories = []) {
 export function formatOracleBlock(draft) {
   if (!draft) return '';
   return [
-    '\n[PERSONALITY ORACLE]',
-    'Based on your behavioral patterns, your natural response tendency would be:',
+    '\n[PERSONALITY ORACLE — BEHAVIORAL COMPASS]',
+    'Your twin\'s behavioral patterns suggest:',
     draft,
-    'Use this as directional guidance for tone, perspective, and content. Write your own response.',
+    'Channel this energy and tone into your response. Speak AS the person, in first person.',
   ].join('\n');
 }
 
