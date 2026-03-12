@@ -28,5 +28,25 @@
 
 ---
 
-## Review
-(To be filled after implementation)
+## Review — COMPLETE (2026-03-12)
+
+**Status**: All 6 phases shipped to production. Oracle live for test user.
+
+### Architecture
+- Finetuned Llama 3.1 8B (together.ai serverless LoRA) as personality oracle
+- Oracle generates 100-token second-person behavioral compass ("you'd say...", "you tend to...")
+- Injected into Claude Sonnet's system prompt as directional guidance
+- Claude generates final twin response in first person, guided by oracle's tone/angle
+
+### Key Numbers
+- 212 clean training examples (filtered from 2,736 — 92% were contaminated with `[Imported from Claude Desktop]`)
+- Oracle latency: ~1.8s (runs in parallel with fetchTwinContext, no user-facing delay)
+- Base model: `meta-llama/Meta-Llama-3.1-8B-Instruct-Reference` (supports serverless LoRA)
+- 3 training runs total: Qwen (no serverless), Llama v1 (contaminated), Llama v2 (clean, live)
+
+### Lessons Learned
+1. together.ai REST file upload is broken — must use Python SDK (`check=False`)
+2. Qwen models don't support serverless LoRA — use Llama 3.1 8B Reference
+3. Training data quality > quantity — 212 clean > 2,736 contaminated
+4. Oracle timeout needs 8s budget (DB ~400ms + together.ai cold start ~3s)
+5. Feature flag must be `=== true` (opt-in) since oracle requires trained model

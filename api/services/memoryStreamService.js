@@ -493,17 +493,19 @@ const RETRIEVAL_WEIGHTS = {
   // Default: equal weights (original Generative Agents behavior)
   default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
 
-  // Identity: who is this person? Relevance dominant, recency low.
-  // Used by: twin summary generation, personality queries
-  identity: { recency: 0.2, importance: 0.8, relevance: 1.0 },
+  // Identity: who is this person? No recency (avoids reflection decay_rate=90 bias),
+  // high importance for curated insights, strong relevance for semantic match.
+  // twin-research session 1: recency=0 + importance=2.0 → +8.7pts
+  identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
 
-  // Recent: what's happening now? Recency dominant, relevance still matters.
-  // Used by: proactive insights, "how are you?" type queries
-  recent: { recency: 1.0, importance: 0.5, relevance: 0.7 },
+  // Recent: counterintuitively, recency=0 works best.
+  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
+  // Pure semantic matching surfaces diverse types. (twin-research session 2: +2pts)
+  recent: { recency: 0.0, importance: 0.5, relevance: 1.0 },
 
   // Reflection: deep pattern analysis. Paper 2 style — no recency bias.
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.0 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
 };
 
 // ====================================================================
