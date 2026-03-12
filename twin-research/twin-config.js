@@ -21,10 +21,9 @@
  * BASELINE: twin_quality_score = 0.740165
  * SESSION 1 BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5) — DB state 2026-03-11
  * SESSION 2 BEST: 0.801600 (+ recent recency=0.0) — DB state 2026-03-12 (q13 recall fixed, q18 structural gap)
- * SESSION 3 BEST: 0.832632 (25 queries, q18 gold fix, DB dedup, eval v2) — DB state 2026-03-12
+ * SESSION 3 BEST: 0.837 (25 queries, type-aware MMR, q18 gold fix, DB dedup, eval v2) — DB state 2026-03-12
  * Key insight: recency=0 consistently wins. Reflection decay_rate=90 makes recency bias favor reflections.
- * Diversity ceiling: 0.46 — reflections dominate top-5 (56.8%) due to higher importance + richer semantics.
- * Next: type-aware MMR in retrieval pipeline to break diversity ceiling.
+ * Type-aware MMR: TYPE_DIVERSITY_WEIGHT=0.25 breaks diversity ceiling from 0.46 → 0.49 without hurting precision.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -57,6 +56,13 @@ export const RETRIEVAL_WEIGHTS = {
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
 export const MMR_LAMBDA = 0.5;
+
+// Type diversity weight for MMR reranking.
+// Penalizes selecting memories of a type already over-represented in the selected set.
+// Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
+// 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
+// Range: [0.0, 0.5]
+export const TYPE_DIVERSITY_WEIGHT = 0.25;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.

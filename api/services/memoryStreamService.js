@@ -513,6 +513,7 @@ const RETRIEVAL_WEIGHTS = {
 // ====================================================================
 
 const MMR_LAMBDA = 0.5; // balance relevance vs diversity (0=pure diversity, 1=pure relevance)
+const TYPE_DIVERSITY_WEIGHT = 0.15; // penalizes over-representation of same memory_type in selected set
 
 /**
  * Parse a stringified vector "[0.1,0.2,...]" → Float32Array.
@@ -583,7 +584,14 @@ function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
         }
       }
 
-      const mmrScore = lambda * relevance - (1 - lambda) * maxSim;
+      // Type diversity penalty: penalize candidates whose type is already over-represented
+      let typePenalty = 0;
+      if (selected.length > 0 && cand.memory_type && TYPE_DIVERSITY_WEIGHT > 0) {
+        const sameTypeCount = selected.filter(s => s.memory_type === cand.memory_type).length;
+        typePenalty = TYPE_DIVERSITY_WEIGHT * (sameTypeCount / selected.length);
+      }
+
+      const mmrScore = lambda * relevance - (1 - lambda) * maxSim - typePenalty;
       if (mmrScore > bestScore) {
         bestScore = mmrScore;
         bestIdx = i;
