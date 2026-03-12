@@ -19,7 +19,7 @@ import crypto from 'crypto';
 const log = createLogger('PersonalityOracle');
 
 const TOGETHER_API = 'https://api.together.xyz/v1';
-const ORACLE_TIMEOUT_MS = 800;
+const ORACLE_FETCH_TIMEOUT_MS = 8000; // 8s total (DB prep ~400ms + together.ai cold start ~3s)
 const ORACLE_MAX_TOKENS = 100;
 const CACHE_TTL = 60; // 60s cache on oracle drafts
 
@@ -58,7 +58,7 @@ export async function getOracleDraft(userId, userMessage, topMemories = []) {
 
     // Call finetuned model with strict timeout
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), ORACLE_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), ORACLE_FETCH_TIMEOUT_MS);
 
     const res = await fetch(`${TOGETHER_API}/chat/completions`, {
       method: 'POST',
@@ -94,7 +94,7 @@ export async function getOracleDraft(userId, userMessage, topMemories = []) {
     return draft;
   } catch (err) {
     if (err.name === 'AbortError') {
-      log.warn('Oracle timed out (800ms budget exceeded)');
+      log.warn('Oracle timed out (4s fetch budget exceeded)');
     } else {
       log.error('Oracle error:', err.message);
     }

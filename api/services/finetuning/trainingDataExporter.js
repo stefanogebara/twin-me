@@ -205,6 +205,8 @@ export async function exportTrainingData({ minTurns = 1, userId = null, batchSiz
         if (!entry.user_message?.trim()) return false;
         if (!entry.twin_response?.trim()) return false;
         if (entry.twin_response.startsWith('Error:') || entry.twin_response.startsWith('I encountered')) return false;
+        // Skip metadata-only responses (e.g. "[Imported from Claude Desktop]")
+        if (entry.twin_response.includes('[Imported from') || entry.twin_response.includes('[imported from')) return false;
         // Skip very short responses (likely errors or empty)
         if (entry.twin_response.trim().length < 20) return false;
         return true;
