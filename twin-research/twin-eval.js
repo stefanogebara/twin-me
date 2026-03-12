@@ -41,6 +41,7 @@ import {
   RETRIEVAL_WEIGHTS,
   MMR_LAMBDA,
   ALPHA_CITATION_BASELINE,
+  TYPE_DIVERSITY_WEIGHT,
 } from './twin-config.js';
 
 // ─── Fixed constants (never modified by agent) ────────────────────────────────
@@ -107,8 +108,15 @@ function mmrRerank(candidates, k) {
         }
       }
 
-      // MMR_LAMBDA from twin-config.js
-      const mmrScore = MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * maxSim;
+      // Type diversity penalty (mirrors memoryStreamService.js)
+      let typePenalty = 0;
+      if (selected.length > 0 && cand.memory_type && TYPE_DIVERSITY_WEIGHT > 0) {
+        const sameTypeCount = selected.filter(s => s.memory_type === cand.memory_type).length;
+        typePenalty = TYPE_DIVERSITY_WEIGHT * (sameTypeCount / selected.length);
+      }
+
+      // MMR_LAMBDA + TYPE_DIVERSITY_WEIGHT from twin-config.js
+      const mmrScore = MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * maxSim - typePenalty;
       if (mmrScore > bestScore) {
         bestScore = mmrScore;
         bestIdx = i;
