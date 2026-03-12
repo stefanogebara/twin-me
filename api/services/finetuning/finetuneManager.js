@@ -45,28 +45,30 @@ export async function createFinetune(userId, filePath, {
 
   const apiKey = getApiKey();
 
-  // Step 1: Upload file
+  // Step 1: Upload file via Python SDK (together.ai REST upload has undocumented format requirements)
   log.info(`Uploading training file for user ${userId.slice(0, 8)}...`);
-  const formData = new FormData();
-  const fileBuffer = fs.readFileSync(filePath);
-  const fileName = `training-${userId.slice(0, 8)}.jsonl`;
-  formData.append('file', new File([fileBuffer], fileName, { type: 'application/jsonl' }));
-  formData.append('purpose', 'fine-tune');
-  formData.append('file_type', 'jsonl');
+  const { execFile } = await import('child_process');
+  const { promisify } = await import('util');
+  const execFileAsync = promisify(execFile);
+  const absPath = fs.realpathSync(filePath).replace(/\\/g, '/');
 
-  const uploadRes = await fetch(`${TOGETHER_API}/files`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: formData,
-  });
+  let fileId;
+  try {
+    const pyScript = [
+      'import os, json',
+      `os.environ["TOGETHER_API_KEY"]="${apiKey}"`,
+      'from together import Together',
+      'c = Together()',
+      `r = c.files.upload(file="${absPath}", check=False)`,
+      'print(json.dumps({"id": r.id, "filename": r.filename}))',
+    ].join('\n');
 
-  if (!uploadRes.ok) {
-    const err = await uploadRes.text();
-    throw new Error(`File upload failed: ${uploadRes.status} — ${err}`);
+    const { stdout } = await execFileAsync('python', ['-c', pyScript], { timeout: 120_000 });
+    const parsed = JSON.parse(stdout.trim().split('\n').pop());
+    fileId = parsed.id;
+  } catch (uploadErr) {
+    throw new Error(`File upload failed: ${uploadErr.message}`);
   }
-
-  const uploadData = await uploadRes.json();
-  const fileId = uploadData.id;
   log.info(`File uploaded: ${fileId}`);
 
   // Step 2: Create fine-tuning job
