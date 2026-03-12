@@ -20,7 +20,7 @@ test.describe.serial('Twin Chat E2E', () => {
   test('chat page loads with input visible', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
-    await page.goto(`${BASE_URL}/talk-to-twin`);
+    await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);
 
     // Should not redirect to auth
@@ -43,7 +43,7 @@ test.describe.serial('Twin Chat E2E', () => {
 
   test('suggestion pills or starter prompts are displayed', async ({ page }) => {
     await injectAuth(page);
-    await page.goto(`${BASE_URL}/talk-to-twin`);
+    await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);
 
     // Look for suggestion pills, starter prompts, or any clickable prompt elements
@@ -61,7 +61,7 @@ test.describe.serial('Twin Chat E2E', () => {
   test('send message and receive streaming response', async ({ page }) => {
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
-    await page.goto(`${BASE_URL}/talk-to-twin`);
+    await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page, 10000);
 
     // Chat input
@@ -117,7 +117,7 @@ test.describe.serial('Twin Chat E2E', () => {
 
   test('chat preserves auth after page reload', async ({ page }) => {
     await injectAuth(page);
-    await page.goto(`${BASE_URL}/talk-to-twin`);
+    await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);
 
     // Verify chat page loaded

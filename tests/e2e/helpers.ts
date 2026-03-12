@@ -30,13 +30,28 @@ const TEST_TOKEN =
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Inject auth token into localStorage before any page navigation.
+ * Inject auth token + cached user into localStorage before any page navigation.
  * Must be called BEFORE page.goto().
+ *
+ * We inject both auth_token AND auth_user because the AuthContext verifies
+ * the token against the backend on mount. If the backend is down, it falls
+ * back to the cached user. Without auth_user, a network error clears auth
+ * and redirects to /auth.
  */
 export async function injectAuth(page: Page): Promise<void> {
-  await page.addInitScript((token: string) => {
+  const authData = JSON.stringify({
+    token: TEST_TOKEN,
+    user: JSON.stringify({
+      id: TEST_USER_ID,
+      email: TEST_USER_EMAIL,
+      name: 'Test User',
+    }),
+  });
+  await page.addInitScript((data: string) => {
+    const { token, user } = JSON.parse(data);
     window.localStorage.setItem('auth_token', token);
-  }, TEST_TOKEN);
+    window.localStorage.setItem('auth_user', user);
+  }, authData);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

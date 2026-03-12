@@ -34,7 +34,7 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
-      testIgnore: [/onboarding-flow\.spec\.ts/, /smoke-.*\.spec\.ts/],
+      testIgnore: [/onboarding-flow\.spec\.ts/, /smoke-.*\.spec\.ts/, /.*-e2e\.spec\.ts/],
     },
 
     // Onboarding tests — self-contained auth via localStorage injection, no setup dependency
@@ -50,6 +50,15 @@ export default defineConfig({
     {
       name: 'smoke',
       testMatch: /smoke-.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
+    // E2E tests — self-contained JWT injection, no setup dependency
+    {
+      name: 'e2e',
+      testMatch: /.*-e2e\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
       },
