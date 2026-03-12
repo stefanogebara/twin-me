@@ -1,0 +1,166 @@
+{
+  "_doc": "Fixed test queries for twin-eval.js. DO NOT MODIFY — this is the ground truth.",
+  "_scoring": "For each query, the gold 'expected_types' lists memory types that SHOULD appear in top-5. Score = fraction found.",
+  "queries": [
+    {
+      "id": "q01",
+      "query": "What music does this person listen to and what does it reveal about their mood?",
+      "retrieval_mode": "default",
+      "expected_types": ["platform_data", "observation", "reflection"],
+      "expected_keywords": ["spotify", "music", "listen"],
+      "weight": 1.0
+    },
+    {
+      "id": "q02",
+      "query": "What are the core personality traits that define who this person is?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection"],
+      "expected_keywords": ["personality", "trait", "character"],
+      "weight": 1.5
+    },
+    {
+      "id": "q03",
+      "query": "What does this person's daily schedule and energy patterns look like?",
+      "retrieval_mode": "recent",
+      "expected_types": ["platform_data", "reflection", "observation"],
+      "expected_keywords": ["morning", "schedule", "calendar", "energy", "routine"],
+      "weight": 1.0
+    },
+    {
+      "id": "q04",
+      "query": "How does this person communicate with others and what is their social style?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection", "observation"],
+      "expected_keywords": ["social", "communication", "discord", "messages"],
+      "weight": 1.2
+    },
+    {
+      "id": "q05",
+      "query": "What professional goals and career ambitions does this person have?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection", "fact"],
+      "expected_keywords": ["work", "career", "linkedin", "professional", "goal"],
+      "weight": 1.2
+    },
+    {
+      "id": "q06",
+      "query": "What videos has this person been watching recently on YouTube?",
+      "retrieval_mode": "recent",
+      "expected_types": ["platform_data", "observation"],
+      "expected_keywords": ["youtube", "video", "watch"],
+      "weight": 0.8
+    },
+    {
+      "id": "q07",
+      "query": "What cultural background shapes this person's perspective and taste?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection"],
+      "expected_keywords": ["culture", "brazilian", "language", "identity"],
+      "weight": 1.3
+    },
+    {
+      "id": "q08",
+      "query": "How does this person's sleep and physical wellness affect their behavior?",
+      "retrieval_mode": "default",
+      "expected_types": ["platform_data", "reflection", "observation"],
+      "expected_keywords": ["sleep", "health", "recovery", "energy"],
+      "weight": 1.0
+    },
+    {
+      "id": "q09",
+      "query": "What emotional patterns emerge when this person is under stress?",
+      "retrieval_mode": "reflection",
+      "expected_types": ["reflection"],
+      "expected_keywords": ["stress", "emotional", "cope", "pattern"],
+      "weight": 1.5
+    },
+    {
+      "id": "q10",
+      "query": "What creative or intellectual interests does this person pursue?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection", "fact", "observation"],
+      "expected_keywords": ["interest", "creative", "learn", "curious"],
+      "weight": 1.2
+    },
+    {
+      "id": "q11",
+      "query": "How does this person make decisions when facing important choices?",
+      "retrieval_mode": "reflection",
+      "expected_types": ["reflection"],
+      "expected_keywords": ["decision", "choice", "thinking", "motivation"],
+      "weight": 1.3
+    },
+    {
+      "id": "q12",
+      "query": "What are this person's relationships like with friends and family?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection", "conversation"],
+      "expected_keywords": ["friend", "family", "relationship", "social"],
+      "weight": 1.0
+    },
+    {
+      "id": "q13",
+      "query": "What has been on this person's mind lately — what are they thinking about most?",
+      "retrieval_mode": "recent",
+      "expected_types": ["conversation", "platform_data", "observation"],
+      "expected_keywords": [],
+      "weight": 0.7
+    },
+    {
+      "id": "q14",
+      "query": "What specific facts are known about this person's life history and background?",
+      "retrieval_mode": "identity",
+      "expected_types": ["fact"],
+      "expected_keywords": [],
+      "weight": 1.0
+    },
+    {
+      "id": "q15",
+      "query": "How does this person's Spotify listening habits reflect their emotional state?",
+      "retrieval_mode": "reflection",
+      "expected_types": ["reflection", "platform_data"],
+      "expected_keywords": ["spotify", "music", "emotion", "mood"],
+      "weight": 1.2
+    },
+    {
+      "id": "q16",
+      "query": "What motivates this person to work hard and what makes them lose motivation?",
+      "retrieval_mode": "reflection",
+      "expected_types": ["reflection"],
+      "expected_keywords": ["motivation", "work", "driven", "goal"],
+      "weight": 1.5
+    },
+    {
+      "id": "q17",
+      "query": "What does this person's online presence reveal about their true interests?",
+      "retrieval_mode": "identity",
+      "expected_types": ["platform_data", "observation", "reflection"],
+      "expected_keywords": ["online", "youtube", "discord", "spotify"],
+      "weight": 1.0
+    },
+    {
+      "id": "q18",
+      "query": "What patterns emerge from this person's calendar and time management?",
+      "retrieval_mode": "recent",
+      "expected_types": ["platform_data", "observation"],
+      "expected_keywords": ["calendar", "schedule", "time", "meeting"],
+      "weight": 0.9
+    },
+    {
+      "id": "q19",
+      "query": "What deep observations have been made about this person's lifestyle rhythms?",
+      "retrieval_mode": "reflection",
+      "expected_types": ["reflection"],
+      "expected_keywords": ["lifestyle", "rhythm", "pattern", "routine"],
+      "weight": 1.3
+    },
+    {
+      "id": "q20",
+      "query": "What makes this person genuinely unique compared to most people?",
+      "retrieval_mode": "identity",
+      "expected_types": ["reflection", "fact"],
+      "expected_keywords": ["unique", "distinctive", "characteristic"],
+      "weight": 1.5
+    }
+  ]
+}

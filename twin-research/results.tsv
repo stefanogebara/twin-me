@@ -1,0 +1,36 @@
+commit	twin_quality_score	precision_at_5	recall_at_10	diversity	status	description
+ab153e2	0.740165	0.826234	0.930736	0.239135	keep	baseline
+ccceecb	0.740165	0.826234	0.930736	0.239135	discard	MMR_LAMBDA 0.35 no effect — candidates are mono-type from RPC
+d2ba529	0.740165	0.826234	0.930736	0.239135	discard	recent relevance 0.7→1.0 no effect — q13/q18 fact-dominated by access time
+ec9ff43	0.712384	0.780779	0.930736	0.213868	discard	identity recency 0.0 hurt precision — 0.2 baseline was optimal
+5a78e44	0.738054	0.822013	0.930736	0.239135	discard	reflection importance 1.0 slight regression
+704a181	0.741656	0.826234	0.930736	0.246592	keep	identity importance 1.0+relevance 1.2 — tiny diversity gain
+2a90974	0.741656	0.826234	0.930736	0.246592	discard	MMR_LAMBDA 0.7 no effect — same as 0.5
+eae7365	0.739546	0.822013	0.930736	0.246592	discard	reflection importance+relevance boost hurt precision
+2aaa0a7	0.741656	0.826234	0.930736	0.246592	discard	default recency+relevance tweak no effect — same score, simplicity wins
+1bfec81	0.741656	0.826234	0.930736	0.246592	discard	further identity boost no gain — E5 saturation point found
+c73ae79	0.776217	0.820584	0.930736	0.433522	keep	MMR=0.5 + identity recency=0.0 importance=1.6 (simplified - NEW BEST)
+c7f01ab	0.827608	0.820584	1.000000	0.614000	keep	identity importance=2.0 (session 1 best — different DB state)
+---	---	---	---	---	---	SESSION 2 (2026-03-12, DB state shifted — reflections grew, score baseline 0.781)
+f44e527	0.801600	0.850238	0.961039	0.440845	keep	recent recency=0 (q13 recall fixed, +2pts) — SESSION 2 BEST
+e6d1e37	0.781300	0.828701	0.930736	0.438644	discard	recent relevance 0.7→1.0 no effect
+9a792cb	0.776186	0.828701	0.930736	0.413070	discard	recent recency 0.5 + relevance 1.0 hurt diversity
+dc8bace	0.773266	0.808896	0.930736	0.447988	discard	MMR_LAMBDA 0.35 hurt precision
+b321a15	0.777877	0.821883	0.930736	0.438574	discard	reflection importance 1.0 hurt diversity
+58da3b4	0.781195	0.826104	0.930736	0.444610	discard	default importance 0.7 + relevance 1.2 — identical (RPC normalization)
+1544733	0.773375	0.821883	0.930736	0.416063	discard	MMR_LAMBDA 0.6 hurt diversity
+bd7275a	0.781195	0.826104	0.930736	0.444610	discard	default importance 1.5 — identical
+5d142e7	0.778503	0.826104	0.930736	0.431150	discard	default recency 0.3 — q08 diversity dropped
+4ee93c4	0.778595	0.826104	0.930736	0.431610	discard	reflection relevance 2.0 — q16/q19 diversity dropped
+c06d69d	0.781645	0.826104	0.930736	0.444610	discard	recent importance 1.0 — marginal
+c1eb61c	0.760619	0.799000	0.961039	0.390000	discard	identity importance 1.5 + relevance 1.5 — big precision drop
+6fd1f68	0.780126	0.826104	0.930736	0.431150	discard	default recency 0 — q08 diversity killed
+f6e4d31	0.800162	0.850238	0.961039	0.431150	discard	recent importance+relevance compound — worse than recency=0 alone
+91fee66	0.799999	0.850238	0.961039	0.431150	discard	recent importance 1.0 on recency=0 — q13 diversity dropped
+41cda33	0.800162	0.850238	0.961039	0.440845	discard	recent relevance 1.5 on recency=0 — q13 diversity dropped
+fa73289	0.800423	0.850238	0.961039	0.434963	discard	identity importance 1.8 — diversity dropped
+489ac18	0.800393	0.850238	0.961039	0.434810	discard	reflection recency 0.1 — no improvement
+3b3e5fc	0.800162	0.850238	0.961039	0.431150	discard	recent importance 0.2 — q13 diversity worse
+99405c5	0.800058	0.850238	0.961039	0.433135	discard	identity relevance 1.5 — diversity dropped
+41df213	0.797739	0.850238	0.961039	0.418000	discard	recent recency 0.1 — diversity dropped
+7d3be92	0.800207	0.850238	0.961039	0.434810	discard	reflection importance 0.0 — q16 diversity dropped

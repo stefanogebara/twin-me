@@ -18,8 +18,10 @@
  *   complexity is not worth it. Removing parameters and matching or
  *   beating the score is a simplification win.
  *
- * BASELINE: twin_quality_score = 0.740165 → BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5)
- * Perfect recall (1.000) achieved. Search space converged — any perturbation breaks recall gate.
+ * BASELINE: twin_quality_score = 0.740165
+ * SESSION 1 BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5) — DB state 2026-03-11
+ * SESSION 2 BEST: 0.801600 (+ recent recency=0.0) — DB state 2026-03-12 (q13 recall fixed, q18 structural gap)
+ * Key insight: recency=0 consistently wins. Reflection decay_rate=90 makes recency bias favor reflections.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -36,9 +38,10 @@ export const RETRIEVAL_WEIGHTS = {
   // Used by: twin summary generation, personality queries
   identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
 
-  // Recent context (what's happening now?) — recency dominant.
-  // Used by: proactive insights, "how are you?" queries
-  recent: { recency: 1.0, importance: 0.5, relevance: 0.7 },
+  // Recent context — counterintuitively, recency=0 works best.
+  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
+  // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
+  recent: { recency: 0.0, importance: 0.5, relevance: 1.0 },
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
