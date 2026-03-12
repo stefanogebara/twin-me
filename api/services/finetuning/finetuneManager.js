@@ -49,8 +49,10 @@ export async function createFinetune(userId, filePath, {
   log.info(`Uploading training file for user ${userId.slice(0, 8)}...`);
   const formData = new FormData();
   const fileBuffer = fs.readFileSync(filePath);
-  formData.append('file', new Blob([fileBuffer]), `training-${userId.slice(0, 8)}.jsonl`);
+  const fileName = `training-${userId.slice(0, 8)}.jsonl`;
+  formData.append('file', new File([fileBuffer], fileName, { type: 'application/jsonl' }));
   formData.append('purpose', 'fine-tune');
+  formData.append('file_type', 'jsonl');
 
   const uploadRes = await fetch(`${TOGETHER_API}/files`, {
     method: 'POST',
