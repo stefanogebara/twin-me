@@ -347,6 +347,7 @@ import personalityProfileRoutes from './routes/personality-profile.js';
 import systemHealthRoutes from './routes/system-health.js';
 import healthRoutes from './routes/health.js';
 import testEvidencePipelineRoutes from './routes/test-evidence-pipeline.js';
+import finetuningRoutes from './routes/finetuning.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -460,6 +461,7 @@ app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 m
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 
+app.use('/api/finetuning', finetuningRoutes); // Behavioral finetuning (together.ai personality oracle)
 app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes); // Evidence pipeline debugging
