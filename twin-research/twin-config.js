@@ -21,7 +21,10 @@
  * BASELINE: twin_quality_score = 0.740165
  * SESSION 1 BEST: 0.827608 (identity {recency:0.0, importance:2.0, relevance:1.2} + MMR=0.5) — DB state 2026-03-11
  * SESSION 2 BEST: 0.801600 (+ recent recency=0.0) — DB state 2026-03-12 (q13 recall fixed, q18 structural gap)
+ * SESSION 3 BEST: 0.832632 (25 queries, q18 gold fix, DB dedup, eval v2) — DB state 2026-03-12
  * Key insight: recency=0 consistently wins. Reflection decay_rate=90 makes recency bias favor reflections.
+ * Diversity ceiling: 0.46 — reflections dominate top-5 (56.8%) due to higher importance + richer semantics.
+ * Next: type-aware MMR in retrieval pipeline to break diversity ceiling.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
