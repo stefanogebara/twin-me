@@ -513,7 +513,7 @@ const RETRIEVAL_WEIGHTS = {
 // ====================================================================
 
 const MMR_LAMBDA = 0.5; // balance relevance vs diversity (0=pure diversity, 1=pure relevance)
-const TYPE_DIVERSITY_WEIGHT = 0.15; // penalizes over-representation of same memory_type in selected set
+const TYPE_DIVERSITY_WEIGHT = 0.25; // penalizes over-representation of same memory_type in selected set (twin-research session 3: optimal at 0.25)
 
 /**
  * Parse a stringified vector "[0.1,0.2,...]" → Float32Array.
