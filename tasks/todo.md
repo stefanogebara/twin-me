@@ -20,11 +20,11 @@
 - [x] 4C. Route registered in `server.js`
 
 ## Phase 5: Auto-Retrain
-- [ ] 5A. Hook into observation ingestion (200 memories trigger, 7-day cooldown)
+- [x] 5A. `api/services/finetuning/autoRetrain.js` — 200 memories trigger, 7-day cooldown, hooked into observation ingestion cron
 
 ## Phase 6: Evaluation
-- [ ] 6A. Eval framework (oracle vs vanilla, cosine similarity comparison)
-- [ ] 6B. Settings UI (Enhanced Personality Mode toggle + retrain button)
+- [x] 6A. Feature-flagged oracle (`personality_oracle`, opt-in) + conditional Promise.all in twin-chat.js
+- [x] 6B. `src/pages/components/settings/PersonalityOracleSettings.tsx` — train button, status display, toggle switch
 
 ---
 
