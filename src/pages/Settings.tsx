@@ -1,25 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import {
-  Info,
-  Shield,
-  Lock,
-  Eye,
-  ServerCrash,
-  Database
-} from 'lucide-react';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
+import { Download, Trash2, Info } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
-import DataConsentSettings from './components/settings/DataConsentSettings';
-import ClaudeDesktopSync from './components/settings/ClaudeDesktopSync';
-import DataManagementSettings from './components/settings/DataManagementSettings';
-import PersonalityOracleSettings from './components/settings/PersonalityOracleSettings';
-import GitHubConnectCard from './components/settings/GitHubConnectCard';
-import WhatsAppImportCard from './components/settings/WhatsAppImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -31,47 +16,87 @@ const getAuthHeaders = () => {
   return headers;
 };
 
-type SettingsTab = 'general' | 'platforms' | 'privacy';
+// ── Sub-components ───────────────────────────────────────────────────────
+
+const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
+  <span
+    className="text-[11px] font-medium tracking-widest uppercase block mb-5"
+    style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+  >
+    {label}
+  </span>
+);
+
+const Divider: React.FC = () => (
+  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+);
+
+const SettingsRow: React.FC<{
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}> = ({ label, description, children }) => (
+  <div
+    className="flex items-center justify-between py-4"
+    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+  >
+    <div>
+      <span className="text-sm" style={{ color: 'var(--foreground)' }}>{label}</span>
+      {description && (
+        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
+      )}
+    </div>
+    <div className="flex-shrink-0 ml-4">
+      {children}
+    </div>
+  </div>
+);
+
+const ToggleSwitch: React.FC<{
+  enabled: boolean;
+  onChange: (val: boolean) => void;
+  disabled?: boolean;
+}> = ({ enabled, onChange, disabled }) => (
+  <button
+    onClick={() => !disabled && onChange(!enabled)}
+    className="relative w-10 h-5 rounded-full transition-colors"
+    style={{
+      backgroundColor: enabled ? '#10b77f' : 'rgba(255,255,255,0.1)',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      opacity: disabled ? 0.5 : 1,
+    }}
+  >
+    <div
+      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+      style={{ left: enabled ? '22px' : '2px' }}
+    />
+  </button>
+);
+
+// ── Main page ────────────────────────────────────────────────────────────
 
 const Settings = () => {
   useDocumentTitle('Settings');
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isDemoMode } = useDemo();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
-  const [userIdCopied, setUserIdCopied] = useState(false);
-  const [syncStats, setSyncStats] = useState<{
-    totalConversations: number;
-    claudeDesktopConversations: number;
-    lastSyncAt: string | null;
-  } | null>(null);
-  const [loadingSyncStats, setLoadingSyncStats] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
-
-  // Consent management state
-  const [consents, setConsents] = useState<Array<{
-    id: string;
-    consent_type: string;
-    platform: string | null;
-    granted: boolean;
-    consent_version: string;
-    granted_at: string | null;
-    revoked_at: string | null;
-    created_at: string;
-  }>>([]);
-  const [loadingConsents, setLoadingConsents] = useState(false);
-  const [revokingConsent, setRevokingConsent] = useState<string | null>(null);
+  const [memoryCount, setMemoryCount] = useState<number | null>(null);
 
   // Data management state
   const [exporting, setExporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [dataMessage, setDataMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Use unified platform status hook
+  // Feature toggles — read from localStorage
+  const [featureToggles, setFeatureToggles] = useState({
+    personality_oracle: localStorage.getItem('feature_personality_oracle') === 'true',
+    neurotransmitter_modes: localStorage.getItem('feature_neurotransmitter_modes') !== 'false',
+    connectome_neuropils: localStorage.getItem('feature_connectome_neuropils') !== 'false',
+    graph_retrieval: localStorage.getItem('feature_graph_retrieval') === 'true',
+  });
+
   const {
     data: connectorStatus,
     isLoading,
@@ -83,154 +108,50 @@ const Settings = () => {
 
   const error = statusError?.message || null;
 
-  // Fetch Claude Desktop sync stats
+  // Fetch memory count
   useEffect(() => {
-    const fetchSyncStats = async () => {
+    const fetchMemoryCount = async () => {
       if (!user?.id) return;
-      setLoadingSyncStats(true);
       try {
-        const response = await fetch(`${API_URL}/conversations/stats/${user.id}`, {
-          headers: getAuthHeaders(),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setSyncStats(data);
+        const res = await fetch(`${API_URL}/chat/context`, { headers: getAuthHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          setMemoryCount(data.memoryStats?.total ?? null);
         }
-      } catch (err) {
-        console.error('Failed to fetch sync stats:', err);
-      } finally {
-        setLoadingSyncStats(false);
-      }
+      } catch { /* non-fatal */ }
     };
-    fetchSyncStats();
+    fetchMemoryCount();
   }, [user?.id]);
-
-  // Fetch user consents
-  useEffect(() => {
-    const fetchConsents = async () => {
-      if (!user?.id) return;
-      setLoadingConsents(true);
-      try {
-        const response = await fetch(`${API_URL}/consent`, {
-          headers: getAuthHeaders(),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setConsents((data.consents || []).filter((c: { granted: boolean }) => c.granted));
-        }
-      } catch (err) {
-        console.error('Failed to fetch consents:', err);
-      } finally {
-        setLoadingConsents(false);
-      }
-    };
-    fetchConsents();
-  }, [user?.id]);
-
-  // Revoke a consent
-  const handleRevokeConsent = async (consentType: string, platform: string) => {
-    const key = `${consentType}:${platform}`;
-    setRevokingConsent(key);
-    try {
-      const response = await fetch(
-        `${API_URL}/consent/${encodeURIComponent(consentType)}/${encodeURIComponent(platform)}`,
-        { method: 'DELETE', headers: getAuthHeaders() }
-      );
-      if (response.ok) {
-        setConsents((prev) => prev.filter(
-          (c) => !(c.consent_type === consentType && c.platform === platform)
-        ));
-      }
-    } catch (err) {
-      console.error('Failed to revoke consent:', err);
-    } finally {
-      setRevokingConsent(null);
-    }
-  };
-
-  // Copy user ID to clipboard
-  const handleCopyUserId = async () => {
-    if (!user?.id) return;
-    try {
-      await navigator.clipboard.writeText(user.id);
-      setUserIdCopied(true);
-      setTimeout(() => setUserIdCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
-
-  // Manual sync trigger
-  const handleManualSync = async () => {
-    if (!user?.id) return;
-    setSyncing(true);
-    setSyncMessage({ type: 'info', text: 'Starting sync... Make sure Claude Desktop is closed.' });
-
-    try {
-      const response = await fetch(`${API_URL}/claude-sync/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSyncMessage({ type: 'success', text: `Synced ${data.conversationsSynced || 0} new conversations!` });
-        const statsResponse = await fetch(`${API_URL}/conversations/stats/${user.id}`, {
-          headers: getAuthHeaders(),
-        });
-        if (statsResponse.ok) {
-          setSyncStats(await statsResponse.json());
-        }
-      } else {
-        const errorData = await response.json();
-        setSyncMessage({ type: 'error', text: errorData.message || 'Sync failed. Is Claude Desktop closed?' });
-      }
-    } catch (err) {
-      setSyncMessage({ type: 'error', text: 'Could not connect to sync service. Try again later.' });
-    } finally {
-      setSyncing(false);
-      setTimeout(() => setSyncMessage(null), 5000);
-    }
-  };
 
   const handleDisconnectService = async (provider: string) => {
     try {
       setDisconnectingService(provider);
       optimisticDisconnect(provider);
-
-      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, {
-        method: 'DELETE'
-      });
-
+      const response = await fetch(`${API_URL}/connectors/${provider}/${user?.id}`, { method: 'DELETE' });
       if (response.ok) {
         await refetch();
       } else {
         await revertOptimisticUpdate();
-        throw new Error('Failed to disconnect service');
       }
-    } catch (error) {
-      console.error('Error disconnecting service:', error);
+    } catch {
       await revertOptimisticUpdate();
     } finally {
       setDisconnectingService(null);
     }
   };
 
-  // Export user data
+  const handleToggleFeature = (key: keyof typeof featureToggles) => {
+    const newValue = !featureToggles[key];
+    setFeatureToggles(prev => ({ ...prev, [key]: newValue }));
+    localStorage.setItem(`feature_${key}`, String(newValue));
+  };
+
   const handleExportData = async () => {
     setExporting(true);
-    setDataMessage(null);
     try {
-      const response = await fetch(`${API_URL}/account/export`, {
-        headers: getAuthHeaders(),
-      });
-
+      const response = await fetch(`${API_URL}/account/export`, { headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Export failed');
-
       const result = await response.json();
-
-      // Download as JSON file
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -240,259 +161,195 @@ const Settings = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      setDataMessage({ type: 'success', text: 'Your data has been exported successfully.' });
-    } catch (err) {
-      setDataMessage({ type: 'error', text: 'Failed to export data. Please try again.' });
-    } finally {
-      setExporting(false);
-      setTimeout(() => setDataMessage(null), 5000);
-    }
+    } catch { /* handled silently */ }
+    finally { setExporting(false); }
   };
 
-  // Delete account
   const handleDeleteAccount = async () => {
     if (deleteConfirmText !== 'DELETE') return;
-
     setDeleting(true);
     try {
-      const response = await fetch(`${API_URL}/account`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
+      const response = await fetch(`${API_URL}/account`, { method: 'DELETE', headers: getAuthHeaders() });
       if (!response.ok) throw new Error('Deletion failed');
-
-      // Sign out and redirect
       await signOut();
       navigate('/auth');
-    } catch (err) {
-      setDataMessage({ type: 'error', text: 'Failed to delete account. Please try again.' });
+    } catch {
       setDeleting(false);
     }
   };
 
-  // Shared card styles — Liquid glass card
-  const cardStyle = 'glass-card';
-
   return (
-    <div
-      className="min-h-screen"
-    >
-      <main className="max-w-4xl mx-auto pt-12 lg:pt-16 pb-20 px-6">
-        {/* Page title */}
-        <motion.div
-          className="mb-8"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        >
-          <h1
-            className="heading-serif"
-            style={{
-              fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
-              letterSpacing: '-0.05em',
-              lineHeight: 1.1,
-              color: 'var(--foreground)'
-            }}
-          >
-            Settings
-          </h1>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
 
-          {/* Tab Navigation */}
-          <div
-            className="flex gap-0 mt-6"
-            style={{ borderBottom: '1px solid var(--glass-surface-border)' }}
-          >
-            {([
-              { key: 'general' as SettingsTab, label: 'General' },
-              { key: 'platforms' as SettingsTab, label: 'Connected Platforms' },
-              { key: 'privacy' as SettingsTab, label: 'Privacy & Data' },
-            ]).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className="px-4 py-2.5 text-sm font-medium transition-all"
-                style={{
-                  fontFamily: 'var(--font-ui)',
-                  backgroundColor: 'transparent',
-                  color: activeTab === key ? 'var(--accent-vibrant)' : 'var(--text-muted)',
-                  border: 'none',
-                  borderBottom: activeTab === key
-                    ? '2px solid var(--accent-vibrant)'
-                    : '2px solid transparent',
-                  borderRadius: 0,
-                  marginBottom: '-1px',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-        <motion.div
-          className="space-y-8"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-        >
+      {/* Header */}
+      <h1
+        className="mb-12"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: '28px',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Settings
+      </h1>
 
-          {/* Demo Mode Notice — visible on all tabs */}
-          {isDemoMode && (
-            <div
-              className="rounded-2xl p-6 flex items-center gap-3"
-              style={{
-                backgroundColor: 'rgba(251, 191, 36, 0.08)',
-                border: '1px solid rgba(251, 191, 36, 0.3)'
-              }}
+      {/* Demo notice */}
+      {isDemoMode && (
+        <div
+          className="flex items-center gap-2 mb-8 text-sm"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
+        >
+          <Info className="w-4 h-4 flex-shrink-0" />
+          <span>Demo mode — connections are simulated.</span>
+        </div>
+      )}
+
+      {/* ── SECTION 1: ACCOUNT ── */}
+      <SectionLabel label="Account" />
+      <SettingsRow label="Email">
+        <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {user?.email ?? 'Not set'}
+        </span>
+      </SettingsRow>
+      <SettingsRow label="Display Name">
+        <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
+        </span>
+      </SettingsRow>
+      <SettingsRow label="Password">
+        <button
+          className="text-[12px] transition-opacity hover:opacity-60"
+          style={{ color: '#10b77f' }}
+          onClick={() => navigate('/auth?action=reset')}
+        >
+          Change
+        </button>
+      </SettingsRow>
+
+      <Divider />
+
+      {/* ── SECTION 2: CONNECTED PLATFORMS ── */}
+      <SectionLabel label="Connected Platforms" />
+      <ConnectedPlatformsSettings
+        isDemoMode={isDemoMode}
+        connectorStatus={connectorStatus}
+        isLoading={isLoading}
+        error={error}
+        disconnectingService={disconnectingService}
+        refetch={refetch}
+        navigate={navigate}
+        handleDisconnectService={handleDisconnectService}
+      />
+
+      <Divider />
+
+      {/* ── SECTION 3: PERSONALITY ENGINE ── */}
+      <SectionLabel label="Personality Engine" />
+      <SettingsRow
+        label="Personality Oracle"
+        description="Fine-tuned model for behavioral compass"
+      >
+        <ToggleSwitch
+          enabled={featureToggles.personality_oracle}
+          onChange={() => handleToggleFeature('personality_oracle')}
+        />
+      </SettingsRow>
+      <SettingsRow
+        label="Neurotransmitter Modes"
+        description="Context-dependent response modulation"
+      >
+        <ToggleSwitch
+          enabled={featureToggles.neurotransmitter_modes}
+          onChange={() => handleToggleFeature('neurotransmitter_modes')}
+        />
+      </SettingsRow>
+      <SettingsRow
+        label="Connectome Routing"
+        description="Domain-specific memory retrieval"
+      >
+        <ToggleSwitch
+          enabled={featureToggles.connectome_neuropils}
+          onChange={() => handleToggleFeature('connectome_neuropils')}
+        />
+      </SettingsRow>
+      <SettingsRow
+        label="Graph Retrieval"
+        description="Associative memory traversal"
+      >
+        <ToggleSwitch
+          enabled={featureToggles.graph_retrieval}
+          onChange={() => handleToggleFeature('graph_retrieval')}
+        />
+      </SettingsRow>
+
+      <Divider />
+
+      {/* ── SECTION 4: DATA & PRIVACY ── */}
+      <SectionLabel label="Data & Privacy" />
+      <SettingsRow label="Export My Data">
+        <button
+          onClick={handleExportData}
+          disabled={exporting || isDemoMode}
+          className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 disabled:opacity-30"
+          style={{ color: 'rgba(255,255,255,0.5)' }}
+        >
+          <Download className="w-3.5 h-3.5" />
+          {exporting ? 'Exporting...' : 'Download'}
+        </button>
+      </SettingsRow>
+      <SettingsRow label="Memory Count">
+        <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          {memoryCount != null ? `${memoryCount.toLocaleString()} memories` : '--'}
+        </span>
+      </SettingsRow>
+      <SettingsRow label="Delete Account">
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-[12px] transition-opacity hover:opacity-60"
+            style={{ color: '#c1452c' }}
+            disabled={isDemoMode}
+          >
+            Delete everything
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder='Type "DELETE"'
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="text-sm px-2 py-1 rounded w-28 bg-transparent focus:outline-none"
+              style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
+            />
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleteConfirmText !== 'DELETE' || deleting}
+              className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30"
+              style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#c1452c' }}
             >
-              <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
-              <p className="text-sm" style={{ color: '#B45309' }}>
-                You're in demo mode. Platform connections and sync features are simulated. Sign up to connect your real accounts.
-              </p>
-            </div>
-          )}
+              {deleting ? '...' : 'Confirm'}
+            </button>
+            <button
+              onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+              className="text-[12px] transition-opacity hover:opacity-60"
+              style={{ color: 'rgba(255,255,255,0.3)' }}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </SettingsRow>
 
-          {/* === GENERAL TAB === */}
-          {activeTab === 'general' && (
-            <>
-              {/* Account Information */}
-              <section className={`p-8 ${cardStyle}`}>
-                <div className="flex items-center gap-3 mb-6">
-                  <Clay3DIcon name="robot" size={20} />
-                  <h2
-                    className="text-[11px] uppercase tracking-widest font-medium"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Account
-                  </h2>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Name</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                      {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
-                    </span>
-                  </div>
-                  <div
-                    className="h-px"
-                    style={{ backgroundColor: 'var(--glass-surface-border)' }}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>Email</span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                      {user?.email}
-                    </span>
-                  </div>
-                </div>
-              </section>
-
-              {/* Claude Desktop Sync */}
-              <ClaudeDesktopSync
-                user={user}
-                syncStats={syncStats}
-                loadingSyncStats={loadingSyncStats}
-                syncing={syncing}
-                syncMessage={syncMessage}
-                userIdCopied={userIdCopied}
-                handleManualSync={handleManualSync}
-                handleCopyUserId={handleCopyUserId}
-                cardStyle={cardStyle}
-              />
-
-              {/* Enhanced Personality (Behavioral Finetuning) */}
-              <PersonalityOracleSettings cardStyle={cardStyle} />
-            </>
-          )}
-
-          {/* === PLATFORMS TAB === */}
-          {activeTab === 'platforms' && (
-            <>
-              <ConnectedPlatformsSettings
-                isDemoMode={isDemoMode}
-                connectorStatus={connectorStatus}
-                isLoading={isLoading}
-                error={error}
-                disconnectingService={disconnectingService}
-                refetch={refetch}
-                navigate={navigate}
-                handleDisconnectService={handleDisconnectService}
-              />
-
-              {/* GitHub + WhatsApp (B-phase integrations) */}
-              {!isDemoMode && <GitHubConnectCard />}
-              {!isDemoMode && <WhatsAppImportCard />}
-            </>
-          )}
-
-          {/* === PRIVACY TAB === */}
-          {activeTab === 'privacy' && (
-            <>
-              {/* Data Consent */}
-              <DataConsentSettings
-                consents={consents}
-                loadingConsents={loadingConsents}
-                revokingConsent={revokingConsent}
-                handleRevokeConsent={handleRevokeConsent}
-                cardStyle={cardStyle}
-              />
-
-              {/* How Your Data is Protected */}
-              <section className={`p-8 ${cardStyle}`}>
-                <div className="flex items-center gap-3 mb-4">
-                  <Shield className="w-5 h-5" style={{ color: '#10B981' }} />
-                  <h2 className="heading-serif text-base">
-                    How Your Data is Protected
-                  </h2>
-                </div>
-                <p className="body-text mb-6" style={{ color: 'var(--text-secondary)' }}>
-                  Your privacy is fundamental to Twin Me. Here's how we protect you.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  {[
-                    { icon: Lock, label: 'OAuth-only connections', desc: 'We never see or store your platform passwords' },
-                    { icon: Database, label: 'Encrypted at rest', desc: 'All data stored in encrypted Supabase (PostgreSQL)' },
-                    { icon: Eye, label: 'No data selling', desc: 'Your data is never sold, shared, or used for ads' },
-                    { icon: ServerCrash, label: 'Complete deletion', desc: 'Delete your account and ALL data is removed instantly' },
-                  ].map(({ icon: Icon, label, desc }) => (
-                    <div
-                      key={label}
-                      className="flex items-start gap-3 p-5 rounded-2xl"
-                      style={{
-                        backgroundColor: 'rgba(16, 185, 129, 0.03)',
-                        border: '1px solid rgba(16, 185, 129, 0.08)',
-                      }}
-                    >
-                      <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10B981' }} />
-                      <div>
-                        <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{label}</div>
-                        <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Privacy & Data Management */}
-              <DataManagementSettings
-                isDemoMode={isDemoMode}
-                navigate={navigate}
-                exporting={exporting}
-                deleting={deleting}
-                showDeleteConfirm={showDeleteConfirm}
-                deleteConfirmText={deleteConfirmText}
-                dataMessage={dataMessage}
-                handleExportData={handleExportData}
-                handleDeleteAccount={handleDeleteAccount}
-                setShowDeleteConfirm={setShowDeleteConfirm}
-                setDeleteConfirmText={setDeleteConfirmText}
-                cardStyle={cardStyle}
-              />
-            </>
-          )}
-
-        </motion.div>
-      </main>
+      {/* Footer */}
+      <div className="mt-16 text-center">
+        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+          TwinMe v0.9
+        </span>
+      </div>
     </div>
   );
 };

@@ -70,7 +70,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
         <blockquote
           className="text-xl md:text-2xl leading-snug font-light mb-5"
           style={{
-            color: 'var(--foreground)',
+            color: 'var(--text-narrative)',
             letterSpacing: '-0.01em',
           }}
         >
@@ -79,7 +79,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
 
         <p
           className="text-xs"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'var(--text-narrative-muted)' }}
         >
           Last updated {timeAgoLabel(data.generatedAt)}
         </p>

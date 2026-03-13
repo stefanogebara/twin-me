@@ -59,6 +59,13 @@ export default {
           foreground: "var(--card-foreground)",
         },
 
+        // Narrative text — Sesame-inspired rgba opacity hierarchy
+        'narrative': {
+          DEFAULT: "var(--text-narrative)",
+          secondary: "var(--text-narrative-secondary)",
+          muted: "var(--text-narrative-muted)",
+        },
+
         // Direct Anthropic colors for hard-coded use
         'anthropic': {
           ivory: '#FAF9F5',

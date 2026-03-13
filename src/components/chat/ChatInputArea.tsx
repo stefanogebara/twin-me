@@ -1,8 +1,5 @@
 import { forwardRef } from 'react';
-import {
-  MessageCircle, Send, Loader2,
-  Sparkles, Mic, Paperclip
-} from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 
 interface ChatUsage {
   used: number;
@@ -38,15 +35,14 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     const hasText = inputMessage.trim().length > 0;
 
     return (
-      <div className="p-4">
+      <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="rounded-2xl overflow-hidden transition-all"
+          className="flex items-end gap-3 rounded-2xl px-4 py-3"
           style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(16px) saturate(160%)',
-            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06), inset 0 1px 0 var(--glass-inset-highlight)',
+            background: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
           }}
         >
           <label htmlFor="twin-chat-input" className="sr-only">
@@ -56,7 +52,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             id="twin-chat-input"
             ref={ref}
             placeholder={hasConnectedPlatforms
-              ? "Ask your twin anything..."
+              ? "Say something..."
               : "Connect platforms to start chatting..."
             }
             value={inputMessage}
@@ -65,93 +61,57 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             disabled={isDisabled || limitReached}
             rows={1}
             aria-label="Message your twin"
-            className="w-full px-4 py-3 resize-none focus:outline-none disabled:opacity-50 text-[15px]"
+            className="flex-1 resize-none focus:outline-none disabled:opacity-50 text-[15px] bg-transparent"
             style={{
-              backgroundColor: 'transparent',
               color: 'var(--foreground)',
-              minHeight: '48px',
+              minHeight: '24px',
               maxHeight: '120px',
-              caretColor: 'var(--accent-vibrant)',
+              caretColor: '#10b77f',
+              fontFamily: 'Inter, sans-serif',
             }}
           />
 
-          <div
-            className="flex items-center justify-between px-3 py-2 border-t"
-            style={{ borderColor: 'var(--glass-surface-border)' }}
-          >
-            <div className="flex items-center gap-1">
-              <button
-                disabled
-                className="p-2 rounded-lg transition-colors opacity-20 cursor-not-allowed"
-                style={{ color: 'var(--text-muted)' }}
-                title="File attachments -- coming soon"
-                aria-label="Attach file (coming soon)"
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {chatUsage && chatUsage.tier === 'free' && (
+              <span
+                className="text-[11px] whitespace-nowrap"
+                style={{
+                  color: chatUsage.remaining <= 2
+                    ? 'rgba(239,68,68,0.6)'
+                    : 'rgba(255,255,255,0.2)',
+                }}
+                title={`${chatUsage.remaining} of ${chatUsage.limit} free messages remaining`}
               >
-                <Paperclip className="w-4 h-4" aria-hidden="true" />
-              </button>
-              <button
-                disabled
-                className="p-2 rounded-lg transition-colors opacity-20 cursor-not-allowed"
-                style={{ color: 'var(--text-muted)' }}
-                title="Voice input -- coming soon"
-                aria-label="Voice input (coming soon)"
-              >
-                <Mic className="w-4 h-4" aria-hidden="true" />
-              </button>
-            </div>
+                {chatUsage.remaining} left
+              </span>
+            )}
 
-            <div className="flex items-center gap-2">
-              {chatUsage && chatUsage.tier === 'free' && (
-                <div
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                  style={{
-                    backgroundColor: chatUsage.remaining <= 2
-                      ? 'rgba(239, 68, 68, 0.1)'
-                      : 'var(--glass-surface-bg-subtle)',
-                    color: chatUsage.remaining <= 2
-                      ? '#ef4444'
-                      : 'var(--text-muted)'
-                  }}
-                >
-                  <MessageCircle className="w-3 h-3" />
-                  <span title={`${chatUsage.remaining} of ${chatUsage.limit} free messages remaining this month`}>{chatUsage.remaining} left</span>
-                </div>
+            {/* Circular emerald send button */}
+            <button
+              onClick={onSend}
+              disabled={!hasText || isDisabled || isTyping || limitReached}
+              aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
+              className="flex items-center justify-center transition-all"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: hasText && !isDisabled && !limitReached
+                  ? '#10b77f'
+                  : 'rgba(255,255,255,0.06)',
+                color: hasText && !isDisabled && !limitReached
+                  ? '#0a0f0a'
+                  : 'rgba(255,255,255,0.2)',
+                cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {isTyping ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="w-4 h-4" aria-hidden="true" />
               )}
-
-              <div
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs"
-                style={{
-                  backgroundColor: 'var(--glass-surface-bg-subtle)',
-                  color: 'var(--text-muted)'
-                }}
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>Twin AI</span>
-              </div>
-
-              {/* Send button: amber gradient when active, muted when empty */}
-              <button
-                onClick={onSend}
-                disabled={!hasText || isDisabled || isTyping || limitReached}
-                aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
-                className="p-2.5 rounded-xl transition-all hover:scale-[1.05] active:scale-95 disabled:hover:scale-100"
-                style={{
-                  background: hasText
-                    ? 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))'
-                    : 'var(--glass-surface-bg-subtle)',
-                  color: hasText ? '#1a1a17' : 'var(--text-muted)',
-                  boxShadow: hasText ? '0 2px 8px var(--accent-vibrant-glow)' : 'none',
-                  opacity: (!hasText || isDisabled || limitReached) ? 0.5 : 1,
-                  cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isTyping ? (
-                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Send className="w-5 h-5" aria-hidden="true" />
-                )}
-              </button>
-            </div>
+            </button>
           </div>
         </div>
       </div>
