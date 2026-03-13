@@ -3,6 +3,7 @@
  */
 
 import { chromium } from 'playwright';
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
 
 async function takeScreenshot() {
   console.log('Starting Playwright browser...');
@@ -13,7 +14,7 @@ async function takeScreenshot() {
 
   // Set auth token in localStorage before navigating
   await page.addInitScript(() => {
-    localStorage.setItem('authToken', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNjdjMjdiNS1hNDBiLTQ5ZmItOGQwMC1kZWIxYjFjNTdmNGQiLCJlbWFpbCI6InN0ZWZhbm9nZWJhcmFAZ21haWwuY29tIiwiaWF0IjoxNzcwMjA2NDUxLCJleHAiOjE3NzAyOTI4NTF9.cskMrAjqnVP5IS65P54l8UdJcjqIOvjEfISDqsrZQbQ');
+    localStorage.setItem('authToken', process.env.TEST_AUTH_TOKEN);
     localStorage.setItem('user', JSON.stringify({
       id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
       email: 'stefanogebara@gmail.com',

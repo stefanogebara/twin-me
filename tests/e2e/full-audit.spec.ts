@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'fs';
 
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzIzNzM5MzYsImV4cCI6MTc3NDk2NTkzNn0.yuTHeAeRPaM0HEyxjBd5zfKtgSeBr9K-LSwRMRBqYxc';
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
+const TOKEN = process.env.TEST_AUTH_TOKEN;
 const BASE = 'https://twin-ai-learn.vercel.app';
 const SS_DIR = 'tests/e2e/screenshots/audit';
 

@@ -9,6 +9,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
 
 // Test configuration
 const BASE_URL = 'http://localhost:8086';
@@ -33,7 +34,7 @@ test.describe('Brain Explorer Phase 4 Features', () => {
   test.beforeEach(async ({ page }) => {
     // Set authentication token
     await page.addInitScript(() => {
-      const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3ZWEzOTVjZS1iZTFkLTQ1NjUtYmNlMS0zNWUyYzZiYzc4MTciLCJlbWFpbCI6InN0ZWZhbm9AdHdpbm1lLmFpIiwiaWF0IjoxNzU0MzA1NjAwLCJleHAiOjE4NTQzMDU2MDB9.test';
+      const token = process.env.TEST_AUTH_TOKEN;
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify({
         id: '7ea395ce-be1d-4565-bce1-35e2c6bc7817',
@@ -166,7 +167,7 @@ test.describe('Brain Explorer Phase 4 Features', () => {
 
   test('API: should return causal edges in visualization', async ({ request }) => {
     // Generate a proper token
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3ZWEzOTVjZS1iZTFkLTQ1NjUtYmNlMS0zNWUyYzZiYzc4MTciLCJlbWFpbCI6InN0ZWZhbm9AdHdpbm1lLmFpIiwiaWF0IjoxNzU0MzA1NjAwLCJleHAiOjE4NTQzMDU2MDB9.4xK8m8ZM7h9j3QwKpJ_Yp2X8F9lL6Qm3N7vB1K4hR5g';
+    const token = process.env.TEST_AUTH_TOKEN;
 
     const response = await request.get(`${API_URL}/twins-brain/visualization`, {
       headers: {
@@ -197,7 +198,7 @@ test.describe('Brain Explorer Phase 4 Features', () => {
   });
 
   test('API: should return context-specific graph', async ({ request }) => {
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3ZWEzOTVjZS1iZTFkLTQ1NjUtYmNlMS0zNWUyYzZiYzc4MTciLCJlbWFpbCI6InN0ZWZhbm9AdHdpbm1lLmFpIiwiaWF0IjoxNzU0MzA1NjAwLCJleHAiOjE4NTQzMDU2MDB9.4xK8m8ZM7h9j3QwKpJ_Yp2X8F9lL6Qm3N7vB1K4hR5g';
+    const token = process.env.TEST_AUTH_TOKEN;
 
     const response = await request.get(`${API_URL}/twins-brain/context/work/graph`, {
       headers: {
@@ -221,7 +222,7 @@ test.describe('Brain Explorer Phase 4 Features', () => {
   });
 
   test('API: should return causal summary', async ({ request }) => {
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3ZWEzOTVjZS1iZTFkLTQ1NjUtYmNlMS0zNWUyYzZiYzc4MTciLCJlbWFpbCI6InN0ZWZhbm9AdHdpbm1lLmFpIiwiaWF0IjoxNzU0MzA1NjAwLCJleHAiOjE4NTQzMDU2MDB9.4xK8m8ZM7h9j3QwKpJ_Yp2X8F9lL6Qm3N7vB1K4hR5g';
+    const token = process.env.TEST_AUTH_TOKEN;
 
     const response = await request.get(`${API_URL}/twins-brain/causal/summary`, {
       headers: {
@@ -250,7 +251,7 @@ test.describe('Brain Explorer Visual Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       // Use valid token for stefanogebara@gmail.com
-      localStorage.setItem('authToken', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNjdjMjdiNS1hNDBiLTQ5ZmItOGQwMC1kZWIxYjFjNTdmNGQiLCJlbWFpbCI6InN0ZWZhbm9nZWJhcmFAZ21haWwuY29tIiwiaWF0IjoxNzcwMjA2NDUxLCJleHAiOjE3NzAyOTI4NTF9.cskMrAjqnVP5IS65P54l8UdJcjqIOvjEfISDqsrZQbQ');
+      localStorage.setItem('authToken', process.env.TEST_AUTH_TOKEN);
       localStorage.setItem('user', JSON.stringify({
         id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
         email: 'stefanogebara@gmail.com',
