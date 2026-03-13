@@ -98,23 +98,9 @@ const Index = () => {
     <div className="w-full min-h-screen" style={{ backgroundColor: '#141414', color: '#F5F0EB', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
       <style>{`
         /* ── Sundust Dark Typography System ── */
-        .heading-serif {
-          font-family: 'Instrument Serif', Georgia, serif;
-          font-weight: 400;
-          letter-spacing: -0.05em;
-          line-height: 1.1;
-          color: #F5F0EB;
-        }
         .h1 { font-size: 80px; }
         .h2 { font-size: 56px; }
         .h3 { font-size: 32px; }
-        .heading-serif-italic {
-          font-family: 'Instrument Serif', Georgia, serif;
-          font-weight: 400;
-          font-style: italic;
-          color: #A8A29E;
-          letter-spacing: -0.05em;
-        }
         .body-text {
           font-family: 'Geist', sans-serif;
           font-size: 14px;
@@ -317,7 +303,8 @@ const Index = () => {
         <div className="max-w-[1200px] mx-auto flex items-center justify-between py-4">
           {/* Left: Logo */}
           <span
-            className="heading-serif text-[22px] cursor-pointer"
+            className="text-[22px] cursor-pointer"
+            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
             onClick={() => navigate('/')}
           >
             Twin Me
@@ -374,7 +361,8 @@ const Index = () => {
         <div className="max-w-[520px] mx-auto text-center flex flex-col items-center">
           {/* Main heading — let it breathe */}
           <h1
-            className="heading-serif h1 mb-8"
+            className="h1 mb-8"
+            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
           >
             What if your data could reveal your soul?
           </h1>
@@ -441,8 +429,8 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-14">
             <div className="lg:w-1/2">
               <span className="claura-label mb-5 block">Who we are</span>
-              <h2 className="heading-serif h2">
-                The soul signature built for <span className="heading-serif-italic">you.</span>
+              <h2 className="h2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
+                The soul signature built for <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>you.</span>
               </h2>
             </div>
             <div className="lg:w-1/2 flex items-end">
@@ -490,7 +478,7 @@ const Index = () => {
           <div className="mb-14">
             <span className="claura-label mb-5 block">Services</span>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
-              <h2 className="heading-serif h2 lg:max-w-[520px]">
+              <h2 className="h2 lg:max-w-[520px]" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
                 We handle everything so you don't have to.
               </h2>
               <p className="body-text max-w-[480px] lg:pt-2">
@@ -509,9 +497,9 @@ const Index = () => {
                   className={`service-tab flex items-baseline gap-3 ${idx === activeService ? 'active' : ''}`}
                   onClick={() => setActiveService(idx)}
                 >
-                  <h3 className={`heading-serif h3 transition-colors duration-300 ${
+                  <h3 className={`h3 transition-colors duration-300 ${
                     idx === activeService ? 'text-[#F5F0EB]' : 'text-[#A8A29E] opacity-40'
-                  }`}>
+                  }`} style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
                     {svc.title}
                   </h3>
                   <span className={`body-text transition-colors duration-300 ${
@@ -558,8 +546,8 @@ const Index = () => {
         <div className="max-w-[1200px] mx-auto relative z-10">
           <div className="mb-14">
             <span className="claura-label mb-5 block">Features</span>
-            <h2 className="heading-serif h2">
-              Everything your twin needs to <span className="heading-serif-italic">know you.</span>
+            <h2 className="h2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
+              Everything your twin needs to <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>know you.</span>
             </h2>
           </div>
 
@@ -649,8 +637,8 @@ const Index = () => {
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
             <span className="claura-label mb-5 block">How we work</span>
-            <h2 className="heading-serif h2 mb-5">
-              Getting you results <span className="heading-serif-italic">without</span> the complexity.
+            <h2 className="h2 mb-5" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
+              Getting you results <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>without</span> the complexity.
             </h2>
             <p className="body-text mb-8 max-w-[440px]">
               Our three-step process takes you from connecting platforms to discovering your soul signature, with clear progress and insights at every stage.
@@ -700,8 +688,8 @@ const Index = () => {
       {/* ────────────── FINAL CTA ────────────── */}
       <section className="px-6 lg:px-16 py-24 warm-glow">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
-          <h2 className="heading-serif h2">
-            Turn confusion into <span className="heading-serif-italic">clarity,</span> today.
+          <h2 className="h2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
+            Turn confusion into <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>clarity,</span> today.
           </h2>
 
           {/* Standalone flower image */}
@@ -743,7 +731,7 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
             {/* Brand */}
             <div className="lg:max-w-[220px]">
-              <h3 className="heading-serif text-[22px] mb-2">Twin Me</h3>
+              <h3 className="text-[22px] mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>Twin Me</h3>
               <p className="body-text">Discover what makes you authentically you.</p>
             </div>
 

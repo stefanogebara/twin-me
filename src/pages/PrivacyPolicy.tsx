@@ -17,7 +17,7 @@ const PrivacyPolicy = () => {
         </button>
 
         <h1
-          className="heading-serif text-3xl mb-2"
+          className="text-3xl mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
         >
           Privacy Policy
         </h1>
@@ -27,7 +27,7 @@ const PrivacyPolicy = () => {
 
         <div className="space-y-8 text-sm leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
           <section>
-            <h2 className="heading-serif text-lg mb-3">1. Introduction</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>1. Introduction</h2>
             <p style={{ color: 'var(--foreground)' }}>
               Twin Me ("we", "our", "us") is a personality discovery platform that creates a digital
               twin from the patterns in your digital life. This Privacy Policy explains how we collect,
@@ -36,7 +36,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">2. Data We Collect</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>2. Data We Collect</h2>
 
             <h3 className="font-medium mb-2" style={{ color: 'var(--foreground)' }}>Browser Extension Data</h3>
             <p className="mb-3" style={{ color: 'var(--foreground)' }}>
@@ -115,7 +115,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">3. How We Use Your Data</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>3. How We Use Your Data</h2>
             <ul className="list-disc list-inside space-y-1 ml-2" style={{ color: 'var(--foreground)' }}>
               <li>Building your Soul Signature (personality portrait from cross-platform patterns)</li>
               <li>Powering your digital twin's conversations and personality</li>
@@ -126,7 +126,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">4. Third-Party Services</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>4. Third-Party Services</h2>
             <p className="mb-3" style={{ color: 'var(--foreground)' }}>We use the following third-party services to operate Twin Me:</p>
             <ul className="list-disc list-inside space-y-2 ml-2" style={{ color: 'var(--foreground)' }}>
               <li>
@@ -152,7 +152,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">5. Data Storage & Security</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>5. Data Storage & Security</h2>
             <ul className="list-disc list-inside space-y-1 ml-2" style={{ color: 'var(--foreground)' }}>
               <li>All data is transmitted over encrypted HTTPS connections</li>
               <li>Authentication uses JWT tokens with secure signing</li>
@@ -164,7 +164,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">6. Your Rights & Controls</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>6. Your Rights & Controls</h2>
             <p className="mb-3" style={{ color: 'var(--foreground)' }}>You have full control over your data. All of these are available in Settings:</p>
             <ul className="list-disc list-inside space-y-2 ml-2" style={{ color: 'var(--foreground)' }}>
               <li>
@@ -189,7 +189,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">7. Data Sharing</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>7. Data Sharing</h2>
             <p style={{ color: 'var(--foreground)' }}>
               We do <strong style={{ color: 'var(--foreground)' }}>not</strong> sell, rent, or share your personal
               data with third parties for marketing purposes. Your data is only shared with our AI
@@ -200,7 +200,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">8. Data Retention</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>8. Data Retention</h2>
             <p className="mb-3" style={{ color: 'var(--foreground)' }}>
               We retain your data for as long as your account is active. When you delete your account:
             </p>
@@ -212,7 +212,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">9. Children's Privacy</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>9. Children's Privacy</h2>
             <p style={{ color: 'var(--foreground)' }}>
               Twin Me is not intended for users under the age of 13. We do not knowingly collect
               data from children under 13. If you believe a child under 13 has created an account,
@@ -221,7 +221,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">10. Changes to This Policy</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>10. Changes to This Policy</h2>
             <p style={{ color: 'var(--foreground)' }}>
               We may update this Privacy Policy from time to time. We will notify users of
               significant changes through the application. The "Last updated" date at the top
@@ -230,7 +230,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="heading-serif text-lg mb-3">11. Contact</h2>
+            <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>11. Contact</h2>
             <p style={{ color: 'var(--foreground)' }}>
               If you have questions about this Privacy Policy or your data, please contact us
               through the Settings page in the application, or email us at privacy@twinme.ai.

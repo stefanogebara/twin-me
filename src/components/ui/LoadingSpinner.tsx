@@ -76,10 +76,10 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed';
 
-  const variantClasses = {
-    primary: 'btn-cta-app',
-    secondary: 'btn-glass-app',
-    outline: 'btn-glass-app'
+  const variantStyles: Record<string, React.CSSProperties> = {
+    primary: { backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 },
+    secondary: { backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)' },
+    outline: { backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)' }
   };
 
   const sizeClasses = {
@@ -94,7 +94,8 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
     <button
       onClick={onClick}
       disabled={isDisabled}
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} rounded-full ${sizeClasses[size]} ${className}`}
+      style={variantStyles[variant]}
     >
       {isLoading && (
         <LoadingSpinner
@@ -157,17 +158,17 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     <div className={`animate-pulse ${className}`}>
       {avatar && (
         <div
-          className="w-10 h-10 rounded-full mb-2 glass-shimmer"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+          className="w-10 h-10 rounded-full mb-2"
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         />
       )}
       {Array.from({ length: lines }, (_, i) => (
         <div
           key={i}
-          className={`glass-shimmer rounded h-4 ${
+          className={`rounded h-4 ${
             i === lines - 1 ? 'w-3/4' : 'w-full'
           } ${i > 0 ? 'mt-2' : ''}`}
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         />
       ))}
     </div>

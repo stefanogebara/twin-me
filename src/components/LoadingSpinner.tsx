@@ -142,16 +142,16 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className = "" 
   >
     <div className="animate-pulse">
       <div
-        className="h-4 rounded mb-3 glass-shimmer"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+        className="h-4 rounded mb-3"
+        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
       />
       <div
-        className="h-3 rounded mb-2 glass-shimmer"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+        className="h-3 rounded mb-2"
+        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
       />
       <div
-        className="h-3 rounded w-3/4 glass-shimmer"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+        className="h-3 rounded w-3/4"
+        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
       />
     </div>
   </div>
@@ -179,32 +179,32 @@ export const SkeletonTwin: React.FC<{ className?: string }> = ({ className = "" 
     <div className="animate-pulse">
       <div className="flex items-center gap-4 mb-4">
         <div
-          className="w-12 h-12 rounded-full glass-shimmer"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          className="w-12 h-12 rounded-full"
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         />
         <div className="flex-1">
           <div
-            className="h-5 rounded mb-2 glass-shimmer"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            className="h-5 rounded mb-2"
+            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
           />
           <div
-            className="h-3 rounded w-2/3 glass-shimmer"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            className="h-3 rounded w-2/3"
+            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
           />
         </div>
       </div>
       <div className="space-y-2">
         <div
-          className="h-3 rounded glass-shimmer"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          className="h-3 rounded"
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         />
         <div
-          className="h-3 rounded w-4/5 glass-shimmer"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          className="h-3 rounded w-4/5"
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         />
         <div
-          className="h-3 rounded w-3/5 glass-shimmer"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+          className="h-3 rounded w-3/5"
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
         />
       </div>
     </div>
