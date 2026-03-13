@@ -16,6 +16,19 @@ const log = createLogger('TokenRefreshService');
 // Key: `${userId}:${platform}`, Value: Promise that resolves when refresh completes
 const refreshLocks = new Map();
 
+// Safety valve: clear stale locks every 5 minutes (handles hung refreshes)
+const LOCK_MAX_AGE_MS = 60_000; // 60s max lock lifetime
+const lockTimestamps = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, ts] of lockTimestamps.entries()) {
+    if (now - ts > LOCK_MAX_AGE_MS) {
+      refreshLocks.delete(key);
+      lockTimestamps.delete(key);
+    }
+  }
+}, 5 * 60_000);
+
 // Platform-specific OAuth configurations
 // Using a getter function to ensure env vars are read at runtime, not at module load time
 function getPlatformRefreshConfig(platform) {
@@ -364,6 +377,7 @@ async function ensureFreshToken(userId, platform) {
         rejectRefresh = reject;
       });
       refreshLocks.set(lockKey, refreshPromise);
+      lockTimestamps.set(lockKey, Date.now());
 
       try {
         const decryptedRefreshToken = decryptToken(connection.refresh_token);
@@ -407,7 +421,10 @@ async function ensureFreshToken(userId, platform) {
         throw refreshError;
       } finally {
         // Clean up lock after a short delay to handle rapid subsequent requests
-        setTimeout(() => refreshLocks.delete(lockKey), 1000);
+        setTimeout(() => {
+          refreshLocks.delete(lockKey);
+          lockTimestamps.delete(lockKey);
+        }, 1000);
       }
     }
 
