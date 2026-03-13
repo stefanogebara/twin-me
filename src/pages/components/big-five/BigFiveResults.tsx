@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Check, RotateCcw } from 'lucide-react';
 import { DOMAIN_INFO, type BigFiveScores, type DomainScore, type FacetScore } from './bigFiveTypes';
 
@@ -30,12 +29,7 @@ export function BigFiveResults({
   retakeAssessment,
 }: BigFiveResultsProps) {
   return (
-    <motion.div
-      key="results"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-    >
+    <div>
       {/* Header */}
       <div className="text-center mb-8">
         <div
@@ -49,7 +43,7 @@ export function BigFiveResults({
           Assessment Complete
         </div>
         <h1
-          className="text-3xl md:text-4xl mb-2 heading-serif"
+          className="text-3xl md:text-4xl mb-2"
           style={{ color: colors.text, fontFamily: 'var(--font-heading)', fontWeight: 500 }}
         >
           Your Big Five Profile
@@ -200,8 +194,8 @@ export function BigFiveResults({
           onClick={() => navigate('/soul-signature')}
           className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
-            backgroundColor: colors.accent,
-            color: '#fff'
+            backgroundColor: '#10b77f',
+            color: '#0a0f0a'
           }}
         >
           View Soul Signature
@@ -221,15 +215,15 @@ export function BigFiveResults({
           className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
           style={{
             backgroundColor: 'transparent',
-            color: colors.textSecondary,
-            border: `1px solid ${colors.border}`
+            color: 'rgba(255,255,255,0.5)',
+            border: '1px solid rgba(255,255,255,0.08)'
           }}
         >
           <RotateCcw className="w-4 h-4" />
           Retake Assessment
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -273,12 +267,12 @@ function DomainScoreBar({
         className="h-3 rounded-full overflow-hidden"
         style={{ backgroundColor: colors.accentBg }}
       >
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: info.color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${data.percentile}%` }}
-          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+        <div
+          className="h-full rounded-full transition-all duration-800"
+          style={{
+            backgroundColor: info.color,
+            width: `${data.percentile}%`,
+          }}
         />
       </div>
       <p className="text-xs mt-1" style={{ color: colors.textSecondary }}>

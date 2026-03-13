@@ -1,7 +1,6 @@
 import React from 'react';
 import { Compass, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '../../../components/ui/tooltip';
-import { GlassPanel } from '../../../components/layout/PageLayout';
 import { PersonalityScores, SoulSignature, MBTI_DIMENSIONS, ThemeColors } from './types';
 
 interface PersonalityTypePanelProps {
@@ -103,7 +102,10 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
   const { textColor, textMuted, textFaint } = colors;
 
   return (
-    <GlassPanel className="!p-5 md:!p-6 mb-6">
+    <div
+      className="!p-5 md:!p-6 mb-6 rounded-lg"
+      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+    >
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(45, 39, 34, 0.08)' }}>
           <Compass className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
@@ -157,6 +159,6 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
         <MBTIDimensionBar dimension="tactics" value={personalityScores.tactics ?? personalityScores.conscientiousness ?? 50} confidence={personalityScores.tactics_ci ?? personalityScores.conscientiousness_confidence} colors={colors} />
         <MBTIDimensionBar dimension="identity" value={personalityScores.identity ?? (100 - (personalityScores.neuroticism ?? 50))} confidence={personalityScores.identity_ci ?? personalityScores.neuroticism_confidence} colors={colors} />
       </div>
-    </GlassPanel>
+    </div>
   );
 };

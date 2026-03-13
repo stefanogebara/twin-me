@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { toSecondPerson } from '@/lib/utils';
 import type { TwinSummaryData } from './types';
 
@@ -29,49 +28,39 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
   const pullQuote = extractFirstSentence(data.summary);
 
   return (
-    <motion.div
-      className="relative overflow-hidden rounded-2xl p-6 md:p-8 h-full"
+    <div
+      className="relative overflow-hidden rounded-lg p-6 md:p-8 h-full"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
     >
       {/* Left accent bar */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
         style={{
-          background: 'linear-gradient(180deg, var(--accent-vibrant) 0%, rgba(255, 132, 0, 0.15) 100%)',
-        }}
-      />
-
-      {/* Background glow */}
-      <div
-        className="absolute top-0 left-0 w-48 h-48 rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, var(--accent-vibrant-glow) 0%, transparent 70%)',
-          transform: 'translate(-30%, -30%)',
+          background: 'linear-gradient(180deg, #10b77f 0%, rgba(16, 183, 127, 0.15) 100%)',
         }}
       />
 
       <div className="relative pl-2">
         <p
-          className="text-xs uppercase tracking-widest font-medium mb-4"
-          style={{ color: 'var(--accent-amber)' }}
+          className="text-[11px] font-medium tracking-widest uppercase mb-4"
+          style={{ color: '#10b77f' }}
         >
           Soul Summary
         </p>
 
         <blockquote
-          className="text-xl md:text-2xl leading-snug font-light mb-5"
           style={{
-            color: 'var(--text-narrative)',
-            letterSpacing: '-0.01em',
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '28px',
+            fontWeight: 400,
+            letterSpacing: '-0.02em',
+            color: 'var(--foreground)',
+            lineHeight: 1.3,
+            marginBottom: '20px',
           }}
         >
           {toSecondPerson(pullQuote)}
@@ -79,11 +68,11 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
 
         <p
           className="text-xs"
-          style={{ color: 'var(--text-narrative-muted)' }}
+          style={{ color: 'rgba(255,255,255,0.3)' }}
         >
           Last updated {timeAgoLabel(data.generatedAt)}
         </p>
       </div>
-    </motion.div>
+    </div>
   );
 };

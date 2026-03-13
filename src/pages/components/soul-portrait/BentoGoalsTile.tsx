@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Target, CheckCircle2, Zap } from 'lucide-react';
 import type { Goal } from './types';
 
@@ -8,7 +7,7 @@ interface Props {
   animationDelay?: number;
 }
 
-export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) => {
+export const BentoGoalsTile: React.FC<Props> = ({ goals }) => {
   const active = goals.filter(g => g.status === 'active' || g.status === 'suggested');
   const recentCompleted = goals.filter(g => g.status === 'completed').slice(0, 1);
   const displayGoals = [...active, ...recentCompleted].slice(0, 4);
@@ -16,18 +15,12 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
   if (displayGoals.length === 0) return null;
 
   return (
-    <motion.div
-      className="rounded-2xl p-5 h-full flex flex-col"
+    <div
+      className="rounded-lg p-5 h-full flex flex-col"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: animationDelay, ease: 'easeOut' }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
@@ -38,8 +31,8 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
           <Target className="w-3 h-3" style={{ color: '#10B981' }} />
         </div>
         <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--text-secondary)' }}
+          className="text-[11px] font-medium tracking-widest uppercase"
+          style={{ color: '#10b77f' }}
         >
           Goals
         </p>
@@ -47,7 +40,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
 
       {/* Goal list */}
       <div className="space-y-3 flex-1">
-        {displayGoals.map((goal, i) => {
+        {displayGoals.map((goal) => {
           const isCompleted = goal.status === 'completed';
           const isSuggested = goal.status === 'suggested';
           const progress = goal.duration_days > 0
@@ -57,12 +50,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
           const progressColor = isCompleted ? '#10B981' : isSuggested ? '#3B82F6' : '#10B981';
 
           return (
-            <motion.div
-              key={goal.id}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: animationDelay + i * 0.05 }}
-            >
+            <div key={goal.id}>
               {/* Title row */}
               <div className="flex items-center gap-1.5 mb-1">
                 {isCompleted
@@ -93,12 +81,9 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
                   className="h-1 rounded-full overflow-hidden"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
                 >
-                  <motion.div
+                  <div
                     className="h-full rounded-full"
-                    style={{ backgroundColor: progressColor }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ duration: 0.7, delay: animationDelay + 0.2, ease: 'easeOut' }}
+                    style={{ backgroundColor: progressColor, width: `${progress}%` }}
                   />
                 </div>
               )}
@@ -115,10 +100,10 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals, animationDelay = 0 }) =
                   Suggested
                 </span>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };

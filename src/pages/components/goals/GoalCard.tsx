@@ -3,10 +3,10 @@
  *
  * Displays an active or completed goal with progress bar, streaks,
  * days remaining, and an abandon action with confirmation.
+ * Typography-driven dark design — no glass cards, no motion.
  */
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   Flame,
   Trophy,
@@ -34,7 +34,6 @@ const GoalCard: React.FC<GoalCardProps> = ({
   progress = [],
   onAbandon,
   isAbandoning,
-  index,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
@@ -42,13 +41,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
   const categoryLabel = CATEGORY_LABELS[goal.category] ?? 'Balance';
   const CategoryIcon = CATEGORY_ICONS[goal.category] ?? Sparkles;
 
-  // Progress percentage
   const progressPercent =
     goal.total_days_tracked > 0
       ? Math.round((goal.total_days_met / goal.total_days_tracked) * 100)
       : 0;
 
-  // Days remaining calculation
   const daysRemaining = (() => {
     if (!goal.end_date) return null;
     const end = new Date(goal.end_date);
@@ -69,39 +66,35 @@ const GoalCard: React.FC<GoalCardProps> = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{
-        duration: 0.4,
-        delay: index * 0.06,
-        ease: [0.4, 0, 0.2, 1],
+    <div
+      className="p-5 space-y-4"
+      style={{
+        borderRadius: '12px',
+        border: `1px solid ${BORDER_COLOR}`,
+        backgroundColor: 'rgba(255,255,255,0.02)',
       }}
-      className="glass-card p-6 space-y-4"
-      style={{ borderRadius: '16px' }}
     >
       {/* Header: Category badge + title */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2.5 flex-1 min-w-0">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{
               background: PILL_STYLE.bg,
               border: `1px solid ${PILL_STYLE.border}`,
             }}
           >
-            <CategoryIcon className="w-4 h-4" style={{ color: PILL_STYLE.text }} />
+            <CategoryIcon className="w-3.5 h-3.5" style={{ color: PILL_STYLE.text }} />
           </div>
           <div className="flex-1 min-w-0">
             <h4
               className="text-sm font-medium leading-snug truncate"
-              style={{ color: TEXT_PRIMARY, fontFamily: 'var(--font-heading)' }}
+              style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
             >
               {goal.title}
             </h4>
             <span
-              className="inline-block px-3 py-1 rounded-full text-xs font-medium mt-1.5"
+              className="inline-block px-2.5 py-0.5 rounded-full text-[11px] mt-1.5"
               style={{
                 background: PILL_STYLE.bg,
                 color: PILL_STYLE.text,
@@ -113,14 +106,13 @@ const GoalCard: React.FC<GoalCardProps> = ({
           </div>
         </div>
 
-        {/* Completed badge */}
         {isCompleted && (
           <div
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium flex-shrink-0"
             style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              color: '#34d399',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
+              background: 'rgba(16, 185, 129, 0.08)',
+              color: '#10b77f',
+              border: '1px solid rgba(16, 185, 129, 0.15)',
             }}
           >
             <Trophy className="w-3 h-3" />
@@ -140,17 +132,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
           </span>
         </div>
         <div
-          className="h-2 rounded-full overflow-hidden"
-          style={{
-            background: 'var(--glass-surface-bg)',
-          }}
+          className="h-1.5 rounded-full overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.06)' }}
         >
-          <motion.div
-            className="h-full rounded-full"
-            style={{ backgroundColor: 'var(--accent-vibrant)' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ backgroundColor: '#10b77f', width: `${progressPercent}%` }}
           />
         </div>
         <div className="flex items-center justify-between">
@@ -167,7 +154,6 @@ const GoalCard: React.FC<GoalCardProps> = ({
 
       {/* Streak + days remaining row */}
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Current streak */}
         {goal.current_streak > 0 && (
           <div className="flex items-center gap-1">
             <Flame
@@ -176,16 +162,13 @@ const GoalCard: React.FC<GoalCardProps> = ({
             />
             <span
               className="text-xs font-medium"
-              style={{
-                color: goal.current_streak >= 3 ? '#f97316' : TEXT_PRIMARY,
-              }}
+              style={{ color: goal.current_streak >= 3 ? '#f97316' : TEXT_PRIMARY }}
             >
               {goal.current_streak}d streak
             </span>
           </div>
         )}
 
-        {/* Best streak */}
         {goal.best_streak > 0 && (
           <div className="flex items-center gap-1">
             <Trophy className="w-3 h-3" style={{ color: TEXT_SECONDARY }} />
@@ -195,15 +178,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
           </div>
         )}
 
-        {/* Days remaining (only for active goals) */}
         {!isCompleted && daysRemaining != null && (
           <div className="flex items-center gap-1 ml-auto">
             <Clock className="w-3 h-3" style={{ color: TEXT_SECONDARY }} />
             <span
               className="text-[10px]"
-              style={{
-                color: daysRemaining <= 3 ? '#f97316' : TEXT_SECONDARY,
-              }}
+              style={{ color: daysRemaining <= 3 ? '#f97316' : TEXT_SECONDARY }}
             >
               {daysRemaining}d left
             </span>
@@ -214,7 +194,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
       {/* Expandable section */}
       <button
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex items-center gap-1 w-full pt-1 transition-colors"
+        className="flex items-center gap-1 w-full pt-1 transition-opacity hover:opacity-70"
         style={{ color: TEXT_SECONDARY }}
       >
         {expanded ? (
@@ -228,25 +208,19 @@ const GoalCard: React.FC<GoalCardProps> = ({
       </button>
 
       {expanded && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.2 }}
-          className="space-y-3 pt-1"
+        <div
+          className="space-y-3 pt-3"
           style={{ borderTop: `1px solid ${BORDER_COLOR}` }}
         >
-          {/* Description */}
           {goal.description && (
             <p
-              className="text-xs pt-2"
-              style={{ color: TEXT_SECONDARY, fontFamily: 'var(--font-body)' }}
+              className="text-xs leading-relaxed"
+              style={{ color: TEXT_SECONDARY, fontFamily: "'Inter', sans-serif" }}
             >
               {goal.description}
             </p>
           )}
 
-          {/* Progress chart */}
           <div className="pt-1">
             <GoalProgressChart
               progress={progress}
@@ -255,7 +229,6 @@ const GoalCard: React.FC<GoalCardProps> = ({
             />
           </div>
 
-          {/* Abandon action (only for active goals) */}
           {!isCompleted && (
             <div className="pt-2">
               {showAbandonConfirm ? (
@@ -266,7 +239,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
                   <button
                     onClick={handleAbandonClick}
                     disabled={isAbandoning}
-                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-colors hover:bg-red-500/10 disabled:opacity-40"
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
                     style={{ color: '#ef4444' }}
                   >
                     {isAbandoning ? (
@@ -278,7 +251,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
                   </button>
                   <button
                     onClick={() => setShowAbandonConfirm(false)}
-                    className="px-3 py-1 rounded-lg text-xs transition-colors hover:bg-black/5"
+                    className="px-3 py-1 rounded-lg text-xs transition-opacity hover:opacity-70"
                     style={{ color: TEXT_SECONDARY }}
                   >
                     Cancel
@@ -287,7 +260,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
               ) : (
                 <button
                   onClick={handleAbandonClick}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-colors hover:bg-red-500/10"
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-opacity hover:opacity-70"
                   style={{ color: '#ef4444' }}
                 >
                   <XCircle className="w-3 h-3" />
@@ -296,9 +269,9 @@ const GoalCard: React.FC<GoalCardProps> = ({
               )}
             </div>
           )}
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 };
 

@@ -6,7 +6,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react';
 import {
   SCALE_OPTIONS,
@@ -51,12 +50,7 @@ export function BigFiveQuestions({
   submitResponses,
 }: BigFiveQuestionsProps) {
   return (
-    <motion.div
-      key="questions"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
+    <div>
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin mb-4" style={{ color: colors.accent }} />
@@ -93,12 +87,12 @@ export function BigFiveQuestions({
               className="h-2 rounded-full overflow-hidden"
               style={{ backgroundColor: colors.accentBg }}
             >
-              <motion.div
-                className="h-full rounded-full"
-                style={{ backgroundColor: DOMAIN_INFO[currentQuestion.domain]?.color || colors.accent }}
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.3 }}
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  backgroundColor: DOMAIN_INFO[currentQuestion.domain]?.color || colors.accent,
+                  width: `${progress}%`,
+                }}
               />
             </div>
           </div>
@@ -117,10 +111,7 @@ export function BigFiveQuestions({
           </div>
 
           {/* Question card */}
-          <motion.div
-            key={currentQuestion.id}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+          <div
             className="rounded-2xl p-6 mb-6"
             style={{
               backgroundColor: colors.cardBg,
@@ -165,7 +156,7 @@ export function BigFiveQuestions({
                 );
               })}
             </div>
-          </motion.div>
+          </div>
 
           {/* Navigation */}
           <div className="flex justify-between">
@@ -203,6 +194,6 @@ export function BigFiveQuestions({
           </div>
         </div>
       ) : null}
-    </motion.div>
+    </div>
   );
 }

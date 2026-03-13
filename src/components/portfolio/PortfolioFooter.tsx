@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Share2, Check } from 'lucide-react';
 
 interface PortfolioFooterProps {
@@ -38,17 +37,11 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
 
   return (
     <footer className="py-16 px-6 flex flex-col items-center gap-6">
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="flex flex-col items-center gap-6"
-      >
+      <div className="flex flex-col items-center gap-6">
         {/* Powered by */}
         <p
           className="text-xs opacity-30"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
         >
           Powered by TwinMe
         </p>
@@ -61,7 +54,7 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
             style={{
               background: `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.primary} 100%)`,
               color: '#0C0C0C',
-              fontFamily: 'var(--font-body)',
+              fontFamily: "'Inter', sans-serif",
               fontWeight: 500,
               textDecoration: 'none',
             }}
@@ -87,12 +80,12 @@ const PortfolioFooter: React.FC<PortfolioFooterProps> = ({ updatedAt, colorSchem
         {updatedDate && (
           <p
             className="text-xs opacity-25"
-            style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+            style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
           >
             Updated {updatedDate}
           </p>
         )}
-      </motion.div>
+      </div>
     </footer>
   );
 };

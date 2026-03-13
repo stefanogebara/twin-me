@@ -8,11 +8,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
-import { MessageSquare, Sparkles, AlertCircle, Users } from 'lucide-react';
+import { MessageSquare, AlertCircle, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDemoDiscordInsights } from '@/services/demoDataService';
 import { toast } from 'sonner';
@@ -77,6 +77,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const DiscordInsightsPage: React.FC = () => {
+  useDocumentTitle('Discord Insights');
+
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -90,7 +92,7 @@ const DiscordInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'var(--text-secondary)',
+    textSecondary: 'rgba(255,255,255,0.4)',
     discordPurple: '#5865F2',
     discordBg: 'rgba(88, 101, 242, 0.1)',
   };
@@ -167,36 +169,36 @@ const DiscordInsightsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
-          <div className="h-16 bg-white/8 rounded-xl" />
-          <div className="h-32 bg-white/8 rounded-xl" />
-          <div className="h-48 bg-white/8 rounded-xl" />
+          <div className="h-16 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-32 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-48 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="w-12 h-12" style={{ color: colors.textSecondary }} />
           <p style={{ color: colors.textSecondary }}>{error}</p>
           <button
             onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90"
+            style={{ backgroundColor: '#10b77f', color: '#fff' }}
           >
             Connect Discord
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
       <InsightsPageHeader
         title="Your Community World"
         subtitle="What your servers reveal about you"
@@ -212,10 +214,13 @@ const DiscordInsightsPage: React.FC = () => {
 
       {/* Server Tags */}
       {insights?.discordServers && insights.discordServers.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
+        <div
+          className="rounded-2xl p-4 mb-6"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <h3
-            className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3 flex items-center gap-2"
+            style={{ color: '#10b77f' }}
           >
             <Users className="w-4 h-4" />
             Your Communities ({insights.discordTotalServers ?? insights.discordServers.length})
@@ -235,15 +240,18 @@ const DiscordInsightsPage: React.FC = () => {
               </span>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Category Breakdown */}
       {insights?.discordCategoryBreakdown && insights.discordCategoryBreakdown.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
+        <div
+          className="rounded-2xl p-4 mb-6"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
+            style={{ color: '#10b77f' }}
           >
             <MessageSquare className="w-4 h-4" />
             Community Focus
@@ -256,7 +264,7 @@ const DiscordInsightsPage: React.FC = () => {
                 </span>
                 <div
                   className="flex-1 h-5 rounded-lg overflow-hidden"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.08)' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
                 >
                   <div
                     className="h-full rounded-lg transition-all"
@@ -275,7 +283,7 @@ const DiscordInsightsPage: React.FC = () => {
               </div>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Primary Reflection */}
@@ -292,27 +300,32 @@ const DiscordInsightsPage: React.FC = () => {
           )}
         </div>
       ) : insights?.discordServers?.length ? (
-        <GlassPanel className="mb-8 !p-4">
+        <div
+          className="mb-8 rounded-2xl p-4"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4" style={{ color: colors.discordPurple }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+            <MessageSquare className="w-4 h-4" style={{ color: colors.discordPurple }} />
+            <span
+              className="text-[11px] font-medium uppercase tracking-[0.08em]"
+              style={{ color: '#10b77f' }}
+            >
               Twin's Observation
             </span>
           </div>
           <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
             Your twin is analyzing your community memberships. Check back soon for insights about your digital social world.
           </p>
-        </GlassPanel>
+        </div>
       ) : null}
 
       {/* Pattern Observations */}
       {insights?.patterns && insights.patterns.length > 0 && (
         <div className="mb-8">
           <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
+            style={{ color: '#10b77f' }}
           >
-            <Sparkles className="w-4 h-4" />
             Patterns I've Noticed
           </h3>
           <div className="space-y-3">
@@ -331,21 +344,25 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.history && insights.history.length > 0 && (
         <div>
           <h3
-            className="text-sm uppercase tracking-wider mb-4"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4"
+            style={{ color: '#10b77f' }}
           >
             Past Observations
           </h3>
           <div className="space-y-3">
             {insights.history.map(past => (
-              <GlassPanel key={past.id} variant="default" className="!p-4">
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <div
+                key={past.id}
+                className="rounded-2xl p-4"
+                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                   {past.text}
                 </p>
                 <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
                   {new Date(past.generatedAt).toLocaleDateString()}
                 </p>
-              </GlassPanel>
+              </div>
             ))}
           </div>
         </div>
@@ -354,16 +371,19 @@ const DiscordInsightsPage: React.FC = () => {
       {/* Empty State */}
       {!insights?.reflection?.text && !insights?.discordServers?.length && (
         <div className="space-y-4">
-          <GlassPanel className="text-center py-12">
+          <div
+            className="text-center py-12 rounded-2xl"
+            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          >
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-              style={{ background: 'var(--platform-discord-bg)', border: '1px solid rgba(88, 101, 242, 0.2)' }}
+              style={{ background: colors.discordBg, border: '1px solid rgba(88, 101, 242, 0.2)' }}
             >
-              <MessageSquare className="w-8 h-8" style={{ color: 'var(--platform-discord)' }} />
+              <MessageSquare className="w-8 h-8" style={{ color: colors.discordPurple }} />
             </div>
             <h3
               className="text-xl mb-2"
-              style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
+              style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Your twin is listening in
             </h3>
@@ -373,22 +393,30 @@ const DiscordInsightsPage: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
-              style={{ background: 'var(--platform-discord)' }}
+              style={{ background: '#10b77f' }}
             >
               Connect Discord
             </button>
             <div
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-              style={{ background: 'var(--platform-discord-bg)', color: 'var(--platform-discord)', border: '1px solid rgba(88, 101, 242, 0.2)' }}
+              style={{ background: colors.discordBg, color: colors.discordPurple, border: '1px solid rgba(88, 101, 242, 0.2)' }}
             >
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--platform-discord)' }} />
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.discordPurple }} />
               Collecting your server activity...
             </div>
-          </GlassPanel>
+          </div>
           {/* Preview skeleton */}
           <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">
-            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>Preview of your insights</p>
-            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+            <p
+              className="text-[11px] font-medium uppercase tracking-[0.08em]"
+              style={{ color: colors.textSecondary }}
+            >
+              Preview of your insights
+            </p>
+            <div
+              className="rounded-2xl p-4"
+              style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            >
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="w-4 h-4" style={{ color: colors.textSecondary }} />
                 <span className="text-sm" style={{ color: colors.textSecondary }}>Your Communities</span>
@@ -396,16 +424,16 @@ const DiscordInsightsPage: React.FC = () => {
               <div className="space-y-2">
                 {[75, 55, 35].map((w, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'var(--platform-discord-bg)' }} />
-                    <div className="flex-1 h-3 rounded animate-pulse" style={{ width: `${w}%`, background: 'rgba(0,0,0,0.06)' }} />
+                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: colors.discordBg }} />
+                    <div className="flex-1 h-3 rounded animate-pulse" style={{ width: `${w}%`, background: 'rgba(255,255,255,0.06)' }} />
                   </div>
                 ))}
               </div>
-            </GlassPanel>
+            </div>
           </div>
         </div>
       )}
-    </PageLayout>
+    </div>
   );
 };
 

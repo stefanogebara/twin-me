@@ -2,28 +2,16 @@
  * EvolutionSection
  * ================
  * Shows how the twin's understanding of the user has grown over time.
- *
- * Sections:
- *  1. "Known for X days" badge
- *  2. Big Five radar chart (latest personality snapshot)
- *  3. Soul archetype timeline (archetype → archetype)
- *  4. Memory growth bar chart (week-over-week)
- *
- * Data source: GET /api/twin/evolution
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { TrendingUp, ArrowRight, Calendar } from 'lucide-react';
 import { BigFiveRadarChart } from '../PersonalityRadarChart';
 
-// ────────────────────────────────────────────────────────────────────────────
 // Types
-// ────────────────────────────────────────────────────────────────────────────
-
 interface PersonalitySnapshot {
   id: string;
   openness: number;
@@ -55,10 +43,7 @@ interface EvolutionData {
   daysKnown: number;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ────────────────────────────────────────────────────────────────────────────
-
 function formatWeek(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -75,7 +60,7 @@ const CustomBarTooltip = ({
   return (
     <div
       className="rounded-lg px-3 py-2 text-xs shadow-md"
-      style={{ background: 'var(--background)', border: '1px solid var(--glass-surface-border)' }}
+      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}
     >
       <p className="font-medium text-foreground/60 mb-0.5">{label}</p>
       <p className="font-semibold text-foreground">{payload[0].value.toLocaleString()} memories</p>
@@ -83,10 +68,7 @@ const CustomBarTooltip = ({
   );
 };
 
-// ────────────────────────────────────────────────────────────────────────────
 // Sub-components
-// ────────────────────────────────────────────────────────────────────────────
-
 function ArchetypeTimeline({ signatures }: { signatures: SoulSignatureEntry[] }) {
   if (signatures.length === 0) return null;
 
@@ -115,20 +97,17 @@ function ArchetypeTimeline({ signatures }: { signatures: SoulSignatureEntry[] })
     <div className="flex flex-wrap items-center gap-2">
       {unique.map((s, i) => (
         <React.Fragment key={i}>
-          <motion.div
-            initial={{ opacity: 0, x: -4 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: i * 0.1 }}
+          <div
             className="px-3 py-1.5 rounded-full text-xs font-medium"
             style={{
               background: i === unique.length - 1
                 ? 'rgba(139,92,246,0.12)'
-                : 'var(--glass-surface-bg-subtle)',
+                : 'rgba(255,255,255,0.03)',
               color: i === unique.length - 1 ? '#8b5cf6' : '#8A857D',
             }}
           >
             {s.archetype_name ?? 'Unknown'}
-          </motion.div>
+          </div>
           {i < unique.length - 1 && (
             <ArrowRight size={12} className="text-foreground/20 flex-shrink-0" />
           )}
@@ -138,12 +117,8 @@ function ArchetypeTimeline({ signatures }: { signatures: SoulSignatureEntry[] })
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
 // Main component
-// ────────────────────────────────────────────────────────────────────────────
-
 interface EvolutionSectionProps {
-  /** Show only the "known for X days" badge inline — for use in header areas */
   compact?: boolean;
 }
 
@@ -182,7 +157,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
     return (
       <div
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
-        style={{ background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}
+        style={{ background: 'rgba(0,0,0,0.05)', color: 'rgba(255,255,255,0.4)' }}
       >
         <Calendar size={11} />
         Known for {data.daysKnown} day{data.daysKnown !== 1 ? 's' : ''}
@@ -191,16 +166,11 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
   }
 
   return (
-    <motion.div
-      className="space-y-8"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <TrendingUp size={18} className="text-foreground/40" />
-        <h2 className="heading-serif text-xl text-foreground">Soul Signature Evolution</h2>
+        <h2 className="text-xl text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>Soul Signature Evolution</h2>
         <div
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
           style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}
@@ -264,15 +234,15 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
               }))}
               margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--glass-surface-border)" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
               <XAxis
                 dataKey="week"
-                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }}
                 axisLine={false}
                 tickLine={false}
               />
@@ -287,7 +257,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
           </ResponsiveContainer>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 

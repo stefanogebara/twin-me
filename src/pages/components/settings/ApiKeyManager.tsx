@@ -144,9 +144,14 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
     <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-2">
         <Key className="w-5 h-5" style={{ color: '#F59E0B' }} />
-        <h2 className="heading-serif text-base">Claude Desktop MCP</h2>
+        <h2
+          className="text-[11px] font-medium tracking-widest uppercase"
+          style={{ color: '#10b77f' }}
+        >
+          Claude Desktop MCP
+        </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
         Connect Claude Desktop to your twin. Generate an API key, then paste the config into Claude Desktop.
       </p>
 
@@ -194,7 +199,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
           <button
             onClick={() => setShowSetup(v => !v)}
             className="flex items-center gap-2 text-sm w-full text-left py-2"
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'rgba(255,255,255,0.4)' }}
           >
             {showSetup ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             Setup instructions for Claude Desktop
@@ -204,10 +209,10 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
               className="p-4 rounded-xl mt-2 space-y-3"
               style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 <strong>1.</strong> Open Claude Desktop → Settings → Developer → Edit Config
               </p>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 <strong>2.</strong> Paste this JSON (replace paths with your actual paths):
               </p>
               <div className="relative">
@@ -220,13 +225,13 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
                 <button
                   onClick={copyConfig}
                   className="absolute top-2 right-2 flex items-center gap-1 text-xs px-2 py-1 rounded"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: copiedConfig ? '#10B981' : 'var(--text-muted)' }}
+                  style={{ background: 'rgba(255,255,255,0.1)', color: copiedConfig ? '#10B981' : 'rgba(255,255,255,0.3)' }}
                 >
                   {copiedConfig ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   {copiedConfig ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 <strong>3.</strong> Save and restart Claude Desktop. You'll see the <code>chat_with_twin</code> tool available.
               </p>
             </div>
@@ -237,8 +242,8 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
       {/* Existing keys */}
       {loading ? (
         <div className="flex items-center gap-2 py-3">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--text-muted)' }} />
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading keys...</span>
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Loading keys...</span>
         </div>
       ) : activeKeys.length > 0 ? (
         <div className="space-y-2 mb-4">
@@ -250,7 +255,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
             >
               <div>
                 <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{k.name}</div>
-                <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   Created {formatDate(k.created_at)}
                   {k.last_used_at && ` · Last used ${formatDate(k.last_used_at)}`}
                 </div>
@@ -273,7 +278,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
           ))}
         </div>
       ) : !newKeyValue ? (
-        <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>No active API keys yet.</p>
+        <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.3)' }}>No active API keys yet.</p>
       ) : null}
 
       {/* Generate key */}
@@ -299,7 +304,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
               background: 'rgba(245,158,11,0.1)',
               border: '1px solid rgba(245,158,11,0.3)',
               color: '#F59E0B',
-              fontFamily: 'var(--font-body)',
+              fontFamily: "'Inter', sans-serif",
               fontWeight: 500,
               opacity: creating ? 0.7 : 1,
             }}

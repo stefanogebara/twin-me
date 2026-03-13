@@ -9,9 +9,6 @@
 import React from 'react';
 import type { GoalProgress } from '@/services/api/goalsAPI';
 
-// Design tokens
-const TEXT_MUTED = 'var(--text-muted)';
-
 interface GoalProgressChartProps {
   progress: GoalProgress[];
   durationDays: number;
@@ -65,7 +62,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
       case 'missed':
         return '#ef4444';
       case 'future':
-        return 'var(--glass-surface-bg)';
+        return 'rgba(255,255,255,0.02)';
     }
   };
 
@@ -84,7 +81,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
     return (
       <div
         className="text-xs py-2"
-        style={{ color: TEXT_MUTED }}
+        style={{ color: 'rgba(255,255,255,0.3)' }}
       >
         No progress data yet
       </div>
@@ -112,7 +109,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
           />
           <span
             className="text-[10px]"
-            style={{ color: TEXT_MUTED }}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             Met
           </span>
@@ -124,7 +121,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
           />
           <span
             className="text-[10px]"
-            style={{ color: TEXT_MUTED }}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             Missed
           </span>
@@ -136,7 +133,7 @@ const GoalProgressChart: React.FC<GoalProgressChartProps> = ({
           />
           <span
             className="text-[10px]"
-            style={{ color: TEXT_MUTED }}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             Not tracked
           </span>

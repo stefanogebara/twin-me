@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
 
 interface CorrectionFormProps {
@@ -42,18 +41,14 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.4 }}
+    <div
       className="w-full max-w-sm mt-6"
     >
       <p
         className="text-sm text-center mb-6"
         style={{
           color: 'rgba(232, 213, 183, 0.7)',
-          fontFamily: 'var(--font-body)',
+          fontFamily: "'Inter', sans-serif",
         }}
       >
         {message}
@@ -65,7 +60,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           className="block text-xs uppercase tracking-widest mb-2"
           style={{
             color: 'rgba(232, 213, 183, 0.4)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.1em',
           }}
         >
@@ -81,7 +76,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
             backgroundColor: 'rgba(232, 213, 183, 0.06)',
             border: '1px solid rgba(232, 213, 183, 0.15)',
             color: '#E8D5B7',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
           }}
           placeholder="Your full name"
         />
@@ -93,7 +88,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           className="block text-xs uppercase tracking-widest mb-2"
           style={{
             color: 'rgba(232, 213, 183, 0.4)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.1em',
           }}
         >
@@ -109,14 +104,14 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
             backgroundColor: 'rgba(232, 213, 183, 0.06)',
             border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(232, 213, 183, 0.15)'}`,
             color: '#E8D5B7',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
           }}
           placeholder="https://linkedin.com/in/yourprofile"
         />
         {linkedIn && !linkedInValid && (
           <p
             className="text-xs mt-1.5"
-            style={{ color: 'rgba(239, 68, 68, 0.7)', fontFamily: 'var(--font-body)' }}
+            style={{ color: 'rgba(239, 68, 68, 0.7)', fontFamily: "'Inter', sans-serif" }}
           >
             Enter a valid LinkedIn profile URL
           </p>
@@ -132,7 +127,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           style={{
             background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
             color: '#0C0C0C',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
           }}
         >
           {isRetrying ? (
@@ -149,7 +144,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           className="w-full px-6 py-3 rounded-xl text-sm transition-opacity hover:opacity-80 disabled:opacity-30"
           style={{
             color: 'rgba(232, 213, 183, 0.5)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
             background: 'transparent',
             border: 'none',
           }}
@@ -157,7 +152,7 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           Skip this step
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

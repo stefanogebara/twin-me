@@ -11,7 +11,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Sparkles, Lightbulb, Database } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -41,9 +40,9 @@ interface MemoryEvidence {
 
 type EvidenceProps = ConversationEvidence | InsightEvidence | MemoryEvidence;
 
-// ── Shared glass style ─────────────────────────────────────────────
+// ── Shared style ────────────────────────────────────────────────────
 
-const glassStyle: React.CSSProperties = {
+const cardStyle: React.CSSProperties = {
   background: 'rgba(255, 255, 255, 0.03)',
   border: '1px solid rgba(255, 255, 255, 0.06)',
   borderRadius: '12px',
@@ -123,13 +122,9 @@ const MemorySnippet: React.FC<{ type: string; text: string; source: string }> = 
 
 export const InlineEvidence: React.FC<EvidenceProps> = (props) => {
   return (
-    <motion.div
+    <div
       className="mt-4 p-3.5"
-      style={glassStyle}
-      initial={{ opacity: 0, y: 8 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      viewport={{ once: true }}
+      style={cardStyle}
     >
       {/* Subtle label */}
       <div className="flex items-center gap-1.5 mb-2.5">
@@ -142,6 +137,6 @@ export const InlineEvidence: React.FC<EvidenceProps> = (props) => {
       {props.variant === 'conversation' && <ConversationSnippet lines={props.lines} />}
       {props.variant === 'insight' && <InsightSnippet category={props.category} text={props.text} />}
       {props.variant === 'memory' && <MemorySnippet type={props.type} text={props.text} source={props.source} />}
-    </motion.div>
+    </div>
   );
 };

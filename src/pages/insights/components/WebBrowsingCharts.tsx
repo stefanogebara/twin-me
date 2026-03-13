@@ -1,6 +1,5 @@
 import React from 'react';
-import { GlassPanel } from '@/components/layout/PageLayout';
-import { Globe, Search, BarChart3, BookOpen, Clock, Layout, Sparkles } from 'lucide-react';
+import { Globe, Search, BarChart3, BookOpen, Clock, Layout } from 'lucide-react';
 import { CATEGORY_COLORS } from './webBrowsingTypes';
 import type { InsightsResponse } from './webBrowsingTypes';
 
@@ -23,14 +22,13 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
     <>
       {/* Interest Categories */}
       {insights?.webTopCategories && insights.webTopCategories.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <BarChart3 className="w-4 h-4" />
             Your Interest Universe
-          </h3>
+          </span>
           <div className="space-y-3">
             {insights.webTopCategories.slice(0, 8).map((cat, index) => (
               <div key={index}>
@@ -44,7 +42,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
                 </div>
                 <div
                   className="h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.08)' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
                 >
                   <div
                     className="h-full rounded-full transition-all"
@@ -57,19 +55,18 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
               </div>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* What You Search For */}
       {insights?.webRecentSearches && insights.webRecentSearches.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Search className="w-4 h-4" />
             What You Search For
-          </h3>
+          </span>
           <div className="flex flex-wrap gap-2">
             {insights.webRecentSearches.slice(0, 12).map((query, index) => (
               <span
@@ -84,19 +81,18 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
               </span>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Reading Profile */}
       {insights?.webReadingProfile && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <BookOpen className="w-4 h-4" />
             Your Reading Profile
-          </h3>
+          </span>
           <div className="grid grid-cols-2 gap-4">
             {insights.webReadingProfile.dominantBehavior && (
               <div className="text-center p-3 rounded-lg" style={{ backgroundColor: colors.webBg }}>
@@ -134,19 +130,18 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
               </div>
             )}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Digital Landscape - Top Domains */}
       {insights?.webTopDomains && insights.webTopDomains.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Layout className="w-4 h-4" />
             Your Digital Landscape
-          </h3>
+          </span>
           <div className="flex flex-wrap gap-2">
             {insights.webTopDomains.slice(0, 15).map((item, index) => {
               const size = Math.max(0.7, Math.min(1.2, item.count / (insights.webTopDomains![0]?.count || 1)));
@@ -155,7 +150,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
                   key={index}
                   className="px-3 py-1.5 rounded-lg text-sm"
                   style={{
-                    backgroundColor: 'rgba(0,0,0,0.04)',
+                    backgroundColor: 'rgba(255,255,255,0.04)',
                     color: colors.text,
                     fontSize: `${size}rem`,
                     borderLeft: `3px solid ${colors.webAccent}`,
@@ -170,19 +165,18 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
               );
             })}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Top Topics */}
       {insights?.webTopTopics && insights.webTopTopics.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Sparkles className="w-4 h-4" />
             Topics That Draw You In
-          </h3>
+          </span>
           <div className="flex flex-wrap gap-2">
             {insights.webTopTopics.slice(0, 15).map((topic, index) => (
               <span
@@ -198,19 +192,18 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
               </span>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Recent Activity */}
       {insights?.webRecentActivity && insights.webRecentActivity.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Clock className="w-4 h-4" />
             Recent Browsing
-          </h3>
+          </span>
           <div className="space-y-3">
             {insights.webRecentActivity.slice(0, 8).map((item, index) => (
               <div key={index} className="flex items-center gap-3">
@@ -253,7 +246,7 @@ export const WebBrowsingCharts: React.FC<WebBrowsingChartsProps> = ({
               </div>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
     </>
   );

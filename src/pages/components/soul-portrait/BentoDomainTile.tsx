@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 import type { TwinDomains } from './types';
@@ -32,7 +31,7 @@ interface Props {
   animationDelay?: number;
 }
 
-export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animationDelay = 0 }) => {
+export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains }) => {
   const [expanded, setExpanded] = useState(false);
 
   const content = domains[domainKey];
@@ -43,22 +42,14 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
   const hasMore = content.length > PREVIEW_LIMIT;
 
   return (
-    <motion.div
-      className="rounded-2xl overflow-hidden cursor-pointer"
+    <div
+      className="rounded-lg overflow-hidden cursor-pointer"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
         borderTop: `2px solid ${config.color}`,
       }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: animationDelay, ease: 'easeOut' }}
       onClick={() => hasMore && setExpanded(prev => !prev)}
-      whileHover={hasMore ? { scale: 1.01 } : {}}
-      whileTap={hasMore ? { scale: 0.99 } : {}}
     >
       <div className="p-4">
         {/* Header with clay 3D icon */}
@@ -71,7 +62,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
               <Clay3DIcon name={config.clayIcon} size={20} />
             </div>
             <span
-              className="text-xs font-semibold uppercase tracking-wider"
+              className="text-[11px] font-medium tracking-widest uppercase"
               style={{ color: config.color }}
             >
               {config.label}
@@ -79,39 +70,27 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           </div>
           {hasMore && (
             expanded
-              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+              ? <ChevronUp className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              : <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
           )}
         </div>
 
-        {/* Content — narrative mode (Sesame-inspired 60% opacity hierarchy) */}
-        <AnimatePresence initial={false}>
-          {expanded ? (
-            <motion.p
-              key="expanded"
-              className="text-xs leading-relaxed"
-              style={{ color: 'var(--text-narrative-secondary)' }}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              {content}
-            </motion.p>
-          ) : (
-            <motion.p
-              key="preview"
-              className="text-xs leading-relaxed"
-              style={{ color: 'var(--text-narrative-secondary)' }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {preview}
-            </motion.p>
-          )}
-        </AnimatePresence>
+        {/* Content */}
+        {expanded ? (
+          <p
+            className="text-xs leading-relaxed"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+          >
+            {content}
+          </p>
+        ) : (
+          <p
+            className="text-xs leading-relaxed"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+          >
+            {preview}
+          </p>
+        )}
 
         {hasMore && !expanded && (
           <p
@@ -122,6 +101,6 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           </p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 };

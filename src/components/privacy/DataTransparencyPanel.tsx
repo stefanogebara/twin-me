@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Database,
   Download,
   Trash2,
   Eye,
-  EyeOff,
   Shield,
   CheckCircle,
-  AlertCircle,
   TrendingUp,
   Calendar,
   HardDrive,
@@ -48,6 +45,11 @@ const getQualityLabel = (quality: number) => {
   return 'Limited';
 };
 
+const darkCardStyle: React.CSSProperties = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  backgroundColor: 'rgba(255,255,255,0.02)',
+};
+
 export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
   dataSources,
   totalDataPoints,
@@ -78,147 +80,115 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading text-2xl font-medium text-[var(--claude-text)] mb-2">
+          <h3 className="text-2xl font-medium text-[var(--claude-text)] mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
             Data Transparency
           </h3>
-          <p className="text-sm text-muted-foreground font-body leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
             Complete visibility into what we've collected about you
           </p>
         </div>
 
         {onExportData && (
-          <motion.button
+          <button
             onClick={onExportData}
-            className="
-              flex items-center gap-2 px-4 py-2.5 rounded-xl
-              bg-[var(--claude-accent)] text-white
-              hover:bg-[var(--claude-accent)]/90
-              font-ui font-medium text-sm
-              shadow-md hover:shadow-lg
-              transition-all duration-200
-            "
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:shadow-lg transition-all duration-200"
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontFamily: "'Inter', sans-serif" }}
           >
             <Download className="w-4 h-4" />
             Export All Data
-          </motion.button>
+          </button>
         )}
       </div>
 
       {/* Overall Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card p-5"
-        >
+        <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
-            <Database className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <Database className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
               Connected
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: 'var(--foreground)' }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
             {connectedSources.length}
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
             platforms synced
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-card p-5"
-        >
+        <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
-            <Sparkles className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
               Data Points
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: 'var(--foreground)' }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
             {totalDataPoints.toLocaleString('en-US')}
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
             moments captured
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="glass-card p-5"
-        >
+        <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <TrendingUp className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
               Quality
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: 'var(--foreground)' }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
             {totalQuality}%
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
             {getQualityLabel(totalQuality).toLowerCase()}
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-card p-5"
-        >
+        <div className="rounded-lg p-5" style={darkCardStyle}>
           <div className="flex items-center gap-3 mb-2">
-            <HardDrive className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-            <span className="text-xs font-medium font-ui uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            <HardDrive className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
               Storage
             </span>
           </div>
-          <p className="text-3xl font-heading font-bold" style={{ color: 'var(--foreground)' }}>
+          <p className="text-3xl font-bold" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
             {totalSize}
           </p>
-          <p className="text-xs mt-1 font-ui" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
             total data size
           </p>
-        </motion.div>
+        </div>
       </div>
 
       {/* Data Sources List */}
       <div className="space-y-3">
-        <h4 className="font-heading text-lg font-medium text-[var(--claude-text)] mb-4">
+        <h4 className="text-lg font-medium text-[var(--claude-text)] mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
           Connected Data Sources
         </h4>
 
         {connectedSources.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="p-8 rounded-xl bg-[var(--glass-surface-bg)] border-2 border-dashed border-white/12 text-center"
+          <div
+            className="p-8 rounded-xl border-2 border-dashed border-white/12 text-center"
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <Database className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground font-body">
+            <p className="text-muted-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
               No data sources connected yet. Connect platforms to start building your soul signature.
             </p>
-          </motion.div>
+          </div>
         ) : (
-          connectedSources.map((source, index) => {
+          connectedSources.map((source) => {
             const isExpanded = expandedPlatform === source.platform;
             const showingDeleteConfirm = showDeleteConfirm === source.platform;
 
             return (
-              <motion.div
+              <div
                 key={source.platform}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                layout
-                className="glass-card relative overflow-hidden"
+                className="rounded-lg relative overflow-hidden"
+                style={darkCardStyle}
               >
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-3">
@@ -229,7 +199,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h5 className="font-heading text-base font-medium text-[var(--claude-text)] capitalize">
+                          <h5 className="text-base font-medium text-[var(--claude-text)] capitalize" style={{ fontFamily: "'Inter', sans-serif" }}>
                             {source.platform}
                           </h5>
                           <CheckCircle className="w-4 h-4 text-green-500" />
@@ -254,148 +224,125 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                     <div className="flex items-center gap-2">
                       {/* Quality Badge */}
                       <div
-                        className={`
-                          px-3 py-1.5 rounded-lg bg-[var(--glass-surface-bg)] border border-[var(--glass-surface-border)]
-                          flex items-center gap-2
-                        `}
+                        className="px-3 py-1.5 rounded-lg flex items-center gap-2"
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}
                       >
                         <TrendingUp className={`w-3.5 h-3.5 ${getQualityColor(source.quality)}`} />
-                        <span className={`text-sm font-medium font-ui ${getQualityColor(source.quality)}`}>
+                        <span className={`text-sm font-medium ${getQualityColor(source.quality)}`} style={{ fontFamily: "'Inter', sans-serif" }}>
                           {source.quality}%
                         </span>
                       </div>
 
                       {/* Expand Button */}
-                      <motion.button
+                      <button
                         onClick={() =>
                           setExpandedPlatform(isExpanded ? null : source.platform)
                         }
                         className="p-2 rounded-lg hover:bg-white/12 transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
                       >
-                        <motion.div
-                          animate={{ rotate: isExpanded ? 90 : 0 }}
-                          transition={{ duration: 0.2 }}
+                        <div
+                          style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                         >
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        </motion.div>
-                      </motion.button>
+                        </div>
+                      </button>
                     </div>
                   </div>
 
                   {/* Expanded Details */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="pt-4 border-t border-white/10 space-y-4"
-                      >
-                        {/* Categories */}
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-2 font-ui">
-                            Data Categories
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {source.categories.map((category) => (
-                              <span
-                                key={category}
-                                className="px-2.5 py-1 rounded-lg bg-white/8 text-muted-foreground text-xs font-medium font-ui"
-                              >
-                                {category}
-                              </span>
-                            ))}
+                  {isExpanded && (
+                    <div className="pt-4 border-t border-white/10 space-y-4">
+                      {/* Categories */}
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+                          Data Categories
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {source.categories.map((category) => (
+                            <span
+                              key={category}
+                              className="px-2.5 py-1 rounded-lg bg-white/8 text-muted-foreground text-xs font-medium"
+                              style={{ fontFamily: "'Inter', sans-serif" }}
+                            >
+                              {category}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2">
+                        {onViewRawData && (
+                          <button
+                            onClick={() => onViewRawData(source.platform)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/8 hover:bg-white/10 text-muted-foreground font-medium text-sm transition-colors"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Raw Data
+                          </button>
+                        )}
+
+                        {onDeleteData && !showingDeleteConfirm && (
+                          <button
+                            onClick={() => setShowDeleteConfirm(source.platform)}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-900/20 hover:bg-red-900/20 text-red-700 font-medium text-sm transition-colors"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Data
+                          </button>
+                        )}
+
+                        {showingDeleteConfirm && (
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-red-700 font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
+                              Are you sure?
+                            </p>
+                            <button
+                              onClick={() => handleDeleteConfirm(source.platform)}
+                              className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition-colors"
+                              style={{ fontFamily: "'Inter', sans-serif" }}
+                            >
+                              Yes, Delete
+                            </button>
+                            <button
+                              onClick={() => setShowDeleteConfirm(null)}
+                              className="px-3 py-1.5 rounded-lg bg-white/10 text-muted-foreground font-medium text-sm hover:bg-white/15 transition-colors"
+                              style={{ fontFamily: "'Inter', sans-serif" }}
+                            >
+                              Cancel
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          {onViewRawData && (
-                            <button
-                              onClick={() => onViewRawData(source.platform)}
-                              className="
-                                flex items-center gap-2 px-3 py-2 rounded-lg
-                                bg-white/8 hover:bg-white/10
-                                text-muted-foreground font-ui font-medium text-sm
-                                transition-colors
-                              "
-                            >
-                              <Eye className="w-4 h-4" />
-                              View Raw Data
-                            </button>
-                          )}
-
-                          {onDeleteData && !showingDeleteConfirm && (
-                            <button
-                              onClick={() => setShowDeleteConfirm(source.platform)}
-                              className="
-                                flex items-center gap-2 px-3 py-2 rounded-lg
-                                bg-red-900/20 hover:bg-red-900/20
-                                text-red-700 font-ui font-medium text-sm
-                                transition-colors
-                              "
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete Data
-                            </button>
-                          )}
-
-                          {showingDeleteConfirm && (
-                            <motion.div
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              className="flex items-center gap-2"
-                            >
-                              <p className="text-sm text-red-700 font-medium font-ui">
-                                Are you sure?
-                              </p>
-                              <button
-                                onClick={() => handleDeleteConfirm(source.platform)}
-                                className="px-3 py-1.5 rounded-lg bg-red-600 text-white font-ui font-medium text-sm hover:bg-red-700 transition-colors"
-                              >
-                                Yes, Delete
-                              </button>
-                              <button
-                                onClick={() => setShowDeleteConfirm(null)}
-                                className="px-3 py-1.5 rounded-lg bg-white/10 text-muted-foreground font-ui font-medium text-sm hover:bg-white/15 transition-colors"
-                              >
-                                Cancel
-                              </button>
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
+              </div>
             );
           })
         )}
       </div>
 
       {/* Privacy Notice */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-5 rounded-xl bg-blue-900/20 border-2 border-blue-800/30"
-      >
+      <div className="p-5 rounded-xl bg-blue-900/20 border-2 border-blue-800/30">
         <div className="flex items-start gap-3">
           <Shield className="w-5 h-5 text-blue-400 mt-0.5" />
           <div>
-            <h5 className="font-heading text-sm font-medium text-blue-900 mb-1">
+            <h5 className="text-sm font-medium text-blue-900 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
               Your Data, Your Control
             </h5>
-            <p className="text-sm text-blue-800 font-body leading-relaxed">
+            <p className="text-sm text-blue-800 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
               All data is encrypted and stored securely. You can export or delete your data at any time.
               We never share your personal data with third parties without your explicit consent.
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

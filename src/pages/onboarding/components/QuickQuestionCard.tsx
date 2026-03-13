@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface QuickQuestion {
   id: string;
@@ -36,13 +35,9 @@ const QuickQuestionCard: React.FC<QuickQuestionCardProps> = ({
   question,
   selectedAnswer,
   onAnswer,
-  index,
 }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 30 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+    <div
       className="mb-6"
     >
       <p
@@ -58,11 +53,9 @@ const QuickQuestionCard: React.FC<QuickQuestionCardProps> = ({
         {question.options.map((option) => {
           const isSelected = selectedAnswer === option;
           return (
-            <motion.button
+            <button
               key={option}
               onClick={() => onAnswer(question.id, option)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
               className="px-5 py-2.5 rounded-full text-sm transition-all duration-200"
               style={{
                 backgroundColor: isSelected
@@ -74,15 +67,15 @@ const QuickQuestionCard: React.FC<QuickQuestionCardProps> = ({
                 color: isSelected
                   ? '#E8D5B7'
                   : 'rgba(232, 213, 183, 0.7)',
-                fontFamily: 'var(--font-body)',
+                fontFamily: "'Inter', sans-serif",
               }}
             >
               {option}
-            </motion.button>
+            </button>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };
 

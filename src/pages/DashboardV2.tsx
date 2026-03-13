@@ -1,6 +1,4 @@
-import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { PageLayout } from '@/components/layout/PageLayout';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDashboardContext } from '@/hooks/useDashboardContext';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
@@ -16,71 +14,67 @@ export function DashboardV2() {
 
   if (isLoading) {
     return (
-      <PageLayout>
+      <div className="max-w-[720px] mx-auto px-6 py-16">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin" size={24} style={{ color: 'var(--text-muted)' }} />
+          <Loader2 className="animate-spin w-5 h-5" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <PageLayout>
+      <div className="max-w-[720px] mx-auto px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
             Something went wrong
           </p>
           <button
             onClick={() => refetch()}
-            className="text-sm px-4 py-2 rounded-full border-none cursor-pointer"
-            style={{ background: '#252222', color: 'var(--foreground)' }}
+            className="text-sm px-4 py-2 rounded-lg transition-opacity hover:opacity-70"
+            style={{
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.5)',
+            }}
           >
             Retry
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout>
-      <motion.div
-        className="max-w-[720px] mx-auto px-6 pb-24"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
-      >
-        <DashboardGreeting
-          firstName={data.greeting.firstName}
-          timeLabel={data.greeting.timeLabel}
-          insightCount={data.greeting.insightCount}
-          streak={data.greeting.streak}
+    <div className="max-w-[720px] mx-auto px-6 pb-24">
+      <DashboardGreeting
+        firstName={data.greeting.firstName}
+        timeLabel={data.greeting.timeLabel}
+        insightCount={data.greeting.insightCount}
+        streak={data.greeting.streak}
+      />
+
+      {data.heroInsight && (
+        <HeroInsight
+          body={data.heroInsight.body}
+          source={data.heroInsight.source}
+          insightId={data.heroInsight.insightId}
         />
+      )}
 
-        {data.heroInsight && (
-          <HeroInsight
-            body={data.heroInsight.body}
-            source={data.heroInsight.source}
-            insightId={data.heroInsight.insightId}
-          />
-        )}
+      <TwinStats
+        readiness={data.twinStats.readiness}
+        memoryCount={data.twinStats.memoryCount}
+        memoriesThisWeek={data.twinStats.memoriesThisWeek}
+        streak={data.twinStats.streak}
+        heatmap={data.heatmap}
+      />
 
-        <TwinStats
-          readiness={data.twinStats.readiness}
-          memoryCount={data.twinStats.memoryCount}
-          memoriesThisWeek={data.twinStats.memoriesThisWeek}
-          streak={data.twinStats.streak}
-          heatmap={data.heatmap}
-        />
+      <NextUpEvents events={data.nextEvents} />
 
-        <NextUpEvents events={data.nextEvents} />
+      <PlatformsList platforms={data.platforms} />
 
-        <PlatformsList platforms={data.platforms} />
-
-        <ChatPrompt />
-      </motion.div>
-    </PageLayout>
+      <ChatPrompt />
+    </div>
   );
 }
 

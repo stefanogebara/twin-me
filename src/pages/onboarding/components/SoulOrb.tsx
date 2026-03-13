@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 type OrbPhase = 'dormant' | 'awakening' | 'alive';
 
@@ -32,41 +31,23 @@ const SoulOrb: React.FC<SoulOrbProps> = ({ phase, dataPointCount }) => {
   return (
     <div className="relative flex items-center justify-center soul-orb-container">
       {/* Outer glow */}
-      <motion.div
-        className="absolute rounded-full"
-        animate={{
-          scale: [1, config.pulseScale, 1],
-          opacity: [config.glowOpacity * 0.5, config.glowOpacity, config.glowOpacity * 0.5],
-        }}
-        transition={{
-          duration: config.pulseDuration,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+      <div
+        className="absolute rounded-full soul-orb-pulse"
         style={{
           width: config.size + 60,
           height: config.size + 60,
           background: 'radial-gradient(circle, rgba(232, 213, 183, 0.15) 0%, transparent 70%)',
+          animationDuration: `${config.pulseDuration}s`,
         }}
       />
 
       {/* Main orb */}
-      <motion.div
-        className="relative rounded-full"
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{
-          scale: [1, config.pulseScale, 1],
-          opacity: 1,
+      <div
+        className="relative rounded-full soul-orb-pulse"
+        style={{
           width: config.size,
           height: config.size,
-        }}
-        transition={{
-          scale: { duration: config.pulseDuration, repeat: Infinity, ease: 'easeInOut' },
-          opacity: { duration: 1 },
-          width: { type: 'spring', stiffness: 60, damping: 20 },
-          height: { type: 'spring', stiffness: 60, damping: 20 },
-        }}
-        style={{
+          animationDuration: `${config.pulseDuration}s`,
           background: `
             radial-gradient(circle at 35% 35%,
               rgba(255, 245, 230, ${phase === 'alive' ? 0.6 : 0.3}) 0%,
@@ -81,10 +62,8 @@ const SoulOrb: React.FC<SoulOrbProps> = ({ phase, dataPointCount }) => {
         }}
       >
         {/* Inner shimmer layer */}
-        <motion.div
-          className="absolute inset-0 rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        <div
+          className="absolute inset-0 rounded-full soul-orb-rotate"
           style={{
             background: `
               conic-gradient(
@@ -98,7 +77,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({ phase, dataPointCount }) => {
             `,
           }}
         />
-      </motion.div>
+      </div>
 
       {/* Data ring — orbiting dots */}
       <div
@@ -109,17 +88,9 @@ const SoulOrb: React.FC<SoulOrbProps> = ({ phase, dataPointCount }) => {
         }}
       >
         {dots.map((angle, i) => (
-          <motion.div
+          <div
             key={i}
             className="absolute rounded-full"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.8 }}
-            transition={{
-              type: 'spring',
-              stiffness: 300,
-              damping: 20,
-              delay: i * 0.08,
-            }}
             style={{
               width: 6,
               height: 6,
@@ -127,14 +98,29 @@ const SoulOrb: React.FC<SoulOrbProps> = ({ phase, dataPointCount }) => {
               boxShadow: '0 0 8px rgba(232, 213, 183, 0.6)',
               top: '50%',
               left: '50%',
+              opacity: 0.8,
               transform: `rotate(${angle}deg) translateY(-${(config.size + 80) / 2}px) translateX(-3px) translateY(-3px)`,
             }}
           />
         ))}
       </div>
 
-      {/* Mobile size override via CSS class */}
+      {/* CSS animations */}
       <style>{`
+        @keyframes soul-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(${config.pulseScale}); }
+        }
+        @keyframes soul-rotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .soul-orb-pulse {
+          animation: soul-pulse ease-in-out infinite;
+        }
+        .soul-orb-rotate {
+          animation: soul-rotate 20s linear infinite;
+        }
         @media (max-width: 640px) {
           .soul-orb-container { transform: scale(${config.mobileSize / config.size}); }
         }

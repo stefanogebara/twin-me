@@ -6,9 +6,7 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ChevronRight, Zap, BookOpen } from 'lucide-react';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { DOMAIN_INFO, type AssessmentVersion } from './bigFiveTypes';
 
 interface BigFiveIntroProps {
@@ -19,13 +17,7 @@ interface BigFiveIntroProps {
 
 export function BigFiveIntro({ colors, questionsAnswered, startAssessment }: BigFiveIntroProps) {
   return (
-    <motion.div
-      key="intro"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="text-center"
-    >
+    <div className="text-center">
       <div className="flex justify-center mb-6">
         <div
           className="p-4 rounded-2xl"
@@ -142,6 +134,6 @@ export function BigFiveIntro({ colors, questionsAnswered, startAssessment }: Big
           You have {questionsAnswered} questions answered. Your progress will be saved.
         </p>
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { DataProvider } from '@/types/data-integration';
 import { ConnectorConfig } from './connectorConfig';
 import { ConnectorCard } from './ConnectorCard';
@@ -40,26 +39,17 @@ export const PlatformCategorySection: React.FC<PlatformCategorySectionProps> = (
   disconnectingProvider,
   theme,
   colors,
-  animationDelay,
-  dotDelay,
   onConnect,
   onDisconnect,
 }) => {
   if (connectors.length === 0) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: animationDelay, ease: [0.4, 0, 0.2, 1] }}
-    >
+    <div>
       <div className="flex items-center gap-2 mb-4">
-        <motion.div
+        <div
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: categoryColor }}
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.4, delay: dotDelay, ease: [0.4, 0, 0.2, 1] }}
         />
         <h3
           className="text-lg"
@@ -73,7 +63,7 @@ export const PlatformCategorySection: React.FC<PlatformCategorySectionProps> = (
         </h3>
         <span
           className="text-xs"
-          style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
+          style={{ color: colors.muted, fontFamily: "'Inter', sans-serif" }}
         >
           {categorySubtext}
         </span>
@@ -102,6 +92,6 @@ export const PlatformCategorySection: React.FC<PlatformCategorySectionProps> = (
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };

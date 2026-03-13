@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Clock, TrendingUp, CheckCircle, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { WatchPatterns } from '@/hooks/useYouTubeInsights';
@@ -44,10 +43,10 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           <TrendingUp className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Watch Patterns
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Your viewing behavior insights
           </p>
         </div>
@@ -55,98 +54,88 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
 
       <div className="space-y-5">
         {/* Peak Hours */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
+        <div
+          className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:brightness-110"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <Clock className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
               Peak Hours
             </p>
-            <p className="font-ui text-sm font-medium text-foreground">
+            <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {formatPeakHours(patterns.peakHours.start, patterns.peakHours.end)}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
               {patterns.peakHours.label}
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Avg Videos Per Session */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
+        <div
+          className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:brightness-110"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <TrendingUp className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
               Avg Videos Per Session
             </p>
-            <p className="font-ui text-xl font-medium text-foreground">
+            <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {patterns.avgVideosPerSession.toFixed(1)}
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Avg Watch Duration */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
+        <div
+          className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:brightness-110"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <Clock className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
               Avg Watch Duration
             </p>
-            <p className="font-ui text-xl font-medium text-foreground">
+            <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {formatDuration(patterns.avgWatchDuration)}
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Completion Rate */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="flex items-center gap-3 p-3 bg-[var(--glass-surface-bg)] rounded-lg hover:bg-[var(--glass-surface-bg-hover)] transition-colors"
+        <div
+          className="flex items-center gap-3 p-3 rounded-lg transition-colors hover:brightness-110"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="w-10 h-10 rounded-lg bg-[#FF0000]/10 flex items-center justify-center flex-shrink-0">
             <CheckCircle className="w-5 h-5 text-[#FF0000]" />
           </div>
           <div className="flex-1">
-            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide mb-0.5">
+            <p className="text-[11px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#10b77f' }}>
               Completion Rate
             </p>
-            <p className="font-ui text-xl font-medium text-foreground">
+            <p className="text-xl font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {patterns.completionRate.toFixed(0)}%
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Weekday vs Weekend */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="p-3 bg-[var(--glass-surface-bg)] rounded-lg"
+        <div
+          className="p-3 rounded-lg"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-4 h-4 text-[#FF0000]" />
-            <p className="text-xs font-ui text-muted-foreground uppercase tracking-wide">
+            <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
               Weekday vs Weekend
             </p>
           </div>
@@ -154,38 +143,34 @@ export const WatchPatternsCard: React.FC<WatchPatternsCardProps> = ({
           {/* Horizontal bar chart */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-ui text-muted-foreground w-16">Weekday</span>
+              <span className="text-xs w-16" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>Weekday</span>
               <div className="flex-1 h-6 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${weekdayPercent}%` }}
-                  transition={{ delay: 0.6, duration: 0.6, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4444] rounded-full flex items-center justify-end pr-2"
+                <div
+                  className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4444] rounded-full flex items-center justify-end pr-2 transition-all duration-600"
+                  style={{ width: `${weekdayPercent}%` }}
                 >
                   <span className="text-xs font-mono text-white font-medium">
                     {weekdayPercent.toFixed(0)}%
                   </span>
-                </motion.div>
+                </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-ui text-muted-foreground w-16">Weekend</span>
+              <span className="text-xs w-16" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>Weekend</span>
               <div className="flex-1 h-6 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${weekendPercent}%` }}
-                  transition={{ delay: 0.7, duration: 0.6, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-[#CC0000] to-[#FF0000] rounded-full flex items-center justify-end pr-2"
+                <div
+                  className="h-full bg-gradient-to-r from-[#CC0000] to-[#FF0000] rounded-full flex items-center justify-end pr-2 transition-all duration-600"
+                  style={{ width: `${weekendPercent}%` }}
                 >
                   <span className="text-xs font-mono text-white font-medium">
                     {weekendPercent.toFixed(0)}%
                   </span>
-                </motion.div>
+                </div>
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </Card>
   );

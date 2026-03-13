@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
   RadarChart,
   PolarGrid,
@@ -60,11 +59,19 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-card rounded-lg p-3">
-          <p className="font-ui text-sm font-medium text-foreground">
+        <div
+          className="rounded-lg p-3"
+          style={{
+            backgroundColor: 'rgba(10,15,10,0.9)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            color: 'rgba(255,255,255,0.8)'
+          }}
+        >
+          <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
             {payload[0].payload.feature}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
             {payload[0].payload.description}
           </p>
           <p className="text-xs font-mono text-[#1DB954] mt-2">
@@ -102,26 +109,22 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
           <Activity className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Audio Personality
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Your musical characteristics
           </p>
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <div>
         <ResponsiveContainer width="100%" height={300}>
           <RadarChart data={chartData}>
             <PolarGrid stroke="#E5E7EB" strokeWidth={1} />
             <PolarAngleAxis
               dataKey="feature"
-              tick={{ fill: '#57534E', fontSize: 12, fontFamily: 'DM Sans' }}
+              tick={{ fill: '#57534E', fontSize: 12, fontFamily: "'Inter', sans-serif" }}
             />
             <PolarRadiusAxis
               angle={90}
@@ -143,46 +146,41 @@ export const AudioFeaturesRadar: React.FC<AudioFeaturesRadarProps> = ({
         </ResponsiveContainer>
 
         {/* Personality Insight Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+        <div
           className="mt-4 bg-gradient-to-r from-[#1DB954]/5 to-[#1DB954]/10 rounded-lg p-4 border border-[#1DB954]/20"
         >
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-xs font-ui font-medium text-muted-foreground">
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
               Musical Personality
             </span>
           </div>
-          <p className="text-base font-heading font-medium text-foreground">
+          <p className="text-base font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             {getPersonalityInsight()}
           </p>
-        </motion.div>
+        </div>
 
         {/* Feature Legend */}
         <div className="mt-5 grid grid-cols-2 gap-3">
-          {chartData.map((item, index) => (
-            <motion.div
+          {chartData.map((item) => (
+            <div
               key={item.feature}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 + index * 0.1 }}
-              className="flex items-center justify-between bg-[var(--glass-surface-bg)] rounded-lg px-3 py-2"
+              className="flex items-center justify-between rounded-lg px-3 py-2"
+              style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-[#1DB954]" />
-                <span className="text-xs font-ui text-muted-foreground">
+                <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                   {item.feature}
                 </span>
               </div>
-              <span className="text-xs font-mono text-foreground font-medium">
+              <span className="text-xs font-mono font-medium" style={{ color: 'var(--foreground)' }}>
                 {item.value.toFixed(0)}%
               </span>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </Card>
   );
 };

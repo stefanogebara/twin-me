@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 interface InsightsPageHeaderProps {
@@ -30,37 +29,30 @@ export const InsightsPageHeader: React.FC<InsightsPageHeaderProps> = ({
   return (
     <div className="flex items-center justify-between mb-8">
       <div className="flex items-center gap-4">
-        <motion.button
+        <button
           onClick={onBack}
-          className="p-2 rounded-lg glass-button"
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.95 }}
+          className="p-2 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <ArrowLeft className="w-5 h-5" style={{ color: textColor }} />
-        </motion.button>
+        </button>
 
-        <motion.div
+        <div
           className="w-12 h-12 rounded-xl flex items-center justify-center"
           style={{ backgroundColor: iconBgColor }}
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
         >
           {icon}
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
-        >
+        <div>
           <h1
-            className="heading-serif text-2xl"
+            className="text-2xl"
             style={{
               color: textColor,
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontWeight: 400,
+              letterSpacing: '-0.02em',
             }}
           >
             {title}
@@ -68,25 +60,21 @@ export const InsightsPageHeader: React.FC<InsightsPageHeaderProps> = ({
           <p className="text-sm" style={{ color: textSecondaryColor }}>
             {subtitle}
           </p>
-        </motion.div>
+        </div>
       </div>
 
-      <motion.button
+      <button
         onClick={onRefresh}
         disabled={isRefreshing}
-        className="p-2 rounded-lg glass-button"
+        className="p-2 rounded-lg"
         title="Get a fresh observation"
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
-        whileHover={{ scale: 1.1, rotate: 90 }}
-        whileTap={{ scale: 0.9 }}
+        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
       >
         <RefreshCw
           className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
           style={{ color: textColor }}
         />
-      </motion.button>
+      </button>
     </div>
   );
 };

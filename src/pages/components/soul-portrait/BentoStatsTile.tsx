@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Database, Layers, Zap } from 'lucide-react';
 import type { MemoryStats, ConnectedPlatform } from './types';
 
@@ -38,22 +37,16 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
   ];
 
   return (
-    <motion.div
-      className="rounded-2xl p-5 h-full flex flex-col justify-between"
+    <div
+      className="rounded-lg p-5 h-full flex flex-col justify-between"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.08, ease: 'easeOut' }}
     >
       <p
-        className="text-xs uppercase tracking-widest font-medium mb-4"
-        style={{ color: 'var(--text-secondary)' }}
+        className="text-[11px] font-medium tracking-widest uppercase mb-4"
+        style={{ color: '#10b77f' }}
       >
         Twin Stats
       </p>
@@ -76,7 +69,7 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
               </p>
               <p
                 className="text-xs"
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: 'rgba(255,255,255,0.4)' }}
               >
                 {label}
               </p>
@@ -84,6 +77,6 @@ export const BentoStatsTile: React.FC<Props> = ({ stats, firstMemoryAt, connecte
           </div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 };

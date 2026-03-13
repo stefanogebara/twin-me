@@ -9,7 +9,6 @@
  */
 
 import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
 
 interface PersonalityScore {
   label: string;
@@ -41,7 +40,7 @@ const DEFAULT_COLORS = [
 // Light-mode design tokens for chart
 const chartColors = {
   text: 'var(--foreground)',
-  textSecondary: 'var(--text-muted)',
+  textSecondary: 'rgba(255,255,255,0.3)',
   gridLine: 'rgba(45, 39, 34, 0.1)',
   accent: 'var(--foreground)',
 };
@@ -100,7 +99,7 @@ export function PersonalityRadarChart({
         <div className="text-center mb-4">
           <h3
             className="text-lg font-medium"
-            style={{ color: chartColors.text, fontFamily: 'var(--font-heading)' }}
+            style={{ color: chartColors.text, fontFamily: ''Instrument Serif', Georgia, serif' }}
           >
             {title}
           </h3>
@@ -140,21 +139,17 @@ export function PersonalityRadarChart({
         ))}
 
         {/* Data polygon */}
-        <motion.path
+        <path
           d={dataPath}
           fill={fillColor}
           fillOpacity={fillOpacity}
           stroke={fillColor}
           strokeWidth={2}
-          initial={animated ? { scale: 0, opacity: 0 } : undefined}
-          animate={animated ? { scale: 1, opacity: 1 } : undefined}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          style={{ transformOrigin: 'center' }}
         />
 
         {/* Data points */}
         {calculatePoints.map((point, i) => (
-          <motion.circle
+          <circle
             key={`point-${i}`}
             cx={point.x}
             cy={point.y}
@@ -162,9 +157,6 @@ export function PersonalityRadarChart({
             fill={point.score.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]}
             stroke="#fff"
             strokeWidth={2}
-            initial={animated ? { scale: 0 } : undefined}
-            animate={animated ? { scale: 1 } : undefined}
-            transition={{ delay: 0.4 + i * 0.1, duration: 0.3 }}
           />
         ))}
 

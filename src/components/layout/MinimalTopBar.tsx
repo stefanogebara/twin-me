@@ -61,7 +61,7 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
                 onClick={() => setShowUserMenu(false)}
               />
 
-              <div className="absolute right-0 mt-2 w-56 glass-card z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-56 rounded-lg z-50 overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                 <div className="p-4 border-b border-white/10">
                   <p className="text-sm font-medium text-foreground truncate">
                     {user?.fullName || user?.email || 'User'}
@@ -76,7 +76,7 @@ export const MinimalTopBar: React.FC<MinimalTopBarProps> = ({ onMenuClick }) => 
                     setShowUserMenu(false);
                     navigate('/settings');
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-[var(--glass-surface-bg-hover)] transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-white/5 transition-colors text-left"
                 >
                   <Settings className="w-4 h-4" />
                   <span className="text-sm">Settings</span>

@@ -8,11 +8,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
-import { Briefcase, Sparkles, AlertCircle, MapPin, Users } from 'lucide-react';
+import { Briefcase, AlertCircle, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDemoLinkedInInsights } from '@/services/demoDataService';
 import { toast } from 'sonner';
@@ -59,6 +59,8 @@ interface InsightsResponse {
 }
 
 const LinkedInInsightsPage: React.FC = () => {
+  useDocumentTitle('LinkedIn Insights');
+
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -72,7 +74,7 @@ const LinkedInInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'var(--text-secondary)',
+    textSecondary: 'rgba(255,255,255,0.4)',
     linkedinBlue: '#0A66C2',
     linkedinBg: 'rgba(10, 102, 194, 0.1)',
   };
@@ -149,36 +151,36 @@ const LinkedInInsightsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
-          <div className="h-16 bg-white/8 rounded-xl" />
-          <div className="h-32 bg-white/8 rounded-xl" />
-          <div className="h-48 bg-white/8 rounded-xl" />
+          <div className="h-16 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-32 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-48 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle className="w-12 h-12" style={{ color: colors.textSecondary }} />
           <p style={{ color: colors.textSecondary }}>{error}</p>
           <button
             onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
+            className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
+            style={{ backgroundColor: '#10b77f' }}
           >
             Connect LinkedIn
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
       <InsightsPageHeader
         title="Your Professional Self"
         subtitle="What your career signals say about you"
@@ -194,13 +196,16 @@ const LinkedInInsightsPage: React.FC = () => {
 
       {/* Professional Profile Card */}
       {(insights?.linkedinHeadline || insights?.linkedinIndustry) && (
-        <GlassPanel className="!p-5 mb-6">
+        <div
+          className="rounded-2xl p-5 mb-6"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           {insights.linkedinHeadline && (
             <p
               className="text-lg font-medium mb-3"
-              style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
+              style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
-              "{insights.linkedinHeadline}"
+              &ldquo;{insights.linkedinHeadline}&rdquo;
             </p>
           )}
           <div className="flex flex-wrap gap-4 text-sm" style={{ color: colors.textSecondary }}>
@@ -223,15 +228,18 @@ const LinkedInInsightsPage: React.FC = () => {
               </div>
             )}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Skills */}
       {insights?.linkedinSkills && insights.linkedinSkills.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
+        <div
+          className="rounded-2xl p-4 mb-6"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <h3
-            className="text-sm uppercase tracking-wider mb-3"
-            style={{ color: colors.textSecondary }}
+            className="text-xs font-medium uppercase tracking-wider mb-3"
+            style={{ color: '#10b77f', fontVariant: 'small-caps' }}
           >
             Skills
           </h3>
@@ -250,7 +258,7 @@ const LinkedInInsightsPage: React.FC = () => {
               </span>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Primary Reflection */}
@@ -267,28 +275,30 @@ const LinkedInInsightsPage: React.FC = () => {
           )}
         </div>
       ) : insights?.linkedinHeadline ? (
-        <GlassPanel className="mb-8 !p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4" style={{ color: colors.linkedinBlue }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>
-              Twin's Observation
-            </span>
-          </div>
+        <div
+          className="rounded-2xl p-4 mb-8"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
+          <h3
+            className="text-xs font-medium uppercase tracking-wider mb-2"
+            style={{ color: '#10b77f', fontVariant: 'small-caps' }}
+          >
+            Twin&rsquo;s Observation
+          </h3>
           <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
             Your twin is reading your professional signals. Check back soon for insights about your career identity.
           </p>
-        </GlassPanel>
+        </div>
       ) : null}
 
       {/* Pattern Observations */}
       {insights?.patterns && insights.patterns.length > 0 && (
         <div className="mb-8">
           <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-xs font-medium uppercase tracking-wider mb-4"
+            style={{ color: '#10b77f', fontVariant: 'small-caps' }}
           >
-            <Sparkles className="w-4 h-4" />
-            Patterns I've Noticed
+            Patterns I&rsquo;ve Noticed
           </h3>
           <div className="space-y-3">
             {insights.patterns.map(pattern => (
@@ -306,21 +316,25 @@ const LinkedInInsightsPage: React.FC = () => {
       {insights?.history && insights.history.length > 0 && (
         <div>
           <h3
-            className="text-sm uppercase tracking-wider mb-4"
-            style={{ color: colors.textSecondary }}
+            className="text-xs font-medium uppercase tracking-wider mb-4"
+            style={{ color: '#10b77f', fontVariant: 'small-caps' }}
           >
             Past Observations
           </h3>
           <div className="space-y-3">
             {insights.history.map(past => (
-              <GlassPanel key={past.id} variant="default" className="!p-4">
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <div
+                key={past.id}
+                className="rounded-2xl p-4"
+                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              >
+                <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                   {past.text}
                 </p>
                 <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
                   {new Date(past.generatedAt).toLocaleDateString()}
                 </p>
-              </GlassPanel>
+              </div>
             ))}
           </div>
         </div>
@@ -329,16 +343,19 @@ const LinkedInInsightsPage: React.FC = () => {
       {/* Empty State */}
       {!insights?.reflection?.text && !insights?.linkedinHeadline && (
         <div className="space-y-4">
-          <GlassPanel className="text-center py-12">
+          <div
+            className="rounded-2xl text-center py-12 px-6"
+            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          >
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-              style={{ background: 'var(--platform-linkedin-bg)', border: '1px solid rgba(10, 102, 194, 0.2)' }}
+              style={{ background: colors.linkedinBg, border: '1px solid rgba(10, 102, 194, 0.2)' }}
             >
-              <Briefcase className="w-8 h-8" style={{ color: 'var(--platform-linkedin)' }} />
+              <Briefcase className="w-8 h-8" style={{ color: colors.linkedinBlue }} />
             </div>
             <h3
               className="text-xl mb-2"
-              style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}
+              style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Your professional story awaits
             </h3>
@@ -348,40 +365,48 @@ const LinkedInInsightsPage: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02]"
-              style={{ background: 'var(--platform-linkedin)' }}
+              style={{ backgroundColor: '#10b77f' }}
             >
               Connect LinkedIn
             </button>
             <div
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-              style={{ background: 'var(--platform-linkedin-bg)', color: 'var(--platform-linkedin)', border: '1px solid rgba(10, 102, 194, 0.2)' }}
+              style={{ background: colors.linkedinBg, color: colors.linkedinBlue, border: '1px solid rgba(10, 102, 194, 0.2)' }}
             >
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--platform-linkedin)' }} />
+              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: colors.linkedinBlue }} />
               Awaiting your profile data...
             </div>
-          </GlassPanel>
+          </div>
           {/* Preview skeleton */}
           <div aria-hidden="true" className="opacity-40 pointer-events-none space-y-3">
-            <p className="text-xs uppercase tracking-wider" style={{ color: colors.textSecondary }}>Preview of your insights</p>
-            <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+            <p
+              className="text-xs uppercase tracking-wider"
+              style={{ color: colors.textSecondary, fontVariant: 'small-caps' }}
+            >
+              Preview of your insights
+            </p>
+            <div
+              className="rounded-2xl p-4"
+              style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            >
               <div className="flex items-center gap-2 mb-3">
                 <Briefcase className="w-4 h-4" style={{ color: colors.textSecondary }} />
                 <span className="text-sm" style={{ color: colors.textSecondary }}>Career Profile</span>
               </div>
               <div className="space-y-3">
-                <div className="h-4 rounded animate-pulse" style={{ width: '70%', background: 'rgba(0,0,0,0.06)' }} />
-                <div className="h-3 rounded animate-pulse" style={{ width: '50%', background: 'rgba(0,0,0,0.04)' }} />
+                <div className="h-4 rounded animate-pulse" style={{ width: '70%', background: 'rgba(255,255,255,0.06)' }} />
+                <div className="h-3 rounded animate-pulse" style={{ width: '50%', background: 'rgba(255,255,255,0.04)' }} />
                 <div className="flex gap-2 mt-2">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="h-6 w-20 rounded-full animate-pulse" style={{ background: 'var(--platform-linkedin-bg)' }} />
+                    <div key={i} className="h-6 w-20 rounded-full animate-pulse" style={{ background: colors.linkedinBg }} />
                   ))}
                 </div>
               </div>
-            </GlassPanel>
+            </div>
           </div>
         </div>
       )}
-    </PageLayout>
+    </div>
   );
 };
 

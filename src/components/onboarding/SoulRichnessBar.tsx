@@ -1,6 +1,5 @@
 // src/components/onboarding/SoulRichnessBar.tsx
 import React from 'react';
-import { motion } from 'framer-motion';
 
 const WEIGHTS: Record<string, number> = {
   spotify: 20, google_calendar: 15, youtube: 15,
@@ -22,8 +21,10 @@ const SoulRichnessBar: React.FC<{ connectedPlatforms: string[] }> = ({ connected
         <span className="text-indigo-400 font-medium">{score}%</span>
       </div>
       <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-        <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-          initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+        <div
+          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-600 ease-out"
+          style={{ width: `${score}%` }}
+        />
       </div>
       <p className="text-xs text-muted-foreground">{label(score)}</p>
       {score >= 15 && score < 60 && (

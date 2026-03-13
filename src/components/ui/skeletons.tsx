@@ -6,6 +6,11 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 
+const darkCardStyle: React.CSSProperties = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  backgroundColor: 'rgba(255,255,255,0.02)',
+};
+
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
@@ -22,7 +27,7 @@ export const Skeleton = ({ className, ...props }: SkeletonProps) => {
 // Card Skeleton
 export const CardSkeleton = () => {
   return (
-    <div className="glass-card p-6 shadow-md">
+    <div className="rounded-lg p-6 shadow-md" style={darkCardStyle}>
       <div className="space-y-4">
         <Skeleton className="h-5 w-3/4" />
         <Skeleton className="h-4 w-full" />
@@ -35,7 +40,7 @@ export const CardSkeleton = () => {
 // Soul Signature Card Skeleton
 export const SoulSignatureCardSkeleton = () => {
   return (
-    <div className="glass-card p-8 shadow-md">
+    <div className="rounded-lg p-8 shadow-md" style={darkCardStyle}>
       <div className="space-y-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
@@ -68,7 +73,7 @@ export const PlatformGridSkeleton = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {[...Array(6)].map((_, i) => (
-        <div key={i} className="glass-card p-4 shadow-md">
+        <div key={i} className="rounded-lg p-4 shadow-md" style={darkCardStyle}>
           <div className="flex items-center gap-3">
             <Skeleton className="h-10 w-10 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -85,7 +90,7 @@ export const PlatformGridSkeleton = () => {
 // Dashboard Card Skeleton
 export const DashboardCardSkeleton = () => {
   return (
-    <div className="glass-card p-6 shadow-md">
+    <div className="rounded-lg p-6 shadow-md" style={darkCardStyle}>
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-5 rounded" />
@@ -114,7 +119,7 @@ export const ActivityListSkeleton = () => {
   return (
     <div className="space-y-4">
       {[...Array(5)].map((_, i) => (
-        <div key={i} className="flex items-start gap-3 p-4 glass-card">
+        <div key={i} className="flex items-start gap-3 p-4 rounded-lg" style={darkCardStyle}>
           <Skeleton className="h-5 w-5 rounded mt-0.5" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-3/4" />
@@ -129,7 +134,7 @@ export const ActivityListSkeleton = () => {
 // Journey Progress Skeleton
 export const JourneyProgressSkeleton = () => {
   return (
-    <div className="glass-card p-8 shadow-md">
+    <div className="rounded-lg p-8 shadow-md" style={darkCardStyle}>
       <Skeleton className="h-6 w-1/3 mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
@@ -152,7 +157,7 @@ export const QuickActionsSkeleton = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="glass-card p-6 shadow-md">
+        <div key={i} className="rounded-lg p-6 shadow-md" style={darkCardStyle}>
           <div className="flex items-start gap-4">
             <Skeleton className="h-12 w-12 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -180,7 +185,7 @@ export const DashboardSkeleton = () => {
         <StatsCardSkeleton />
         <QuickActionsSkeleton />
 
-        <div className="glass-card p-6 shadow-md">
+        <div className="rounded-lg p-6 shadow-md" style={darkCardStyle}>
           <div className="flex items-center justify-between mb-6">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-4 w-4 rounded" />

@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
   Music,
   TrendingUp,
@@ -186,29 +185,22 @@ export function ContextualQuickActions({
 
   return (
     <div className={`flex items-center gap-2 overflow-x-auto py-2 scrollbar-hide ${className}`}>
-      {actions.map((action, index) => {
+      {actions.map((action) => {
         const Icon = action.icon;
         return (
-          <motion.button
+          <button
             key={action.id}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={action.action}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-sm font-medium group"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap text-sm font-medium group hover:brightness-125"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.06)',
-              backdropFilter: 'blur(10px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-              border: '1px solid rgba(255, 255, 255, 0.10)',
+              backgroundColor: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
               color: 'var(--foreground)'
             }}
           >
-            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: 'var(--text-secondary)' } : undefined} />
+            <Icon className={`w-4 h-4 ${action.color || ''}`} style={!action.color ? { color: 'rgba(255,255,255,0.4)' } : undefined} />
             <span>{action.label}</span>
-          </motion.button>
+          </button>
         );
       })}
     </div>

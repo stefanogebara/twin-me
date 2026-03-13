@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Lightbulb, TrendingUp, AlertTriangle, PartyPopper, Target } from 'lucide-react';
 import type { ProactiveInsight } from './types';
 
@@ -25,7 +24,7 @@ interface Props {
   animationDelay?: number;
 }
 
-export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 0 }) => {
+export const BentoInsightsTile: React.FC<Props> = ({ insights }) => {
   if (insights.length === 0) return null;
 
   const sorted = [...insights].sort(
@@ -35,18 +34,12 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
   const remaining = sorted.length - 3;
 
   return (
-    <motion.div
-      className="rounded-2xl p-5 h-full flex flex-col"
+    <div
+      className="rounded-lg p-5 h-full flex flex-col"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: animationDelay, ease: 'easeOut' }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
@@ -57,8 +50,8 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
           <Lightbulb className="w-3 h-3" style={{ color: '#3498DB' }} />
         </div>
         <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--text-secondary)' }}
+          className="text-[11px] font-medium tracking-widest uppercase"
+          style={{ color: '#10b77f' }}
         >
           What Your Twin Noticed
         </p>
@@ -73,12 +66,9 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
             : insight.insight;
 
           return (
-            <motion.div
+            <div
               key={insight.id}
               className="flex items-start gap-2.5"
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: animationDelay + i * 0.06 }}
             >
               {/* Urgency dot + left accent */}
               <div className="flex flex-col items-center pt-1.5 flex-shrink-0">
@@ -103,7 +93,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
               >
                 {truncated}
               </p>
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -117,6 +107,6 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights, animationDelay = 
           +{remaining} more insight{remaining > 1 ? 's' : ''}
         </p>
       )}
-    </motion.div>
+    </div>
   );
 };

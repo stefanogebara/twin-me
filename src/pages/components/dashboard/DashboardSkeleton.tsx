@@ -1,12 +1,12 @@
 import React from 'react';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 
 export const SkeletonPulse = ({ className = '', style = {} }: { className?: string; style?: React.CSSProperties }) => {
   return (
     <div
-      className={`glass-shimmer rounded ${className}`}
+      className={`rounded ${className}`}
       style={{
         backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         ...style
       }}
     />
@@ -15,7 +15,7 @@ export const SkeletonPulse = ({ className = '', style = {} }: { className?: stri
 
 export const DashboardSkeleton: React.FC = () => {
   return (
-    <PageLayout>
+    <div>
       {/* Skeleton: Greeting Header */}
       <div className="mb-8">
         <SkeletonPulse className="h-9 w-64 mb-2" />
@@ -28,7 +28,10 @@ export const DashboardSkeleton: React.FC = () => {
       </div>
 
       {/* Skeleton: Next Event Card */}
-      <GlassPanel className="mb-8">
+      <div
+        className="mb-8 rounded-lg"
+        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+      >
         <SkeletonPulse className="h-3 w-full mb-4" style={{ borderRadius: '2px' }} />
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -42,14 +45,18 @@ export const DashboardSkeleton: React.FC = () => {
           <SkeletonPulse className="w-12 h-12 rounded-xl" />
         </div>
         <SkeletonPulse className="h-12 w-full mt-6 rounded-xl" />
-      </GlassPanel>
+      </div>
 
       {/* Skeleton: Twin Insights */}
       <div className="mb-8">
         <SkeletonPulse className="h-5 w-28 mb-4" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <GlassPanel key={i}>
+            <div
+              key={i}
+              className="rounded-lg"
+              style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+            >
               <div className="flex items-start gap-3">
                 <SkeletonPulse className="w-10 h-10 rounded-lg flex-shrink-0" />
                 <div className="flex-1">
@@ -58,7 +65,7 @@ export const DashboardSkeleton: React.FC = () => {
                   <SkeletonPulse className="h-6 w-20 rounded-full" />
                 </div>
               </div>
-            </GlassPanel>
+            </div>
           ))}
         </div>
       </div>
@@ -75,6 +82,6 @@ export const DashboardSkeleton: React.FC = () => {
           ))}
         </div>
       </div>
-    </PageLayout>
+    </div>
   );
 };

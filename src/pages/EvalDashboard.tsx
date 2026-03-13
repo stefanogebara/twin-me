@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { PageLayout } from '@/components/layout/PageLayout';
 import { authFetch } from '@/services/api/apiBase';
 import { toast } from 'sonner';
 import {
@@ -24,7 +23,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// -- Types --
 
 interface EvalQuestion {
   id: number;
@@ -77,7 +76,7 @@ const ScoreButton = ({ value, current, onClick }: { value: number; current: numb
   </button>
 );
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// -- Main Component --
 
 export default function EvalDashboard() {
   const queryClient = useQueryClient();
@@ -224,7 +223,7 @@ export default function EvalDashboard() {
   const trend = historyData?.trend;
 
   return (
-    <PageLayout title="Twin Eval" subtitle="Score accuracy, specificity, and voice across 10 standard questions">
+    <div>
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
 
         {/* Header */}
@@ -249,7 +248,10 @@ export default function EvalDashboard() {
         </div>
 
         {/* Score History Chart */}
-        <div className="glass-card p-6">
+        <div
+          className="p-6 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">Score History</h2>
           {historyChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={160}>
@@ -273,14 +275,17 @@ export default function EvalDashboard() {
         </div>
 
         {/* Feature Flags */}
-        <div className="glass-card p-6">
+        <div
+          className="p-6 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">Feature Flags (A/B)</h2>
           <p className="text-xs text-muted-foreground mb-4">Toggle features off, run an eval, compare scores to measure impact.</p>
           <div className="grid md:grid-cols-2 gap-3">
             {(flagsData?.flags || []).map(flag => {
               const meta = FLAG_LABELS[flag.flag_name] || { label: flag.flag_name, description: '' };
               return (
-                <div key={flag.flag_name} className="flex items-center justify-between p-3 bg-[var(--glass-surface-bg)] rounded-lg">
+                <div key={flag.flag_name} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                   <div>
                     <div className="text-sm font-medium text-foreground">{meta.label}</div>
                     <div className="text-xs text-muted-foreground">{meta.description}</div>
@@ -302,7 +307,10 @@ export default function EvalDashboard() {
         </div>
 
         {/* Start Eval Run */}
-        <div className="glass-card p-6">
+        <div
+          className="p-6 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-muted-foreground">Run New Eval</h2>
             {activeRun && (
@@ -330,7 +338,10 @@ export default function EvalDashboard() {
 
         {/* Active Run: Score Questions */}
         {activeRun && (
-          <div className="glass-card p-6 space-y-4">
+          <div
+            className="p-6 space-y-4 rounded-lg"
+            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          >
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground">Score Responses</h2>
               {activeRun.total_score !== null && (
@@ -346,7 +357,10 @@ export default function EvalDashboard() {
               return (
                 <div key={q.id} className="border border-white/10 rounded-xl overflow-hidden">
                   <button
-                    className="w-full flex items-center justify-between p-4 hover:bg-[var(--glass-surface-bg-hover)] transition-colors text-left"
+                    className="w-full flex items-center justify-between p-4 transition-colors text-left"
+                    style={{ backgroundColor: 'transparent' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                     onClick={() => setExpandedQ(isExpanded ? null : q.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -362,8 +376,8 @@ export default function EvalDashboard() {
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t border-[var(--glass-surface-border)] p-4 space-y-4">
-                      <div className="bg-[var(--glass-surface-bg)] rounded-lg p-3">
+                    <div className="border-t p-4 space-y-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                      <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <div className="text-xs text-muted-foreground mb-1 font-medium">Twin's response:</div>
                         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{q.twinResponse}</p>
                       </div>
@@ -386,13 +400,14 @@ export default function EvalDashboard() {
               );
             })}
 
-            <div className="pt-2 border-t border-[var(--glass-surface-border)]">
+            <div className="pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional notes about this eval run..."
                 rows={2}
-                className="w-full text-sm border border-white/10 rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full text-sm border rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               />
               <button
                 onClick={() => scoreMutation.mutate()}
@@ -409,11 +424,14 @@ export default function EvalDashboard() {
 
         {/* History Table */}
         {(historyData?.runs || []).length > 0 && (
-          <div className="glass-card p-6">
+          <div
+            className="p-6 rounded-lg"
+            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          >
             <h2 className="text-sm font-semibold text-muted-foreground mb-4">Past Runs</h2>
             <div className="space-y-2">
               {historyData.runs.map((run: any) => (
-                <div key={run.id} className="flex items-center justify-between p-3 bg-[var(--glass-surface-bg)] rounded-lg">
+                <div key={run.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                   <div>
                     <div className="text-sm text-muted-foreground">{new Date(run.run_at).toLocaleString()}</div>
                     {run.notes && <div className="text-xs text-muted-foreground mt-0.5">{run.notes}</div>}
@@ -427,6 +445,6 @@ export default function EvalDashboard() {
           </div>
         )}
       </div>
-    </PageLayout>
+    </div>
   );
 }

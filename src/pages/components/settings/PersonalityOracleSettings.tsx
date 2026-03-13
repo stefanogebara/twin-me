@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sparkles, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -130,17 +129,17 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
   return (
     <section className={`p-8 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-6">
-        <Clay3DIcon name="sparkles" size={20} />
+        <Sparkles className="w-5 h-5" style={{ color: '#10b77f' }} />
         <h2
           className="text-[11px] uppercase tracking-widest font-medium"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: '#10b77f' }}
         >
           Enhanced Personality
         </h2>
       </div>
 
       <div className="space-y-4">
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
           Train a personalized AI model on your conversation history to make your twin's personality more authentic.
         </p>
 
@@ -152,7 +151,7 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
               {statusLabel[finetuneStatus.status]}
             </span>
             {finetuneStatus.trainingExamples && (
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                 ({finetuneStatus.trainingExamples} examples)
               </span>
             )}
@@ -163,8 +162,8 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
             disabled={training || finetuneStatus.status === 'running' || finetuneStatus.status === 'pending'}
             className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
             style={{
-              backgroundColor: 'var(--button-bg-dark)',
-              color: 'var(--background)',
+              backgroundColor: '#10b77f',
+              color: '#0a0f0a',
             }}
           >
             <RefreshCw size={14} className={training ? 'animate-spin' : ''} />
@@ -177,14 +176,14 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
           <>
             <div
               className="h-px"
-              style={{ backgroundColor: 'var(--glass-surface-border)' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
             />
             <div className="flex items-center justify-between">
               <div>
                 <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                   Use enhanced personality in chat
                 </span>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   Your twin will use the trained model for more authentic responses
                 </p>
               </div>
@@ -194,8 +193,8 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
                 className="relative w-11 h-6 rounded-full transition-colors"
                 style={{
                   backgroundColor: flagState.personality_oracle
-                    ? 'var(--accent-vibrant)'
-                    : 'var(--glass-surface-border)',
+                    ? '#10b77f'
+                    : 'rgba(255,255,255,0.06)',
                 }}
               >
                 <span
@@ -215,7 +214,7 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
           <p className={`text-xs mt-2 ${
             message.type === 'error' ? 'text-red-500' :
             message.type === 'success' ? 'text-green-500' : ''
-          }`} style={message.type === 'info' ? { color: 'var(--text-muted)' } : undefined}>
+          }`} style={message.type === 'info' ? { color: 'rgba(255,255,255,0.3)' } : undefined}>
             {message.text}
           </p>
         )}

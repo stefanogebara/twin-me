@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import React from 'react';
 import { Brain } from 'lucide-react';
 
 interface TwinReadinessScoreProps {
@@ -29,11 +29,9 @@ export function TwinReadinessScore({
             <span className={`text-xs font-semibold ${scoreColor}`}>{score}%</span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <motion.div
-              className={`h-full rounded-full ${barColor}`}
-              initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
-              transition={{ duration: 1, ease: 'easeOut' }}
+            <div
+              className={`h-full rounded-full ${barColor} transition-all duration-1000 ease-out`}
+              style={{ width: `${score}%` }}
             />
           </div>
         </div>
@@ -54,11 +52,9 @@ export function TwinReadinessScore({
         </div>
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <motion.div
-          className={`h-full rounded-full ${barColor}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 1.2, ease: 'easeOut' }}
+        <div
+          className={`h-full rounded-full ${barColor} transition-all duration-1200 ease-out`}
+          style={{ width: `${score}%` }}
         />
       </div>
       {breakdown && (

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { getPlatformLogo } from '../PlatformLogos';
 
 interface Trait {
@@ -21,17 +20,11 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
 
   return (
     <section className="py-16 px-6 flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-2xl"
-      >
+      <div className="w-full max-w-2xl">
         {/* Section label */}
         <p
           className="text-xs uppercase tracking-wider text-center mb-10 opacity-50"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
         >
           What Makes You, You
         </p>
@@ -43,19 +36,15 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
             const SourceLogo = trait.source ? getPlatformLogo(trait.source) : null;
 
             return (
-              <motion.div
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="space-y-2"
               >
                 {/* Trait name + source icon */}
                 <div className="flex items-center gap-2">
                   <span
                     className="text-sm font-medium"
-                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
                   >
                     {trait.trait}
                   </span>
@@ -72,13 +61,9 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
                     className="h-1.5 rounded-full overflow-hidden"
                     style={{ backgroundColor: 'rgba(232, 213, 183, 0.08)' }}
                   >
-                    <motion.div
+                    <div
                       className="h-full rounded-full"
-                      style={{ backgroundColor: colorScheme.accent }}
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${score}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.8, delay: 0.2 + i * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                      style={{ backgroundColor: colorScheme.accent, width: `${score}%` }}
                     />
                   </div>
                 )}
@@ -87,16 +72,16 @@ const PortfolioTraits: React.FC<PortfolioTraitsProps> = ({ traits, colorScheme }
                 {trait.evidence && (
                   <p
                     className="text-xs opacity-40 leading-relaxed"
-                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
                   >
                     {trait.evidence}
                   </p>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 };

@@ -28,11 +28,8 @@ export const BottomNav: React.FC = () => {
       className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden"
       aria-label="Bottom navigation"
       style={{
-        backgroundColor: 'var(--glass-surface-bg)',
-        backdropFilter: 'blur(20px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-        borderTop: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.10), inset 0 1px 0 var(--glass-inset-highlight)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >

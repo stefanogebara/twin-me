@@ -11,13 +11,6 @@ export interface StandardCardProps extends React.HTMLAttributes<HTMLDivElement> 
   padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
-const variants = {
-  default: 'glass-card',
-  elevated: 'glass-card',
-  bordered: 'glass-card',
-  interactive: 'glass-card cursor-pointer'
-};
-
 const paddings = {
   none: '',
   sm: 'p-4',
@@ -30,16 +23,22 @@ export const StandardCard: React.FC<StandardCardProps> = ({
   padding = 'md',
   className,
   children,
+  style,
   ...props
 }) => {
   return (
     <div
       className={cn(
         'rounded-lg',
-        variants[variant],
+        variant === 'interactive' && 'cursor-pointer',
         paddings[padding],
         className
       )}
+      style={{
+        border: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        ...style,
+      }}
       {...props}
     >
       {children}
@@ -70,16 +69,16 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
     >
       <div className="flex items-start gap-3">
         {icon && (
-          <div className="text-[var(--claude-accent)]">
+          <div style={{ color: '#10b77f' }}>
             {icon}
           </div>
         )}
         <div>
-          <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--claude-text)]">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm text-[var(--claude-text-muted)] font-[family-name:var(--font-body)] mt-1">
+            <p className="text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
               {subtitle}
             </p>
           )}
@@ -100,7 +99,8 @@ export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 }) => {
   return (
     <div
-      className={cn('font-[family-name:var(--font-body)] text-[var(--claude-text)]', className)}
+      className={cn(className)}
+      style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}
       {...props}
     >
       {children}
@@ -116,7 +116,8 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
 }) => {
   return (
     <div
-      className={cn('flex items-center justify-between pt-4 mt-4 border-t border-[var(--claude-border)]', className)}
+      className={cn('flex items-center justify-between pt-4 mt-4', className)}
+      style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       {...props}
     >
       {children}

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Target, ArrowRight } from 'lucide-react';
-import { GlassPanel } from '../../../components/layout/PageLayout';
 import { BigFiveRadarChart } from '@/components/PersonalityRadarChart';
 import { PersonalityScores, ThemeColors } from './types';
 
@@ -18,7 +17,10 @@ export const BigFivePanel: React.FC<BigFivePanelProps> = ({
   const { textColor, textSecondary, textMuted, textFaint, subtleBg } = colors;
 
   return (
-    <GlassPanel className="!p-5 md:!p-6 mb-6">
+    <div
+      className="!p-5 md:!p-6 mb-6 rounded-lg"
+      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(193, 192, 182, 0.1)' }}>
@@ -102,12 +104,12 @@ export const BigFivePanel: React.FC<BigFivePanelProps> = ({
           <button
             onClick={onNavigateToBigFive}
             className="px-6 py-3 rounded-xl font-medium transition-all hover:scale-[1.02]"
-            style={{ background: 'linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover))', color: '#1a1a17', boxShadow: '0 2px 12px var(--accent-vibrant-glow)' }}
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}
           >
             Start Big Five Assessment
           </button>
         </div>
       )}
-    </GlassPanel>
+    </div>
   );
 };

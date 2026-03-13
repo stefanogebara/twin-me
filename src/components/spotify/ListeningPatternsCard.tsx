@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Clock, Calendar, Headphones, SkipForward } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { SpotifyListeningPatterns } from '@/hooks/useSpotifyInsights';
@@ -43,10 +42,10 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
           <Clock className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Listening Patterns
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Your music habits
           </p>
         </div>
@@ -54,139 +53,122 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
 
       <div className="space-y-5">
         {/* Peak Hours */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <div>
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-sm font-ui font-medium text-muted-foreground">
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
               Peak Listening Hours
             </span>
           </div>
           <div className="bg-gradient-to-r from-[#1DB954]/5 to-[#1DB954]/10 rounded-lg p-3 border border-[#1DB954]/20">
-            <p className="text-lg font-heading font-medium text-foreground">
+            <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {formatHour(patterns.peakHours.start)} - {formatHour(patterns.peakHours.end)}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
               {patterns.peakHours.label}
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Weekday vs Weekend */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <div>
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-sm font-ui font-medium text-muted-foreground">
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
               Weekday vs Weekend
             </span>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <div className="flex-1 h-8 bg-white/8 rounded-lg overflow-hidden relative">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${weekdayPercentage}%` }}
-                  transition={{ delay: 0.3, duration: 0.8, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] flex items-center justify-center"
+                <div
+                  className="h-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] flex items-center justify-center transition-all duration-800"
+                  style={{ width: `${weekdayPercentage}%` }}
                 >
                   {weekdayPercentage > 20 && (
                     <span className="text-xs font-mono text-white font-medium">
                       {weekdayPercentage.toFixed(0)}%
                     </span>
                   )}
-                </motion.div>
+                </div>
               </div>
-              <span className="text-xs font-ui text-muted-foreground w-16 text-right">
+              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                 Weekday
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex-1 h-8 bg-white/8 rounded-lg overflow-hidden relative">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${weekendPercentage}%` }}
-                  transition={{ delay: 0.4, duration: 0.8, ease: 'easeOut' }}
-                  className="h-full bg-gradient-to-r from-[#D97706] to-[#F59E0B] flex items-center justify-center"
+                <div
+                  className="h-full bg-gradient-to-r from-[#D97706] to-[#F59E0B] flex items-center justify-center transition-all duration-800"
+                  style={{ width: `${weekendPercentage}%` }}
                 >
                   {weekendPercentage > 20 && (
                     <span className="text-xs font-mono text-white font-medium">
                       {weekendPercentage.toFixed(0)}%
                     </span>
                   )}
-                </motion.div>
+                </div>
               </div>
-              <span className="text-xs font-ui text-muted-foreground w-16 text-right">
+              <span className="text-xs w-16 text-right" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                 Weekend
               </span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Stats Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="grid grid-cols-2 gap-3 pt-2"
-        >
-          <div className="bg-[var(--glass-surface-bg)] rounded-lg p-3 border border-[var(--glass-surface-border)]">
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <div
+            className="rounded-lg p-3"
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
             <div className="flex items-center gap-2 mb-1">
               <Headphones className="w-3.5 h-3.5 text-[#1DB954]" />
-              <span className="text-xs font-ui text-muted-foreground">
+              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                 Total Listened
               </span>
             </div>
-            <p className="text-lg font-heading font-medium text-foreground">
+            <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {totalHours}h {remainingMinutes}m
             </p>
           </div>
 
-          <div className="bg-[var(--glass-surface-bg)] rounded-lg p-3 border border-[var(--glass-surface-border)]">
+          <div
+            className="rounded-lg p-3"
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-3.5 h-3.5 text-[#1DB954]" />
-              <span className="text-xs font-ui text-muted-foreground">
+              <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                 Avg Session
               </span>
             </div>
-            <p className="text-lg font-heading font-medium text-foreground">
+            <p className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
               {sessionMinutes}m {sessionSeconds}s
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Skip Rate */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-        >
+        <div>
           <div className="flex items-center gap-2 mb-2">
-            <SkipForward className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-ui font-medium text-muted-foreground">
+            <SkipForward className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
               Skip Rate
             </span>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 bg-white/8 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${patterns.skipRate}%` }}
-                transition={{ delay: 0.7, duration: 0.8, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-stone-400 to-stone-600 rounded-full"
+              <div
+                className="h-full bg-gradient-to-r from-stone-400 to-stone-600 rounded-full transition-all duration-800"
+                style={{ width: `${patterns.skipRate}%` }}
               />
             </div>
-            <span className="text-sm font-mono text-foreground font-medium">
+            <span className="text-sm font-mono font-medium" style={{ color: 'var(--foreground)' }}>
               {patterns.skipRate.toFixed(1)}%
             </span>
           </div>
-        </motion.div>
+        </div>
       </div>
     </Card>
   );

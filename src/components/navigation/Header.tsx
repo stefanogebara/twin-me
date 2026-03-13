@@ -32,11 +32,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
     <header
       className="fixed top-0 left-0 right-0 z-50 m-4 rounded-2xl"
       style={{
-        backgroundColor: 'rgba(28, 25, 23, 0.90)',
-        backdropFilter: 'blur(16px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 8px 32px rgba(255, 255, 255, 0.08)'
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
     >
       <div className="h-16 px-6 flex items-center justify-between">
@@ -48,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{
-              backgroundColor: 'var(--text-muted)'
+              backgroundColor: 'rgba(255,255,255,0.3)'
             }}
           >
             <span className="text-white font-bold text-lg">T</span>
@@ -81,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                 }
                 style={({ isActive }) => ({
                   backgroundColor: isActive
-                    ? 'var(--glass-surface-bg)'
+                    ? 'rgba(255,255,255,0.02)'
                     : 'transparent',
                   color: isActive
                     ? 'var(--foreground)'
@@ -110,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
           style={{
             color: 'var(--foreground)',
             backgroundColor: mobileMenuOpen
-              ? 'var(--glass-surface-bg)'
+              ? 'rgba(255,255,255,0.02)'
               : 'transparent'
           }}
           aria-label="Toggle menu"
@@ -125,13 +122,13 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
             <div
               className="flex items-center gap-2 px-3 py-2 rounded-lg"
               style={{
-                backgroundColor: 'var(--glass-surface-bg)'
+                backgroundColor: 'rgba(255,255,255,0.02)'
               }}
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{
-                  backgroundColor: 'var(--text-muted)'
+                  backgroundColor: 'rgba(255,255,255,0.3)'
                 }}
               >
                 {user.name ? (
@@ -159,8 +156,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   <span
                     className="text-xs"
                     style={{
-                      fontFamily: 'var(--font-body)',
-                      color: 'var(--text-secondary)'
+                      fontFamily: "'Inter', sans-serif",
+                      color: 'rgba(255,255,255,0.4)'
                     }}
                   >
                     {user.email}
@@ -176,13 +173,13 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
               className="px-3 py-2 text-sm transition-colors rounded-lg"
               style={{
                 fontFamily: 'var(--font-heading)',
-                color: 'var(--text-secondary)'
+                color: 'rgba(255,255,255,0.4)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.3)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.3)';
               }}
             >
               Sign Out
@@ -196,7 +193,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
         <div
           className="md:hidden px-4 pb-4"
           style={{
-            borderTop: '1px solid var(--glass-surface-border)'
+            borderTop: '1px solid rgba(255,255,255,0.06)'
           }}
         >
           <nav className="flex flex-col gap-1 pt-4" aria-label="Mobile navigation">
@@ -214,7 +211,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   }
                   style={({ isActive }) => ({
                     backgroundColor: isActive
-                      ? 'var(--glass-surface-bg)'
+                      ? 'rgba(255,255,255,0.02)'
                       : 'transparent',
                     color: isActive
                       ? 'var(--foreground)'
@@ -241,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
             <div
               className="mt-4 pt-4"
               style={{
-                borderTop: '1px solid var(--glass-surface-border)'
+                borderTop: '1px solid rgba(255,255,255,0.06)'
               }}
             >
               <div className="flex items-center justify-between">
@@ -249,7 +246,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center"
                     style={{
-                      backgroundColor: 'var(--text-muted)'
+                      backgroundColor: 'rgba(255,255,255,0.3)'
                     }}
                   >
                     {user.name ? (
@@ -277,8 +274,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                       <span
                         className="text-xs"
                         style={{
-                          fontFamily: 'var(--font-body)',
-                          color: 'var(--text-secondary)'
+                          fontFamily: "'Inter', sans-serif",
+                          color: 'rgba(255,255,255,0.4)'
                         }}
                       >
                         {user.email}
@@ -297,7 +294,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onSignOut }) => {
                       className="px-3 py-2 text-sm transition-colors rounded-lg"
                       style={{
                         fontFamily: 'var(--font-heading)',
-                        color: 'var(--text-secondary)'
+                        color: 'rgba(255,255,255,0.4)'
                       }}
                     >
                       Sign Out

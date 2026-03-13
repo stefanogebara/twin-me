@@ -1,16 +1,13 @@
 /**
  * GoalsPage
  *
- * Twin-Driven Goal Tracking page. Displays suggested goals from the twin,
- * active goals with progress tracking, and completed goals as achievements.
+ * Twin-Driven Goal Tracking page. Typography-driven dark design.
  */
 
 import React, { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { PageLayout } from '@/components/layout/PageLayout';
 import { goalsAPI } from '@/services/api/goalsAPI';
 import type { Goal, GoalProgress } from '@/services/api/goalsAPI';
 import {
@@ -23,7 +20,6 @@ import GoalCard from './components/goals/GoalCard';
 import GoalSuggestionCard from './components/goals/GoalSuggestionCard';
 import {
   Target,
-  Sparkles,
   Trophy,
   ChevronDown,
   ChevronUp,
@@ -33,21 +29,12 @@ import {
 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-// --- Design tokens ---
-const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'var(--text-secondary)';
-const BORDER_COLOR = 'var(--glass-surface-border)';
-
-// --- Query Keys ---
-
 const QUERY_KEYS = {
   activeGoals: ['goals', 'active'] as const,
   suggestions: ['goals', 'suggestions'] as const,
   completedGoals: ['goals', 'completed'] as const,
   summary: ['goals', 'summary'] as const,
 };
-
-// --- Helper: fetch goal with progress (for expanded cards) ---
 
 const useGoalProgress = () => {
   const [progressMap, setProgressMap] = useState<Record<string, GoalProgress[]>>({});
@@ -83,23 +70,16 @@ const useGoalProgress = () => {
   return { progressMap, fetchProgress };
 };
 
-// --- Main Component ---
-
 const GoalsPage: React.FC = () => {
   useDocumentTitle('Goals');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
-  // Local UI state
   const [showCompleted, setShowCompleted] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<'accept' | 'dismiss' | 'abandon' | null>(null);
-
-  // Goal progress fetcher
   const { progressMap, fetchProgress } = useGoalProgress();
-
-  // --- Queries ---
 
   const {
     data: activeGoals = [],
@@ -146,14 +126,11 @@ const GoalsPage: React.FC = () => {
 
   const isLoading = isDemoMode ? false : (loadingActive && loadingSuggestions);
 
-  // --- Mutation handlers ---
-
   const handleAccept = useCallback(async (id: string) => {
     setActionLoadingId(id);
     setActionType('accept');
     try {
       await goalsAPI.acceptGoal(id);
-      // Invalidate relevant queries so lists update
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.suggestions }),
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.activeGoals }),
@@ -204,287 +181,215 @@ const GoalsPage: React.FC = () => {
     }
   }, [queryClient]);
 
-  // Eagerly fetch progress for an active goal
   const handleGoalExpand = useCallback((goalId: string) => {
     fetchProgress(goalId);
   }, [fetchProgress]);
 
-  // --- Empty state ---
   const hasNoData = !isLoading && activeGoals.length === 0 && suggestions.length === 0;
 
   return (
-    <PageLayout>
-      {/* Page heading */}
-      <div className="mb-12">
-        <h1
-          className="heading-serif mb-4"
-          style={{
-            fontSize: 'clamp(2rem, 4vw, 3rem)',
-            fontWeight: 400,
-            letterSpacing: '-0.04em',
-            lineHeight: 1.1,
-            color: 'var(--foreground)',
-          }}
-        >
-          Goals
-        </h1>
-        <p
-          className="text-[15px] font-medium"
-          style={{
-            fontFamily: 'var(--font-ui)',
-            color: 'var(--text-secondary)',
-            lineHeight: 1.7,
-            maxWidth: '540px',
-          }}
-        >
-          Twin-driven goals based on your real patterns
-        </p>
-      </div>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
+      {/* Header */}
+      <h1
+        className="mb-2"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: '28px',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Goals
+      </h1>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        Twin-driven goals based on your real patterns
+      </p>
 
-      <div className="space-y-10">
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
 
-        {/* Loading skeleton */}
-        {isLoading && (
-          <div className="space-y-4 animate-pulse" aria-label="Loading goals">
-            {/* Summary stats skeleton */}
-            <div className="flex gap-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-9 w-28 rounded-full"
-                  style={{ background: 'var(--glass-surface-bg-subtle)' }}
-                />
-              ))}
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center h-40">
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+        </div>
+      )}
+
+      {/* Empty state */}
+      {hasNoData && (
+        <div className="text-center py-12 space-y-4">
+          <Target className="w-8 h-8 mx-auto" style={{ color: 'rgba(255,255,255,0.15)' }} />
+          <p
+            className="text-sm"
+            style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+          >
+            No goal ideas yet — once I've seen a few days of your patterns, I'll suggest goals that actually make sense for your life.
+          </p>
+          <button
+            onClick={() => navigate('/get-started')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+            style={{
+              backgroundColor: '#10b77f',
+              color: '#0a0f0a',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            <Link2 className="w-4 h-4" />
+            Connect Platforms
+          </button>
+        </div>
+      )}
+
+      {/* Summary stats */}
+      {!isLoading && !hasNoData && summary && (
+        <div className="flex flex-wrap items-center gap-3 mb-10">
+          {summary.active > 0 && (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <Target className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                {summary.active} active
+              </span>
             </div>
-            {/* Goal card skeletons */}
-            {[1, 2, 3].map((i) => (
+          )}
+          {summary.completed > 0 && (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <Trophy className="w-3.5 h-3.5" style={{ color: '#10b77f' }} />
+              <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                {summary.completed} completed
+              </span>
+            </div>
+          )}
+          {summary.bestStreak > 0 && (
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              <Flame className="w-3.5 h-3.5" style={{ color: '#f97316' }} />
+              <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
+                {summary.bestStreak}d best streak
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Suggestions Section */}
+      {!isLoading && suggestions.length > 0 && (
+        <section className="mb-10">
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+          >
+            Your Twin Suggests
+          </span>
+          <div>
+            {suggestions.map((goal, i) => (
+              <GoalSuggestionCard
+                key={goal.id}
+                goal={goal}
+                onAccept={handleAccept}
+                onDismiss={handleDismiss}
+                isAccepting={actionLoadingId === goal.id && actionType === 'accept'}
+                isDismissing={actionLoadingId === goal.id && actionType === 'dismiss'}
+                index={i}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Active Goals Section */}
+      {!isLoading && activeGoals.length > 0 && (
+        <section className="mb-10">
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+          >
+            Active Goals
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {activeGoals.map((goal, i) => (
               <div
-                key={i}
-                className="rounded-2xl p-5 space-y-3"
-                style={{
-                  background: 'var(--glass-surface-bg)',
-                  border: `1px solid ${BORDER_COLOR}`,
-                }}
+                key={goal.id}
+                onMouseEnter={() => handleGoalExpand(goal.id)}
+                onFocus={() => handleGoalExpand(goal.id)}
               >
-                <div className="h-5 w-2/3 rounded" style={{ background: 'var(--glass-surface-bg-subtle)' }} />
-                <div className="h-3 w-full rounded" style={{ background: 'var(--glass-surface-bg-subtle)' }} />
-                <div className="h-3 w-1/2 rounded" style={{ background: 'var(--glass-surface-bg-subtle)' }} />
+                <GoalCard
+                  goal={goal}
+                  progress={progressMap[goal.id]}
+                  onAbandon={handleAbandon}
+                  isAbandoning={actionLoadingId === goal.id && actionType === 'abandon'}
+                  index={i}
+                />
               </div>
             ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Empty state */}
-        {hasNoData && (
-          <motion.div
-            className="text-center py-16 space-y-4"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      {/* Completed Goals Section */}
+      {!isLoading && !hasNoData && (summary?.completed ?? 0) > 0 && (
+        <section>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-6" />
+          <button
+            onClick={() => setShowCompleted((prev) => !prev)}
+            className="flex items-center gap-2 w-full text-left transition-opacity hover:opacity-70 mb-4"
           >
-            <div
-              className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center"
-              style={{
-                background: 'var(--glass-surface-bg-subtle)',
-                border: `1px solid ${BORDER_COLOR}`,
-              }}
+            <Trophy className="w-4 h-4" style={{ color: '#10b77f' }} />
+            <span
+              className="text-sm font-medium flex-1"
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
             >
-              <Target className="w-8 h-8" style={{ color: TEXT_SECONDARY }} />
-            </div>
-            <h3
-              className="heading-serif text-lg"
-            >
-              No goal ideas yet — check back soon
-            </h3>
-            <p
-              className="body-text max-w-md mx-auto"
-              style={{ color: TEXT_SECONDARY }}
-            >
-              Once I've seen a few days of your patterns, I'll suggest goals that actually make sense for your life. Connect Spotify or Calendar to get me started.
-            </p>
-            <button
-              onClick={() => navigate('/get-started')}
-              className="btn-cta-app inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium transition-all"
-            >
-              <Link2 className="w-4 h-4" />
-              Connect Platforms
-            </button>
-          </motion.div>
-        )}
-
-        {/* Summary stats bar */}
-        {!isLoading && !hasNoData && summary && (
-          <motion.div
-            className="flex flex-wrap items-center gap-3"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-          >
-            {summary.active > 0 && (
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
-              >
-                <Target className="w-3.5 h-3.5" style={{ color: TEXT_SECONDARY }} />
-                <span className="text-xs font-medium" style={{ color: TEXT_PRIMARY }}>
-                  {summary.active} active
-                </span>
-              </div>
+              Completed Goals
+            </span>
+            {showCompleted ? (
+              <ChevronUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            ) : (
+              <ChevronDown className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
             )}
-            {summary.completed > 0 && (
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
-              >
-                <Trophy className="w-3.5 h-3.5" style={{ color: '#34d399' }} />
-                <span className="text-xs font-medium" style={{ color: TEXT_PRIMARY }}>
-                  {summary.completed} completed
-                </span>
-              </div>
-            )}
-            {summary.bestStreak > 0 && (
-              <div
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
-              >
-                <Flame className="w-3.5 h-3.5" style={{ color: '#f97316' }} />
-                <span className="text-xs font-medium" style={{ color: TEXT_PRIMARY }}>
-                  {summary.bestStreak}d best streak
-                </span>
-              </div>
-            )}
-          </motion.div>
-        )}
+          </button>
 
-        {/* ===== Suggestions Section ===== */}
-        {!isLoading && suggestions.length > 0 && (
-          <section className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
-              <h2
-                className="heading-serif"
-                style={{ fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
-              >
-                Your twin suggests
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              <AnimatePresence mode="popLayout">
-                {suggestions.map((goal, i) => (
-                  <GoalSuggestionCard
-                    key={goal.id}
-                    goal={goal}
-                    onAccept={handleAccept}
-                    onDismiss={handleDismiss}
-                    isAccepting={actionLoadingId === goal.id && actionType === 'accept'}
-                    isDismissing={actionLoadingId === goal.id && actionType === 'dismiss'}
-                    index={i}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          </section>
-        )}
-
-        {/* ===== Active Goals Section ===== */}
-        {!isLoading && activeGoals.length > 0 && (
-          <section className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
-              <h2
-                className="heading-serif"
-                style={{ fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
-              >
-                Active Goals
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              <AnimatePresence mode="popLayout">
-                {activeGoals.map((goal, i) => (
-                  <div
-                    key={goal.id}
-                    onMouseEnter={() => handleGoalExpand(goal.id)}
-                    onFocus={() => handleGoalExpand(goal.id)}
-                  >
-                    <GoalCard
-                      goal={goal}
-                      progress={progressMap[goal.id]}
-                      onAbandon={handleAbandon}
-                      isAbandoning={actionLoadingId === goal.id && actionType === 'abandon'}
-                      index={i}
-                    />
-                  </div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </section>
-        )}
-
-        {/* ===== Completed Goals Section (collapsible) ===== */}
-        {!isLoading && !hasNoData && (summary?.completed ?? 0) > 0 && (
-          <section className="space-y-6">
-            <button
-              onClick={() => setShowCompleted((prev) => !prev)}
-              className="flex items-center gap-2 w-full text-left transition-colors"
-            >
-              <Trophy className="w-4 h-4" style={{ color: '#34d399' }} />
-              <h2
-                className="heading-serif flex-1"
-                style={{ fontWeight: 400, fontSize: '1.125rem', letterSpacing: '-0.02em', color: TEXT_PRIMARY }}
-              >
-                Completed Goals
-              </h2>
-              {showCompleted ? (
-                <ChevronUp className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
+          {showCompleted && (
+            <div>
+              {loadingCompleted ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                </div>
+              ) : completedGoals.length === 0 ? (
+                <p className="text-sm py-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  Nothing finished yet — you've got this though.
+                </p>
               ) : (
-                <ChevronDown className="w-4 h-4" style={{ color: TEXT_SECONDARY }} />
-              )}
-            </button>
-
-            <AnimatePresence>
-              {showCompleted && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-                >
-                  {loadingCompleted ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: TEXT_SECONDARY }} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {completedGoals.map((goal, i) => (
+                    <div
+                      key={goal.id}
+                      onMouseEnter={() => handleGoalExpand(goal.id)}
+                      onFocus={() => handleGoalExpand(goal.id)}
+                    >
+                      <GoalCard
+                        goal={goal}
+                        progress={progressMap[goal.id]}
+                        onAbandon={handleAbandon}
+                        isAbandoning={false}
+                        index={i}
+                      />
                     </div>
-                  ) : completedGoals.length === 0 ? (
-                    <p className="text-sm py-4" style={{ color: TEXT_SECONDARY }}>
-                      Nothing finished yet — you've got this though.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                      {completedGoals.map((goal, i) => (
-                        <div
-                          key={goal.id}
-                          onMouseEnter={() => handleGoalExpand(goal.id)}
-                          onFocus={() => handleGoalExpand(goal.id)}
-                        >
-                          <GoalCard
-                            goal={goal}
-                            progress={progressMap[goal.id]}
-                            onAbandon={handleAbandon}
-                            isAbandoning={false}
-                            index={i}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </motion.div>
+                  ))}
+                </div>
               )}
-            </AnimatePresence>
-          </section>
-        )}
-      </div>
-    </PageLayout>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
   );
 };
 

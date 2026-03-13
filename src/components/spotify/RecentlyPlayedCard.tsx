@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Clock, Play, Music2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { SpotifyRecentlyPlayed } from '@/hooks/useSpotifyInsights';
@@ -31,19 +30,16 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
           <Clock className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">Recently Played</h3>
-          <p className="text-xs text-muted-foreground">Your latest listening activity</p>
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>Recently Played</h3>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Your latest listening activity</p>
         </div>
       </div>
 
       {/* Timeline */}
       <div className="space-y-4">
         {recentlyPlayed.map((item, index) => (
-          <motion.div
+          <div
             key={`${item.track}-${item.played_at}-${index}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
             className="relative pl-8"
           >
             {/* Timeline Line */}
@@ -58,15 +54,15 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
 
             {/* Content */}
             <div className="pb-4">
-              <p className="font-ui text-sm font-medium text-foreground mb-0.5">
+              <p className="text-sm font-medium mb-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                 {item.track}
               </p>
-              <p className="text-xs text-muted-foreground mb-1">{item.artist}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{item.artist}</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                 {formatTimeAgo(item.played_at)}
               </p>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
@@ -74,10 +70,10 @@ export const RecentlyPlayedCard: React.FC<RecentlyPlayedCardProps> = ({
       {recentlyPlayed.length === 0 && (
         <div className="text-center py-8">
           <div className="w-12 h-12 rounded-full bg-white/8 flex items-center justify-center mx-auto mb-3">
-            <Music2 className="w-6 h-6 text-muted-foreground" />
+            <Music2 className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.3)' }} />
           </div>
-          <p className="text-sm text-muted-foreground mb-1">No recent activity</p>
-          <p className="text-xs text-muted-foreground">Start listening to see your history</p>
+          <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>No recent activity</p>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Start listening to see your history</p>
         </div>
       )}
     </Card>

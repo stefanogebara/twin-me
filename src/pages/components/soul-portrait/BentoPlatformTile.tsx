@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Music, Calendar, Tv, MessageSquare, Briefcase, Activity } from 'lucide-react';
 import type { PlatformSummary, ConnectedPlatform } from './types';
 
@@ -99,7 +98,6 @@ export const BentoPlatformTile: React.FC<Props> = ({
   platform,
   platformData,
   connectedPlatforms,
-  animationDelay = 0,
 }) => {
   const meta = PLATFORM_META[platform.toLowerCase()];
   if (!meta) return null;
@@ -123,19 +121,13 @@ export const BentoPlatformTile: React.FC<Props> = ({
   const Icon = meta.icon;
 
   return (
-    <motion.div
-      className="rounded-2xl p-4 h-full"
+    <div
+      className="rounded-lg p-4 h-full"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
         borderLeft: `3px solid ${meta.color}`,
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
       }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: animationDelay, ease: 'easeOut' }}
     >
       {/* Platform header row */}
       <div className="flex items-center justify-between mb-2.5">
@@ -156,7 +148,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
         {syncLabel && (
           <span
             className="text-xs"
-            style={{ color: 'var(--text-muted)' }}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             {syncLabel}
           </span>
@@ -166,7 +158,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
       {/* Metric line */}
       <p
         className="text-xs leading-relaxed"
-        style={{ color: 'var(--text-secondary)' }}
+        style={{ color: 'rgba(255,255,255,0.4)' }}
       >
         {metric ?? 'Data collecting…'}
       </p>
@@ -179,11 +171,11 @@ export const BentoPlatformTile: React.FC<Props> = ({
         />
         <span
           className="text-xs"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: 'rgba(255,255,255,0.3)' }}
         >
           Connected
         </span>
       </div>
-    </motion.div>
+    </div>
   );
 };

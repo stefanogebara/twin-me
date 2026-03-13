@@ -1,6 +1,4 @@
 import React from 'react';
-import { GlassPanel } from '@/components/layout/PageLayout';
-import { motion } from 'framer-motion';
 import { Music, Clock, Disc3, Users, BarChart3, PieChart } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip as RechartsTooltip, PieChart as RechartsPie, Pie } from 'recharts';
 import type { InsightsResponse } from './spotifyTypes';
@@ -24,22 +22,16 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
     <>
       {/* Recent Tracks Section - With Timestamps */}
       {insights?.recentTracks && insights.recentTracks.length > 0 && (
-        <motion.div
-          className="mb-6"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-        >
-          <h3
-            className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="mb-6">
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Disc3 className="w-4 h-4" style={{ color: colors.spotifyGreen }} />
             Recently Playing
-          </h3>
+          </span>
           <div className="space-y-2">
             {deduplicateTracks(insights.recentTracks).slice(0, 5).map((track, index) => (
-              <GlassPanel key={index} className="!p-3">
+              <div key={index} className="py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded flex items-center justify-center text-lg"
@@ -72,22 +64,21 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                     </div>
                   )}
                 </div>
-              </GlassPanel>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Top Artists with Play Count Bars */}
       {insights?.topArtistsWithPlays && insights.topArtistsWithPlays.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Users className="w-4 h-4" />
             Top Artists
-          </h3>
+          </span>
           <div className="space-y-3">
             {insights.topArtistsWithPlays.slice(0, 5).map((artist, index) => {
               const maxPlays = insights.topArtistsWithPlays![0].plays;
@@ -100,7 +91,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   >
                     {artist.name}
                   </span>
-                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
+                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
                     <div
                       className="h-full rounded-lg transition-all"
                       style={{
@@ -120,19 +111,18 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
               );
             })}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Genre Distribution */}
       {insights?.topGenres && insights.topGenres.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <PieChart className="w-4 h-4" />
             Genre Distribution
-          </h3>
+          </span>
           <div className="flex items-center gap-6">
             <div className="w-32 h-32">
               <ResponsiveContainer width="100%" height="100%">
@@ -156,11 +146,9 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   </Pie>
                   <RechartsTooltip
                     contentStyle={{
-                      backgroundColor: 'rgba(28, 25, 23, 0.90)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(180, 175, 168, 0.25)',
-                      borderRadius: '12px',
-                      boxShadow: '0 8px 32px rgba(255, 255, 255, 0.08)',
+                      backgroundColor: 'rgba(10,15,10,0.9)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px',
                     }}
                     labelStyle={{ color: colors.text }}
                     itemStyle={{ color: colors.text }}
@@ -186,19 +174,18 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
               ))}
             </div>
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Listening Peak Hours */}
       {insights?.listeningHours && insights.listeningHours.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <BarChart3 className="w-4 h-4" />
             Your Peak Listening Hours
-          </h3>
+          </span>
           <div className="h-32">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={insights.listeningHours} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
@@ -212,8 +199,8 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 <YAxis hide />
                 <RechartsTooltip
                   contentStyle={{
-                    backgroundColor: 'var(--surface-solid)',
-                    border: 'none',
+                    backgroundColor: 'rgba(10,15,10,0.9)',
+                    border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: '8px',
                   }}
                   labelStyle={{ color: colors.text }}
@@ -233,12 +220,12 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Current Mood - Visual indicator */}
       {insights?.currentMood && (
-        <GlassPanel className="mb-6 !p-4">
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
           <div className="flex items-center justify-between">
             <div>
               <span
@@ -297,7 +284,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
               </div>
             </div>
           </div>
-        </GlassPanel>
+        </div>
       )}
     </>
   );

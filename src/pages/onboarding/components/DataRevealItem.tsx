@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
   User, Building2, MapPin, FileText, Github, Twitter, GraduationCap, Briefcase, Award,
 } from 'lucide-react';
@@ -28,10 +27,7 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
   const iconElement = iconMap[icon] || <FileText className="w-4 h-4" />;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+    <div
       className="flex items-center gap-3 py-2"
     >
       <div
@@ -48,7 +44,7 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
           className="text-xs uppercase tracking-wider block"
           style={{
             color: 'rgba(232, 213, 183, 0.4)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.08em',
           }}
         >
@@ -58,19 +54,19 @@ const DataRevealItem: React.FC<DataRevealItemProps> = ({ icon, label, value }) =
           className="text-sm block"
           style={{
             color: 'rgba(232, 213, 183, 0.9)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
           }}
         >
           {value}
         </span>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
 export default DataRevealItem;
 
-// Staggered container for use in parent
+// Staggered container variants kept for API compat (no-op without framer-motion)
 export const dataRevealContainerVariants = {
   hidden: { opacity: 0 },
   visible: {

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -63,17 +62,11 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
       className="h-screen flex flex-col items-center px-6 py-10"
       
     >
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+      <div
         className="w-full max-w-lg flex flex-col min-h-0 flex-1"
       >
         {/* Flower card — fixed-height hero visual */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.1 }}
+        <div
           className="w-full mb-8 overflow-hidden flex-shrink-0"
           style={{ borderRadius: '28px', height: '220px' }}
         >
@@ -82,7 +75,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             alt=""
             className="w-full h-full object-cover"
           />
-        </motion.div>
+        </div>
 
         {/* Message — scrollable so long AI responses don't push CTA off screen */}
         <div className="flex-1 overflow-y-auto mb-8 w-full text-center scrollbar-hide">
@@ -119,11 +112,9 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
         </div>
 
         {/* CTA — pinned at bottom, always visible */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: done ? 1 : 0 }}
-          transition={{ duration: 0.6 }}
+        <div
           className="w-full flex justify-center flex-shrink-0"
+          style={{ opacity: done ? 1 : 0, transition: 'opacity 0.6s' }}
         >
           <button
             onClick={onEnter}
@@ -149,8 +140,8 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             Enter your world
             <ArrowRight className="w-4 h-4" />
           </button>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 };

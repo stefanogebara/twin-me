@@ -1,6 +1,6 @@
 /**
  * SoulChatInterface Component
- * Complete chat interface with Grok-style features:
+ * Complete chat interface with:
  * - Message actions on each assistant message
  * - Contextual quick actions based on topic
  * - Conversation controls (new, save, export)
@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
 import { ConversationControls } from './ConversationControls';
 import { Send, Loader, Sparkles } from 'lucide-react';
@@ -210,12 +209,12 @@ export function SoulChatInterface({
       {/* Header with Conversation Controls */}
       <div
         className="flex items-center justify-between p-4 border-b"
-        style={{ borderColor: 'var(--glass-surface-border)' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
-            style={{ backgroundColor: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border-hover)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <img src="/images/backgrounds/flower-hero.png" alt="Twin" className="w-9 h-9 object-contain" />
           </div>
@@ -223,7 +222,7 @@ export function SoulChatInterface({
             <h2 className="font-semibold" style={{ color: 'var(--foreground)' }}>
               Chat with Your Soul Twin
             </h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
               Ask me anything about your authentic self
             </p>
           </div>
@@ -239,78 +238,64 @@ export function SoulChatInterface({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <AnimatePresence>
-          {messages.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center h-full text-center py-12"
-            >
-              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-16 h-16 object-contain mb-4 drop-shadow-md opacity-80" />
-              <h3 className="text-xl font-semibold mb-2 heading-serif">
-                Start a Conversation
-              </h3>
-              <p className="max-w-md mb-6" style={{ color: 'var(--text-secondary)' }}>
-                Ask me about your music taste, viewing habits, learning patterns, or anything else from your soul signature.
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {[
-                  'What does my music taste say about me?',
-                  'What are my top content interests?',
-                  'What am I learning from YouTube?',
-                  'Show me my coding activity'
-                ].map((suggestion, index) => (
-                  <motion.button
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => sendMessage(suggestion)}
-                    className="px-4 py-2 rounded-full text-sm transition-colors"
-                    style={{
-                      backgroundColor: 'var(--glass-surface-bg)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid var(--glass-surface-border-hover)',
-                      color: 'var(--foreground)'
-                    }}
-                  >
-                    {suggestion}
-                  </motion.button>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                timestamp={message.timestamp}
-                onRegenerate={message.role === 'assistant' ? () => handleRegenerate(message.id) : undefined}
-                onQuickAction={handleQuickAction}
-                conversationTopic={conversationTopic}
-              />
-            ))
-          )}
-        </AnimatePresence>
+        {messages.length === 0 ? (
+          <div
+            className="flex flex-col items-center justify-center h-full text-center py-12"
+          >
+            <img src="/images/backgrounds/flower-hero.png" alt="" className="w-16 h-16 object-contain mb-4 drop-shadow-md opacity-80" />
+            <h3 className="text-xl font-semibold mb-2">
+              Start a Conversation
+            </h3>
+            <p className="max-w-md mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Ask me about your music taste, viewing habits, learning patterns, or anything else from your soul signature.
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {[
+                'What does my music taste say about me?',
+                'What are my top content interests?',
+                'What am I learning from YouTube?',
+                'Show me my coding activity'
+              ].map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => sendMessage(suggestion)}
+                  className="px-4 py-2 rounded-full text-sm transition-colors hover:brightness-125"
+                  style={{
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    color: 'var(--foreground)'
+                  }}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              role={message.role}
+              content={message.content}
+              timestamp={message.timestamp}
+              onRegenerate={message.role === 'assistant' ? () => handleRegenerate(message.id) : undefined}
+              onQuickAction={handleQuickAction}
+              conversationTopic={conversationTopic}
+            />
+          ))
+        )}
 
         {/* Loading Indicator */}
         {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-3 px-6 py-4"
-          >
+          <div className="flex items-center gap-3 px-6 py-4">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08))' }}
             >
               <Loader className="w-5 h-5 animate-spin" style={{ color: 'var(--foreground)' }} />
             </div>
-            <span style={{ color: 'var(--text-secondary)' }}>Thinking...</span>
-          </motion.div>
+            <span style={{ color: 'rgba(255,255,255,0.4)' }}>Thinking...</span>
+          </div>
         )}
 
         <div ref={messagesEndRef} />
@@ -319,7 +304,7 @@ export function SoulChatInterface({
       {/* Input Area */}
       <div
         className="p-4 border-t"
-        style={{ borderColor: 'var(--glass-surface-border)' }}
+        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
       >
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
@@ -331,22 +316,20 @@ export function SoulChatInterface({
             rows={1}
             className="flex-1 px-4 py-3 rounded-2xl focus:outline-none resize-none text-sm"
             style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              border: '1px solid var(--glass-surface-border-hover)',
+              backgroundColor: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
               color: 'var(--foreground)',
               minHeight: '48px',
               maxHeight: '120px'
             }}
           />
-          <motion.button
+          <button
             type="submit"
             disabled={!inputValue.trim() || isLoading}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             className="btn-cta-app px-6 py-3 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
-          </motion.button>
+          </button>
         </form>
       </div>
     </div>
