@@ -102,7 +102,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
 
           <button
             onClick={() => onNavigate('/insights/calendar')}
-            className="btn-cta-app w-full py-2 flex items-center justify-center gap-2"
+            className="w-full py-2 flex items-center justify-center gap-2 rounded-[100px]"
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
           >
             <Sparkles className="w-5 h-5" />
             <span

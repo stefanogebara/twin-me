@@ -130,7 +130,8 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={this.handleRetry}
-                className="btn-cta-app flex-1 flex items-center justify-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
+                style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
               >
                 <RefreshCw className="w-4 h-4" />
                 Try Again
@@ -139,7 +140,8 @@ class ErrorBoundary extends Component<Props, State> {
               {this.props.showReloadButton !== false && (
                 <button
                   onClick={this.handleReload}
-                  className="btn-glass-app flex-1 flex items-center justify-center gap-2"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)', fontWeight: 500 }}
                 >
                   <RefreshCw className="w-4 h-4" />
                   Reload Page
@@ -149,7 +151,8 @@ class ErrorBoundary extends Component<Props, State> {
               {this.props.showHomeButton && (
                 <button
                   onClick={this.handleGoHome}
-                  className="btn-glass-app flex-1 flex items-center justify-center gap-2"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)', fontWeight: 500 }}
                 >
                   <Home className="w-4 h-4" />
                   Go Home

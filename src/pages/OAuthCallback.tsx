@@ -524,7 +524,8 @@ const OAuthCallback = () => {
   return (
     <div className="min-h-screen flex items-center justify-center" >
       <div
-        className="glass-card max-w-md w-full mx-4 p-8 text-center"
+        className="max-w-md w-full mx-4 p-8 text-center"
+        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -534,7 +535,8 @@ const OAuthCallback = () => {
             className="w-10 h-10 object-contain drop-shadow-md"
           />
           <h1
-            className="heading-serif text-2xl"
+            className="text-2xl"
+            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
           >
             Twin Me
           </h1>
@@ -552,7 +554,8 @@ const OAuthCallback = () => {
           return (
             <>
               <h2
-                className="heading-serif text-xl mb-2"
+                className="text-xl mb-2"
+                style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
               >
                 {displayStatus === 'loading' && 'Authenticating...'}
                 {displayStatus === 'success' && 'Welcome!'}
@@ -579,7 +582,8 @@ const OAuthCallback = () => {
         {status === 'error' && showError && (
           <button
             onClick={() => navigate('/auth')}
-            className="btn-cta-app mt-6 px-6 py-2"
+            className="mt-6 px-6 py-2 rounded-full"
+            style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
           >
             Try Again
           </button>

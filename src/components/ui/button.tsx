@@ -15,7 +15,7 @@ const buttonVariants = cva(
         secondary: "bg-gradient-to-br from-secondary to-stone-700 text-secondary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-white/10",
         ghost: "hover:bg-accent/20 hover:text-accent-foreground rounded-2xl",
         link: "text-primary underline-offset-4 hover:underline",
-        liquid: "liquid-glass text-primary hover:shadow-2xl hover:-translate-y-1 transition-all duration-300",
+        liquid: "bg-white/5 border border-white/10 text-foreground hover:bg-white/10 backdrop-blur-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300",
         cartoon: "bg-gradient-to-br from-accent to-yellow-400 text-accent-foreground hover:shadow-xl hover:-translate-y-1 rounded-3xl border-2 border-yellow-300/40 font-bold",
       },
       size: {

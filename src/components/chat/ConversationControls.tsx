@@ -48,7 +48,8 @@ export function ConversationControls({
       {/* New Chat Button - Prominent */}
       <button
         onClick={onNewChat}
-        className="btn-cta-app flex items-center gap-2 px-4 py-2 font-medium shadow-sm hover:opacity-90 transition-opacity"
+        className="flex items-center gap-2 px-4 py-2 font-medium shadow-sm hover:opacity-90 transition-opacity rounded-[100px]"
+        style={{ backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 }}
       >
         <Plus className="w-4 h-4" />
         <span>New Chat</span>
