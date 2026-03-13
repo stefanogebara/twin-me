@@ -26,6 +26,9 @@
  * Key insight: recency=0 consistently wins. Reflection decay_rate=90 makes recency bias favor reflections.
  * Type-aware MMR: TYPE_DIVERSITY_WEIGHT=0.25 breaks diversity ceiling from 0.46 → 0.49 without hurting precision.
  * Conversation boost: direct importance+recency queries instead of semantic search (reflections dominated). Conv share 2.4%→21.6%.
+ * SESSION 5 BEST: 0.852 (TYPE_DIVERSITY_WEIGHT 0.25->0.35) — DB state 2026-03-13 (5237 memories)
+ * Session 5: TDW=0.35 only clear win. Eval variance ~+-0.014. All weight presets near-optimal.
+ * CRITICAL FIX: search_memory_stream search_path must include extensions for pgvector.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────

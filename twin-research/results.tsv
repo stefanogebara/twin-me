@@ -35,3 +35,20 @@ fa73289	0.800423	0.850238	0.961039	0.434963	discard	identity importance 1.8 — 
 41df213	0.797739	0.850238	0.961039	0.418000	discard	recent recency 0.1 — diversity dropped
 7d3be92	0.800207	0.850238	0.961039	0.434810	discard	reflection importance 0.0 — q16 diversity dropped
 b505acf	0.831920	-	-	-	discard	reflection importance 1.5 marginal
+---	---	---	---	---	---	SESSION 5 (2026-03-13, DB state shifted — 5237 memories, pgvector search_path fix)
+baseline	0.845	0.896	1.000	0.486	keep	baseline (session 4 config, TDW=0.25)
+exp01	0.852	0.896	1.000	0.520	keep	TYPE_DIVERSITY_WEIGHT 0.25->0.35 (+0.034 diversity)
+exp02	0.849	0.898	1.000	0.501	discard	TYPE_DIVERSITY_WEIGHT 0.40 (over-correction)
+exp03	0.852	0.905	1.000	0.498	discard	MMR_LAMBDA 0.4 (tied, diversity dropped vs TDW gain)
+exp04	0.838	0.893	1.000	0.459	discard	reflection importance 0.5->1.0 (hurt both)
+exp05	0.836	0.890	1.000	0.452	discard	reflection relevance 1.5->1.2 (hurt both)
+exp06	0.841	0.893	1.000	0.475	discard	default recency 1.0->0.3 (hurt both)
+exp07	0.845	0.896	1.000	0.487	discard	ALPHA_CITATION_BASELINE 0.90 (no impact on retrieval eval)
+exp08	0.836	0.890	1.000	0.452	discard	identity relevance 1.2->1.5 (diversity killed)
+exp09	0.838	0.890	1.000	0.464	discard	identity importance 2.0->1.5 (hurt)
+exp10	0.846	0.898	1.000	0.483	discard	recent importance 0.5->0.8 (diversity dropped)
+exp11	0.837	0.893	1.000	0.454	discard	MMR_LAMBDA 0.45+TDW=0.35 (over-correction)
+exp12	0.836	0.890	1.000	0.456	discard	MMR_LAMBDA 0.55+TDW=0.35 (hurt both)
+exp13	0.841	0.893	1.000	0.472	discard	default importance 1.5 (noise range)
+exp14	0.836	0.890	1.000	0.452	discard	identity recency 0.1 (recency=0 still wins)
+exp15	0.836	0.893	1.000	0.451	discard	default {0.5,1.2,1.0} (no improvement)
