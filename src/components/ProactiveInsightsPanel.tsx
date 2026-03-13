@@ -47,7 +47,7 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
-const glassPanelStyle: React.CSSProperties = {
+const panelStyle: React.CSSProperties = {
   background: 'rgba(255, 255, 255, 0.02)',
   border: '1px solid rgba(255, 255, 255, 0.06)',
   borderRadius: '12px',
@@ -120,7 +120,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
   if (insights.length === 0) {
     if (connectedCount > 0) return null;
     return (
-      <div style={glassPanelStyle} className="text-center py-6">
+      <div style={panelStyle} className="text-center py-6">
         <Plug
           className="w-8 h-8 mx-auto mb-3 opacity-30"
           style={{ color: 'rgba(255,255,255,0.3)' }}
@@ -178,7 +178,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
             : displayText.slice(0, 90) + (displayText.length > 90 ? '\u2026' : '');
           return (
             <div key={insight.id}>
-              <div style={glassPanelStyle} className="relative">
+              <div style={panelStyle} className="relative">
                 <div className="flex items-start gap-3">
                   {/* Content */}
                   <div className="flex-1 min-w-0">

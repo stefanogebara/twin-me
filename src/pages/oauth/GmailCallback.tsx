@@ -131,11 +131,11 @@ const GmailCallback: React.FC = () => {
         <div
           className="rounded-3xl overflow-hidden p-8 text-center space-y-6"
           style={{
-            background: 'var(--glass-surface-bg)',
+            background: 'rgba(255,255,255,0.02)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow: 'var(--glass-shadow)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35)',
           }}
         >
           {/* Status Icon */}
@@ -143,7 +143,7 @@ const GmailCallback: React.FC = () => {
             {status === 'loading' && (
               <div
                 className="w-16 h-16 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--glass-surface-bg-subtle)' }}
+                style={{ background: 'rgba(255,255,255,0.05)' }}
               >
                 <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
               </div>
