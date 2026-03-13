@@ -84,13 +84,13 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
           )}
         </div>
 
-        {/* Content */}
+        {/* Content — narrative mode (Sesame-inspired 60% opacity hierarchy) */}
         <AnimatePresence initial={false}>
           {expanded ? (
             <motion.p
               key="expanded"
               className="text-xs leading-relaxed"
-              style={{ color: 'var(--foreground)' }}
+              style={{ color: 'var(--text-narrative-secondary)' }}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -102,7 +102,7 @@ export const BentoDomainTile: React.FC<Props> = ({ domainKey, domains, animation
             <motion.p
               key="preview"
               className="text-xs leading-relaxed"
-              style={{ color: 'var(--foreground)' }}
+              style={{ color: 'var(--text-narrative-secondary)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

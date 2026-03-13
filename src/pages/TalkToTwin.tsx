@@ -4,9 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
-  Sparkles, Layers,
+  Layers,
   Lightbulb, TrendingUp, Heart, Zap,
-  Trash2, ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
@@ -443,33 +443,22 @@ const TalkToTwin = () => {
   return (
     <div className="flex" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
-        {/* Compact top bar */}
+        {/* Minimal top bar — emerald "Twin" label + status dot */}
         <header
-          className="flex items-center justify-between px-4 py-2.5 border-b"
-          style={{ borderColor: 'var(--glass-surface-border)' }}
+          className="flex items-center justify-between px-6 py-3"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
         >
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-              style={{ color: 'var(--foreground)' }}
-              title="Back to dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div
-              className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden"
-              style={{ backgroundColor: 'var(--glass-surface-bg)' }}
-            >
-              <img src="/images/backgrounds/flower-hero.png" alt="" className="w-6 h-6 object-contain" />
-            </div>
+          <div className="flex items-center gap-2">
             <span
-              className="text-sm font-medium flex items-center gap-1.5"
-              style={{ color: 'var(--foreground)', fontFamily: 'var(--font-ui)' }}
+              className="text-[11px] font-medium tracking-widest uppercase"
+              style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
             >
-              Your Twin
-              <Sparkles className="w-3.5 h-3.5" style={{ color: 'var(--accent-vibrant)' }} />
+              Twin
             </span>
+            <div
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: '#10b77f' }}
+            />
           </div>
 
           <div className="flex items-center gap-1">
@@ -477,7 +466,7 @@ const TalkToTwin = () => {
               <button
                 onClick={handleClearChat}
                 className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: 'rgba(255,255,255,0.25)' }}
                 title="Clear conversation"
               >
                 <Trash2 className="w-4 h-4" />
@@ -486,7 +475,7 @@ const TalkToTwin = () => {
             <button
               onClick={() => setShowContext(!showContext)}
               className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-              style={{ color: showContext ? 'var(--accent-vibrant)' : 'var(--text-muted)' }}
+              style={{ color: showContext ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
               title="Toggle context"
             >
               <Layers className="w-4 h-4" />
@@ -516,38 +505,23 @@ const TalkToTwin = () => {
 
         {limitReached && (
           <div
-            className="mx-4 mb-2 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3"
-            style={{
-              background: 'var(--glass-surface-bg)',
-              backdropFilter: 'blur(16px) saturate(160%)',
-              WebkitBackdropFilter: 'blur(16px) saturate(160%)',
-              border: '1px solid var(--glass-surface-border)',
-            }}
+            className="mx-6 mb-2 py-4 flex flex-col sm:flex-row items-center justify-between gap-3"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: 'var(--accent-vibrant-glow)' }}
-              >
-                <Zap className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
-              </div>
-              <div>
-                <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                  You've used all {chatUsage?.limit ?? 100} free messages this month
-                </p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Resets on {chatUsage ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next month'}
-                </p>
-              </div>
+            <div>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                You've used all {chatUsage?.limit ?? 100} free messages this month
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                Resets on {chatUsage ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next month'}
+              </p>
             </div>
-            <button
-              className="btn-accent px-5 py-2 rounded-full text-sm whitespace-nowrap"
-              disabled
-              style={{ opacity: 0.5, cursor: 'not-allowed' }}
-              title="Upgrade feature coming soon"
+            <span
+              className="text-xs px-3 py-1.5 rounded-full"
+              style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}
             >
-              Upgrade to Pro - Coming Soon
-            </button>
+              Pro coming soon
+            </span>
           </div>
         )}
 

@@ -1,8 +1,5 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
-import { cn } from '@/lib/utils';
 
 interface Platform {
   name: string;
@@ -27,130 +24,100 @@ interface ChatEmptyStateProps {
 
 export const ChatEmptyState = ({
   connectedPlatforms,
-  platforms,
   quickActions,
   onQuickAction,
-  onSendMessage,
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
 
   return (
-    <div className="h-full flex flex-col items-center justify-center px-4 py-12">
-      {/* Glass card container */}
-      <motion.div
-        className="glass-card max-w-lg w-full flex flex-col items-center p-8"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+    <div className="h-full flex flex-col items-center justify-center px-6">
+      {/* Large serif heading — no card, no icon */}
+      <motion.h2
+        className="text-center mb-8"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: 'clamp(2rem, 4vw, 2.5rem)',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          opacity: 0.6,
+          letterSpacing: '-0.02em',
+        }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 0.6, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
       >
-        {/* Icon */}
-        <motion.div
-          className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
-          style={{
-            background: 'var(--accent-vibrant-glow)',
-            border: '1px solid var(--glass-surface-border)',
-          }}
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-        >
-          <Clay3DIcon name="brain" size={32} />
-        </motion.div>
+        {connectedPlatforms.length > 0
+          ? "What's on your mind?"
+          : "Let me get to know you first"
+        }
+      </motion.h2>
 
-        {/* Heading — serif */}
-        <motion.h2
-          className="text-2xl md:text-3xl mb-2 text-center heading-serif"
-          style={{
-            fontWeight: 400,
-            letterSpacing: '-0.03em',
-            color: 'var(--foreground)',
-          }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
-        >
-          {connectedPlatforms.length > 0
-            ? "What's on your mind?"
-            : "Let me get to know you first"
-          }
-        </motion.h2>
-
+      {/* Subtitle */}
+      {connectedPlatforms.length === 0 && (
         <motion.p
-          className="text-center mb-6 max-w-sm text-sm"
-          style={{ color: 'var(--text-secondary)' }}
+          className="text-center text-sm mb-8 max-w-sm"
+          style={{ color: 'rgba(255,255,255,0.35)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          Connect a platform and I'll start picking up on the things that make you you.
+        </motion.p>
+      )}
+
+      {/* Suggestion pills — thin borders, no backgrounds */}
+      {connectedPlatforms.length > 0 && (
+        <motion.div
+          className="flex flex-wrap items-center justify-center gap-2.5"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
+          transition={{ duration: 0.5, delay: 0.2 }}
         >
-          {connectedPlatforms.length > 0
-            ? "Ask me anything — patterns you've noticed, things you're curious about, or just how you're doing."
-            : "Connect a platform and I'll start picking up on the things that make you you."
-          }
-        </motion.p>
+          {quickActions.map((action, idx) => (
+            <motion.button
+              key={idx}
+              onClick={() => onQuickAction(action.label)}
+              className="px-4 py-2 rounded-full text-[13px] transition-all"
+              style={{
+                color: 'rgba(255,255,255,0.6)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                background: 'transparent',
+                fontFamily: 'Inter, sans-serif',
+              }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.3 + idx * 0.05 }}
+              whileHover={{
+                borderColor: 'rgba(16,183,127,0.3)',
+                color: 'rgba(255,255,255,0.85)',
+              }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {action.label}
+            </motion.button>
+          ))}
+        </motion.div>
+      )}
 
-        {/* Quick action chips with amber outlines */}
-        {connectedPlatforms.length > 0 && (
-          <div className="flex flex-col items-center gap-2.5 mb-6">
-            {quickActions.map((action, idx) => (
-              <motion.button
-                key={idx}
-                onClick={() => onQuickAction(action.label)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all"
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  backdropFilter: 'blur(8px)',
-                  border: '1.5px solid rgba(212,168,83,0.20)',
-                  color: 'var(--foreground)',
-                }}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.3 + idx * 0.06, ease: [0.4, 0, 0.2, 1] }}
-                whileHover={{
-                  scale: 1.03,
-                  y: -1,
-                  backgroundColor: 'var(--accent-vibrant-glow)',
-                }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <span style={{ color: 'var(--accent-vibrant)' }}>{action.icon}</span>
-                {action.label}
-              </motion.button>
-            ))}
-          </div>
-        )}
-      </motion.div>
-
-      {/* Platform badges below the card */}
-      <motion.div
-        className="flex flex-wrap items-center justify-center gap-2 max-w-lg mt-5"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
-      >
-        {platforms.map((platform) => (
-          <div
-            key={platform.key}
-            onClick={() => !platform.connected && navigate('/get-started')}
-            className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-              !platform.connected && "cursor-pointer hover:opacity-80"
-            )}
-            style={{
-              backgroundColor: platform.connected
-                ? `${platform.color}20`
-                : 'var(--glass-surface-bg)',
-              color: platform.connected ? platform.color : 'var(--text-muted)',
-              border: platform.connected
-                ? `1px solid ${platform.color}35`
-                : '1px solid var(--glass-surface-border)'
-            }}
-          >
-            {platform.icon}
-            <span>{platform.name}</span>
-            {platform.connected && <Check className="w-3 h-3" />}
-          </div>
-        ))}
-      </motion.div>
+      {/* Connect CTA for no-platform users */}
+      {connectedPlatforms.length === 0 && (
+        <motion.button
+          onClick={() => navigate('/get-started')}
+          className="mt-4 px-5 py-2 rounded-full text-sm font-medium"
+          style={{
+            border: '1px solid #10b77f',
+            color: '#10b77f',
+            background: 'transparent',
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          whileHover={{ backgroundColor: 'rgba(16,183,127,0.08)' }}
+        >
+          Connect platforms
+        </motion.button>
+      )}
     </div>
   );
 };

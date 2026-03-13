@@ -7,6 +7,9 @@
 /* ===== FONTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
 
+/* ===== LENIS SMOOTH SCROLL ===== */
+@import 'lenis/dist/lenis.css';
+
 /* ===== GLASS MORPHISM EFFECTS ===== */
 @import './styles/glassmorphism.css';
 @tailwind base;
@@ -146,6 +149,12 @@
     --accent-amber: #c17e2c;
     --accent-purple: #5d5cae;
 
+    /* Narrative Text — Sesame-inspired 60% opacity hierarchy
+       Used in twin chat, soul signature, insights — not UI chrome */
+    --text-narrative: rgba(28, 25, 23, 0.85);
+    --text-narrative-secondary: rgba(28, 25, 23, 0.6);
+    --text-narrative-muted: rgba(28, 25, 23, 0.4);
+
     /* Spacing & Radius */
     --radius: 1rem;
     --radius-lg: 1.75rem;
@@ -249,6 +258,11 @@
     --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
     --accent-amber: #c17e2c;
     --accent-purple: #5d5cae;
+
+    /* Narrative Text — Sesame-inspired 60% opacity hierarchy (dark) */
+    --text-narrative: rgba(245, 245, 244, 0.9);
+    --text-narrative-secondary: rgba(245, 245, 244, 0.6);
+    --text-narrative-muted: rgba(245, 245, 244, 0.4);
   }
 
   /* Theme inline definitions for Tailwind */
@@ -533,6 +547,68 @@
     font-weight: 400;
     letter-spacing: 0.02em;
     color: var(--text-muted);
+  }
+
+  /* === Narrative Mode — Sesame-inspired editorial text hierarchy ===
+     Apply .narrative to a container to switch children to rgba-based
+     text colors. Use for twin chat, soul signature, insights —
+     anywhere content should feel editorial, not UI. */
+  .narrative {
+    color: var(--text-narrative);
+  }
+
+  .narrative p,
+  .narrative .text-body {
+    color: var(--text-narrative-secondary);
+  }
+
+  .narrative .text-label,
+  .narrative .text-muted,
+  .narrative small,
+  .narrative time {
+    color: var(--text-narrative-muted);
+  }
+
+  .narrative h1,
+  .narrative h2,
+  .narrative h3,
+  .narrative h4 {
+    color: var(--text-narrative);
+  }
+
+  /* Direct utility classes for one-off usage */
+  .text-narrative {
+    color: var(--text-narrative);
+  }
+
+  .text-narrative-secondary {
+    color: var(--text-narrative-secondary);
+  }
+
+  .text-narrative-muted {
+    color: var(--text-narrative-muted);
+  }
+
+  /*
+   * Narrative Voice — Instrument Serif for twin-generated prose.
+   * Use on twin summary, personality narratives, soul signature insights.
+   * The italic variant gives it a literary, personal-letter quality.
+   */
+  .narrative-voice {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.7;
+  }
+
+  /* Non-italic variant for longer prose blocks */
+  .narrative-voice-upright {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: normal;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.7;
   }
 
   /* === Layout === */

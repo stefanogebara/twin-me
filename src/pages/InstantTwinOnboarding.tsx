@@ -1,25 +1,22 @@
 /**
  * InstantTwinOnboarding - Connect Your Platforms
  *
- * Lorix minimal design implementation with PageLayout and GlassPanel
- * Connects your digital life to discover and share your authentic soul signature
+ * Typography-driven design — no glass panels, no PageLayout wrapper
  */
 
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
-  ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   Info,
-  Sparkles
+  Loader2,
+  ArrowRight,
 } from 'lucide-react';
 
 import { DataVerification } from '../components/DataVerification';
@@ -52,17 +49,34 @@ const NANGO_PROVIDER_MAP: Record<string, string> = {
 };
 
 // ====================================================================
+// SUB-COMPONENTS
+// ====================================================================
+
+const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
+  <span
+    className="text-[11px] font-medium tracking-widest uppercase block mb-5"
+    style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+  >
+    {label}
+  </span>
+);
+
+const Divider: React.FC = () => (
+  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+);
+
+// ====================================================================
 // MAIN COMPONENT
 // ====================================================================
 
 const InstantTwinOnboarding = () => {
+  useDocumentTitle('Connect Platforms');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
 
-  // Design system colors
   const colors = {
     textPrimary: 'var(--foreground)',
     textSecondary: 'var(--text-secondary)',
@@ -87,7 +101,6 @@ const InstantTwinOnboarding = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
-  const [showProfessionalPlatforms, setShowProfessionalPlatforms] = useState(true);
   const [revealedArchetype, setRevealedArchetype] = useState<{
     archetype_name: string;
     signature_quote?: string;
@@ -97,16 +110,13 @@ const InstantTwinOnboarding = () => {
 
   const connectedServices = connectedProviders as DataProvider[];
 
-  // Calculate truly active connections (excluding expired tokens)
   const activeConnections = connectedServices.filter(provider => {
     const status = platformStatusData[provider];
-    const isNotExpired = !status?.tokenExpired && status?.status !== 'token_expired';
-    return isNotExpired;
+    return !status?.tokenExpired && status?.status !== 'token_expired';
   });
   const expiredConnections = connectedServices.filter(provider => {
     const status = platformStatusData[provider];
-    const isExpired = status?.tokenExpired || status?.status === 'token_expired';
-    return isExpired;
+    return status?.tokenExpired || status?.status === 'token_expired';
   });
 
   React.useEffect(() => {
@@ -143,11 +153,6 @@ const InstantTwinOnboarding = () => {
     return () => window.removeEventListener('message', handleOAuthMessage);
   }, [refetchPlatformStatus, toast]);
 
-  const STEPS = [
-    { id: 1, name: 'Connect', description: 'Connect your digital services' },
-    { id: 2, name: 'Generate', description: 'Create your instant twin' }
-  ];
-
   const handleConnectorToggle = useCallback((provider: DataProvider) => {
     setSelectedConnectors(prev =>
       prev.includes(provider)
@@ -176,13 +181,9 @@ const InstantTwinOnboarding = () => {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
       const healthPlatforms = ['oura'];
-      // Entertainment platforms use direct OAuth via entertainment-connectors endpoints
       const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin'];
-      // Professional platforms that use Google OAuth scopes via entertainment-connectors
       const googlePlatforms = ['google_calendar', 'google_gmail'];
-      // Arctic-managed platforms with built-in OAuth
       const arcticPlatforms = ['github'];
-      // Nango-managed platforms — connect via Nango popup OAuth
       const nangoPlatforms = ['strava', 'fitbit', 'garmin', 'twitch', 'microsoft_outlook'];
 
       let apiUrl: string;
@@ -192,7 +193,6 @@ const InstantTwinOnboarding = () => {
       };
 
       if (nangoPlatforms.includes(provider as string)) {
-        // Use Nango connect session for popup OAuth
         const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
         apiUrl = `${baseUrl}/nango/connect-session`;
         fetchOptions = {
@@ -204,7 +204,6 @@ const InstantTwinOnboarding = () => {
           body: JSON.stringify({ integrationId: nangoIntegrationId })
         };
       } else if (entertainmentPlatforms.includes(provider as string) || googlePlatforms.includes(provider as string)) {
-        // Use direct entertainment-connectors OAuth (PKCE + encrypted state)
         apiUrl = `${baseUrl}/entertainment/connect/${provider}`;
         fetchOptions = {
           method: 'POST',
@@ -219,7 +218,6 @@ const InstantTwinOnboarding = () => {
       } else if (arcticPlatforms.includes(provider as string)) {
         apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       } else {
-        // Fallback to arctic connector
         apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       }
 
@@ -236,7 +234,6 @@ const InstantTwinOnboarding = () => {
         sessionStorage.setItem('connecting_provider', provider);
         window.location.href = result.authUrl;
       } else if (result.success && result.connectUrl) {
-        // Open Nango Connect in a centered popup instead of full-page redirect
         const width = 600, height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
@@ -248,13 +245,11 @@ const InstantTwinOnboarding = () => {
         );
 
         if (!popup) {
-          // Popup was blocked - fall back to redirect
           sessionStorage.setItem('connecting_provider', provider);
           window.location.href = result.connectUrl;
           return;
         }
 
-        // Poll for popup close, then verify connection
         const pollInterval = setInterval(async () => {
           if (!popup || popup.closed) {
             clearInterval(pollInterval);
@@ -292,7 +287,7 @@ const InstantTwinOnboarding = () => {
           }
         }, 500);
 
-        return; // Prevent finally block from clearing connectingProvider early
+        return;
       } else if (result.success) {
         await refetchPlatformStatus();
         toast({
@@ -313,7 +308,7 @@ const InstantTwinOnboarding = () => {
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, user, refetchPlatformStatus]);
+  }, [toast, user, refetchPlatformStatus, isDemoMode, trackFunnel]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!user) return;
@@ -321,7 +316,6 @@ const InstantTwinOnboarding = () => {
 
     const connectorName = AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name;
 
-    // Optimistically update UI immediately for instant feedback
     optimisticDisconnect(provider);
 
     try {
@@ -335,7 +329,6 @@ const InstantTwinOnboarding = () => {
         }
       };
 
-      // Use standard connectors endpoint for disconnect
       const apiUrl = `${baseUrl}/connectors/${provider}/${encodeURIComponent(user.id)}`;
 
       const response = await fetch(apiUrl, fetchOptions);
@@ -344,7 +337,6 @@ const InstantTwinOnboarding = () => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Confirm optimistic update by refetching (optional, for data consistency)
       await refetchPlatformStatus();
 
       toast({
@@ -352,7 +344,6 @@ const InstantTwinOnboarding = () => {
         description: `${connectorName} has been disconnected`,
       });
     } catch (error: unknown) {
-      // Revert optimistic update on failure
       await revertOptimisticUpdate();
 
       const errorMsg = error instanceof Error ? error.message : 'Disconnect failed';
@@ -417,10 +408,8 @@ const InstantTwinOnboarding = () => {
       const result = await response.json();
 
       if (response.ok && (result.id || result.twin?.id)) {
-        // Advance to the archetype reveal step immediately
         setCurrentStep(2);
 
-        // Fetch archetype (with 15s timeout) — show reveal step while we wait
         const VITE_API_URL = import.meta.env.VITE_API_URL;
         const sigController = new AbortController();
         const sigTimeout = setTimeout(() => sigController.abort(), 15000);
@@ -442,7 +431,6 @@ const InstantTwinOnboarding = () => {
               sessionStorage.setItem('instant_archetype', JSON.stringify(sig));
               setRevealedArchetype(sig);
             } else {
-              // No archetype returned — navigate directly
               navigate('/soul-signature');
             }
           })
@@ -466,7 +454,6 @@ const InstantTwinOnboarding = () => {
 
   const DEMO_CONNECTED_PROVIDERS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin'];
 
-  // Sort connectors - connected ones first
   const sortConnectors = (connectors: typeof AVAILABLE_CONNECTORS) => {
     return [...connectors].sort((a, b) => {
       const aConnected = connectedServices.includes(a.provider);
@@ -497,288 +484,205 @@ const InstantTwinOnboarding = () => {
   };
 
   return (
-    <PageLayout
-      title="Connect Your Platforms"
-      subtitle="Link your digital footprints to build your soul signature"
-      maxWidth="xl"
-      padding="lg"
-    >
+    <div className="max-w-[680px] mx-auto px-6 py-16">
+
+      {/* Header */}
+      <h1
+        className="mb-2"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: '28px',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Connect Your Platforms
+      </h1>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        Link your digital footprints to build your soul signature
+      </p>
+
+      {/* Demo notice */}
       {isDemoMode && (
         <div
-          className="rounded-2xl p-4 flex items-center gap-3 mb-6"
-          style={{
-            backgroundColor: 'rgba(251, 191, 36, 0.1)',
-            border: '1px solid rgba(251, 191, 36, 0.3)'
-          }}
+          className="flex items-center gap-2 mb-8 text-sm"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
         >
-          <Info className="w-5 h-5 flex-shrink-0" style={{ color: '#FBBF24' }} />
-          <p className="text-sm" style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}>
-            You're in demo mode. All 5 platforms are shown as connected with sample data. Sign up to connect your real platforms.
-          </p>
+          <Info className="w-4 h-4 flex-shrink-0" />
+          <span>Demo mode — all platforms shown as connected with sample data.</span>
         </div>
       )}
 
-      {currentStep > 1 && currentStep < 2 && (
-        <div className="mb-8">
-          <button
-            onClick={() => setCurrentStep(currentStep - 1)}
-            className="flex items-center gap-2 text-sm px-3 py-2 rounded-lg transition-opacity hover:opacity-80"
-            style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              color: colors.textPrimary
-            }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to {STEPS[currentStep - 2].name}
-          </button>
-        </div>
-      )}
-
-      {connectedServices.length > 0 && (
-        <GlassPanel className="mb-8">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: expiredConnections.length > 0 ? '#f59e0b' : colors.connected }}
-            >
-              {expiredConnections.length > 0 ? (
-                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              ) : (
-                <CheckCircle2 className="w-5 h-5 text-white" />
-              )}
-            </div>
-            <div>
-              <p
-                className="text-sm"
-                style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
-              >
-                {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
-                {expiredConnections.length > 0 && (
-                  <span style={{ color: '#f59e0b', marginLeft: '8px' }}>
-                    ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
-                  </span>
-                )}
-              </p>
-              <p
-                className="text-xs"
-                style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-              >
-                {expiredConnections.length > 0
-                  ? 'Reconnect expired platforms below for full access'
-                  : 'Connect more platforms below, or scroll down to reveal your archetype'}
-              </p>
-            </div>
+      {/* Connection status */}
+      {connectedServices.length > 0 && currentStep === 1 && (
+        <div
+          className="flex items-center gap-3 mb-8 py-3"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+        >
+          <CheckCircle2
+            className="w-4 h-4 flex-shrink-0"
+            style={{ color: expiredConnections.length > 0 ? '#f59e0b' : '#10b77f' }}
+          />
+          <div>
+            <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+              {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
+            </span>
+            {expiredConnections.length > 0 && (
+              <span className="text-sm ml-2" style={{ color: '#f59e0b' }}>
+                ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
+              </span>
+            )}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
+      {/* Step 2: Archetype reveal */}
       {currentStep === 2 && (
-        <div className="flex flex-col items-center justify-center py-16 min-h-[60vh]">
+        <div className="flex flex-col items-center justify-center py-16">
           {!revealedArchetype ? (
-            // Loading — waiting for instant-signature to return
-            <motion.div
-              className="flex flex-col items-center gap-8"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="relative w-28 h-28">
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{ backgroundColor: 'rgba(12, 10, 9, 0.06)' }}
-                  animate={{ scale: [1, 1.4, 1], opacity: [0.8, 0.2, 0.8] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <motion.div
-                  className="absolute inset-3 rounded-full"
-                  style={{ backgroundColor: 'rgba(12, 10, 9, 0.08)' }}
-                  animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0.15, 0.6] }}
-                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-                />
-                <div
-                  className="absolute inset-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: 'var(--foreground)' }}
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <Sparkles className="w-7 h-7" style={{ color: 'var(--background)' }} />
-                  </motion.div>
-                </div>
-              </div>
-
-              <div className="text-center space-y-2">
+            <div className="flex flex-col items-center gap-6">
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#10b77f' }} />
+              <div className="text-center">
                 <h2
-                  className="text-2xl"
-                  style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
+                  className="text-xl mb-2"
+                  style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontWeight: 400,
+                    color: 'var(--foreground)',
+                  }}
                 >
                   Discovering your archetype...
                 </h2>
-                <p
-                  className="text-sm"
-                  style={{ color: colors.muted, fontFamily: 'var(--font-body)' }}
-                >
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
                   Weaving your digital footprint into a soul signature
                 </p>
               </div>
-
-              <div className="flex gap-1.5">
-                {[0, 0.3, 0.6].map((delay, i) => (
-                  <motion.div
-                    key={i}
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: colors.muted }}
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.2, repeat: Infinity, delay }}
-                  />
-                ))}
-              </div>
-            </motion.div>
+            </div>
           ) : (
-            // Archetype revealed
-            <motion.div
-              className="w-full max-w-lg"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            >
-              <GlassPanel>
-                {/* Label */}
-                <div className="text-center mb-6">
-                  <p
-                    className="text-[10px] uppercase tracking-[0.2em] mb-4"
-                    style={{ color: colors.muted, fontFamily: 'var(--font-ui)' }}
-                  >
-                    Your Soul Archetype
-                  </p>
+            <div className="w-full max-w-lg text-center">
+              <span
+                className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+                style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+              >
+                Your Soul Archetype
+              </span>
 
-                  {/* Archetype name */}
-                  <h2
-                    className="text-4xl mb-2"
-                    style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
-                  >
-                    {revealedArchetype.archetype_name}
-                  </h2>
+              <h2
+                className="text-3xl mb-3"
+                style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontStyle: 'italic',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--foreground)',
+                }}
+              >
+                {revealedArchetype.archetype_name}
+              </h2>
 
-                  {revealedArchetype.signature_quote && (
-                    <p
-                      className="text-sm italic"
-                      style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
-                    >
-                      {revealedArchetype.signature_quote}
-                    </p>
-                  )}
+              {revealedArchetype.signature_quote && (
+                <p className="text-sm italic mb-6" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {revealedArchetype.signature_quote}
+                </p>
+              )}
+
+              {Array.isArray(revealedArchetype.core_traits) && revealedArchetype.core_traits.length > 0 && (
+                <div className="flex flex-wrap gap-2 justify-center mb-6">
+                  {revealedArchetype.core_traits.slice(0, 5).map((trait, i) => {
+                    const label = typeof trait === 'string' ? trait : (trait as { trait?: string })?.trait ?? '';
+                    if (!label) return null;
+                    return (
+                      <span
+                        key={i}
+                        className="px-3 py-1 rounded-full text-xs"
+                        style={{
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          color: 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        {label}
+                      </span>
+                    );
+                  })}
                 </div>
+              )}
 
-                {/* Defining traits */}
-                {Array.isArray(revealedArchetype.core_traits) && revealedArchetype.core_traits.length > 0 && (
-                  <div className="flex flex-wrap gap-2 justify-center mb-6">
-                    {revealedArchetype.core_traits.slice(0, 5).map((trait, i) => {
-                      const label = typeof trait === 'string' ? trait : (trait as { trait?: string })?.trait ?? '';
-                      if (!label) return null;
-                      return (
-                        <motion.span
-                          key={i}
-                          className="px-3 py-1 rounded-full text-xs"
-                          style={{
-                            backgroundColor: 'rgba(12, 10, 9, 0.06)',
-                            color: colors.textSecondary,
-                            fontFamily: 'var(--font-body)',
-                          }}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.15 + i * 0.07 }}
-                        >
-                          {label}
-                        </motion.span>
-                      );
-                    })}
-                  </div>
-                )}
+              {revealedArchetype.first_impression && (
+                <p
+                  className="text-sm leading-relaxed mb-8"
+                  style={{ color: 'rgba(255,255,255,0.5)' }}
+                >
+                  {revealedArchetype.first_impression}
+                </p>
+              )}
 
-                {/* Narrative */}
-                {revealedArchetype.first_impression && (
-                  <motion.p
-                    className="text-sm leading-relaxed text-center mb-8"
-                    style={{ color: colors.textSecondary, fontFamily: 'var(--font-body)' }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    {revealedArchetype.first_impression}
-                  </motion.p>
-                )}
+              <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 
-                {/* CTA */}
-                <div className="text-center">
-                  <motion.button
-                    onClick={() => navigate('/soul-signature')}
-                    className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-[14px] font-medium"
-                    style={{
-                      backgroundColor: 'var(--foreground)',
-                      color: 'var(--background)',
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                    whileHover={{ scale: 1.04, y: -1 }}
-                    whileTap={{ scale: 0.97 }}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    Enter your Twin
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
-                </div>
-              </GlassPanel>
-            </motion.div>
+              <button
+                onClick={() => navigate('/soul-signature')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: '#10b77f',
+                  color: '#0a0f0a',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                Enter your Twin
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           )}
         </div>
       )}
 
+      {/* Step 1: Platform connections */}
       {currentStep === 1 && (
         <div className="space-y-8">
           <SoulRichnessBar connectedPlatforms={activeConnections} />
 
+          <SectionLabel label="Entertainment" />
           <PlatformCategorySection
             categoryName="Entertainment"
             categorySubtext="Music, videos, streaming"
             categoryColor={colors.categoryEntertainment}
             connectors={entertainmentConnectors}
-            animationDelay={0.1}
-            dotDelay={0.2}
+            animationDelay={0}
+            dotDelay={0}
             {...categoryProps}
           />
 
+          <SectionLabel label="Health" />
           <PlatformCategorySection
             categoryName="Health"
             categorySubtext="Recovery, sleep, fitness"
             categoryColor={colors.categoryHealth}
             connectors={healthConnectors}
-            animationDelay={0.2}
-            dotDelay={0.3}
+            animationDelay={0}
+            dotDelay={0}
             {...categoryProps}
           />
 
+          <SectionLabel label="Social" />
           <PlatformCategorySection
             categoryName="Social"
             categorySubtext="Communities, discussions"
             categoryColor={colors.categorySocial}
             connectors={socialConnectors}
-            animationDelay={0.3}
-            dotDelay={0.4}
+            animationDelay={0}
+            dotDelay={0}
             {...categoryProps}
           />
 
+          <SectionLabel label="Professional" />
           <PlatformCategorySection
             categoryName="Professional"
             categorySubtext="Work, coding, email"
             categoryColor={colors.categoryProfessional}
             connectors={professionalConnectors}
-            animationDelay={0.4}
-            dotDelay={0.5}
+            animationDelay={0}
+            dotDelay={0}
             {...categoryProps}
           />
 
@@ -789,81 +693,60 @@ const InstantTwinOnboarding = () => {
             />
           )}
 
-          {/* Upload historical data exports */}
+          {/* Upload historical data */}
           {user && (
-            <GlassPanel>
-              <div className="mb-4">
-                <h3
-                  className="text-base mb-1"
-                  style={{ color: colors.textPrimary, fontFamily: 'var(--font-heading)', fontWeight: 400 }}
-                >
-                  Upload historical data
-                </h3>
-              </div>
+            <>
+              <Divider />
+              <SectionLabel label="Upload Historical Data" />
               <DataUploadPanel userId={user.id} />
-            </GlassPanel>
+            </>
           )}
 
+          {/* Generate CTA */}
           {connectedServices.length > 0 && (
-            <div className="text-center py-8">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                {expiredConnections.length > 0 ? (
-                  <svg className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                ) : (
-                  <CheckCircle2 className="w-5 h-5" style={{ color: colors.muted }} />
-                )}
-                <span
-                  className="text-sm"
+            <>
+              <Divider />
+              <div className="text-center py-4">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
+                    {expiredConnections.length > 0 && (
+                      <span className="ml-1" style={{ color: '#f59e0b' }}>
+                        ({expiredConnections.length} expired)
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <button
+                  onClick={startTwinGeneration}
+                  disabled={isGenerating}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
                   style={{
-                    fontFamily: 'var(--font-body)',
-                    color: colors.textSecondary
+                    backgroundColor: '#10b77f',
+                    color: '#0a0f0a',
+                    fontFamily: "'Inter', sans-serif",
+                    cursor: isGenerating ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
-                  {expiredConnections.length > 0 && (
-                    <span style={{ color: '#f59e0b', marginLeft: '6px' }}>
-                      ({expiredConnections.length} expired)
-                    </span>
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Discovering your archetype...
+                    </>
+                  ) : (
+                    <>
+                      Reveal Your Soul Archetype
+                      <ArrowRight className="w-4 h-4" />
+                    </>
                   )}
-                </span>
+                </button>
               </div>
-              <motion.button
-                onClick={startTwinGeneration}
-                disabled={isGenerating}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all hover:opacity-90 disabled:opacity-60"
-                style={{
-                  backgroundColor: 'var(--foreground)',
-                  color: 'var(--background)',
-                  fontFamily: 'var(--font-ui)',
-                  cursor: isGenerating ? 'not-allowed' : 'pointer',
-                }}
-                whileHover={!isGenerating ? { scale: 1.03, y: -1 } : {}}
-                whileTap={!isGenerating ? { scale: 0.97 } : {}}
-              >
-                {isGenerating ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </motion.div>
-                    Discovering your archetype...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Reveal Your Soul Archetype
-                  </>
-                )}
-              </motion.button>
-            </div>
+            </>
           )}
         </div>
       )}
-    </PageLayout>
+    </div>
   );
 };
 

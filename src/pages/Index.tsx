@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ArrowRight, ArrowUp, PlayCircle, Globe, MessageSquare, Music, Clock, Sparkles, Brain, Database, Eye, Bell, Shield } from 'lucide-react';
+import { ArrowRight, Globe, MessageSquare, Music, Brain, Database, Bell, Shield } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { InlineEvidence } from '../components/landing/InlineEvidence';
+import { useLenis } from '../hooks/useLenis';
 import {
   SpotifyLogo,
   GoogleCalendarLogo,
@@ -37,14 +39,6 @@ const CARD_IMAGES = {
   control: '/images/backgrounds/flower-card-5.jpg',
   cta: '/images/backgrounds/flower-card-4.jpg',
 };
-
-/* ── Quick-start discovery chips ── */
-const DISCOVERY_CHIPS = [
-  { label: 'Music taste', icon: Music },
-  { label: 'Daily rhythms', icon: Clock },
-  { label: 'Hidden patterns', icon: Sparkles },
-  { label: 'Personality traits', icon: Brain },
-];
 
 /* ── Service tab data ── */
 const SERVICES = [
@@ -83,11 +77,10 @@ const SERVICES = [
 ];
 
 const Index = () => {
+  useLenis();
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
   const [activeService, setActiveService] = useState(0);
-  const [promptValue, setPromptValue] = useState('');
-
   /* Auto-cycle services every 4s */
   useEffect(() => {
     const timer = setInterval(() => {
@@ -100,19 +93,6 @@ const Index = () => {
   if (isLoaded && isSignedIn) {
     return <Navigate to="/dashboard" replace />;
   }
-
-  const handlePromptSubmit = () => {
-    if (isSignedIn) {
-      navigate('/discover');
-    } else {
-      navigate('/discover');
-    }
-  };
-
-  const handleChipClick = (chip: string) => {
-    setPromptValue(chip);
-    handlePromptSubmit();
-  };
 
   return (
     <div className="w-full min-h-screen" style={{ backgroundColor: '#141414', color: '#F5F0EB', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
@@ -241,111 +221,6 @@ const Index = () => {
           height: 2px;
           background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
           opacity: 0.6;
-        }
-
-        /* ── Sunset glow behind prompt ── */
-        .prompt-glow-wrapper {
-          position: relative;
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 60px 0 40px;
-        }
-        .prompt-glow-wrapper::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 700px;
-          height: 400px;
-          background:
-            radial-gradient(ellipse 60% 70% at 50% 50%, rgba(232, 160, 80, 0.45) 0%, rgba(212, 100, 74, 0.2) 30%, rgba(91, 45, 110, 0.15) 55%, transparent 80%),
-            radial-gradient(ellipse 40% 50% at 50% 55%, rgba(255, 200, 100, 0.15) 0%, transparent 60%);
-          pointer-events: none;
-          z-index: 0;
-          animation: glowPulse 5s ease-in-out infinite;
-        }
-        @keyframes glowPulse {
-          0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
-          50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
-        }
-
-        /* Glass prompt input — Sundust dark */
-        .glass-prompt {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border-radius: 20px;
-          padding: 6px 6px 6px 24px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-          max-width: 620px;
-          transition: border-color 0.2s ease;
-          position: relative;
-          z-index: 1;
-        }
-        .glass-prompt:focus-within {
-          border-color: rgba(232, 160, 80, 0.5);
-        }
-        .glass-prompt input {
-          flex: 1;
-          background: none;
-          border: none;
-          outline: none;
-          font-family: 'Geist', sans-serif;
-          font-size: 15px;
-          font-weight: 400;
-          color: #F5F0EB;
-          padding: 14px 0;
-        }
-        .glass-prompt input::placeholder {
-          color: #A8A29E;
-          opacity: 0.5;
-        }
-        .glass-prompt .prompt-submit {
-          background: #F5F0EB;
-          color: #141414;
-          border: none;
-          border-radius: 50%;
-          width: 44px;
-          height: 44px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: opacity 0.2s ease, transform 0.2s ease;
-          flex-shrink: 0;
-        }
-        .glass-prompt .prompt-submit:hover { opacity: 0.85; transform: scale(1.05); }
-
-        /* Discovery chip — Sundust dark */
-        .discovery-chip {
-          font-family: 'Geist', sans-serif;
-          font-size: 13px;
-          font-weight: 400;
-          color: #A8A29E;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(232,160,80,0.18);
-          border-radius: 9999px;
-          padding: 10px 18px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          white-space: nowrap;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          position: relative;
-          z-index: 1;
-        }
-        .discovery-chip:hover {
-          border-color: rgba(232, 160, 80, 0.4);
-          color: #F5F0EB;
-          background: rgba(232, 160, 80, 0.08);
         }
 
         /* Step circle */
@@ -494,45 +369,35 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* ────────────── HERO ────────────── */}
-      <section className="px-6 lg:px-16 pt-20 pb-0 lg:pt-28">
-        <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-6">
-          {/* Accent label chip */}
-          <motion.span
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="claura-label"
-          >
-            Soul Signature Platform
-          </motion.span>
-
-          {/* Main heading */}
+      {/* ────────────── ACT 1: EMOTIONAL HOOK ────────────── */}
+      <section className="px-6 lg:px-16 pt-24 pb-16 lg:pt-36 lg:pb-28">
+        <div className="max-w-[520px] mx-auto text-center flex flex-col items-center">
+          {/* Main heading — let it breathe */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="heading-serif h1"
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="heading-serif h1 mb-8"
           >
-            From digital footprints to soul signature.
+            What if your data could reveal your soul?
           </motion.h1>
 
-          {/* Subtitle */}
+          {/* One paragraph — narrative voice, 60% opacity */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="body-text max-w-[620px]"
+            transition={{ duration: 0.7, delay: 0.3 }}
+            className="narrative-voice mb-10"
+            style={{ fontSize: '18px', maxWidth: '460px' }}
           >
-            We discover what makes you authentically YOU through patterns across your music, calendar, content, conversations, and professional life.
+            Your music, your calendar, your conversations — they already know who you are. We just listen to what they're saying.
           </motion.p>
 
-          {/* CTA buttons above prompt */}
+          {/* Single earned CTA — not loud, not multiple */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex items-center gap-4 flex-wrap justify-center"
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="btn-cta">
@@ -541,59 +406,29 @@ const Index = () => {
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
                 <button className="btn-cta">
-                  Start Free <ArrowRight className="w-4 h-4" />
+                  Discover yourself <ArrowRight className="w-4 h-4" />
                 </button>
               </SignInButton>
             )}
-            <button
-              className="btn-outline"
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              How we work <PlayCircle className="w-4 h-4" />
-            </button>
-          </motion.div>
-
-          {/* Prompt input with sunset glow behind it */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="prompt-glow-wrapper"
-          >
-            <div className="glass-prompt">
-              <input
-                type="text"
-                placeholder="What do you want to discover about yourself?"
-                value={promptValue}
-                onChange={(e) => setPromptValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handlePromptSubmit()}
-              />
-              <button className="prompt-submit" onClick={handlePromptSubmit} aria-label="Submit">
-                <ArrowUp className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Quick-start chips below input */}
-            <div className="flex flex-wrap justify-center gap-2 mt-5">
-              {DISCOVERY_CHIPS.map((chip) => {
-                const ChipIcon = chip.icon;
-                return (
-                  <button
-                    key={chip.label}
-                    className="discovery-chip"
-                    onClick={() => handleChipClick(chip.label)}
-                  >
-                    <ChipIcon className="w-3.5 h-3.5" />
-                    {chip.label}
-                  </button>
-                );
-              })}
-            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ────────────── PLATFORMS STRIP ────────────── */}
+      {/* ── Act transition — subtle breathing space ── */}
+      <div className="flex justify-center py-8">
+        <motion.div
+          initial={{ opacity: 0, scaleX: 0 }}
+          whileInView={{ opacity: 1, scaleX: 1 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+          className="w-12 h-px"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(232,160,80,0.4), transparent)' }}
+        />
+      </div>
+
+      {/* ────────────── ACT 2: PRODUCT DEPTH ────────────── */}
+
+      {/* ────────────── PLATFORMS STRIP (Act 2 opens) ────────────── */}
       <section className="px-6 lg:px-16 py-12 border-t border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
         <div className="max-w-[1200px] mx-auto">
           <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#706B63' }}>
@@ -761,12 +596,53 @@ const Index = () => {
             viewport={{ once: true, amount: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-5"
           >
-            {[
-              { icon: Database, title: 'Memory Stream', desc: 'Your complete digital footprint, unified and searchable' },
-              { icon: Brain, title: 'Expert Reflections', desc: 'AI-powered insights from multiple analytical perspectives' },
-              { icon: Bell, title: 'Proactive Insights', desc: 'Personalized recommendations delivered at the right moment' },
-              { icon: Shield, title: 'Privacy Spectrum', desc: 'Full control over what your twin knows and shares' },
-            ].map((feature, idx) => {
+            {([
+              {
+                icon: Database,
+                title: 'Memory Stream',
+                desc: 'Your complete digital footprint, unified and searchable',
+                evidence: {
+                  variant: 'memory' as const,
+                  type: 'Observation',
+                  text: 'Listened to "Clair de Lune" on repeat during a 3-hour deep work block — matches Thursday focus pattern.',
+                  source: 'Spotify · 2h ago',
+                },
+              },
+              {
+                icon: Brain,
+                title: 'Expert Reflections',
+                desc: 'AI-powered insights from multiple analytical perspectives',
+                evidence: {
+                  variant: 'conversation' as const,
+                  lines: [
+                    { role: 'user' as const, text: 'Why do I always feel drained on Tuesdays?' },
+                    { role: 'twin' as const, text: 'Your calendar shows back-to-back meetings every Tuesday afternoon. Your Spotify shifts to ambient music right after — a recovery pattern.' },
+                  ],
+                },
+              },
+              {
+                icon: Bell,
+                title: 'Proactive Insights',
+                desc: 'Personalized recommendations delivered at the right moment',
+                evidence: {
+                  variant: 'insight' as const,
+                  category: 'Energy Pattern',
+                  text: 'Your deep work output peaks between 9-11am, but you have meetings scheduled then on 3 of 5 weekdays.',
+                },
+              },
+              {
+                icon: Shield,
+                title: 'Privacy Spectrum',
+                desc: 'Full control over what your twin knows and shares',
+                evidence: {
+                  variant: 'conversation' as const,
+                  lines: [
+                    { role: 'user' as const, text: 'What do you know about my health data?' },
+                    { role: 'twin' as const, text: "Only what you've shared: sleep patterns from Whoop. Your medical records are not connected and I can't access them." },
+                  ],
+                },
+              },
+            ] as const).map((feature, idx) => {
               const FeatureIcon = feature.icon;
               return (
                 <motion.div
@@ -774,7 +650,7 @@ const Index = () => {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  viewport={{ once: true, amount: 0.5 }}
+                  viewport={{ once: true, amount: 0.3 }}
                   className="glass-feature-card"
                 >
                   <div
@@ -793,6 +669,7 @@ const Index = () => {
                     {feature.title}
                   </h4>
                   <p className="body-text">{feature.desc}</p>
+                  <InlineEvidence {...feature.evidence} />
                 </motion.div>
               );
             })}

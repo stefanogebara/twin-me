@@ -5,9 +5,7 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
-  Lock,
 } from 'lucide-react';
-import { Clay3DIcon } from '@/components/Clay3DIcon';
 import { PlatformLogo } from '@/components/PlatformLogos';
 
 interface ConnectedPlatformsSettingsProps {
@@ -41,9 +39,6 @@ const connectorConfig: ConnectorConfig[] = [
   { id: 'whoop', name: 'Whoop', description: 'Recovery, strain, sleep, and HRV patterns', isOAuth: true },
 ];
 
-// Glass card class from design system
-const cardClassName = 'glass-card';
-
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   isDemoMode,
   connectorStatus,
@@ -55,33 +50,21 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
   handleDisconnectService,
 }) => {
   return (
-    <section className={`p-5 ${cardClassName}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Clay3DIcon name="globe" size={20} />
-          <h2 className="heading-serif text-base">
-            Connected Platforms
-          </h2>
-          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-            color: '#10B981',
-            border: '1px solid rgba(16, 185, 129, 0.15)'
-          }}>
-            <Lock className="w-3 h-3" />
-            OAuth
-          </span>
-        </div>
+    <div>
+      {/* Refresh button — right-aligned, subtle */}
+      <div className="flex justify-end mb-3">
         <button
           onClick={() => refetch()}
-          className="p-2 rounded-lg transition-all hover:scale-105"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+          className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
+          style={{ color: 'rgba(255,255,255,0.25)' }}
+          title="Refresh status"
         >
-          <RefreshCw className="w-4 h-4" style={{ color: 'var(--foreground)' }} />
+          <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-3 mb-4 rounded-lg text-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+        <div className="flex items-center gap-2 mb-4 text-sm" style={{ color: '#ef4444' }}>
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
@@ -89,10 +72,10 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 
       {isLoading && !isDemoMode ? (
         <div className="flex items-center justify-center py-6">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--foreground)' }} />
+          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-0">
           {connectorConfig.map((connector) => {
             const connectionInfo = connectorStatus[connector.id];
             const isConnected = isDemoMode ? true : connectionInfo?.connected;
@@ -102,66 +85,61 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
             return (
               <div
                 key={connector.id}
-                className="flex items-center justify-between p-3 rounded-xl"
-                style={{
-                  backgroundColor: 'var(--glass-surface-bg)',
-                  border: '1px solid var(--glass-surface-border)'
-                }}
+                className="flex items-center justify-between py-3"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               >
-                <div className="flex items-center gap-2">
-                  <PlatformLogo platform={connector.id} size={22} />
+                <div className="flex items-center gap-3">
+                  <PlatformLogo platform={connector.id} size={18} />
                   <div>
-                    <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: 'var(--foreground)' }}>
+                    <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                       {connector.name}
-                    </h3>
-                    <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    </span>
+                    <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
                       {connector.description}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {isActiveConnection ? (
                     <>
-                      <CheckCircle className="w-4 h-4" style={{ color: '#10B981' }} />
+                      <CheckCircle className="w-3.5 h-3.5" style={{ color: '#10B981' }} />
                       {!isDemoMode && connector.isOAuth && (
                         <button
                           onClick={() => {
-                            if (window.confirm(`Disconnect ${connector.name}? This will remove access to your ${connector.name} data.`)) {
+                            if (window.confirm(`Disconnect ${connector.name}?`)) {
                               handleDisconnectService(connector.id);
                             }
                           }}
                           disabled={disconnectingService === connector.id}
-                          className="text-xs px-2 py-1 rounded-lg"
-                          style={{ color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                          className="text-[11px] transition-opacity hover:opacity-60"
+                          style={{ color: 'rgba(255,255,255,0.3)' }}
                         >
-                          {disconnectingService === connector.id ? 'Disconnecting...' : 'Disconnect'}
+                          {disconnectingService === connector.id ? '...' : 'Disconnect'}
                         </button>
                       )}
                       {isDemoMode && (
-                        <span className="text-xs px-2 py-1 rounded-lg" style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }}>
-                          Demo
-                        </span>
+                        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>Demo</span>
                       )}
                     </>
                   ) : isExpired ? (
                     <>
-                      <AlertCircle className="w-4 h-4" style={{ color: '#f59e0b' }} />
+                      <AlertCircle className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
                       <button
                         onClick={() => navigate('/get-started')}
-                        className="text-xs px-2 py-1 rounded-lg"
-                        style={{ color: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)' }}
+                        className="text-[11px]"
+                        style={{ color: '#f59e0b' }}
                       >
                         Reconnect
                       </button>
                     </>
                   ) : (
                     <>
-                      <XCircle className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                      <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.15)' }} />
                       {!isDemoMode && (
                         <button
                           onClick={() => navigate('/get-started')}
-                          className="text-xs px-2 py-1 rounded-lg"
-                          style={{ color: 'var(--accent-vibrant, #ff8400)', backgroundColor: 'rgba(255, 132, 0, 0.1)' }}
+                          className="text-[11px]"
+                          style={{ color: '#10b77f' }}
                         >
                           Connect
                         </button>
@@ -174,7 +152,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
           })}
         </div>
       )}
-    </section>
+    </div>
   );
 };
 

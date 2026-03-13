@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Brain, RefreshCw } from 'lucide-react';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { RefreshCw } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
 import DeepInterview from './onboarding/components/DeepInterview';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface CalibrationData {
   completed_at?: string;
@@ -27,6 +26,7 @@ function getUserIdFromToken(): string | null {
 }
 
 export default function InterviewPage() {
+  useDocumentTitle('Interview');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [alreadyDone, setAlreadyDone] = useState(false);
@@ -52,7 +52,6 @@ export default function InterviewPage() {
               setAlreadyDone(true);
               setCalibrationData(data);
             }
-            // Reuse enrichment_context from previous calibration if available
             if (data?.enrichment_context) {
               setEnrichmentContext(prev => ({ ...prev, ...data.enrichment_context }));
             }
@@ -68,21 +67,16 @@ export default function InterviewPage() {
     checkCompletion();
   }, []);
 
-  const handleComplete = () => {
-    navigate('/identity');
-  };
-
-  const handleSkip = () => {
-    navigate('/identity');
-  };
+  const handleComplete = () => navigate('/identity');
+  const handleSkip = () => navigate('/identity');
 
   if (loading) {
     return (
-      <PageLayout title="Tell Your Story">
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex items-center justify-center h-64">
-          <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin opacity-40" />
+          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
@@ -98,74 +92,42 @@ export default function InterviewPage() {
       : null;
 
     return (
-      <PageLayout title="Tell Your Story">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-xl mx-auto py-12"
+      <div className="max-w-[680px] mx-auto px-6 py-16">
+        {/* Header */}
+        <h1
+          className="mb-2"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '28px',
+            fontWeight: 400,
+            color: 'var(--foreground)',
+            letterSpacing: '-0.02em',
+          }}
         >
-          {/* Celebration header */}
-          <div className="text-center mb-8">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-              className="inline-flex items-center justify-center w-14 h-14 rounded-full mb-4"
-              style={{
-                backgroundColor: 'var(--accent-vibrant-glow)',
-                border: '1px solid var(--glass-surface-border)',
-              }}
-            >
-              <Sparkles className="w-6 h-6" style={{ color: 'var(--accent-vibrant)' }} />
-            </motion.div>
+          Interview Complete
+        </h1>
+        <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          {completedDate ? `Completed ${completedDate}` : 'Your twin has your story'}
+        </p>
 
-            <h2
-              className="text-2xl md:text-3xl mb-2"
-              style={{
-                fontFamily: 'Instrument Serif, Georgia, serif',
-                fontWeight: 400,
-                letterSpacing: '-0.02em',
-                color: 'var(--foreground)',
-              }}
-            >
-              Interview Complete
-            </h2>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              {completedDate ? `Completed ${completedDate}` : 'Your twin has your story'}
-            </p>
-          </div>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
 
-          {/* Archetype card */}
-          {(archetype || summary) && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-2xl p-6 mb-6"
-              style={{
-                backgroundColor: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid var(--glass-surface-border)',
-                boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-              }}
-            >
-              {archetype && (
-                <div className="flex items-center gap-2 mb-3">
-                  <Brain className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
-                  <span
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}
-                  >
-                    Your Archetype
-                  </span>
-                </div>
-              )}
-              {archetype && (
+        {/* Archetype */}
+        {(archetype || summary) && (
+          <div className="mb-10">
+            {archetype && (
+              <>
+                <span
+                  className="text-[11px] font-medium tracking-widest uppercase block mb-3"
+                  style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+                >
+                  Your Archetype
+                </span>
                 <p
                   className="text-xl mb-3"
                   style={{
-                    fontFamily: 'Instrument Serif, Georgia, serif',
+                    fontFamily: "'Instrument Serif', Georgia, serif",
                     fontWeight: 400,
                     letterSpacing: '-0.02em',
                     color: 'var(--foreground)',
@@ -173,93 +135,95 @@ export default function InterviewPage() {
                 >
                   {archetype}
                 </p>
-              )}
-              {summary && (
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{
-                    color: 'var(--text-secondary)',
-                    fontFamily: 'Inter, sans-serif',
-                  }}
-                >
-                  {summary}
-                </p>
-              )}
-            </motion.div>
-          )}
+              </>
+            )}
+            {summary && (
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+              >
+                {summary}
+              </p>
+            )}
+          </div>
+        )}
 
-          {/* Action buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3"
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+
+        {/* Actions */}
+        <div className="space-y-3">
+          <button
+            onClick={() => navigate('/identity')}
+            className="w-full py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+            style={{
+              backgroundColor: '#10b77f',
+              color: '#0a0f0a',
+              fontFamily: "'Inter', sans-serif",
+            }}
           >
-            {/* Primary CTA — Explore Identity */}
+            Explore Your Soul Signature
+          </button>
+
+          <div className="flex gap-3">
             <button
-              onClick={() => navigate('/identity')}
-              className="w-full px-6 py-4 rounded-[100px] text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01]"
+              onClick={() => {
+                setAlreadyDone(false);
+                setCalibrationData(null);
+              }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm transition-opacity hover:opacity-70"
               style={{
-                backgroundColor: '#252222',
-                color: '#fdfcfb',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.5)',
+                fontFamily: "'Inter', sans-serif",
               }}
             >
-              Explore Your Soul Signature
-              <ArrowRight className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5" />
+              Redo Interview
             </button>
-
-            {/* Secondary actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setAlreadyDone(false);
-                  setCalibrationData(null);
-                }}
-                className="flex-1 px-4 py-3 rounded-[100px] text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01]"
-                style={{
-                  backgroundColor: 'var(--glass-surface-bg)',
-                  border: '1px solid var(--glass-surface-border)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Redo Interview
-              </button>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex-1 px-4 py-3 rounded-[100px] text-sm flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.01]"
-                style={{
-                  backgroundColor: 'var(--glass-surface-bg)',
-                  border: '1px solid var(--glass-surface-border)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                Back to Home
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      </PageLayout>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex-1 py-3 rounded-lg text-sm transition-opacity hover:opacity-70"
+              style={{
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.5)',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <PageLayout title="Tell Your Story">
-      <div className="max-w-2xl mx-auto">
-        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-          A quick conversation across 5 life domains. Your answers seed your twin with the context no platform data can capture.
-        </p>
-        <div
-          className="rounded-2xl p-6"
-          style={{ backgroundColor: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
-        >
-          <DeepInterview
-            enrichmentContext={enrichmentContext}
-            onComplete={handleComplete}
-            onSkip={handleSkip}
-          />
-        </div>
-      </div>
-    </PageLayout>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
+      {/* Header */}
+      <h1
+        className="mb-2"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: '28px',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Tell Your Story
+      </h1>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        A quick conversation across 5 life domains. Your answers seed your twin with context no platform data can capture.
+      </p>
+
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
+
+      <DeepInterview
+        enrichmentContext={enrichmentContext}
+        onComplete={handleComplete}
+        onSkip={handleSkip}
+      />
+    </div>
   );
 }

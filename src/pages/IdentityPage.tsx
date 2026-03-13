@@ -1,11 +1,8 @@
 /**
- * IdentityPage — "Who You Are"
- * ==============================
- * Surfaces everything the twin knows about the user in one structured view:
- * - Twin summary paragraph
- * - Archetype + uniqueness markers as badges
- * - 5 expert sections (Accordion) with reflection bullets
- * - Music signature (if available)
+ * IdentityPage — "Your Soul Signature"
+ * ======================================
+ * Progressive reveal: 8 chapters stacked vertically with small caps labels,
+ * colored domain dots, thin dividers. Dark, typography-driven — no cards.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -13,29 +10,17 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
-import { PageLayout } from '@/components/layout/PageLayout';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import {
-  Brain,
-  Activity,
-  Music,
-  Users,
-  Target,
   Fingerprint,
   RefreshCw,
   AlertCircle,
-  ChevronDown,
   Share2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toSecondPerson } from '@/lib/utils';
-import { PersonalityCards } from '@/components/visualizations/PersonalityCards';
 import { RadarDataPoint } from '@/utils/dataTransformers';
+import { useLenis } from '@/hooks/useLenis';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -70,7 +55,19 @@ interface IdentityData {
   summaryUpdatedAt: string | null;
 }
 
-// ── Expert section config ───────────────────────────────────────────────────
+interface PersonalityProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  temperature: number;
+  top_p: number;
+  confidence: number;
+  last_built_at: string;
+}
+
+// ── Expert config ────────────────────────────────────────────────────────
 
 type ExpertKey =
   | 'personality_psychologist'
@@ -79,53 +76,19 @@ type ExpertKey =
   | 'social_dynamics'
   | 'motivation_analyst';
 
-interface ExpertConfig {
+const EXPERT_SECTIONS: Array<{
   key: ExpertKey;
   label: string;
-  Icon: React.ElementType;
-  color: string;
-  bgColor: string;
-}
-
-const EXPERT_SECTIONS: ExpertConfig[] = [
-  {
-    key: 'personality_psychologist',
-    label: 'Your Emotional World',
-    Icon: Brain,
-    color: 'var(--expert-personality)',
-    bgColor: 'var(--expert-personality-bg)',
-  },
-  {
-    key: 'lifestyle_analyst',
-    label: 'How You Live',
-    Icon: Activity,
-    color: 'var(--expert-lifestyle)',
-    bgColor: 'var(--expert-lifestyle-bg)',
-  },
-  {
-    key: 'cultural_identity',
-    label: 'Your Cultural DNA',
-    Icon: Music,
-    color: 'var(--expert-cultural)',
-    bgColor: 'var(--expert-cultural-bg)',
-  },
-  {
-    key: 'social_dynamics',
-    label: 'How You Connect',
-    Icon: Users,
-    color: 'var(--expert-social)',
-    bgColor: 'var(--expert-social-bg)',
-  },
-  {
-    key: 'motivation_analyst',
-    label: 'What Drives You',
-    Icon: Target,
-    color: 'var(--expert-motivation)',
-    bgColor: 'var(--expert-motivation-bg)',
-  },
+  dotColor: string;
+}> = [
+  { key: 'personality_psychologist', label: 'Personality', dotColor: '#c17e2c' },
+  { key: 'lifestyle_analyst', label: 'Lifestyle', dotColor: '#5d5cae' },
+  { key: 'cultural_identity', label: 'Cultural Taste', dotColor: '#c1452c' },
+  { key: 'social_dynamics', label: 'Social Dynamics', dotColor: '#2cc1a0' },
+  { key: 'motivation_analyst', label: 'Motivation', dotColor: '#c1a02c' },
 ];
 
-// ── Demo fallback data ──────────────────────────────────────────────────────
+// ── Demo fallback ────────────────────────────────────────────────────────
 
 const DEMO_IDENTITY_DATA: IdentityData = {
   identity: {
@@ -140,67 +103,38 @@ const DEMO_IDENTITY_DATA: IdentityData = {
   },
   profile: {
     archetype: 'The Creative Synthesizer',
-    uniqueness_markers: [
-      'Rhythmic Thinker',
-      'Intentional Planner',
-      'Curious Generalist',
-      'Community Builder',
-    ],
+    uniqueness_markers: ['Rhythmic Thinker', 'Intentional Planner', 'Curious Generalist', 'Community Builder'],
     music_signature: {
       top_genres: ['Lo-fi', 'Ambient', 'Synthwave', 'Classical Crossover'],
-      listening_patterns: 'Uses music as a cognitive tool — high-energy for morning focus, ambient for deep work, lo-fi for transitions. Peak listening: 10pm-2am.',
+      listening_patterns: 'Uses music as a cognitive tool — high-energy for morning focus, ambient for deep work, lo-fi for transitions.',
     },
     core_values: ['Curiosity', 'Authenticity', 'Deep Work', 'Creative Freedom'],
-    personality_summary: 'Highly open to new experiences with strong conscientiousness when it matters. Thrives in environments that blend structure with creative freedom. Your digital footprint reveals someone who is simultaneously structured and spontaneous.',
+    personality_summary: 'Highly open to new experiences with strong conscientiousness. Thrives in environments that blend structure with creative freedom.',
   },
   expertInsights: {
     personality_psychologist: [
-      'Your music selection follows a clear emotional regulation strategy — high-energy tracks during morning focus, ambient during deep work, lo-fi during transitions.',
-      'You demonstrate high openness (0.85) paired with moderate conscientiousness (0.78), a combination that enables creative productivity.',
-      'Your emotional processing style leans toward introspective — you use solitary activities (music, focused work) to recharge rather than social interaction.',
+      'Your music selection follows a clear emotional regulation strategy — high-energy tracks during morning focus, ambient during deep work.',
+      'You demonstrate high openness (0.85) paired with moderate conscientiousness (0.78).',
     ],
     lifestyle_analyst: [
-      'Calendar data reveals meeting clustering behavior — bunching meetings into Tuesday/Thursday afternoons, preserving mornings for uninterrupted work.',
-      'Your daily rhythm follows a consistent pattern: morning focus blocks, afternoon collaboration, late-night creative exploration.',
-      'You maintain a strong work-life boundary with 45% of calendar time blocked for deep work — well above the average of 20%.',
+      'Calendar data reveals meeting clustering — bunching meetings into Tuesday/Thursday afternoons, preserving mornings for uninterrupted work.',
     ],
     cultural_identity: [
-      'Your aesthetic preferences lean toward immersive, textured experiences — electronic, ambient, and lo-fi traditions over mainstream pop.',
-      'Content consumption shows an 80/20 split: 80% niche technical content versus 20% broader cultural content.',
-      'You are a specialist who stays culturally literate — drawing from sound, systems thinking, and storytelling traditions.',
+      'Your aesthetic preferences lean toward immersive, textured experiences — electronic, ambient, and lo-fi traditions.',
     ],
     social_dynamics: [
-      'Your social energy is concentrated in 3 niche communities centered on shared intellectual interests rather than broad social networks.',
-      'You prefer depth of connection over breadth — fewer, more meaningful relationships built around shared passions.',
-      'Communication style is warm but precise — you think in systems and speak in stories.',
+      'Your social energy is concentrated in 3 niche communities centered on shared intellectual interests.',
     ],
     motivation_analyst: [
       'Driven by mastery and novelty simultaneously — you set ambitious goals but pace them with intentional recovery cycles.',
-      'Your goal tracking shows strong follow-through: 83% completion rate on self-set targets over the past month.',
-      'You respond strongly to intrinsic motivation (learning, creating) over extrinsic rewards (status, recognition).',
     ],
   },
-  summary: 'You are a creative synthesizer who finds meaning at the intersection of music, technology, and human connection. Your listening patterns show deep emotional intelligence — you use sound as a tool for focus, recovery, and self-expression. The 45% of calendar time blocked for deep work reveals someone who guards their attention fiercely while remaining highly collaborative when present. Your personality combines high openness to experience with structured conscientiousness, enabling both creative exploration and reliable execution.',
+  summary: 'You are a creative synthesizer who finds meaning at the intersection of music, technology, and human connection.',
   summaryUpdatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
 };
 
-// ── Badge colors for archetype / traits ────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────
 
-const BADGE_PALETTE = [
-  { bg: 'rgba(139, 92, 246, 0.12)', color: '#6D28D9' },
-  { bg: 'rgba(16, 185, 129, 0.12)', color: '#065F46' },
-  { bg: 'rgba(245, 158, 11, 0.12)', color: '#92400E' },
-  { bg: 'rgba(59, 130, 246, 0.12)', color: '#60A5FA' },
-  { bg: 'rgba(239, 68, 68, 0.12)',  color: '#991B1B' },
-  { bg: 'rgba(20, 184, 166, 0.12)', color: '#5EEAD4' },
-];
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Strip raw citation markers that LLMs sometimes inject into reflections.
- * Examples: [Memory #34], [Source: Spotify], [Based on memory data], [Ref 2], etc.
- */
 function stripCitations(text: string): string {
   return text
     .replace(/\[Memory\s*#?\d+\]/gi, '')
@@ -214,20 +148,10 @@ function stripCitations(text: string): string {
     .trim();
 }
 
-/**
- * Strip leading bullet markers (-, *, numbered) the LLM may have left.
- */
 function stripLeadingBullet(text: string): string {
   return text.replace(/^[-*]\s+/, '').replace(/^\d+\.\s*/, '').trim();
 }
 
-/**
- * Clean and deduplicate expert bullet strings.
- * - Strips citations and leading bullet markers
- * - Deduplicates by normalised lowercase comparison
- * - Filters out empty strings
- */
-/** Bigram similarity (Dice coefficient) for fuzzy dedup */
 function bigramSimilarity(a: string, b: string): number {
   const bigrams = (s: string) => {
     const bg = new Set<string>();
@@ -247,7 +171,6 @@ function cleanBullets(bullets: string[]): string[] {
   for (const raw of bullets) {
     const text = stripCitations(stripLeadingBullet(raw));
     if (!text) continue;
-    // Skip if too similar to any already-kept bullet (>0.75 bigram similarity)
     const isDuplicate = cleaned.some((existing) => bigramSimilarity(existing, text) > 0.75);
     if (isDuplicate) continue;
     cleaned.push(text);
@@ -255,96 +178,61 @@ function cleanBullets(bullets: string[]): string[] {
   return cleaned;
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+// ── Sub-components ───────────────────────────────────────────────────────
 
-interface ColoredBadgeProps {
-  label: string;
-  index: number;
-}
-
-const ColoredBadge: React.FC<ColoredBadgeProps> = ({ label, index }) => {
-  const palette = BADGE_PALETTE[index % BADGE_PALETTE.length];
-  return (
+const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#10b77f' }) => (
+  <div className="flex items-center gap-2 mb-4">
+    {color !== '#10b77f' && (
+      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+    )}
     <span
-      className="inline-block rounded-full px-4 py-2 text-sm font-medium"
-      style={{ background: palette.bg, border: `1px solid ${palette.color}22`, color: palette.color }}
+      className="text-[11px] font-medium tracking-widest uppercase"
+      style={{ color, fontFamily: 'Inter, sans-serif' }}
     >
       {label}
     </span>
-  );
-};
+  </div>
+);
 
-interface ExpertSectionProps {
-  config: ExpertConfig;
-  bullets: string[];
-}
+const Divider: React.FC = () => (
+  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+);
 
-const ExpertSection: React.FC<ExpertSectionProps> = ({ config, bullets: rawBullets }) => {
-  const { key, label, Icon, color, bgColor } = config;
-  const bullets = cleanBullets(rawBullets);
-  const hasBullets = bullets.length > 0;
+const OceanBar: React.FC<{ trait: string; value: number }> = ({ trait, value }) => (
+  <div className="flex items-center gap-3">
+    <span className="text-[13px] w-36 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
+      {trait}
+    </span>
+    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+      <div
+        className="h-full rounded-full transition-all"
+        style={{
+          width: `${value}%`,
+          backgroundColor: '#10b77f',
+          opacity: 0.6,
+        }}
+      />
+    </div>
+    <span className="text-[13px] w-10 text-right flex-shrink-0" style={{ color: 'var(--foreground)' }}>
+      {value}%
+    </span>
+  </div>
+);
 
-  return (
-    <AccordionItem value={key} className="border-b last:border-0" style={{ borderColor: 'var(--glass-surface-border)' }}>
-      <AccordionTrigger className="py-4 px-5 hover:no-underline" style={{ borderLeft: `3px solid ${color}33` }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: bgColor }}
-          >
-            <Icon className="w-4 h-4" style={{ color }} />
-          </div>
-          <span className="text-sm text-left" style={{ fontFamily: 'var(--font-ui)', fontWeight: 500, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>{label}</span>
-          {!hasBullets && (
-            <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>(still learning)</span>
-          )}
-        </div>
-      </AccordionTrigger>
-      <AccordionContent style={{ padding: '1.5rem 2rem' }}>
-        {hasBullets ? (
-          <ul className="space-y-3 pl-11">
-            {bullets.map((bullet, i) => (
-              <li key={i} className="flex gap-2.5 leading-7" style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-                <span className="mt-2.5 flex-shrink-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                <span>{toSecondPerson(bullet)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="pl-11 italic leading-relaxed" style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-            Nothing here yet — keep your platforms connected and I'll fill this in as I notice things.
-          </p>
-        )}
-      </AccordionContent>
-    </AccordionItem>
-  );
-};
-
-// ── Main page ──────────────────────────────────────────────────────────────
+// ── Main page ────────────────────────────────────────────────────────────
 
 const IdentityPage: React.FC = () => {
+  useLenis();
+  useDocumentTitle('Your Soul Signature');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [archetypeExpanded, setArchetypeExpanded] = useState(false);
 
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
   useEffect(() => {
     if (!user && !isDemoMode) navigate('/auth');
   }, [user, isDemoMode, navigate]);
-
-  interface PersonalityProfile {
-    openness: number;
-    conscientiousness: number;
-    extraversion: number;
-    agreeableness: number;
-    neuroticism: number;
-    temperature: number;
-    top_p: number;
-    confidence: number;
-    last_built_at: string;
-  }
 
   const { data: personalityData } = useQuery<{ success: boolean; profile: PersonalityProfile }>({
     queryKey: ['personality-profile'],
@@ -364,7 +252,7 @@ const IdentityPage: React.FC = () => {
       if (!res.ok) throw new Error('Failed to load identity data');
       return res.json();
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes — identity changes slowly
+    staleTime: 5 * 60 * 1000,
     enabled: !!user && !isDemoMode,
     initialData: isDemoMode ? { success: true, data: DEMO_IDENTITY_DATA } : undefined,
   });
@@ -373,36 +261,28 @@ const IdentityPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <PageLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground text-sm">Assembling your soul portrait...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Assembling your portrait...</p>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (error && !isDemoMode) {
     return (
-      <PageLayout>
-        <div className="max-w-2xl mx-auto px-4 py-12">
-          <div
-            className="p-4 rounded-xl flex items-center gap-3"
-            style={{ backgroundColor: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.2)' }}
-          >
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-            <span className="text-sm text-red-800">
-              {(error as Error).message || 'Could not load identity data. Try refreshing.'}
-            </span>
-          </div>
+      <div className="max-w-2xl mx-auto px-6 py-16">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#EF4444' }} />
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {(error as Error).message || 'Could not load identity data.'}
+          </span>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
-  const identity = data?.data?.identity ?? null;
   const profile = data?.data?.profile ?? null;
   const expertInsights = data?.data?.expertInsights ?? {};
   const summary = data?.data?.summary ?? null;
@@ -417,42 +297,44 @@ const IdentityPage: React.FC = () => {
   // Empty state
   if (!hasAnyData) {
     return (
-      <PageLayout>
-        <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/8 flex items-center justify-center mx-auto mb-6">
-            <Fingerprint className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground mb-3">I'm still figuring you out</h2>
-          <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mx-auto mb-6">
-            Connect Spotify, Calendar, or YouTube and I'll start building a real picture of you — not just facts, but patterns. Usually takes a couple of days.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => navigate('/get-started')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium"
-              style={{ backgroundColor: 'var(--foreground)', color: 'var(--background)' }}
-            >
-              Connect platforms
-            </button>
-            <button
-              onClick={() => navigate('/interview')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border border-white/10"
-              style={{ color: 'var(--foreground)' }}
-            >
-              Complete your interview
-            </button>
-          </div>
+      <div className="max-w-xl mx-auto px-6 py-20 text-center">
+        <Fingerprint className="w-8 h-8 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.15)' }} />
+        <h2
+          className="text-xl mb-3"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            color: 'var(--foreground)',
+            opacity: 0.8,
+          }}
+        >
+          I'm still figuring you out
+        </h2>
+        <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={() => navigate('/get-started')}
+            className="px-5 py-2 rounded-full text-sm font-medium"
+            style={{ border: '1px solid #10b77f', color: '#10b77f' }}
+          >
+            Connect platforms
+          </button>
+          <button
+            onClick={() => navigate('/interview')}
+            className="px-5 py-2 rounded-full text-sm font-medium"
+            style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+          >
+            Complete your interview
+          </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   const uniquenessMarkers: string[] = Array.isArray(profile?.uniqueness_markers)
     ? profile.uniqueness_markers.filter(Boolean)
-    : [];
-
-  const coreValues: string[] = Array.isArray(profile?.core_values)
-    ? profile.core_values.filter(Boolean)
     : [];
 
   const musicGenres: string[] = Array.isArray(profile?.music_signature?.top_genres)
@@ -464,9 +346,6 @@ const IdentityPage: React.FC = () => {
       ? profile.music_signature.listening_patterns
       : null;
 
-  const hasMusicSection = musicGenres.length > 0 || !!listeningPattern;
-
-  // OCEAN data for PersonalityCards
   const pp = personalityData?.profile;
   const oceanCards: RadarDataPoint[] | null = pp?.openness != null
     ? [
@@ -478,291 +357,223 @@ const IdentityPage: React.FC = () => {
       ]
     : null;
 
-  // Identity meta pill (confidence-aware)
-  const identityMetaPill =
-    identity && identity.lifeStage !== 'unknown'
-      ? `${identity.lifeStage.replace(/_/g, ' ')}${identity.approximateAge ? ` · ~${identity.approximateAge}` : ''}${identity.careerSalience !== 'unknown' ? ` · ${identity.careerSalience} career salience` : ''}`
-      : null;
+  // Summary preview
+  const dotIdx = summary ? summary.indexOf('. ') : -1;
+  const cutoff = dotIdx !== -1 && dotIdx < 180 ? dotIdx + 1 : 150;
+  const summaryPreview = summary ? summary.slice(0, cutoff) : '';
+  const summaryNeedsTruncation = summary ? summary.length > summaryPreview.length : false;
 
   return (
-    <PageLayout>
-      <div className="max-w-3xl mx-auto px-4 py-12 space-y-16">
+    <div className="max-w-[680px] mx-auto px-6 py-16">
 
-        {/* Header */}
-        <div style={{ marginBottom: '3rem' }}>
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/8 flex items-center justify-center">
-                <Fingerprint className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <div>
-                <h1
-                  className="heading-serif"
-                  style={{
-                    fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-                    fontWeight: 400,
-                    letterSpacing: '-0.05em',
-                    lineHeight: 1.1,
-                    color: 'var(--foreground)',
-                  }}
-                >Who You Are</h1>
-                <p className="text-lg mt-1" style={{ color: 'var(--text-secondary)' }}>What your twin knows about you</p>
-              </div>
-            </div>
-            {!isDemoMode && user && (
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <h1
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontSize: '32px',
+              fontWeight: 400,
+              color: 'var(--foreground)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}
+          >
+            Your Soul Signature
+          </h1>
+          <div className="w-10 h-[2px] mt-2" style={{ backgroundColor: '#10b77f' }} />
+        </div>
+        {!isDemoMode && user && (
+          <button
+            onClick={() => {
+              const shareUrl = `${window.location.origin}/p/${user.id}`;
+              navigator.clipboard.writeText(shareUrl).then(() => {
+                toast.success('Link copied!');
+              }).catch(() => {
+                toast.error('Could not copy link');
+              });
+            }}
+            className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 flex-shrink-0 mt-2"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            Share
+          </button>
+        )}
+      </div>
+      <p className="text-sm mb-12" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        A living portrait, drawn from your data
+      </p>
+
+      {/* ── Chapter 1: SOUL ── */}
+      {summary && (
+        <>
+          <SectionLabel label="Soul" />
+          {profile?.archetype && (
+            <h2
+              className="mb-4"
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: '22px',
+                fontWeight: 400,
+                color: 'var(--foreground)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              {profile.archetype}
+            </h2>
+          )}
+          <div>
+            <p className="text-[15px] leading-relaxed max-w-prose" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {toSecondPerson(summaryExpanded ? summary : summaryPreview)}
+            </p>
+            {summaryNeedsTruncation && (
               <button
-                onClick={() => {
-                  const shareUrl = `${window.location.origin}/p/${user.id}`;
-                  navigator.clipboard.writeText(shareUrl).then(() => {
-                    toast.success('Link copied! Share your Soul Signature');
-                  }).catch(() => {
-                    toast.error('Could not copy link');
-                  });
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium glass-button flex-shrink-0"
+                onClick={() => setSummaryExpanded(!summaryExpanded)}
+                className="mt-2 text-xs"
+                style={{ color: '#10b77f' }}
               >
-                <Share2 className="w-3.5 h-3.5" />
-                Share
+                {summaryExpanded ? 'Show less' : 'Read more'}
               </button>
             )}
           </div>
-          {identityMetaPill && (
-            <span
-              className="inline-block mt-2 rounded-full px-4 py-2 text-sm font-medium"
-              style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)', color: 'var(--text-secondary)', marginBottom: '2rem' }}
-            >
-              {identityMetaPill}
-            </span>
+          {uniquenessMarkers.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-5">
+              {uniquenessMarkers.map((marker, i) => (
+                <span
+                  key={i}
+                  className="text-[12px] px-3 py-1.5 rounded-full"
+                  style={{
+                    color: 'rgba(255,255,255,0.6)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  {marker}
+                </span>
+              ))}
+            </div>
           )}
-        </div>
+          <Divider />
+        </>
+      )}
 
-        {/* Twin Summary */}
-        {summary && (() => {
-          const dotIdx = summary.indexOf('. ');
-          const cutoff = dotIdx !== -1 && dotIdx < 180 ? dotIdx + 1 : 150;
-          const preview = summary.slice(0, cutoff);
-          const needsTruncation = summary.length > preview.length;
-          return (
-            <div className="glass-card rounded-2xl p-8">
-              <p
-                className="text-xs font-semibold uppercase tracking-widest"
-                style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}
-              >
-                Twin Summary
-              </p>
-              {summaryExpanded ? (
-                <>
-                  <p className="text-foreground leading-relaxed text-[15px]">{toSecondPerson(summary)}</p>
-                  {needsTruncation && (
-                    <button
-                      onClick={() => setSummaryExpanded(false)}
-                      className="mt-2 text-xs"
-                      style={{ color: 'var(--accent-vibrant)' }}
-                    >
-                      Show less
-                    </button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="text-foreground leading-relaxed text-[15px]">{toSecondPerson(preview)}</p>
-                  {needsTruncation && (
-                    <button
-                      onClick={() => setSummaryExpanded(true)}
-                      className="mt-2 text-xs"
-                      style={{ color: 'var(--accent-vibrant)' }}
-                    >
-                      Read more
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* Interview CTA */}
-        <div className="text-center" style={{ marginBottom: '2.5rem' }}>
-          <button
-            onClick={() => navigate('/interview')}
-            className="text-xs transition-opacity hover:opacity-60"
-            style={{ color: 'var(--accent-vibrant)' }}
-          >
-            Improve accuracy → Redo your interview
-          </button>
-        </div>
-
-        {/* Archetype + Uniqueness Markers */}
-        {(profile?.archetype || uniquenessMarkers.length > 0 || coreValues.length > 0) && (
-          <div className="glass-card rounded-2xl p-8 space-y-6" style={{ marginBottom: '3rem' }}>
-            {profile?.archetype && (
-              <div>
-                <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-1"
-                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
-                >
-                  Archetype
-                </p>
-                <p className="text-lg" style={{ fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}>{profile.archetype}</p>
-                {profile?.personality_summary && (() => {
-                  const ps = profile.personality_summary!;
-                  const psPreview = ps.slice(0, 120);
-                  const psNeedsTruncation = ps.length > 120;
-                  return (
-                    <div className="mt-1">
-                      {archetypeExpanded ? (
-                        <>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{toSecondPerson(ps)}</p>
-                          {psNeedsTruncation && (
-                            <button
-                              onClick={() => setArchetypeExpanded(false)}
-                              className="mt-1 text-xs"
-                              style={{ color: 'var(--accent-vibrant)' }}
-                            >
-                              Show less
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{toSecondPerson(psPreview)}{psNeedsTruncation ? '…' : ''}</p>
-                          {psNeedsTruncation && (
-                            <button
-                              onClick={() => setArchetypeExpanded(true)}
-                              className="mt-1 text-xs"
-                              style={{ color: 'var(--accent-vibrant)' }}
-                            >
-                              Read more
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  );
-                })()}
+      {/* ── Chapter 2: BY THE NUMBERS ── */}
+      {oceanCards && (
+        <>
+          <SectionLabel label="By the Numbers" />
+          <div className="grid grid-cols-2 gap-6">
+            {[
+              { value: oceanCards.find(o => o.trait === 'Openness')?.value ?? '--', unit: '%', label: 'Openness' },
+              { value: oceanCards.find(o => o.trait === 'Conscientiousness')?.value ?? '--', unit: '%', label: 'Conscientiousness' },
+              { value: oceanCards.find(o => o.trait === 'Extraversion')?.value ?? '--', unit: '%', label: 'Extraversion' },
+              { value: oceanCards.find(o => o.trait === 'Agreeableness')?.value ?? '--', unit: '%', label: 'Agreeableness' },
+            ].map((stat, i) => (
+              <div key={i}>
+                <span className="text-[28px] font-medium" style={{ color: 'var(--foreground)' }}>
+                  {stat.value}
+                  <span className="text-[11px] ml-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{stat.unit}</span>
+                </span>
+                <div className="text-[13px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{stat.label}</div>
               </div>
-            )}
-
-            {uniquenessMarkers.length > 0 && (
-              <div>
-                <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
-                >
-                  What makes you unique
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {uniquenessMarkers.map((marker, i) => (
-                    <ColoredBadge key={i} label={marker} index={i} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {coreValues.length > 0 && (
-              <div>
-                <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-2"
-                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
-                >
-                  Core values
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {coreValues.map((value, i) => (
-                    <ColoredBadge key={i} label={value} index={i + 2} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Expert Insights Accordion */}
-        <div className="glass-card rounded-2xl overflow-hidden" style={{ padding: '2.5rem' }}>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <p
-              className="text-base"
-              style={{ fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}
-            >
-              Expert Perspectives
-            </p>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              5 specialist lenses from your twin's reflection engine
-            </p>
-          </div>
-          <Accordion type="multiple" defaultValue={[EXPERT_SECTIONS[0].key]} className="space-y-2">
-            {EXPERT_SECTIONS.map((config) => (
-              <ExpertSection
-                key={config.key}
-                config={config}
-                bullets={expertInsights[config.key] ?? []}
-              />
             ))}
-          </Accordion>
-        </div>
+          </div>
+          <Divider />
+        </>
+      )}
 
-        {/* OCEAN Big Five */}
-        {oceanCards && (
-          <div className="glass-card rounded-2xl p-8" style={{ marginBottom: '3rem' }}>
-            <div className="flex items-start justify-between mb-6">
-              <div>
+      {/* ── Chapter 3: PERSONALITY (OCEAN bars) ── */}
+      {oceanCards && (
+        <>
+          <SectionLabel label="Personality" color="#c17e2c" />
+          <div className="space-y-3">
+            {oceanCards.map((oc) => (
+              <OceanBar key={oc.trait} trait={oc.trait} value={oc.value} />
+            ))}
+          </div>
+          {pp?.temperature != null && (
+            <p className="text-[11px] mt-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              temp {pp.temperature.toFixed(2)} · top_p {pp.top_p.toFixed(3)} · confidence {Math.round((pp.confidence ?? 0) * 100)}%
+            </p>
+          )}
+          <Divider />
+        </>
+      )}
+
+      {/* ── Chapters 4-8: Expert domains ── */}
+      {EXPERT_SECTIONS.map((section) => {
+        const rawBullets = expertInsights[section.key] ?? [];
+        const bullets = cleanBullets(rawBullets);
+        if (bullets.length === 0) return null;
+
+        return (
+          <React.Fragment key={section.key}>
+            <SectionLabel label={section.label} color={section.dotColor} />
+            <div className="space-y-3">
+              {bullets.map((bullet, i) => (
                 <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-1"
-                  style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
+                  key={i}
+                  className="text-[15px] leading-relaxed max-w-prose"
+                  style={{ color: 'rgba(255,255,255,0.5)' }}
                 >
-                  Soul Calibration
+                  {toSecondPerson(bullet)}
                 </p>
-                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                  Big Five personality dimensions — how your twin models your mind
-                </p>
-              </div>
-              {pp?.temperature != null && (
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    temp {pp.temperature.toFixed(2)} · top_p {pp.top_p.toFixed(3)}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    confidence {Math.round((pp.confidence ?? 0) * 100)}%
-                  </p>
-                </div>
-              )}
+              ))}
             </div>
-            <PersonalityCards data={oceanCards} />
-          </div>
-        )}
+            <Divider />
+          </React.Fragment>
+        );
+      })}
 
-        {/* Music Signature */}
-        {hasMusicSection && (
-          <div className="glass-card rounded-2xl p-8" style={{ marginBottom: '3rem' }}>
-            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
-              <Music className="w-4 h-4 text-amber-500" />
-              <p
-                className="text-xs font-semibold uppercase tracking-widest"
-                style={{ fontFamily: 'var(--font-ui)', color: 'var(--text-secondary)' }}
+      {/* ── Chapter: CULTURAL TASTE — Music genres ── */}
+      {musicGenres.length > 0 && (
+        <>
+          <SectionLabel label="Music Signature" color="#c1452c" />
+          <div className="flex flex-wrap gap-2 mb-3">
+            {musicGenres.map((genre, i) => (
+              <span
+                key={i}
+                className="text-[12px] px-3 py-1.5 rounded-full"
+                style={{
+                  color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
               >
-                Music Signature
-              </p>
-            </div>
-
-            {musicGenres.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-muted-foreground mb-2">Top genres</p>
-                <div className="flex flex-wrap gap-2">
-                  {musicGenres.map((genre, i) => (
-                    <ColoredBadge key={i} label={genre} index={i + 3} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {listeningPattern && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{listeningPattern}</p>
-            )}
+                {genre}
+              </span>
+            ))}
           </div>
-        )}
+          {listeningPattern && (
+            <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {listeningPattern}
+            </p>
+          )}
+          <Divider />
+        </>
+      )}
 
+      {/* ── Chapter: WHAT'S NEXT ── */}
+      <SectionLabel label="What's Next" />
+      <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        Your twin is learning. Connect more platforms to deepen your portrait.
+      </p>
+      <div className="flex gap-3">
+        <button
+          onClick={() => navigate('/get-started')}
+          className="px-4 py-2 rounded-full text-[13px] font-medium transition-opacity hover:opacity-80"
+          style={{ border: '1px solid #10b77f', color: '#10b77f' }}
+        >
+          Connect Platforms
+        </button>
+        <button
+          onClick={() => navigate('/interview')}
+          className="px-4 py-2 rounded-full text-[13px] font-medium transition-opacity hover:opacity-80"
+          style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+        >
+          Redo Interview
+        </button>
       </div>
-    </PageLayout>
+    </div>
   );
 };
 
