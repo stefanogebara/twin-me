@@ -65,14 +65,14 @@ const embeddingCache = new Map();
 const MAX_CACHE_SIZE = 500;
 
 function getCacheKey(text) {
-  let hash = 0;
-  const str = text.substring(0, 200);
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
+  // FNV-1a 32-bit hash over full text to avoid collisions from truncation
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
   }
-  return `emb_${hash}_${text.length}`;
+  // Include length as extra collision guard
+  return `emb_${(hash >>> 0).toString(36)}_${text.length}`;
 }
 
 /**
