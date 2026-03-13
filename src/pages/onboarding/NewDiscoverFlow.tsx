@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion } from '@/services/enrichmentService';
@@ -499,414 +498,340 @@ const NewDiscoverFlow: React.FC = () => {
 
       {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center px-6 md:px-8">
-        <AnimatePresence mode="wait">
-          {/* ===== PHASE: ENTRY / REVEAL ===== */}
-          {(phase === 'entry' || phase === 'reveal') && (
-            <motion.div
-              key="reveal"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6 }}
-              className="flex flex-col items-center w-full max-w-lg"
+        {/* ===== PHASE: ENTRY / REVEAL ===== */}
+        {(phase === 'entry' || phase === 'reveal') && (
+          <div
+            className="flex flex-col items-center w-full max-w-lg transition-all duration-500"
+          >
+            {/* Status text */}
+            <p
+              className="text-sm uppercase tracking-widest mb-8 text-center transition-all duration-300"
+              style={{
+                color: 'rgba(232, 213, 183, 0.5)',
+                fontFamily: 'var(--font-body)',
+                letterSpacing: '0.15em',
+              }}
             >
-              {/* Status text */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-sm uppercase tracking-widest mb-8 text-center"
+              {orbPhase === 'dormant' && 'Discovering you...'}
+              {orbPhase === 'awakening' && 'Piecing together your story...'}
+              {orbPhase === 'alive' && (
+                confidenceRef.current !== null && confidenceRef.current < 0.5
+                  ? `We found someone named ${userName.split(' ')[0]} — is this you?`
+                  : `Hello, ${userName.split(' ')[0]}`
+              )}
+            </p>
+
+            {/* Soul Orb */}
+            <div className="mb-8">
+              <SoulOrb phase={orbPhase} dataPointCount={dataPoints.length} />
+            </div>
+
+            {/* Data points reveal (hidden during correction) */}
+            {revealSubView === 'data' && dataPoints.length > 0 && (
+              <div className="w-full max-w-sm mt-4 transition-all duration-300">
+                {dataPoints.map((dp, i) => (
+                  <DataRevealItem
+                    key={dp.label}
+                    icon={dp.icon}
+                    label={dp.label}
+                    value={dp.value}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Narrative (hidden during correction) */}
+            {revealSubView === 'data' && narrative && (
+              <p
+                className="text-base leading-relaxed mt-6 text-center max-w-md transition-all duration-500"
+                style={{
+                  color: 'rgba(232, 213, 183, 0.7)',
+                  fontFamily: 'var(--font-heading)',
+                  fontStyle: 'italic',
+                }}
+              >
+                {narrative.length > 500
+                  ? (() => {
+                      const chunk = narrative.slice(0, 500);
+                      const lastPeriod = chunk.lastIndexOf('.');
+                      return lastPeriod > 200 ? chunk.slice(0, lastPeriod + 1) : chunk.replace(/\s+\S*$/, '') + '...';
+                    })()
+                  : narrative}
+              </p>
+            )}
+
+            {/* Error message */}
+            {revealSubView === 'data' && enrichError && dataPoints.length === 0 && (
+              <p
+                className="text-sm text-center mt-6 max-w-sm transition-all duration-300"
                 style={{
                   color: 'rgba(232, 213, 183, 0.5)',
                   fontFamily: 'var(--font-body)',
-                  letterSpacing: '0.15em',
                 }}
               >
-                {orbPhase === 'dormant' && 'Discovering you...'}
-                {orbPhase === 'awakening' && 'Piecing together your story...'}
-                {orbPhase === 'alive' && (
-                  confidenceRef.current !== null && confidenceRef.current < 0.5
-                    ? `We found someone named ${userName.split(' ')[0]} — is this you?`
-                    : `Hello, ${userName.split(' ')[0]}`
-                )}
-              </motion.p>
+                {enrichError}
+              </p>
+            )}
 
-              {/* Soul Orb */}
-              <div className="mb-8">
-                <SoulOrb phase={orbPhase} dataPointCount={dataPoints.length} />
-              </div>
+            {/* Empty state — enrichment found nothing */}
+            {revealSubView === 'data' && orbPhase === 'alive' && dataPoints.length === 0 && !enrichError && (
+              <p
+                className="text-sm text-center mt-6 max-w-sm transition-all duration-300"
+                style={{
+                  color: 'rgba(232, 213, 183, 0.5)',
+                  fontFamily: 'var(--font-body)',
+                }}
+              >
+                We couldn't find much yet — no worries, let's build your profile together.
+              </p>
+            )}
 
-              {/* Data points reveal (hidden during correction) */}
-              {revealSubView === 'data' && dataPoints.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="w-full max-w-sm mt-4"
+            {/* Continue button + "This isn't me" OR Correction form */}
+            {revealSubView === 'data' && showContinue && (
+              <div
+                className="flex flex-col items-center mt-8 transition-all duration-300"
+              >
+                <button
+                  onClick={handleAdvanceToDeepening}
+                  className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
+                  style={{
+                    background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                    color: '#0C0C0C',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                  }}
                 >
-                  {dataPoints.map((dp, i) => (
-                    <DataRevealItem
-                      key={dp.label}
-                      icon={dp.icon}
-                      label={dp.label}
-                      value={dp.value}
-                    />
-                  ))}
-                </motion.div>
-              )}
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </button>
 
-              {/* Narrative (hidden during correction) */}
-              <AnimatePresence>
-                {revealSubView === 'data' && narrative && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                    className="text-base leading-relaxed mt-6 text-center max-w-md"
-                    style={{
-                      color: 'rgba(232, 213, 183, 0.7)',
-                      fontFamily: 'var(--font-heading)',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {narrative.length > 500
-                      ? (() => {
-                          const chunk = narrative.slice(0, 500);
-                          const lastPeriod = chunk.lastIndexOf('.');
-                          return lastPeriod > 200 ? chunk.slice(0, lastPeriod + 1) : chunk.replace(/\s+\S*$/, '') + '...';
-                        })()
-                      : narrative}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Error message */}
-              <AnimatePresence>
-                {revealSubView === 'data' && enrichError && dataPoints.length === 0 && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="text-sm text-center mt-6 max-w-sm"
-                    style={{
-                      color: 'rgba(232, 213, 183, 0.5)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    {enrichError}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Empty state — enrichment found nothing */}
-              <AnimatePresence>
-                {revealSubView === 'data' && orbPhase === 'alive' && dataPoints.length === 0 && !enrichError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="text-sm text-center mt-6 max-w-sm"
-                    style={{
-                      color: 'rgba(232, 213, 183, 0.5)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    We couldn't find much yet — no worries, let's build your profile together.
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Continue button + "This isn't me" OR Correction form */}
-              <AnimatePresence mode="wait">
-                {revealSubView === 'data' && showContinue && (
-                  <motion.div
-                    key="data-actions"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="flex flex-col items-center mt-8"
-                  >
-                    <motion.button
-                      onClick={handleAdvanceToDeepening}
-                      className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
+                {dataPoints.length > 0 && (() => {
+                  const isLowConfidence = confidenceRef.current !== null && confidenceRef.current < 0.5;
+                  return (
+                    <button
+                      onClick={handleNotMe}
+                      className={`mt-4 transition-opacity hover:opacity-70 ${isLowConfidence ? 'text-sm' : 'text-xs'}`}
                       style={{
-                        background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                        color: '#0C0C0C',
+                        color: isLowConfidence ? 'rgba(232, 213, 183, 0.7)' : 'rgba(232, 213, 183, 0.35)',
                         fontFamily: 'var(--font-body)',
-                        fontWeight: 500,
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '3px',
                       }}
                     >
-                      Continue
-                      <ArrowRight className="w-4 h-4" />
-                    </motion.button>
+                      {isLowConfidence ? "This isn't me — search again" : 'This isn\'t me'}
+                    </button>
+                  );
+                })()}
+              </div>
+            )}
 
-                    {dataPoints.length > 0 && (() => {
-                      const isLowConfidence = confidenceRef.current !== null && confidenceRef.current < 0.5;
-                      return (
-                        <button
-                          onClick={handleNotMe}
-                          className={`mt-4 transition-opacity hover:opacity-70 ${isLowConfidence ? 'text-sm' : 'text-xs'}`}
-                          style={{
-                            color: isLowConfidence ? 'rgba(232, 213, 183, 0.7)' : 'rgba(232, 213, 183, 0.35)',
-                            fontFamily: 'var(--font-body)',
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            textDecoration: 'underline',
-                            textUnderlineOffset: '3px',
-                          }}
-                        >
-                          {isLowConfidence ? "This isn't me — search again" : 'This isn\'t me'}
-                        </button>
-                      );
-                    })()}
-                  </motion.div>
-                )}
+            {revealSubView === 'correction' && (
+              <CorrectionForm
+                name={correctionName}
+                linkedIn={correctionLinkedIn}
+                onNameChange={setCorrectionName}
+                onLinkedInChange={setCorrectionLinkedIn}
+                onSearchAgain={handleSearchAgain}
+                onSkip={handleSkipEnrichment}
+                isRetrying={isRetrying}
+                retryCount={retryCount}
+              />
+            )}
+          </div>
+        )}
 
-                {revealSubView === 'correction' && (
-                  <CorrectionForm
-                    key="correction-form"
-                    name={correctionName}
-                    linkedIn={correctionLinkedIn}
-                    onNameChange={setCorrectionName}
-                    onLinkedInChange={setCorrectionLinkedIn}
-                    onSearchAgain={handleSearchAgain}
-                    onSkip={handleSkipEnrichment}
-                    isRetrying={isRetrying}
-                    retryCount={retryCount}
-                  />
-                )}
-              </AnimatePresence>
-            </motion.div>
-          )}
+        {/* ===== PHASE: PLATFORMS ===== */}
+        {phase === 'platforms' && (
+          <PlatformConnectStep
+            userId={user.id}
+            onContinue={handlePlatformsComplete}
+          />
+        )}
 
-          {/* ===== PHASE: PLATFORMS ===== */}
-          {phase === 'platforms' && (
-            <PlatformConnectStep
-              userId={user.id}
-              onContinue={handlePlatformsComplete}
-            />
-          )}
-
-          {/* ===== PHASE: DEEPENING ===== */}
-          {phase === 'deepening' && (
-            <motion.div
-              key="deepening"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6 }}
-              className="w-full max-w-lg"
-            >
-              {/* Heading */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-center mb-8"
+        {/* ===== PHASE: DEEPENING ===== */}
+        {phase === 'deepening' && (
+          <div
+            className="w-full max-w-lg transition-all duration-500"
+          >
+            {/* Heading */}
+            <div className="text-center mb-8">
+              <h2
+                className="text-2xl md:text-3xl mb-2"
+                style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
               >
-                <h2
-                  className="text-2xl md:text-3xl mb-2"
-                  style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+                {signature ? 'Your Soul Signature' : 'A few quick taps'}
+              </h2>
+              {!signature && (
+                <p
+                  className="text-sm opacity-50"
+                  style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
                 >
-                  {signature ? 'Your Soul Signature' : 'A few quick taps'}
-                </h2>
-                {!signature && (
-                  <p
-                    className="text-sm opacity-50"
-                    style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
-                  >
-                    Help your twin understand who you are
-                  </p>
-                )}
-              </motion.div>
-
-              {/* Personalized Questions — show while not yet all answered */}
-              {!allQAnswered && (
-                <>
-                  {loadingQuestions ? (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center justify-center gap-3 py-12"
-                    >
-                      <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
-                      <span
-                        className="text-sm"
-                        style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
-                      >
-                        Preparing your questions...
-                      </span>
-                    </motion.div>
-                  ) : personalizedQuestions.length > 0 ? (
-                    <PersonalizedQuestions
-                      questions={personalizedQuestions}
-                      onAnswer={handleQuestionAnswer}
-                      onAllAnswered={handleAllQuestionsAnswered}
-                    />
-                  ) : null}
-                </>
+                  Help your twin understand who you are
+                </p>
               )}
+            </div>
 
-              {/* Soul Signature Card (shows after all questions answered) */}
-              <AnimatePresence>
-                {generatingSignature && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center justify-center gap-3 py-6"
-                  >
+            {/* Personalized Questions — show while not yet all answered */}
+            {!allQAnswered && (
+              <>
+                {loadingQuestions ? (
+                  <div className="flex items-center justify-center gap-3 py-12">
                     <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
                     <span
                       className="text-sm"
                       style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
                     >
-                      Crafting your soul signature...
+                      Preparing your questions...
                     </span>
-                  </motion.div>
-                )}
+                  </div>
+                ) : personalizedQuestions.length > 0 ? (
+                  <PersonalizedQuestions
+                    questions={personalizedQuestions}
+                    onAnswer={handleQuestionAnswer}
+                    onAllAnswered={handleAllQuestionsAnswered}
+                  />
+                ) : null}
+              </>
+            )}
 
-                {signature && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-                    className="rounded-2xl p-6 mb-6"
-                    style={{
-                      backgroundColor: 'rgba(232, 213, 183, 0.06)',
-                      border: '1px solid rgba(232, 213, 183, 0.15)',
-                    }}
-                  >
-                    <p
-                      className="text-xs uppercase tracking-widest mb-3"
-                      style={{
-                        color: 'rgba(232, 213, 183, 0.4)',
-                        fontFamily: 'var(--font-body)',
-                        letterSpacing: '0.15em',
-                      }}
-                    >
-                      Your Soul Signature
-                    </p>
-                    <h3
-                      className="text-xl mb-2"
-                      style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
-                    >
-                      {signature.archetype_name}
-                    </h3>
-                    <p
-                      className="text-sm mb-3"
-                      style={{
-                        color: 'rgba(232, 213, 183, 0.7)',
-                        fontFamily: 'var(--font-heading)',
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      "{signature.signature_quote.replace(/^["'"]+|["'"]+$/g, '')}"
-                    </p>
-                    <p
-                      className="text-sm leading-relaxed"
-                      style={{
-                        color: 'rgba(232, 213, 183, 0.6)',
-                        fontFamily: 'var(--font-body)',
-                      }}
-                    >
-                      {signature.first_impression}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Post-signature: Go Deeper or Enter World */}
-              {signature && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex flex-col gap-3 mb-8"
+            {/* Soul Signature Card (shows after all questions answered) */}
+            {generatingSignature && (
+              <div className="flex items-center justify-center gap-3 py-6">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
+                <span
+                  className="text-sm"
+                  style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
                 >
-                  {/* Primary CTA — Enter My World */}
-                  <motion.button
-                    onClick={handleComplete}
-                    className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-                    style={{
-                      background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                      color: '#0C0C0C',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    Enter My World
-                    <ArrowRight className="w-4 h-4" />
-                  </motion.button>
+                  Crafting your soul signature...
+                </span>
+              </div>
+            )}
 
-                  {/* Secondary CTA — Go Deeper */}
-                  <motion.button
-                    onClick={() => setPhase('deep-interview')}
-                    className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid rgba(232, 213, 183, 0.2)',
-                      color: 'rgba(232, 213, 183, 0.7)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Go Deeper — Let your twin really know you
-                  </motion.button>
-                </motion.div>
-              )}
-
-              {/* Pre-signature CTA (questions not done yet) */}
-              {!signature && !generatingSignature && allQAnswered && (
-                <motion.button
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.4 }}
-                  onClick={handleComplete}
-                  disabled
-                  className="w-full px-6 py-4 rounded-xl text-base font-medium flex items-center justify-center gap-2 mb-8"
+            {signature && (
+              <div
+                className="rounded-2xl p-6 mb-6 transition-all duration-500"
+                style={{
+                  backgroundColor: 'rgba(232, 213, 183, 0.06)',
+                  border: '1px solid rgba(232, 213, 183, 0.15)',
+                }}
+              >
+                <p
+                  className="text-xs uppercase tracking-widest mb-3"
                   style={{
-                    background: 'transparent',
-                    color: '#E8D5B7',
-                    border: '1px solid rgba(232, 213, 183, 0.2)',
+                    color: 'rgba(232, 213, 183, 0.4)',
+                    fontFamily: 'var(--font-body)',
+                    letterSpacing: '0.15em',
+                  }}
+                >
+                  Your Soul Signature
+                </p>
+                <h3
+                  className="text-xl mb-2"
+                  style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+                >
+                  {signature.archetype_name}
+                </h3>
+                <p
+                  className="text-sm mb-3"
+                  style={{
+                    color: 'rgba(232, 213, 183, 0.7)',
+                    fontFamily: 'var(--font-heading)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  "{signature.signature_quote.replace(/^["'"]+|["'"]+$/g, '')}"
+                </p>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{
+                    color: 'rgba(232, 213, 183, 0.6)',
                     fontFamily: 'var(--font-body)',
                   }}
                 >
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                </motion.button>
-              )}
-            </motion.div>
-          )}
+                  {signature.first_impression}
+                </p>
+              </div>
+            )}
 
-          {/* ===== PHASE: DEEP INTERVIEW ===== */}
-          {phase === 'deep-interview' && (
-            <motion.div
-              key="deep-interview"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6 }}
-              className="w-full max-w-lg"
-            >
-              <DeepInterview
-                enrichmentContext={{
-                  name: enrichmentDataRef.current?.discovered_name || quickDataRef.current?.discovered_name || user.fullName || inferNameFromEmail(user.email),
-                  company: enrichmentDataRef.current?.discovered_company || quickDataRef.current?.discovered_company || undefined,
-                  title: enrichmentDataRef.current?.discovered_title || undefined,
-                  location: enrichmentDataRef.current?.discovered_location || quickDataRef.current?.discovered_location || undefined,
-                  bio: enrichmentDataRef.current?.discovered_bio || enrichmentDataRef.current?.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
+            {/* Post-signature: Go Deeper or Enter World */}
+            {signature && (
+              <div className="flex flex-col gap-3 mb-8 transition-all duration-300">
+                {/* Primary CTA — Enter My World */}
+                <button
+                  onClick={handleComplete}
+                  className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+                  style={{
+                    background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                    color: '#0C0C0C',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  Enter My World
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                {/* Secondary CTA — Go Deeper */}
+                <button
+                  onClick={() => setPhase('deep-interview')}
+                  className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(232, 213, 183, 0.2)',
+                    color: 'rgba(232, 213, 183, 0.7)',
+                    fontFamily: 'var(--font-body)',
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Go Deeper — Let your twin really know you
+                </button>
+              </div>
+            )}
+
+            {/* Pre-signature CTA (questions not done yet) */}
+            {!signature && !generatingSignature && allQAnswered && (
+              <button
+                onClick={handleComplete}
+                disabled
+                className="w-full px-6 py-4 rounded-xl text-base font-medium flex items-center justify-center gap-2 mb-8 opacity-40"
+                style={{
+                  background: 'transparent',
+                  color: '#E8D5B7',
+                  border: '1px solid rgba(232, 213, 183, 0.2)',
+                  fontFamily: 'var(--font-body)',
                 }}
-                onComplete={(enhancedSignature) => {
-                  if (enhancedSignature) {
-                    setSignature(enhancedSignature);
-                  }
-                  handleComplete();
-                }}
-                onSkip={handleComplete}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ===== PHASE: DEEP INTERVIEW ===== */}
+        {phase === 'deep-interview' && (
+          <div
+            className="w-full max-w-lg transition-all duration-500"
+          >
+            <DeepInterview
+              enrichmentContext={{
+                name: enrichmentDataRef.current?.discovered_name || quickDataRef.current?.discovered_name || user.fullName || inferNameFromEmail(user.email),
+                company: enrichmentDataRef.current?.discovered_company || quickDataRef.current?.discovered_company || undefined,
+                title: enrichmentDataRef.current?.discovered_title || undefined,
+                location: enrichmentDataRef.current?.discovered_location || quickDataRef.current?.discovered_location || undefined,
+                bio: enrichmentDataRef.current?.discovered_bio || enrichmentDataRef.current?.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
+              }}
+              onComplete={(enhancedSignature) => {
+                if (enhancedSignature) {
+                  setSignature(enhancedSignature);
+                }
+                handleComplete();
+              }}
+              onSkip={handleComplete}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
