@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Music2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { SpotifyTrack } from '@/hooks/useSpotifyInsights';
@@ -31,53 +30,51 @@ export const TopTracksCard: React.FC<TopTracksCardProps> = ({ tracks, className 
           <Music2 className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">Top Tracks</h3>
-          <p className="text-xs text-muted-foreground">Your most played songs</p>
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>Top Tracks</h3>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Your most played songs</p>
         </div>
       </div>
 
       {/* Tracks List */}
       <div className="space-y-4">
         {topTracks.map((track, index) => (
-          <motion.div
+          <div
             key={`${track.name}-${track.artist}-${index}`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
             className="group"
           >
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-6 h-6 rounded flex items-center justify-center bg-white/8 text-xs font-medium text-muted-foreground group-hover:bg-[#1DB954]/10 group-hover:text-[#1DB954] transition-colors">
+              <div
+                className="w-6 h-6 rounded flex items-center justify-center bg-white/8 text-xs font-medium group-hover:bg-[#1DB954]/10 group-hover:text-[#1DB954] transition-colors"
+                style={{ color: 'rgba(255,255,255,0.3)' }}
+              >
                 {index + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-ui text-sm font-medium text-foreground truncate">
+                <p className="text-sm font-medium truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                   {track.name}
                 </p>
-                <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{track.artist}</p>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-foreground">{track.plays}</div>
-                <div className="text-xs text-muted-foreground">{formatDuration(track.duration_ms)}</div>
+                <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{track.plays}</div>
+                <div className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatDuration(track.duration_ms)}</div>
               </div>
             </div>
             {/* Progress Bar */}
             <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-[#1DB954] rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${(track.plays / maxPlays) * 100}%` }}
-                transition={{ delay: index * 0.1 + 0.2, duration: 0.6 }}
+              <div
+                className="h-full bg-[#1DB954] rounded-full transition-all duration-600"
+                style={{ width: `${(track.plays / maxPlays) * 100}%` }}
               />
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Footer */}
       {tracks.length > 5 && (
         <div className="mt-4 pt-4 border-t border-white/10">
-          <p className="text-xs text-muted-foreground text-center">
+          <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
             +{tracks.length - 5} more tracks in your library
           </p>
         </div>

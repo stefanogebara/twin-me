@@ -10,7 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation, StatCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
@@ -19,7 +19,7 @@ import { WeeklyHeatmap } from './components/WeeklyHeatmap';
 import { TodayTimeline } from './components/TodayTimeline';
 import { CalendarEmptyState } from './components/CalendarEmptyState';
 import { CalendarSkeleton } from './components/CalendarSkeleton';
-import { Calendar, Sparkles, AlertCircle, Clock, CalendarDays } from 'lucide-react';
+import { Calendar, AlertCircle, Clock, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 import { toast } from 'sonner';
@@ -116,6 +116,8 @@ interface InsightsResponse {
 }
 
 const CalendarInsightsPage: React.FC = () => {
+  useDocumentTitle('Calendar Insights');
+
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -129,7 +131,7 @@ const CalendarInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'var(--text-secondary)',
+    textSecondary: 'rgba(255,255,255,0.4)',
     calendarBlue: '#4285F4',
     calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
@@ -267,15 +269,15 @@ const CalendarInsightsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <CalendarSkeleton />
-      </PageLayout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
@@ -284,18 +286,18 @@ const CalendarInsightsPage: React.FC = () => {
           <p style={{ color: colors.textSecondary }}>{error}</p>
           <button
             onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
+            className="px-4 py-2 rounded-lg font-medium transition-colors"
+            style={{ color: '#10b77f', border: '1px solid rgba(16,183,127,0.3)' }}
           >
             Connect Calendar
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
       <InsightsPageHeader
         title="Time Patterns"
         subtitle="How you structure your days"
@@ -325,12 +327,14 @@ const CalendarInsightsPage: React.FC = () => {
 
       {/* Event Type Distribution */}
       {insights?.eventTypeDistribution && insights.eventTypeDistribution.length > 0 && (
-        <GlassPanel className="!p-4 mb-6">
+        <div
+          className="p-4 rounded-lg mb-6"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium tracking-widest uppercase mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <CalendarDays className="w-4 h-4" />
             How You Spend Your Time
           </h3>
           <div className="space-y-3">
@@ -341,7 +345,7 @@ const CalendarInsightsPage: React.FC = () => {
                 </span>
                 <div
                   className="flex-1 h-5 rounded-lg overflow-hidden"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
                 >
                   <div
                     className="h-full rounded-lg transition-all"
@@ -360,7 +364,7 @@ const CalendarInsightsPage: React.FC = () => {
               </div>
             ))}
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {insights?.weeklyHeatmap && insights.weeklyHeatmap.length > 0 && (
@@ -410,27 +414,29 @@ const CalendarInsightsPage: React.FC = () => {
           )}
         </div>
       ) : (insights?.todayEvents || insights?.upcomingEvents) ? (
-        <GlassPanel className="mb-8 !p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4" style={{ color: colors.calendarBlue }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>
-              Twin's Observation
-            </span>
-          </div>
+        <div
+          className="mb-8 p-4 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
+          <p
+            className="text-[11px] font-medium tracking-widest uppercase mb-2"
+            style={{ color: '#10b77f' }}
+          >
+            Twin's Observation
+          </p>
           <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
             Your twin is processing observations about your schedule. Check back soon for personalized insights about how you structure your time.
           </p>
-        </GlassPanel>
+        </div>
       ) : null}
 
       {/* Pattern Observations */}
       {insights?.patterns && insights.patterns.length > 0 && (
         <div className="mb-8">
           <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium tracking-widest uppercase mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Sparkles className="w-4 h-4" />
             Patterns I've Noticed
           </h3>
           <div className="space-y-3">
@@ -449,17 +455,21 @@ const CalendarInsightsPage: React.FC = () => {
       {insights?.history && insights.history.length > 0 && (
         <div>
           <h3
-            className="text-sm uppercase tracking-wider mb-4"
-            style={{ color: colors.textSecondary }}
+            className="text-[11px] font-medium tracking-widest uppercase mb-4"
+            style={{ color: '#10b77f' }}
           >
             Past Observations
           </h3>
           <div className="space-y-3">
             {insights.history.map(past => (
-              <GlassPanel key={past.id} variant="default" className="!p-4">
+              <div
+                key={past.id}
+                className="p-4 rounded-lg"
+                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              >
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: colors.textSecondary }}
                 >
                   {past.text}
                 </p>
@@ -469,7 +479,7 @@ const CalendarInsightsPage: React.FC = () => {
                 >
                   {new Date(past.generatedAt).toLocaleDateString()}
                 </p>
-              </GlassPanel>
+              </div>
             ))}
           </div>
         </div>
@@ -482,7 +492,7 @@ const CalendarInsightsPage: React.FC = () => {
           onConnect={() => navigate('/get-started')}
         />
       )}
-    </PageLayout>
+    </div>
   );
 };
 

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Video, Eye, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { YouTubeVideo } from '@/hooks/useYouTubeInsights';
@@ -28,10 +27,10 @@ export const TopVideosCard: React.FC<TopVideosCardProps> = ({ videos, className 
           <Video className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Top Videos
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Your most watched content
           </p>
         </div>
@@ -39,33 +38,30 @@ export const TopVideosCard: React.FC<TopVideosCardProps> = ({ videos, className 
 
       <div className="space-y-4">
         {videos.slice(0, 5).map((video, index) => (
-          <motion.div
+          <div
             key={`${video.title}-${index}`}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
             className="group"
           >
             <div className="flex items-start justify-between mb-2 gap-3">
               <div className="flex items-start gap-2 flex-1 min-w-0">
-                <span className="font-ui text-sm font-medium text-muted-foreground flex-shrink-0 mt-0.5">
+                <span className="text-sm font-medium flex-shrink-0 mt-0.5" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-ui text-sm font-medium text-foreground line-clamp-2 mb-1">
+                  <p className="text-sm font-medium line-clamp-2 mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                     {video.title}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {video.channel}
                   </p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   <Eye className="w-3 h-3 text-[#FF0000]" />
                   <span className="font-mono">{video.views.toLocaleString()}</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   <Clock className="w-3 h-3" />
                   <span>{formatDuration(video.duration_minutes)}</span>
                 </div>
@@ -74,21 +70,19 @@ export const TopVideosCard: React.FC<TopVideosCardProps> = ({ videos, className 
 
             {/* Visual bar */}
             <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(video.views / maxViews) * 100}%` }}
-                transition={{ delay: index * 0.1 + 0.2, duration: 0.6, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4444] rounded-full"
+              <div
+                className="h-full bg-gradient-to-r from-[#FF0000] to-[#FF4444] rounded-full transition-all duration-600"
+                style={{ width: `${(video.views / maxViews) * 100}%` }}
               />
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {videos.length === 0 && (
         <div className="text-center py-8">
-          <Video className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">
+          <Video className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             No video data available yet
           </p>
         </div>

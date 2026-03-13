@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Target, Flame, Trophy, ChevronRight, Globe, BookOpen, Circle, ArrowUp, Sparkles, Eye, Moon, Activity } from 'lucide-react';
 import { goalsAPI, GoalSummary } from '@/services/api/goalsAPI';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { calendarAPI, CalendarEvent } from '@/services/apiService';
 import { authFetch } from '@/services/api/apiBase';
 import { TodayInsights } from '@/components/TodayInsights';
@@ -354,14 +352,15 @@ export const Dashboard: React.FC = () => {
   ];
 
   return (
-    <PageLayout>
+    <div>
       {error && (
         <div
-          className="mb-10 p-7 glass-card flex items-center justify-between"
+          className="mb-10 p-7 rounded-lg flex items-center justify-between"
           style={{
-            borderColor: error.type === 'auth'
+            border: `1px solid ${error.type === 'auth'
               ? 'rgba(245, 158, 11, 0.3)'
-              : 'rgba(239, 68, 68, 0.3)'
+              : 'rgba(239, 68, 68, 0.3)'}`,
+            backgroundColor: 'rgba(255,255,255,0.02)',
           }}
         >
           <div className="flex items-center gap-3">
@@ -382,15 +381,9 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* ── Greeting ── */}
-      <motion.div
-        className="mb-8"
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-      >
+      {/* -- Greeting -- */}
+      <div className="mb-8">
         <h1
-          className="heading-serif"
           style={{
             fontSize: 'clamp(2.5rem, 5.5vw, 3.75rem)',
             fontWeight: 400,
@@ -402,21 +395,21 @@ export const Dashboard: React.FC = () => {
         >
           What's on your mind, {user?.firstName || 'there'}?
         </h1>
-        <p className="text-[15px] font-medium" style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+        <p className="text-[15px] font-medium" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.7 }}>
           {todayEvents.length > 0
             ? `${todayEvents.length} event${todayEvents.length !== 1 ? 's' : ''} today`
             : 'Your day awaits'
           }
           {connectedProviders.length > 0 && (
-            <span style={{ color: 'var(--text-muted)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>
               {' '}&bull;{' '}
-              <span style={{ color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>
                 {connectedProviders.length} platform{connectedProviders.length !== 1 ? 's' : ''} connected
               </span>
             </span>
           )}
           {checkinStreak >= 2 && (
-            <span style={{ color: 'var(--text-muted)' }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>
               {' '}&bull;{' '}
               <span style={{ color: 'var(--accent-streak)' }}>
                 {checkinStreak}-day streak
@@ -424,18 +417,15 @@ export const Dashboard: React.FC = () => {
             </span>
           )}
         </p>
-      </motion.div>
+      </div>
 
-      {/* ── Central Glass Prompt ── */}
-      <motion.div
-        className="mb-10"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-      >
+      {/* -- Central Prompt -- */}
+      <div className="mb-10">
         <div
-          className="glass-card !p-1.5 !rounded-[20px] transition-all duration-200"
+          className="!p-1.5 !rounded-[20px] transition-all duration-200 rounded-lg"
           style={{
+            border: '1px solid rgba(255,255,255,0.06)',
+            backgroundColor: 'rgba(255,255,255,0.02)',
             borderColor: 'var(--accent-vibrant-glow)',
           }}
           onFocus={(e) => {
@@ -456,7 +446,7 @@ export const Dashboard: React.FC = () => {
               onKeyDown={(e) => e.key === 'Enter' && handlePromptSubmit()}
               className="flex-1 bg-transparent border-none outline-none px-5 py-4"
               style={{
-                fontFamily: 'var(--font-body)',
+                fontFamily: "'Inter', sans-serif",
                 fontSize: '15px',
                 fontWeight: 400,
                 color: 'var(--text-primary)',
@@ -488,9 +478,9 @@ export const Dashboard: React.FC = () => {
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-[13px] font-normal transition-all duration-200"
                 style={{
                   fontFamily: 'var(--font-ui)',
-                  color: 'var(--text-secondary)',
-                  background: 'var(--glass-surface-bg-subtle)',
-                  border: '1px solid var(--glass-surface-border)',
+                  color: 'rgba(255,255,255,0.4)',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(255, 132, 0, 0.4)';
@@ -498,9 +488,9 @@ export const Dashboard: React.FC = () => {
                   e.currentTarget.style.background = 'var(--accent-vibrant-glow)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--glass-surface-border)';
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
                 }}
               >
                 <ChipIcon className="w-3.5 h-3.5" aria-hidden="true" style={{ color: 'rgba(212,168,83,0.6)' }} />
@@ -509,26 +499,24 @@ export const Dashboard: React.FC = () => {
             );
           })}
         </div>
-      </motion.div>
+      </div>
 
       {memoryHealth?.readiness !== undefined && (
-        <GlassPanel className="!p-5 !mb-12" variant="card" delay={0.1}>
+        <div
+          className="!p-5 !mb-12 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <TwinReadinessScore
             score={memoryHealth.readiness.score}
             label={memoryHealth.readiness.label}
             breakdown={memoryHealth.readiness.breakdown}
             compact
           />
-        </GlassPanel>
+        </div>
       )}
 
       {connectedProviders.length > 0 && (
-        <motion.div
-          className="mb-12 flex flex-wrap gap-2.5"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-        >
+        <div className="mb-12 flex flex-wrap gap-2.5">
           {connectedProviders.map((provider) => {
             const status = platformStatusData[provider];
             const name = PLATFORM_DISPLAY_NAMES[provider] ?? provider;
@@ -539,85 +527,73 @@ export const Dashboard: React.FC = () => {
             return (
               <span
                 key={provider}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs glass-badge"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
+                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <Circle
                   className="w-1.5 h-1.5 fill-current flex-shrink-0"
-                  style={{ color: isRecent ? '#22c55e' : 'var(--text-muted)' }}
+                  style={{ color: isRecent ? '#22c55e' : 'rgba(255,255,255,0.3)' }}
                 />
                 {name} synced {syncLabel}
               </span>
             );
           })}
-        </motion.div>
+        </div>
       )}
 
-      <AnimatePresence>
-        {showCheckin && (
-          <motion.div
-            key="daily-checkin"
-            className="mb-12 glass-card !p-7"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.35 }}
-          >
-            <DailyCheckin onComplete={handleCheckinComplete} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showCheckin && (
+        <div
+          className="mb-12 !p-7 rounded-lg"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
+          <DailyCheckin onComplete={handleCheckinComplete} />
+        </div>
+      )}
 
       <div className="mb-14">
-        <p className="text-xs font-medium uppercase tracking-wider mb-4" style={{ color: 'var(--text-secondary)' }}>
+        <p
+          className="text-[11px] font-medium tracking-widest uppercase mb-4"
+          style={{ color: '#10b77f' }}
+        >
           YOUR INSIGHTS
         </p>
         <TodayInsights />
       </div>
 
-      <AnimatePresence>
-        {showInterviewCTA && (
-          <motion.div
-            key="interview-cta"
-            className="mb-12"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.35 }}
+      {showInterviewCTA && (
+        <div className="mb-12">
+          <button
+            onClick={() => navigate('/interview')}
+            className="w-full text-left flex items-center gap-4 px-7 py-5 rounded-lg transition-all hover:scale-[1.01]"
+            style={{
+              border: '1px solid rgba(196, 162, 101, 0.35)',
+              backgroundColor: 'rgba(255,255,255,0.02)',
+            }}
           >
-            <button
-              onClick={() => navigate('/interview')}
-              className="w-full text-left flex items-center gap-4 px-7 py-5 glass-card transition-all hover:scale-[1.01]"
-              style={{ borderColor: 'rgba(196, 162, 101, 0.35)' }}
-            >
-              <BookOpen className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Tell your twin your story</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>A 5-min interview seeds your twin with foundational context</p>
-              </div>
-              <span className="text-sm font-medium flex-shrink-0" style={{ color: 'var(--accent-vibrant)' }}>Start →</span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <BookOpen className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Tell your twin your story</p>
+              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>A 5-min interview seeds your twin with foundational context</p>
+            </div>
+            <span className="text-sm font-medium flex-shrink-0" style={{ color: 'var(--accent-vibrant)' }}>Start →</span>
+          </button>
+        </div>
+      )}
 
       <div className="mb-14">
         <ProactiveInsightsPanel />
       </div>
 
       {goalSummary && (goalSummary.active > 0 || goalSummary.suggested > 0) && (
-        <motion.div
-          className="mb-14"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
+        <div className="mb-14">
           <button
             onClick={() => navigate('/goals')}
-            className="w-full text-left glass-card p-7 transition-all hover:scale-[1.01]"
+            className="w-full text-left p-7 rounded-lg transition-all hover:scale-[1.01]"
+            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Target className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                <Target className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
                 <span className="text-sm font-medium" style={{ fontFamily: 'var(--font-ui)', fontWeight: 400, letterSpacing: '-0.03em', color: 'var(--foreground)' }}>Goals</span>
                 {goalSummary.suggested > 0 && (
                   <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium rounded-full bg-blue-500/20 text-blue-400">
@@ -625,25 +601,25 @@ export const Dashboard: React.FC = () => {
                   </span>
                 )}
               </div>
-              <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+              <ChevronRight className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
             </div>
             <div className="flex items-center gap-6">
               {goalSummary.active > 0 && (
                 <div className="flex items-center gap-1.5">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{goalSummary.active} active</span>
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{goalSummary.active} active</span>
                 </div>
               )}
               {goalSummary.bestStreak > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Flame className="w-3.5 h-3.5 text-orange-400" />
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{goalSummary.bestStreak}d best streak</span>
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{goalSummary.bestStreak}d best streak</span>
                 </div>
               )}
               {goalSummary.completed > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{goalSummary.completed} completed</span>
+                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{goalSummary.completed} completed</span>
                 </div>
               )}
               {goalSummary.suggested > 0 && goalSummary.active === 0 && (
@@ -653,7 +629,7 @@ export const Dashboard: React.FC = () => {
               )}
             </div>
           </button>
-        </motion.div>
+        </div>
       )}
 
       <NextEventCard
@@ -669,7 +645,7 @@ export const Dashboard: React.FC = () => {
         insightLinks={insightLinks}
         onNavigate={navigate}
       />
-    </PageLayout>
+    </div>
   );
 };
 

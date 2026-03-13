@@ -1,5 +1,4 @@
 import React from 'react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 import { Music, Users, PieChart, BarChart3 } from 'lucide-react';
 
 interface SpotifyEmptyStateProps {
@@ -17,9 +16,9 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <GlassPanel className="text-center py-10">
+      <div className="text-center py-10 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
         <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-        <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
+        <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
           Your twin is listening
         </h3>
         <p className="mt-2 mb-6 max-w-sm mx-auto" style={{ color: colors.textSecondary }}>
@@ -43,7 +42,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           <div aria-hidden="true" className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colors.spotifyGreen }} />
           Your twin is collecting data... check back soon
         </div>
-      </GlassPanel>
+      </div>
 
       {/* Preview cards showing what insights will look like */}
       <div aria-hidden="true" className="opacity-50 pointer-events-none space-y-3">
@@ -51,7 +50,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           Preview of your insights
         </p>
         {/* Placeholder: Top Artists */}
-        <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+        <div className="p-4 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.1)' }}>
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-4 h-4" style={{ color: colors.textSecondary }} />
             <span className="text-sm" style={{ color: colors.textSecondary }}>Top Artists</span>
@@ -59,24 +58,24 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           <div className="space-y-2">
             {[80, 60, 40].map((width, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.04)' }} />
-                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
+                <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
+                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
                   <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
                 </div>
               </div>
             ))}
           </div>
-        </GlassPanel>
+        </div>
         {/* Placeholder: Genre + Listening Hours */}
         <div className="grid grid-cols-2 gap-3">
-          <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+          <div className="p-4 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.1)' }}>
             <div className="flex items-center gap-2 mb-3">
               <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
               <span className="text-sm" style={{ color: colors.textSecondary }}>Genres</span>
             </div>
-            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: `3px dashed rgba(0,0,0,0.08)` }} />
-          </GlassPanel>
-          <GlassPanel className="!p-4" style={{ border: '1px dashed' }}>
+            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: '3px dashed rgba(255,255,255,0.06)' }} />
+          </div>
+          <div className="p-4 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.1)' }}>
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4" style={{ color: colors.textSecondary }} />
               <span className="text-sm" style={{ color: colors.textSecondary }}>Peak Hours</span>
@@ -86,7 +85,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
                 <div key={i} className="flex-1 rounded-t" style={{ height: `${h * 12}%`, backgroundColor: `${colors.spotifyGreen}20` }} />
               ))}
             </div>
-          </GlassPanel>
+          </div>
         </div>
       </div>
     </div>

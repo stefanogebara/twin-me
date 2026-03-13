@@ -11,7 +11,6 @@
  */
 
 import React, { useState, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload,
   CheckCircle2,
@@ -161,11 +160,13 @@ const PLATFORMS: PlatformConfig[] = [
 
 function PlatformCard({ config, onSelect }: { config: PlatformConfig; onSelect: () => void }) {
   return (
-    <motion.button
+    <button
       onClick={onSelect}
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      className="glass-card w-full text-left p-4 transition-colors"
+      className="rounded-lg w-full text-left p-4 transition-colors hover:bg-white/[0.03]"
+      style={{
+        border: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+      }}
     >
       <div className="flex items-start gap-3">
         <div
@@ -179,7 +180,7 @@ function PlatformCard({ config, onSelect }: { config: PlatformConfig; onSelect: 
           <div className="text-xs text-foreground/50 mt-0.5 leading-relaxed">{config.description}</div>
         </div>
       </div>
-    </motion.button>
+    </button>
   );
 }
 
@@ -261,213 +262,184 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
 
   return (
     <div className="space-y-4">
-      <AnimatePresence mode="wait">
-
-        {/* IDLE — start button */}
-        {step === 'idle' && (
-          <motion.div
-            key="idle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-between"
+      {/* IDLE — start button */}
+      {step === 'idle' && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-foreground/50 leading-relaxed max-w-md">
+            Import years of history the platform APIs can't provide — full Spotify plays, every YouTube video, Discord activity patterns, and Reddit archives.
+          </p>
+          <button
+            onClick={() => setStep('selecting')}
+            className="flex-shrink-0 ml-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
+            style={{ background: '#000' }}
           >
-            <p className="text-sm text-foreground/50 leading-relaxed max-w-md">
-              Import years of history the platform APIs can't provide — full Spotify plays, every YouTube video, Discord activity patterns, and Reddit archives.
+            <Upload size={14} />
+            Import Data
+          </button>
+        </div>
+      )}
+
+      {/* SELECTING — platform cards */}
+      {step === 'selecting' && (
+        <div className="space-y-3">
+          <p className="text-sm text-foreground/50">Choose a platform to import:</p>
+          <div className="grid grid-cols-2 gap-3">
+            {PLATFORMS.map((p) => (
+              <PlatformCard key={p.id} config={p} onSelect={() => handlePlatformSelect(p)} />
+            ))}
+          </div>
+          <button
+            onClick={reset}
+            className="text-xs text-foreground/40 hover:text-foreground/60 flex items-center gap-1 mt-1"
+          >
+            <ArrowLeft size={12} /> Cancel
+          </button>
+        </div>
+      )}
+
+      {/* UPLOADING — drop zone + instructions */}
+      {step === 'uploading' && selectedPlatform && (
+        <div className="space-y-4">
+          {/* Instructions */}
+          <div
+            className="rounded-xl p-4 border border-black/8 space-y-2"
+            style={{ background: selectedPlatform.bgColor }}
+          >
+            <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: selectedPlatform.color }}>
+              <span>{selectedPlatform.label} Export Instructions</span>
+            </div>
+            <p className="text-xs text-foreground/60 leading-relaxed">{selectedPlatform.exportInstructions}</p>
+            <a
+              href={selectedPlatform.exportUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
+              style={{ color: selectedPlatform.color }}
+            >
+              Open settings <ExternalLink size={10} />
+            </a>
+            <div className="flex items-center gap-1.5 text-xs text-foreground/40 mt-1">
+              {selectedPlatform.id === 'discord' ? <Archive size={12} /> : <FileJson size={12} />}
+              Expected file: <span className="font-mono">{selectedPlatform.expectedFile}</span>
+            </div>
+          </div>
+
+          {/* Drop zone */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
+            style={{
+              borderColor: dragging ? selectedPlatform.color : 'rgba(0,0,0,0.15)',
+              background: dragging ? selectedPlatform.bgColor : 'transparent',
+            }}
+          >
+            <Upload size={24} className="mx-auto mb-2 text-foreground/30" />
+            <p className="text-sm font-medium text-foreground/70">
+              {selectedPlatform.multiFile ? 'Drop files here or click to browse' : 'Drop file here or click to browse'}
             </p>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setStep('selecting')}
-              className="flex-shrink-0 ml-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white"
-              style={{ background: '#000' }}
-            >
-              <Upload size={14} />
-              Import Data
-            </motion.button>
-          </motion.div>
-        )}
+            <p className="text-xs text-foreground/40 mt-1">{selectedPlatform.expectedFile}</p>
+            {selectedPlatform.multiFile && (
+              <p className="text-xs text-foreground/30 mt-0.5">Select all files at once — they'll be processed sequentially</p>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={selectedPlatform.fileAccept}
+              multiple={selectedPlatform.multiFile === true}
+              className="hidden"
+              onChange={onInputChange}
+            />
+          </div>
 
-        {/* SELECTING — platform cards */}
-        {step === 'selecting' && (
-          <motion.div
-            key="selecting"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="space-y-3"
+          <button
+            onClick={() => setStep('selecting')}
+            className="text-xs text-foreground/40 hover:text-foreground/60 flex items-center gap-1"
           >
-            <p className="text-sm text-foreground/50">Choose a platform to import:</p>
-            <div className="grid grid-cols-2 gap-3">
-              {PLATFORMS.map((p) => (
-                <PlatformCard key={p.id} config={p} onSelect={() => handlePlatformSelect(p)} />
-              ))}
-            </div>
-            <button
-              onClick={reset}
-              className="text-xs text-foreground/40 hover:text-foreground/60 flex items-center gap-1 mt-1"
-            >
-              <ArrowLeft size={12} /> Cancel
-            </button>
-          </motion.div>
-        )}
+            <ArrowLeft size={12} /> Choose different platform
+          </button>
+        </div>
+      )}
 
-        {/* UPLOADING — drop zone + instructions */}
-        {step === 'uploading' && selectedPlatform && (
-          <motion.div
-            key="uploading"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="space-y-4"
-          >
-            {/* Instructions */}
-            <div
-              className="rounded-xl p-4 border border-black/8 space-y-2"
-              style={{ background: selectedPlatform.bgColor }}
-            >
-              <div className="flex items-center gap-2 font-semibold text-sm" style={{ color: selectedPlatform.color }}>
-                <span>{selectedPlatform.label} Export Instructions</span>
-              </div>
-              <p className="text-xs text-foreground/60 leading-relaxed">{selectedPlatform.exportInstructions}</p>
-              <a
-                href={selectedPlatform.exportUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-medium underline underline-offset-2"
-                style={{ color: selectedPlatform.color }}
-              >
-                Open settings <ExternalLink size={10} />
-              </a>
-              <div className="flex items-center gap-1.5 text-xs text-foreground/40 mt-1">
-                {selectedPlatform.id === 'discord' ? <Archive size={12} /> : <FileJson size={12} />}
-                Expected file: <span className="font-mono">{selectedPlatform.expectedFile}</span>
-              </div>
-            </div>
-
-            {/* Drop zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
-              style={{
-                borderColor: dragging ? selectedPlatform.color : 'rgba(0,0,0,0.15)',
-                background: dragging ? selectedPlatform.bgColor : 'transparent',
-              }}
-            >
-              <Upload size={24} className="mx-auto mb-2 text-foreground/30" />
-              <p className="text-sm font-medium text-foreground/70">
-                {selectedPlatform.multiFile ? 'Drop files here or click to browse' : 'Drop file here or click to browse'}
-              </p>
-              <p className="text-xs text-foreground/40 mt-1">{selectedPlatform.expectedFile}</p>
-              {selectedPlatform.multiFile && (
-                <p className="text-xs text-foreground/30 mt-0.5">Select all files at once — they'll be processed sequentially</p>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={selectedPlatform.fileAccept}
-                multiple={selectedPlatform.multiFile === true}
-                className="hidden"
-                onChange={onInputChange}
+      {/* PROCESSING */}
+      {step === 'processing' && selectedPlatform && (
+        <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <Loader2 size={28} className="animate-spin" style={{ color: selectedPlatform.color }} />
+          <p className="text-sm text-foreground/60 font-medium">
+            {multiFileProgress
+              ? `Processing file ${multiFileProgress.current} of ${multiFileProgress.total}...`
+              : `Importing your ${selectedPlatform.label} history...`}
+          </p>
+          <p className="text-xs text-foreground/40">This may take a moment for large exports.</p>
+          {multiFileProgress && (
+            <div className="w-48 h-1.5 rounded-full bg-black/10 overflow-hidden mt-1">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${Math.round((multiFileProgress.current / multiFileProgress.total) * 100)}%`,
+                  background: selectedPlatform.color,
+                }}
               />
             </div>
+          )}
+        </div>
+      )}
 
+      {/* DONE */}
+      {step === 'done' && selectedPlatform && result && (
+        <div
+          className="rounded-lg p-5 space-y-3"
+          style={{
+            border: '1px solid rgba(255,255,255,0.06)',
+            backgroundColor: 'rgba(255,255,255,0.02)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={20} className="text-green-500" />
+            <span className="font-semibold text-sm">Import complete!</span>
+          </div>
+          <p className="text-sm text-foreground/60">
+            Added{' '}
+            <span className="font-semibold text-foreground">{result.observationsCreated.toLocaleString()}</span>{' '}
+            new observations from {selectedPlatform.label} to your twin's memory.
+            {result.observationsCreated > 20 && ' Your twin is reflecting on the new data.'}
+          </p>
+          <div className="flex gap-3 pt-1">
             <button
-              onClick={() => setStep('selecting')}
-              className="text-xs text-foreground/40 hover:text-foreground/60 flex items-center gap-1"
+              onClick={reset}
+              className="text-xs px-3 py-1.5 rounded-lg text-foreground/60"
+              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <ArrowLeft size={12} /> Choose different platform
+              Import another
             </button>
-          </motion.div>
-        )}
+          </div>
+        </div>
+      )}
 
-        {/* PROCESSING */}
-        {step === 'processing' && selectedPlatform && (
-          <motion.div
-            key="processing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-10 gap-3"
+      {/* ERROR */}
+      {step === 'error' && selectedPlatform && result && (
+        <div
+          className="rounded-lg p-5 space-y-3"
+          style={{
+            border: '1px solid rgba(239,68,68,0.3)',
+            backgroundColor: 'rgba(255,255,255,0.02)',
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <AlertCircle size={20} className="text-red-500" />
+            <span className="font-semibold text-sm text-red-700">Import failed</span>
+          </div>
+          <p className="text-xs text-red-400 leading-relaxed">{result.error}</p>
+          <button
+            onClick={() => setStep('uploading')}
+            className="text-xs px-3 py-1.5 rounded-lg border border-red-800/30 text-red-400 hover:bg-red-900/20"
           >
-            <Loader2 size={28} className="animate-spin" style={{ color: selectedPlatform.color }} />
-            <p className="text-sm text-foreground/60 font-medium">
-              {multiFileProgress
-                ? `Processing file ${multiFileProgress.current} of ${multiFileProgress.total}…`
-                : `Importing your ${selectedPlatform.label} history…`}
-            </p>
-            <p className="text-xs text-foreground/40">This may take a moment for large exports.</p>
-            {multiFileProgress && (
-              <div className="w-48 h-1.5 rounded-full bg-black/10 overflow-hidden mt-1">
-                <div
-                  className="h-full rounded-full transition-all duration-300"
-                  style={{
-                    width: `${Math.round((multiFileProgress.current / multiFileProgress.total) * 100)}%`,
-                    background: selectedPlatform.color,
-                  }}
-                />
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {/* DONE */}
-        {step === 'done' && selectedPlatform && result && (
-          <motion.div
-            key="done"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="glass-card p-5 space-y-3"
-          >
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-green-500" />
-              <span className="font-semibold text-sm">Import complete!</span>
-            </div>
-            <p className="text-sm text-foreground/60">
-              Added{' '}
-              <span className="font-semibold text-foreground">{result.observationsCreated.toLocaleString()}</span>{' '}
-              new observations from {selectedPlatform.label} to your twin's memory.
-              {result.observationsCreated > 20 && ' Your twin is reflecting on the new data.'}
-            </p>
-            <div className="flex gap-3 pt-1">
-              <button
-                onClick={reset}
-                className="text-xs px-3 py-1.5 rounded-lg border border-black/10 text-foreground/60 hover:border-black/20"
-              >
-                Import another
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* ERROR */}
-        {step === 'error' && selectedPlatform && result && (
-          <motion.div
-            key="error"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="glass-card p-5 space-y-3 !border-red-800/30"
-          >
-            <div className="flex items-center gap-2">
-              <AlertCircle size={20} className="text-red-500" />
-              <span className="font-semibold text-sm text-red-700">Import failed</span>
-            </div>
-            <p className="text-xs text-red-400 leading-relaxed">{result.error}</p>
-            <button
-              onClick={() => setStep('uploading')}
-              className="text-xs px-3 py-1.5 rounded-lg border border-red-800/30 text-red-400 hover:bg-red-900/20"
-            >
-              Try again
-            </button>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
+            Try again
+          </button>
+        </div>
+      )}
     </div>
   );
 }

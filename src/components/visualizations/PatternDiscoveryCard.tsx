@@ -4,7 +4,6 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { PatternData } from '@/utils/dataTransformers';
 import { Share2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 
@@ -32,17 +31,12 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
   };
 
   const handleShare = () => {
-    // Copy pattern to clipboard
     const text = `${pattern.title}\n\n${pattern.description}\n\n${pattern.insight}\n\n(Confidence: ${pattern.confidence}%)`;
     navigator.clipboard.writeText(text);
-    // Could add toast notification here
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
+    <div
       className={`bg-gradient-to-br ${getConfidenceGradient(pattern.confidence)} rounded-xl border border-white/10 overflow-hidden ${className}`}
     >
       <div className="p-6">
@@ -51,7 +45,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
           <div className="flex-1">
             <div className="flex items-center space-x-2 mb-2">
               <Sparkles className="w-5 h-5 text-muted-foreground" />
-              <h4 className="text-lg font-heading font-semibold text-foreground">
+              <h4 className="text-lg font-semibold text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {pattern.title}
               </h4>
             </div>
@@ -66,16 +60,13 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
 
         {/* Platform tags */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {pattern.platforms.map((platform, index) => (
-            <motion.span
+          {pattern.platforms.map((platform) => (
+            <span
               key={platform}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
               className="text-xs px-2.5 py-1 bg-white/8 rounded-md border border-white/10 text-muted-foreground"
             >
               {platform}
-            </motion.span>
+            </span>
           ))}
         </div>
 
@@ -87,31 +78,23 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
         )}
 
         {/* Expanded content */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mb-4"
-            >
-              <div className="p-4 bg-white/8 rounded-lg border border-white/10">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-orange-900/20 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-orange-400" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-semibold text-foreground mb-2">AI Insight</h5>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {pattern.insight}
-                    </p>
-                  </div>
+        {isExpanded && (
+          <div className="mb-4">
+            <div className="p-4 bg-white/8 rounded-lg border border-white/10">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-orange-900/20 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-orange-400" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-semibold text-foreground mb-2">AI Insight</h5>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {pattern.insight}
+                  </p>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center justify-between">
@@ -140,11 +123,8 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
 
       {/* Confidence progress bar */}
       <div className="h-1 bg-white/10">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${pattern.confidence}%` }}
-          transition={{ duration: 1, delay: 0.3 }}
-          className={`h-full ${
+        <div
+          className={`h-full transition-all duration-1000 ${
             pattern.confidence >= 90
               ? 'bg-green-500'
               : pattern.confidence >= 70
@@ -153,8 +133,9 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
               ? 'bg-stone-500'
               : 'bg-stone-500'
           }`}
+          style={{ width: `${pattern.confidence}%` }}
         />
       </div>
-    </motion.div>
+    </div>
   );
 }

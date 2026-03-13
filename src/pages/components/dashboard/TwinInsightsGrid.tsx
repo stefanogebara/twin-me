@@ -1,6 +1,5 @@
 import React from 'react';
 import { Globe } from 'lucide-react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 import { Clay3DIcon } from '@/components/Clay3DIcon';
 
 interface Pattern {
@@ -51,14 +50,14 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
           }}
         />
         <h3
-          className="text-sm uppercase tracking-wider font-semibold"
-          style={{ color: 'var(--text-secondary)' }}
+          className="text-[11px] font-medium tracking-widest uppercase"
+          style={{ color: '#10b77f' }}
         >
           Twin Insights
         </h3>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {insightLinks.map((insight, idx) => {
+        {insightLinks.map((insight) => {
           const Icon = insight.icon;
           const clayIcon = CLAY_3D_MAP[insight.id];
           const iconBgColor = insight.hasData && INSIGHT_BG_COLORS[insight.id]
@@ -66,11 +65,14 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
             : 'rgba(255, 255, 255, 0.05)';
 
           return (
-            <GlassPanel
+            <div
               key={insight.id}
-              hover
-              className={`cursor-pointer ${insight.hasData ? 'gradient-accent-bar' : ''}`}
-              delay={0.05 + idx * 0.06}
+              className={`cursor-pointer rounded-lg ${insight.hasData ? 'gradient-accent-bar' : ''}`}
+              style={{
+                border: '1px solid rgba(255,255,255,0.06)',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                padding: '1.25rem',
+              }}
               onClick={() => onNavigate(insight.actionPath!)}
             >
               <div className="flex items-start gap-3">
@@ -97,7 +99,7 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
                   </h4>
                   <p
                     className="text-xs mb-2"
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'rgba(255,255,255,0.4)' }}
                   >
                     {insight.description}
                   </p>
@@ -105,14 +107,14 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
                     className="text-xs px-3 py-1 rounded-full inline-block font-medium"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                      color: 'var(--text-secondary)'
+                      color: 'rgba(255,255,255,0.4)'
                     }}
                   >
                     {insight.actionLabel} →
                   </span>
                 </div>
               </div>
-            </GlassPanel>
+            </div>
           );
         })}
       </div>

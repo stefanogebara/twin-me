@@ -1,6 +1,6 @@
 /**
  * Shared design tokens for Goal components.
- * Extracted from GoalCard + GoalSuggestionCard to avoid duplication.
+ * Typography-driven dark design system.
  */
 import {
   Moon,
@@ -10,16 +10,16 @@ import {
   Scale,
 } from 'lucide-react';
 
-// Design tokens
+// Design tokens — typography-driven dark theme
 export const TEXT_PRIMARY = 'var(--foreground)';
-export const TEXT_SECONDARY = 'var(--text-secondary)';
-export const BORDER_COLOR = 'var(--glass-surface-border)';
+export const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
+export const BORDER_COLOR = 'rgba(255,255,255,0.06)';
 
-// Glass surface pill style (design system compliant)
+// Pill style
 export const PILL_STYLE = {
-  bg: 'rgba(255,255,255,0.06)',
-  text: 'var(--text-secondary)',
-  border: 'var(--glass-surface-border)',
+  bg: 'rgba(255,255,255,0.04)',
+  text: 'rgba(255,255,255,0.5)',
+  border: 'rgba(255,255,255,0.08)',
 } as const;
 
 // Category label mapping

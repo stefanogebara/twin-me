@@ -92,6 +92,11 @@ const priorityColors = {
   low: { bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.3)', text: '#22c55e' }
 };
 
+const darkCardStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+  border: '1px solid rgba(255, 255, 255, 0.06)',
+};
+
 export const TodayInsights: React.FC = () => {
   const { isDemoMode, user } = useAuth();
   const navigate = useNavigate();
@@ -167,28 +172,28 @@ export const TodayInsights: React.FC = () => {
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--foreground)' }}>
+          <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <h2 className="text-lg font-medium" style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: 'var(--foreground)' }}>
             Today's Insights
           </h2>
         </div>
         <div
           className="rounded-xl p-7 space-y-4"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-            border: '1px solid var(--glass-surface-border)',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
             <div key={platform} className="flex items-center justify-between gap-3">
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 {desc}
               </span>
               <button
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'rgba(0,0,0,0.06)',
+                  backgroundColor: 'rgba(255,255,255,0.06)',
                   color: 'var(--foreground)',
                 }}
               >
@@ -203,16 +208,10 @@ export const TodayInsights: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl p-6" style={{
-        background: 'var(--glass-surface-bg)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-      }}>
+      <div className="rounded-2xl p-6" style={darkCardStyle}>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'var(--text-secondary)' }} />
-          <span className="ml-3" style={{ color: 'var(--text-secondary)' }}>
+          <Loader2 className="w-6 h-6 animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <span className="ml-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
             Analyzing your day...
           </span>
         </div>
@@ -222,14 +221,8 @@ export const TodayInsights: React.FC = () => {
 
   if (error || !data?.success) {
     return (
-      <div className="rounded-2xl p-6" style={{
-        background: 'var(--glass-surface-bg)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid var(--glass-surface-border)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-      }}>
-        <div className="flex items-center gap-3" style={{ color: 'var(--text-secondary)' }}>
+      <div className="rounded-2xl p-6" style={darkCardStyle}>
+        <div className="flex items-center gap-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
           <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#ef4444' }} />
           <span className="text-sm">Unable to load insights. Try refreshing.</span>
         </div>
@@ -244,20 +237,20 @@ export const TodayInsights: React.FC = () => {
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-2 mb-1">
-          <Sparkles className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: 'var(--font-heading)', color: 'var(--foreground)' }}>
+          <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <h2 className="text-lg font-medium" style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: 'var(--foreground)' }}>
             Today's Insights
           </h2>
         </div>
         <div
           className="rounded-xl p-7 flex items-center gap-3"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-            border: '1px solid var(--glass-surface-border)',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
-          <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
             I'm going through your data now — check back in a bit and I should have something for you.
           </span>
         </div>
@@ -270,9 +263,9 @@ export const TodayInsights: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
+          <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
           <h2 className="text-lg font-medium" style={{
-            fontFamily: 'var(--font-heading)',
+            fontFamily: "'Instrument Serif', Georgia, serif",
             color: 'var(--foreground)'
           }}>
             Today's Insights
@@ -281,18 +274,18 @@ export const TodayInsights: React.FC = () => {
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="p-2 rounded-lg transition-colors hover:bg-black/5"
+          className="p-2 rounded-lg transition-colors hover:bg-white/5"
           title="Refresh insights"
         >
           <RefreshCw
             className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'rgba(255,255,255,0.4)' }}
           />
         </button>
       </div>
 
       {/* Data Sources Indicator - Uses real platform status with token expiry check */}
-      <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-secondary)' }}>
+      <div className="flex items-center gap-4 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
         {(() => {
           const CalendarIcon = getPlatformLogo('google_calendar') || Calendar;
           const SpotifyIcon = getPlatformLogo('spotify') || Music;
@@ -335,13 +328,11 @@ export const TodayInsights: React.FC = () => {
               key={insight.id}
               className="rounded-xl overflow-hidden transition-all duration-200 cursor-pointer"
               style={{
-                background: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(10px) saturate(140%)',
-                WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-                border: '1px solid var(--glass-surface-border)',
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
                 boxShadow: isExpanded
-                  ? '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
-                  : '0 2px 8px rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+                  ? '0 8px 32px rgba(0, 0, 0, 0.18)'
+                  : '0 2px 8px rgba(0, 0, 0, 0.06)'
               }}
               onClick={() => handleInsightClick(insight)}
             >
@@ -368,7 +359,7 @@ export const TodayInsights: React.FC = () => {
                         {insight.title}
                       </h3>
                     </div>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                       {insight.summary}
                     </p>
                   </div>
@@ -376,7 +367,7 @@ export const TodayInsights: React.FC = () => {
                   {/* Expand Arrow */}
                   <ChevronRight
                     className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'rgba(255,255,255,0.4)' }}
                   />
                 </div>
               </div>
@@ -385,9 +376,9 @@ export const TodayInsights: React.FC = () => {
               {isExpanded && insight.detail && (
                 <div
                   className="px-4 pb-4 pt-0"
-                  style={{ borderTop: '1px solid var(--glass-surface-border)' }}
+                  style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}
                 >
-                  <p className="text-sm mb-3 pt-3" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-sm mb-3 pt-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {insight.detail}
                   </p>
 
@@ -401,7 +392,7 @@ export const TodayInsights: React.FC = () => {
                         {/* Energy Bar */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: 'var(--text-muted)' }}>Energy</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>Energy</span>
                             <span style={{ color: '#1DB954' }}>{Math.round(insight.audioFeatures.energy)}%</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
@@ -416,7 +407,7 @@ export const TodayInsights: React.FC = () => {
                         {/* Positivity Bar */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: 'var(--text-muted)' }}>Positivity</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>Positivity</span>
                             <span style={{ color: '#8B5CF6' }}>{Math.round(insight.audioFeatures.valence)}%</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
@@ -431,7 +422,7 @@ export const TodayInsights: React.FC = () => {
                         {/* Danceability Bar */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: 'var(--text-muted)' }}>Danceability</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>Danceability</span>
                             <span style={{ color: '#EC4899' }}>{Math.round(insight.audioFeatures.danceability)}%</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
@@ -446,7 +437,7 @@ export const TodayInsights: React.FC = () => {
                         {/* Tempo */}
                         <div>
                           <div className="flex justify-between text-xs mb-1">
-                            <span style={{ color: 'var(--text-muted)' }}>Tempo</span>
+                            <span style={{ color: 'rgba(255,255,255,0.3)' }}>Tempo</span>
                             <span style={{ color: '#F59E0B' }}>{Math.round(insight.audioFeatures.tempo)} BPM</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
@@ -471,7 +462,7 @@ export const TodayInsights: React.FC = () => {
                         }}
                         className="text-sm font-medium px-4 py-2 rounded-lg transition-colors"
                         style={{
-                          backgroundColor: 'var(--glass-surface-bg)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.02)',
                           color: 'var(--foreground)'
                         }}
                       >
@@ -505,20 +496,20 @@ export const TodayInsights: React.FC = () => {
         <div
           className="rounded-xl p-6 space-y-4"
           style={{
-            backgroundColor: 'var(--glass-surface-bg)',
+            backgroundColor: 'rgba(255, 255, 255, 0.02)',
             border: '1px solid rgba(255, 255, 255, 0.05)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
             <div key={platform} className="flex items-center justify-between gap-3">
-              <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 {desc}
               </span>
               <button
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'rgba(0,0,0,0.06)',
+                  backgroundColor: 'rgba(255,255,255,0.06)',
                   color: 'var(--foreground)',
                 }}
               >
@@ -535,9 +526,9 @@ export const TodayInsights: React.FC = () => {
           onClick={() => navigate('/identity')}
           className="w-full py-3 text-sm font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
           style={{
-            backgroundColor: 'var(--glass-surface-bg-subtle)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--glass-surface-border)'
+            backgroundColor: 'rgba(255, 255, 255, 0.03)',
+            color: 'rgba(255,255,255,0.4)',
+            border: '1px solid rgba(255, 255, 255, 0.06)'
           }}
         >
           Explore who you are

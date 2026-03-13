@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface WelcomeStepProps {
@@ -20,33 +19,32 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-6"
-      
     >
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : 24 }}
-        transition={{ duration: 0.9, ease: 'easeOut' }}
+      <div
         className="text-center max-w-lg"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'translateY(0)' : 'translateY(24px)',
+          transition: 'opacity 0.9s ease-out, transform 0.9s ease-out',
+        }}
       >
         {/* Flower brand mark */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: visible ? 1 : 0 }}
-          transition={{ delay: 0.1, duration: 0.7 }}
+        <div
           className="mb-10 flex justify-center"
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 0.7s ease-out 0.1s',
+          }}
         >
           <img
             src="/images/backgrounds/flower-hero.png"
             alt="Twin Me"
             className="w-16 h-16 object-contain drop-shadow-md"
           />
-        </motion.div>
+        </div>
 
         {/* Main headline */}
-        <motion.h1
-          initial={{ opacity: 0 }}
-          animate={{ opacity: visible ? 1 : 0 }}
-          transition={{ delay: 0.3, duration: 0.8 }}
+        <h1
           style={{
             fontFamily: 'Instrument Serif, Georgia, serif',
             fontWeight: 400,
@@ -55,38 +53,36 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
             color: 'var(--foreground)',
             fontSize: 'clamp(48px, 8vw, 80px)',
             marginBottom: '20px',
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 0.8s ease-out 0.3s',
           }}
         >
           Hey {firstName}
-        </motion.h1>
+        </h1>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: visible ? 1 : 0 }}
-          transition={{ delay: 0.6, duration: 0.8 }}
+        <p
           style={{
             fontFamily: "'Geist', sans-serif",
             fontSize: '14px',
             fontWeight: 500,
-            color: 'var(--text-secondary)',
+            color: 'rgba(255,255,255,0.4)',
             lineHeight: 1.65,
             marginBottom: '48px',
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 0.8s ease-out 0.6s',
           }}
         >
           Before your twin wakes up, we need to meet you.
           <br />
           A few minutes. Totally you.
-        </motion.p>
+        </p>
 
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: visible ? 1 : 0 }}
-          transition={{ delay: 1.0, duration: 0.6 }}
+        <button
           onClick={onBegin}
           style={{
             fontFamily: "'Geist', sans-serif",
-            backgroundColor: 'var(--foreground)',
-            color: 'var(--foreground)',
+            backgroundColor: '#10b77f',
+            color: '#0a0f0a',
             borderRadius: '9999px',
             padding: '14px 28px',
             fontSize: '12px',
@@ -95,14 +91,13 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
             textTransform: 'uppercase',
             cursor: 'pointer',
             border: 'none',
-            transition: 'background-color 0.2s ease',
+            transition: 'background-color 0.2s ease, opacity 1s ease-out 1s',
+            opacity: visible ? 1 : 0,
           }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--foreground)')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--foreground)')}
         >
-          Begin →
-        </motion.button>
-      </motion.div>
+          Begin
+        </button>
+      </div>
     </div>
   );
 };

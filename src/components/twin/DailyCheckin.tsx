@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 
@@ -19,100 +18,100 @@ interface MoodCategory {
 const MOOD_CATEGORIES: MoodCategory[] = [
   {
     name: 'Energized',
-    emoji: '⚡',
+    emoji: '\u26A1',
     moods: [
-      { id: 'exhilarated', label: 'Exhilarated', emoji: '🔥' },
-      { id: 'inspired', label: 'Inspired', emoji: '✨' },
-      { id: 'energized', label: 'Energized', emoji: '⚡' },
-      { id: 'excited', label: 'Excited', emoji: '🎉' },
-      { id: 'confident', label: 'Confident', emoji: '💪' },
-      { id: 'determined', label: 'Determined', emoji: '🏔️' },
-      { id: 'proud', label: 'Proud', emoji: '🦁' },
+      { id: 'exhilarated', label: 'Exhilarated', emoji: '\uD83D\uDD25' },
+      { id: 'inspired', label: 'Inspired', emoji: '\u2728' },
+      { id: 'energized', label: 'Energized', emoji: '\u26A1' },
+      { id: 'excited', label: 'Excited', emoji: '\uD83C\uDF89' },
+      { id: 'confident', label: 'Confident', emoji: '\uD83D\uDCAA' },
+      { id: 'determined', label: 'Determined', emoji: '\uD83C\uDFD4\uFE0F' },
+      { id: 'proud', label: 'Proud', emoji: '\uD83E\uDD81' },
     ],
   },
   {
     name: 'Happy',
-    emoji: '😌',
+    emoji: '\uD83D\uDE0C',
     moods: [
-      { id: 'content', label: 'Content', emoji: '😌' },
-      { id: 'grateful', label: 'Grateful', emoji: '🙏' },
-      { id: 'peaceful', label: 'Peaceful', emoji: '🕊️' },
-      { id: 'warm', label: 'Warm', emoji: '☀️' },
-      { id: 'optimistic', label: 'Optimistic', emoji: '🌱' },
-      { id: 'loved', label: 'Loved', emoji: '💗' },
-      { id: 'playful', label: 'Playful', emoji: '🎮' },
+      { id: 'content', label: 'Content', emoji: '\uD83D\uDE0C' },
+      { id: 'grateful', label: 'Grateful', emoji: '\uD83D\uDE4F' },
+      { id: 'peaceful', label: 'Peaceful', emoji: '\uD83D\uDD4A\uFE0F' },
+      { id: 'warm', label: 'Warm', emoji: '\u2600\uFE0F' },
+      { id: 'optimistic', label: 'Optimistic', emoji: '\uD83C\uDF31' },
+      { id: 'loved', label: 'Loved', emoji: '\uD83D\uDC97' },
+      { id: 'playful', label: 'Playful', emoji: '\uD83C\uDFAE' },
     ],
   },
   {
     name: 'Focused',
-    emoji: '🎯',
+    emoji: '\uD83C\uDFAF',
     moods: [
-      { id: 'focused', label: 'Focused', emoji: '🎯' },
-      { id: 'curious', label: 'Curious', emoji: '🔍' },
-      { id: 'creative', label: 'Creative', emoji: '🎨' },
-      { id: 'present', label: 'Present', emoji: '🌿' },
+      { id: 'focused', label: 'Focused', emoji: '\uD83C\uDFAF' },
+      { id: 'curious', label: 'Curious', emoji: '\uD83D\uDD0D' },
+      { id: 'creative', label: 'Creative', emoji: '\uD83C\uDFA8' },
+      { id: 'present', label: 'Present', emoji: '\uD83C\uDF3F' },
     ],
   },
   {
     name: 'Reflective',
-    emoji: '🪞',
+    emoji: '\uD83E\uDE9E',
     moods: [
-      { id: 'reflective', label: 'Reflective', emoji: '🪞' },
-      { id: 'pensive', label: 'Pensive', emoji: '💭' },
-      { id: 'ambivalent', label: 'Ambivalent', emoji: '⚖️' },
-      { id: 'nostalgic', label: 'Nostalgic', emoji: '📸' },
-      { id: 'uncertain', label: 'Uncertain', emoji: '❓' },
-      { id: 'vulnerable', label: 'Vulnerable', emoji: '🌸' },
+      { id: 'reflective', label: 'Reflective', emoji: '\uD83E\uDE9E' },
+      { id: 'pensive', label: 'Pensive', emoji: '\uD83D\uDCAD' },
+      { id: 'ambivalent', label: 'Ambivalent', emoji: '\u2696\uFE0F' },
+      { id: 'nostalgic', label: 'Nostalgic', emoji: '\uD83D\uDCF8' },
+      { id: 'uncertain', label: 'Uncertain', emoji: '\u2753' },
+      { id: 'vulnerable', label: 'Vulnerable', emoji: '\uD83C\uDF38' },
     ],
   },
   {
     name: 'Low Energy',
-    emoji: '🌫️',
+    emoji: '\uD83C\uDF2B\uFE0F',
     moods: [
-      { id: 'tired', label: 'Tired', emoji: '😴' },
-      { id: 'drained', label: 'Drained', emoji: '🪫' },
-      { id: 'bored', label: 'Bored', emoji: '😑' },
-      { id: 'numb', label: 'Numb', emoji: '🌫️' },
-      { id: 'detached', label: 'Detached', emoji: '🔮' },
-      { id: 'indifferent', label: 'Indifferent', emoji: '😶' },
+      { id: 'tired', label: 'Tired', emoji: '\uD83D\uDE34' },
+      { id: 'drained', label: 'Drained', emoji: '\uD83E\uDEAB' },
+      { id: 'bored', label: 'Bored', emoji: '\uD83D\uDE11' },
+      { id: 'numb', label: 'Numb', emoji: '\uD83C\uDF2B\uFE0F' },
+      { id: 'detached', label: 'Detached', emoji: '\uD83D\uDD2E' },
+      { id: 'indifferent', label: 'Indifferent', emoji: '\uD83D\uDE36' },
     ],
   },
   {
     name: 'Sad',
-    emoji: '💙',
+    emoji: '\uD83D\uDC99',
     moods: [
-      { id: 'sad', label: 'Sad', emoji: '💙' },
-      { id: 'lonely', label: 'Lonely', emoji: '🫂' },
-      { id: 'melancholy', label: 'Melancholy', emoji: '🌧️' },
-      { id: 'disappointed', label: 'Disappointed', emoji: '😔' },
-      { id: 'heavy', label: 'Heavy', emoji: '🪨' },
-      { id: 'withdrawn', label: 'Withdrawn', emoji: '🐚' },
-      { id: 'hopeless', label: 'Hopeless', emoji: '🌑' },
-      { id: 'guilty', label: 'Guilty', emoji: '😣' },
+      { id: 'sad', label: 'Sad', emoji: '\uD83D\uDC99' },
+      { id: 'lonely', label: 'Lonely', emoji: '\uD83E\uDEC2' },
+      { id: 'melancholy', label: 'Melancholy', emoji: '\uD83C\uDF27\uFE0F' },
+      { id: 'disappointed', label: 'Disappointed', emoji: '\uD83D\uDE14' },
+      { id: 'heavy', label: 'Heavy', emoji: '\uD83E\uDEA8' },
+      { id: 'withdrawn', label: 'Withdrawn', emoji: '\uD83D\uDC1A' },
+      { id: 'hopeless', label: 'Hopeless', emoji: '\uD83C\uDF11' },
+      { id: 'guilty', label: 'Guilty', emoji: '\uD83D\uDE23' },
     ],
   },
   {
     name: 'Anxious',
-    emoji: '😰',
+    emoji: '\uD83D\uDE30',
     moods: [
-      { id: 'anxious', label: 'Anxious', emoji: '😰' },
-      { id: 'stressed', label: 'Stressed', emoji: '🌡️' },
-      { id: 'overwhelmed', label: 'Overwhelmed', emoji: '🌊' },
-      { id: 'restless', label: 'Restless', emoji: '🌀' },
-      { id: 'scattered', label: 'Scattered', emoji: '🌪️' },
-      { id: 'tense', label: 'Tense', emoji: '🪢' },
-      { id: 'panicked', label: 'Panicked', emoji: '🚨' },
+      { id: 'anxious', label: 'Anxious', emoji: '\uD83D\uDE30' },
+      { id: 'stressed', label: 'Stressed', emoji: '\uD83C\uDF21\uFE0F' },
+      { id: 'overwhelmed', label: 'Overwhelmed', emoji: '\uD83C\uDF0A' },
+      { id: 'restless', label: 'Restless', emoji: '\uD83C\uDF00' },
+      { id: 'scattered', label: 'Scattered', emoji: '\uD83C\uDF2A\uFE0F' },
+      { id: 'tense', label: 'Tense', emoji: '\uD83E\uDE22' },
+      { id: 'panicked', label: 'Panicked', emoji: '\uD83D\uDEA8' },
     ],
   },
   {
     name: 'Frustrated',
-    emoji: '😤',
+    emoji: '\uD83D\uDE24',
     moods: [
-      { id: 'frustrated', label: 'Frustrated', emoji: '😤' },
-      { id: 'angry', label: 'Angry', emoji: '🔴' },
-      { id: 'irritable', label: 'Irritable', emoji: '⚡' },
-      { id: 'impatient', label: 'Impatient', emoji: '⏰' },
-      { id: 'defensive', label: 'Defensive', emoji: '🛡️' },
+      { id: 'frustrated', label: 'Frustrated', emoji: '\uD83D\uDE24' },
+      { id: 'angry', label: 'Angry', emoji: '\uD83D\uDD34' },
+      { id: 'irritable', label: 'Irritable', emoji: '\u26A1' },
+      { id: 'impatient', label: 'Impatient', emoji: '\u23F0' },
+      { id: 'defensive', label: 'Defensive', emoji: '\uD83D\uDEE1\uFE0F' },
     ],
   },
 ];
@@ -164,17 +163,12 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
 
   if (done && selectedMood) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="text-center py-4"
-      >
+      <div className="text-center py-4">
         <div className="text-2xl mb-1">{selectedMood.emoji}</div>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
           Your twin knows how you're feeling
         </p>
-      </motion.div>
+      </div>
     );
   }
 
@@ -184,7 +178,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
         <h3 className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
           How are you feeling right now?
         </h3>
-        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
           Your twin will remember this
         </p>
       </div>
@@ -202,7 +196,7 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
                 onClick={() => setExpandedCategory(isExpanded ? null : category.name)}
                 disabled={submitting}
                 className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors hover:bg-black/4"
-                style={{ color: 'var(--text-secondary)' }}
+                style={{ color: 'rgba(255,255,255,0.4)' }}
               >
                 <span className="flex items-center gap-1.5 font-medium">
                   <span>{category.emoji}</span>
@@ -214,18 +208,10 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
                 />
               </button>
               {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="flex flex-wrap gap-1.5 px-2 py-1.5"
-                >
+                <div className="flex flex-wrap gap-1.5 px-2 py-1.5">
                   {category.moods.map((mood) => (
-                    <motion.button
+                    <button
                       key={mood.id}
-                      whileHover={{ scale: submitting ? 1 : 1.05 }}
-                      whileTap={{ scale: submitting ? 1 : 0.95 }}
                       onClick={() => handleSelect(mood)}
                       disabled={submitting}
                       className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors
@@ -238,9 +224,9 @@ export function DailyCheckin({ onComplete }: DailyCheckinProps) {
                     >
                       <span>{mood.emoji}</span>
                       <span>{mood.label}</span>
-                    </motion.button>
+                    </button>
                   ))}
-                </motion.div>
+                </div>
               )}
             </div>
           );

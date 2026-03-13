@@ -3,7 +3,6 @@
  * Circular progress bar showing soul signature completeness with category breakdown
  */
 
-import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 interface CompletenessProgressProps {
@@ -16,11 +15,15 @@ interface CompletenessProgressProps {
   className?: string;
 }
 
+const darkCardStyle: React.CSSProperties = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  backgroundColor: 'rgba(255,255,255,0.02)',
+};
+
 export function CompletenessProgress({ completeness, breakdown, className = '' }: CompletenessProgressProps) {
   const [animatedValue, setAnimatedValue] = useState(0);
 
   useEffect(() => {
-    // Animate the value
     const duration = 1500;
     const steps = 60;
     const increment = completeness / steps;
@@ -55,14 +58,12 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
   const creativeSegment = (breakdown.creative / 100) * circumference;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5 }}
-      className={`glass-card p-6 ${className}`}
+    <div
+      className={`rounded-lg p-6 ${className}`}
+      style={darkCardStyle}
     >
       <div className="mb-6">
-        <h3 className="text-2xl font-heading font-semibold text-foreground">
+        <h3 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
           Soul Signature Completeness
         </h3>
         <p className="text-sm text-muted-foreground mt-2">
@@ -85,7 +86,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
             />
 
             {/* Main progress circle */}
-            <motion.circle
+            <circle
               cx={center}
               cy={center}
               r={radius}
@@ -94,15 +95,13 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
               strokeWidth={strokeWidth}
               strokeLinecap="round"
               strokeDasharray={circumference}
-              initial={{ strokeDashoffset: circumference }}
-              animate={{ strokeDashoffset: mainOffset }}
-              transition={{ duration: 1.5, ease: 'easeInOut' }}
+              strokeDashoffset={mainOffset}
+              style={{ transition: 'stroke-dashoffset 1.5s ease-in-out' }}
             />
 
             {/* Inner breakdown ring */}
             <g transform={`rotate(0 ${center} ${center})`}>
-              {/* Personal segment */}
-              <motion.circle
+              <circle
                 cx={center}
                 cy={center}
                 r={radius - 20}
@@ -111,13 +110,9 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 strokeWidth={8}
                 strokeLinecap="round"
                 strokeDasharray={`${personalSegment} ${circumference}`}
-                initial={{ strokeDashoffset: circumference }}
-                animate={{ strokeDashoffset: 0 }}
-                transition={{ duration: 1.5, delay: 0.3, ease: 'easeInOut' }}
+                strokeDashoffset={0}
               />
-
-              {/* Professional segment */}
-              <motion.circle
+              <circle
                 cx={center}
                 cy={center}
                 r={radius - 20}
@@ -126,13 +121,9 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 strokeWidth={8}
                 strokeLinecap="round"
                 strokeDasharray={`0 ${personalSegment} ${professionalSegment} ${circumference}`}
-                initial={{ strokeDashoffset: circumference }}
-                animate={{ strokeDashoffset: 0 }}
-                transition={{ duration: 1.5, delay: 0.4, ease: 'easeInOut' }}
+                strokeDashoffset={0}
               />
-
-              {/* Creative segment */}
-              <motion.circle
+              <circle
                 cx={center}
                 cy={center}
                 r={radius - 20}
@@ -141,50 +132,28 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 strokeWidth={8}
                 strokeLinecap="round"
                 strokeDasharray={`0 ${personalSegment + professionalSegment} ${creativeSegment} ${circumference}`}
-                initial={{ strokeDashoffset: circumference }}
-                animate={{ strokeDashoffset: 0 }}
-                transition={{ duration: 1.5, delay: 0.5, ease: 'easeInOut' }}
+                strokeDashoffset={0}
               />
             </g>
           </svg>
 
           {/* Center percentage */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="text-center"
-            >
-              <div className="text-5xl font-heading font-bold text-foreground">
+            <div className="text-center">
+              <div className="text-5xl font-bold text-foreground" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {animatedValue}%
               </div>
               <div className="text-sm text-muted-foreground mt-1">Complete</div>
-            </motion.div>
+            </div>
           </div>
-
-          {/* Pulse animation when reaching milestones */}
-          {completeness > 0 && completeness % 25 === 0 && (
-            <motion.div
-              className="absolute inset-0 rounded-full border-4 border-orange-400"
-              initial={{ scale: 1, opacity: 0.5 }}
-              animate={{ scale: 1.2, opacity: 0 }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          )}
         </div>
 
-        {/* Feature Unlocks - Value-focused instead of meaningless percentages */}
+        {/* Feature Unlocks */}
         <div className="flex-1 space-y-4">
           <div className="text-sm font-semibold text-foreground mb-4">Unlocked Features</div>
 
-          {/* Musical Identity - Always shown as unlocked when data exists */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex items-start p-3 rounded-lg bg-green-900/20 border border-green-800/30"
-          >
+          {/* Musical Identity */}
+          <div className="flex items-start p-3 rounded-lg bg-green-900/20 border border-green-800/30">
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mt-0.5 flex-shrink-0">
                 <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -196,18 +165,16 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 <p className="text-xs text-green-400 mt-0.5">Spotify connected - emotional patterns discovered</p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Deep Personality Analysis - Unlocks at 30% personal data */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+          {/* Deep Personality Analysis */}
+          <div
             className={`flex items-start p-3 rounded-lg ${
               breakdown.personal >= 30
                 ? 'bg-green-900/20 border-green-800/30'
-                : 'bg-[var(--glass-surface-bg)] border-[var(--glass-surface-border)]'
+                : ''
             } border`}
+            style={breakdown.personal < 30 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {breakdown.personal >= 30 ? (
@@ -234,18 +201,16 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* AI Twin Chat - Unlocks at 50% overall completeness */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
+          {/* AI Twin Chat */}
+          <div
             className={`flex items-start p-3 rounded-lg ${
               completeness >= 50
                 ? 'bg-green-900/20 border-green-800/30'
-                : 'bg-[var(--glass-surface-bg)] border-[var(--glass-surface-border)]'
+                : ''
             } border`}
+            style={completeness < 50 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {completeness >= 50 ? (
@@ -272,18 +237,16 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Soul Matching - Unlocks at 75% overall completeness */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
+          {/* Soul Matching */}
+          <div
             className={`flex items-start p-3 rounded-lg ${
               completeness >= 75
                 ? 'bg-green-900/20 border-green-800/30'
-                : 'bg-[var(--glass-surface-bg)] border-[var(--glass-surface-border)]'
+                : ''
             } border`}
+            style={completeness < 75 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {completeness >= 75 ? (
@@ -310,16 +273,11 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Next Action - Dynamic guidance */}
+          {/* Next Action */}
           {completeness < 100 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1 }}
-              className="pt-4 border-t border-white/10"
-            >
+            <div className="pt-4 border-t border-white/10">
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <svg className="w-4 h-4 text-muted-foreground flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -330,10 +288,10 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                   {completeness >= 75 && 'Almost complete! Connect more platforms for deeper insights'}
                 </span>
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

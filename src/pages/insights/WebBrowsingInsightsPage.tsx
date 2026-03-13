@@ -6,21 +6,22 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { WebBrowsingSkeleton } from './components/WebBrowsingSkeleton';
 import { WebBrowsingErrorState } from './components/WebBrowsingErrorState';
 import { WebBrowsingCharts } from './components/WebBrowsingCharts';
 import type { InsightsResponse } from './components/webBrowsingTypes';
-import { Globe, RefreshCw, Sparkles, ArrowLeft, Layout } from 'lucide-react';
+import { Globe, RefreshCw, Layout } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const WebBrowsingInsightsPage: React.FC = () => {
+  useDocumentTitle('Web Browsing Insights');
+
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'var(--text-secondary)',
+    textSecondary: 'rgba(255,255,255,0.4)',
     webAccent: '#6366f1',
     webBg: 'rgba(99, 102, 241, 0.1)'
   };
@@ -214,66 +215,26 @@ const WebBrowsingInsightsPage: React.FC = () => {
   }
 
   return (
-    <PageLayout>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <motion.button
-            onClick={() => navigate('/dashboard')}
-            className="p-2 rounded-lg glass-button"
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </motion.button>
-          <motion.div
-            className="w-12 h-12 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: colors.webBg }}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <Globe className="w-6 h-6" style={{ color: colors.webAccent }} />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <h1
-              className="heading-serif text-2xl"
-              style={{ color: colors.text }}
-            >
-              Your Digital Life
-            </h1>
-            <p className="text-sm" style={{ color: colors.textSecondary }}>
-              What your browsing reveals about you
-            </p>
-          </motion.div>
-        </div>
-        <motion.button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-2 rounded-lg glass-button"
-          title="Get a fresh observation"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
-        </motion.button>
+      <div className="flex items-center justify-between mb-2">
+        <h1 style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontSize: '28px', fontWeight: 400, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+          Your Digital Life
+        </h1>
+        <button onClick={handleRefresh} disabled={refreshing} className="p-2 rounded-lg transition-opacity hover:opacity-60" style={{ color: 'rgba(255,255,255,0.3)' }} title="Refresh">
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        What your browsing reveals about you
+      </p>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
 
       {/* Extension Install Banner */}
       {!insights?.hasExtensionData && (
-        <GlassPanel
-          className="!p-4 mb-6 cursor-pointer transition-opacity hover:opacity-80"
-          style={{ borderLeft: `3px solid ${colors.webAccent}` }}
+        <div
+          className="p-4 mb-6 rounded-xl cursor-pointer transition-opacity hover:opacity-80"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', borderLeft: `3px solid ${colors.webAccent}` }}
           onClick={() => navigate('/get-started')}
         >
           <div className="flex items-center gap-3">
@@ -286,9 +247,8 @@ const WebBrowsingInsightsPage: React.FC = () => {
                 Capture browsing patterns, reading habits, search queries, and content preferences to discover what your digital footprint reveals about you.
               </p>
             </div>
-            <ArrowLeft className="w-4 h-4 rotate-180 flex-shrink-0" style={{ color: colors.textSecondary }} />
           </div>
-        </GlassPanel>
+        </div>
       )}
 
       {/* Charts & Data Visualizations */}
@@ -315,10 +275,9 @@ const WebBrowsingInsightsPage: React.FC = () => {
       {insights?.patterns && insights.patterns.length > 0 && (
         <div className="mb-8">
           <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+            className="text-xs uppercase tracking-wider mb-4"
+            style={{ color: '#10b77f', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
           >
-            <Sparkles className="w-4 h-4" />
             Patterns I've Noticed
           </h3>
           <div className="space-y-3">
@@ -336,22 +295,29 @@ const WebBrowsingInsightsPage: React.FC = () => {
       {/* Historical Reflections */}
       {insights?.history && insights.history.length > 0 && (
         <div>
-          <h3 className="text-sm uppercase tracking-wider mb-4" style={{ color: colors.textSecondary }}>
+          <h3
+            className="text-xs uppercase tracking-wider mb-4"
+            style={{ color: '#10b77f', fontVariant: 'small-caps', letterSpacing: '0.08em' }}
+          >
             Past Observations
           </h3>
           <div className="space-y-3">
             {insights.history.map(past => (
-              <GlassPanel key={past.id} variant="default" className="!p-4">
+              <div
+                key={past.id}
+                className="p-4 rounded-xl"
+                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              >
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
                 >
                   {past.text}
                 </p>
                 <p className="text-xs mt-2" style={{ color: colors.textSecondary }}>
                   {new Date(past.generatedAt).toLocaleDateString()}
                 </p>
-              </GlassPanel>
+              </div>
             ))}
           </div>
         </div>
@@ -359,17 +325,20 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
       {/* Empty State */}
       {!insights?.reflection && (
-        <GlassPanel className="text-center py-12">
+        <div
+          className="text-center py-12 rounded-xl"
+          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        >
           <Globe className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
-          <h3 style={{ color: colors.text, fontFamily: 'var(--font-heading)' }}>
+          <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>
             Your twin is exploring
           </h3>
           <p className="mt-2" style={{ color: colors.textSecondary }}>
             As your browsing data flows in, your twin will discover patterns and share observations about your digital life.
           </p>
-        </GlassPanel>
+        </div>
       )}
-    </PageLayout>
+    </div>
   );
 };
 

@@ -3,7 +3,6 @@
  * Replaces the serious pentagon chart with a warm, approachable card-based design
  */
 
-import { motion } from 'framer-motion';
 import { Heart, Sparkles, Target, Zap, Palette, TrendingUp } from 'lucide-react';
 import { RadarDataPoint } from '@/utils/dataTransformers';
 
@@ -15,31 +14,31 @@ interface PersonalityCardsProps {
 const traitConfig = {
   Openness: {
     icon: Palette,
-    color: '#8B5CF6', // Purple
+    color: '#8B5CF6',
     gradient: 'from-purple-500/20 to-purple-600/20',
     description: 'Your curiosity & creativity'
   },
   Conscientiousness: {
     icon: Target,
-    color: '#3B82F6', // Blue
+    color: '#3B82F6',
     gradient: 'from-blue-500/20 to-blue-600/20',
     description: 'Your organization & planning'
   },
   Extraversion: {
     icon: Zap,
-    color: '#F59E0B', // Amber
+    color: '#F59E0B',
     gradient: 'from-stone-500/20 to-stone-600/20',
     description: 'Your social energy'
   },
   Agreeableness: {
     icon: Heart,
-    color: '#EC4899', // Pink
+    color: '#EC4899',
     gradient: 'from-pink-500/20 to-pink-600/20',
     description: 'Your compassion & trust'
   },
   Neuroticism: {
     icon: TrendingUp,
-    color: '#10B981', // Green
+    color: '#10B981',
     gradient: 'from-green-500/20 to-green-600/20',
     description: 'Your emotional awareness'
   }
@@ -47,16 +46,17 @@ const traitConfig = {
 
 export function PersonalityCards({ data, className = '' }: PersonalityCardsProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={`glass-card p-6 ${className}`}
+    <div
+      className={`rounded-lg p-6 ${className}`}
+      style={{
+        border: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+      }}
     >
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-6 h-6 text-[#D97706]" />
-          <h3 className="text-2xl font-heading font-semibold text-foreground">
+          <h3 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
             Your Personality Profile
           </h3>
         </div>
@@ -73,15 +73,11 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
           const Icon = config.icon;
           const percentage = trait.value;
           const level = percentage >= 75 ? 'High' : percentage >= 40 ? 'Moderate' : 'Low';
-          // 5th card in a 2-col grid spans full width to avoid orphan left-aligned card
           const isLastOdd = data.length % 2 !== 0 && index === data.length - 1;
 
           return (
-            <motion.div
+            <div
               key={trait.trait}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
               className={`bg-gradient-to-br ${config.gradient} rounded-xl p-5 border border-white/10 hover:shadow-lg transition-all duration-300${isLastOdd ? ' md:col-span-2' : ''}`}
             >
               {/* Header */}
@@ -115,12 +111,9 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
                   </span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${percentage}%` }}
-                    transition={{ duration: 1, delay: index * 0.1 + 0.3 }}
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: config.color }}
+                  <div
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{ backgroundColor: config.color, width: `${percentage}%` }}
                   />
                 </div>
               </div>
@@ -129,18 +122,13 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {getTraitInterpretation(trait.trait, percentage)}
               </p>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       {/* Bottom Insight */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
-        className="mt-6 p-4 bg-gradient-to-r from-amber-900/15 to-orange-900/10 rounded-xl border border-amber-800/20"
-      >
+      <div className="mt-6 p-4 bg-gradient-to-r from-amber-900/15 to-orange-900/10 rounded-xl border border-amber-800/20">
         <div className="flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
           <div>
@@ -153,14 +141,11 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
             </p>
           </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
-/**
- * Get friendly, personalized interpretation for each trait level
- */
 function getTraitInterpretation(trait: string, value: number): string {
   const interpretations: Record<string, { high: string; moderate: string; low: string }> = {
     Openness: {

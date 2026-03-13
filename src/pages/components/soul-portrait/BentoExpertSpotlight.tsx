@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Brain } from 'lucide-react';
 import { toSecondPerson } from '@/lib/utils';
 import type { ExpertReflection } from './types';
@@ -26,7 +25,7 @@ interface Props {
   animationDelay?: number;
 }
 
-export const BentoExpertSpotlight: React.FC<Props> = ({ reflections, animationDelay = 0 }) => {
+export const BentoExpertSpotlight: React.FC<Props> = ({ reflections }) => {
   if (reflections.length === 0) return null;
 
   // Group reflections by expert, limit to 2 per expert
@@ -43,45 +42,34 @@ export const BentoExpertSpotlight: React.FC<Props> = ({ reflections, animationDe
   const activeExperts = EXPERT_ORDER.filter(k => (grouped[k]?.length ?? 0) > 0);
 
   return (
-    <motion.div
-      className="rounded-2xl p-5 md:p-6"
+    <div
+      className="rounded-lg p-5 md:p-6"
       style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
       }}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: animationDelay, ease: 'easeOut' }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 mb-5">
         <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: 'rgba(155, 89, 182, 0.15)' }}>
           <Brain className="w-3.5 h-3.5" style={{ color: '#9B59B6' }} />
         </div>
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
           Expert Analysis
         </p>
-        <span className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>
+        <span className="ml-auto text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           {reflections.length} observation{reflections.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {/* 2-col grid of domain sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {activeExperts.map((expertKey, groupIdx) => {
+        {activeExperts.map((expertKey) => {
           const meta = EXPERT_META[expertKey] ?? { label: expertKey, shortLabel: expertKey, color: '#9B59B6' };
           const expertReflections = grouped[expertKey];
 
           return (
-            <motion.div
-              key={expertKey}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: animationDelay + groupIdx * 0.05 }}
-            >
+            <div key={expertKey}>
               {/* Domain label */}
               <p
                 className="text-xs font-semibold uppercase tracking-wide mb-2"
@@ -106,10 +94,10 @@ export const BentoExpertSpotlight: React.FC<Props> = ({ reflections, animationDe
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
-    </motion.div>
+    </div>
   );
 };

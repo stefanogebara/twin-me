@@ -4,17 +4,16 @@
  * "Your Musical Soul" - Visual, engaging insights from your twin
  * about what your music patterns reveal about you.
  *
- * REDESIGNED: Visual variety, specific data, no textbook style
+ * REDESIGNED: Typography-driven dark design system
  */
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
-import { Music, RefreshCw, Sparkles, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Music, RefreshCw, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getDemoSpotifyData } from '@/services/demoDataService';
 import { toast } from 'sonner';
@@ -24,6 +23,8 @@ import { SpotifyCharts } from './components/SpotifyCharts';
 import { SpotifyEmptyState } from './components/SpotifyEmptyState';
 
 const SpotifyInsightsPage: React.FC = () => {
+  useDocumentTitle('Spotify Insights');
+
   const { token } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -35,12 +36,11 @@ const SpotifyInsightsPage: React.FC = () => {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-  // Light-mode only colors
   const colors = {
     text: 'var(--foreground)',
-    textSecondary: 'var(--text-secondary)',
-    spotifyGreen: 'var(--platform-spotify)',
-    spotifyBg: 'var(--platform-spotify-bg)'
+    textSecondary: 'rgba(255,255,255,0.4)',
+    spotifyGreen: '#1DB954',
+    spotifyBg: 'rgba(29, 185, 84, 0.1)'
   };
 
   // Generate demo insights data
@@ -182,63 +182,71 @@ const SpotifyInsightsPage: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <AlertCircle
             className="w-12 h-12"
-            style={{ color: colors.textSecondary }}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           />
-          <p style={{ color: colors.textSecondary }}>{error}</p>
+          <p
+            style={{
+              color: colors.textSecondary,
+              fontFamily: "'Inter', sans-serif"
+            }}
+          >
+            {error}
+          </p>
           <button
             onClick={() => navigate('/get-started')}
-            className="px-4 py-2 rounded-lg glass-button"
-            style={{ color: colors.text }}
+            className="px-4 py-2 rounded-lg"
+            style={{
+              backgroundColor: '#10b77f',
+              color: '#0a0f0a',
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 500
+            }}
           >
             Connect Spotify
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout>
+    <div className="max-w-[680px] mx-auto px-6 py-16">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           {/* Back Button */}
-          <motion.button
+          <button
             onClick={() => navigate('/dashboard')}
-            className="p-2 rounded-lg glass-button"
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            whileHover={{ scale: 1.08 }}
-            whileTap={{ scale: 0.95 }}
+            className="p-2 rounded-lg"
+            style={{
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'rgba(255,255,255,0.5)'
+            }}
           >
-            <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
-          </motion.button>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
 
           {/* Platform Icon */}
-          <motion.div
+          <div
             className="w-12 h-12 rounded-xl flex items-center justify-center"
             style={{ backgroundColor: colors.spotifyBg }}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
           >
             <Music className="w-6 h-6" style={{ color: colors.spotifyGreen }} />
-          </motion.div>
+          </div>
 
           {/* Title */}
-          <motion.div
-            initial={{ opacity: 0, x: -12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.15, ease: [0.4, 0, 0.2, 1] }}
-          >
+          <div>
             <h1
-              className="heading-serif text-2xl"
               style={{
+                fontSize: '28px',
+                fontWeight: 400,
+                letterSpacing: '-0.02em',
+                fontStyle: 'italic',
+                fontFamily: "'Instrument Serif', serif",
                 color: colors.text
               }}
             >
@@ -246,30 +254,31 @@ const SpotifyInsightsPage: React.FC = () => {
             </h1>
             <p
               className="text-sm"
-              style={{ color: colors.textSecondary }}
+              style={{
+                color: colors.textSecondary,
+                fontFamily: "'Inter', sans-serif"
+              }}
             >
               What your listening reveals
             </p>
-          </motion.div>
+          </div>
         </div>
 
         {/* Refresh Button */}
-        <motion.button
+        <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="p-2 rounded-lg glass-button"
+          className="p-2 rounded-lg"
           title="Get a fresh observation"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.35, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
+          style={{
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.5)'
+          }}
         >
           <RefreshCw
             className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
-            style={{ color: colors.text }}
           />
-        </motion.button>
+        </button>
       </div>
 
       {/* Charts: Recent Tracks, Top Artists, Genre Distribution, Listening Hours, Current Mood */}
@@ -296,29 +305,40 @@ const SpotifyInsightsPage: React.FC = () => {
           )}
         </div>
       ) : (insights?.recentTracks?.length || insights?.topArtistsWithPlays?.length) ? (
-        <GlassPanel className="mb-8 !p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4" style={{ color: colors.spotifyGreen }} />
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.textSecondary }}>
-              Twin's Observation
-            </span>
-          </div>
-          <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
+        <div
+          className="mb-8 p-4 rounded-lg"
+          style={{
+            border: '1px solid rgba(255,255,255,0.06)',
+            backgroundColor: 'rgba(255,255,255,0.02)'
+          }}
+        >
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-2"
+            style={{ color: '#10b77f' }}
+          >
+            Twin's Observation
+          </span>
+          <p
+            className="text-sm leading-relaxed"
+            style={{
+              color: colors.textSecondary,
+              fontFamily: "'Inter', sans-serif"
+            }}
+          >
             Your twin is processing observations about your listening patterns. Check back soon for personalized insights about your musical soul.
           </p>
-        </GlassPanel>
+        </div>
       ) : null}
 
       {/* Pattern Observations */}
       {insights?.patterns && insights.patterns.length > 0 && (
         <div className="mb-8">
-          <h3
-            className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-            style={{ color: colors.textSecondary }}
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
-            <Sparkles className="w-4 h-4" />
             Patterns I've Noticed
-          </h3>
+          </span>
           <div className="space-y-3">
             {insights.patterns.map(pattern => (
               <PatternObservation
@@ -334,28 +354,41 @@ const SpotifyInsightsPage: React.FC = () => {
       {/* Historical Reflections */}
       {insights?.history && insights.history.length > 0 && (
         <div>
-          <h3
-            className="text-sm uppercase tracking-wider mb-4"
-            style={{ color: colors.textSecondary }}
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f' }}
           >
             Past Observations
-          </h3>
+          </span>
           <div className="space-y-3">
             {insights.history.map(past => (
-              <GlassPanel key={past.id} variant="default" className="!p-4">
+              <div
+                key={past.id}
+                className="p-4 rounded-lg"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  backgroundColor: 'rgba(255,255,255,0.02)'
+                }}
+              >
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{
+                    color: 'rgba(255,255,255,0.4)',
+                    fontFamily: "'Inter', sans-serif"
+                  }}
                 >
                   {past.text}
                 </p>
                 <p
                   className="text-xs mt-2"
-                  style={{ color: colors.textSecondary }}
+                  style={{
+                    color: 'rgba(255,255,255,0.3)',
+                    fontFamily: "'Inter', sans-serif"
+                  }}
                 >
                   {new Date(past.generatedAt).toLocaleDateString()}
                 </p>
-              </GlassPanel>
+              </div>
             ))}
           </div>
         </div>
@@ -365,7 +398,7 @@ const SpotifyInsightsPage: React.FC = () => {
       {!insights?.reflection?.text && !insights?.recentTracks?.length && !insights?.topArtistsWithPlays?.length && (
         <SpotifyEmptyState colors={colors} navigate={navigate} />
       )}
-    </PageLayout>
+    </div>
   );
 };
 

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Music2, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import type { SpotifyArtist } from '@/hooks/useSpotifyInsights';
@@ -20,10 +19,10 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
           <Music2 className="w-5 h-5 text-[#1DB954]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Top Artists
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Your most listened artists
           </p>
         </div>
@@ -31,29 +30,26 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
 
       <div className="space-y-4">
         {artists.slice(0, 5).map((artist, index) => (
-          <motion.div
+          <div
             key={artist.name}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
             className="group"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="font-ui text-sm font-medium text-muted-foreground flex-shrink-0">
+                <span className="text-sm font-medium flex-shrink-0" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                   {index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-ui text-sm font-medium text-foreground truncate">
+                  <p className="text-sm font-medium truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                     {artist.name}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {artist.genre}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-                <span className="text-xs font-mono text-muted-foreground">
+                <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   {artist.plays.toLocaleString()}
                 </span>
                 {artist.popularity >= 80 && (
@@ -64,21 +60,19 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
 
             {/* Visual bar */}
             <div className="w-full h-1.5 bg-white/8 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(artist.plays / maxPlays) * 100}%` }}
-                transition={{ delay: index * 0.1 + 0.2, duration: 0.6, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] rounded-full"
+              <div
+                className="h-full bg-gradient-to-r from-[#1DB954] to-[#1ed760] rounded-full transition-all duration-600"
+                style={{ width: `${(artist.plays / maxPlays) * 100}%` }}
               />
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {artists.length === 0 && (
         <div className="text-center py-8">
-          <Music2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">
+          <Music2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             No artist data available yet
           </p>
         </div>

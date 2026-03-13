@@ -3,7 +3,6 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid
 } from 'recharts';
-import { motion } from 'framer-motion';
 
 interface Snapshot {
   id: string;
@@ -26,7 +25,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ background: 'var(--background)', border: '1px solid var(--glass-surface-border)' }}>
+      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}>
       <p className="font-medium mb-1">{label}</p>
       <p style={{ color: '#8b5cf6' }}>
         Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%
@@ -51,18 +50,14 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
   if (data.length < 2) {
     return (
       <div className="flex items-center justify-center py-8 text-sm"
-        style={{ color: 'var(--text-secondary)' }}>
+        style={{ color: 'rgba(255,255,255,0.4)' }}>
         Collect more data over time to see your soul signature evolve.
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <div>
       <ResponsiveContainer width="100%" height={180}>
         <AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
           <defs>
@@ -75,17 +70,17 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
               <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-surface-border)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
           <XAxis
             dataKey="date"
-            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             yAxisId="conf"
             domain={[0, 1]}
-            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}
             axisLine={false}
             tickLine={false}
             tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`}
@@ -93,7 +88,7 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
           <YAxis
             yAxisId="nodes"
             orientation="right"
-            tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
+            tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}
             axisLine={false}
             tickLine={false}
           />
@@ -121,13 +116,13 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
       <div className="flex items-center gap-4 mt-2 justify-center">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded" style={{ background: '#8b5cf6' }} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Confidence</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Confidence</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-0.5 rounded" style={{ background: '#10b981' }} />
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>Knowledge nodes</span>
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Knowledge nodes</span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

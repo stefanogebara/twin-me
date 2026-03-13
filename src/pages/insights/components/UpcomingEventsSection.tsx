@@ -1,5 +1,4 @@
 import React from 'react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 import { Calendar, CalendarDays, Users, Target, Presentation, Dumbbell, BookOpen } from 'lucide-react';
 
 interface UpcomingEvent {
@@ -50,13 +49,13 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
 
   return (
     <div className="mb-6">
-      <h3
-        className="text-sm uppercase tracking-wider mb-3 flex items-center gap-2"
-        style={{ color: colors.textSecondary }}
+      <span
+        className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+        style={{ color: '#10b77f' }}
       >
-        <CalendarDays className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+        <CalendarDays className="w-4 h-4 inline-block mr-2" style={{ color: colors.calendarBlue }} />
         Coming Up
-      </h3>
+      </span>
       <div className="space-y-4">
         {Object.entries(eventsByDay).map(([dayLabel, dayEvents]) => (
           <div key={dayLabel}>
@@ -73,14 +72,18 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                     ? colors.calendarBlue
                     : dayLabel === 'Tomorrow'
                     ? '#34A853'
-                    : colors.textSecondary,
+                    : 'rgba(255,255,255,0.4)',
                 }}
               />
               {dayLabel}
             </div>
             <div className="space-y-2">
               {dayEvents.map((event, index) => (
-                <GlassPanel key={index} className="!p-3">
+                <div
+                  key={index}
+                  className="p-3 rounded-lg"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                >
                   <div className="flex items-center gap-3">
                     <div
                       className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -94,7 +97,7 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                       <div className="font-medium truncate" style={{ color: colors.text }}>
                         {event.title}
                       </div>
-                      <div className="flex items-center gap-2 text-sm" style={{ color: colors.textSecondary }}>
+                      <div className="flex items-center gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                         <span>{event.time}</span>
                         {event.attendees !== undefined && event.attendees > 0 && (
                           <>
@@ -117,7 +120,7 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                       {event.type}
                     </span>
                   </div>
-                </GlassPanel>
+                </div>
               ))}
             </div>
           </div>

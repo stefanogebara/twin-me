@@ -45,18 +45,21 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
     <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-2">
         <MessageSquare className="w-5 h-5" style={{ color: '#A78BFA' }} />
-        <h2 className="heading-serif text-base">
+        <h2
+          className="text-[11px] font-medium tracking-widest uppercase"
+          style={{ color: '#10b77f' }}
+        >
           Claude Desktop Sync
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
         Import your Claude Desktop conversations so your twin can learn your writing style and topics you care about.
       </p>
 
       {loadingSyncStats ? (
         <div className="flex items-center gap-2 mb-4">
           <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--foreground)' }} />
-          <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading...</span>
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Loading...</span>
         </div>
       ) : syncStats && syncStats.claudeDesktopConversations > 0 ? (
         <div
@@ -69,7 +72,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
               {syncStats.claudeDesktopConversations} conversations imported
             </span>
             {syncStats.lastSyncAt && (
-              <span className="text-xs ml-2" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-xs ml-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 · Last sync: {new Date(syncStats.lastSyncAt).toLocaleDateString()}
               </span>
             )}
@@ -102,7 +105,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
             backgroundColor: '#252222',
             border: '1px solid rgba(255,255,255,0.08)',
             color: '#fdfcfb',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
             fontWeight: 500,
             opacity: syncing ? 0.7 : 1
           }}
@@ -121,7 +124,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           <button
             onClick={() => setShowDevInfo((prev) => !prev)}
             className="w-full flex items-center gap-2 p-3 text-xs transition-colors"
-            style={{ color: 'var(--text-secondary)', background: 'none', border: 'none' }}
+            style={{ color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none' }}
           >
             {showDevInfo
               ? <ChevronDown className="w-3 h-3 flex-shrink-0" />
@@ -131,7 +134,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           {showDevInfo && (
             <div className="px-3 pb-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   Your User ID (for support)
                 </span>
                 <button
@@ -146,14 +149,14 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
                   {userIdCopied ? 'Copied!' : 'Copy'}
                 </button>
               </div>
-              <code className="text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
+              <code className="text-xs break-all" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 {user?.id || 'Loading...'}
               </code>
             </div>
           )}
         </div>
 
-        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
           <strong>Note:</strong> Close Claude Desktop before syncing. Your conversations are analyzed locally to learn your writing patterns.
         </p>
       </div>

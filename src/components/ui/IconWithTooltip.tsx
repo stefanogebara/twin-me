@@ -7,9 +7,7 @@
 
 import { ReactNode } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { iconBounce, respectReducedMotion } from '@/lib/animations';
 
 interface IconWithTooltipProps {
   icon: ReactNode;
@@ -44,21 +42,11 @@ export const IconWithTooltip: React.FC<IconWithTooltipProps> = ({
   ariaLabel,
   animation = 'bounce',
 }) => {
-  const IconWrapper = animation === 'bounce' && !respectReducedMotion() ? motion.div : 'div';
-  const animationProps =
-    animation === 'bounce' && !respectReducedMotion()
-      ? {
-          variants: iconBounce,
-          initial: 'initial',
-          whileHover: 'hover',
-        }
-      : {};
-
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <IconWrapper
+          <div
             className={cn(
               'inline-flex items-center justify-center cursor-pointer',
               'transition-colors duration-200',
@@ -70,10 +58,9 @@ export const IconWithTooltip: React.FC<IconWithTooltipProps> = ({
             aria-label={ariaLabel || tooltip}
             role={onClick ? 'button' : undefined}
             tabIndex={onClick ? 0 : undefined}
-            {...animationProps}
           >
             <div className={cn('transition-transform duration-200', iconClassName)}>{icon}</div>
-          </IconWrapper>
+          </div>
         </TooltipTrigger>
         <TooltipContent side={side} className={cn('tooltip', tooltipClassName)}>
           {tooltip}

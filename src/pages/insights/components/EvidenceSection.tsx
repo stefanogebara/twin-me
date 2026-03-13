@@ -45,13 +45,12 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Light-mode only colors
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
-    textSecondary: 'var(--text-secondary)',
-    border: 'var(--glass-surface-border)',
-    bgSubtle: 'var(--glass-surface-bg-subtle)',
+    textMuted: 'rgba(255,255,255,0.3)',
+    textSecondary: 'rgba(255,255,255,0.4)',
+    border: 'rgba(255,255,255,0.06)',
+    bgSubtle: 'rgba(255,255,255,0.04)',
     confidenceHigh: '#22c55e',
     confidenceMedium: '#f59e0b',
     confidenceLow: '#64748b'

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Sparkles, Loader2 } from 'lucide-react';
 import PortfolioHero from '../components/portfolio/PortfolioHero';
 import PortfolioRadar from '../components/portfolio/PortfolioRadar';
@@ -98,13 +97,13 @@ const PortfolioPage: React.FC = () => {
           <Sparkles className="w-10 h-10 mx-auto mb-4" style={{ color: 'rgba(232, 213, 183, 0.3)' }} />
           <h1
             className="text-xl mb-2"
-            style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
+            style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: '#E8D5B7' }}
           >
             Portfolio Not Found
           </h1>
           <p
             className="text-sm opacity-50 mb-6"
-            style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+            style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
           >
             This soul signature is private or doesn't exist yet.
           </p>
@@ -114,7 +113,7 @@ const PortfolioPage: React.FC = () => {
             style={{
               background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
               color: '#0C0C0C',
-              fontFamily: 'var(--font-body)',
+              fontFamily: "'Inter', sans-serif",
               fontWeight: 500,
               textDecoration: 'none',
             }}
@@ -133,11 +132,8 @@ const PortfolioPage: React.FC = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen bg-[#0C0C0C]"
+    <div
+      className="min-h-screen bg-[#0C0C0C] max-w-[900px] mx-auto px-6 py-16"
       style={{
         '--portfolio-primary': colorScheme.primary,
         '--portfolio-secondary': colorScheme.secondary,
@@ -183,7 +179,7 @@ const PortfolioPage: React.FC = () => {
         updatedAt={portfolio.updated_at}
         colorScheme={colorScheme}
       />
-    </motion.div>
+    </div>
   );
 };
 

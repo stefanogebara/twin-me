@@ -1,6 +1,5 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useNavigationHistory } from '../../hooks/useNavigationHistory';
 import { cn } from '../../lib/utils';
 
@@ -18,17 +17,10 @@ interface BackButtonProps {
  *
  * Features:
  * - Smart back navigation with history awareness
- * - Hover animation
  * - Multiple variants (default, ghost, minimal)
  * - Customizable size
  * - Optional custom onClick handler
  * - Shows "Back" label by default
- *
- * Usage:
- * <BackButton />
- * <BackButton variant="ghost" />
- * <BackButton label="Go Back" />
- * <BackButton onClick={() => navigate('/custom-path')} />
  */
 export const BackButton: React.FC<BackButtonProps> = ({
   label = 'Back',
@@ -90,7 +82,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
   }
 
   return (
-    <motion.button
+    <button
       onClick={handleClick}
       className={cn(
         'inline-flex items-center justify-center',
@@ -101,8 +93,6 @@ export const BackButton: React.FC<BackButtonProps> = ({
         variantClasses[variant],
         className
       )}
-      whileHover={{ x: -2 }}
-      whileTap={{ scale: 0.98 }}
       title={previousPage ? `Back to ${previousPage.title || previousPage.path}` : label}
       aria-label={label}
     >
@@ -117,6 +107,6 @@ export const BackButton: React.FC<BackButtonProps> = ({
           {label}
         </span>
       )}
-    </motion.button>
+    </button>
   );
 };

@@ -12,7 +12,6 @@
 
 import React from 'react';
 import { Sparkles, TrendingUp, Heart, Lightbulb } from 'lucide-react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 
 interface TwinReflectionProps {
   reflection: string;
@@ -47,16 +46,19 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
+    textMuted: 'rgba(255,255,255,0.3)',
     iconBg: 'rgba(139, 92, 246, 0.1)',
     iconColor: '#8B5CF6',
     highlight: 'rgba(139, 92, 246, 0.1)'
   };
 
   return (
-    <GlassPanel
-      variant={isNew ? 'shimmer' : 'card'}
-      className={className}
+    <div
+      className={`p-5 rounded-lg ${className}`}
+      style={{
+        border: '1px solid rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(255,255,255,0.02)'
+      }}
     >
       <div className="space-y-4">
         {/* Header with Twin Icon */}
@@ -93,7 +95,7 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
           className="text-base leading-relaxed"
           style={{
             color: colors.text,
-            fontFamily: 'var(--font-body)'
+            fontFamily: "'Inter', sans-serif"
           }}
         >
           {reflection}
@@ -119,7 +121,7 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
           </div>
         )}
       </div>
-    </GlassPanel>
+    </div>
   );
 };
 
@@ -139,7 +141,7 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
+    textMuted: 'rgba(255,255,255,0.3)',
     iconColor: occurrences === 'often' ? '#8B5CF6' :
       occurrences === 'sometimes' ? '#06b6d4' : '#a78bfa'
   };
@@ -158,8 +160,8 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
     <div
       className={`p-4 rounded-xl flex items-start gap-3 ${className}`}
       style={{
-        backgroundColor: 'var(--glass-surface-bg-subtle)',
-        border: '1px solid var(--glass-surface-bg-subtle)'
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)'
       }}
     >
       {/* Icon */}
@@ -214,8 +216,8 @@ export const DataHighlight: React.FC<DataHighlightProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
-    itemBg: 'var(--glass-surface-bg)'
+    textMuted: 'rgba(255,255,255,0.3)',
+    itemBg: 'rgba(255,255,255,0.06)'
   };
 
   if (!items || items.length === 0) return null;
@@ -284,9 +286,9 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
-    bg: 'var(--glass-surface-bg-subtle)',
-    border: 'var(--glass-surface-bg-subtle)'
+    textMuted: 'rgba(255,255,255,0.3)',
+    bg: 'rgba(255,255,255,0.04)',
+    border: 'rgba(255,255,255,0.04)'
   };
 
   return (
@@ -344,7 +346,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 }) => {
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
+    textMuted: 'rgba(255,255,255,0.3)',
     spotifyGreen: '#1DB954',
     bg: 'rgba(29, 185, 84, 0.05)',
     border: 'rgba(29, 185, 84, 0.1)'
@@ -427,7 +429,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 
   const colors = {
     text: 'var(--foreground)',
-    textMuted: 'var(--text-muted)',
+    textMuted: 'rgba(255,255,255,0.3)',
     bg: `${config.color}10`,
     border: `${config.color}20`
   };

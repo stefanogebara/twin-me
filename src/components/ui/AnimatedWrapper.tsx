@@ -1,219 +1,109 @@
 /**
  * Animated Wrapper Components
  *
- * Pre-configured Framer Motion wrapper components for common animations
- * throughout the TwinMe platform.
+ * Simplified pass-through wrapper components.
+ * Framer Motion animations removed in favor of typography-driven dark design.
  */
 
-import { motion, HTMLMotionProps } from 'framer-motion';
-import { ReactNode } from 'react';
-import {
-  fadeIn,
-  fadeInUp,
-  fadeInDown,
-  scaleIn,
-  cardHover,
-  buttonPress,
-  iconBounce,
-  slideInLeft,
-  slideInRight,
-  staggerContainer,
-  safeAnimation,
-  respectReducedMotion,
-} from '@/lib/animations';
+import { ReactNode, HTMLAttributes } from 'react';
 
-// ===== BASE ANIMATED COMPONENTS =====
+// ===== BASE COMPONENTS =====
 
-interface AnimatedProps extends Omit<HTMLMotionProps<'div'>, 'variants'> {
+interface AnimatedProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
 /**
- * Fade In Animation
+ * Fade In — pass-through
  */
 export const FadeIn: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div
-    variants={safeAnimation(fadeIn)}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
 /**
- * Fade In with Upward Slide
+ * Fade In with Upward Slide — pass-through
  */
 export const FadeInUp: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div
-    variants={safeAnimation(fadeInUp)}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
 /**
- * Fade In with Downward Slide
+ * Fade In with Downward Slide — pass-through
  */
 export const FadeInDown: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div
-    variants={safeAnimation(fadeInDown)}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
 /**
- * Scale In Animation
+ * Scale In — pass-through
  */
 export const ScaleIn: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div
-    variants={safeAnimation(scaleIn)}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
 /**
- * Slide In from Left
+ * Slide In from Left — pass-through
  */
 export const SlideInLeft: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div
-    variants={safeAnimation(slideInLeft)}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
 /**
- * Slide In from Right
+ * Slide In from Right — pass-through
  */
 export const SlideInRight: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div
-    variants={safeAnimation(slideInRight)}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
-// ===== HOVER ANIMATED COMPONENTS =====
+// ===== HOVER COMPONENTS =====
 
 /**
- * Animated Card with Hover Lift
+ * Animated Card — pass-through
  */
 export const AnimatedCard: React.FC<AnimatedProps> = ({ children, className, ...props }) => (
-  <motion.div
-    className={className}
-    variants={respectReducedMotion() ? undefined : cardHover}
-    initial="initial"
-    whileHover="hover"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div className={className} {...props}>{children}</div>
 );
 
 /**
- * Animated Button with Press Effect
+ * Animated Button — pass-through
  */
 export const AnimatedButton: React.FC<AnimatedProps> = ({ children, className, ...props }) => (
-  <motion.div
-    className={className}
-    variants={respectReducedMotion() ? undefined : buttonPress}
-    initial="initial"
-    whileHover="hover"
-    whileTap="tap"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div className={className} {...props}>{children}</div>
 );
 
 /**
- * Animated Icon with Bounce Effect
+ * Animated Icon — pass-through
  */
 export const AnimatedIcon: React.FC<AnimatedProps> = ({ children, className, ...props }) => (
-  <motion.div
-    className={className}
-    variants={respectReducedMotion() ? undefined : iconBounce}
-    initial="initial"
-    whileHover="hover"
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div className={className} {...props}>{children}</div>
 );
 
-// ===== STAGGER ANIMATION =====
+// ===== STAGGER =====
 
 interface StaggerContainerProps extends AnimatedProps {
   staggerDelay?: number;
 }
 
 /**
- * Stagger Container
- * Children will animate in sequence
+ * Stagger Container — pass-through
  */
 export const StaggerContainer: React.FC<StaggerContainerProps> = ({
   children,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   staggerDelay = 0.1,
   ...props
-}) => {
-  const staggerVariants = {
-    initial: {},
-    animate: {
-      transition: {
-        staggerChildren: staggerDelay,
-        delayChildren: staggerDelay,
-      },
-    },
-  };
-
-  return (
-    <motion.div
-      variants={respectReducedMotion() ? undefined : staggerVariants}
-      initial="initial"
-      animate="animate"
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-/**
- * Stagger Item
- * Use as child of StaggerContainer
- */
-export const StaggerItem: React.FC<AnimatedProps> = ({ children, ...props }) => (
-  <motion.div variants={safeAnimation(fadeInUp)} {...props}>
-    {children}
-  </motion.div>
+}) => (
+  <div {...props}>{children}</div>
 );
 
-// ===== LIST ANIMATIONS =====
+/**
+ * Stagger Item — pass-through
+ */
+export const StaggerItem: React.FC<AnimatedProps> = ({ children, ...props }) => (
+  <div {...props}>{children}</div>
+);
+
+// ===== LIST =====
 
 interface AnimatedListProps extends AnimatedProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- list items can be any renderable type
@@ -224,24 +114,24 @@ interface AnimatedListProps extends AnimatedProps {
 }
 
 /**
- * Animated List
- * Automatically staggers list items
+ * Animated List — pass-through with mapping
  */
 export const AnimatedList: React.FC<AnimatedListProps> = ({
   items,
   renderItem,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   staggerDelay = 0.1,
   className,
   ...props
 }) => (
-  <StaggerContainer className={className} staggerDelay={staggerDelay} {...props}>
+  <div className={className} {...props}>
     {items.map((item, index) => (
-      <StaggerItem key={index}>{renderItem(item, index)}</StaggerItem>
+      <div key={index}>{renderItem(item, index)}</div>
     ))}
-  </StaggerContainer>
+  </div>
 );
 
-// ===== CONDITIONAL ANIMATIONS =====
+// ===== CONDITIONAL =====
 
 interface ConditionalAnimationProps extends AnimatedProps {
   show: boolean;
@@ -249,32 +139,15 @@ interface ConditionalAnimationProps extends AnimatedProps {
 }
 
 /**
- * Conditional Animation
- * Show/hide content with animation
+ * Conditional Animation — renders children when show is true
  */
 export const ConditionalAnimation: React.FC<ConditionalAnimationProps> = ({
   show,
-  animation = 'fade',
   children,
   ...props
 }) => {
-  const animationVariants = {
-    fade: fadeIn,
-    slideUp: fadeInUp,
-    slideDown: fadeInDown,
-    scale: scaleIn,
-  };
-
-  return (
-    <motion.div
-      variants={safeAnimation(animationVariants[animation])}
-      initial="initial"
-      animate={show ? 'animate' : 'exit'}
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+  if (!show) return null;
+  return <div {...props}>{children}</div>;
 };
 
 // ===== PAGE TRANSITIONS =====
@@ -284,44 +157,23 @@ interface PageTransitionProps extends AnimatedProps {
 }
 
 /**
- * Page Transition Wrapper
- * Use for page-level route transitions
+ * Page Transition Wrapper — pass-through
  */
 export const PageTransition: React.FC<PageTransitionProps> = ({
-  direction = 'up',
   children,
   ...props
-}) => {
-  const directionVariants = {
-    up: fadeInUp,
-    down: fadeInDown,
-    left: slideInLeft,
-    right: slideInRight,
-    fade: fadeIn,
-  };
+}) => (
+  <div {...props}>{children}</div>
+);
 
-  return (
-    <motion.div
-      variants={safeAnimation(directionVariants[direction])}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-// ===== PRESENCE ANIMATION =====
+// ===== PRESENCE =====
 
 interface PresenceAnimationProps extends AnimatedProps {
   isVisible: boolean;
 }
 
 /**
- * Presence Animation
- * Handles mount/unmount animations
+ * Presence Animation — renders children when visible
  */
 export const PresenceAnimation: React.FC<PresenceAnimationProps> = ({
   isVisible,
@@ -329,118 +181,53 @@ export const PresenceAnimation: React.FC<PresenceAnimationProps> = ({
   ...props
 }) => {
   if (!isVisible) return null;
-
-  return (
-    <motion.div
-      variants={safeAnimation(fadeIn)}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      {...props}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div {...props}>{children}</div>;
 };
 
-// ===== SCROLL ANIMATION =====
+// ===== SCROLL =====
 
 interface ScrollAnimationProps extends AnimatedProps {
   threshold?: number;
 }
 
 /**
- * Scroll Animation
- * Triggers when element comes into view
+ * Scroll Animation — pass-through
  */
 export const ScrollAnimation: React.FC<ScrollAnimationProps> = ({
-  threshold = 0.1,
   children,
   ...props
 }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, amount: threshold }}
-    transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-    {...props}
-  >
-    {children}
-  </motion.div>
+  <div {...props}>{children}</div>
 );
 
-// ===== LOADING ANIMATIONS =====
+// ===== LOADING =====
 
 /**
- * Pulse Loading Animation
+ * Pulse Loading — CSS animation only
  */
 export const PulseLoader: React.FC<AnimatedProps> = ({ className, ...props }) => (
-  <motion.div
-    className={className}
-    animate={{
-      opacity: [1, 0.5, 1],
-    }}
-    transition={{
-      duration: 1.5,
-      repeat: Infinity,
-      ease: 'easeInOut',
-    }}
-    {...props}
-  />
+  <div className={`animate-pulse ${className || ''}`} {...props} />
 );
 
 /**
- * Spinner Loading Animation
+ * Spinner Loading — CSS animation only
  */
 export const SpinLoader: React.FC<AnimatedProps> = ({ className, ...props }) => (
-  <motion.div
-    className={className}
-    animate={{
-      rotate: 360,
-    }}
-    transition={{
-      duration: 1,
-      repeat: Infinity,
-      ease: 'linear',
-    }}
-    {...props}
-  />
+  <div className={`animate-spin ${className || ''}`} {...props} />
 );
 
 // ===== INTERACTION FEEDBACK =====
 
 /**
- * Success Checkmark Animation
+ * Success Checkmark — pass-through
  */
 export const SuccessCheckmark: React.FC<AnimatedProps> = ({ className, ...props }) => (
-  <motion.div
-    className={className}
-    initial={{ scale: 0 }}
-    animate={{ scale: [0, 1.2, 1] }}
-    transition={{
-      duration: 0.5,
-      times: [0, 0.5, 1],
-      ease: [0.68, -0.55, 0.265, 1.55],
-    }}
-    {...props}
-  />
+  <div className={className} {...props} />
 );
 
 /**
- * Error Shake Animation
+ * Error Shake — pass-through
  */
-export const ErrorShake: React.FC<AnimatedProps> = ({ children, trigger, ...props }) => (
-  <motion.div
-    animate={
-      trigger
-        ? {
-            x: [0, -10, 10, -10, 10, 0],
-          }
-        : {}
-    }
-    transition={{ duration: 0.3 }}
-    {...props}
-  >
-    {children}
-  </motion.div>
+export const ErrorShake: React.FC<AnimatedProps> = ({ children, ...props }) => (
+  <div {...props}>{children}</div>
 );

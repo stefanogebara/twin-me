@@ -1,6 +1,5 @@
 // src/components/PaywallModal.tsx
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -39,89 +38,88 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
     } finally { setLoading(null); }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
-          <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
-            className="max-w-xl w-full rounded-3xl p-8 space-y-8"
-            style={{ background: 'var(--background)', border: '1px solid var(--glass-surface-border)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.45)' }}>
+      <div
+        className="max-w-xl w-full rounded-3xl p-8 space-y-8"
+        style={{ background: 'var(--background)', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
 
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <p className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Your twin is ready</p>
-              <h2 className="heading-serif text-4xl font-normal tracking-tight">Keep the conversation going.</h2>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Unlock full access to everything your twin can do.</p>
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.4)' }}>Your twin is ready</p>
+          <h2 className="text-4xl font-normal tracking-tight" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>Keep the conversation going.</h2>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>Unlock full access to everything your twin can do.</p>
+        </div>
+
+        {/* Plan cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {PLANS.map(plan => (
+            <div key={plan.key} className="rounded-2xl p-6 space-y-4"
+              style={plan.highlight
+                ? { background: 'rgba(196,162,101,0.06)', border: '1px solid rgba(196,162,101,0.3)' }
+                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+
+              {/* Plan name */}
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium uppercase tracking-widest"
+                  style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)' }}>
+                  {plan.name}
+                </p>
+                {plan.highlight && (
+                  <span className="text-xs rounded-full px-2 py-0.5"
+                    style={{ background: 'rgba(196,162,101,0.12)', color: '#C4A265' }}>
+                    Best value
+                  </span>
+                )}
+              </div>
+
+              {/* Price */}
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-normal" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>{plan.price}</span>
+                <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{plan.period}</span>
+              </div>
+
+              {/* Description */}
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{plan.description}</p>
+
+              {/* Features */}
+              <ul className="space-y-1.5">
+                {plan.features.map(f => (
+                  <li key={f} className="text-sm flex gap-2 items-start">
+                    <span style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)' }}>&#10003;</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* CTA */}
+              {plan.highlight ? (
+                <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
+                  className="w-full py-3 rounded-xl font-medium text-white disabled:opacity-50 transition-opacity"
+                  style={{ background: 'linear-gradient(135deg, #C4A265, #B39255)', boxShadow: '0 4px 20px rgba(196,162,101,0.25)' }}>
+                  {loading === plan.key ? 'Loading...' : plan.cta}
+                </button>
+              ) : (
+                <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
+                  className="w-full py-3 rounded-xl font-medium disabled:opacity-50"
+                  style={{ backgroundColor: '#10b77f', color: '#0a0f0a' }}>
+                  {loading === plan.key ? 'Loading...' : plan.cta}
+                </button>
+              )}
             </div>
+          ))}
+        </div>
 
-            {/* Plan cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {PLANS.map(plan => (
-                <div key={plan.key} className="rounded-2xl p-6 space-y-4"
-                  style={plan.highlight
-                    ? { background: 'rgba(196,162,101,0.06)', border: '1px solid rgba(196,162,101,0.3)' }
-                    : { background: 'var(--glass-surface-bg-subtle)', border: '1px solid var(--glass-surface-border)' }}>
-
-                  {/* Plan name */}
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-medium uppercase tracking-widest"
-                      style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'var(--text-secondary)' }}>
-                      {plan.name}
-                    </p>
-                    {plan.highlight && (
-                      <span className="text-xs rounded-full px-2 py-0.5"
-                        style={{ background: 'rgba(196,162,101,0.12)', color: '#C4A265' }}>
-                        Best value
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex items-baseline gap-1">
-                    <span className="heading-serif text-4xl font-normal">{plan.price}</span>
-                    <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{plan.period}</span>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{plan.description}</p>
-
-                  {/* Features */}
-                  <ul className="space-y-1.5">
-                    {plan.features.map(f => (
-                      <li key={f} className="text-sm flex gap-2 items-start">
-                        <span style={{ color: plan.highlight ? 'var(--accent-vibrant)' : 'var(--text-secondary)' }}>✓</span>
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA */}
-                  {plan.highlight ? (
-                    <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
-                      className="w-full py-3 rounded-xl font-medium text-white disabled:opacity-50 transition-opacity"
-                      style={{ background: 'linear-gradient(135deg, #C4A265, #B39255)', boxShadow: '0 4px 20px rgba(196,162,101,0.25)' }}>
-                      {loading === plan.key ? 'Loading...' : plan.cta}
-                    </button>
-                  ) : (
-                    <button onClick={() => upgrade(plan.key)} disabled={loading === plan.key}
-                      className="btn-cta w-full disabled:opacity-50">
-                      {loading === plan.key ? 'Loading...' : plan.cta}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Footer */}
-            <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
-              Cancel anytime. Annual plans available — 2 months free.
-            </p>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        {/* Footer */}
+        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          Cancel anytime. Annual plans available — 2 months free.
+        </p>
+      </div>
+    </div>
   );
 };
 

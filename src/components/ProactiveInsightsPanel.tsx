@@ -1,14 +1,11 @@
 /**
  * Proactive Insights Panel
  * Shows insights the twin has noticed from cross-platform pattern analysis.
- * Fetches from GET /api/chat/context (reuses existing endpoint).
- * Tracks engagement via POST /api/insights/proactive/:id/engage when user interacts.
  */
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
@@ -20,7 +17,6 @@ import {
   ChevronDown,
   Plug,
 } from 'lucide-react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 
 interface ProactiveInsight {
   id: string;
@@ -51,20 +47,25 @@ function formatRelativeTime(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
+const glassPanelStyle: React.CSSProperties = {
+  background: 'rgba(255, 255, 255, 0.02)',
+  border: '1px solid rgba(255, 255, 255, 0.06)',
+  borderRadius: '12px',
+  padding: '16px',
+};
+
 export const ProactiveInsightsPanel: React.FC = () => {
   const { isDemoMode, user } = useAuth();
   const navigate = useNavigate();
   const { connectedCount } = usePlatformStatus(user?.id);
-  // Track which insight IDs the user has already engaged with (fire-and-forget to backend)
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const markEngaged = (insightId: string) => {
     if (isDemoMode || engagedIds.has(insightId)) return;
     setEngagedIds(prev => new Set(prev).add(insightId));
-    // Fire-and-forget — do not await, UI must not block on this
     authFetch(`/insights/proactive/${insightId}/engage`, { method: 'POST' })
-      .catch(() => { /* silently ignore network errors */ });
+      .catch(() => {});
   };
 
   const { data, isLoading, isError } = useQuery<ChatContextResponse>({
@@ -99,15 +100,12 @@ export const ProactiveInsightsPanel: React.FC = () => {
   if (isLoading) {
     return (
       <div className="rounded-2xl p-6" style={{
-        background: 'rgba(255, 255, 255, 0.06)',
-        backdropFilter: 'blur(10px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-        border: '1px solid rgba(255, 255, 255, 0.10)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+        background: 'rgba(255, 255, 255, 0.02)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
       }}>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'var(--text-secondary)' }} />
-          <span className="ml-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <span className="ml-2 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
             Checking for insights...
           </span>
         </div>
@@ -115,31 +113,29 @@ export const ProactiveInsightsPanel: React.FC = () => {
     );
   }
 
-  // On error or timeout, silently show empty state instead of stuck spinner
   if (isError) {
     return null;
   }
 
-  // Empty state — only show "connect" prompt when no platforms are connected
   if (insights.length === 0) {
-    if (connectedCount > 0) return null; // Platforms connected, just no insights yet — hide panel
+    if (connectedCount > 0) return null;
     return (
-      <GlassPanel className="text-center py-6">
+      <div style={glassPanelStyle} className="text-center py-6">
         <Plug
           className="w-8 h-8 mx-auto mb-3 opacity-30"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: 'rgba(255,255,255,0.3)' }}
         />
-        <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-sm mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
           I'm still getting to know you — connect Spotify or Calendar so I can start noticing things
         </p>
         <button
           onClick={() => navigate('/settings?tab=platforms')}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors"
-          style={{ backgroundColor: 'var(--glass-surface-bg)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           Connect a platform →
         </button>
-      </GlassPanel>
+      </div>
     );
   }
 
@@ -153,10 +149,10 @@ export const ProactiveInsightsPanel: React.FC = () => {
             background: 'linear-gradient(to bottom, var(--accent-vibrant), rgba(255, 255, 255, 0.10))',
           }}
         />
-        <Eye className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+        <Eye className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
         <h3
           className="text-sm uppercase tracking-wider"
-          style={{ color: 'var(--text-muted)' }}
+          style={{ color: 'rgba(255,255,255,0.3)' }}
         >
           Twin Noticed
         </h3>
@@ -164,7 +160,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
           className="text-xs px-2 py-0.5 rounded-full"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.06)',
-            color: 'var(--text-secondary)',
+            color: 'rgba(255,255,255,0.4)',
           }}
         >
           {insights.length}
@@ -173,7 +169,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
 
       {/* Insight Cards */}
       <div className="space-y-4">
-        {insights.map((insight, idx) => {
+        {insights.map((insight) => {
           const isExpanded = expandedId === insight.id;
           const displayText = toSecondPerson(insight.insight);
           const dotIdx = displayText.indexOf('. ');
@@ -181,29 +177,24 @@ export const ProactiveInsightsPanel: React.FC = () => {
             ? displayText.slice(0, dotIdx + 1)
             : displayText.slice(0, 90) + (displayText.length > 90 ? '\u2026' : '');
           return (
-            <motion.div
-              key={insight.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: idx * 0.08 }}
-            >
-              <GlassPanel className="relative">
+            <div key={insight.id}>
+              <div style={glassPanelStyle} className="relative">
                 <div className="flex items-start gap-3">
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{formatRelativeTime(insight.created_at)}</span>
+                      <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatRelativeTime(insight.created_at)}</span>
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>
                       {isExpanded ? displayText : preview}
                     </p>
                   </div>
                   <button onClick={() => setExpandedId(prev => prev === insight.id ? null : insight.id)} className="flex-shrink-0 self-start mt-1">
-                    <ChevronDown className="w-4 h-4 transition-transform duration-200" style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+                    <ChevronDown className="w-4 h-4 transition-transform duration-200" style={{ color: 'rgba(255,255,255,0.3)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
                   </button>
                 </div>
 
-                {/* Discuss Button — triggers engagement tracking */}
+                {/* Discuss Button */}
                 <button
                   onClick={() => {
                     markEngaged(insight.id);
@@ -221,8 +212,8 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   <MessageCircle className="w-3.5 h-3.5" />
                   Discuss with Twin
                 </button>
-              </GlassPanel>
-            </motion.div>
+              </div>
+            </div>
           );
         })}
       </div>

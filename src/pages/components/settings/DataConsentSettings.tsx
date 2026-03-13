@@ -31,11 +31,14 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
     <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-4">
         <Shield className="w-5 h-5" style={{ color: '#A78BFA' }} />
-        <h2 className="heading-serif text-base">
+        <h2
+          className="text-[11px] font-medium tracking-widest uppercase"
+          style={{ color: '#10b77f' }}
+        >
           Data Consent
         </h2>
       </div>
-      <p className="text-sm mb-4" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
+      <p className="text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
         Manage the permissions you've granted for platform data access.
       </p>
 
@@ -47,7 +50,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
         <div
           className="text-sm py-4 text-center rounded-xl"
           style={{
-            color: 'var(--text-secondary)',
+            color: 'rgba(255,255,255,0.4)',
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
           }}
         >
@@ -60,17 +63,17 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
               key={consent.id}
               className="flex items-center justify-between p-3 rounded-xl"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
               }}
             >
               <div>
-                <h3 className="text-sm" style={{ fontFamily: 'var(--font-body)', fontWeight: 500, color: 'var(--foreground)' }}>
+                <h3 className="text-sm" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, color: 'var(--foreground)' }}>
                   {consent.platform
                     ? `${consent.platform.charAt(0).toUpperCase() + consent.platform.slice(1).replace(/_/g, ' ')} - ${consent.consent_type.replace(/_/g, ' ')}`
                     : consent.consent_type.replace(/_/g, ' ')}
                 </h3>
-                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                   Granted {consent.granted_at ? new Date(consent.granted_at).toLocaleDateString() : 'N/A'}
                   {' '}&middot; v{consent.consent_version}
                 </p>

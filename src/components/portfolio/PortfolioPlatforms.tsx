@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { getPlatformLogo } from '../PlatformLogos';
 
 const PLATFORM_COLORS: Record<string, string> = {
@@ -46,35 +45,25 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
 
   return (
     <section className="py-16 px-6 flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-3xl"
-      >
+      <div className="w-full max-w-3xl">
         {/* Section label */}
         <p
           className="text-xs uppercase tracking-wider text-center mb-10 opacity-50"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
         >
           Data Sources
         </p>
 
         {/* Platform tiles */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {platformsWithFeatures.map((platform, i) => {
+          {platformsWithFeatures.map((platform) => {
             const Logo = getPlatformLogo(platform.name);
             const brandColor = PLATFORM_COLORS[platform.name.toLowerCase()] || '#E8D5B7';
             const displayName = PLATFORM_DISPLAY_NAMES[platform.name.toLowerCase()] || platform.name;
 
             return (
-              <motion.div
+              <div
                 key={platform.name}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="rounded-xl p-5"
                 style={{
                   background: 'linear-gradient(145deg, rgba(232, 213, 183, 0.04) 0%, rgba(232, 213, 183, 0.01) 100%)',
@@ -95,7 +84,7 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
                   )}
                   <span
                     className="text-sm font-medium"
-                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
                   >
                     {displayName}
                   </span>
@@ -111,18 +100,18 @@ const PortfolioPlatforms: React.FC<PortfolioPlatformsProps> = ({ platforms }) =>
                         backgroundColor: `${brandColor}12`,
                         color: brandColor,
                         border: `1px solid ${brandColor}25`,
-                        fontFamily: 'var(--font-body)',
+                        fontFamily: "'Inter', sans-serif",
                       }}
                     >
                       {formatFeatureType(feat.type)}: {formatFeatureValue(feat.value)}
                     </span>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 };

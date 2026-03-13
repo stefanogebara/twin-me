@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Heart, Calendar, Headphones, Moon, Activity, Clock, Users, Sun, Database } from 'lucide-react';
 import type { PlatformDataPoint } from '@/services/enrichmentService';
 
@@ -58,120 +57,108 @@ const PlatformDataReveal: React.FC<PlatformDataRevealProps> = ({
     setTimeout(onDismiss, 400);
   };
 
+  if (!visible) return null;
+
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="rounded-2xl p-5 mb-4 relative overflow-hidden"
-          style={{
-            backgroundColor: 'rgba(232, 213, 183, 0.04)',
-            border: `1px solid ${accentColor}33`,
-          }}
-        >
-          {/* Accent gradient overlay */}
-          <div
-            className="absolute top-0 left-0 w-full h-1"
-            style={{
-              background: `linear-gradient(90deg, ${accentColor}, ${accentColor}44)`,
-            }}
-          />
+    <div
+      className="rounded-2xl p-5 mb-4 relative overflow-hidden"
+      style={{
+        backgroundColor: 'rgba(232, 213, 183, 0.04)',
+        border: `1px solid ${accentColor}33`,
+      }}
+    >
+      {/* Accent gradient overlay */}
+      <div
+        className="absolute top-0 left-0 w-full h-1"
+        style={{
+          background: `linear-gradient(90deg, ${accentColor}, ${accentColor}44)`,
+        }}
+      />
 
-          {/* Dismiss button */}
-          <button
-            onClick={handleDismiss}
-            className="absolute top-3 right-3 p-1 rounded-full transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(232, 213, 183, 0.4)' }}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+      {/* Dismiss button */}
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 p-1 rounded-full transition-opacity hover:opacity-70"
+        style={{ color: 'rgba(232, 213, 183, 0.4)' }}
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
 
-          {/* Platform label */}
-          <p
-            className="text-xs uppercase tracking-widest mb-3"
-            style={{
-              color: accentColor,
-              fontFamily: 'var(--font-body)',
-              letterSpacing: '0.15em',
-            }}
-          >
-            {platformName} connected
-          </p>
+      {/* Platform label */}
+      <p
+        className="text-xs uppercase tracking-widest mb-3"
+        style={{
+          color: accentColor,
+          fontFamily: "'Inter', sans-serif",
+          letterSpacing: '0.15em',
+        }}
+      >
+        {platformName} connected
+      </p>
 
-          {/* Insight headline */}
-          <p
-            className="text-sm mb-4 leading-relaxed"
-            style={{
-              color: 'rgba(232, 213, 183, 0.85)',
-              fontFamily: 'var(--font-heading)',
-            }}
-          >
-            {insight}
-          </p>
+      {/* Insight headline */}
+      <p
+        className="text-sm mb-4 leading-relaxed"
+        style={{
+          color: 'rgba(232, 213, 183, 0.85)',
+          fontFamily: 'var(--font-heading)',
+        }}
+      >
+        {insight}
+      </p>
 
-          {/* Data points — slide in one by one */}
-          {dataPoints.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {dataPoints.map((dp, i) => (
-                <motion.div
-                  key={dp.label}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + i * 0.15, duration: 0.4 }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                  style={{
-                    backgroundColor: `${accentColor}15`,
-                    border: `1px solid ${accentColor}25`,
-                  }}
-                >
-                  <span style={{ color: accentColor }}>
-                    {ICON_MAP[dp.icon] || ICON_MAP.database}
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{
-                      color: 'rgba(232, 213, 183, 0.5)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    {dp.label}
-                  </span>
-                  <span
-                    className="text-xs font-medium"
-                    style={{
-                      color: 'rgba(232, 213, 183, 0.85)',
-                      fontFamily: 'var(--font-body)',
-                    }}
-                  >
-                    {dp.value}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {/* Twin reaction */}
-          {twinReaction && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 + dataPoints.length * 0.15 }}
-              className="text-xs leading-relaxed"
+      {/* Data points */}
+      {dataPoints.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {dataPoints.map((dp) => (
+            <div
+              key={dp.label}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
               style={{
-                color: 'rgba(232, 213, 183, 0.5)',
-                fontFamily: 'var(--font-heading)',
-                fontStyle: 'italic',
+                backgroundColor: `${accentColor}15`,
+                border: `1px solid ${accentColor}25`,
               }}
             >
-              "{twinReaction}"
-            </motion.p>
-          )}
-        </motion.div>
+              <span style={{ color: accentColor }}>
+                {ICON_MAP[dp.icon] || ICON_MAP.database}
+              </span>
+              <span
+                className="text-xs"
+                style={{
+                  color: 'rgba(232, 213, 183, 0.5)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {dp.label}
+              </span>
+              <span
+                className="text-xs font-medium"
+                style={{
+                  color: 'rgba(232, 213, 183, 0.85)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {dp.value}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
-    </AnimatePresence>
+
+      {/* Twin reaction */}
+      {twinReaction && (
+        <p
+          className="text-xs leading-relaxed"
+          style={{
+            color: 'rgba(232, 213, 183, 0.5)',
+            fontFamily: 'var(--font-heading)',
+            fontStyle: 'italic',
+          }}
+        >
+          "{twinReaction}"
+        </p>
+      )}
+    </div>
   );
 };
 

@@ -4,7 +4,6 @@
  */
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Plus, Save, Download, FileText, Check } from 'lucide-react';
 
 interface ConversationControlsProps {
@@ -41,30 +40,26 @@ export function ConversationControls({
   };
 
   const iconBtnStyle = {
-    color: 'var(--text-secondary)'
+    color: 'rgba(255,255,255,0.4)'
   };
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {/* New Chat Button - Prominent */}
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+      <button
         onClick={onNewChat}
-        className="btn-cta-app flex items-center gap-2 px-4 py-2 font-medium shadow-sm"
+        className="btn-cta-app flex items-center gap-2 px-4 py-2 font-medium shadow-sm hover:opacity-90 transition-opacity"
       >
         <Plus className="w-4 h-4" />
         <span>New Chat</span>
-      </motion.button>
+      </button>
 
       {/* Save Button */}
       {onSave && (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <button
           onClick={handleSave}
-          className="p-2 rounded-lg transition-colors"
-          style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+          className="p-2 rounded-lg transition-colors hover:brightness-150"
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
           title={isSaved ? 'Conversation saved' : 'Save conversation'}
         >
           {savedRecently || isSaved ? (
@@ -72,41 +67,34 @@ export function ConversationControls({
           ) : (
             <Save className="w-5 h-5" style={iconBtnStyle} />
           )}
-        </motion.button>
+        </button>
       )}
 
       {/* Export Button with Dropdown */}
       {onExport && (
         <div className="relative">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={() => setShowExportMenu(!showExportMenu)}
-            className="p-2 rounded-lg transition-colors"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+            className="p-2 rounded-lg transition-colors hover:brightness-150"
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
             title="Export conversation"
           >
             <Download className="w-5 h-5" style={iconBtnStyle} />
-          </motion.button>
+          </button>
 
           {/* Export Menu */}
           {showExportMenu && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+            <div
               className="absolute right-0 mt-2 w-48 rounded-2xl overflow-hidden z-10"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                backdropFilter: 'blur(10px) saturate(140%)',
-                WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-                border: '1px solid rgba(255, 255, 255, 0.10)',
+                backgroundColor: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)'
               }}
             >
               <button
                 onClick={() => handleExport('pdf')}
-                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
                 style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-red-500" />
@@ -114,7 +102,7 @@ export function ConversationControls({
               </button>
               <button
                 onClick={() => handleExport('text')}
-                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
                 style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-blue-500" />
@@ -122,13 +110,13 @@ export function ConversationControls({
               </button>
               <button
                 onClick={() => handleExport('json')}
-                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/20"
+                className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
                 style={{ color: 'var(--foreground)' }}
               >
                 <FileText className="w-4 h-4 text-green-500" />
                 <span>Export as JSON</span>
               </button>
-            </motion.div>
+            </div>
           )}
         </div>
       )}

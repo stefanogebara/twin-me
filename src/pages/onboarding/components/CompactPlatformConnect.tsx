@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { enrichmentService } from '@/services/enrichmentService';
 import type { PlatformDataPoint } from '@/services/enrichmentService';
@@ -179,7 +178,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
     <div>
       <p
         className="text-sm mb-3 opacity-50"
-        style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+        style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
       >
         Optionally connect platforms for a richer signature
       </p>
@@ -189,14 +188,11 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
           const isConnecting = connecting === platform.id;
 
           return (
-            <motion.button
+            <button
               key={platform.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
               onClick={() => handleConnect(platform)}
               disabled={isConnecting || isConnected}
-              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 hover:scale-[1.03] disabled:hover:scale-100"
+              className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 disabled:hover:scale-100"
               style={{
                 width: 120,
                 backgroundColor: isConnected
@@ -217,11 +213,11 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
               )}
               <span
                 className="text-xs truncate"
-                style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
               >
                 {platform.name}
               </span>
-            </motion.button>
+            </button>
           );
         })}
       </div>
@@ -250,26 +246,23 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
       {Object.entries(platformInsights)
         .filter(([platformId]) => !platformReveals[platformId])
         .map(([platformId, insight]) => (
-          <motion.div
+          <div
             key={platformId}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
             className="mt-2 px-3 py-2 rounded-lg text-xs"
             style={{
               backgroundColor: 'rgba(232, 213, 183, 0.06)',
               border: '1px solid rgba(232, 213, 183, 0.15)',
               color: '#E8D5B7',
-              fontFamily: 'var(--font-body)',
+              fontFamily: "'Inter', sans-serif",
             }}
           >
             <span className="opacity-50">Your twin noticed: </span>
             <span className="opacity-80">{insight}</span>
-          </motion.div>
+          </div>
         ))}
       <p
         className="text-xs mt-2 opacity-30"
-        style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+        style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
       >
         Skip for now - you can always connect later
       </p>

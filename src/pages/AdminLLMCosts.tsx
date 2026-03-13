@@ -1,6 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { PageLayout } from '@/components/layout/PageLayout';
 import {
   DollarSign,
   Phone,
@@ -13,8 +11,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-
-// --- Type definitions ---
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface CostBreakdownItem {
   tier: string;
@@ -95,8 +92,6 @@ interface RealtimeData {
   calls: RealtimeCall[];
 }
 
-// --- Helpers ---
-
 const TIER_COLORS: Record<string, string> = {
   chat: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   analysis: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
@@ -110,7 +105,7 @@ const TIER_DOT_COLORS: Record<string, string> = {
 };
 
 function tierBadge(tier: string) {
-  const cls = TIER_COLORS[tier] || 'bg-gray-700/20 text-muted-foreground border-gray-500/30';
+  const cls = TIER_COLORS[tier] || 'bg-gray-700/20 text-gray-400 border-gray-500/30';
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${TIER_DOT_COLORS[tier] || 'bg-gray-400'}`} />
@@ -142,9 +137,13 @@ function formatTimestamp(iso: string): string {
 
 type SortKey = 'created_at' | 'cost_usd' | 'latency_ms' | 'tier' | 'model' | 'service_name';
 
-// --- Component ---
+const CARD_STYLE = {
+  border: '1px solid rgba(255,255,255,0.06)',
+  backgroundColor: 'rgba(255,255,255,0.02)',
+} as const;
 
 const AdminLLMCosts: React.FC = () => {
+  useDocumentTitle('LLM Cost Monitor');
   const [summary, setSummary] = useState<CostSummary | null>(null);
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [realtime, setRealtime] = useState<RealtimeData | null>(null);
@@ -154,7 +153,6 @@ const AdminLLMCosts: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Sorting for realtime table
   const [sortKey, setSortKey] = useState<SortKey>('created_at');
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -200,41 +198,26 @@ const AdminLLMCosts: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(fetchData, 30_000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchData]);
 
-  // Compute average latency from realtime calls
   const avgLatency = realtime && realtime.calls.length > 0
     ? realtime.calls.reduce((sum, c) => sum + (c.latency_ms || 0), 0) / realtime.calls.length
     : 0;
 
-  // Sort realtime calls
   const sortedCalls = realtime
     ? [...realtime.calls].sort((a, b) => {
         let cmp = 0;
         switch (sortKey) {
-          case 'created_at':
-            cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-            break;
-          case 'cost_usd':
-            cmp = a.cost_usd - b.cost_usd;
-            break;
-          case 'latency_ms':
-            cmp = (a.latency_ms || 0) - (b.latency_ms || 0);
-            break;
-          case 'tier':
-            cmp = a.tier.localeCompare(b.tier);
-            break;
-          case 'model':
-            cmp = a.model.localeCompare(b.model);
-            break;
-          case 'service_name':
-            cmp = a.service_name.localeCompare(b.service_name);
-            break;
+          case 'created_at': cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
+          case 'cost_usd': cmp = a.cost_usd - b.cost_usd; break;
+          case 'latency_ms': cmp = (a.latency_ms || 0) - (b.latency_ms || 0); break;
+          case 'tier': cmp = a.tier.localeCompare(b.tier); break;
+          case 'model': cmp = a.model.localeCompare(b.model); break;
+          case 'service_name': cmp = a.service_name.localeCompare(b.service_name); break;
         }
         return sortAsc ? cmp : -cmp;
       })
@@ -263,229 +246,146 @@ const AdminLLMCosts: React.FC = () => {
     </button>
   );
 
-  // Design system colors
-  const cardBg = 'var(--glass-surface-bg)';
-  const cardBorder = '1px solid var(--glass-surface-border)';
-  const textPrimary = 'var(--foreground)';
-  const textMuted = 'var(--text-muted)';
-  const tableBg = 'var(--glass-surface-bg)';
-  const rowHover = 'var(--glass-surface-bg-subtle)';
+  const tableBorder = '1px solid rgba(255,255,255,0.06)';
 
   if (loading) {
     return (
-      <PageLayout title="LLM Cost Monitor" subtitle="Loading cost data...">
+      <div className="max-w-[960px] mx-auto px-6 py-16">
         <div className="flex items-center justify-center py-20">
-          <RefreshCw className="w-6 h-6 animate-spin" style={{ color: textMuted }} />
+          <RefreshCw className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <PageLayout title="LLM Cost Monitor" subtitle="Admin cost tracking dashboard">
-        <div
-          className="p-6 rounded-2xl text-center"
-          style={{ backgroundColor: cardBg, border: cardBorder }}
+      <div className="max-w-[960px] mx-auto px-6 py-16">
+        <h1
+          className="mb-6"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '28px',
+            fontWeight: 400,
+            color: 'var(--foreground)',
+            letterSpacing: '-0.02em',
+          }}
         >
-          <p className="text-red-400 mb-4">{error}</p>
+          LLM Cost Monitor
+        </h1>
+        <div className="p-5 rounded-lg text-center" style={CARD_STYLE}>
+          <p className="text-sm mb-4" style={{ color: '#fca5a5' }}>{error}</p>
           <button
             onClick={() => { setLoading(true); fetchData(); }}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              color: textPrimary,
-            }}
+            className="px-4 py-2 rounded-lg text-sm transition-opacity hover:opacity-70"
+            style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
           >
             Retry
           </button>
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   return (
-    <PageLayout title="LLM Cost Monitor" subtitle={`${summary?.period_days || 30}-day overview`}>
-      {/* Header Controls */}
-      <div className="flex items-center justify-between mb-6">
-        <p className="text-xs" style={{ color: textMuted }}>
+    <div className="max-w-[960px] mx-auto px-6 py-16">
+      {/* Header */}
+      <h1
+        className="mb-2"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: '28px',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        LLM Cost Monitor
+      </h1>
+      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        {summary?.period_days || 30}-day overview
+      </p>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-8">
+        <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
           Last updated: {lastRefresh.toLocaleTimeString()}
         </p>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 cursor-pointer">
-            <span className="text-xs" style={{ color: textMuted }}>Auto-refresh</span>
+            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Auto-refresh</span>
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`w-10 h-5 rounded-full transition-colors relative ${
-                autoRefresh ? 'bg-green-500' : 'bg-gray-600'
-              }`}
+              className={`w-10 h-5 rounded-full transition-colors relative ${autoRefresh ? 'bg-green-500' : 'bg-gray-600'}`}
             >
-              <span
-                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  autoRefresh ? 'translate-x-5' : 'translate-x-0.5'
-                }`}
-              />
+              <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${autoRefresh ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
           </label>
           <button
             onClick={() => { setLoading(true); fetchData(); }}
-            className="p-2 rounded-lg transition-colors hover:opacity-80"
-            style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-            }}
+            className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
             title="Refresh now"
           >
-            <RefreshCw className="w-4 h-4" style={{ color: textMuted }} />
+            <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
+
       {/* Summary Cards */}
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8"
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-      >
-        {/* Total Cost */}
-        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10">
-              <DollarSign className="w-5 h-5 text-emerald-400" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {[
+          { icon: DollarSign, color: '#10b77f', label: 'Total Cost', value: `$${(summary?.total_cost_usd || 0).toFixed(4)}`, sub: `${summary?.period_days || 30}-day period` },
+          { icon: Phone, color: '#3B82F6', label: 'Total Calls', value: formatNumber(summary?.total_calls || 0), sub: 'API requests' },
+          { icon: Zap, color: '#8B5CF6', label: 'Cache Hit Rate', value: `${(summary?.cache_hit_rate || 0).toFixed(1)}%`, sub: 'Prompt caching' },
+          { icon: Clock, color: '#F59E0B', label: 'Avg Latency', value: avgLatency > 0 ? `${Math.round(avgLatency)}ms` : '--', sub: 'Recent calls' },
+          { icon: DollarSign, color: '#06B6D4', label: 'Daily Avg', value: `$${(summary?.daily_average_usd || 0).toFixed(4)}`, sub: 'Per day average' },
+          { icon: TrendingUp, color: '#EF4444', label: 'Monthly Projection', value: `$${(summary?.monthly_projection_usd || 0).toFixed(2)}`, sub: 'At current rate' },
+        ].map(({ icon: Icon, color, label, value, sub }) => (
+          <div key={label} className="p-5 rounded-lg" style={CARD_STYLE}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}15` }}>
+                <Icon className="w-5 h-5" style={{ color }} />
+              </div>
+              <span className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</span>
             </div>
-            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Total Cost</span>
+            <p className="text-2xl font-semibold" style={{ color: 'var(--foreground)' }}>{value}</p>
+            <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>{sub}</p>
           </div>
-          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
-            ${(summary?.total_cost_usd || 0).toFixed(4)}
-          </p>
-          <p className="text-xs mt-1" style={{ color: textMuted }}>
-            {summary?.period_days || 30}-day period
-          </p>
-        </div>
+        ))}
+      </div>
 
-        {/* Total Calls */}
-        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-500/10">
-              <Phone className="w-5 h-5 text-blue-400" />
-            </div>
-            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Total Calls</span>
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
-            {formatNumber(summary?.total_calls || 0)}
-          </p>
-          <p className="text-xs mt-1" style={{ color: textMuted }}>
-            API requests
-          </p>
-        </div>
-
-        {/* Cache Hit Rate */}
-        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-500/10">
-              <Zap className="w-5 h-5 text-purple-400" />
-            </div>
-            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Cache Hit Rate</span>
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
-            {(summary?.cache_hit_rate || 0).toFixed(1)}%
-          </p>
-          <p className="text-xs mt-1" style={{ color: textMuted }}>
-            Prompt caching
-          </p>
-        </div>
-
-        {/* Average Latency */}
-        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-900/150/10">
-              <Clock className="w-5 h-5 text-amber-400" />
-            </div>
-            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Avg Latency</span>
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
-            {avgLatency > 0 ? `${Math.round(avgLatency)}ms` : '--'}
-          </p>
-          <p className="text-xs mt-1" style={{ color: textMuted }}>
-            Recent calls
-          </p>
-        </div>
-
-        {/* Daily Average */}
-        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-cyan-500/10">
-              <DollarSign className="w-5 h-5 text-cyan-400" />
-            </div>
-            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Daily Avg</span>
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
-            ${(summary?.daily_average_usd || 0).toFixed(4)}
-          </p>
-          <p className="text-xs mt-1" style={{ color: textMuted }}>
-            Per day average
-          </p>
-        </div>
-
-        {/* Monthly Projection */}
-        <div className="p-5 rounded-2xl" style={{ backgroundColor: cardBg, border: cardBorder }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10">
-              <TrendingUp className="w-5 h-5 text-red-400" />
-            </div>
-            <span className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Monthly Projection</span>
-          </div>
-          <p className="text-2xl font-semibold" style={{ color: textPrimary }}>
-            ${(summary?.monthly_projection_usd || 0).toFixed(2)}
-          </p>
-          <p className="text-xs mt-1" style={{ color: textMuted }}>
-            At current rate
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Breakdown by Tier/Model/Service */}
+      {/* Cost Breakdown Table */}
       {summary && summary.breakdown.length > 0 && (
-        <div className="mb-8">
-          <h2
-            className="text-lg mb-4"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textPrimary }}
-          >
+        <div className="mb-10">
+          <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
             Cost Breakdown
-          </h2>
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: tableBg, border: cardBorder }}>
+          </span>
+          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: cardBorder }}>
-                    {['Tier', 'Model', 'Service', 'Calls', 'Input Tokens', 'Output Tokens', 'Cost', 'Cache Hits'].map(h => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium"
-                        style={{ color: textMuted }}
-                      >
-                        {h}
-                      </th>
+                  <tr style={{ borderBottom: tableBorder }}>
+                    {['Tier', 'Model', 'Service', 'Calls', 'In Tokens', 'Out Tokens', 'Cost', 'Cache'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {summary.breakdown.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="transition-colors"
-                      style={{ borderBottom: i < summary.breakdown.length - 1 ? cardBorder : undefined }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = rowHover)}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
+                    <tr key={i} style={{ borderBottom: i < summary.breakdown.length - 1 ? tableBorder : undefined }}>
                       <td className="px-4 py-3">{tierBadge(row.tier)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textPrimary }}>{row.model}</td>
-                      <td className="px-4 py-3" style={{ color: textPrimary }}>{row.service_name}</td>
-                      <td className="px-4 py-3" style={{ color: textPrimary }}>{row.call_count}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>{formatNumber(row.total_input_tokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>{formatNumber(row.total_output_tokens)}</td>
-                      <td className="px-4 py-3 font-mono" style={{ color: textPrimary }}>{formatCost(row.total_cost_usd)}</td>
-                      <td className="px-4 py-3" style={{ color: textMuted }}>{row.cache_hits}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{row.model}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{row.service_name}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{row.call_count}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(row.total_input_tokens)}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(row.total_output_tokens)}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{formatCost(row.total_cost_usd)}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{row.cache_hits}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -495,56 +395,33 @@ const AdminLLMCosts: React.FC = () => {
         </div>
       )}
 
-      {/* Per-User Cost Breakdown */}
+      {/* Per-User Cost */}
       {userCosts && userCosts.users.length > 0 && (
-        <div className="mb-8">
-          <h2
-            className="text-lg mb-4 flex items-center gap-2"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textPrimary }}
-          >
-            <Users className="w-5 h-5" />
-            Cost by User
-          </h2>
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: tableBg, border: cardBorder }}>
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4" style={{ color: '#10b77f' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>Cost by User</span>
+          </div>
+          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: cardBorder }}>
-                    {['User', 'Calls', 'Tokens', 'Chat', 'Analysis', 'Extraction', 'Total Cost'].map(h => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium"
-                        style={{ color: textMuted }}
-                      >
-                        {h}
-                      </th>
+                  <tr style={{ borderBottom: tableBorder }}>
+                    {['User', 'Calls', 'Tokens', 'Chat', 'Analysis', 'Extraction', 'Total'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {userCosts.users.map((user, i) => (
-                    <tr
-                      key={user.user_id}
-                      className="transition-colors"
-                      style={{ borderBottom: i < userCosts.users.length - 1 ? cardBorder : undefined }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = rowHover)}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <td className="px-4 py-3 text-xs" style={{ color: textPrimary }}>{user.email}</td>
-                      <td className="px-4 py-3" style={{ color: textPrimary }}>{user.call_count}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>{formatNumber(user.total_tokens)}</td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>
-                        {user.by_tier.chat ? formatCost(user.by_tier.chat.cost_usd) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>
-                        {user.by_tier.analysis ? formatCost(user.by_tier.analysis.cost_usd) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textMuted }}>
-                        {user.by_tier.extraction ? formatCost(user.by_tier.extraction.cost_usd) : '--'}
-                      </td>
-                      <td className="px-4 py-3 font-mono font-semibold" style={{ color: textPrimary }}>
-                        {formatCost(user.total_cost_usd)}
-                      </td>
+                    <tr key={user.user_id} style={{ borderBottom: i < userCosts.users.length - 1 ? tableBorder : undefined }}>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{user.email}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{user.call_count}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(user.total_tokens)}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{user.by_tier.chat ? formatCost(user.by_tier.chat.cost_usd) : '--'}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{user.by_tier.analysis ? formatCost(user.by_tier.analysis.cost_usd) : '--'}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{user.by_tier.extraction ? formatCost(user.by_tier.extraction.cost_usd) : '--'}</td>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{formatCost(user.total_cost_usd)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -556,46 +433,29 @@ const AdminLLMCosts: React.FC = () => {
 
       {/* Daily Costs */}
       {daily && daily.daily.length > 0 && (
-        <div className="mb-8">
-          <h2
-            className="text-lg mb-4"
-            style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textPrimary }}
-          >
-            Daily Costs
-          </h2>
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: tableBg, border: cardBorder }}>
+        <div className="mb-10">
+          <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>Daily Costs</span>
+          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: cardBorder }}>
+                  <tr style={{ borderBottom: tableBorder }}>
                     {['Date', 'Calls', 'Cost', 'Cache Hits', 'By Tier'].map(h => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium"
-                        style={{ color: textMuted }}
-                      >
-                        {h}
-                      </th>
+                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {daily.daily.map((row, i) => (
-                    <tr
-                      key={row.day}
-                      className="transition-colors"
-                      style={{ borderBottom: i < daily.daily.length - 1 ? cardBorder : undefined }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = rowHover)}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: textPrimary }}>{row.day}</td>
-                      <td className="px-4 py-3" style={{ color: textPrimary }}>{row.calls}</td>
-                      <td className="px-4 py-3 font-mono" style={{ color: textPrimary }}>{formatCost(row.cost_usd)}</td>
-                      <td className="px-4 py-3" style={{ color: textMuted }}>{row.cache_hits}</td>
+                    <tr key={row.day} style={{ borderBottom: i < daily.daily.length - 1 ? tableBorder : undefined }}>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{row.day}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'var(--foreground)' }}>{row.calls}</td>
+                      <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{formatCost(row.cost_usd)}</td>
+                      <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{row.cache_hits}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-2">
                           {Object.entries(row.by_tier).map(([tier, data]) => (
-                            <span key={tier} className="text-xs" style={{ color: textMuted }}>
+                            <span key={tier} className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                               {tierBadge(tier)}
                               <span className="ml-1">{data.calls} / {formatCost(data.cost_usd)}</span>
                             </span>
@@ -613,92 +473,50 @@ const AdminLLMCosts: React.FC = () => {
 
       {/* Real-time Call Log */}
       {realtime && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2
-              className="text-lg"
-              style={{ fontFamily: 'var(--font-heading)', fontWeight: 500, color: textPrimary }}
-            >
-              Recent Calls
-              <span className="ml-2 text-sm font-normal" style={{ color: textMuted }}>
-                ({realtime.count})
-              </span>
-            </h2>
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>Recent Calls</span>
+            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>({realtime.count})</span>
           </div>
-          <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: tableBg, border: cardBorder }}>
+          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr style={{ borderBottom: cardBorder }}>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      <SortButton label="Time" field="created_at" />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      <SortButton label="Tier" field="tier" />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      <SortButton label="Service" field="service_name" />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      <SortButton label="Model" field="model" />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      Tokens (In/Out)
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      Cached
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      <SortButton label="Cost" field="cost_usd" />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      <SortButton label="Latency" field="latency_ms" />
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium" style={{ color: textMuted }}>
-                      Cache
-                    </th>
+                  <tr style={{ borderBottom: tableBorder }}>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Time" field="created_at" /></th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Tier" field="tier" /></th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Service" field="service_name" /></th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Model" field="model" /></th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Tokens</th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Cached</th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Cost" field="cost_usd" /></th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}><SortButton label="Latency" field="latency_ms" /></th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>Cache</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedCalls.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center" style={{ color: textMuted }}>
+                      <td colSpan={9} className="px-4 py-8 text-center text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                         No recent calls
                       </td>
                     </tr>
                   ) : (
                     sortedCalls.map((call, i) => (
-                      <tr
-                        key={call.id}
-                        className="transition-colors"
-                        style={{ borderBottom: i < sortedCalls.length - 1 ? cardBorder : undefined }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = rowHover)}
-                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: textMuted }}>
-                          {formatTimestamp(call.created_at)}
-                        </td>
+                      <tr key={call.id} style={{ borderBottom: i < sortedCalls.length - 1 ? tableBorder : undefined }}>
+                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatTimestamp(call.created_at)}</td>
                         <td className="px-4 py-2.5">{tierBadge(call.tier)}</td>
-                        <td className="px-4 py-2.5 text-xs" style={{ color: textPrimary }}>{call.service_name}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: textPrimary }}>{call.model}</td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: textMuted }}>
-                          {formatNumber(call.input_tokens)} / {formatNumber(call.output_tokens)}
-                        </td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: textMuted }}>
-                          {call.cached_tokens > 0 ? formatNumber(call.cached_tokens) : '--'}
-                        </td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: textPrimary }}>
-                          {formatCost(call.cost_usd)}
-                        </td>
-                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: textMuted }}>
-                          {call.latency_ms ? `${call.latency_ms}ms` : '--'}
-                        </td>
+                        <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--foreground)' }}>{call.service_name}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{call.model}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatNumber(call.input_tokens)} / {formatNumber(call.output_tokens)}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{call.cached_tokens > 0 ? formatNumber(call.cached_tokens) : '--'}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'var(--foreground)' }}>{formatCost(call.cost_usd)}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{call.latency_ms ? `${call.latency_ms}ms` : '--'}</td>
                         <td className="px-4 py-2.5">
-                          {call.cache_hit ? (
-                            <span className="text-green-400 text-xs">HIT</span>
-                          ) : (
-                            <span className="text-xs" style={{ color: textMuted }}>MISS</span>
-                          )}
+                          {call.cache_hit
+                            ? <span className="text-green-400 text-xs">HIT</span>
+                            : <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>MISS</span>
+                          }
                         </td>
                       </tr>
                     ))
@@ -709,7 +527,7 @@ const AdminLLMCosts: React.FC = () => {
           </div>
         </div>
       )}
-    </PageLayout>
+    </div>
   );
 };
 

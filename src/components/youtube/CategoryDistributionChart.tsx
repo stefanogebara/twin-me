@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { LayoutGrid } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -48,14 +47,22 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-card rounded-lg p-3">
-          <p className="font-ui text-sm font-medium text-foreground">
+        <div
+          className="rounded-lg p-3"
+          style={{
+            backgroundColor: 'rgba(10,15,10,0.9)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '8px',
+            color: 'rgba(255,255,255,0.8)'
+          }}
+        >
+          <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
             {payload[0].name}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
             {payload[0].value.toFixed(1)}% ({payload[0].payload.count} videos)
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
             {formatWatchTime(payload[0].payload.watchTime)} watched
           </p>
         </div>
@@ -71,21 +78,17 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
           <LayoutGrid className="w-5 h-5 text-[#FF0000]" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-medium text-foreground">
+          <h3 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Category Distribution
           </h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Your content preferences
           </p>
         </div>
       </div>
 
       {chartData.length > 0 ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
+        <div>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
@@ -113,39 +116,36 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
 
           {/* Legend */}
           <div className="mt-4 space-y-2">
-            {chartData.map((category, index) => (
-              <motion.div
+            {chartData.map((category) => (
+              <div
                 key={category.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center justify-between group cursor-default hover:bg-[var(--glass-surface-bg-hover)] px-2 py-1 rounded transition-colors"
+                className="flex items-center justify-between cursor-default px-2 py-1 rounded transition-colors hover:bg-white/5"
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div
                     className="w-3 h-3 rounded-full flex-shrink-0 group-hover:scale-110 transition-transform"
                     style={{ backgroundColor: category.color }}
                   />
-                  <span className="text-sm font-ui text-muted-foreground truncate">
+                  <span className="text-sm truncate" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                     {category.name}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <span className="text-sm font-mono text-muted-foreground">
+                  <span className="text-sm font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {category.value.toFixed(1)}%
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     ({formatWatchTime(category.watchTime)})
                   </span>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       ) : (
         <div className="text-center py-12">
-          <LayoutGrid className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">
+          <LayoutGrid className="w-12 h-12 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             No category data available yet
           </p>
         </div>

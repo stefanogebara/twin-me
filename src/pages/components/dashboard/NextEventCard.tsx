@@ -1,12 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import {
   Clock,
   Sparkles,
   Target,
   RefreshCw,
 } from 'lucide-react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 import { CalendarEvent } from '@/services/apiService';
 
 interface NextEventCardProps {
@@ -28,14 +26,17 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
 }) => {
   if (nextEvent) {
     return (
-      <GlassPanel className="mb-14 relative overflow-hidden" variant="card">
+      <div
+        className="mb-14 relative overflow-hidden rounded-lg"
+        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+      >
         <div>
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span
-                  className="text-xs uppercase tracking-wider"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="text-[11px] font-medium tracking-widest uppercase"
+                  style={{ color: '#10b77f' }}
                 >
                   Next Important Event
                 </span>
@@ -48,7 +49,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
-                      style={{ color: 'var(--text-secondary)' }}
+                      style={{ color: 'rgba(255,255,255,0.4)' }}
                     />
                   </button>
                 )}
@@ -66,7 +67,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
               <div className="flex items-center gap-4">
                 <span
                   className="flex items-center gap-1.5 text-sm"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
                 >
                   <Clock className="w-4 h-4" />
                   {(() => {
@@ -81,7 +82,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                   className="px-2 py-0.5 rounded-full text-xs"
                   style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                    color: 'var(--text-secondary)'
+                    color: 'rgba(255,255,255,0.4)'
                   }}
                 >
                   {nextEvent.type}
@@ -95,16 +96,13 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 backgroundColor: 'rgba(255, 255, 255, 0.06)'
               }}
             >
-              <Target className="w-6 h-6" style={{ color: 'var(--text-secondary)' }} />
+              <Target className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.4)' }} />
             </div>
           </div>
 
-          <motion.button
+          <button
             onClick={() => onNavigate('/insights/calendar')}
             className="btn-cta-app w-full py-2 flex items-center justify-center gap-2"
-            whileHover={{ scale: 1.015 }}
-            whileTap={{ scale: 0.985 }}
-            transition={{ duration: 0.2 }}
           >
             <Sparkles className="w-5 h-5" />
             <span
@@ -113,9 +111,9 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
             >
               View Time Patterns
             </span>
-          </motion.button>
+          </button>
         </div>
-      </GlassPanel>
+      </div>
     );
   }
 
@@ -123,8 +121,8 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     <div
       className="mb-14 px-5 py-4 rounded-xl flex items-center gap-3"
       style={{
-        backgroundColor: 'var(--glass-surface-bg)',
-        border: '1px solid var(--glass-surface-border)'
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)'
       }}
     >
       <Clock
@@ -133,7 +131,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
       />
       <span
         className="text-sm flex-1"
-        style={{ color: 'var(--text-secondary)' }}
+        style={{ color: 'rgba(255,255,255,0.4)' }}
       >
         {isCalendarConnected ? 'Looks like you have a free day' : 'Connect your calendar and I can help you plan your time'}
       </span>

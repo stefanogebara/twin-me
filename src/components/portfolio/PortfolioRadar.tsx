@@ -1,6 +1,4 @@
-import React, { useMemo } from 'react';
-import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 
 interface PortfolioRadarProps {
   personality: {
@@ -29,7 +27,6 @@ const getPoint = (index: number, radius: number, cx: number, cy: number) => {
 
 const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCount, colorScheme }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
 
   // Convert neuroticism to emotional stability (inverted)
   const scores = useMemo(() => [
@@ -54,36 +51,19 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
   });
   const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ') + ' Z';
 
-  // Calculate path length for stroke animation
-  const pathLength = useMemo(() => {
-    let len = 0;
-    for (let i = 0; i < dataPoints.length; i++) {
-      const next = dataPoints[(i + 1) % dataPoints.length];
-      const dx = next.x - dataPoints[i].x;
-      const dy = next.y - dataPoints[i].y;
-      len += Math.sqrt(dx * dx + dy * dy);
-    }
-    return len;
-  }, [dataPoints]);
-
   return (
     <section ref={ref} className="py-16 px-6 flex flex-col items-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
+      <div
         className="w-full max-w-xl rounded-2xl p-8 md:p-10"
         style={{
           background: 'linear-gradient(145deg, rgba(232, 213, 183, 0.06) 0%, rgba(232, 213, 183, 0.02) 100%)',
           border: '1px solid rgba(232, 213, 183, 0.12)',
-          backdropFilter: 'blur(20px)',
         }}
       >
         {/* Section label */}
         <p
           className="text-xs uppercase tracking-wider text-center mb-8 opacity-50"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
         >
           Personality Profile
         </p>
@@ -123,37 +103,28 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
             })}
 
             {/* Data fill */}
-            <motion.path
+            <path
               d={dataPath}
               fill={`${colorScheme.primary}30`}
-              initial={{ opacity: 0 }}
-              animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
             />
 
-            {/* Data stroke (animated) */}
-            <motion.path
+            {/* Data stroke */}
+            <path
               d={dataPath}
               fill="none"
               stroke={colorScheme.primary}
               strokeWidth="2"
               strokeLinejoin="round"
-              initial={{ strokeDasharray: pathLength, strokeDashoffset: pathLength }}
-              animate={isInView ? { strokeDashoffset: 0 } : { strokeDashoffset: pathLength }}
-              transition={{ duration: 1.2, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
             />
 
             {/* Data points */}
             {dataPoints.map((p, i) => (
-              <motion.circle
+              <circle
                 key={i}
                 cx={p.x}
                 cy={p.y}
                 r="4"
                 fill={colorScheme.primary}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
-                transition={{ duration: 0.3, delay: 0.5 + i * 0.1 }}
               />
             ))}
 
@@ -169,7 +140,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
                   dominantBaseline="middle"
                   fill="rgba(232, 213, 183, 0.6)"
                   fontSize="10"
-                  fontFamily="var(--font-body)"
+                  fontFamily="'Inter', sans-serif"
                 >
                   {label}
                 </text>
@@ -180,7 +151,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
             {scores.map((score, i) => {
               const p = getPoint(i, (score / 100) * maxR + 14, cx, cy);
               return (
-                <motion.text
+                <text
                   key={`score-${i}`}
                   x={p.x}
                   y={p.y}
@@ -188,14 +159,11 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
                   dominantBaseline="middle"
                   fill={colorScheme.primary}
                   fontSize="9"
-                  fontFamily="var(--font-body)"
+                  fontFamily="'Inter', sans-serif"
                   fontWeight="600"
-                  initial={{ opacity: 0 }}
-                  animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-                  transition={{ duration: 0.3, delay: 0.8 + i * 0.1 }}
                 >
                   {Math.round(score)}
-                </motion.text>
+                </text>
               );
             })}
           </svg>
@@ -210,7 +178,7 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
                 backgroundColor: `${colorScheme.primary}15`,
                 border: `1px solid ${colorScheme.primary}30`,
                 color: colorScheme.primary,
-                fontFamily: 'var(--font-body)',
+                fontFamily: "'Inter', sans-serif",
               }}
             >
               {personality.mbti_code}
@@ -221,11 +189,11 @@ const PortfolioRadar: React.FC<PortfolioRadarProps> = ({ personality, platformCo
         {/* Platform count */}
         <p
           className="text-xs text-center opacity-40"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
         >
           Based on {platformCount} platform{platformCount !== 1 ? 's' : ''}
         </p>
-      </motion.div>
+      </div>
     </section>
   );
 };

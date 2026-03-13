@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Youtube, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,10 +28,10 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#FF0000]/10 flex items-center justify-center mb-4">
             <Loader2 className="w-8 h-8 text-[#FF0000] animate-spin" />
           </div>
-          <h3 className="font-heading text-lg font-medium text-foreground mb-2">
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Analyzing Your Learning Journey
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Extracting insights from your YouTube data...
           </p>
         </div>
@@ -48,10 +47,10 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-red-900/20 flex items-center justify-center mb-4">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h3 className="font-heading text-lg font-medium text-foreground mb-2">
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Unable to Load YouTube Insights
           </h3>
-          <p className="text-sm text-muted-foreground mb-6 max-w-md">
+          <p className="text-sm mb-6 max-w-md" style={{ color: 'rgba(255,255,255,0.3)' }}>
             {error?.message || 'We couldn\'t retrieve your YouTube data. Please try again.'}
           </p>
           <Button
@@ -74,10 +73,10 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
           <div className="w-16 h-16 rounded-full bg-[#FF0000]/10 flex items-center justify-center mb-4">
             <Youtube className="w-8 h-8 text-[#FF0000]" />
           </div>
-          <h3 className="font-heading text-lg font-medium text-foreground mb-2">
+          <h3 className="text-lg font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             No YouTube Data Yet
           </h3>
-          <p className="text-sm text-muted-foreground mb-6 max-w-md">
+          <p className="text-sm mb-6 max-w-md" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Connect your YouTube account to discover your learning and discovery patterns
           </p>
           <Button
@@ -98,27 +97,28 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
   const totalHours = Math.floor(insights.totalHoursWatched || 0);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={className}
-    >
+    <div className={className}>
       {/* Header Section */}
-      <Card className="bg-gradient-to-br from-[#FF0000]/5 to-white border border-[#FF0000]/20 p-8 mb-6 shadow-md">
+      <div
+        className="rounded-lg p-8 mb-6"
+        style={{
+          background: 'linear-gradient(to bottom right, rgba(255,0,0,0.05), rgba(255,255,255,0.02))',
+          border: '1px solid rgba(255,0,0,0.2)',
+        }}
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-full bg-[#FF0000] flex items-center justify-center flex-shrink-0">
               <Youtube className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="font-heading text-2xl font-medium text-foreground mb-2">
+              <h2 className="text-2xl font-medium mb-2" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
                 Learning & Discovery Journey
               </h2>
-              <p className="text-base font-body text-muted-foreground mb-3">
+              <p className="text-base mb-3" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.3)' }}>
                 Your authentic curiosity patterns from YouTube
               </p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-4 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                 <div className="flex items-center gap-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#FF0000]" />
                   <span>{totalVideos} Videos</span>
@@ -141,13 +141,14 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
             href="https://www.youtube.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-xs font-ui text-[#FF0000] hover:text-[#CC0000] transition-colors"
+            className="flex items-center gap-2 text-xs text-[#FF0000] hover:text-[#CC0000] transition-colors"
+            style={{ fontFamily: "'Inter', sans-serif" }}
           >
             View on YouTube
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
-      </Card>
+      </div>
 
       {/* Insights Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -193,16 +194,11 @@ export const YouTubeInsights: React.FC<YouTubeInsightsProps> = ({
       </div>
 
       {/* Footer Note */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className="mt-6 text-center"
-      >
-        <p className="text-xs text-muted-foreground">
+      <div className="mt-6 text-center">
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           Data extracted from your YouTube watch history and preferences
         </p>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 };

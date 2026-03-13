@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { journalAPI } from '@/services/apiService';
 import type { JournalEntry, JournalAnalysis, JournalInsights } from '@/services/apiService';
 import { getDemoJournalData } from '@/services/demoDataService';
@@ -21,9 +19,8 @@ import {
   TrendingUp,
   Heart
 } from 'lucide-react';
-import { Brain as BrainIcon } from 'lucide-react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
-// Mood config with emoji and color
 const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string }> = {
   happy: { emoji: '\u{1F60A}', label: 'Happy', color: '#4CAF50' },
   calm: { emoji: '\u{1F60C}', label: 'Calm', color: '#2196F3' },
@@ -36,10 +33,10 @@ const MOOD_CONFIG: Record<string, { emoji: string; label: string; color: string 
 };
 
 const JournalPage: React.FC = () => {
+  useDocumentTitle('Soul Journal');
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
 
-  // State
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [insights, setInsights] = useState<JournalInsights | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +45,6 @@ const JournalPage: React.FC = () => {
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Composer state
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [mood, setMood] = useState<string | null>(null);
@@ -57,13 +53,6 @@ const JournalPage: React.FC = () => {
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Design system colors (theme-aware via CSS vars)
-  const textPrimary = 'var(--foreground)';
-  const textSecondary = 'var(--text-secondary)';
-  const borderColor = 'var(--glass-surface-border)';
-  const inputBg = 'var(--glass-surface-bg-subtle)';
-
-  // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -90,7 +79,6 @@ const JournalPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Reset composer
   const resetComposer = () => {
     setTitle('');
     setContent('');
@@ -102,13 +90,11 @@ const JournalPage: React.FC = () => {
     setEditingId(null);
   };
 
-  // Save entry
   const handleSave = async () => {
     if (!content.trim()) return;
     setSaving(true);
     try {
       if (isDemoMode) {
-        // In demo mode, add locally
         const newEntry: JournalEntry = {
           id: `demo-new-${Date.now()}`,
           user_id: 'demo',
@@ -154,7 +140,6 @@ const JournalPage: React.FC = () => {
     }
   };
 
-  // Delete entry
   const handleDelete = async (id: string) => {
     if (isDemoMode) {
       setEntries(prev => prev.filter(e => e.id !== id));
@@ -168,7 +153,6 @@ const JournalPage: React.FC = () => {
     }
   };
 
-  // Analyze entry
   const handleAnalyze = async (id: string) => {
     if (isDemoMode) return;
     setAnalyzingId(id);
@@ -186,7 +170,6 @@ const JournalPage: React.FC = () => {
     }
   };
 
-  // Edit entry
   const handleEdit = (entry: JournalEntry) => {
     setEditingId(entry.id);
     setTitle(entry.title || '');
@@ -197,7 +180,6 @@ const JournalPage: React.FC = () => {
     setShowComposer(true);
   };
 
-  // Add tag
   const handleAddTag = () => {
     const t = tagInput.trim().toLowerCase();
     if (t && !tags.includes(t) && tags.length < 5) {
@@ -206,13 +188,11 @@ const JournalPage: React.FC = () => {
     }
   };
 
-  // Format date
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
@@ -229,560 +209,521 @@ const JournalPage: React.FC = () => {
   };
 
   return (
-    <PageLayout title="Soul Journal" subtitle="Discover yourself through your own words">
-      <div className="space-y-8">
+    <div className="max-w-[680px] mx-auto px-6 py-16">
+      {/* Header */}
+      <h1
+        className="mb-2"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          fontSize: '28px',
+          fontWeight: 400,
+          color: 'var(--foreground)',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Soul Journal
+      </h1>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        Discover yourself through your own words
+      </p>
 
-        {/* AI Insight Card */}
-        {insights && insights.analyzedEntries > 0 && (
-          <GlassPanel className="relative overflow-hidden p-8">
-            <div className="flex items-start gap-5">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--glass-surface-bg)' }}>
-                <BrainIcon className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="heading-serif text-sm font-medium mb-2">
-                  Your Journal Patterns
-                </h3>
-                {insights.recentSummaries.length > 0 && (
-                  <p className="body-text mb-3" style={{ color: textSecondary }}>
-                    {insights.recentSummaries[0]}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-3">
-                  {insights.topThemes.slice(0, 4).map(t => (
-                    <span
-                      key={t.theme}
-                      className="px-2.5 py-1 rounded-full text-xs"
-                      style={{
-                        background: 'var(--glass-surface-bg-subtle)',
-                        color: textSecondary,
-                        border: `1px solid ${borderColor}`
-                      }}
-                    >
-                      {t.theme}
-                    </span>
-                  ))}
-                  {insights.avgEnergy !== null && (
-                    <span
-                      className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1"
-                      style={{
-                        background: 'var(--glass-surface-bg-subtle)',
-                        color: textSecondary,
-                        border: `1px solid ${borderColor}`
-                      }}
-                    >
-                      <Zap className="w-3 h-3" /> Avg energy: {insights.avgEnergy}/5
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </GlassPanel>
-        )}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
 
-        {/* New Entry Button */}
-        {!showComposer && (
-          <motion.button
-            onClick={() => setShowComposer(true)}
-            className="w-full flex items-center gap-3 p-6 rounded-2xl transition-colors duration-200"
-            style={{
-              background: 'var(--glass-surface-bg-subtle)',
-              border: `1px dashed ${borderColor}`,
-              color: textSecondary
-            }}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+      {/* AI Insight Card */}
+      {insights && insights.analyzedEntries > 0 && (
+        <div className="mb-8">
+          <span
+            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+            style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
           >
-            <Plus className="w-5 h-5" />
-            <span className="body-text">
-              Write about your day...
-            </span>
-          </motion.button>
-        )}
-
-        {/* Composer */}
-        <AnimatePresence>
-        {showComposer && (
-          <motion.div
-            initial={{ opacity: 0, y: -12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.98 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          >
-          <GlassPanel>
-            <div className="space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <h3 className="heading-serif text-sm font-medium">
-                  {editingId ? 'Edit Entry' : 'New Entry'}
-                </h3>
-                <button onClick={resetComposer} className="p-1 rounded-lg transition-colors hover:bg-black/5">
-                  <X className="w-4 h-4" style={{ color: textSecondary }} />
-                </button>
-              </div>
-
-              {/* Title */}
-              <input
-                type="text"
-                placeholder="Title (optional)"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                className="w-full px-3 py-3 rounded-xl text-sm outline-none transition-colors"
+            Your Journal Patterns
+          </span>
+          {insights.recentSummaries.length > 0 && (
+            <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+              {insights.recentSummaries[0]}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {insights.topThemes.slice(0, 4).map(t => (
+              <span
+                key={t.theme}
+                className="px-2.5 py-1 rounded-full text-[11px]"
                 style={{
-                  background: inputBg,
-                  border: `1px solid ${borderColor}`,
-                  color: textPrimary,
-                  fontFamily: "'Instrument Serif', Georgia, serif"
+                  background: 'rgba(255,255,255,0.04)',
+                  color: 'rgba(255,255,255,0.4)',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
-              />
-
-              {/* Content */}
-              <textarea
-                placeholder="How was your day? What's on your mind?"
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                rows={5}
-                className="w-full px-3 py-3 rounded-xl text-sm outline-none resize-none transition-colors"
+              >
+                {t.theme}
+              </span>
+            ))}
+            {insights.avgEnergy !== null && (
+              <span
+                className="px-2.5 py-1 rounded-full text-[11px] flex items-center gap-1"
                 style={{
-                  background: inputBg,
-                  border: `1px solid ${borderColor}`,
-                  color: textPrimary,
-                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif"
+                  background: 'rgba(255,255,255,0.04)',
+                  color: 'rgba(255,255,255,0.4)',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}
-                autoFocus
-              />
-
-              {/* Mood Selector */}
-              <div>
-                <label className="text-xs mb-2 block" style={{ color: textSecondary }}>How are you feeling?</label>
-                <div className="flex flex-wrap gap-3">
-                  {Object.entries(MOOD_CONFIG).map(([key, cfg]) => (
-                    <button
-                      key={key}
-                      onClick={() => setMood(mood === key ? null : key)}
-                      className="px-3 py-1.5 rounded-full text-xs transition-all"
-                      style={{
-                        background: mood === key ? `${cfg.color}20` : inputBg,
-                        border: `1px solid ${mood === key ? cfg.color : borderColor}`,
-                        color: mood === key ? cfg.color : textSecondary
-                      }}
-                    >
-                      {cfg.emoji} {cfg.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Energy Level */}
-              <div>
-                <label className="text-xs mb-2 block" style={{ color: textSecondary }}>
-                  Energy level: {energyLevel}/5
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(level => (
-                    <button
-                      key={level}
-                      onClick={() => setEnergyLevel(level)}
-                      className="w-10 h-10 rounded-xl text-sm font-medium transition-all"
-                      style={{
-                        background: energyLevel >= level ? 'var(--glass-surface-bg-hover)' : inputBg,
-                        border: `1px solid ${energyLevel >= level ? 'var(--glass-surface-border-hover)' : borderColor}`,
-                        color: textPrimary
-                      }}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label className="text-xs mb-2 block" style={{ color: textSecondary }}>Tags</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {tags.map(t => (
-                    <span
-                      key={t}
-                      className="px-2 py-1 rounded-full text-xs flex items-center gap-1"
-                      style={{
-                        background: 'var(--glass-surface-bg)',
-                        color: textSecondary,
-                        border: `1px solid ${borderColor}`
-                      }}
-                    >
-                      <Tag className="w-3 h-3" />
-                      {t}
-                      <button onClick={() => setTags(prev => prev.filter(x => x !== t))} className="ml-0.5 hover:opacity-70">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                {tags.length < 5 && (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add tag..."
-                      value={tagInput}
-                      onChange={e => setTagInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                      className="flex-1 px-3 py-1.5 rounded-lg text-xs outline-none"
-                      style={{
-                        background: inputBg,
-                        border: `1px solid ${borderColor}`,
-                        color: textPrimary
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  onClick={resetComposer}
-                  className="px-4 py-2 rounded-full text-sm transition-colors"
-                  style={{ color: textSecondary }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={!content.trim() || saving}
-                  className="btn-cta-app flex items-center gap-2 transition-all disabled:opacity-40"
-                >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {editingId ? 'Update' : 'Save Entry'}
-                </button>
-              </div>
-            </div>
-          </GlassPanel>
-          </motion.div>
-        )}
-        </AnimatePresence>
-
-        {/* Entry List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: textSecondary }} />
+              >
+                <Zap className="w-3 h-3" /> Avg energy: {insights.avgEnergy}/5
+              </span>
+            )}
           </div>
-        ) : entries.length === 0 ? (
-          <div className="text-center py-16">
-            <motion.div
-              className="mx-auto mb-4 opacity-50"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 0.5, scale: 1 }}
-              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
-            >
-              <BrainIcon className="w-12 h-12" style={{ color: 'var(--text-muted)' }} />
-            </motion.div>
-            <motion.h3
-              className="heading-serif text-lg mb-2"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
-            >
-              Nothing written yet
-            </motion.h3>
-            <motion.p
-              className="text-sm mb-8"
-              style={{ color: textSecondary }}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            >
-              What's on your mind? Even a few lines help me understand how you actually see the world.
-            </motion.p>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mt-6 mb-8" />
+        </div>
+      )}
 
-            {/* Suggested writing prompts */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-lg mx-auto">
-              {[
-                { prompt: 'How are you feeling right now?', mood: 'reflective' },
-                { prompt: "What's on your mind today?", mood: null },
-                { prompt: 'Describe your ideal day', mood: 'happy' },
-                { prompt: 'What are you grateful for?', mood: 'grateful' },
-              ].map(({ prompt, mood: suggestedMood }, i) => (
-                <motion.button
-                  key={prompt}
-                  onClick={() => {
-                    setContent(prompt);
-                    if (suggestedMood) setMood(suggestedMood);
-                    setShowComposer(true);
-                  }}
-                  className="text-left p-6 rounded-2xl transition-colors duration-200 group"
+      {/* New Entry Button */}
+      {!showComposer && (
+        <button
+          onClick={() => setShowComposer(true)}
+          className="w-full flex items-center gap-3 py-4 px-5 rounded-lg transition-opacity hover:opacity-70 mb-8"
+          style={{
+            border: '1px dashed rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.3)',
+          }}
+        >
+          <Plus className="w-5 h-5" />
+          <span className="text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
+            Write about your day...
+          </span>
+        </button>
+      )}
+
+      {/* Composer */}
+      {showComposer && (
+        <div
+          className="mb-8 p-5 rounded-lg space-y-5"
+          style={{
+            border: '1px solid rgba(255,255,255,0.08)',
+            backgroundColor: 'rgba(255,255,255,0.02)',
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+              {editingId ? 'Edit Entry' : 'New Entry'}
+            </span>
+            <button onClick={resetComposer} className="p-1 transition-opacity hover:opacity-60">
+              <X className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            </button>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Title (optional)"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'var(--foreground)',
+              fontFamily: "'Instrument Serif', Georgia, serif"
+            }}
+          />
+
+          <textarea
+            placeholder="How was your day? What's on your mind?"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            rows={5}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none resize-none"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: 'var(--foreground)',
+              fontFamily: "'Inter', sans-serif"
+            }}
+            autoFocus
+          />
+
+          {/* Mood Selector */}
+          <div>
+            <label className="text-[11px] mb-2 block" style={{ color: 'rgba(255,255,255,0.35)' }}>How are you feeling?</label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(MOOD_CONFIG).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  onClick={() => setMood(mood === key ? null : key)}
+                  className="px-3 py-1.5 rounded-full text-xs transition-all"
                   style={{
-                    background: 'var(--glass-surface-bg-subtle)',
-                    border: `1px dashed ${borderColor}`,
+                    background: mood === key ? `${cfg.color}20` : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${mood === key ? cfg.color : 'rgba(255,255,255,0.08)'}`,
+                    color: mood === key ? cfg.color : 'rgba(255,255,255,0.4)'
                   }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.3 + i * 0.08, ease: [0.4, 0, 0.2, 1] }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                 >
-                  <span className="body-text" style={{ color: textSecondary }}>
-                    {prompt}
-                  </span>
-                </motion.button>
+                  {cfg.emoji} {cfg.label}
+                </button>
               ))}
             </div>
           </div>
-        ) : (
-          <div className="space-y-5">
-            {entries.map((entry, i) => {
-              const isExpanded = expandedEntry === entry.id;
-              const analysis = entry.journal_analyses?.[0];
-              const moodCfg = entry.mood ? MOOD_CONFIG[entry.mood] : null;
 
-              return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: Math.min(i * 0.06, 0.4), ease: [0.4, 0, 0.2, 1] }}
+          {/* Energy Level */}
+          <div>
+            <label className="text-[11px] mb-2 block" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Energy level: {energyLevel}/5
+            </label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map(level => (
+                <button
+                  key={level}
+                  onClick={() => setEnergyLevel(level)}
+                  className="w-10 h-10 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    background: energyLevel >= level ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${energyLevel >= level ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}`,
+                    color: 'var(--foreground)'
+                  }}
                 >
-                <GlassPanel className="cursor-pointer transition-all hover:scale-[1.005]">
-                  {/* Entry Header */}
-                  <div
-                    className="flex items-start gap-3"
-                    onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
-                  >
-                    {/* Date Column */}
-                    <div className="text-center min-w-[48px]">
-                      <div className="text-xs" style={{ color: textSecondary }}>{formatDate(entry.created_at)}</div>
-                      {moodCfg && (
-                        <div className="text-lg mt-1">{moodCfg.emoji}</div>
-                      )}
-                    </div>
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {entry.title && (
-                        <h4 className="heading-serif text-sm font-medium mb-1">
-                          {entry.title}
-                        </h4>
-                      )}
-                      <p
-                        className={`body-text ${!isExpanded ? 'line-clamp-2' : ''}`}
-                        style={{ color: textSecondary }}
-                      >
-                        {entry.content.replace(/''/g, "'")}
-                      </p>
+          {/* Tags */}
+          <div>
+            <label className="text-[11px] mb-2 block" style={{ color: 'rgba(255,255,255,0.35)' }}>Tags</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map(t => (
+                <span
+                  key={t}
+                  className="px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'rgba(255,255,255,0.4)',
+                    border: '1px solid rgba(255,255,255,0.08)'
+                  }}
+                >
+                  <Tag className="w-3 h-3" />
+                  {t}
+                  <button onClick={() => setTags(prev => prev.filter(x => x !== t))} className="ml-0.5 hover:opacity-70">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+            {tags.length < 5 && (
+              <input
+                type="text"
+                placeholder="Add tag..."
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                className="px-3 py-1.5 rounded-lg text-xs outline-none"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'var(--foreground)'
+                }}
+              />
+            )}
+          </div>
 
-                      {/* Tags */}
-                      {entry.tags?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {entry.tags.map(t => (
-                            <span
-                              key={t}
-                              className="px-2 py-0.5 rounded-full text-[10px]"
-                              style={{
-                                background: 'var(--glass-surface-bg-subtle)',
-                                color: textSecondary,
-                                border: `1px solid ${borderColor}`
-                              }}
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              onClick={resetComposer}
+              className="px-4 py-2 rounded-lg text-sm transition-opacity hover:opacity-70"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!content.trim() || saving}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+              style={{
+                backgroundColor: '#10b77f',
+                color: '#0a0f0a',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {editingId ? 'Update' : 'Save Entry'}
+            </button>
+          </div>
+        </div>
+      )}
 
-                    {/* Expand icon */}
-                    <div className="flex items-center gap-1">
-                      {entry.is_analyzed && (
-                        <Sparkles className="w-3.5 h-3.5" style={{ color: '#9C27B0', opacity: 0.6 }} />
-                      )}
-                      {isExpanded
-                        ? <ChevronUp className="w-4 h-4" style={{ color: textSecondary }} />
-                        : <ChevronDown className="w-4 h-4" style={{ color: textSecondary }} />
-                      }
-                    </div>
+      {/* Entry List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+        </div>
+      ) : entries.length === 0 ? (
+        <div className="text-center py-12">
+          <p
+            className="text-sm mb-2"
+            style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+          >
+            Nothing written yet
+          </p>
+          <p
+            className="text-xs mb-8"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+          >
+            What's on your mind? Even a few lines help me understand how you actually see the world.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+            {[
+              { prompt: 'How are you feeling right now?', mood: 'reflective' },
+              { prompt: "What's on your mind today?", mood: null },
+              { prompt: 'Describe your ideal day', mood: 'happy' },
+              { prompt: 'What are you grateful for?', mood: 'grateful' },
+            ].map(({ prompt, mood: suggestedMood }) => (
+              <button
+                key={prompt}
+                onClick={() => {
+                  setContent(prompt);
+                  if (suggestedMood) setMood(suggestedMood);
+                  setShowComposer(true);
+                }}
+                className="text-left py-3 px-4 rounded-lg transition-opacity hover:opacity-70"
+                style={{
+                  border: '1px dashed rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.4)',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '13px',
+                }}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-0">
+          {entries.map((entry) => {
+            const isExpanded = expandedEntry === entry.id;
+            const analysis = entry.journal_analyses?.[0];
+            const moodCfg = entry.mood ? MOOD_CONFIG[entry.mood] : null;
+
+            return (
+              <div
+                key={entry.id}
+                className="py-5"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                {/* Entry Header */}
+                <div
+                  className="flex items-start gap-3 cursor-pointer"
+                  onClick={() => setExpandedEntry(isExpanded ? null : entry.id)}
+                >
+                  <div className="text-center min-w-[48px]">
+                    <div className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatDate(entry.created_at)}</div>
+                    {moodCfg && <div className="text-lg mt-1">{moodCfg.emoji}</div>}
                   </div>
 
-                  {/* Expanded Content */}
-                  {isExpanded && (
-                    <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${borderColor}` }}>
-                      {/* Entry metadata */}
-                      <div className="flex flex-wrap items-center gap-3 mb-4 text-xs" style={{ color: textSecondary }}>
-                        <span>{formatFullDate(entry.created_at)}</span>
-                        {moodCfg && (
-                          <span className="flex items-center gap-1">
-                            {moodCfg.emoji} {moodCfg.label}
-                          </span>
-                        )}
-                        {entry.energy_level && (
-                          <span className="flex items-center gap-1">
-                            <Zap className="w-3 h-3" /> Energy: {entry.energy_level}/5
-                          </span>
-                        )}
-                      </div>
+                  <div className="flex-1 min-w-0">
+                    {entry.title && (
+                      <h4 className="text-sm font-medium mb-1" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+                        {entry.title}
+                      </h4>
+                    )}
+                    <p
+                      className={`text-sm leading-relaxed ${!isExpanded ? 'line-clamp-2' : ''}`}
+                      style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {entry.content.replace(/''/g, "'")}
+                    </p>
 
-                      {/* AI Analysis */}
-                      {analysis ? (
-                        <div
-                          className="rounded-2xl p-6 space-y-3"
-                          style={{
-                            background: 'rgba(156, 39, 176, 0.04)',
-                            border: '1px solid rgba(156, 39, 176, 0.1)'
-                          }}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <BrainIcon className="w-4 h-4" style={{ color: '#9C27B0' }} />
-                            <span className="text-xs font-medium" style={{ color: textPrimary }}>AI Analysis</span>
-                          </div>
-
-                          {/* Summary */}
-                          <p className="text-sm italic" style={{ color: textSecondary }}>
-                            "{analysis.summary}"
-                          </p>
-
-                          {/* Emotions */}
-                          {analysis.emotions?.length > 0 && (
-                            <div>
-                              <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: textPrimary }}>
-                                <Heart className="w-3 h-3" /> Emotions detected
-                              </div>
-                              <div className="flex flex-wrap gap-3">
-                                {analysis.emotions.map((em, i) => (
-                                  <div key={i} className="flex items-center gap-1.5">
-                                    <span className="text-xs" style={{ color: textSecondary }}>{em.emotion}</span>
-                                    <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--glass-surface-bg)' }}>
-                                      <div
-                                        className="h-full rounded-full"
-                                        style={{ width: `${em.intensity * 100}%`, background: '#9C27B0' }}
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Personality Signals */}
-                          {analysis.personality_signals?.length > 0 && (
-                            <div>
-                              <div className="text-xs font-medium mb-1.5 flex items-center gap-1" style={{ color: textPrimary }}>
-                                <TrendingUp className="w-3 h-3" /> Personality signals
-                              </div>
-                              <div className="space-y-1">
-                                {analysis.personality_signals.map((sig, i) => (
-                                  <div key={i} className="text-xs" style={{ color: textSecondary }}>
-                                    <span className="font-medium" style={{ color: textPrimary }}>
-                                      {sig.direction === 'high' ? '\u2191' : '\u2193'} {sig.trait}
-                                    </span>
-                                    {' \u2014 '}
-                                    {sig.evidence}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Self-perception */}
-                          {analysis.self_perception?.how_they_see_themselves && (
-                            <div>
-                              <div className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: textPrimary }}>
-                                <Sparkles className="w-3 h-3" /> Self-perception
-                              </div>
-                              <p className="text-xs" style={{ color: textSecondary }}>
-                                {analysis.self_perception.how_they_see_themselves}
-                              </p>
-                              {analysis.self_perception.values_expressed?.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                  {analysis.self_perception.values_expressed.map((v, i) => (
-                                    <span
-                                      key={i}
-                                      className="px-2 py-0.5 rounded-full text-[10px]"
-                                      style={{
-                                        background: 'rgba(156, 39, 176, 0.08)',
-                                        color: '#9C27B0',
-                                        border: '1px solid rgba(156, 39, 176, 0.15)'
-                                      }}
-                                    >
-                                      {v}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Themes */}
-                          {analysis.themes?.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {analysis.themes.map((t, i) => (
-                                <span
-                                  key={i}
-                                  className="px-2 py-0.5 rounded-full text-[10px]"
-                                  style={{
-                                    background: 'var(--glass-surface-bg-subtle)',
-                                    color: textSecondary,
-                                    border: `1px solid ${borderColor}`
-                                  }}
-                                >
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        /* Analyze button */
-                        !isDemoMode && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleAnalyze(entry.id); }}
-                            disabled={analyzingId === entry.id}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+                    {entry.tags?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {entry.tags.map(t => (
+                          <span
+                            key={t}
+                            className="px-2 py-0.5 rounded-full text-[10px]"
                             style={{
-                              background: 'rgba(156, 39, 176, 0.06)',
-                              color: '#9C27B0',
-                              border: '1px solid rgba(156, 39, 176, 0.2)'
+                              background: 'rgba(255,255,255,0.04)',
+                              color: 'rgba(255,255,255,0.35)',
+                              border: '1px solid rgba(255,255,255,0.06)'
                             }}
                           >
-                            {analyzingId === entry.id
-                              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing...</>
-                              : <><Sparkles className="w-3.5 h-3.5" /> Analyze with AI</>
-                            }
-                          </button>
-                        )
-                      )}
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                      {/* Entry actions */}
-                      <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: `1px solid ${borderColor}` }}>
-                        {!isDemoMode && (
-                          <>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-black/5"
-                              style={{ color: textSecondary }}
-                            >
-                              <Edit3 className="w-3.5 h-3.5" /> Edit
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors hover:bg-red-500/10"
-                              style={{ color: '#F44336' }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" /> Delete
-                            </button>
-                          </>
+                  <div className="flex items-center gap-1">
+                    {entry.is_analyzed && (
+                      <Sparkles className="w-3.5 h-3.5" style={{ color: '#9C27B0', opacity: 0.6 }} />
+                    )}
+                    {isExpanded
+                      ? <ChevronUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                      : <ChevronDown className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                    }
+                  </div>
+                </div>
+
+                {/* Expanded Content */}
+                {isExpanded && (
+                  <div className="mt-4 pt-4 ml-[60px]" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex flex-wrap items-center gap-3 mb-4 text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      <span>{formatFullDate(entry.created_at)}</span>
+                      {moodCfg && <span className="flex items-center gap-1">{moodCfg.emoji} {moodCfg.label}</span>}
+                      {entry.energy_level && (
+                        <span className="flex items-center gap-1">
+                          <Zap className="w-3 h-3" /> Energy: {entry.energy_level}/5
+                        </span>
+                      )}
+                    </div>
+
+                    {/* AI Analysis */}
+                    {analysis ? (
+                      <div
+                        className="rounded-lg p-5 space-y-3 mb-4"
+                        style={{
+                          background: 'rgba(156, 39, 176, 0.04)',
+                          border: '1px solid rgba(156, 39, 176, 0.1)'
+                        }}
+                      >
+                        <span className="text-[11px] font-medium tracking-widest uppercase block" style={{ color: '#9C27B0' }}>
+                          AI Analysis
+                        </span>
+
+                        <p className="text-sm italic leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                          "{analysis.summary}"
+                        </p>
+
+                        {analysis.emotions?.length > 0 && (
+                          <div>
+                            <div className="text-[11px] font-medium mb-1.5 flex items-center gap-1" style={{ color: 'var(--foreground)' }}>
+                              <Heart className="w-3 h-3" /> Emotions detected
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                              {analysis.emotions.map((em, i) => (
+                                <div key={i} className="flex items-center gap-1.5">
+                                  <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{em.emotion}</span>
+                                  <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                    <div
+                                      className="h-full rounded-full"
+                                      style={{ width: `${em.intensity * 100}%`, background: '#9C27B0' }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {analysis.personality_signals?.length > 0 && (
+                          <div>
+                            <div className="text-[11px] font-medium mb-1.5 flex items-center gap-1" style={{ color: 'var(--foreground)' }}>
+                              <TrendingUp className="w-3 h-3" /> Personality signals
+                            </div>
+                            <div className="space-y-1">
+                              {analysis.personality_signals.map((sig, i) => (
+                                <div key={i} className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                                  <span className="font-medium" style={{ color: 'var(--foreground)' }}>
+                                    {sig.direction === 'high' ? '\u2191' : '\u2193'} {sig.trait}
+                                  </span>
+                                  {' \u2014 '}
+                                  {sig.evidence}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {analysis.self_perception?.how_they_see_themselves && (
+                          <div>
+                            <div className="text-[11px] font-medium mb-1 flex items-center gap-1" style={{ color: 'var(--foreground)' }}>
+                              <Sparkles className="w-3 h-3" /> Self-perception
+                            </div>
+                            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                              {analysis.self_perception.how_they_see_themselves}
+                            </p>
+                            {analysis.self_perception.values_expressed?.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {analysis.self_perception.values_expressed.map((v, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-2 py-0.5 rounded-full text-[10px]"
+                                    style={{
+                                      background: 'rgba(156, 39, 176, 0.08)',
+                                      color: '#9C27B0',
+                                      border: '1px solid rgba(156, 39, 176, 0.15)'
+                                    }}
+                                  >
+                                    {v}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {analysis.themes?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {analysis.themes.map((t, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 rounded-full text-[10px]"
+                                style={{
+                                  background: 'rgba(255,255,255,0.04)',
+                                  color: 'rgba(255,255,255,0.35)',
+                                  border: '1px solid rgba(255,255,255,0.06)'
+                                }}
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-                    </div>
-                  )}
-                </GlassPanel>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </PageLayout>
+                    ) : (
+                      !isDemoMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleAnalyze(entry.id); }}
+                          disabled={analyzingId === entry.id}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40 mb-4"
+                          style={{
+                            background: 'rgba(156, 39, 176, 0.06)',
+                            color: '#9C27B0',
+                            border: '1px solid rgba(156, 39, 176, 0.2)'
+                          }}
+                        >
+                          {analyzingId === entry.id
+                            ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Analyzing...</>
+                            : <><Sparkles className="w-3.5 h-3.5" /> Analyze with AI</>
+                          }
+                        </button>
+                      )
+                    )}
+
+                    {/* Entry actions */}
+                    {!isDemoMode && (
+                      <div className="flex items-center gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEdit(entry); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-opacity hover:opacity-70"
+                          style={{ color: 'rgba(255,255,255,0.4)' }}
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(entry.id); }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-opacity hover:opacity-70"
+                          style={{ color: '#ef4444' }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 };
 

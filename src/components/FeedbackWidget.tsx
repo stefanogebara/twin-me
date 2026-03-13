@@ -161,7 +161,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       <div className="flex items-center gap-2">
         <span
           className="text-xs"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'rgba(255,255,255,0.4)' }}
         >
           Helpful?
         </span>
@@ -174,8 +174,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           style={{
             backgroundColor: thumbsVote === 'up'
               ? 'rgba(34, 197, 94, 0.15)'
-              : 'var(--glass-surface-bg-subtle)',
-            color: thumbsVote === 'up' ? '#22c55e' : 'var(--text-secondary)'
+              : 'rgba(255,255,255,0.03)',
+            color: thumbsVote === 'up' ? '#22c55e' : 'rgba(255,255,255,0.4)'
           }}
         >
           <ThumbsUp className="w-3.5 h-3.5" />
@@ -189,13 +189,13 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           style={{
             backgroundColor: thumbsVote === 'down'
               ? 'rgba(239, 68, 68, 0.15)'
-              : 'var(--glass-surface-bg-subtle)',
-            color: thumbsVote === 'down' ? '#ef4444' : 'var(--text-secondary)'
+              : 'rgba(255,255,255,0.03)',
+            color: thumbsVote === 'down' ? '#ef4444' : 'rgba(255,255,255,0.4)'
           }}
         >
           <ThumbsDown className="w-3.5 h-3.5" />
         </button>
-        {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'var(--text-secondary)' }} />}
+        {isSubmitting && <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />}
       </div>
     );
   }
@@ -205,8 +205,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     <div
       className="rounded-lg p-3 space-y-3"
       style={{
-        backgroundColor: 'var(--glass-surface-bg-subtle)',
-        border: '1px solid var(--glass-surface-border)'
+        backgroundColor: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(255,255,255,0.06)'
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -214,7 +214,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       <div className="flex items-center justify-between">
         <span
           className="text-xs font-medium"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'rgba(255,255,255,0.4)' }}
         >
           Was this helpful?
         </span>
@@ -228,8 +228,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             style={{
               backgroundColor: thumbsVote === 'up'
                 ? 'rgba(34, 197, 94, 0.15)'
-                : 'var(--glass-surface-bg)',
-              color: thumbsVote === 'up' ? '#22c55e' : 'var(--text-secondary)'
+                : 'rgba(255,255,255,0.02)',
+              color: thumbsVote === 'up' ? '#22c55e' : 'rgba(255,255,255,0.4)'
             }}
           >
             <ThumbsUp className="w-3.5 h-3.5" />
@@ -244,8 +244,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             style={{
               backgroundColor: thumbsVote === 'down'
                 ? 'rgba(239, 68, 68, 0.15)'
-                : 'var(--glass-surface-bg)',
-              color: thumbsVote === 'down' ? '#ef4444' : 'var(--text-secondary)'
+                : 'rgba(255,255,255,0.02)',
+              color: thumbsVote === 'down' ? '#ef4444' : 'rgba(255,255,255,0.4)'
             }}
           >
             <ThumbsDown className="w-3.5 h-3.5" />
@@ -259,7 +259,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
         <div className="space-y-2">
           <span
             className="text-xs"
-            style={{ color: 'var(--text-muted)' }}
+            style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             How would you rate this insight?
           </span>
@@ -283,7 +283,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
                   stroke={
                     (hoverStar !== null ? star <= hoverStar : star <= (starRating || 0))
                       ? '#F59E0B'
-                      : 'var(--text-muted)'
+                      : 'rgba(255,255,255,0.3)'
                   }
                 />
               </button>
@@ -298,11 +298,11 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
           <div className="flex items-center gap-1.5">
             <MessageSquare
               className="w-3.5 h-3.5"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: 'rgba(255,255,255,0.3)' }}
             />
             <span
               className="text-xs"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: 'rgba(255,255,255,0.3)' }}
             >
               Help us improve (optional)
             </span>
@@ -314,8 +314,8 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             rows={2}
             className="w-full text-sm rounded-md px-3 py-2 resize-none"
             style={{
-              backgroundColor: 'var(--glass-surface-bg)',
-              border: '1px solid var(--glass-surface-border-hover)',
+              backgroundColor: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.08)',
               color: 'var(--foreground)'
             }}
           />
@@ -324,7 +324,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             disabled={isSubmitting}
             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             style={{
-              backgroundColor: 'var(--glass-surface-bg)',
+              backgroundColor: 'rgba(255,255,255,0.02)',
               color: 'var(--foreground)'
             }}
           >

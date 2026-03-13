@@ -76,8 +76,6 @@ class ErrorBoundary extends Component<Props, State> {
             className="max-w-md w-full text-center p-8"
             style={{
               background: 'rgba(255, 255, 255, 0.06)',
-              backdropFilter: 'blur(10px) saturate(140%)',
-              WebkitBackdropFilter: 'blur(10px) saturate(140%)',
               borderRadius: '2rem',
               border: '1px solid rgba(255, 255, 255, 0.10)',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
@@ -91,14 +89,15 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <h2
-              className="heading-serif text-xl mb-4"
+              className="text-xl mb-4"
+              style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}
             >
               Something went wrong
             </h2>
 
             <p
               className="text-sm mb-6"
-              style={{ color: 'var(--text-secondary)' }}
+              style={{ color: 'rgba(255,255,255,0.4)' }}
             >
               We encountered an unexpected error. Don't worry — this has been logged and we'll work on fixing it.
             </p>
@@ -107,7 +106,7 @@ class ErrorBoundary extends Component<Props, State> {
               <details className="mb-6 text-left">
                 <summary
                   className="cursor-pointer text-sm mb-2"
-                  style={{ color: 'var(--text-secondary)' }}
+                  style={{ color: 'rgba(255,255,255,0.4)' }}
                 >
                   Error Details (Development)
                 </summary>
@@ -120,7 +119,7 @@ class ErrorBoundary extends Component<Props, State> {
                   </div>
                   <div
                     className="font-mono whitespace-pre-wrap"
-                    style={{ color: 'var(--text-secondary)' }}
+                    style={{ color: 'rgba(255,255,255,0.4)' }}
                   >
                     {this.state.error.stack}
                   </div>

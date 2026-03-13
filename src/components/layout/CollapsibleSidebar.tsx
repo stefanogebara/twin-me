@@ -113,11 +113,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         <div
           className="flex flex-col h-full overflow-hidden lg:rounded-2xl"
           style={{
-            backgroundColor: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(20px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow: 'var(--glass-shadow), inset 0 1px 0 var(--glass-inset-highlight)',
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
         <style>
@@ -167,7 +164,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             />
             {isExpanded && (
               <span
-                className="text-2xl heading-serif"
+                className="text-2xl"
                 style={{
                   fontWeight: 400,
                   color: 'var(--foreground)'

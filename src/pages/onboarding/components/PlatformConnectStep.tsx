@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -167,18 +166,11 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
   const allConnected = PLATFORMS.every(p => connected.includes(p.id));
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -24 }}
-      transition={{ duration: 0.5 }}
+    <div
       className="w-full max-w-lg"
     >
       {/* Heading */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.15 }}
+      <div
         className="text-center mb-8"
       >
         <h2
@@ -189,11 +181,11 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
         </h2>
         <p
           className="text-sm opacity-60 leading-relaxed"
-          style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
+          style={{ fontFamily: "'Inter', sans-serif", color: '#E8D5B7' }}
         >
           Now let me see what only you can show me.
         </p>
-      </motion.div>
+      </div>
 
       {/* Platform cards */}
       <div className="flex flex-col gap-3 mb-8">
@@ -203,11 +195,8 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
           const isExpanded = expanded === platform.id;
 
           return (
-            <motion.div
+            <div
               key={platform.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 + i * 0.1 }}
               className="rounded-2xl overflow-hidden"
               style={{
                 backgroundColor: isConnected
@@ -225,13 +214,13 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                 <div className="flex-1 min-w-0">
                   <div
                     className="text-sm font-medium mb-0.5"
-                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
                   >
                     {platform.name}
                   </div>
                   <div
                     className="text-xs opacity-50 truncate"
-                    style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                    style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
                   >
                     {platform.teaser}
                   </div>
@@ -259,7 +248,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                   {isConnected ? (
                     <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg" style={{ backgroundColor: `${platform.color}22` }}>
                       <CheckCircle2 className="w-3.5 h-3.5" style={{ color: platform.color }} />
-                      <span className="text-xs" style={{ color: platform.color, fontFamily: 'var(--font-body)' }}>
+                      <span className="text-xs" style={{ color: platform.color, fontFamily: "'Inter', sans-serif" }}>
                         Connected
                       </span>
                     </div>
@@ -271,7 +260,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                       style={{
                         backgroundColor: platform.color,
                         color: 'var(--foreground)',
-                        fontFamily: 'var(--font-body)',
+                        fontFamily: "'Inter', sans-serif",
                       }}
                     >
                       {isConnecting ? (
@@ -286,13 +275,8 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
               </div>
 
               {/* Expandable detail bullets */}
-              <AnimatePresence>
                 {isExpanded && !isConnected && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
+                  <div
                     className="overflow-hidden"
                   >
                     <div
@@ -304,7 +288,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                           <li
                             key={j}
                             className="flex items-start gap-2 text-xs opacity-50"
-                            style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+                            style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
                           >
                             <span className="mt-0.5 shrink-0" style={{ color: platform.color }}>·</span>
                             {detail}
@@ -312,19 +296,15 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
                         ))}
                       </ul>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       {/* Continue CTA */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
+      <div
         className="flex flex-col items-center gap-3"
       >
         <button
@@ -333,7 +313,7 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
           style={{
             backgroundColor: connected.length > 0 ? '#E8D5B7' : 'rgba(232, 213, 183, 0.1)',
             color: connected.length > 0 ? '#0C0C0C' : 'rgba(232, 213, 183, 0.5)',
-            fontFamily: 'var(--font-body)',
+            fontFamily: "'Inter', sans-serif",
             border: connected.length > 0 ? 'none' : '1px solid rgba(232, 213, 183, 0.15)',
           }}
         >
@@ -348,13 +328,13 @@ const PlatformConnectStep: React.FC<PlatformConnectStepProps> = ({ userId, onCon
           <button
             onClick={() => onContinue([])}
             className="text-xs opacity-25 hover:opacity-50 transition-opacity"
-            style={{ color: '#E8D5B7', fontFamily: 'var(--font-body)' }}
+            style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
           >
             Skip — I'll connect later
           </button>
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 };
 

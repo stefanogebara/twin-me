@@ -6,7 +6,6 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -32,9 +31,9 @@ import {
 
 // --- Design tokens ---
 const TEXT_PRIMARY = 'var(--foreground)';
-const TEXT_SECONDARY = 'var(--text-secondary)';
-const BORDER_COLOR = 'var(--glass-surface-border)';
-const CARD_BG = 'var(--glass-surface-bg)';
+const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
+const BORDER_COLOR = 'rgba(255,255,255,0.06)';
+const CARD_BG = 'rgba(255,255,255,0.02)';
 
 const CATEGORY_COLORS = {
   personal: '#f472b6',
@@ -82,7 +81,7 @@ interface ClusterRowProps {
 
 const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onToggle }) => {
   const [localLevel, setLocalLevel] = useState(cluster.privacyLevel);
-  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-secondary)';
+  const color = CATEGORY_COLORS[cluster.category as keyof typeof CATEGORY_COLORS] ?? 'rgba(255,255,255,0.4)';
 
   const handleSliderChange = useCallback(
     (values: number[]) => {
@@ -193,7 +192,7 @@ interface CategorySectionProps {
 
 const CategorySection: React.FC<CategorySectionProps> = ({ category, clusters, onPrivacyChange, onToggle }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'var(--text-secondary)';
+  const color = CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] ?? 'rgba(255,255,255,0.4)';
   const label = category.charAt(0).toUpperCase() + category.slice(1);
 
   return (
@@ -348,20 +347,11 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
   return (
     <div
-      style={{
-        maxWidth: 760,
-        margin: '0 auto',
-        padding: '32px 20px 80px',
-        fontFamily: 'inherit',
-      }}
+      className="max-w-[900px] mx-auto px-6 py-16"
+      style={{ fontFamily: 'inherit' }}
     >
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{ marginBottom: 32 }}
-      >
+      <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <Shield size={20} color="#8B5CF6" />
           <h1
@@ -370,7 +360,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontWeight: 700,
               color: TEXT_PRIMARY,
               margin: 0,
-              fontFamily: "Instrument Serif, var(--font-heading), Georgia, serif",
+              fontFamily: "'Instrument Serif', Georgia, serif",
             }}
           >
             Privacy Spectrum
@@ -379,20 +369,16 @@ const PrivacySpectrumDashboard: React.FC = () => {
         <p style={{ fontSize: 14, color: TEXT_SECONDARY, margin: 0 }}>
           Control what your twin knows and shares
         </p>
-      </motion.div>
+      </div>
 
       {/* --- Contextual Twins --- */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
+      <section
         style={{
           background: CARD_BG,
           borderRadius: 16,
           border: `1px solid ${BORDER_COLOR}`,
           padding: '20px 24px',
           marginBottom: 20,
-          backdropFilter: 'blur(8px)',
         }}
       >
         <h2 style={{ fontSize: 15, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
@@ -410,7 +396,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
             {twins.map(twin => {
               const IconComponent = TWIN_ICONS[twin.twin_type] ?? Sparkles;
-              const twinColor = twin.color ?? TWIN_COLORS[twin.twin_type] ?? 'var(--text-secondary)';
+              const twinColor = twin.color ?? TWIN_COLORS[twin.twin_type] ?? 'rgba(255,255,255,0.4)';
               const isActive = twin.isActive;
 
               return (
@@ -472,20 +458,16 @@ const PrivacySpectrumDashboard: React.FC = () => {
             Active: {activeTwin.name} — click again to deactivate
           </p>
         )}
-      </motion.section>
+      </section>
 
       {/* --- Global Privacy --- */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+      <section
         style={{
           background: CARD_BG,
           borderRadius: 16,
           border: `1px solid ${BORDER_COLOR}`,
           padding: '20px 24px',
           marginBottom: 20,
-          backdropFilter: 'blur(8px)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -497,7 +479,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               fontSize: 22,
               fontWeight: 800,
               color: TEXT_PRIMARY,
-              fontFamily: "Instrument Serif, var(--font-heading), Georgia, serif",
+              fontFamily: "'Instrument Serif', Georgia, serif",
             }}
           >
             {currentGlobal}%
@@ -529,7 +511,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
             const label = (preset as { name?: string; label?: string }).name
               ?? (preset as { label?: string }).label
               ?? key;
-            const color = (preset as unknown as { color?: string }).color ?? 'var(--text-secondary)';
+            const color = (preset as unknown as { color?: string }).color ?? 'rgba(255,255,255,0.4)';
 
             return (
               <button
@@ -556,23 +538,19 @@ const PrivacySpectrumDashboard: React.FC = () => {
         {isUpdating && (
           <p style={{ fontSize: 11, color: TEXT_SECONDARY, marginTop: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
             <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
-            Saving…
+            Saving...
           </p>
         )}
-      </motion.section>
+      </section>
 
       {/* --- Life Clusters --- */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
+      <section
         style={{
           background: CARD_BG,
           borderRadius: 16,
           border: `1px solid ${BORDER_COLOR}`,
           padding: '20px 24px',
           marginBottom: 20,
-          backdropFilter: 'blur(8px)',
         }}
       >
         <h2 style={{ fontSize: 15, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 4px' }}>
@@ -584,7 +562,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
 
         {clusters.length === 0 ? (
           <p style={{ fontSize: 13, color: TEXT_SECONDARY, fontStyle: 'italic' }}>
-            Loading clusters…
+            Loading clusters...
           </p>
         ) : (
           ['personal', 'professional', 'creative'].map(category => {
@@ -607,19 +585,15 @@ const PrivacySpectrumDashboard: React.FC = () => {
             );
           })
         )}
-      </motion.section>
+      </section>
 
       {/* --- Statistics --- */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
+      <section
         style={{
           background: CARD_BG,
           borderRadius: 16,
           border: `1px solid ${BORDER_COLOR}`,
           padding: '20px 24px',
-          backdropFilter: 'blur(8px)',
         }}
       >
         <h2 style={{ fontSize: 15, fontWeight: 700, color: TEXT_PRIMARY, margin: '0 0 16px' }}>
@@ -638,7 +612,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
               statistics
                 ? `${(statistics as unknown as { averageRevelation?: number }).averageRevelation ?? 50}%`
                 : statsLoading
-                ? '…'
+                ? '...'
                 : `${currentGlobal}%`
             }
             color="#3B82F6"
@@ -649,7 +623,7 @@ const PrivacySpectrumDashboard: React.FC = () => {
             color="#8B5CF6"
           />
         </div>
-      </motion.section>
+      </section>
     </div>
   );
 };
@@ -665,10 +639,10 @@ const StatCard: React.FC<{ label: string; value: string; color: string }> = ({ l
       padding: '12px 16px',
     }}
   >
-    <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "Instrument Serif, var(--font-heading), Georgia, serif" }}>
+    <div style={{ fontSize: 20, fontWeight: 800, color, fontFamily: "'Instrument Serif', Georgia, serif" }}>
       {value}
     </div>
-    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2, fontWeight: 500 }}>
+    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2, fontWeight: 500 }}>
       {label}
     </div>
   </div>

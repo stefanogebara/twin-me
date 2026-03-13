@@ -4,36 +4,33 @@
  * Two sections:
  * 1. Discoveries - Patterns the twin has noticed about you
  * 2. Your Data   - What platforms shape your twin + connection status
+ *
+ * Typography-driven dark design — no glass cards, no motion.
  */
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
-import { PageLayout, GlassPanel } from '@/components/layout/PageLayout';
 import { authFetch } from '@/services/api/apiBase';
 import {
-  Sparkles,
   Link2,
   CheckCircle2,
   Clock,
   AlertCircle,
   RefreshCw,
   ChevronDown,
-  Brain,
 } from 'lucide-react';
-import { cn, toSecondPerson } from '@/lib/utils';
+import { toSecondPerson } from '@/lib/utils';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 interface Insight {
   id?: string;
-  title?: string;
   content: string;
   category?: string;
-  confidence?: string;
   createdAt?: string;
 }
 
@@ -42,19 +39,19 @@ interface MemoryStats {
   byPlatform: Record<string, number>;
 }
 
-const EXPERT_META: Record<string, { label: string; color: string; bg: string }> = {
-  personality_psychologist: { label: 'Personality', color: '#a78bfa', bg: 'rgba(139,92,246,0.15)' },
-  lifestyle_analyst: { label: 'Lifestyle', color: '#34d399', bg: 'rgba(16,185,129,0.15)' },
-  cultural_identity: { label: 'Cultural Identity', color: '#fbbf24', bg: 'rgba(245,158,11,0.15)' },
-  social_dynamics: { label: 'Social', color: '#60a5fa', bg: 'rgba(59,130,246,0.15)' },
-  motivation_analyst: { label: 'Motivation', color: '#fb923c', bg: 'rgba(249,115,22,0.15)' },
-  social_analyst: { label: 'Social', color: '#60a5fa', bg: 'rgba(59,130,246,0.15)' },
-  productivity_analyst: { label: 'Productivity', color: '#2dd4bf', bg: 'rgba(20,184,166,0.15)' },
-  music_psychologist: { label: 'Music', color: '#f472b6', bg: 'rgba(236,72,153,0.15)' },
-  health_behaviorist: { label: 'Health', color: '#f87171', bg: 'rgba(239,68,68,0.15)' },
-  media_sociologist: { label: 'Media', color: '#818cf8', bg: 'rgba(99,102,241,0.15)' },
-  digital_behaviorist: { label: 'Digital', color: '#a78bfa', bg: 'rgba(139,92,246,0.15)' },
-  code_architect: { label: 'Code', color: '#38bdf8', bg: 'rgba(56,189,248,0.15)' },
+const EXPERT_META: Record<string, { label: string; color: string }> = {
+  personality_psychologist: { label: 'Personality', color: '#a78bfa' },
+  lifestyle_analyst: { label: 'Lifestyle', color: '#34d399' },
+  cultural_identity: { label: 'Cultural Identity', color: '#fbbf24' },
+  social_dynamics: { label: 'Social', color: '#60a5fa' },
+  motivation_analyst: { label: 'Motivation', color: '#fb923c' },
+  social_analyst: { label: 'Social', color: '#60a5fa' },
+  productivity_analyst: { label: 'Productivity', color: '#2dd4bf' },
+  music_psychologist: { label: 'Music', color: '#f472b6' },
+  health_behaviorist: { label: 'Health', color: '#f87171' },
+  media_sociologist: { label: 'Media', color: '#818cf8' },
+  digital_behaviorist: { label: 'Digital', color: '#a78bfa' },
+  code_architect: { label: 'Code', color: '#38bdf8' },
 };
 
 interface Reflection {
@@ -75,61 +72,25 @@ interface BrainSnapshot {
 }
 
 const PLATFORM_META: Record<string, { label: string; icon: string; description: string }> = {
-  spotify: {
-    label: 'Spotify',
-    icon: '🎵',
-    description: 'Music taste, listening patterns, mood'
-  },
-  google_calendar: {
-    label: 'Google Calendar',
-    icon: '📅',
-    description: 'Schedule, events, time patterns'
-  },
-  youtube: {
-    label: 'YouTube',
-    icon: '▶️',
-    description: 'Content preferences, interests'
-  },
-  discord: {
-    label: 'Discord',
-    icon: '💬',
-    description: 'Community activity, communication style'
-  },
-  linkedin: {
-    label: 'LinkedIn',
-    icon: '💼',
-    description: 'Career trajectory, professional skills'
-  },
-  whoop: {
-    label: 'Whoop',
-    icon: '❤️',
-    description: 'Recovery, sleep, HRV, strain'
-  },
+  spotify: { label: 'Spotify', icon: '🎵', description: 'Music taste, listening patterns, mood' },
+  google_calendar: { label: 'Google Calendar', icon: '📅', description: 'Schedule, events, time patterns' },
+  youtube: { label: 'YouTube', icon: '▶️', description: 'Content preferences, interests' },
+  discord: { label: 'Discord', icon: '💬', description: 'Community activity, communication style' },
+  linkedin: { label: 'LinkedIn', icon: '💼', description: 'Career trajectory, professional skills' },
+  whoop: { label: 'Whoop', icon: '❤️', description: 'Recovery, sleep, HRV, strain' },
 };
 
 const ORDERED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop'];
 
-// Demo insights shown when in demo mode
 const DEMO_INSIGHTS: Insight[] = [
-  {
-    content: "Your music shifts dramatically between focused work hours and evenings — you seem to use sound as a deliberate tool for managing mental state.",
-    category: "lifestyle"
-  },
-  {
-    content: "You gravitate toward the same 3-4 artists repeatedly during high-stress weeks, suggesting music is a comfort mechanism for you.",
-    category: "personality"
-  },
-  {
-    content: "Your calendar shows a strong preference for morning work blocks — you protect these fiercely and rarely schedule calls before noon.",
-    category: "behavior"
-  },
-  {
-    content: "There's a recurring curiosity around creative and technical topics that suggests an unusual blend of left-brain and right-brain engagement.",
-    category: "personality"
-  },
+  { content: "Your music shifts dramatically between focused work hours and evenings — you seem to use sound as a deliberate tool for managing mental state.", category: "lifestyle" },
+  { content: "You gravitate toward the same 3-4 artists repeatedly during high-stress weeks, suggesting music is a comfort mechanism for you.", category: "personality" },
+  { content: "Your calendar shows a strong preference for morning work blocks — you protect these fiercely and rarely schedule calls before noon.", category: "behavior" },
+  { content: "There's a recurring curiosity around creative and technical topics that suggests an unusual blend of left-brain and right-brain engagement.", category: "personality" },
 ];
 
 const BrainPage: React.FC = () => {
+  useDocumentTitle("Twin's Brain");
   const { user, isSignedIn, isLoaded } = useAuth();
   const { isDemoMode } = useDemo();
   const navigate = useNavigate();
@@ -164,7 +125,7 @@ const BrainPage: React.FC = () => {
           setReflections(json.reflections);
         }
       } catch {
-        // silently fail — reflections are additive, not critical
+        // silently fail
       } finally {
         clearTimeout(timeout);
         if (!cancelled) setReflectionsLoading(false);
@@ -199,47 +160,51 @@ const BrainPage: React.FC = () => {
       .catch(() => {});
   }, [isSignedIn, isDemoMode, user?.id]);
 
-  const textColor = 'var(--foreground)';
-  const textSecondary = 'var(--text-secondary)';
-
   if (!isLoaded) {
     return (
-      <PageLayout maxWidth="xl">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-8 h-8 border-2 border-current border-t-transparent rounded-full animate-spin opacity-40" />
+      <div className="max-w-[680px] mx-auto px-6 py-16">
+        <div className="flex items-center justify-center h-64">
+          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
-      </PageLayout>
+      </div>
     );
   }
 
   if (!isSignedIn) {
     return (
-      <PageLayout maxWidth="md">
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <GlassPanel className="text-center max-w-md mx-auto">
-            <div className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(69, 183, 209, 0.2) 100%)' }}
-            >
-              <Brain className="w-10 h-10" style={{ color: 'var(--foreground)' }} />
-            </div>
-            <h1 className="heading-serif mb-3" style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', letterSpacing: '-0.05em', lineHeight: 1.1 }}>Your Twin's Brain</h1>
-            <p className="mb-6" style={{ color: textSecondary }}>
-              Sign in and I'll show you what I've been noticing about you.
-            </p>
-            <button
-              onClick={() => navigate('/auth')}
-              className="btn-cta-app flex items-center gap-2 mx-auto"
-            >
-              <Sparkles className="w-4 h-4" />
-              Sign In to Explore
-            </button>
-          </GlassPanel>
-        </div>
-      </PageLayout>
+      <div className="max-w-[680px] mx-auto px-6 py-16">
+        <h1
+          className="mb-2"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '28px',
+            fontWeight: 400,
+            color: 'var(--foreground)',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Twin's Brain
+        </h1>
+        <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+          Sign in and I'll show you what I've been noticing about you.
+        </p>
+        <button
+          onClick={() => navigate('/auth')}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+          style={{
+            backgroundColor: '#10b77f',
+            color: '#0a0f0a',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          Sign In to Explore
+        </button>
+      </div>
     );
   }
 
-  // Derive top discoveries from reflections: best reflection per expert domain
+  // Derive top discoveries from reflections
   const topDiscoveries: Insight[] = isDemoMode
     ? DEMO_INSIGHTS
     : (() => {
@@ -259,329 +224,335 @@ const BrainPage: React.FC = () => {
   const totalMemories = memoryStats?.totalMemories ?? 0;
 
   return (
-    <PageLayout maxWidth="xl">
+    <div className="max-w-[680px] mx-auto px-6 py-16">
       {/* Header */}
-      <div className="py-12" style={{ marginBottom: '3rem' }}>
-        <motion.div
-          className="flex items-center gap-4 mb-2"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+      <div className="flex items-baseline justify-between mb-2">
+        <h1
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '28px',
+            fontWeight: 400,
+            color: 'var(--foreground)',
+            letterSpacing: '-0.02em',
+          }}
         >
-          <Brain className="w-8 h-8" style={{ color: textColor }} />
-          <h1 className="heading-serif" style={{ color: textColor, fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 400, letterSpacing: '-0.04em', lineHeight: 1.1 }}>
-            Twin's Brain
-          </h1>
-          {totalMemories > 0 && (
-            <span className="text-xs px-3 py-1 rounded-full ml-auto"
-              style={{ background: 'var(--glass-surface-bg)', color: textSecondary }}>
-              {totalMemories.toLocaleString('en-US')} memories
-            </span>
-          )}
-        </motion.div>
-        <motion.p
-          className="text-sm ml-[44px]"
-          style={{ color: textSecondary }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-        >
-          Patterns your twin has noticed, and the data that shapes it.
-        </motion.p>
+          Twin's Brain
+        </h1>
+        {totalMemories > 0 && (
+          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {totalMemories.toLocaleString('en-US')} memories
+          </span>
+        )}
       </div>
+      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        Patterns your twin has noticed, and the data that shapes it.
+      </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
-        {/* Discoveries — 2/3 width */}
-        <div className="lg:col-span-2">
-          <GlassPanel>
-            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
-              <Sparkles className="w-4 h-4" style={{ color: '#10b981' }} />
-              <h2 className="heading-serif text-lg" style={{ color: textColor }}>
-                Discoveries
-              </h2>
-            </div>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
 
-            {reflectionsLoading && (
-              <div className="flex items-center justify-center py-12 gap-3" style={{ color: textSecondary }}>
-                <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm">Twin is thinking…</span>
-              </div>
-            )}
+      {/* ===== Discoveries ===== */}
+      <section className="mb-10">
+        <span
+          className="text-[11px] font-medium tracking-widest uppercase block mb-5"
+          style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+        >
+          Discoveries
+        </span>
 
-            {!reflectionsLoading && topDiscoveries.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-sm mb-1 font-medium" style={{ color: textSecondary }}>
-                  I haven't noticed anything yet
-                </p>
-                <p className="text-xs mb-4" style={{ color: textSecondary }}>
-                  Discoveries show up after a couple of days of platform data — connect one to get me thinking.
-                </p>
-                <button
-                  onClick={() => navigate('/get-started')}
-                  className="btn-cta-app flex items-center gap-2 mx-auto"
-                >
-                  <Link2 className="w-4 h-4" />
-                  Connect platforms
-                </button>
-              </div>
-            )}
+        {reflectionsLoading && (
+          <div className="flex items-center gap-3 py-8" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>Twin is thinking…</span>
+          </div>
+        )}
 
-            {!reflectionsLoading && topDiscoveries.length > 0 && (
-              <div className="space-y-6">
-                {topDiscoveries.map((insight, i) => {
-                  const expertKey = insight.category || '';
-                  const em = EXPERT_META[expertKey];
-                  const cardKey = insight.id || String(i);
-                  const isExpanded = expandedDiscovery === cardKey;
-                  const displayContent = toSecondPerson(insight.content);
-                  const dotIdx = displayContent.indexOf('. ');
-                  const preview = dotIdx !== -1 && dotIdx < 130
-                    ? displayContent.slice(0, dotIdx + 1)
-                    : displayContent.slice(0, 130) + (displayContent.length > 130 ? '…' : '');
-                  const hasMore = preview !== displayContent;
-                  return (
-                    <motion.div
-                      key={cardKey}
-                      className="glass-card rounded-2xl overflow-hidden cursor-pointer"
-                      style={{ background: em?.bg ?? 'var(--glass-surface-bg)', border: `1px solid ${em?.color ?? 'var(--glass-surface-border)'}22` }}
-                      onClick={() => setExpandedDiscovery(prev => prev === cardKey ? null : cardKey)}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.35, delay: i * 0.05 }}
-                    >
-                      <div className="p-7 flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          {em && <p className="text-[11px] font-medium uppercase tracking-widest mb-1.5" style={{ color: 'var(--accent-vibrant)', letterSpacing: '0.1em' }}>{em.label}</p>}
-                          <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                            {isExpanded ? displayContent : preview}
-                          </p>
-                        </div>
-                        {hasMore && (
-                          <ChevronDown
-                            className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
-                            style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                          />
-                        )}
-                      </div>
-                      {isExpanded && !hasMore && null}
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-          </GlassPanel>
-        </div>
-
-        {/* Your Data — 1/3 width */}
-        <div className="lg:col-span-1">
-          <GlassPanel>
-            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
-              <Link2 className="w-4 h-4" style={{ color: textSecondary }} />
-              <h2 className="heading-serif text-lg" style={{ color: textColor }}>
-                Your Data
-              </h2>
-            </div>
-
-            <p className="text-xs mb-8" style={{ color: textSecondary }}>
-              These platforms shape how your twin understands you.
+        {!reflectionsLoading && topDiscoveries.length === 0 && (
+          <div className="py-8">
+            <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+              I haven't noticed anything yet
             </p>
-
-            {platformLoading ? (
-              <div className="space-y-4">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="h-16 rounded-xl animate-pulse"
-                    style={{ background: 'var(--glass-surface-bg)' }}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {ORDERED_PLATFORMS.map((provider) => {
-                  const meta = PLATFORM_META[provider];
-                  const status = platformStatus?.[provider];
-                  const isConnected = status?.connected && status?.isActive;
-                  const isExpired = status?.tokenExpired;
-
-                  return (
-                    <div
-                      key={provider}
-                      className="flex items-start gap-3 p-6 rounded-2xl"
-                      style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}
-                    >
-                      <span className="text-xl mt-0.5">{meta.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium" style={{ color: textColor }}>
-                            {meta.label}
-                          </p>
-                          {isConnected && !isExpired ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                          ) : isExpired ? (
-                            <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                          ) : (
-                            <div className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ background: 'var(--text-muted)' }}
-                            />
-                          )}
-                        </div>
-                        <p className="text-xs mt-0.5" style={{ color: textSecondary }}>
-                          {meta.description}
-                        </p>
-                        {isConnected && status?.lastSync && (
-                          <p className="text-xs mt-1 flex items-center gap-1"
-                            style={{ color: textSecondary }}
-                          >
-                            <Clock className="w-3 h-3" />
-                            {formatLastSync(status.lastSync)}
-                          </p>
-                        )}
-                        {isExpired && (
-                          <p className="text-xs mt-1 text-amber-500">Token expired — reconnect</p>
-                        )}
-                        {!isConnected && !isExpired && (
-                          <p className="text-xs mt-1" style={{ color: textSecondary }}>Not connected yet</p>
-                        )}
-                        {memoryStats?.byPlatform[provider] != null && (
-                          <p className="text-xs mt-0.5" style={{ color: textSecondary }}>
-                            {memoryStats.byPlatform[provider]} {memoryStats.byPlatform[provider] === 1 ? 'memory' : 'memories'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
+            <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              Discoveries show up after a couple of days of platform data — connect one to get me thinking.
+            </p>
             <button
               onClick={() => navigate('/get-started')}
-              className={cn(
-                "w-full mt-4 flex items-center justify-center gap-2 py-2.5 px-4 rounded-full text-sm font-medium transition-all",
-                "border border-current opacity-70 hover:opacity-100"
-              )}
-              style={{ color: textColor }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+              style={{
+                backgroundColor: '#10b77f',
+                color: '#0a0f0a',
+                fontFamily: "'Inter', sans-serif",
+              }}
             >
-              <RefreshCw className="w-4 h-4" />
-              Manage Connections
+              <Link2 className="w-4 h-4" />
+              Connect platforms
             </button>
-          </GlassPanel>
-        </div>
+          </div>
+        )}
 
-        {/* Upload Your Data — GDPR / platform data export ingestion */}
-        <div className="lg:col-span-3" style={{ marginTop: '3rem', marginBottom: '3rem' }}>
-          <GlassPanel>
-            <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
-              <h2 className="heading-serif text-lg" style={{ color: textColor }}>
-                Upload Your Data
-              </h2>
-            </div>
-            {user?.id && <DataUploadPanel userId={user.id} />}
-          </GlassPanel>
-        </div>
-
-        {/* Reflections — full width below two-column section */}
-        {(reflections.length > 0 || reflectionsLoading) && (
-          <div className="lg:col-span-3">
-            <GlassPanel>
-              <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
-                <Sparkles className="w-4 h-4" style={{ color: '#8b5cf6' }} />
-                <h2 className="heading-serif text-lg" style={{ color: textColor }}>
-                  What Your Twin Has Learned
-                </h2>
-                {reflections.length > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full ml-1"
-                    style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>
-                    {reflections.length} reflections
-                  </span>
-                )}
-              </div>
-
-              {reflectionsLoading && (
-                <div className="flex items-center gap-2 py-4" style={{ color: textSecondary }}>
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm">Loading reflections…</span>
+        {!reflectionsLoading && topDiscoveries.length > 0 && (
+          <div className="space-y-0">
+            {topDiscoveries.map((insight, i) => {
+              const expertKey = insight.category || '';
+              const em = EXPERT_META[expertKey];
+              const cardKey = insight.id || String(i);
+              const isExpanded = expandedDiscovery === cardKey;
+              const displayContent = toSecondPerson(insight.content);
+              const dotIdx = displayContent.indexOf('. ');
+              const preview = dotIdx !== -1 && dotIdx < 130
+                ? displayContent.slice(0, dotIdx + 1)
+                : displayContent.slice(0, 130) + (displayContent.length > 130 ? '…' : '');
+              const hasMore = preview !== displayContent;
+              return (
+                <div
+                  key={cardKey}
+                  className="py-4 cursor-pointer transition-opacity hover:opacity-80"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  onClick={() => setExpandedDiscovery(prev => prev === cardKey ? null : cardKey)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      {em && (
+                        <p
+                          className="text-[11px] font-medium uppercase tracking-widest mb-1.5"
+                          style={{ color: em.color, letterSpacing: '0.1em' }}
+                        >
+                          {em.label}
+                        </p>
+                      )}
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+                        {isExpanded ? displayContent : preview}
+                      </p>
+                    </div>
+                    {hasMore && (
+                      <ChevronDown
+                        className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
+                        style={{ color: 'rgba(255,255,255,0.2)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      />
+                    )}
+                  </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        )}
+      </section>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {reflections.map((r, i) => {
-                  const isExpanded = expandedReflection === r.id;
-                  const displayContent2 = toSecondPerson(r.content);
-                  const dotIdx = displayContent2.indexOf('. ');
-                  const preview = dotIdx !== -1 && dotIdx < 120
-                    ? displayContent2.slice(0, dotIdx + 1)
-                    : displayContent2.slice(0, 120) + (displayContent2.length > 120 ? '…' : '');
-                  const hasMore = preview !== displayContent2;
-                  return (
-                    <motion.div
-                      key={r.id}
-                      className="glass-card rounded-2xl overflow-hidden cursor-pointer"
-                      style={{ background: 'rgba(139,92,246,0.04)', border: '1px solid rgba(139,92,246,0.08)' }}
-                      onClick={() => setExpandedReflection(prev => prev === r.id ? null : r.id)}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: i * 0.04 }}
-                    >
-                      <div className="p-6 flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          {r.expert && (
-                            <p className="text-[11px] font-medium uppercase tracking-widest mb-1.5"
-                              style={{ color: 'var(--accent-vibrant)', letterSpacing: '0.1em' }}>
-                              {EXPERT_META[r.expert]?.label ?? r.expert}
-                            </p>
-                          )}
-                          <p className="text-sm leading-relaxed" style={{ color: textColor }}>
-                            {isExpanded ? displayContent2 : preview}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {r.category && r.category !== r.expert && (
-                              <span className="text-xs px-2 py-0.5 rounded-full"
-                                style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}>
-                                {EXPERT_META[r.category]?.label ?? r.category}
-                              </span>
-                            )}
-                            <span className="text-xs" style={{ color: textSecondary }}>
-                              importance {r.importance}/10
-                            </span>
-                          </div>
-                        </div>
-                        {hasMore && (
-                          <ChevronDown
-                            className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
-                            style={{ color: 'var(--text-muted)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                          />
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+
+      {/* ===== Your Data ===== */}
+      <section className="mb-10">
+        <span
+          className="text-[11px] font-medium tracking-widest uppercase block mb-2"
+          style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+        >
+          Your Data
+        </span>
+        <p className="text-xs mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          These platforms shape how your twin understands you.
+        </p>
+
+        {platformLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
+          </div>
+        ) : (
+          <div className="space-y-0">
+            {ORDERED_PLATFORMS.map((provider) => {
+              const meta = PLATFORM_META[provider];
+              const status = platformStatus?.[provider];
+              const isConnected = status?.connected && status?.isActive;
+              const isExpired = status?.tokenExpired;
+
+              return (
+                <div
+                  key={provider}
+                  className="flex items-center justify-between py-3"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">{meta.icon}</span>
+                    <div>
+                      <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+                        {meta.label}
+                      </span>
+                      <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        {meta.description}
+                      </p>
+                      {isConnected && status?.lastSync && (
+                        <p className="text-[11px] flex items-center gap-1 mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          <Clock className="w-3 h-3" />
+                          {formatLastSync(status.lastSync)}
+                        </p>
+                      )}
+                      {memoryStats?.byPlatform[provider] != null && (
+                        <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          {memoryStats.byPlatform[provider]} {memoryStats.byPlatform[provider] === 1 ? 'memory' : 'memories'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {isConnected && !isExpired ? (
+                      <CheckCircle2 className="w-3.5 h-3.5" style={{ color: '#10b77f' }} />
+                    ) : isExpired ? (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
+                        <button
+                          onClick={() => navigate('/get-started')}
+                          className="text-[11px]"
+                          style={{ color: '#f59e0b' }}
+                        >
+                          Reconnect
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => navigate('/get-started')}
+                        className="text-[11px]"
+                        style={{ color: '#10b77f' }}
+                      >
+                        Connect
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <button
+          onClick={() => navigate('/get-started')}
+          className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm transition-opacity hover:opacity-70"
+          style={{
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.5)',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          Manage Connections
+        </button>
+      </section>
+
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+
+      {/* ===== Upload Your Data ===== */}
+      <section className="mb-10">
+        <span
+          className="text-[11px] font-medium tracking-widest uppercase block mb-5"
+          style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+        >
+          Upload Your Data
+        </span>
+        {user?.id && <DataUploadPanel userId={user.id} />}
+      </section>
+
+      {/* ===== Reflections ===== */}
+      {(reflections.length > 0 || reflectionsLoading) && (
+        <section className="mb-10">
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+          <div className="flex items-center gap-2 mb-5">
+            <span
+              className="text-[11px] font-medium tracking-widest uppercase"
+              style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+            >
+              What Your Twin Has Learned
+            </span>
+            {reflections.length > 0 && (
+              <span className="text-[11px] ml-auto" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                {reflections.length} reflections
+              </span>
+            )}
+          </div>
+
+          {reflectionsLoading && (
+            <div className="flex items-center gap-2 py-4" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Loading reflections…</span>
+            </div>
+          )}
+
+          <div className="space-y-0">
+            {reflections.map((r) => {
+              const isExpanded = expandedReflection === r.id;
+              const displayContent2 = toSecondPerson(r.content);
+              const dotIdx = displayContent2.indexOf('. ');
+              const preview = dotIdx !== -1 && dotIdx < 120
+                ? displayContent2.slice(0, dotIdx + 1)
+                : displayContent2.slice(0, 120) + (displayContent2.length > 120 ? '…' : '');
+              const hasMore = preview !== displayContent2;
+              return (
+                <div
+                  key={r.id}
+                  className="py-4 cursor-pointer transition-opacity hover:opacity-80"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  onClick={() => setExpandedReflection(prev => prev === r.id ? null : r.id)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      {r.expert && (
+                        <p
+                          className="text-[11px] font-medium uppercase tracking-widest mb-1.5"
+                          style={{ color: EXPERT_META[r.expert]?.color ?? 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}
+                        >
+                          {EXPERT_META[r.expert]?.label ?? r.expert}
+                        </p>
+                      )}
+                      <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
+                        {isExpanded ? displayContent2 : preview}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        {r.category && r.category !== r.expert && (
+                          <span
+                            className="text-[11px] px-2 py-0.5 rounded-full"
+                            style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }}
+                          >
+                            {EXPERT_META[r.category]?.label ?? r.category}
+                          </span>
                         )}
+                        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          importance {r.importance}/10
+                        </span>
                       </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </GlassPanel>
+                    </div>
+                    {hasMore && (
+                      <ChevronDown
+                        className="flex-shrink-0 w-4 h-4 mt-0.5 transition-transform duration-200"
+                        style={{ color: 'rgba(255,255,255,0.2)', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Soul Evolution Timeline */}
-        {snapshots.length >= 2 && (
-          <div className="lg:col-span-3" style={{ marginTop: '3rem' }}>
-            <GlassPanel>
-              <div className="flex items-center gap-2" style={{ marginBottom: '1.5rem' }}>
-                <Clock className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-                <h2 className="heading-serif text-lg" style={{ color: textColor }}>
-                  Soul Signature Evolution
-                </h2>
-                <span className="text-xs ml-auto" style={{ color: textSecondary }}>
-                  {snapshots.length} snapshots
-                </span>
-              </div>
-              <p className="text-xs mb-4" style={{ color: textSecondary }}>
-                How your twin's understanding of you has grown over time.
-              </p>
-              <SoulEvolutionTimeline snapshots={snapshots} />
-            </GlassPanel>
+      {/* ===== Soul Evolution Timeline ===== */}
+      {snapshots.length >= 2 && (
+        <section className="mb-10">
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+          <div className="flex items-center justify-between mb-2">
+            <span
+              className="text-[11px] font-medium tracking-widest uppercase"
+              style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+            >
+              Soul Signature Evolution
+            </span>
+            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {snapshots.length} snapshots
+            </span>
           </div>
-        )}
-      </div>
-    </PageLayout>
+          <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            How your twin's understanding of you has grown over time.
+          </p>
+          <SoulEvolutionTimeline snapshots={snapshots} />
+        </section>
+      )}
+    </div>
   );
 };
 

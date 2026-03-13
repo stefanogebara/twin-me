@@ -1,5 +1,4 @@
 import React from 'react';
-import { GlassPanel } from '@/components/layout/PageLayout';
 import { Clock } from 'lucide-react';
 
 interface TodayEvent {
@@ -31,23 +30,26 @@ const eventColors: Record<string, string> = {
 
 export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) => {
   return (
-    <GlassPanel className="!p-4 mb-6">
-      <h3
-        className="text-sm uppercase tracking-wider mb-4 flex items-center gap-2"
-        style={{ color: colors.textSecondary }}
+    <div
+      className="p-4 rounded-lg mb-6"
+      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+    >
+      <span
+        className="text-[11px] font-medium tracking-widest uppercase block mb-4"
+        style={{ color: '#10b77f' }}
       >
-        <Clock className="w-4 h-4" style={{ color: colors.calendarBlue }} />
+        <Clock className="w-4 h-4 inline-block mr-2" style={{ color: colors.calendarBlue }} />
         Today's Schedule
-      </h3>
+      </span>
       <div className="relative">
-        <div className="flex justify-between text-xs mb-2" style={{ color: colors.textSecondary }}>
+        <div className="flex justify-between text-xs mb-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
           {['6AM', '9AM', '12PM', '3PM', '6PM', '9PM'].map(time => (
             <span key={time}>{time}</span>
           ))}
         </div>
         <div
           className="h-12 rounded-lg relative overflow-hidden"
-          style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
         >
           {events.map((event) => {
             const startHour = parseInt(event.startTime.split(':')[0]);
@@ -81,6 +83,6 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) 
           })}
         </div>
       </div>
-    </GlassPanel>
+    </div>
   );
 };
