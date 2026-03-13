@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ArrowRight, Globe, MessageSquare, Music, Brain, Database, Bell, Shield } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import { InlineEvidence } from '../components/landing/InlineEvidence';
 import { useLenis } from '../hooks/useLenis';
 import {
@@ -373,32 +373,22 @@ const Index = () => {
       <section className="px-6 lg:px-16 pt-24 pb-16 lg:pt-36 lg:pb-28">
         <div className="max-w-[520px] mx-auto text-center flex flex-col items-center">
           {/* Main heading — let it breathe */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
+          <h1
             className="heading-serif h1 mb-8"
           >
             What if your data could reveal your soul?
-          </motion.h1>
+          </h1>
 
           {/* One paragraph — narrative voice, 60% opacity */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
+          <p
             className="narrative-voice mb-10"
             style={{ fontSize: '18px', maxWidth: '460px' }}
           >
             Your music, your calendar, your conversations — they already know who you are. We just listen to what they're saying.
-          </motion.p>
+          </p>
 
           {/* Single earned CTA — not loud, not multiple */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-          >
+          <div>
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="btn-cta">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
@@ -410,17 +400,13 @@ const Index = () => {
                 </button>
               </SignInButton>
             )}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* ── Act transition — subtle breathing space ── */}
       <div className="flex justify-center py-8">
-        <motion.div
-          initial={{ opacity: 0, scaleX: 0 }}
-          whileInView={{ opacity: 1, scaleX: 1 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="w-12 h-px"
           style={{ background: 'linear-gradient(90deg, transparent, rgba(232,160,80,0.4), transparent)' }}
         />
@@ -467,11 +453,7 @@ const Index = () => {
           </div>
 
           {/* Stats — standalone glass cards */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, amount: 0.3 }}
+          <div
             className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
             {[
@@ -497,7 +479,7 @@ const Index = () => {
                 <p style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: '#706B63', marginTop: '4px' }}>{stat.sub}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -543,14 +525,7 @@ const Index = () => {
 
             {/* Right: Flower card + description */}
             <div className="lg:w-[55%]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeService}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -16 }}
-                  transition={{ duration: 0.4 }}
-                >
+              <div key={activeService}>
                   {/* Flower image card */}
                   <div
                     className="relative overflow-hidden w-full mb-6"
@@ -572,8 +547,7 @@ const Index = () => {
                   <p className="body-text max-w-[480px]">
                     {SERVICES[activeService].desc}
                   </p>
-                </motion.div>
-              </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
@@ -589,11 +563,7 @@ const Index = () => {
             </h2>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, amount: 0.3 }}
+          <div
             className="grid grid-cols-1 md:grid-cols-2 gap-5"
           >
             {([
@@ -645,12 +615,8 @@ const Index = () => {
             ] as const).map((feature, idx) => {
               const FeatureIcon = feature.icon;
               return (
-                <motion.div
+                <div
                   key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  viewport={{ once: true, amount: 0.3 }}
                   className="glass-feature-card"
                 >
                   <div
@@ -670,10 +636,10 @@ const Index = () => {
                   </h4>
                   <p className="body-text">{feature.desc}</p>
                   <InlineEvidence {...feature.evidence} />
-                </motion.div>
+                </div>
               );
             })}
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -711,12 +677,8 @@ const Index = () => {
               { num: '02', title: 'Discover Your Patterns', badge: 'Step 2', desc: 'Our AI analyzes your cross-platform data, identifying personality traits, daily rhythms, and hidden curiosities.' },
               { num: '03', title: 'Meet Your Twin', badge: 'Ongoing', desc: 'Your AI twin embodies your personality. Chat with it, share it, and watch it evolve as you add more data.' },
             ].map((step, idx) => (
-              <motion.div
+              <div
                 key={step.num}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                viewport={{ once: true, amount: 0.5 }}
                 className="flex gap-5"
               >
                 <div className="step-circle">{step.num}</div>
@@ -729,7 +691,7 @@ const Index = () => {
                     {step.desc}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -743,11 +705,7 @@ const Index = () => {
           </h2>
 
           {/* Standalone flower image */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true, amount: 0.3 }}
+          <div
             className="w-full max-w-[820px] overflow-hidden"
             style={{ borderRadius: '28px' }}
           >
@@ -756,7 +714,7 @@ const Index = () => {
               alt=""
               className="w-full h-auto block"
             />
-          </motion.div>
+          </div>
 
           <p className="body-text max-w-[520px]">
             Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
