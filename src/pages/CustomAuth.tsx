@@ -31,7 +31,7 @@ const CustomAuth = () => {
   const modalContent = {
     terms: {
       title: 'Terms of Service',
-      content: `Last updated: January 2025
+      content: `Last updated: March 2026
 
 1. Acceptance of Terms
 By accessing and using Twin Me, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
@@ -65,7 +65,7 @@ For questions about these terms, contact support@twinme.ai`
     },
     privacy: {
       title: 'Privacy Policy',
-      content: `Last updated: January 2025
+      content: `Last updated: March 2026
 
 1. Information We Collect
 - Account information (email, name from Google OAuth)

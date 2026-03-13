@@ -453,6 +453,11 @@ export async function stream({
 
   try {
     const client = getClientForModel(model);
+    // AbortController for stream timeout (90s default — generous for long completions)
+    const streamTimeoutMs = parseInt(process.env.LLM_STREAM_TIMEOUT_MS, 10) || 90_000;
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), streamTimeoutMs);
+
     const streamResponse = await client.chat.completions.create({
       model,
       max_tokens: maxTokens,
@@ -463,7 +468,7 @@ export async function stream({
       messages: formatMessages(system, messages),
       stream: true,
       stream_options: { include_usage: true },
-    });
+    }, { signal: abortController.signal });
 
     let fullContent = '';
     let usage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0, total_tokens: 0 };
@@ -488,6 +493,7 @@ export async function stream({
       }
     }
 
+    clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
     const cost = calculateCost(model, usage);
 
