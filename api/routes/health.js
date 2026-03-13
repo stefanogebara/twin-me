@@ -18,7 +18,6 @@ router.get('/', async (req, res) => {
   res.json({
     status: dbHealth.healthy ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
     database: {
       connected: dbHealth.healthy,
       error: dbHealth.error?.message || null

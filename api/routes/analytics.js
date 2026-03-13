@@ -16,6 +16,12 @@ const analyticsLimiter = rateLimit({
 
 router.post('/events', analyticsLimiter, async (req, res) => {
   try {
+    // Reject oversized payloads (prevent storage abuse)
+    const bodySize = JSON.stringify(req.body).length;
+    if (bodySize > 10_000) {
+      return res.status(413).json({ error: 'Payload too large (max 10KB)' });
+    }
+
     const {
       event_type,
       event_data,
@@ -28,6 +34,17 @@ router.post('/events', analyticsLimiter, async (req, res) => {
 
     if (!event_type || !session_id) {
       return res.status(400).json({ error: 'event_type and session_id are required' });
+    }
+
+    // Validate field types and lengths
+    if (typeof event_type !== 'string' || event_type.length > 100) {
+      return res.status(400).json({ error: 'event_type must be a string (max 100 chars)' });
+    }
+    if (typeof session_id !== 'string' || session_id.length > 200) {
+      return res.status(400).json({ error: 'session_id must be a string (max 200 chars)' });
+    }
+    if (event_data && (typeof event_data !== 'object' || Array.isArray(event_data))) {
+      return res.status(400).json({ error: 'event_data must be an object' });
     }
 
     // Resolve user_id from JWT only — never trust the body-supplied user_id

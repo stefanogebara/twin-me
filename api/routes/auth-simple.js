@@ -13,40 +13,74 @@ const log = createLogger('Auth');
 const AUTH_LOCKOUT_THRESHOLD = 10; // failed attempts before lockout
 const AUTH_LOCKOUT_TTL = 15 * 60; // 15 minutes in seconds
 
+// In-memory fallback when Redis is unavailable (prevents brute-force bypass)
+// Map<email, { count: number, expiresAt: number }>
+const memoryLockoutStore = new Map();
+
+function cleanExpiredEntries() {
+  const now = Date.now();
+  for (const [key, entry] of memoryLockoutStore) {
+    if (entry.expiresAt < now) memoryLockoutStore.delete(key);
+  }
+  // Prevent unbounded growth: evict oldest entries if over 10k
+  if (memoryLockoutStore.size > 10_000) {
+    const entries = [...memoryLockoutStore.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+    for (let i = 0; i < 5_000; i++) memoryLockoutStore.delete(entries[i][0]);
+  }
+}
+
 /**
  * Increment the failed-login counter for an account. Returns true if account is now locked.
+ * Falls back to in-memory store when Redis is unavailable (never returns false silently).
  */
 async function trackAuthFailure(email) {
   try {
     const client = getRedisClient();
-    if (!client || !isRedisAvailable()) return false;
-    const key = `authFailures:${email}`;
-    const count = await client.incr(key);
-    if (count === 1) await client.expire(key, AUTH_LOCKOUT_TTL); // Set TTL on first failure
-    return count > AUTH_LOCKOUT_THRESHOLD;
-  } catch { return false; }
+    if (client && isRedisAvailable()) {
+      const key = `authFailures:${email}`;
+      const count = await client.incr(key);
+      if (count === 1) await client.expire(key, AUTH_LOCKOUT_TTL);
+      return count > AUTH_LOCKOUT_THRESHOLD;
+    }
+  } catch { /* fall through to memory store */ }
+
+  // In-memory fallback
+  cleanExpiredEntries();
+  const entry = memoryLockoutStore.get(email) || { count: 0, expiresAt: Date.now() + AUTH_LOCKOUT_TTL * 1000 };
+  entry.count += 1;
+  if (entry.count === 1) entry.expiresAt = Date.now() + AUTH_LOCKOUT_TTL * 1000;
+  memoryLockoutStore.set(email, entry);
+  return entry.count > AUTH_LOCKOUT_THRESHOLD;
 }
 
 /**
  * Returns true if this account has exceeded the failed-login threshold.
+ * Falls back to in-memory store when Redis is unavailable.
  */
 async function isAccountLocked(email) {
   try {
     const client = getRedisClient();
-    if (!client || !isRedisAvailable()) return false;
-    const count = parseInt(await client.get(`authFailures:${email}`) || '0', 10);
-    return count > AUTH_LOCKOUT_THRESHOLD;
-  } catch { return false; }
+    if (client && isRedisAvailable()) {
+      const count = parseInt(await client.get(`authFailures:${email}`) || '0', 10);
+      return count > AUTH_LOCKOUT_THRESHOLD;
+    }
+  } catch { /* fall through to memory store */ }
+
+  // In-memory fallback
+  const entry = memoryLockoutStore.get(email);
+  if (!entry) return false;
+  if (entry.expiresAt < Date.now()) { memoryLockoutStore.delete(email); return false; }
+  return entry.count > AUTH_LOCKOUT_THRESHOLD;
 }
 
 /**
  * Clear failed-login counter on successful login.
  */
 async function clearAuthFailures(email) {
+  memoryLockoutStore.delete(email); // always clear in-memory
   try {
     const client = getRedisClient();
-    if (!client || !isRedisAvailable()) return;
-    await client.del(`authFailures:${email}`);
+    if (client && isRedisAvailable()) await client.del(`authFailures:${email}`);
   } catch { /* non-fatal */ }
 }
 
