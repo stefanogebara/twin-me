@@ -92,7 +92,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
       connectSrc: [
         "'self'",
-        process.env.VITE_SUPABASE_URL || "https://*.supabase.co",
+        "https://*.supabase.co",
         "https://openrouter.ai",
         "https://us.posthog.com",
         "https://fonts.googleapis.com",
