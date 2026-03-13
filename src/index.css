@@ -19,150 +19,7 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Warm Cream light mode */
-    --background: #FAF8F5;
-    --surface: rgba(255, 255, 255, 0.65);
-    --surface-solid: rgba(255, 255, 255, 0.80);
-
-    /* Claude Theme Variables */
-    --claude-bg: #FAF8F5;
-    --claude-surface: rgba(255, 255, 255, 0.65);
-    --claude-surface-raised: rgba(255, 255, 255, 0.80);
-    --claude-text: #1C1917;
-    --claude-text-muted: #78716C;
-    --claude-accent: #1C1917;
-    --claude-accent-hover: #292524;
-    --claude-border: rgba(28, 25, 23, 0.10);
-
-    /* Text Colors */
-    --foreground: #1C1917;
-    --text-primary: #1C1917;
-    --text-secondary: #57534E;
-    --text-muted: #78716C;
-    --text-placeholder: #A8A29E;
-    --accent-streak: #ff8400;
-
-    /* Border Colors */
-    --border: rgba(28, 25, 23, 0.10);
-    --border-glass: rgba(28, 25, 23, 0.06);
-
-    /* Interactive Colors */
-    --primary: #1C1917;
-    --primary-foreground: #FAF8F5;
-    --ring: rgba(28, 25, 23, 0.15);
-
-    /* Component Colors */
-    --card: rgba(255, 255, 255, 0.55);
-    --card-foreground: #1C1917;
-    --popover: rgba(255, 255, 255, 0.95);
-    --popover-foreground: #1C1917;
-    --secondary: rgba(28, 25, 23, 0.06);
-    --secondary-foreground: #1C1917;
-    --muted: rgba(28, 25, 23, 0.06);
-    --muted-foreground: #57534E;
-    --accent: rgba(28, 25, 23, 0.04);
-    --accent-foreground: #1C1917;
-    --destructive: #dc2626;
-    --destructive-foreground: #ffffff;
-    --input: rgba(28, 25, 23, 0.08);
-
-    /* Sidebar Colors — light glass */
-    --sidebar: rgba(255, 255, 255, 0.45);
-    --sidebar-foreground: #44403C;
-    --sidebar-primary: #1C1917;
-    --sidebar-primary-foreground: #FAF8F5;
-    --sidebar-accent: rgba(28, 25, 23, 0.06);
-    --sidebar-accent-foreground: #1C1917;
-    --sidebar-border: rgba(28, 25, 23, 0.08);
-    --sidebar-ring: rgba(28, 25, 23, 0.15);
-
-    /* Glass Effects */
-    --glass-blur: 16px;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-    --glass-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-
-    /* Glass Surface Variables — Figma Sundust exact */
-    --glass-surface-bg: rgba(244, 241, 236, 0.7);
-    --glass-surface-bg-hover: rgba(244, 241, 236, 0.85);
-    --glass-surface-bg-subtle: rgba(218, 217, 215, 0.2);
-    --glass-surface-border: #d9d1cb;
-    --glass-surface-border-hover: rgba(28, 25, 23, 0.18);
-    --glass-inset-highlight: rgba(255, 255, 255, 0.50);
-
-    /* Body gradients — warm honey on cream (sun-driven overrides via SunContext) */
-    --body-gradient-1: rgba(200, 160, 80, 0.12);
-    --body-gradient-2: rgba(180, 140, 70, 0.10);
-    --body-gradient-3: rgba(160, 120, 60, 0.12);
-    --body-gradient-4: rgba(190, 150, 80, 0.08);
-
-    /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
-    --bg-pos-1: 5% 0%;
-    --bg-size-1: 120% 80%;
-    --bg-spread-1: 55%;
-    --bg-pos-2: 95% 15%;
-    --bg-size-2: 80% 70%;
-    --bg-spread-2: 50%;
-    --bg-pos-3: 50% 100%;
-    --bg-size-3: 100% 90%;
-    --bg-spread-3: 55%;
-    --bg-pos-4: 70% 50%;
-    --bg-size-4: 60% 60%;
-    --bg-spread-4: 45%;
-
-    /* Typography — Instrument Serif for headings, Geist for body */
-    --font-heading: 'Instrument Serif', Georgia, serif;
-    --font-accent: 'Instrument Serif', Georgia, serif;
-    --font-body: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-ui: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-serif: 'Instrument Serif', Georgia, serif;
-    --font-mono: ui-monospace, monospace;
-
-    /* Platform brand colors */
-    --platform-spotify: #1DB954;
-    --platform-spotify-bg: rgba(29, 185, 84, 0.08);
-    --platform-youtube: #FF0000;
-    --platform-youtube-bg: rgba(255, 0, 0, 0.06);
-    --platform-calendar: #4285F4;
-    --platform-calendar-bg: rgba(66, 133, 244, 0.08);
-    --platform-discord: #5865F2;
-    --platform-discord-bg: rgba(88, 101, 242, 0.08);
-    --platform-linkedin: #0A66C2;
-    --platform-linkedin-bg: rgba(10, 102, 194, 0.08);
-
-    /* Expert domain colors */
-    --expert-personality: #8B5CF6;
-    --expert-personality-bg: rgba(139, 92, 246, 0.08);
-    --expert-lifestyle: #10B981;
-    --expert-lifestyle-bg: rgba(16, 185, 129, 0.08);
-    --expert-cultural: #F59E0B;
-    --expert-cultural-bg: rgba(245, 158, 11, 0.08);
-    --expert-social: #3B82F6;
-    --expert-social-bg: rgba(59, 130, 246, 0.08);
-    --expert-motivation: #EF4444;
-    --expert-motivation-bg: rgba(239, 68, 68, 0.08);
-
-    /* Vibrant Accent for CTAs — Figma Sundust tokens */
-    --accent-vibrant: #ff8400;
-    --accent-vibrant-hover: #e67700;
-    --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
-    --accent-amber: #c17e2c;
-    --accent-purple: #5d5cae;
-
-    /* Narrative Text — Sesame-inspired 60% opacity hierarchy
-       Used in twin chat, soul signature, insights — not UI chrome */
-    --text-narrative: rgba(28, 25, 23, 0.85);
-    --text-narrative-secondary: rgba(28, 25, 23, 0.6);
-    --text-narrative-muted: rgba(28, 25, 23, 0.4);
-
-    /* Spacing & Radius */
-    --radius: 1rem;
-    --radius-lg: 1.75rem;
-    --spacing-unit: 0.25rem;
-  }
-
-  .dark {
-    /* Background Colors — Warm Dark charcoal (production) */
+    /* Background Colors — Dark only */
     --background: #1C1917;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
@@ -209,7 +66,7 @@
     --destructive-foreground: #ffffff;
     --input: rgba(255, 255, 255, 0.08);
 
-    /* Sidebar Colors — dark glass */
+    /* Sidebar Colors */
     --sidebar: rgba(255, 255, 255, 0.05);
     --sidebar-foreground: #D6D3D1;
     --sidebar-primary: #F5F5F4;
@@ -224,7 +81,7 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
     --glass-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
 
-    /* Glass Surface Variables — Figma Sundust dark */
+    /* Glass Surface Variables */
     --glass-surface-bg: rgba(72, 65, 65, 0.6);
     --glass-surface-bg-hover: rgba(72, 65, 65, 0.75);
     --glass-surface-bg-subtle: rgba(255, 255, 255, 0.05);
@@ -238,7 +95,7 @@
     --body-gradient-3: rgba(160, 95, 55, 0.34);
     --body-gradient-4: rgba(55, 45, 140, 0.28);
 
-    /* Gradient orb positions/sizes (dark defaults) */
+    /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
     --bg-pos-1: 5% 0%;
     --bg-size-1: 120% 80%;
     --bg-spread-1: 55%;
@@ -252,17 +109,55 @@
     --bg-size-4: 60% 60%;
     --bg-spread-4: 45%;
 
-    /* Vibrant Accent for CTAs — Figma Sundust tokens */
+    /* Typography */
+    --font-heading: 'Instrument Serif', Georgia, serif;
+    --font-accent: 'Instrument Serif', Georgia, serif;
+    --font-body: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-ui: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Platform brand colors */
+    --platform-spotify: #1DB954;
+    --platform-spotify-bg: rgba(29, 185, 84, 0.08);
+    --platform-youtube: #FF0000;
+    --platform-youtube-bg: rgba(255, 0, 0, 0.06);
+    --platform-calendar: #4285F4;
+    --platform-calendar-bg: rgba(66, 133, 244, 0.08);
+    --platform-discord: #5865F2;
+    --platform-discord-bg: rgba(88, 101, 242, 0.08);
+    --platform-linkedin: #0A66C2;
+    --platform-linkedin-bg: rgba(10, 102, 194, 0.08);
+
+    /* Expert domain colors */
+    --expert-personality: #8B5CF6;
+    --expert-personality-bg: rgba(139, 92, 246, 0.08);
+    --expert-lifestyle: #10B981;
+    --expert-lifestyle-bg: rgba(16, 185, 129, 0.08);
+    --expert-cultural: #F59E0B;
+    --expert-cultural-bg: rgba(245, 158, 11, 0.08);
+    --expert-social: #3B82F6;
+    --expert-social-bg: rgba(59, 130, 246, 0.08);
+    --expert-motivation: #EF4444;
+    --expert-motivation-bg: rgba(239, 68, 68, 0.08);
+
+    /* Vibrant Accent for CTAs */
     --accent-vibrant: #ff8400;
     --accent-vibrant-hover: #e67700;
     --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
     --accent-amber: #c17e2c;
     --accent-purple: #5d5cae;
 
-    /* Narrative Text — Sesame-inspired 60% opacity hierarchy (dark) */
+    /* Narrative Text — Sesame-inspired 60% opacity hierarchy */
     --text-narrative: rgba(245, 245, 244, 0.9);
     --text-narrative-secondary: rgba(245, 245, 244, 0.6);
     --text-narrative-muted: rgba(245, 245, 244, 0.4);
+
+    /* Spacing & Radius */
+    --radius: 1rem;
+    --radius-lg: 1.75rem;
+    --spacing-unit: 0.25rem;
   }
 
   /* Theme inline definitions for Tailwind */
@@ -668,15 +563,9 @@
     align-items: center;
     gap: 0.75rem;
     padding: 1rem;
-    background: rgba(255, 235, 235, 0.5);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
+    background: rgba(127, 29, 29, 0.3);
     border: 1px solid rgba(220, 38, 38, 0.2);
     border-radius: var(--radius);
-  }
-
-  .dark .alert-error {
-    background: rgba(127, 29, 29, 0.3);
   }
 
   /* === Links === */
@@ -913,23 +802,14 @@
   }
 
   /* Platform brand color accent backgrounds */
-  .platform-bg-spotify { background-color: rgba(29, 185, 84, 0.12); }
-  .platform-bg-calendar { background-color: rgba(66, 133, 244, 0.12); }
-  .platform-bg-youtube { background-color: rgba(255, 0, 0, 0.10); }
-  .platform-bg-discord { background-color: rgba(88, 101, 242, 0.12); }
-  .platform-bg-reddit { background-color: rgba(255, 69, 0, 0.10); }
-  .platform-bg-github { background-color: rgba(110, 110, 110, 0.12); }
-  .platform-bg-linkedin { background-color: rgba(10, 102, 194, 0.12); }
-  .platform-bg-gmail { background-color: rgba(234, 67, 53, 0.10); }
-
-  .dark .platform-bg-spotify { background-color: rgba(29, 185, 84, 0.15); }
-  .dark .platform-bg-calendar { background-color: rgba(66, 133, 244, 0.15); }
-  .dark .platform-bg-youtube { background-color: rgba(255, 0, 0, 0.12); }
-  .dark .platform-bg-discord { background-color: rgba(88, 101, 242, 0.15); }
-  .dark .platform-bg-reddit { background-color: rgba(255, 69, 0, 0.12); }
-  .dark .platform-bg-github { background-color: rgba(160, 160, 160, 0.12); }
-  .dark .platform-bg-linkedin { background-color: rgba(10, 102, 194, 0.15); }
-  .dark .platform-bg-gmail { background-color: rgba(234, 67, 53, 0.12); }
+  .platform-bg-spotify { background-color: rgba(29, 185, 84, 0.15); }
+  .platform-bg-calendar { background-color: rgba(66, 133, 244, 0.15); }
+  .platform-bg-youtube { background-color: rgba(255, 0, 0, 0.12); }
+  .platform-bg-discord { background-color: rgba(88, 101, 242, 0.15); }
+  .platform-bg-reddit { background-color: rgba(255, 69, 0, 0.12); }
+  .platform-bg-github { background-color: rgba(160, 160, 160, 0.12); }
+  .platform-bg-linkedin { background-color: rgba(10, 102, 194, 0.15); }
+  .platform-bg-gmail { background-color: rgba(234, 67, 53, 0.12); }
 
   /* Gradient accent bar (top of cards) */
   .gradient-accent-bar {
