@@ -16,7 +16,7 @@ import {
   Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
+
 
 interface NavItem {
   id: string;
@@ -216,9 +216,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
         {/* Theme Toggle + Sign Out + User at Bottom */}
         <div className="border-t border-sidebar-border p-4 space-y-1">
-          {/* Theme toggle */}
-          <ThemeToggle expanded={isExpanded} className="w-full" />
-
           {/* Sign Out button - always visible */}
           <button
             onClick={handleSignOut}
