@@ -132,18 +132,23 @@ router.post('/', async (req, res) => {
         .limit(BATCH_SIZE);
 
       if (tier3Rows && tier3Rows.length > 0) {
-        // Batch update: decay by 20%, floor at 1
+        // Group by target score to batch updates (instead of row-by-row)
+        const scoreGroups = new Map(); // newScore -> [ids]
         for (const row of tier3Rows) {
           const newScore = Math.max(1, Math.round(row.importance_score * 0.8));
           if (newScore < row.importance_score) {
-            await supabaseAdmin
-              .from('user_memories')
-              .update({ importance_score: newScore })
-              .eq('id', row.id);
-            stats.tier3Decayed++;
+            if (!scoreGroups.has(newScore)) scoreGroups.set(newScore, []);
+            scoreGroups.get(newScore).push(row.id);
           }
         }
-        log.info('Tier 3 decayed fact memories', { count: stats.tier3Decayed });
+        for (const [newScore, ids] of scoreGroups) {
+          await supabaseAdmin
+            .from('user_memories')
+            .update({ importance_score: newScore })
+            .in('id', ids);
+          stats.tier3Decayed += ids.length;
+        }
+        log.info('Tier 3 decayed fact memories', { count: stats.tier3Decayed, batches: scoreGroups.size });
       }
     } catch (t3Err) {
       log.warn('Tier 3 error', { error: t3Err.message });
@@ -172,6 +177,8 @@ router.post('/', async (req, res) => {
 
       if (staleLinks && staleLinks.length > 0) {
         const now = Date.now();
+        const toDelete = [];
+        const toUpdate = []; // { id, newStrength }
         for (const link of staleLinks) {
           const reinforcedAt = link.last_reinforced_at || link.updated_at;
           const daysSince = (now - new Date(reinforcedAt).getTime()) / 86400000;
@@ -179,16 +186,29 @@ router.post('/', async (req, res) => {
           const newStrength = link.strength * Math.pow(STDP_DECAY_FACTOR, decayDays);
 
           if (newStrength <= STDP_PRUNE_THRESHOLD) {
-            await supabaseAdmin.from('memory_links').delete().eq('id', link.id);
-            stats.tier4LinksDeleted++;
+            toDelete.push(link.id);
           } else if (newStrength < link.strength - 0.001) {
-            // Only update if meaningful change (avoid noise updates)
-            await supabaseAdmin.from('memory_links')
-              .update({ strength: parseFloat(newStrength.toFixed(4)) })
-              .eq('id', link.id);
-            stats.tier4LinksDecayed++;
+            toUpdate.push({ id: link.id, strength: parseFloat(newStrength.toFixed(4)) });
           }
         }
+        // Batch delete pruned links
+        if (toDelete.length > 0) {
+          await supabaseAdmin.from('memory_links').delete().in('id', toDelete);
+          stats.tier4LinksDeleted = toDelete.length;
+        }
+        // Batch update decayed links (grouped by rounded strength to reduce queries)
+        const strengthGroups = new Map(); // roundedStrength -> [ids]
+        for (const item of toUpdate) {
+          const key = item.strength;
+          if (!strengthGroups.has(key)) strengthGroups.set(key, []);
+          strengthGroups.get(key).push(item.id);
+        }
+        for (const [strength, ids] of strengthGroups) {
+          await supabaseAdmin.from('memory_links')
+            .update({ strength })
+            .in('id', ids);
+        }
+        stats.tier4LinksDecayed = toUpdate.length;
         log.info('Tier 4 STDP decay complete', { decayed: stats.tier4LinksDecayed, pruned: stats.tier4LinksDeleted });
       }
     } catch (t4Err) {
