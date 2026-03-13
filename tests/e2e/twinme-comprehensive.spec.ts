@@ -21,7 +21,8 @@ const TEST_EMAIL = 'stefanogebara@gmail.com';
 
 // Pre-minted JWT for test user (30-day validity from 2026-03-02)
 // User: stefanogebara@gmail.com | ID: 167c27b5-a40b-49fb-8d00-deb1b1c57f4d
-const TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzI4MzE2NTYsImV4cCI6MTc3NTQyMzY1Nn0.moNmEwpAWk3fHHnG9CwXqwPuT2k0lbk7uoJIBNAaglQ';
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
+const TEST_TOKEN = process.env.TEST_AUTH_TOKEN;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

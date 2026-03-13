@@ -153,7 +153,8 @@ app.use(cors({
 
     // Log rejected origins for debugging
     log.warn('CORS rejected origin', { origin });
-    return callback(new Error('Not allowed by CORS'));
+    // Return false (no CORS headers) instead of Error to avoid leaking stack traces
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

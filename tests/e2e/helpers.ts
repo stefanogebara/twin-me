@@ -20,10 +20,9 @@ export const TEST_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 export const TEST_USER_EMAIL = 'stefanogebara@gmail.com';
 export const SCREENSHOT_DIR = 'tests/e2e/screenshots';
 
-// Fresh JWT minted 2026-03-06 (30-day validity)
-// Payload: { id: TEST_USER_ID, email: TEST_USER_EMAIL }
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
 const TEST_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzMxODc1MzgsImV4cCI6MTc3NTc3OTUzOH0.Eoe2AySxFZaNGxoSM48-d92knrqzJ7yqmCMRwnEToVI';
+  process.env.TEST_AUTH_TOKEN;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth Injection

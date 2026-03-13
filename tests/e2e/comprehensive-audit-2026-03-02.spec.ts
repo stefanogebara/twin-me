@@ -7,7 +7,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzIzNzM5MzYsImV4cCI6MTc3NDk2NTkzNn0.yuTHeAeRPaM0HEyxjBd5zfKtgSeBr9K-LSwRMRBqYxc';
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
+  process.env.TEST_AUTH_TOKEN;
 
 const AUTH_USER = JSON.stringify({
   id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',

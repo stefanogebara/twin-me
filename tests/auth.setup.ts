@@ -13,10 +13,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const authFile = path.join(__dirname, '../playwright/.auth/user.json');
 
-// Fresh JWT minted 2026-03-06 (30-day validity)
-// User: stefanogebara@gmail.com | ID: 167c27b5-a40b-49fb-8d00-deb1b1c57f4d
-const TEST_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzI4MzE2NTYsImV4cCI6MTc3NTQyMzY1Nn0.moNmEwpAWk3fHHnG9CwXqwPuT2k0lbk7uoJIBNAaglQ';
+// Use TEST_AUTH_TOKEN env var (set in .env.test or CI) — NEVER hardcode JWTs in source
+// To generate: node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({id:'167c27b5-a40b-49fb-8d00-deb1b1c57f4d',email:'stefanogebara@gmail.com'},process.env.JWT_SECRET,{expiresIn:'30d'}))"
+const TEST_TOKEN = process.env.TEST_AUTH_TOKEN || (() => {
+  throw new Error('TEST_AUTH_TOKEN env var is required. Generate a fresh JWT and set it in .env.test');
+})();
 
 setup('authenticate', async ({ page }) => {
   console.log('🔐 Setting up authentication with pre-minted JWT...');

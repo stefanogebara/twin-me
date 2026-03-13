@@ -17,9 +17,9 @@ import { test, expect, Page, ConsoleMessage } from '@playwright/test';
 const BASE_URL = 'http://localhost:8086';
 const SCREENSHOT_DIR = 'tests/e2e/screenshots';
 
-// Fresh JWT minted 2026-03-06 (30-day validity)
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
 const TEST_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE2N2MyN2I1LWE0MGItNDlmYi04ZDAwLWRlYjFiMWM1N2Y0ZCIsImVtYWlsIjoic3RlZmFub2dlYmFyYUBnbWFpbC5jb20iLCJpYXQiOjE3NzMxODc1MzgsImV4cCI6MTc3NTc3OTUzOH0.Eoe2AySxFZaNGxoSM48-d92knrqzJ7yqmCMRwnEToVI';
+  process.env.TEST_AUTH_TOKEN;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

@@ -5,7 +5,8 @@
 import { chromium } from 'playwright';
 
 const API_BASE = 'http://localhost:3004/api';
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNjdjMjdiNS1hNDBiLTQ5ZmItOGQwMC1kZWIxYjFjNTdmNGQiLCJlbWFpbCI6InN0ZWZhbm9nZWJhcmFAZ21haWwuY29tIiwiaWF0IjoxNzcwMjEwMzkyLCJleHAiOjE3NzAyOTY3OTJ9.1dtDXPfxLy9yep6XV-KDyuRr4NNck3jVxOX_RbabqBg';
+// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
+const TOKEN = process.env.TEST_AUTH_TOKEN;
 
 async function testMemoryChat() {
   console.log('🧪 Testing Memory Chat Integration\n');
@@ -23,7 +24,7 @@ async function testMemoryChat() {
     await page.goto('http://localhost:8086', { waitUntil: 'domcontentloaded' });
 
     await page.evaluate(() => {
-      localStorage.setItem('auth_token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNjdjMjdiNS1hNDBiLTQ5ZmItOGQwMC1kZWIxYjFjNTdmNGQiLCJlbWFpbCI6InN0ZWZhbm9nZWJhcmFAZ21haWwuY29tIiwiaWF0IjoxNzcwMjEwMzkyLCJleHAiOjE3NzAyOTY3OTJ9.1dtDXPfxLy9yep6XV-KDyuRr4NNck3jVxOX_RbabqBg');
+      localStorage.setItem('auth_token', process.env.TEST_AUTH_TOKEN);
       localStorage.setItem('auth_user', JSON.stringify({
         id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
         email: 'stefanogebara@gmail.com',

@@ -793,7 +793,8 @@ router.post('/webhook', async (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid webhook signature' });
     }
   } else {
-    log.warn('NANGO_WEBHOOK_SECRET not set — skipping signature verification');
+    log.error('NANGO_WEBHOOK_SECRET not set — rejecting webhook for security');
+    return res.status(500).json({ success: false, error: 'Webhook authentication not configured' });
   }
 
   try {
