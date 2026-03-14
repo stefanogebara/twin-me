@@ -7,7 +7,7 @@
  */
 
 import { supabaseAdmin } from './database.js';
-import { getValidAccessToken } from './tokenRefresh.js';
+import { getValidAccessToken } from './tokenRefreshService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TwinContextBuilder');

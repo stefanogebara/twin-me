@@ -89,11 +89,13 @@ class DiscordExtractor {
   async makeRequest(endpoint, params = {}, retryCount = 0) {
     try {
       // Get fresh access token (automatically refreshes if needed)
-      const accessToken = await getValidAccessToken(this.userId, this.platform);
+      const tokenResult = await getValidAccessToken(this.userId, this.platform);
 
-      if (!accessToken) {
+      if (!tokenResult.success || !tokenResult.accessToken) {
         throw new Error('Not authenticated with Discord - please connect your account');
       }
+
+      const accessToken = tokenResult.accessToken;
 
       const url = new URL(`${this.baseUrl}${endpoint}`);
       Object.entries(params).forEach(([key, value]) => {

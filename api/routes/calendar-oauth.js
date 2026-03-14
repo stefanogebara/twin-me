@@ -16,7 +16,7 @@ import { decryptToken, encryptToken, encryptState } from '../services/encryption
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
 // Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
-import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefresh.js';
+import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CalendarOAuth');

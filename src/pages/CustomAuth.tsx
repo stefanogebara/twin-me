@@ -115,9 +115,11 @@ For privacy concerns: privacy@twinme.ai`
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-6"
+      className="min-h-screen flex"
       style={{ backgroundColor: '#0a0f0a' }}
     >
+      {/* Left panel — form */}
+      <div className="flex-1 flex items-center justify-center px-6">
       <div className="w-full max-w-[380px]">
 
         {/* Logo */}
@@ -268,6 +270,18 @@ For privacy concerns: privacy@twinme.ai`
           </span>
         </div>
       </div>
+      </div>
+
+      {/* Right panel — Figma gradient */}
+      <div
+        className="hidden lg:block flex-1 m-4 ml-0"
+        style={{
+          background: `linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
+            linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
+              rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%)`,
+          borderRadius: '16px',
+        }}
+      />
 
       {/* Modal */}
       {activeModal && (
