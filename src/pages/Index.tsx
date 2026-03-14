@@ -264,25 +264,28 @@ const Index = () => {
         .warm-glow {
           position: relative;
         }
+        .warm-glow {
+          overflow: hidden;
+        }
         .warm-glow::before {
           content: '';
           position: absolute;
           top: -100px;
           left: 50%;
           transform: translateX(-50%);
-          width: 600px;
+          width: min(600px, 100vw);
           height: 400px;
           background: radial-gradient(ellipse at center, rgba(232, 160, 80, 0.06) 0%, transparent 70%);
           pointer-events: none;
           z-index: 0;
         }
 
-        /* Nav bottom border */
+        /* Floating pill navbar */
         .nav-dark {
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: rgba(20, 20, 20, 0.95);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          background: rgba(20, 20, 20, 0.7);
+          backdrop-filter: blur(19.65px);
+          -webkit-backdrop-filter: blur(19.65px);
+          border: 1px solid rgba(255,255,255,0.08);
         }
 
         /* Responsive heading sizes */
@@ -299,8 +302,9 @@ const Index = () => {
       `}</style>
 
       {/* ────────────── NAV ────────────── */}
-      <nav className="sticky top-0 z-50 w-full px-6 lg:px-16 nav-dark">
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between py-4">
+      <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
+      <nav className="flex items-center justify-between pl-5 pr-3 py-[10px] rounded-[32px] nav-dark">
+        <div className="flex items-center justify-between w-full">
           {/* Left: Logo */}
           <span
             className="text-[22px] cursor-pointer"
@@ -355,6 +359,7 @@ const Index = () => {
           </div>
         </div>
       </nav>
+      </div>
 
       {/* ────────────── ACT 1: EMOTIONAL HOOK ────────────── */}
       <section className="px-6 lg:px-16 pt-24 pb-16 lg:pt-36 lg:pb-28">
