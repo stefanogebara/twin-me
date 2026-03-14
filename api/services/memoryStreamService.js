@@ -24,6 +24,12 @@ import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { traverseLinksForRetrieval } from './memoryLinksService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
+import {
+  RETRIEVAL_WEIGHTS as CONFIG_WEIGHTS,
+  MMR_LAMBDA as CONFIG_MMR_LAMBDA,
+  TYPE_DIVERSITY_WEIGHT as CONFIG_TYPE_DIVERSITY_WEIGHT,
+  MEMORY_CONTEXT_BUDGETS,
+} from '../../twin-research/twin-config.js';
 
 import { createLogger } from './logger.js';
 
@@ -489,31 +495,10 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  * - Reflection queries (deeper patterns) → relevance + importance, recency off
  * - General conversation (default) → balanced weights
  */
-const RETRIEVAL_WEIGHTS = {
-  // Default: equal weights (original Generative Agents behavior)
-  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
-
-  // Identity: who is this person? No recency (avoids reflection decay_rate=90 bias),
-  // high importance for curated insights, strong relevance for semantic match.
-  // twin-research session 1: recency=0 + importance=2.0 → +8.7pts
-  identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
-
-  // Recent: counterintuitively, recency=0 works best.
-  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
-  // Pure semantic matching surfaces diverse types. (twin-research session 2: +2pts)
-  recent: { recency: 0.0, importance: 0.5, relevance: 1.0 },
-
-  // Reflection: deep pattern analysis. Paper 2 style — no recency bias.
-  // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
-};
-
-// ====================================================================
-// MMR Reranking (Maximum Marginal Relevance)
-// ====================================================================
-
-const MMR_LAMBDA = 0.5; // balance relevance vs diversity (0=pure diversity, 1=pure relevance)
-const TYPE_DIVERSITY_WEIGHT = 0.25; // penalizes over-representation of same memory_type in selected set (twin-research session 3: optimal at 0.25)
+// ─── Retrieval config imported from twin-research/twin-config.js ─────────────
+const RETRIEVAL_WEIGHTS = CONFIG_WEIGHTS;
+const MMR_LAMBDA = CONFIG_MMR_LAMBDA;
+const TYPE_DIVERSITY_WEIGHT = CONFIG_TYPE_DIVERSITY_WEIGHT;
 
 /**
  * Parse a stringified vector "[0.1,0.2,...]" → Float32Array.
@@ -795,7 +780,12 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
  * @returns {Array} Combined memories: up to 30 total with guaranteed type diversity
  */
 async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWeights = 'identity') {
-  const { reflections: maxReflections = 15, facts: maxFacts = 8, platformData: maxPlatformData = 4, conversations: maxConversations = 4 } = budgets;
+  const {
+    reflections: maxReflections = MEMORY_CONTEXT_BUDGETS.reflections,
+    facts: maxFacts = MEMORY_CONTEXT_BUDGETS.facts,
+    platformData: maxPlatformData = MEMORY_CONTEXT_BUDGETS.platform_data,
+    conversations: maxConversations = MEMORY_CONTEXT_BUDGETS.conversations,
+  } = budgets;
 
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
@@ -832,35 +822,14 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         return data || [];
       }),
 
-    // P3: Conversation memories — direct query by importance (semantic search was dominated by reflections)
-    // Split: half by importance (most significant exchanges), half by recency (freshest context)
+    // P3: Conversation memories — hybrid semantic + direct retrieval
+    // 60% semantic (via search_memory_stream RPC, post-filtered to conversation type)
+    // 40% direct by importance (fallback for when semantic misses high-importance convos)
     maxConversations > 0
-      ? Promise.all([
-          supabaseAdmin
-            .from('user_memories')
-            .select(SELECT_COLS)
-            .eq('user_id', userId)
-            .eq('memory_type', 'conversation')
-            .order('importance_score', { ascending: false })
-            .limit(Math.ceil(maxConversations / 2)),
-          supabaseAdmin
-            .from('user_memories')
-            .select(SELECT_COLS)
-            .eq('user_id', userId)
-            .eq('memory_type', 'conversation')
-            .order('created_at', { ascending: false })
-            .limit(Math.ceil(maxConversations / 2)),
-        ]).then(([impRes, recRes]) => {
-          const seen = new Set();
-          const merged = [];
-          for (const m of [...(impRes.data || []), ...(recRes.data || [])]) {
-            if (!seen.has(m.id)) { seen.add(m.id); merged.push(m); }
-          }
-          return merged.slice(0, maxConversations);
-        }).catch(err => {
-            log.warn('Diverse conversations fetch failed', { error: err });
-            return [];
-          })
+      ? _hybridConversationRetrieval(userId, query, maxConversations).catch(err => {
+          log.warn('Diverse conversations fetch failed', { error: err });
+          return [];
+        })
       : Promise.resolve([]),
   ]);
 
@@ -886,6 +855,59 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     graphLinked: expanded.length - combined.length,
   });
   return expanded;
+}
+
+/**
+ * Hybrid conversation retrieval: 60% semantic + 40% direct by importance.
+ * Pre-computes embedding once and shares across semantic search.
+ * Merges and deduplicates results, capped at maxConversations.
+ */
+async function _hybridConversationRetrieval(userId, query, maxConversations) {
+  const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
+  const semanticSlots = Math.ceil(maxConversations * 0.6);
+  const directSlots = Math.ceil(maxConversations * 0.4);
+
+  // Pre-compute embedding once for conversation semantic search
+  const queryEmbedding = await generateEmbedding(query);
+
+  const [semanticRes, directRes] = await Promise.all([
+    // Semantic: search_memory_stream RPC, over-fetch 3x then post-filter to conversation type
+    queryEmbedding
+      ? supabaseAdmin.rpc('search_memory_stream', {
+          p_user_id: userId,
+          p_query_embedding: vectorToString(queryEmbedding),
+          p_limit: semanticSlots * 5,
+          p_decay_factor: 0.995,
+          p_weight_recency: 0.0,
+          p_weight_importance: 0.5,
+          p_weight_relevance: 1.0,
+        }).then(({ data, error }) => {
+          if (error) { log.warn('Conversation semantic search failed', { error }); return []; }
+          return (data || []).filter(m => m.memory_type === 'conversation').slice(0, semanticSlots);
+        })
+      : Promise.resolve([]),
+
+    // Direct: top by importance (catches high-importance convos that semantic may miss)
+    supabaseAdmin
+      .from('user_memories')
+      .select(SELECT_COLS)
+      .eq('user_id', userId)
+      .eq('memory_type', 'conversation')
+      .order('importance_score', { ascending: false })
+      .limit(directSlots)
+      .then(({ data, error }) => {
+        if (error) { log.warn('Conversation direct fetch failed', { error }); return []; }
+        return data || [];
+      }),
+  ]);
+
+  // Merge and deduplicate
+  const seen = new Set();
+  const merged = [];
+  for (const m of [...semanticRes, ...directRes]) {
+    if (!seen.has(m.id)) { seen.add(m.id); merged.push(m); }
+  }
+  return merged.slice(0, maxConversations);
 }
 
 /**

@@ -52,7 +52,7 @@ export async function rerankByPersonality(
     }
 
     if (candidates.length === 1) {
-      return candidates[0];
+      return candidates[0]; // No pair to compare — no ranking metadata
     }
 
     const embeddingResults = await Promise.allSettled(
@@ -61,23 +61,34 @@ export async function rerankByPersonality(
 
     let bestIdx = 0;
     let bestSim = -Infinity;
+    let worstIdx = 0;
+    let worstSim = Infinity;
+    const similarities = new Array(candidates.length).fill(null);
 
     for (let i = 0; i < candidates.length; i++) {
       const embResult = embeddingResults[i];
       if (embResult.status !== 'fulfilled' || !embResult.value) continue;
 
       const sim = cosineSimilarity(embResult.value, personalityEmbedding);
-      if (sim > bestSim) {
-        bestSim = sim;
-        bestIdx = i;
-      }
+      similarities[i] = sim;
+      if (sim > bestSim) { bestSim = sim; bestIdx = i; }
+      if (sim < worstSim) { worstSim = sim; worstIdx = i; }
     }
 
     log.info(
       `[PersonalityReranker] Selected candidate ${bestIdx + 1}/${candidates.length} (similarity: ${bestSim.toFixed(4)})`
     );
 
-    return candidates[bestIdx];
+    // Return chosen candidate with ranking metadata attached for DPO collection
+    const result = candidates[bestIdx];
+    result._rankingMeta = {
+      chosen: candidates[bestIdx],
+      rejected: candidates[worstIdx],
+      similarities,
+      bestIdx,
+      worstIdx,
+    };
+    return result;
   } catch (err) {
     log.warn('Reranking failed, returning null:', err.message);
     return null;

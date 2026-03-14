@@ -54,6 +54,7 @@ import { getProfile } from '../services/personalityProfileService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
+import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -1141,6 +1142,19 @@ Make it sound natural and curious, not like a survey question.`;
             personalityProfile.personality_embedding,
             personalityProfile,
           );
+
+          // DPO: collect preference pair when reranker produced ranking metadata
+          if (result?._rankingMeta && usePersonalityOracle) {
+            const meta = result._rankingMeta;
+            collectPreferencePair(
+              userId,
+              llmMessages,
+              meta.chosen.content,
+              meta.rejected.content,
+              meta.similarities[meta.bestIdx],
+              meta.similarities[meta.worstIdx],
+            ).catch(err => log.warn('DPO preference collection failed', { error: err.message }));
+          }
         }
         if (!result) {
           // Apply neurotransmitter mode modifiers on top of personality-derived sampling params

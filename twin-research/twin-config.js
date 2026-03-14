@@ -28,6 +28,9 @@
  * Conversation boost: direct importance+recency queries instead of semantic search (reflections dominated). Conv share 2.4%→21.6%.
  * SESSION 5 BEST: 0.852 (TYPE_DIVERSITY_WEIGHT 0.25->0.35) — DB state 2026-03-13 (5237 memories)
  * Session 5: TDW=0.35 only clear win. Eval variance ~+-0.014. All weight presets near-optimal.
+ * SESSION 6: Wired config into live memoryStreamService.js (TDW 0.25→0.35 live fix).
+ *   Hybrid semantic+direct conversation retrieval in retrieveDiverseMemories.
+ *   Budgets tuned: conversations 4→8, facts 6→5, reflections 5→8. Eval: 0.836 (within variance).
  * CRITICAL FIX: search_memory_stream search_path must include extensions for pgvector.
  */
 
@@ -80,10 +83,10 @@ export const ALPHA_CITATION_BASELINE = 0.85;
 // Max memories of each type to include in the twin's context window.
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
-  reflections:   5,
+  reflections:   8,
   platform_data: 4,
-  facts:         6,
-  conversations: 4,
+  facts:         5,
+  conversations: 8,
 };
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────
