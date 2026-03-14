@@ -148,7 +148,7 @@ const supabase = getSupabaseClient(); // Added initialization
 **How to Check:**
 1. Visit: https://vercel.com/stefanogebaras-projects/twin-ai-learn/settings/environment-variables
 2. Search for: `SUPABASE_SERVICE_ROLE_KEY`
-3. **Expected Value:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx1cmVid2F1ZGlzZmlsaHVobW5qIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Nzk2NjI0OSwiZXhwIjoyMDczNTQyMjQ5fQ.fdi6QYU1vftvkqhG9GtGKE0NExUTPLWn_qHl9ye3p7k`
+3. **Expected Value:** (get from your `.env` file — NEVER commit service-role keys to git)
 
 **If Missing:**
 1. Click "Add New" in Vercel environment variables
