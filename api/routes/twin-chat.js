@@ -55,6 +55,7 @@ import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js'
 import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
 import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
+import { generateEmbedding } from '../services/embeddingService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -1330,6 +1331,48 @@ Make it sound natural and curious, not like a survey question.`;
         neuropil: neuropilResult.neuropilId || null,
       }
     };
+
+    // DPO: post-hoc preference collection for streaming mode
+    // Generates 1 alternative candidate, compares to streamed response, collects pair
+    // Must complete before res.end() or Vercel kills the function
+    if (isStreaming && usePersonalityOracle
+        && personalityProfile?.personality_embedding
+        && assistantMessage.length > 20) {
+      try {
+        const altTemp = Math.min(1.0, (personalityProfile.temperature ?? 0.7) + 0.15);
+        const alt = await complete({
+          system: systemPrompt,
+          messages: llmMessages,
+          maxTokens: 2048,
+          userId,
+          tier: TIER_CHAT,
+          temperature: altTemp,
+          serviceName: 'twin-chat-dpo-alt',
+        });
+        if (alt?.content?.trim() && alt.content.length >= 20) {
+          const [streamedEmb, altEmb] = await Promise.all([
+            generateEmbedding(assistantMessage),
+            generateEmbedding(alt.content),
+          ]);
+          if (streamedEmb && altEmb) {
+            const pe = typeof personalityProfile.personality_embedding === 'string'
+              ? JSON.parse(personalityProfile.personality_embedding)
+              : personalityProfile.personality_embedding;
+            const dot = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * b[i]; return s; };
+            const mag = (a) => Math.sqrt(dot(a, a));
+            const cos = (a, b) => { const m = mag(a) * mag(b); return m === 0 ? 0 : dot(a, b) / m; };
+            const simStreamed = cos(streamedEmb, pe);
+            const simAlt = cos(altEmb, pe);
+            const [chosen, rejected, chosenSim, rejectedSim] = simStreamed >= simAlt
+              ? [assistantMessage, alt.content, simStreamed, simAlt]
+              : [alt.content, assistantMessage, simAlt, simStreamed];
+            await collectPreferencePair(userId, llmMessages, chosen, rejected, chosenSim, rejectedSim);
+          }
+        }
+      } catch (err) {
+        log.warn('DPO post-hoc collection failed', { error: err.message });
+      }
+    }
 
     // Guard against client disconnect / timeout race
     if (res.destroyed || res.writableEnded) {

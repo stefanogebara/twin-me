@@ -19,10 +19,13 @@ function cosineSimilarity(a, b) {
 
 export async function rerankByPersonality(
   { system, messages, maxTokens, userId },
-  personalityEmbedding,
+  rawPersonalityEmbedding,
   profile,
   n = 3
 ) {
+  const personalityEmbedding = typeof rawPersonalityEmbedding === 'string'
+    ? JSON.parse(rawPersonalityEmbedding)
+    : rawPersonalityEmbedding;
   try {
     const baseTemp = profile.temperature ?? 0.7;
     const half = Math.floor(n / 2);
