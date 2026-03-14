@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { useLenis } from "../hooks/useLenis";
 
 const PrivacyPolicy = () => {
   const navigate = useNavigate();
+  useLenis();
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
@@ -10,7 +12,7 @@ const PrivacyPolicy = () => {
         <button
           onClick={() => navigate(-1)}
           className="mb-8 text-sm flex items-center gap-2 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}
+          style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
         >
           <ArrowLeft className="w-4 h-4" />
           Back
@@ -25,7 +27,7 @@ const PrivacyPolicy = () => {
           Last updated: February 23, 2026
         </p>
 
-        <div className="space-y-8 text-sm leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+        <div className="space-y-8 text-sm leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
           <section>
             <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>1. Introduction</h2>
             <p style={{ color: 'var(--foreground)' }}>
