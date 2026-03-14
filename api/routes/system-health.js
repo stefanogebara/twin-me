@@ -82,6 +82,15 @@ router.get('/', async (req, res) => {
 
   _healthCache = checks;
   _healthCacheAt = Date.now();
+
+  // In production, only return status + timestamp (no internal metrics)
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(200).json({
+      status: checks.status,
+      timestamp: checks.timestamp,
+    });
+  }
+
   res.status(200).json(checks);
 });
 
