@@ -16,7 +16,7 @@ import CalendarExtractor from './extractors/calendarExtractor.js';
 class TeamsExtractor { constructor() {} async extract() { return {}; } }
 import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
-import { getValidAccessToken } from './tokenRefresh.js';
+import { getValidAccessToken } from './tokenRefreshService.js';
 import {
   notifyExtractionStarted,
   notifyExtractionCompleted,

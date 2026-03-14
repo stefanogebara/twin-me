@@ -21,7 +21,7 @@ import {
   fetchLinkedInObservations,
 } from '../services/observationIngestion.js';
 import { addPlatformObservation } from '../services/memoryStreamService.js';
-import { getValidAccessToken } from '../services/tokenRefresh.js';
+import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import axios from 'axios';
 import { createLogger } from '../services/logger.js';
 
