@@ -228,13 +228,13 @@ For privacy concerns: privacy@twinme.ai`
         {/* Terms */}
         <p
           className="text-center text-[12px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
         >
           By continuing, you agree to our{' '}
           <button
             onClick={() => setActiveModal('terms')}
             className="underline transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'rgba(255,255,255,0.65)' }}
           >
             Terms of Service
           </button>
@@ -242,7 +242,7 @@ For privacy concerns: privacy@twinme.ai`
           <button
             onClick={() => setActiveModal('privacy')}
             className="underline transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'rgba(255,255,255,0.65)' }}
           >
             Privacy Policy
           </button>
@@ -257,7 +257,7 @@ For privacy concerns: privacy@twinme.ai`
           <button
             onClick={() => navigate('/discover')}
             className="transition-opacity hover:opacity-70"
-            style={{ color: '#10b77f' }}
+            style={{ color: '#ff8400' }}
           >
             Learn more
           </button>

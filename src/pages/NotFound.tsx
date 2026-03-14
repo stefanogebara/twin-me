@@ -67,8 +67,8 @@ const NotFound = () => {
             onClick={() => navigate('/')}
             className="flex items-center gap-2 justify-center py-2.5 px-5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: '#10b77f',
-              color: '#0a0f0a',
+              backgroundColor: '#252222',
+              color: '#fdfcfb',
               fontFamily: "'Inter', sans-serif",
             }}
           >
