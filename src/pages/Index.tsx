@@ -28,7 +28,6 @@ const PLATFORMS = [
   { id: 'discord',   name: 'Discord',             Icon: DiscordLogo,         color: '#5865F2' },
   { id: 'linkedin',  name: 'LinkedIn',            Icon: LinkedinLogo,        color: '#0A66C2' },
   { id: 'browser',   name: 'Browser Extension',   Icon: BrowserExtIcon,      color: '#8B5CF6' },
-  { id: 'whatsapp',  name: 'WhatsApp',            Icon: WhatsAppIcon,        color: '#25D366' },
 ];
 
 /* ── Card images from Gemini ── */
@@ -317,20 +316,23 @@ const Index = () => {
           {/* Center: Nav links */}
           <div className="hidden md:flex items-center gap-8">
             <a
+              href="#services"
               className="nav-link"
-              onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={(e) => { e.preventDefault(); document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               Services
             </a>
             <a
+              href="#features"
               className="nav-link"
-              onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               Features
             </a>
             <a
+              href="#how-it-works"
               className="nav-link"
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={(e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               How it works
             </a>
