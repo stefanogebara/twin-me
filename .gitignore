@@ -1,3 +1,6 @@
+# Secrets / deploy hooks
+DEPLOY_HOOK_URL.txt
+
 # Logs
 logs
 *.log
