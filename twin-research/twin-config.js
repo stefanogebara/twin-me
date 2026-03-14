@@ -55,7 +55,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 2.0 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ export const MMR_LAMBDA = 0.5;
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.35;
+export const TYPE_DIVERSITY_WEIGHT = 0.50;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
@@ -142,4 +142,29 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
   // Dedup threshold — insights with cosine similarity above this are skipped.
   // Range: [0.3, 0.8]
   dedup_threshold: 0.50,
+};
+
+// ─── Sampling Parameter Overrides ─────────────────────────────────────────────
+// Additive deltas applied on top of OCEAN-derived personality params.
+// Lets the research agent fine-tune the twin's voice without retraining OCEAN.
+// Range: [-0.2, +0.2] for each
+export const SAMPLING_OVERRIDES = {
+  temperature_delta: 0.0,
+  top_p_delta: 0.0,
+  frequency_penalty_delta: 0.0,
+  presence_penalty_delta: 0.0,
+};
+
+// ─── Oracle Integration ───────────────────────────────────────────────────────
+// Controls personality oracle draft injection strength.
+// 0.0 = oracle block omitted from system prompt entirely
+// 1.0 = full oracle block injected as-is
+// Range: [0.0, 1.0]
+export const ORACLE_INTEGRATION_STRENGTH = 1.0;
+
+// ─── Chat Eval Weights ──────────────────────────────────────────────────────
+// Combined score = retrieval_weight * retrieval_score + chat_weight * chat_score
+export const EVAL_WEIGHTS = {
+  retrieval: 0.4,
+  chat: 0.6,
 };

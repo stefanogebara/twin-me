@@ -1,0 +1,231 @@
+{
+  "description": "Chat eval prompts for LLM-as-judge twin quality scoring. 15 prompts for fast loop, full 25 for validation.",
+  "version": 1,
+  "queries": [
+    {
+      "id": "p01",
+      "prompt": "Who am I as a person?",
+      "category": "personality",
+      "expected_signals": ["personality", "traits", "authentic", "values"],
+      "anti_signals": ["I don't have enough information", "as an AI"],
+      "weight": 2.0,
+      "fast": true
+    },
+    {
+      "id": "p02",
+      "prompt": "What drives me? What am I passionate about?",
+      "category": "personality",
+      "expected_signals": ["passion", "motivation", "drive", "goals"],
+      "anti_signals": ["I cannot determine", "based on limited data"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "p03",
+      "prompt": "How do I handle stress?",
+      "category": "personality",
+      "expected_signals": ["coping", "pattern", "behavior"],
+      "anti_signals": ["clinical", "therapy", "diagnosis"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "p04",
+      "prompt": "What's my communication style like?",
+      "category": "personality",
+      "expected_signals": ["style", "tone", "communicate"],
+      "anti_signals": ["unable to assess", "insufficient data"],
+      "weight": 1.0,
+      "fast": true
+    },
+    {
+      "id": "p05",
+      "prompt": "Am I more of an introvert or extrovert? How does that show up?",
+      "category": "personality",
+      "expected_signals": ["social", "energy", "alone", "people"],
+      "anti_signals": ["I cannot make that determination"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "p06",
+      "prompt": "What are my core values?",
+      "category": "personality",
+      "expected_signals": ["values", "important", "believe"],
+      "anti_signals": ["as an AI assistant"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "p07",
+      "prompt": "How would you describe my personality to someone who doesn't know me?",
+      "category": "personality",
+      "expected_signals": ["describe", "person", "unique"],
+      "anti_signals": ["I'm not qualified", "disclaimer"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "p08",
+      "prompt": "What makes me different from other people?",
+      "category": "personality",
+      "expected_signals": ["unique", "different", "special", "pattern"],
+      "anti_signals": ["everyone is unique in their own way"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "k01",
+      "prompt": "What music have I been into lately?",
+      "category": "knowledge",
+      "expected_signals": ["music", "listen", "artist", "song", "genre"],
+      "anti_signals": ["I don't have access to your music data"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "k02",
+      "prompt": "What does my typical schedule look like?",
+      "category": "knowledge",
+      "expected_signals": ["schedule", "routine", "morning", "evening", "work"],
+      "anti_signals": ["I don't have calendar access"],
+      "weight": 1.0,
+      "fast": true
+    },
+    {
+      "id": "k03",
+      "prompt": "How has my health and recovery been?",
+      "category": "knowledge",
+      "expected_signals": ["health", "recovery", "sleep", "strain", "HRV"],
+      "anti_signals": ["I don't have health data", "consult a doctor"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "k04",
+      "prompt": "What have I been working on recently?",
+      "category": "knowledge",
+      "expected_signals": ["work", "project", "building", "code"],
+      "anti_signals": ["I'm not sure what you've been working on"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "k05",
+      "prompt": "What are my current goals?",
+      "category": "knowledge",
+      "expected_signals": ["goal", "aim", "working toward", "target"],
+      "anti_signals": ["please tell me your goals"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "k06",
+      "prompt": "What have we talked about in our recent conversations?",
+      "category": "knowledge",
+      "expected_signals": ["talked", "discussed", "conversation", "mentioned"],
+      "anti_signals": ["I don't have memory of previous conversations"],
+      "weight": 1.0,
+      "fast": true
+    },
+    {
+      "id": "e01",
+      "prompt": "I'm feeling really overwhelmed today",
+      "category": "emotional",
+      "expected_signals": ["overwhelm", "understand", "feel"],
+      "anti_signals": ["seek professional help", "I recommend therapy", "as an AI"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "e02",
+      "prompt": "I just had the best day ever!",
+      "category": "emotional",
+      "expected_signals": ["excited", "happy", "celebrate", "amazing"],
+      "anti_signals": ["that's nice", "glad to hear"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "e03",
+      "prompt": "I'm not sure what I want to do with my life right now",
+      "category": "emotional",
+      "expected_signals": ["uncertain", "explore", "direction", "figure out"],
+      "anti_signals": ["career counselor", "professional guidance"],
+      "weight": 1.0,
+      "fast": true
+    },
+    {
+      "id": "e04",
+      "prompt": "I'm worried about something but I don't know what exactly",
+      "category": "emotional",
+      "expected_signals": ["feeling", "anxiety", "sense", "pattern"],
+      "anti_signals": ["what specifically are you worried about", "mental health professional"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "x01",
+      "prompt": "How has my week been overall? Connect the dots for me.",
+      "category": "cross-platform",
+      "expected_signals": ["week", "pattern", "across", "overall"],
+      "anti_signals": ["I don't have enough data to summarize"],
+      "weight": 1.5,
+      "fast": true
+    },
+    {
+      "id": "x02",
+      "prompt": "Do you notice any patterns in my life that I might be missing?",
+      "category": "cross-platform",
+      "expected_signals": ["pattern", "notice", "connection", "trend"],
+      "anti_signals": ["I cannot identify patterns"],
+      "weight": 2.0,
+      "fast": true
+    },
+    {
+      "id": "x03",
+      "prompt": "What should I do this weekend based on what you know about me?",
+      "category": "cross-platform",
+      "expected_signals": ["weekend", "suggest", "based on", "enjoy"],
+      "anti_signals": ["I don't know your preferences"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "x04",
+      "prompt": "Am I taking care of myself? Be honest.",
+      "category": "cross-platform",
+      "expected_signals": ["health", "balance", "self-care", "honest"],
+      "anti_signals": ["I'm not qualified to assess", "consult a professional"],
+      "weight": 1.5,
+      "fast": false
+    },
+    {
+      "id": "c01",
+      "prompt": "Tell me something about myself that I might not realize",
+      "category": "creative",
+      "expected_signals": ["notice", "pattern", "realize", "interesting"],
+      "anti_signals": ["I can only reflect back what you've told me"],
+      "weight": 2.0,
+      "fast": true
+    },
+    {
+      "id": "c02",
+      "prompt": "What would you change about my routine if you could?",
+      "category": "creative",
+      "expected_signals": ["routine", "change", "suggest", "improve"],
+      "anti_signals": ["it's not my place", "I can't make recommendations"],
+      "weight": 1.0,
+      "fast": false
+    },
+    {
+      "id": "c03",
+      "prompt": "If you could give me one piece of advice right now, what would it be?",
+      "category": "creative",
+      "expected_signals": ["advice", "think", "important", "based on"],
+      "anti_signals": ["I'm not qualified to give advice", "as an AI"],
+      "weight": 1.5,
+      "fast": true
+    }
+  ]
+}
