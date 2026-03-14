@@ -26,6 +26,15 @@
  * Key insight: recency=0 consistently wins. Reflection decay_rate=90 makes recency bias favor reflections.
  * Type-aware MMR: TYPE_DIVERSITY_WEIGHT=0.25 breaks diversity ceiling from 0.46 → 0.49 without hurting precision.
  * Conversation boost: direct importance+recency queries instead of semantic search (reflections dominated). Conv share 2.4%→21.6%.
+ * SESSION 5 BEST: 0.852 (TYPE_DIVERSITY_WEIGHT 0.25->0.35) — DB state 2026-03-13 (5237 memories)
+ * Session 5: TDW=0.35 only clear win. Eval variance ~+-0.014. All weight presets near-optimal.
+ * SESSION 6: Wired config into live memoryStreamService.js (TDW 0.25→0.35 live fix).
+ * SESSION 7: LLM-as-judge chat eval added (DeepSeek gen+judge, 15 fast / 25 full prompts).
+ *   Combined score: 0.4*retrieval + 0.6*chat. Chat baseline: 0.870.
+ *   Only win: presence_penalty_delta +0.15 → 0.875 (knowledge +0.039, confirmed).
+ *   10 experiments: sampling params, oracle, budgets, neuropils, neurotransmitters — all near-optimal.
+ *   Eval variance ~+-0.014. Config parameter space exhausted for single-param changes.
+ * SESSION 8: System prompt engineering — targeting knowledge accuracy (weakest at 0.793).
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -136,4 +145,29 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
   // Dedup threshold — insights with cosine similarity above this are skipped.
   // Range: [0.3, 0.8]
   dedup_threshold: 0.50,
+};
+
+// ─── Sampling Parameter Overrides ─────────────────────────────────────────────
+// Additive deltas applied on top of OCEAN-derived personality params.
+// Lets the research agent fine-tune the twin's voice without retraining OCEAN.
+// Range: [-0.2, +0.2] for each
+export const SAMPLING_OVERRIDES = {
+  temperature_delta: 0.0,
+  top_p_delta: 0.0,
+  frequency_penalty_delta: 0.0,
+  presence_penalty_delta: 0.15,
+};
+
+// ─── Oracle Integration ───────────────────────────────────────────────────────
+// Controls personality oracle draft injection strength.
+// 0.0 = oracle block omitted from system prompt entirely
+// 1.0 = full oracle block injected as-is
+// Range: [0.0, 1.0]
+export const ORACLE_INTEGRATION_STRENGTH = 1.0;
+
+// ─── Chat Eval Weights ──────────────────────────────────────────────────────
+// Combined score = retrieval_weight * retrieval_score + chat_weight * chat_score
+export const EVAL_WEIGHTS = {
+  retrieval: 0.4,
+  chat: 0.6,
 };
