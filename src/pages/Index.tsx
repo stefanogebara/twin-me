@@ -264,13 +264,16 @@ const Index = () => {
         .warm-glow {
           position: relative;
         }
+        .warm-glow {
+          overflow: hidden;
+        }
         .warm-glow::before {
           content: '';
           position: absolute;
           top: -100px;
           left: 50%;
           transform: translateX(-50%);
-          width: 600px;
+          width: min(600px, 100vw);
           height: 400px;
           background: radial-gradient(ellipse at center, rgba(232, 160, 80, 0.06) 0%, transparent 70%);
           pointer-events: none;

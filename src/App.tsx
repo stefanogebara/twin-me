@@ -381,6 +381,11 @@ const App = () => {
 
             {/* Terms of Service - Public, no auth required */}
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />
+
+            {/* Legacy route redirects */}
+            <Route path="/portfolio" element={<Navigate to="/" replace />} />
+            <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
 
             {/* Sundust Prototype */}
             <Route path="/prototype" element={<PrototypeLanding />} />
