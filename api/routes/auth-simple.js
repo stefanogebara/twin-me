@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
@@ -9,6 +10,19 @@ import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('Auth');
+
+// Rate limiting for auth endpoints — prevents brute force attacks
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // 15 attempts per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+  handler: (req, res) => {
+    log.warn('Auth rate limit exceeded', { ip: req.ip, path: req.path });
+    res.status(429).json({ success: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' });
+  },
+});
 
 const AUTH_LOCKOUT_THRESHOLD = 10; // failed attempts before lockout
 const AUTH_LOCKOUT_TTL = 15 * 60; // 15 minutes in seconds
@@ -95,10 +109,13 @@ router.use((req, res, next) => {
 
 // Auth codes stored in Supabase (not in-memory) so Vercel serverless instances share state
 
-// JWT secret - required environment variable
+// JWT secret - required environment variable with minimum strength
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required');
+}
+if (JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be at least 32 characters for security');
 }
 
 function generateTokenPair(user) {
@@ -118,7 +135,7 @@ function hashToken(token) {
 }
 
 // Sign up
-router.post('/signup', async (req, res) => {
+router.post('/signup', authLimiter, async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
@@ -218,7 +235,7 @@ router.post('/signup', async (req, res) => {
 });
 
 // Sign in
-router.post('/signin', async (req, res) => {
+router.post('/signin', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -330,7 +347,7 @@ router.get('/verify', async (req, res) => {
 });
 
 // Refresh access token
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', authLimiter, async (req, res) => {
   try {
     const { refreshToken } = req.body;
 
