@@ -1,7 +1,17 @@
 /**
- * Automatic Token Refresh Service
- * Proactively refreshes OAuth tokens before they expire
- * Prevents token expiration issues and maintains continuous connection
+ * Token Refresh Service (canonical)
+ *
+ * Handles both proactive background token refresh and on-demand token retrieval.
+ * Consolidated from tokenRefresh.js (on-demand, object return) and the original
+ * tokenRefreshService.js (background cron, raw-string ensureFreshToken).
+ *
+ * Exports:
+ *   ensureFreshToken(userId, platform) -> string   — raw token, throws on failure
+ *   getValidAccessToken(userId, provider) -> {success, accessToken, ...} — safe object return
+ *   refreshAccessToken(platform, refreshToken, userId) -> {accessToken, refreshToken, expiresIn}|null
+ *   startTokenRefreshService() — cron-based background refresh
+ *   requiresTokenRefresh(provider) -> boolean
+ *   batchRefreshTokens(userId, providers) -> {success, results}
  */
 
 import cron from 'node-cron';
@@ -73,6 +83,36 @@ function getPlatformRefreshConfig(platform) {
       clientId: process.env.WHOOP_CLIENT_ID,
       clientSecret: process.env.WHOOP_CLIENT_SECRET,
     },
+
+    // Slack
+    slack: {
+      tokenUrl: 'https://slack.com/api/oauth.v2.access',
+      clientId: process.env.SLACK_CLIENT_ID,
+      clientSecret: process.env.SLACK_CLIENT_SECRET,
+    },
+
+    // Twitch
+    twitch: {
+      tokenUrl: 'https://id.twitch.tv/oauth2/token',
+      clientId: process.env.TWITCH_CLIENT_ID,
+      clientSecret: process.env.TWITCH_CLIENT_SECRET,
+    },
+
+    // Reddit - uses HTTP Basic Auth (same pattern as Spotify)
+    reddit: {
+      tokenUrl: 'https://www.reddit.com/api/v1/access_token',
+      clientId: process.env.REDDIT_CLIENT_ID,
+      clientSecret: process.env.REDDIT_CLIENT_SECRET,
+      useBasicAuth: true,
+      omitCredentialsFromBody: true,
+    },
+
+    // Oura
+    oura: {
+      tokenUrl: 'https://api.ouraring.com/oauth/token',
+      clientId: process.env.OURA_CLIENT_ID,
+      clientSecret: process.env.OURA_CLIENT_SECRET,
+    },
   };
   return configs[platform];
 }
@@ -110,14 +150,18 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       'Content-Type': 'application/x-www-form-urlencoded',
     };
 
-    // Spotify requires HTTP Basic Auth for client credentials
-    if (platform === 'spotify') {
+    // Spotify and Reddit use HTTP Basic Auth for client credentials
+    if (platform === 'spotify' || config.useBasicAuth) {
       const basicAuth = Buffer.from(
         `${config.clientId}:${config.clientSecret}`
       ).toString('base64');
       headers['Authorization'] = `Basic ${basicAuth}`;
+      // Some platforms (Reddit) don't include credentials in body when using Basic Auth
+      if (!config.omitCredentialsFromBody) {
+        paramsObj.client_id = config.clientId;
+      }
     } else {
-      // Whoop and other platforms use client_secret_post (credentials in body)
+      // Most platforms use client_secret_post (credentials in body)
       paramsObj.client_id = config.clientId;
       paramsObj.client_secret = config.clientSecret;
 
@@ -436,9 +480,130 @@ async function ensureFreshToken(userId, platform) {
   }
 }
 
+// =========================================================================
+// Object-returning token getter (replaces tokenRefresh.js getValidAccessToken)
+// Returns {success, accessToken, expiresAt?, requiresReauth?, source?, error?}
+// =========================================================================
+
+/**
+ * Get a valid access token, refreshing if expired.
+ * Returns a structured result object — safe to use without try/catch.
+ *
+ * This is the recommended function for routes and services that need
+ * a token and want to handle failures gracefully via result.success.
+ *
+ * @param {string} userId - User ID (UUID)
+ * @param {string} provider - Platform provider name
+ * @returns {Promise<{success: boolean, accessToken?: string, error?: string, requiresReauth?: boolean, source?: string}>}
+ */
+export async function getValidAccessToken(userId, provider) {
+  try {
+    log.info(`Getting valid access token for ${provider} (user: ${userId})`);
+
+    const { data: connection, error: dbError } = await supabaseAdmin
+      .from('platform_connections')
+      .select('access_token, refresh_token, token_expires_at, connected_at, status')
+      .eq('user_id', userId)
+      .eq('platform', provider)
+      .not('connected_at', 'is', null)
+      .single();
+
+    if (dbError || !connection) {
+      return { success: false, error: `No active connection found for ${provider}` };
+    }
+
+    if (!connection.access_token) {
+      return { success: false, error: `No access token available for ${provider}. User must connect.` };
+    }
+
+    // Nango-managed connections: delegate to nangoService
+    if (isNangoManagedToken(connection.access_token) || isNangoManagedToken(connection.refresh_token)) {
+      log.info(`${provider} is Nango-managed, fetching token from Nango`);
+      try {
+        const nangoService = await import('./nangoService.js');
+        const nangoResult = await nangoService.getAccessToken(userId, provider);
+        if (nangoResult.success) {
+          return { success: true, accessToken: nangoResult.accessToken, source: 'nango' };
+        }
+        return { success: false, error: `Nango connection for ${provider} has no valid token: ${nangoResult.error}` };
+      } catch (nangoErr) {
+        log.error(`Nango token fetch failed for ${provider}:`, nangoErr.message);
+        return { success: false, error: `Failed to get ${provider} token from Nango: ${nangoErr.message}` };
+      }
+    }
+
+    // Decrypt current access token
+    let currentAccessToken;
+    try {
+      currentAccessToken = decryptToken(connection.access_token);
+    } catch (decryptError) {
+      log.error(`Failed to decrypt access token for ${provider}:`, decryptError.message);
+      return { success: false, error: `Token decryption failed - user must reconnect ${provider}`, requiresReauth: true };
+    }
+
+    // Check expiry (5-minute proactive buffer)
+    const expiryTime = connection.token_expires_at ? new Date(connection.token_expires_at) : null;
+    const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
+
+    if (!expiryTime) {
+      return { success: true, accessToken: currentAccessToken };
+    }
+
+    if (expiryTime > fiveMinutesFromNow) {
+      return { success: true, accessToken: currentAccessToken };
+    }
+
+    // Token expired or expiring soon — use ensureFreshToken (has locking)
+    log.info(`Token for ${provider} is expired or expiring soon, refreshing...`);
+    try {
+      const freshToken = await ensureFreshToken(userId, provider);
+      return { success: true, accessToken: freshToken };
+    } catch (refreshError) {
+      return { success: false, error: `Token refresh failed: ${refreshError.message}. User may need to reconnect.` };
+    }
+
+  } catch (error) {
+    log.error(`Error getting valid access token for ${provider}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Check if a provider supports token refresh.
+ *
+ * @param {string} provider - Platform provider name
+ * @returns {boolean}
+ */
+export function requiresTokenRefresh(provider) {
+  return getPlatformRefreshConfig(provider) != null;
+}
+
+/**
+ * Batch get valid tokens for multiple providers.
+ * Useful for background jobs or pre-warming token cache.
+ *
+ * @param {string} userId - User ID (UUID)
+ * @param {string[]} providers - Array of provider names
+ * @returns {Promise<{success: boolean, successCount: number, failureCount: number, results: Object}>}
+ */
+export async function batchRefreshTokens(userId, providers) {
+  log.info(`Batch refreshing tokens for user ${userId}: ${providers.join(', ')}`);
+
+  const results = {};
+  for (const provider of providers) {
+    results[provider] = await getValidAccessToken(userId, provider);
+  }
+
+  const successCount = Object.values(results).filter(r => r.success).length;
+  const failureCount = providers.length - successCount;
+
+  log.info(`Batch refresh complete: ${successCount} succeeded, ${failureCount} failed`);
+
+  return { success: failureCount === 0, successCount, failureCount, results };
+}
+
 export {
   startTokenRefreshService,
   ensureFreshToken,
-  ensureFreshToken as getValidAccessToken,
   refreshAccessToken,
 };

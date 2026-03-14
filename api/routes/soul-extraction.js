@@ -16,7 +16,7 @@ import DiscordExtractor from '../services/extractors/discordExtractor.js';
 import SlackExtractor from '../services/extractors/slackExtractor.js';
 import { createClient } from '@supabase/supabase-js';
 import { decryptToken } from '../services/encryption.js';
-import { getValidAccessToken } from '../services/tokenRefresh.js';
+import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import WebCuriosityAgent from '../services/agents/WebCuriosityAgent.js';
 import {
   asyncHandler,

@@ -18,7 +18,7 @@
  */
 
 import { supabaseAdmin } from './database.js';
-import { getValidAccessToken } from './tokenRefresh.js';
+import { getValidAccessToken } from './tokenRefreshService.js';
 import axios from 'axios';
 import { createLogger } from './logger.js';
 
