@@ -11,7 +11,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { get as cacheGet, set as cacheSet, CACHE_TTL, CACHE_KEYS } from '../services/redisClient.js';
 import { getTwinReadinessScore } from '../services/memoryStreamService.js';
-import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefresh.js';
+import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('DashboardContext');

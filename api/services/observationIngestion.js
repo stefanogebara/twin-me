@@ -21,7 +21,7 @@
 
 import axios from 'axios';
 import crypto from 'crypto';
-import { getValidAccessToken } from './tokenRefresh.js';
+import { getValidAccessToken } from './tokenRefreshService.js';
 import { addPlatformObservation } from './memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from './reflectionEngine.js';
 import { runPlatformExpert } from './platformExperts.js';
