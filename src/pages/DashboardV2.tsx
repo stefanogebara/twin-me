@@ -1,8 +1,10 @@
 import { Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDashboardContext } from '@/hooks/useDashboardContext';
+import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
+import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { NextUpEvents } from './components/dashboard-v2/NextUpEvents';
 import { PlatformsList } from './components/dashboard-v2/PlatformsList';
@@ -11,6 +13,7 @@ import { ChatPrompt } from './components/dashboard-v2/ChatPrompt';
 export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const { data, isLoading, isError, refetch } = useDashboardContext();
+  const { insights, markEngaged } = useProactiveInsights();
 
   if (isLoading) {
     return (
@@ -60,6 +63,12 @@ export function DashboardV2() {
           insightId={data.heroInsight.insightId}
         />
       )}
+
+      <InsightsFeed
+        insights={insights}
+        heroInsightId={data.heroInsight?.insightId}
+        onEngage={markEngaged}
+      />
 
       <TwinStats
         readiness={data.twinStats.readiness}
