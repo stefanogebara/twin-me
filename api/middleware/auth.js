@@ -76,7 +76,7 @@ export const authenticateUser = async (req, res, next) => {
 
     try {
       // Verify the JWT token
-      const payload = jwt.verify(token, JWT_SECRET);
+      const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
 
       // Check if token has been revoked (logout blacklist)
       if (await isTokenBlacklisted(token)) {
@@ -123,7 +123,7 @@ export const optionalAuth = async (req, res, next) => {
 
       if (token) {
         try {
-          const payload = jwt.verify(token, JWT_SECRET);
+          const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
 
           req.user = {
             id: payload.id || payload.userId, // Support both 'id' and 'userId' for backwards compatibility

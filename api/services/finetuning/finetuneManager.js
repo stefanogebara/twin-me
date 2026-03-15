@@ -56,14 +56,16 @@ export async function createFinetune(userId, filePath, {
   try {
     const pyScript = [
       'import os, json',
-      `os.environ["TOGETHER_API_KEY"]="${apiKey}"`,
       'from together import Together',
       'c = Together()',
       `r = c.files.upload(file="${absPath}", check=False)`,
       'print(json.dumps({"id": r.id, "filename": r.filename}))',
     ].join('\n');
 
-    const { stdout } = await execFileAsync('python', ['-c', pyScript], { timeout: 120_000 });
+    const { stdout } = await execFileAsync('python', ['-c', pyScript], {
+      timeout: 120_000,
+      env: { ...process.env, TOGETHER_API_KEY: apiKey },
+    });
     const parsed = JSON.parse(stdout.trim().split('\n').pop());
     fileId = parsed.id;
   } catch (uploadErr) {

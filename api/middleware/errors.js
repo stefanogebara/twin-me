@@ -139,11 +139,28 @@ export class RateLimitError extends PlatformError {
 }
 
 /**
+ * Sanitize error messages to prevent leaking internal infrastructure details.
+ * Strips HTML (e.g. Cloudflare 522 pages) and truncates long messages.
+ */
+function sanitizeErrorMessage(message) {
+  if (!message || typeof message !== 'string') return 'Internal server error';
+  // Detect HTML content (Cloudflare error pages, etc.)
+  if (message.includes('<!DOCTYPE') || message.includes('<html') || message.includes('<head>')) {
+    return 'Service temporarily unavailable — database connection failed';
+  }
+  // Truncate excessively long messages
+  if (message.length > 500) {
+    return message.slice(0, 500) + '...';
+  }
+  return message;
+}
+
+/**
  * Global error handler middleware for Express
  * Must be placed after all routes
  */
 export function errorHandler(err, req, res, next) {
-  // Log error for debugging
+  // Log full error for debugging (server-side only)
   log.error('Error caught by handler', {
     error: err.message,
     name: err.name,
@@ -167,7 +184,6 @@ export function errorHandler(err, req, res, next) {
       statusCode: 400,
       details: {
         code: err.code,
-        message: err.message,
         action: 'check_database_schema'
       },
       timestamp: new Date().toISOString()
@@ -189,9 +205,9 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // Handle generic errors
+  // Handle generic errors — sanitize message to prevent leaking HTML/infra details
   const statusCode = err.statusCode || err.status || 500;
-  const message = err.message || 'Internal server error';
+  const message = sanitizeErrorMessage(err.message);
 
   res.status(statusCode).json({
     success: false,
@@ -202,7 +218,7 @@ export function errorHandler(err, req, res, next) {
       action: 'contact_support'
     },
     timestamp: new Date().toISOString(),
-    // Include stack trace in development
+    // Include stack trace in development only
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 }
