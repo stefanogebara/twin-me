@@ -14,23 +14,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
+/* ===== DESIGN TOKENS - TWINME DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Dark only */
+    /* Background Colors */
     --background: #1C1917;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
-    /* Claude Theme Variables */
-    --claude-bg: #1C1917;
-    --claude-surface: rgba(255, 255, 255, 0.06);
-    --claude-surface-raised: rgba(255, 255, 255, 0.12);
-    --claude-text: #F5F5F4;
-    --claude-text-muted: #A8A29E;
-    --claude-accent: #F5F5F4;
-    --claude-accent-hover: #E7E5E4;
-    --claude-border: rgba(255, 255, 255, 0.10);
+    /* Button */
+    --button-bg-dark: #252222;
 
     /* Text Colors */
     --foreground: #F5F5F4;
@@ -338,7 +331,7 @@
   }
 
   .btn-primary:hover:not(:disabled) {
-    background-color: var(--claude-accent-hover);
+    background-color: var(--accent-vibrant-hover, #e67700);
     color: var(--background);
     transform: translateY(-2px);
   }
