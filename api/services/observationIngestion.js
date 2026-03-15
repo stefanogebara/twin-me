@@ -3996,6 +3996,7 @@ export {
   fetchGarminObservations,
   fetchFitbitObservations,
   fetchTwitchObservations,
+  fetchWhoopObservations,
   fetchOuraObservations,
   fetchAppleMusicObservations,
   runPostOnboardingIngestion,
