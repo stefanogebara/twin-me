@@ -19,8 +19,11 @@ export function ChatPrompt() {
       <div
         className="rounded-[20px] p-4"
         style={{
-          background: 'rgba(255,255,255,0.06)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border, #d9d1cb)',
+          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}
       >
         {/* Quick chips */}
@@ -29,10 +32,16 @@ export function ChatPrompt() {
             <button
               key={chip}
               onClick={() => submit(chip)}
-              className="rounded-full text-xs px-3 py-1.5 cursor-pointer transition-colors duration-150 border-none hover:brightness-125"
+              className="rounded-[46px] text-xs px-3 py-2.5 cursor-pointer transition-colors duration-150 border hover:brightness-95"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                color: 'var(--text-secondary)',
+                background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+                backdropFilter: 'blur(42px)',
+                WebkitBackdropFilter: 'blur(42px)',
+                borderColor: 'var(--glass-surface-border, #d9d1cb)',
+                color: 'var(--text-secondary, #4a4242)',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: 500,
+                fontSize: '12px',
               }}
             >
               {chip}
@@ -51,18 +60,19 @@ export function ChatPrompt() {
             onChange={(e) => setText(e.target.value)}
             placeholder="Ask your twin anything..."
             className="flex-1 bg-transparent text-[15px] outline-none border-none"
-            style={{ color: 'var(--foreground)' }}
+            style={{ color: 'var(--foreground, #1b1818)', fontFamily: "'Inter', sans-serif" }}
           />
           <button
             type="submit"
-            className="flex items-center justify-center rounded-full border-none cursor-pointer flex-shrink-0"
+            className="flex items-center justify-center rounded-[100px] border-none cursor-pointer flex-shrink-0"
             style={{
-              width: 32,
-              height: 32,
-              background: '#252222',
+              width: 28,
+              height: 28,
+              padding: 4,
+              background: 'var(--button-bg-dark, #252222)',
             }}
           >
-            <ArrowUp size={16} style={{ color: 'var(--foreground)' }} />
+            <ArrowUp size={16} style={{ color: '#fdfcfb' }} />
           </button>
         </form>
       </div>

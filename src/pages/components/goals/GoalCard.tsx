@@ -70,8 +70,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
       className="p-5 space-y-4"
       style={{
         borderRadius: '12px',
-        border: `1px solid ${BORDER_COLOR}`,
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        border: `1px solid var(--glass-surface-border, #d9d1cb)`,
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}
     >
       {/* Header: Category badge + title */}
@@ -133,7 +136,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         </div>
         <div
           className="h-1.5 rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          style={{ background: 'var(--glass-surface-bg-subtle, rgba(218,217,215,0.2))' }}
         >
           <div
             className="h-full rounded-full transition-all duration-500"
