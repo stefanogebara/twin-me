@@ -21,7 +21,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
   return (
     <div
       className="mx-6 mb-2"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ borderBottom: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}
     >
       {/* Collapsed summary */}
       <button
@@ -30,19 +30,19 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
       >
         <div
           className="w-2 h-2 rounded-full shrink-0"
-          style={{ backgroundColor: '#f59e0b' }}
+          style={{ backgroundColor: 'var(--accent-vibrant, #ff8400)' }}
         />
-        <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
+        <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--text-muted, #86807b)' }} />
         <span
           className="text-xs flex-1"
-          style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'var(--text-muted, #86807b)', fontFamily: "'Inter', sans-serif" }}
         >
           Your twin has {insights.length} thing{insights.length !== 1 ? 's' : ''} to share
         </span>
         <ChevronDown
           className="w-3.5 h-3.5 shrink-0 transition-transform duration-200"
           style={{
-            color: 'rgba(255,255,255,0.3)',
+            color: 'var(--text-muted, #86807b)',
             transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
           }}
         />
@@ -59,20 +59,20 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
               key={insight.id}
               className="flex items-start gap-2.5 px-3 py-2 rounded-lg"
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.04)',
+                background: 'var(--glass-surface-bg-subtle, rgba(218,217,215,0.2))',
+                border: '1px solid var(--glass-surface-border, #d9d1cb)',
               }}
             >
               <p
                 className="text-xs leading-relaxed flex-1"
-                style={{ color: 'rgba(255,255,255,0.6)' }}
+                style={{ color: 'var(--text-secondary, #4a4242)', fontFamily: "'Inter', sans-serif" }}
               >
                 {insight.insight}
               </p>
               <button
                 onClick={() => handleAsk(insight)}
                 className="shrink-0 text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0 whitespace-nowrap"
-                style={{ color: '#ff8400' }}
+                style={{ color: 'var(--accent-vibrant, #ff8400)' }}
               >
                 Ask about this
               </button>

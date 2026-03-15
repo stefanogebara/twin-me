@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load .env.test for TEST_AUTH_TOKEN and other test-specific vars
+dotenv.config({ path: path.resolve(import.meta.dirname, '.env.test') });
 
 /**
  * Playwright Configuration for Twin AI Learn
