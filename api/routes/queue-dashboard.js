@@ -101,7 +101,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
  * GET /api/queues/health
  * Health check for queue system
  */
-router.get('/health', async (req, res) => {
+router.get('/health', authenticateUser, async (req, res) => {
   try {
     const available = areQueuesAvailable();
 
