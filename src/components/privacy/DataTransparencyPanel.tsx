@@ -80,7 +80,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-2xl font-medium text-[var(--claude-text)] mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+          <h3 className="text-2xl font-medium text-[var(--foreground)] mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
             Data Transparency
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -165,7 +165,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
       {/* Data Sources List */}
       <div className="space-y-3">
-        <h4 className="text-lg font-medium text-[var(--claude-text)] mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <h4 className="text-lg font-medium text-[var(--foreground)] mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
           Connected Data Sources
         </h4>
 
@@ -199,7 +199,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
 
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h5 className="text-base font-medium text-[var(--claude-text)] capitalize" style={{ fontFamily: "'Inter', sans-serif" }}>
+                          <h5 className="text-base font-medium text-[var(--foreground)] capitalize" style={{ fontFamily: "'Inter', sans-serif" }}>
                             {source.platform}
                           </h5>
                           <CheckCircle className="w-4 h-4 text-green-500" />

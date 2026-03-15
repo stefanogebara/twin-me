@@ -73,7 +73,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             </div>
 
             <div className="flex-1">
-              <h3 className="text-lg font-medium text-[var(--claude-text)] mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {cluster.name}
               </h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -182,7 +182,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
                   className="flex items-start gap-2 text-sm text-muted-foreground"
                   style={{ fontFamily: "'Inter', sans-serif" }}
                 >
-                  <span className="text-[var(--claude-accent)] mt-1">•</span>
+                  <span className="text-[var(--accent-vibrant)] mt-1">•</span>
                   <span>{item}</span>
                 </div>
               ))}
