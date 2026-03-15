@@ -64,15 +64,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-72 md:w-64 bg-[var(--claude-surface)] border-r border-[var(--claude-border)]">
+    <div
+      className="flex flex-col h-screen w-72 md:w-64"
+      style={{
+        background: 'var(--glass-surface-bg)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        borderRight: '1px solid var(--glass-surface-border)',
+      }}
+    >
       {/* Logo */}
-      <div className="flex items-center gap-3 p-4 md:p-6 border-b border-[var(--claude-border)]">
-        <div className="w-8 h-8 bg-[var(--claude-accent)] rounded-lg flex items-center justify-center text-white font-bold text-lg">
+      <div
+        className="flex items-center gap-3 p-4 md:p-6"
+        style={{ borderBottom: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}
+      >
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg"
+          style={{
+            background: 'var(--accent-vibrant, #ff8400)',
+            color: '#fdfcfb',
+          }}
+        >
           T
         </div>
         <div>
-          <h1 className="text-[var(--claude-text)] font-semibold text-lg">Twin Me</h1>
-          <p className="text-[var(--claude-text-muted)] text-xs">Soul Signature Platform</p>
+          <h1
+            className="font-semibold text-lg"
+            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-heading)' }}
+          >
+            Twin Me
+          </h1>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Soul Signature Platform
+          </p>
         </div>
       </div>
 
@@ -87,20 +111,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               onClick={() => handleNavigate(item.path)}
               aria-label={`Navigate to ${item.label}`}
               aria-current={active ? 'page' : undefined}
-              className={`
-                w-full flex items-center gap-3 px-3 py-3 rounded-lg
-                transition-all duration-150 group relative
-                ${active
-                  ? 'bg-[var(--claude-surface-raised)] text-[var(--claude-text)] shadow-sm'
-                  : 'text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)]/60 hover:text-[var(--claude-text)]'
-                }
-              `}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full transition-all duration-150 group"
+              style={active ? {
+                background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                color: 'var(--accent-vibrant, #ff8400)',
+              } : {
+                color: 'var(--text-secondary, #4a4242)',
+                background: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.background = 'transparent';
+              }}
             >
-              {active && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--claude-text)]" />
-              )}
               <Icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
-              <span className="text-sm font-semibold">{item.label}</span>
+              <span className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                {item.label}
+              </span>
             </button>
           );
         })}
@@ -109,7 +138,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
         <div className="mt-3">
           <button
             onClick={() => setMoreOpen(o => !o)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--claude-text-muted)] hover:text-[var(--claude-text)] transition-colors text-xs font-medium uppercase tracking-wide"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-xs font-medium uppercase tracking-wide"
+            style={{ color: 'var(--text-muted)' }}
           >
             {moreOpen || moreActive ? (
               <ChevronDown className="w-3.5 h-3.5" />
@@ -130,20 +160,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                     onClick={() => handleNavigate(item.path)}
                     aria-label={`Navigate to ${item.label}`}
                     aria-current={active ? 'page' : undefined}
-                    className={`
-                      w-full flex items-center gap-3 px-3 py-2 rounded-lg
-                      transition-all duration-150 relative
-                      ${active
-                        ? 'bg-[var(--claude-surface-raised)] text-[var(--claude-text)]'
-                        : 'text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)]/60 hover:text-[var(--claude-text)]'
-                      }
-                    `}
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-150"
+                    style={active ? {
+                      background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                      color: 'var(--accent-vibrant, #ff8400)',
+                    } : {
+                      color: 'var(--text-secondary, #4a4242)',
+                      background: 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!active) e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) e.currentTarget.style.background = 'transparent';
+                    }}
                   >
-                    {active && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-[var(--claude-text)]" />
-                    )}
                     <Icon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                    <span className="text-xs font-medium">{item.label}</span>
+                    <span className="text-xs font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+                      {item.label}
+                    </span>
                   </button>
                 );
               })}
@@ -153,22 +188,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
       </nav>
 
       {/* User profile + sign out */}
-      <div className="border-t border-[var(--claude-border)] p-4">
+      <div
+        className="p-4"
+        style={{ borderTop: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}
+      >
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 bg-[var(--claude-surface-raised)] rounded-full flex items-center justify-center text-[var(--claude-text)]">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              background: 'var(--glass-surface-bg-subtle)',
+              color: 'var(--foreground)',
+            }}
+          >
             <User className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--claude-text)] truncate">
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground)' }}>
               {user?.fullName || user?.email || 'User'}
             </p>
-            <p className="text-xs text-[var(--claude-text-muted)] truncate">{user?.email}</p>
+            <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+              {user?.email}
+            </p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
           aria-label="Sign out of your account"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[var(--claude-text-muted)] hover:bg-[var(--claude-surface-raised)] hover:text-[var(--claude-text)] transition-all duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150"
+          style={{ color: 'var(--text-muted)' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--glass-surface-bg-subtle)';
+            e.currentTarget.style.color = 'var(--foreground)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = 'var(--text-muted)';
+          }}
         >
           <LogOut className="w-4 h-4" aria-hidden="true" />
           <span className="text-sm font-medium">Sign Out</span>
