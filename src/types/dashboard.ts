@@ -1,3 +1,19 @@
+export type InsightUrgency = 'high' | 'medium' | 'low';
+export type InsightCategory =
+  | 'trend' | 'anomaly' | 'celebration' | 'concern'
+  | 'nudge' | 'goal_progress' | 'goal_suggestion';
+
+export interface ProactiveInsight {
+  id: string;
+  insight: string;
+  urgency: InsightUrgency;
+  category: InsightCategory;
+  created_at: string;
+  delivered: boolean;
+  engaged: boolean;
+  nudge_action?: string | null;
+}
+
 export interface DashboardContext {
   greeting: {
     firstName: string;

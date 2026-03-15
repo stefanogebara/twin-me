@@ -13,7 +13,9 @@ import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
+import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 
 interface Message {
   id: string;
@@ -78,6 +80,7 @@ const TalkToTwin = () => {
     connectedCount,
     isLoading: isLoadingPlatforms
   } = usePlatformStatus(user?.id);
+  const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
 
   const [messages, setMessages] = useState<Message[]>(loadChatHistory);
   const [inputMessage, setInputMessage] = useState('');
@@ -482,6 +485,15 @@ const TalkToTwin = () => {
             </button>
           </div>
         </header>
+
+        {/* Proactive insights banner — only shown when chat is empty */}
+        {messages.length === 0 && (
+          <InsightsBanner
+            insights={pendingInsights.slice(0, 3)}
+            onQuickAction={handleQuickAction}
+            onEngage={markEngaged}
+          />
+        )}
 
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
