@@ -47,7 +47,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
     return (
       <div
         id="demo-banner"
-        className="sticky top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[var(--claude-accent)] to-[var(--claude-accent-hover)] text-white shadow-lg"
+        className="sticky top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[var(--accent-vibrant)] to-[var(--accent-vibrant-hover)] text-white shadow-lg"
       >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -97,7 +97,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
   return (
     <div className="bg-gradient-to-r from-stone-800/30 to-amber-900/15 border border-amber-800/20 rounded-lg p-4 mb-6">
       <div className="flex items-start gap-3">
-        <Sparkles className="w-5 h-5 text-[var(--claude-accent)] flex-shrink-0 mt-0.5" />
+        <Sparkles className="w-5 h-5 text-[var(--accent-vibrant)] flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-foreground mb-1">
             Demo Mode Active
@@ -109,7 +109,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={handleSignUp}
               aria-label="Create your real soul signature by signing up"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--claude-accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--claude-accent-hover)] transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-vibrant)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent-vibrant-hover)] transition-all shadow-sm"
             >
               Create Your Real Soul Signature
               <ArrowRight className="w-4 h-4" aria-hidden="true" />

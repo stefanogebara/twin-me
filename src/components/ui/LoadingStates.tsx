@@ -27,8 +27,8 @@ export const Spinner: React.FC<SpinnerProps> = ({
   };
 
   const colors = {
-    default: 'text-[var(--claude-text-muted)]',
-    primary: 'text-[var(--claude-accent)]',
+    default: 'text-[var(--text-muted)]',
+    primary: 'text-[var(--accent-vibrant)]',
     white: 'text-white',
   };
 
@@ -52,16 +52,16 @@ export const PageLoader: React.FC<PageLoaderProps> = ({
   icon,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--claude-bg)]/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--background)]/80 backdrop-blur-sm">
       <div className="text-center">
         <div className="mb-4">
-          {icon || <Loader2 className="w-12 h-12 mx-auto text-[var(--claude-accent)] animate-spin" />}
+          {icon || <Loader2 className="w-12 h-12 mx-auto text-[var(--accent-vibrant)] animate-spin" />}
         </div>
-        <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--claude-text)]">
+        <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--foreground)]">
           {message}
         </h3>
         {submessage && (
-          <p className="mt-2 text-sm text-[var(--claude-text-muted)] font-[family-name:var(--font-body)]">
+          <p className="mt-2 text-sm text-[var(--text-muted)] font-[family-name:var(--font-body)]">
             {submessage}
           </p>
         )}
@@ -92,7 +92,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   return (
     <div
       className={cn(
-        'bg-[var(--claude-text-muted)]/10',
+        'bg-[var(--text-muted)]/10',
         variants[variant],
         animate && 'animate-pulse',
         className
@@ -125,22 +125,22 @@ export const ExtractionLoader: React.FC<ExtractionLoaderProps> = ({
 }) => {
   const stages = {
     connecting: {
-      icon: <Server className="w-8 h-8 text-[var(--claude-accent)]" />,
+      icon: <Server className="w-8 h-8 text-[var(--accent-vibrant)]" />,
       message: 'Connecting to platform...',
       submessage: 'Establishing secure connection',
     },
     extracting: {
-      icon: <Database className="w-8 h-8 text-[var(--claude-accent)] animate-pulse" />,
+      icon: <Database className="w-8 h-8 text-[var(--accent-vibrant)] animate-pulse" />,
       message: `Extracting ${platform ? `${platform} ` : ''}data...`,
       submessage: 'This may take a few moments',
     },
     processing: {
-      icon: <Brain className="w-8 h-8 text-[var(--claude-accent)] animate-pulse" />,
+      icon: <Brain className="w-8 h-8 text-[var(--accent-vibrant)] animate-pulse" />,
       message: 'Processing soul signature...',
       submessage: 'Analyzing patterns and behaviors',
     },
     analyzing: {
-      icon: <Sparkles className="w-8 h-8 text-[var(--claude-accent)] animate-pulse" />,
+      icon: <Sparkles className="w-8 h-8 text-[var(--accent-vibrant)] animate-pulse" />,
       message: 'Generating insights...',
       submessage: 'Discovering your unique patterns',
     },
@@ -151,16 +151,16 @@ export const ExtractionLoader: React.FC<ExtractionLoaderProps> = ({
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <div className="mb-4">{currentStage.icon}</div>
-      <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--claude-text)]">
+      <h3 className="text-lg font-medium font-[family-name:var(--font-heading)] text-[var(--foreground)]">
         {currentStage.message}
       </h3>
-      <p className="mt-2 text-sm text-[var(--claude-text-muted)] font-[family-name:var(--font-body)]">
+      <p className="mt-2 text-sm text-[var(--text-muted)] font-[family-name:var(--font-body)]">
         {currentStage.submessage}
       </p>
       <div className="mt-6 flex gap-1">
-        <div className="w-2 h-2 bg-[var(--claude-accent)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <div className="w-2 h-2 bg-[var(--claude-accent)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <div className="w-2 h-2 bg-[var(--claude-accent)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="w-2 h-2 bg-[var(--accent-vibrant)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <div className="w-2 h-2 bg-[var(--accent-vibrant)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <div className="w-2 h-2 bg-[var(--accent-vibrant)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   );
@@ -188,11 +188,11 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
     <button
       className={cn(
         'inline-flex items-center justify-center px-4 py-2 rounded-lg',
-        'bg-[var(--claude-accent)] text-white',
-        'hover:bg-[var(--claude-accent-hover)]',
+        'bg-[var(--accent-vibrant)] text-white',
+        'hover:bg-[var(--accent-vibrant-hover)]',
         'font-[family-name:var(--font-ui)] font-medium',
         'transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[var(--claude-accent)] focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-[var(--accent-vibrant)] focus:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         className
       )}
@@ -232,7 +232,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   size = 'md',
 }) => {
   const colors = {
-    default: 'bg-[var(--claude-accent)]',
+    default: 'bg-[var(--accent-vibrant)]',
     success: 'bg-green-500',
     warning: 'bg-stone-500',
     error: 'bg-red-500',
@@ -249,12 +249,12 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       {(label || showPercentage) && (
         <div className="flex justify-between mb-2">
           {label && (
-            <span className="text-sm font-medium font-[family-name:var(--font-ui)] text-[var(--claude-text)]">
+            <span className="text-sm font-medium font-[family-name:var(--font-ui)] text-[var(--foreground)]">
               {label}
             </span>
           )}
           {showPercentage && (
-            <span className="text-sm font-medium font-[family-name:var(--font-ui)] text-[var(--claude-text-muted)]">
+            <span className="text-sm font-medium font-[family-name:var(--font-ui)] text-[var(--text-muted)]">
               {Math.round(value)}%
             </span>
           )}
@@ -316,13 +316,13 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           fill="none"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="text-[var(--claude-accent)] transition-all duration-300"
+          className="text-[var(--accent-vibrant)] transition-all duration-300"
           strokeLinecap="round"
         />
       </svg>
       {showValue && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-sm font-semibold font-[family-name:var(--font-ui)] text-[var(--claude-text)]">
+          <span className="text-sm font-semibold font-[family-name:var(--font-ui)] text-[var(--foreground)]">
             {Math.round(value)}%
           </span>
         </div>

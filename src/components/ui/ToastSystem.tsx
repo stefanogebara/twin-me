@@ -150,7 +150,7 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
     error: <XCircle className="w-5 h-5 text-red-400" />,
     warning: <AlertCircle className="w-5 h-5 text-muted-foreground" />,
     info: <Info className="w-5 h-5 text-blue-400" />,
-    loading: <Loader2 className="w-5 h-5 text-[var(--claude-accent)] animate-spin" />,
+    loading: <Loader2 className="w-5 h-5 text-[var(--accent-vibrant)] animate-spin" />,
     default: null,
   };
 

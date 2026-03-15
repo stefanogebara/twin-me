@@ -50,23 +50,23 @@ export const BackButton: React.FC<BackButtonProps> = ({
   // Variant classes
   const variantClasses = {
     default: cn(
-      'bg-[var(--claude-surface)]',
-      'border border-[var(--claude-border)]',
-      'text-[var(--claude-text)]',
-      'hover:bg-[var(--claude-surface-raised)]',
-      'hover:border-[var(--claude-accent)]',
-      'hover:text-[var(--claude-accent)]'
+      'bg-[var(--glass-surface-bg)]',
+      'border border-[var(--glass-surface-border)]',
+      'text-[var(--foreground)]',
+      'hover:bg-[var(--glass-surface-bg-subtle)]',
+      'hover:border-[var(--accent-vibrant)]',
+      'hover:text-[var(--accent-vibrant)]'
     ),
     ghost: cn(
       'bg-transparent',
-      'text-[var(--claude-text-muted)]',
-      'hover:bg-[var(--claude-surface-raised)]',
-      'hover:text-[var(--claude-accent)]'
+      'text-[var(--text-muted)]',
+      'hover:bg-[var(--glass-surface-bg-subtle)]',
+      'hover:text-[var(--accent-vibrant)]'
     ),
     minimal: cn(
       'bg-transparent',
-      'text-[var(--claude-text-muted)]',
-      'hover:text-[var(--claude-accent)]'
+      'text-[var(--text-muted)]',
+      'hover:text-[var(--accent-vibrant)]'
     )
   };
 
@@ -88,7 +88,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
         'inline-flex items-center justify-center',
         'rounded-lg font-medium',
         'transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[var(--claude-accent)] focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-[var(--accent-vibrant)] focus:ring-offset-2',
         sizeClasses[size],
         variantClasses[variant],
         className
