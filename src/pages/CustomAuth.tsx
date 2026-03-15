@@ -228,7 +228,7 @@ For privacy concerns: privacy@twinme.ai`
         {/* Terms */}
         <p
           className="text-center text-[12px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
         >
           By continuing, you agree to our{' '}
           <button
