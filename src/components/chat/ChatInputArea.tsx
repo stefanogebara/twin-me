@@ -37,12 +37,13 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     return (
       <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="flex items-end gap-3 rounded-2xl px-4 py-3"
+          className="flex items-end gap-3 rounded-[20px] px-5 py-4"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
           <label htmlFor="twin-chat-input" className="sr-only">
@@ -78,7 +79,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 style={{
                   color: chatUsage.remaining <= 2
                     ? 'rgba(239,68,68,0.6)'
-                    : 'rgba(255,255,255,0.2)',
+                    : 'var(--text-muted)',
                 }}
                 title={`${chatUsage.remaining} of ${chatUsage.limit} free messages remaining`}
               >
@@ -97,11 +98,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 height: '36px',
                 borderRadius: '50%',
                 background: hasText && !isDisabled && !limitReached
-                  ? '#10b77f'
-                  : 'rgba(255,255,255,0.06)',
+                  ? 'var(--button-bg-dark, #252222)'
+                  : 'var(--glass-surface-bg-subtle)',
                 color: hasText && !isDisabled && !limitReached
-                  ? '#0a0f0a'
-                  : 'rgba(255,255,255,0.2)',
+                  ? '#fdfcfb'
+                  : 'var(--text-muted)',
                 cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
               }}

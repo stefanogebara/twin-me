@@ -110,9 +110,9 @@
     /* Typography */
     --font-heading: 'Instrument Serif', Georgia, serif;
     --font-accent: 'Instrument Serif', Georgia, serif;
-    --font-body: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-ui: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-body: 'Inter', 'Geist', system-ui, sans-serif;
+    --font-ui: 'Inter', 'Geist', system-ui, sans-serif;
+    --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
     --font-serif: 'Instrument Serif', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
