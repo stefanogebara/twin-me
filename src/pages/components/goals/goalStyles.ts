@@ -10,16 +10,16 @@ import {
   Scale,
 } from 'lucide-react';
 
-// Design tokens — typography-driven dark theme
-export const TEXT_PRIMARY = 'var(--foreground)';
-export const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
-export const BORDER_COLOR = 'rgba(255,255,255,0.06)';
+// Design tokens — glass surface design system
+export const TEXT_PRIMARY = 'var(--foreground, #1b1818)';
+export const TEXT_SECONDARY = 'var(--text-muted, #86807b)';
+export const BORDER_COLOR = 'var(--card-separator, rgba(50,47,47,0.05))';
 
 // Pill style
 export const PILL_STYLE = {
-  bg: 'rgba(255,255,255,0.04)',
-  text: 'rgba(255,255,255,0.5)',
-  border: 'rgba(255,255,255,0.08)',
+  bg: 'var(--glass-surface-bg-subtle, rgba(218,217,215,0.2))',
+  text: 'var(--text-secondary, #4a4242)',
+  border: 'var(--glass-surface-border, #d9d1cb)',
 } as const;
 
 // Category label mapping

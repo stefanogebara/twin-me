@@ -101,14 +101,19 @@ export const FloatingNav: React.FC = () => {
   return (
     <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-6xl px-6">
       <div
-        className="backdrop-blur-xl border border-white/12/50 rounded-full px-8 py-4 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
-        style={{ backgroundColor: 'rgba(28, 25, 23, 0.85)' }}
+        className="rounded-[32px] px-5 pr-3 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.06)]"
+        style={{
+          background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+          backdropFilter: 'blur(19.65px)',
+          WebkitBackdropFilter: 'blur(19.65px)',
+          border: '1px solid var(--glass-surface-border, #d9d1cb)',
+        }}
       >
         <div className="flex justify-between items-center">
           {/* Brand */}
           <div
-            className="text-2xl font-bold text-foreground cursor-pointer hover:text-muted-foreground transition-colors"
-            style={{ fontFamily: '"Instrument Serif", var(--font-heading), Georgia, serif', fontWeight: 500 }}
+            className="text-2xl cursor-pointer hover:opacity-80 transition-opacity tracking-[-0.02em]"
+            style={{ fontFamily: '"Instrument Serif", Georgia, serif', fontWeight: 400, color: 'var(--foreground, #1b1818)' }}
             onClick={() => handleNavigate('/dashboard')}
           >
             Twin Me
@@ -125,13 +130,19 @@ export const FloatingNav: React.FC = () => {
                   <button
                     onClick={() => handleNavigate(item.path)}
                     className={`
-                      flex items-center gap-2 px-4 py-2 rounded-full
+                      flex items-center gap-2 px-4 py-2.5 rounded-full
                       font-medium text-sm transition-all duration-300
                       ${active
-                        ? 'bg-black text-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
+                        ? 'shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+                        : 'hover:opacity-80'
                       }
                     `}
+                    style={active ? {
+                      background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                      color: 'var(--accent-vibrant, #ff8400)',
+                    } : {
+                      color: 'var(--text-secondary, #4a4242)',
+                    }}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
@@ -145,12 +156,19 @@ export const FloatingNav: React.FC = () => {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/12 transition-all duration-300"
+              className="flex items-center gap-2 px-4 py-2 rounded-full hover:opacity-80 transition-all duration-300"
+              style={{
+                background: 'rgba(17,15,15,0.05)',
+                border: '1px solid var(--glass-surface-border, #d9d1cb)',
+              }}
             >
-              <div className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-bold">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                style={{ background: 'var(--button-bg-dark, #252222)', color: '#fdfcfb' }}
+              >
                 {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </div>
-              <span className="text-sm font-medium text-foreground hidden md:block">
+              <span className="text-sm font-medium hidden md:block" style={{ color: 'var(--foreground, #1b1818)' }}>
                 {user?.firstName || 'User'}
               </span>
             </button>
@@ -165,12 +183,21 @@ export const FloatingNav: React.FC = () => {
                 />
 
                 {/* Menu */}
-                <div className="absolute right-0 mt-2 w-48 backdrop-blur-xl bg-[rgba(40,37,36,0.95)] border border-white/12 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.40)] z-50 overflow-hidden">
-                  <div className="p-3 border-b border-white/12/50">
-                    <p className="text-sm font-medium text-foreground truncate">
+                <div
+                  className="absolute right-0 mt-2 w-48 rounded-2xl z-50 overflow-hidden"
+                  style={{
+                    background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+                    backdropFilter: 'blur(42px)',
+                    WebkitBackdropFilter: 'blur(42px)',
+                    border: '1px solid var(--glass-surface-border, #d9d1cb)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  <div className="p-3" style={{ borderBottom: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}>
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--foreground, #1b1818)' }}>
                       {user?.fullName || user?.email || 'User'}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs truncate" style={{ color: 'var(--text-muted, #86807b)' }}>
                       {user?.email}
                     </p>
                   </div>
@@ -180,7 +207,8 @@ export const FloatingNav: React.FC = () => {
                       setShowUserMenu(false);
                       handleNavigate('/settings');
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:bg-white/12/50 hover:text-foreground transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:opacity-80 transition-colors text-left"
+                    style={{ color: 'var(--text-secondary, #4a4242)' }}
                   >
                     <User className="w-4 h-4" />
                     <span className="text-sm font-medium">Settings</span>
@@ -191,7 +219,8 @@ export const FloatingNav: React.FC = () => {
                       setShowUserMenu(false);
                       handleSignOut();
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20/50 transition-colors text-left border-t border-white/12/50"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50/50 transition-colors text-left"
+                    style={{ borderTop: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}
                   >
                     <LogOut className="w-4 h-4" />
                     <span className="text-sm font-medium">Sign Out</span>
