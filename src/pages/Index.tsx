@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ArrowRight, Globe, MessageSquare, Music, Brain, Database, Bell, Shield } from 'lucide-react';
+import { ArrowRight, Music, Brain, Database, Bell, Shield } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 
 import { InlineEvidence } from '../components/landing/InlineEvidence';
@@ -13,21 +13,13 @@ import {
   LinkedinLogo,
 } from '../components/PlatformLogos';
 
-/* ── Active platform integrations + import-based sources ── */
-const BrowserExtIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-  <Globe className={className} style={style} />
-);
-const WhatsAppIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-  <MessageSquare className={className} style={style} />
-);
-
+/* ── Active platform integrations ── */
 const PLATFORMS = [
   { id: 'spotify',   name: 'Spotify',            Icon: SpotifyLogo,         color: '#1DB954' },
   { id: 'calendar',  name: 'Google Calendar',     Icon: GoogleCalendarLogo,  color: '#4285F4' },
   { id: 'youtube',   name: 'YouTube',             Icon: YoutubeLogo,         color: '#FF0000' },
   { id: 'discord',   name: 'Discord',             Icon: DiscordLogo,         color: '#5865F2' },
   { id: 'linkedin',  name: 'LinkedIn',            Icon: LinkedinLogo,        color: '#0A66C2' },
-  { id: 'browser',   name: 'Browser Extension',   Icon: BrowserExtIcon,      color: '#8B5CF6' },
 ];
 
 /* ── Card images from Gemini ── */

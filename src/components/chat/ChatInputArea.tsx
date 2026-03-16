@@ -37,13 +37,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     return (
       <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="flex items-end gap-3 rounded-[20px] px-5 py-4"
+          className="flex items-end gap-3 rounded-[20px] px-5 py-4 transition-opacity"
           style={{
             background: 'var(--glass-surface-bg)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
             border: '1px solid var(--glass-surface-border)',
             boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+            opacity: limitReached ? 0.4 : 1,
+            pointerEvents: limitReached ? 'none' : 'auto',
           }}
         >
           <label htmlFor="twin-chat-input" className="sr-only">

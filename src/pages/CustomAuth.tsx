@@ -272,16 +272,54 @@ For privacy concerns: privacy@twinme.ai`
       </div>
       </div>
 
-      {/* Right panel — Figma gradient */}
+      {/* Right panel — Figma Sundust gradient */}
       <div
-        className="hidden lg:block flex-1 m-4 ml-0"
+        className="hidden lg:flex flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
         style={{
           background: `linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
             linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
               rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%)`,
           borderRadius: '16px',
         }}
-      />
+      >
+        {/* Decorative ring */}
+        <div
+          className="w-20 h-20 rounded-full mb-10 flex-shrink-0"
+          style={{
+            border: '1.5px solid rgba(255,255,255,0.15)',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+          }}
+        />
+
+        <h2
+          className="text-center mb-4"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '36px',
+            fontWeight: 400,
+            letterSpacing: '-0.72px',
+            lineHeight: 1.15,
+            color: 'rgba(255,255,255,0.9)',
+          }}
+        >
+          Your soul signature
+          <br />
+          awaits
+        </h2>
+
+        <p
+          className="text-center max-w-[320px]"
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '14px',
+            lineHeight: 1.6,
+            color: 'rgba(255,255,255,0.45)',
+          }}
+        >
+          Connect your platforms, discover your patterns, meet your digital twin.
+        </p>
+      </div>
 
       {/* Modal */}
       {activeModal && (

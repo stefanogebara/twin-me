@@ -3,15 +3,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { useChatSession } from '../hooks/useChatSession';
 import {
-  Layers,
   Lightbulb, TrendingUp, Heart, Zap,
-  Trash2,
 } from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
+import { ChatHeader } from '@/components/chat/ChatHeader';
+import { LimitReachedBanner } from '@/components/chat/LimitReachedBanner';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
 import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -31,14 +32,6 @@ interface Message {
     platformData?: string[];
     personalityProfile?: boolean;
   };
-}
-
-interface ContextItem {
-  type: 'memory' | 'fact' | 'platform' | 'personality';
-  label: string;
-  value: string;
-  timestamp?: string;
-  icon?: React.ReactNode;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3004/api';
@@ -62,7 +55,7 @@ function saveChatHistory(messages: Message[]): void {
     const capped = messages.slice(-CHAT_HISTORY_MAX);
     localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(capped));
   } catch {
-    // Non-fatal — localStorage may be unavailable
+    // Non-fatal
   }
 }
 
@@ -86,43 +79,7 @@ const TalkToTwin = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [showContext, setShowContext] = useState(true);
-  const [contextItems, setContextItems] = useState<ContextItem[]>([]);
-  const [isLoadingContext, setIsLoadingContext] = useState(false);
-  const [chatUsage, setChatUsage] = useState<{ used: number; limit: number; remaining: number; tier: string } | null>(null);
-  const [limitReached, setLimitReached] = useState(false);
-  const [introFetched, setIntroFetched] = useState(false);
-
-  // Interview guard: if user started but didn't finish the interview, redirect them back.
-  // Existing users who never started are NOT blocked.
-  const [interviewChecked, setInterviewChecked] = useState(false);
-  useEffect(() => {
-    const checkInterview = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) { setInterviewChecked(true); return; }
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userId = payload.id || payload.userId;
-        if (!userId) { setInterviewChecked(true); return; }
-        const res = await fetch(`${API_BASE}/onboarding/calibration-data/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const { data } = await res.json();
-          // Only block if interview was STARTED but not finished.
-          // data === null means existing user who never started → don't block.
-          if (data && !data.completed_at) {
-            navigate('/interview');
-            return;
-          }
-        }
-      } catch {
-        // Non-fatal — don't block on network error
-      }
-      setInterviewChecked(true);
-    };
-    checkInterview();
-  }, [navigate]);
+  const [showContext, setShowContext] = useState(false);
 
   const platforms = [
     { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
@@ -141,135 +98,37 @@ const TalkToTwin = () => {
     { label: "What's on my mind right now?", icon: <Zap className="w-4 h-4" /> },
   ];
 
+  const {
+    interviewChecked,
+    chatUsage,
+    setChatUsage,
+    limitReached,
+    setLimitReached,
+    contextItems,
+    isLoadingContext,
+    fetchUsage,
+  } = useChatSession({ userId: user?.id, connectedPlatforms, messages, setMessages });
+
   useEffect(() => {
-    if (!isSignedIn) {
-      navigate('/auth');
-    }
+    if (!isSignedIn) navigate('/auth');
   }, [isSignedIn, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Persist chat history to localStorage whenever messages change
   useEffect(() => {
-    if (messages.length > 0) {
-      saveChatHistory(messages);
-    }
+    if (messages.length > 0) saveChatHistory(messages);
   }, [messages]);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadContext();
-    }
-  }, [user?.id]);
-
-  const fetchUsage = async () => {
-    if (!user?.id) return;
-    try {
-      const token = localStorage.getItem('auth_token');
-      const res = await fetch(`${API_BASE}/chat/usage`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) {
-          setChatUsage({ used: data.used, limit: data.limit, remaining: data.remaining, tier: data.tier });
-          setLimitReached(data.remaining <= 0 && data.tier === 'free');
-        }
-      }
-    } catch { /* non-blocking */ }
-  };
-
-  useEffect(() => {
-    fetchUsage();
-  }, [user?.id]);
-
-  // Fetch a personalized first greeting from the twin on page load (new users only).
-  // Skip if we already have persisted chat history to avoid displacing it.
-  useEffect(() => {
-    if (!user?.id || introFetched) return;
-    if (messages.length > 0) {
-      setIntroFetched(true);
-      return;
-    }
-    setIntroFetched(true);
-    const token = localStorage.getItem('auth_token');
-    fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.intro) {
-          setMessages([{
-            id: 'twin-intro',
-            role: 'assistant',
-            content: data.intro,
-            timestamp: new Date(),
-          }]);
-        }
-      })
-      .catch(() => { /* non-fatal */ });
-  }, [user?.id]);
-
-  // Pre-populate input when navigating from "Discuss with Twin" buttons
+  // Pre-populate input from "Discuss with Twin" navigation
   useEffect(() => {
     const state = location.state as { discussContext?: string } | null;
     if (state?.discussContext) {
       setInputMessage(state.discussContext);
-      // Clear the state so refreshing doesn't re-populate
       window.history.replaceState({}, '');
     }
   }, [location.state]);
-
-  const loadContext = async () => {
-    if (!user?.id) return;
-    setIsLoadingContext(true);
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch(`${API_BASE}/chat/context`, { headers }).catch(() => null);
-      const items: ContextItem[] = [];
-
-      connectedPlatforms.forEach(p => {
-        items.push({ type: 'platform', label: p.name, value: 'Connected', icon: p.icon });
-      });
-
-      if (res?.ok) {
-        const data = await res.json();
-
-        if (data.twinSummary) {
-          items.push({
-            type: 'personality',
-            label: 'Twin Identity',
-            value: data.twinSummary.length > 120 ? data.twinSummary.substring(0, 120) + '...' : data.twinSummary
-          });
-        }
-
-        if (data.memoryStats && data.memoryStats.total > 0) {
-          const ms = data.memoryStats;
-          const parts = [`${ms.total} total`];
-          if (ms.byType?.reflection) parts.push(`${ms.byType.reflection} reflections`);
-          if (ms.byType?.fact) parts.push(`${ms.byType.fact} facts`);
-          if (ms.byType?.conversation) parts.push(`${ms.byType.conversation} conversations`);
-          items.push({ type: 'memory', label: 'Memory Stream', value: parts.join(', ') });
-        }
-
-        if (data.pendingInsights && data.pendingInsights.length > 0) {
-          items.push({
-            type: 'fact',
-            label: 'Pending Insights',
-            value: `${data.pendingInsights.length} insight${data.pendingInsights.length > 1 ? 's' : ''} ready`
-          });
-        }
-      }
-
-      setContextItems(items);
-    } catch (error) {
-      console.error('Error loading context:', error);
-    } finally {
-      setIsLoadingContext(false);
-    }
-  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
@@ -405,11 +264,9 @@ const TalkToTwin = () => {
     localStorage.removeItem(CHAT_HISTORY_KEY);
     setMessages([]);
     setConversationId(null);
-    setIntroFetched(false);
   };
 
   const handleRetry = (content: string, messageId: string) => {
-    // Remove the failed message and restore content to input so user can resend
     setMessages(prev => prev.filter(m => m.id !== messageId));
     setInputMessage(content);
     inputRef.current?.focus();
@@ -431,7 +288,8 @@ const TalkToTwin = () => {
     return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
+      timeZoneName: 'short',
     }).format(date);
   };
 
@@ -446,51 +304,13 @@ const TalkToTwin = () => {
   return (
     <div className="flex" style={{ height: '100dvh', maxHeight: '100dvh' }}>
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
-        {/* Minimal top bar — emerald "Twin" label + status dot */}
-        <header
-          className="flex items-center justify-between px-6 py-3"
-          style={{
-            borderBottom: '1px solid var(--glass-surface-border)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span
-              className="text-[11px] font-medium tracking-widest uppercase"
-              style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
-            >
-              Twin
-            </span>
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ backgroundColor: '#10b77f' }}
-            />
-          </div>
+        <ChatHeader
+          hasMessages={messages.length > 0}
+          showContext={showContext}
+          onClearChat={handleClearChat}
+          onToggleContext={() => setShowContext(!showContext)}
+        />
 
-          <div className="flex items-center gap-1">
-            {messages.length > 0 && (
-              <button
-                onClick={handleClearChat}
-                className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-                style={{ color: 'rgba(255,255,255,0.25)' }}
-                title="Clear conversation"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-            <button
-              onClick={() => setShowContext(!showContext)}
-              className="p-1.5 rounded-lg transition-colors hover:opacity-70"
-              style={{ color: showContext ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
-              title="Toggle context"
-            >
-              <Layers className="w-4 h-4" />
-            </button>
-          </div>
-        </header>
-
-        {/* Proactive insights banner — only shown when chat is empty */}
         {messages.length === 0 && (
           <InsightsBanner
             insights={pendingInsights.slice(0, 3)}
@@ -517,29 +337,9 @@ const TalkToTwin = () => {
               onRetry={handleRetry}
             />
           )}
-        </div>
 
-        {limitReached && (
-          <div
-            className="mx-6 mb-2 py-4 flex flex-col sm:flex-row items-center justify-between gap-3"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <div>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                You've used all {chatUsage?.limit ?? 100} free messages this month
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                Resets on {chatUsage ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next month'}
-              </p>
-            </div>
-            <span
-              className="text-xs px-3 py-1.5 rounded-[46px]"
-              style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}
-            >
-              Pro coming soon
-            </span>
-          </div>
-        )}
+          {limitReached && <LimitReachedBanner chatUsage={chatUsage} />}
+        </div>
 
         <ChatInputArea
           ref={inputRef}

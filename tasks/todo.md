@@ -1,3 +1,36 @@
+# TwinMe UI/UX Audit — Task Tracker (2026-03-15)
+
+## Phase 1: Before Next User Test (NOW) — COMPLETE
+- [x] 1. Auth page visual upgrade — add Figma gradient right panel (CustomAuth.tsx)
+- [x] 2. Chat empty state heading opacity fix 0.6 → 0.85 (ChatEmptyState.tsx)
+- [x] 3. Chat limit — glass surface banner + disabled input (TalkToTwin.tsx + ChatInputArea.tsx)
+- [x] 4. Remove vaporware platforms from landing strip (Index.tsx — removed Browser Extension, WhatsApp)
+
+## Phase 2: Before 10-User Beta — COMPLETE
+- [x] 5. Identity page loading skeletons for each chapter
+- [x] 6. Standardize border radius (pills=46px, CTAs=100px, cards=20px)
+- [x] 7. Split TalkToTwin.tsx into sub-components (<400 lines each)
+- [x] 8. Accessibility: aria-labels on Settings toggles, Privacy sliders
+- [x] 9. Chat message timestamp — add timezone indicator
+- [x] 10. Error messages — increase visual weight (icon + color)
+
+## Phase 3: Before 100-User Scale — COMPLETE (except 11, 13)
+- [ ] 11. Migrate landing page inline styles to Tailwind classes (deferred — needs design stabilization)
+- [x] 12. Split PrivacySpectrum into sub-components (3 sections extracted)
+- [ ] 13. OG image generation for shared twin links (/p/{userId}) (deferred — needs backend)
+- [x] 14. Remove dead routes (/dashboard-old, /soul-onboarding, /discover-legacy, /big-five)
+- [x] 15. Split IdentityPage into 7 chapter components + types
+- [x] 16. Design token system (src/styles/tokens.ts — OPACITY, TEXT, SURFACE)
+- [x] 17. Reusable LoadingSkeleton variants (SectionSkeleton, ChartSkeleton, TableRowSkeleton)
+- [x] 18. Context sidebar — hide by default for new users
+
+## UX Tradeoffs (Decisions Needed)
+- [ ] Interview gate: allow chat before interview with "basic" twin?
+- [ ] Goals tab: add as 4th nav tab or keep discoverable from dashboard?
+- [ ] Emerald (#10b77f) overuse: reserve for status only?
+
+---
+
 # TwinMe — Phase 7: Behavioral Finetuning
 
 **Plan:** `.claude/plans/2026-03-11-behavioral-finetuning.md`

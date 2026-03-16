@@ -56,8 +56,12 @@ const ToggleSwitch: React.FC<{
   enabled: boolean;
   onChange: (val: boolean) => void;
   disabled?: boolean;
-}> = ({ enabled, onChange, disabled }) => (
+  label?: string;
+}> = ({ enabled, onChange, disabled, label }) => (
   <button
+    role="switch"
+    aria-checked={enabled}
+    aria-label={label}
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors"
     style={{
@@ -255,6 +259,7 @@ const Settings = () => {
         <ToggleSwitch
           enabled={featureToggles.personality_oracle}
           onChange={() => handleToggleFeature('personality_oracle')}
+          label="Enable Personality Oracle"
         />
       </SettingsRow>
       <SettingsRow
@@ -264,6 +269,7 @@ const Settings = () => {
         <ToggleSwitch
           enabled={featureToggles.neurotransmitter_modes}
           onChange={() => handleToggleFeature('neurotransmitter_modes')}
+          label="Enable Neurotransmitter Modes"
         />
       </SettingsRow>
       <SettingsRow
@@ -273,6 +279,7 @@ const Settings = () => {
         <ToggleSwitch
           enabled={featureToggles.connectome_neuropils}
           onChange={() => handleToggleFeature('connectome_neuropils')}
+          label="Enable Connectome Routing"
         />
       </SettingsRow>
       <SettingsRow
@@ -282,6 +289,7 @@ const Settings = () => {
         <ToggleSwitch
           enabled={featureToggles.graph_retrieval}
           onChange={() => handleToggleFeature('graph_retrieval')}
+          label="Enable Graph Retrieval"
         />
       </SettingsRow>
 

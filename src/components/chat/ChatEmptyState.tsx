@@ -39,7 +39,7 @@ export const ChatEmptyState = ({
           fontSize: 'clamp(2rem, 4vw, 2.5rem)',
           fontWeight: 400,
           color: 'var(--foreground)',
-          opacity: 0.6,
+          opacity: 0.85,
           letterSpacing: '-0.02em',
         }}
       >

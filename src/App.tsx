@@ -26,7 +26,6 @@ import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 
 // Lazy-loaded pages (code-split into separate chunks)
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardV2 = lazy(() => import("./pages/DashboardV2"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
@@ -138,16 +137,6 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
-            <Route path="/dashboard-old" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <Dashboard />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
             {/* Twin Insight Pages */}
             <Route path="/insights/spotify" element={
               <ProtectedRoute>
@@ -240,8 +229,6 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Big Five → redirect to Identity (inline section) */}
-            <Route path="/big-five" element={<Navigate to="/identity" replace />} />
 
             {/* Platform Connection / Get Started */}
             <Route path="/get-started" element={
@@ -288,9 +275,6 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Legacy routes */}
-            <Route path="/discover-legacy" element={<Navigate to="/soul-reveal" replace />} />
-            <Route path="/soul-onboarding" element={<Navigate to="/soul-reveal" replace />} />
 
             {/* Public Soul Card - redirects to Portfolio */}
             <Route path="/s/:userId" element={

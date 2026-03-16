@@ -5,88 +5,23 @@
  * colored domain dots, thin dividers. Dark, typography-driven — no cards.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
-import {
-  Fingerprint,
-  RefreshCw,
-  AlertCircle,
-  Share2,
-} from 'lucide-react';
+import { Fingerprint, AlertCircle, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { toSecondPerson } from '@/lib/utils';
 import { RadarDataPoint } from '@/utils/dataTransformers';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface IdentityContext {
-  lifeStage: string;
-  culturalOrientation: string;
-  careerSalience: string;
-  approximateAge: number | null;
-  confidence: number;
-  promptFragment: string;
-  twinVoiceHint: string;
-  inferredAt: string;
-}
-
-interface SoulProfile {
-  archetype: string | null;
-  uniqueness_markers: string[] | null;
-  music_signature: {
-    top_genres?: string[];
-    listening_patterns?: string;
-    [key: string]: unknown;
-  } | null;
-  core_values: string[] | null;
-  personality_summary: string | null;
-}
-
-interface IdentityData {
-  identity: IdentityContext | null;
-  profile: SoulProfile | null;
-  expertInsights: Record<string, string[]>;
-  summary: string | null;
-  summaryUpdatedAt: string | null;
-}
-
-interface PersonalityProfile {
-  openness: number;
-  conscientiousness: number;
-  extraversion: number;
-  agreeableness: number;
-  neuroticism: number;
-  temperature: number;
-  top_p: number;
-  confidence: number;
-  last_built_at: string;
-}
-
-// ── Expert config ────────────────────────────────────────────────────────
-
-type ExpertKey =
-  | 'personality_psychologist'
-  | 'lifestyle_analyst'
-  | 'cultural_identity'
-  | 'social_dynamics'
-  | 'motivation_analyst';
-
-const EXPERT_SECTIONS: Array<{
-  key: ExpertKey;
-  label: string;
-  dotColor: string;
-}> = [
-  { key: 'personality_psychologist', label: 'Personality', dotColor: '#c17e2c' },
-  { key: 'lifestyle_analyst', label: 'Lifestyle', dotColor: '#5d5cae' },
-  { key: 'cultural_identity', label: 'Cultural Taste', dotColor: '#c1452c' },
-  { key: 'social_dynamics', label: 'Social Dynamics', dotColor: '#2cc1a0' },
-  { key: 'motivation_analyst', label: 'Motivation', dotColor: '#c1a02c' },
-];
+import { IdentityData, PersonalityProfile, EXPERT_SECTIONS } from './components/identity/types';
+import SoulChapter from './components/identity/SoulChapter';
+import ByTheNumbersChapter from './components/identity/ByTheNumbersChapter';
+import PersonalityChapter from './components/identity/PersonalityChapter';
+import ExpertDomainsChapter from './components/identity/ExpertDomainsChapter';
+import MusicSignatureChapter from './components/identity/MusicSignatureChapter';
+import WhatsNextChapter from './components/identity/WhatsNextChapter';
 
 // ── Demo fallback ────────────────────────────────────────────────────────
 
@@ -133,92 +68,6 @@ const DEMO_IDENTITY_DATA: IdentityData = {
   summaryUpdatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────
-
-function stripCitations(text: string): string {
-  return text
-    .replace(/\[Memory\s*#?\d+\]/gi, '')
-    .replace(/\[Source:\s*[^\]]*\]/gi, '')
-    .replace(/\[Based on[^\]]*\]/gi, '')
-    .replace(/\[Ref\s*#?\d+\]/gi, '')
-    .replace(/\[Note:\s*[^\]]*\]/gi, '')
-    .replace(/\[Evidence[^\]]*\]/gi, '')
-    .replace(/\[mem\s*#?\d+\]/gi, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-function stripLeadingBullet(text: string): string {
-  return text.replace(/^[-*]\s+/, '').replace(/^\d+\.\s*/, '').trim();
-}
-
-function bigramSimilarity(a: string, b: string): number {
-  const bigrams = (s: string) => {
-    const bg = new Set<string>();
-    const lower = s.toLowerCase();
-    for (let i = 0; i < lower.length - 1; i++) bg.add(lower.slice(i, i + 2));
-    return bg;
-  };
-  const setA = bigrams(a);
-  const setB = bigrams(b);
-  let intersection = 0;
-  for (const bg of setA) if (setB.has(bg)) intersection++;
-  return (2 * intersection) / (setA.size + setB.size) || 0;
-}
-
-function cleanBullets(bullets: string[]): string[] {
-  const cleaned: string[] = [];
-  for (const raw of bullets) {
-    const text = stripCitations(stripLeadingBullet(raw));
-    if (!text) continue;
-    const isDuplicate = cleaned.some((existing) => bigramSimilarity(existing, text) > 0.75);
-    if (isDuplicate) continue;
-    cleaned.push(text);
-  }
-  return cleaned;
-}
-
-// ── Sub-components ───────────────────────────────────────────────────────
-
-const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#10b77f' }) => (
-  <div className="flex items-center gap-2 mb-4">
-    {color !== '#10b77f' && (
-      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-    )}
-    <span
-      className="text-[11px] font-medium tracking-widest uppercase"
-      style={{ color, fontFamily: 'Inter, sans-serif' }}
-    >
-      {label}
-    </span>
-  </div>
-);
-
-const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
-);
-
-const OceanBar: React.FC<{ trait: string; value: number }> = ({ trait, value }) => (
-  <div className="flex items-center gap-3">
-    <span className="text-[13px] w-36 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
-      {trait}
-    </span>
-    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
-      <div
-        className="h-full rounded-full transition-all"
-        style={{
-          width: `${value}%`,
-          backgroundColor: '#10b77f',
-          opacity: 0.6,
-        }}
-      />
-    </div>
-    <span className="text-[13px] w-10 text-right flex-shrink-0" style={{ color: 'var(--foreground)' }}>
-      {value}%
-    </span>
-  </div>
-);
-
 // ── Main page ────────────────────────────────────────────────────────────
 
 const IdentityPage: React.FC = () => {
@@ -226,7 +75,6 @@ const IdentityPage: React.FC = () => {
   useDocumentTitle('Your Soul Signature');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
@@ -259,23 +107,17 @@ const IdentityPage: React.FC = () => {
 
   if (!user && !isDemoMode) return null;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.2)' }} />
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Assembling your portrait...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingSkeleton />;
 
   if (error && !isDemoMode) {
     return (
       <div className="max-w-2xl mx-auto px-6 py-16">
-        <div className="flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#EF4444' }} />
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <div
+          className="flex items-center gap-3 px-5 py-4 rounded-[20px]"
+          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
+          <span className="text-sm font-medium" style={{ color: '#EF4444' }}>
             {(error as Error).message || 'Could not load identity data.'}
           </span>
         </div>
@@ -294,44 +136,7 @@ const IdentityPage: React.FC = () => {
     EXPERT_SECTIONS.some((s) => (expertInsights[s.key]?.length ?? 0) > 0)
   );
 
-  // Empty state
-  if (!hasAnyData) {
-    return (
-      <div className="max-w-xl mx-auto px-6 py-20 text-center">
-        <Fingerprint className="w-8 h-8 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.15)' }} />
-        <h2
-          className="text-xl mb-3"
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
-            color: 'var(--foreground)',
-            opacity: 0.8,
-          }}
-        >
-          I'm still figuring you out
-        </h2>
-        <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={() => navigate('/get-started')}
-            className="px-5 py-2 rounded-[100px] text-sm font-medium"
-            style={{ border: '1px solid #10b77f', color: '#10b77f' }}
-          >
-            Connect platforms
-          </button>
-          <button
-            onClick={() => navigate('/interview')}
-            className="px-5 py-2 rounded-[100px] text-sm font-medium"
-            style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-          >
-            Complete your interview
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!hasAnyData) return <EmptyState />;
 
   const uniquenessMarkers: string[] = Array.isArray(profile?.uniqueness_markers)
     ? profile.uniqueness_markers.filter(Boolean)
@@ -357,16 +162,9 @@ const IdentityPage: React.FC = () => {
       ]
     : null;
 
-  // Summary preview
-  const dotIdx = summary ? summary.indexOf('. ') : -1;
-  const cutoff = dotIdx !== -1 && dotIdx < 180 ? dotIdx + 1 : 150;
-  const summaryPreview = summary ? summary.slice(0, cutoff) : '';
-  const summaryNeedsTruncation = summary ? summary.length > summaryPreview.length : false;
-
   return (
     <div className="max-w-[680px] mx-auto px-6 py-16">
-
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div>
           <h1
@@ -406,171 +204,133 @@ const IdentityPage: React.FC = () => {
         A living portrait, drawn from your data
       </p>
 
-      {/* ── Chapter 1: SOUL ── */}
       {summary && (
-        <>
-          <SectionLabel label="Soul" />
-          {profile?.archetype && (
-            <h2
-              className="mb-4"
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: '22px',
-                fontWeight: 400,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {profile.archetype}
-            </h2>
-          )}
-          <div>
-            <p className="text-[15px] leading-relaxed max-w-prose" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {toSecondPerson(summaryExpanded ? summary : summaryPreview)}
-            </p>
-            {summaryNeedsTruncation && (
-              <button
-                onClick={() => setSummaryExpanded(!summaryExpanded)}
-                className="mt-2 text-xs"
-                style={{ color: '#10b77f' }}
-              >
-                {summaryExpanded ? 'Show less' : 'Read more'}
-              </button>
-            )}
-          </div>
-          {uniquenessMarkers.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-5">
-              {uniquenessMarkers.map((marker, i) => (
-                <span
-                  key={i}
-                  className="text-[12px] px-3 py-2 rounded-[46px]"
-                  style={{
-                    color: 'rgba(255,255,255,0.6)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  {marker}
-                </span>
-              ))}
-            </div>
-          )}
-          <Divider />
-        </>
+        <SoulChapter
+          summary={summary}
+          archetype={profile?.archetype ?? null}
+          uniquenessMarkers={uniquenessMarkers}
+        />
       )}
 
-      {/* ── Chapter 2: BY THE NUMBERS ── */}
+      {oceanCards && <ByTheNumbersChapter oceanCards={oceanCards} />}
+
       {oceanCards && (
-        <>
-          <SectionLabel label="By the Numbers" />
-          <div className="grid grid-cols-2 gap-6">
-            {[
-              { value: oceanCards.find(o => o.trait === 'Openness')?.value ?? '--', unit: '%', label: 'Openness' },
-              { value: oceanCards.find(o => o.trait === 'Conscientiousness')?.value ?? '--', unit: '%', label: 'Conscientiousness' },
-              { value: oceanCards.find(o => o.trait === 'Extraversion')?.value ?? '--', unit: '%', label: 'Extraversion' },
-              { value: oceanCards.find(o => o.trait === 'Agreeableness')?.value ?? '--', unit: '%', label: 'Agreeableness' },
-            ].map((stat, i) => (
-              <div key={i}>
-                <span className="text-[28px] font-medium" style={{ color: 'var(--foreground)' }}>
-                  {stat.value}
-                  <span className="text-[11px] ml-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{stat.unit}</span>
-                </span>
-                <div className="text-[13px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-          <Divider />
-        </>
+        <PersonalityChapter
+          oceanCards={oceanCards}
+          temperature={pp?.temperature ?? null}
+          topP={pp?.top_p ?? null}
+          confidence={pp?.confidence ?? null}
+        />
       )}
 
-      {/* ── Chapter 3: PERSONALITY (OCEAN bars) ── */}
-      {oceanCards && (
-        <>
-          <SectionLabel label="Personality" color="#c17e2c" />
-          <div className="space-y-3">
-            {oceanCards.map((oc) => (
-              <OceanBar key={oc.trait} trait={oc.trait} value={oc.value} />
-            ))}
-          </div>
-          {pp?.temperature != null && (
-            <p className="text-[11px] mt-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              temp {pp.temperature.toFixed(2)} · top_p {pp.top_p.toFixed(3)} · confidence {Math.round((pp.confidence ?? 0) * 100)}%
-            </p>
-          )}
-          <Divider />
-        </>
-      )}
+      <ExpertDomainsChapter expertInsights={expertInsights} />
 
-      {/* ── Chapters 4-8: Expert domains ── */}
-      {EXPERT_SECTIONS.map((section) => {
-        const rawBullets = expertInsights[section.key] ?? [];
-        const bullets = cleanBullets(rawBullets);
-        if (bullets.length === 0) return null;
-
-        return (
-          <React.Fragment key={section.key}>
-            <SectionLabel label={section.label} color={section.dotColor} />
-            <div className="space-y-3">
-              {bullets.map((bullet, i) => (
-                <p
-                  key={i}
-                  className="text-[15px] leading-relaxed max-w-prose"
-                  style={{ color: 'rgba(255,255,255,0.5)' }}
-                >
-                  {toSecondPerson(bullet)}
-                </p>
-              ))}
-            </div>
-            <Divider />
-          </React.Fragment>
-        );
-      })}
-
-      {/* ── Chapter: CULTURAL TASTE — Music genres ── */}
       {musicGenres.length > 0 && (
-        <>
-          <SectionLabel label="Music Signature" color="#c1452c" />
-          <div className="flex flex-wrap gap-2 mb-3">
-            {musicGenres.map((genre, i) => (
-              <span
-                key={i}
-                className="text-[12px] px-3 py-1.5 rounded-full"
-                style={{
-                  color: 'rgba(255,255,255,0.6)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-          {listeningPattern && (
-            <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              {listeningPattern}
-            </p>
-          )}
-          <Divider />
-        </>
+        <MusicSignatureChapter genres={musicGenres} listeningPattern={listeningPattern} />
       )}
 
-      {/* ── Chapter: WHAT'S NEXT ── */}
-      <SectionLabel label="What's Next" />
-      <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
-        Your twin is learning. Connect more platforms to deepen your portrait.
+      <WhatsNextChapter />
+    </div>
+  );
+};
+
+// ── Loading skeleton ─────────────────────────────────────────────────────
+
+const LoadingSkeleton: React.FC = () => (
+  <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="animate-pulse">
+      <div className="h-8 w-56 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="w-10 h-[2px] mt-2 mb-12" style={{ background: 'rgba(255,255,255,0.06)' }} />
+    </div>
+    <div className="animate-pulse mb-10">
+      <div className="h-3 w-12 rounded mb-4" style={{ background: 'rgba(16,183,127,0.15)' }} />
+      <div className="h-6 w-48 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="space-y-2 mb-5">
+        <div className="h-4 w-full rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-4 w-4/5 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      </div>
+      <div className="flex gap-2">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="h-8 w-28 rounded-[46px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        ))}
+      </div>
+    </div>
+    <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+    <div className="animate-pulse mb-10">
+      <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(16,183,127,0.15)' }} />
+      <div className="grid grid-cols-2 gap-6">
+        {[1,2,3,4].map(i => (
+          <div key={i}>
+            <div className="h-8 w-16 rounded mb-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <div className="h-3 w-24 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+    <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+    <div className="animate-pulse mb-10">
+      <div className="h-3 w-20 rounded mb-4" style={{ background: 'rgba(193,126,44,0.3)' }} />
+      <div className="space-y-3">
+        {[1,2,3,4,5].map(i => (
+          <div key={i} className="flex items-center gap-3">
+            <div className="h-3 w-36 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <div className="h-3 w-10 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+    <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+    {[1,2,3].map(i => (
+      <div key={i} className="animate-pulse mb-10">
+        <div className="h-3 w-20 rounded mb-4" style={{ background: 'rgba(255,255,255,0.08)' }} />
+        <div className="space-y-2">
+          <div className="h-4 w-full rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          <div className="h-4 w-5/6 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          <div className="h-4 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+        </div>
+        {i < 3 && <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />}
+      </div>
+    ))}
+  </div>
+);
+
+// ── Empty state ──────────────────────────────────────────────────────────
+
+const EmptyState: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="max-w-xl mx-auto px-6 py-20 text-center">
+      <Fingerprint className="w-8 h-8 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.15)' }} />
+      <h2
+        className="text-xl mb-3"
+        style={{
+          fontFamily: "'Instrument Serif', Georgia, serif",
+          fontStyle: 'italic',
+          color: 'var(--foreground)',
+          opacity: 0.8,
+        }}
+      >
+        I'm still figuring you out
+      </h2>
+      <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+        Connect Spotify, Calendar, or YouTube and I'll build a real picture of you. Usually takes a couple of days.
       </p>
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
           onClick={() => navigate('/get-started')}
-          className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
+          className="px-5 py-2 rounded-[100px] text-sm font-medium"
           style={{ border: '1px solid #10b77f', color: '#10b77f' }}
         >
-          Connect Platforms
+          Connect platforms
         </button>
         <button
           onClick={() => navigate('/interview')}
-          className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
-          style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
+          className="px-5 py-2 rounded-[100px] text-sm font-medium"
+          style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
         >
-          Redo Interview
+          Complete your interview
         </button>
       </div>
     </div>
