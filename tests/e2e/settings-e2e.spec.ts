@@ -13,11 +13,19 @@ import {
   screenshot,
   waitForPageLoad,
   criticalErrors,
+  isBackendHealthy,
   BASE_URL,
 } from './helpers';
 
 test.describe('Settings E2E', () => {
   test('settings page loads with user data', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) {
+      console.log('[Settings] ⚠ Backend DB unavailable — skipping');
+      test.skip();
+      return;
+    }
+
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
     await page.goto(`${BASE_URL}/settings`, { waitUntil: 'domcontentloaded' });
@@ -61,6 +69,9 @@ test.describe('Settings E2E', () => {
   });
 
   test('connected platforms are displayed', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Settings] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
     await page.goto(`${BASE_URL}/settings`, { waitUntil: 'domcontentloaded' });
@@ -99,6 +110,9 @@ test.describe('Settings E2E', () => {
   });
 
   test('no stuck loading states after 5 seconds', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Settings] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     const errors = collectConsoleErrors(page);
     const notFounds = collect404s(page);
     await injectAuth(page);
@@ -136,6 +150,9 @@ test.describe('Settings E2E', () => {
   });
 
   test('settings tabs are interactive', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Settings] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     await injectAuth(page);
     await page.goto(`${BASE_URL}/settings`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);

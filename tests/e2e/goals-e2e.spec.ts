@@ -13,11 +13,19 @@ import {
   screenshot,
   waitForPageLoad,
   criticalErrors,
+  isBackendHealthy,
   BASE_URL,
 } from './helpers';
 
 test.describe('Goals E2E', () => {
   test('goals page loads and shows content or empty state', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) {
+      console.log('[Goals] ⚠ Backend DB unavailable — skipping content test');
+      test.skip();
+      return;
+    }
+
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
     await page.goto(`${BASE_URL}/goals`, { waitUntil: 'domcontentloaded' });
@@ -105,6 +113,9 @@ test.describe('Goals E2E', () => {
   });
 
   test('goals page has navigation back to dashboard', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Goals] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     await injectAuth(page);
     await page.goto(`${BASE_URL}/goals`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);
