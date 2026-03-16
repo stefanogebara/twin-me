@@ -318,7 +318,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
     if (connection.refresh_token) {
       try {
         const refreshToken = decryptToken(connection.refresh_token);
-        log.info("Attempting to refresh token", { provider });
+        log.debug("Attempting to refresh token", { provider });
 
         let newTokens;
         if (provider === 'spotify') {
@@ -453,7 +453,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       }
     } else {
       // No refresh token available, need full re-authentication
-      log.info("No refresh token available, requiring re-auth", { provider });
+      log.debug("No refresh token available, requiring re-auth", { provider });
 
       const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
       const state = encryptState({
@@ -634,7 +634,7 @@ router.post('/callback', async (req, res) => {
   try {
     const { code, state } = req.body;
 
-    log.info("Starting OAuth callback processing");
+    log.debug("Starting OAuth callback processing");
     log.debug("Callback params", { hasCode: !!code });
     log.debug("Callback state", { hasState: !!state });
 
@@ -674,7 +674,7 @@ router.post('/callback', async (req, res) => {
     // Route health platforms to health connectors
     const healthPlatforms = ['oura'];
     if (healthPlatforms.includes(configKey)) {
-      log.info("Routing to health connectors", { configKey });
+      log.debug("Routing to health connectors", { configKey });
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
       const healthUrl = `${baseUrl}/api/health/oauth/callback/${configKey}`;
 
@@ -692,7 +692,7 @@ router.post('/callback', async (req, res) => {
           return res.status(healthResponse.status).json(healthData);
         }
 
-        log.info("Health callback successful", { configKey });
+        log.debug("Health callback successful", { configKey });
         return res.json(healthData);
       } catch (healthError) {
         log.error("Health callback error", { error: healthError });
@@ -746,7 +746,7 @@ router.post('/callback', async (req, res) => {
     const redirectUri = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
     let tokenResponse;
 
-    log.info("Starting token exchange", { provider });
+    log.debug("Starting token exchange", { provider });
     log.debug("Token exchange code", { provider, codeLength: code.length });
     log.debug("Token exchange redirect", { provider, redirectUri });
     log.debug("Token exchange URL", { provider, tokenUrl: config.tokenUrl });
@@ -1105,7 +1105,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       // AUTOMATIC TOKEN REFRESH: Attempt to refresh expired tokens
       // Skip for Nango-managed connections (Nango handles refresh automatically)
       if (isConnected && isTokenExpired && !isNangoManaged) {
-        log.info("Attempting automatic token refresh", { platform: connection.platform });
+        log.debug("Attempting automatic token refresh", { platform: connection.platform });
         try {
           await ensureFreshToken(userUuid, connection.platform);
           log.info("Token automatically refreshed", { platform: connection.platform });
@@ -1130,7 +1130,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       if (connection.status === 'expired' || connection.status === 'token_expired') {
         status = 'token_expired';
         isTokenExpired = true;  // Force token expired flag when status indicates expired
-        log.info("Platform token expired", { platform: connection.platform, status: connection.status });
+        log.debug("Platform token expired", { platform: connection.platform, status: connection.status });
       }
       // Override with 'token_expired' if:
       // 1. The token is actually expired NOW

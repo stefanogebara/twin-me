@@ -93,7 +93,7 @@ const IdentityPage: React.FC = () => {
     enabled: !!user && !isDemoMode,
   });
 
-  const { data, isLoading, error } = useQuery<{ success: boolean; data: IdentityData }>({
+  const { data, isLoading, error, refetch } = useQuery<{ success: boolean; data: IdentityData }>({
     queryKey: ['twin-identity'],
     queryFn: async () => {
       const res = await authFetch('/twin/identity');
@@ -113,13 +113,22 @@ const IdentityPage: React.FC = () => {
     return (
       <div className="max-w-2xl mx-auto px-6 py-16">
         <div
-          className="flex items-center gap-3 px-5 py-4 rounded-[20px]"
+          className="flex flex-col items-start gap-3 px-5 py-4 rounded-[20px]"
           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}
         >
-          <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
-          <span className="text-sm font-medium" style={{ color: '#EF4444' }}>
-            {(error as Error).message || 'Could not load identity data.'}
-          </span>
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
+            <span className="text-sm font-medium" style={{ color: '#EF4444' }}>
+              {(error as Error).message || 'Could not load identity data.'}
+            </span>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="text-sm font-medium px-4 py-2 rounded-[100px] transition-opacity hover:opacity-80"
+            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--background, #fdfcfb)' }}
+          >
+            Try again
+          </button>
         </div>
       </div>
     );

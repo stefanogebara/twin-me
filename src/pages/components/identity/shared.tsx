@@ -5,12 +5,12 @@ export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ labe
     {color !== '#10b77f' && (
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
     )}
-    <span
+    <h2
       className="text-[11px] font-medium tracking-widest uppercase"
       style={{ color, fontFamily: 'Inter, sans-serif' }}
     >
       {label}
-    </span>
+    </h2>
   </div>
 );
 
