@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Twin Me - Digital Life</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>TwinMe - Digital Life</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -39,7 +39,7 @@
     .logo {
       width: 32px;
       height: 32px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: linear-gradient(135deg, #ff8400, #c17e2c);
       border-radius: 8px;
       display: flex;
       align-items: center;
@@ -48,8 +48,9 @@
     }
 
     .brand {
+      font-family: 'Instrument Serif', serif;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 400;
       color: #e5e5e0;
     }
 
@@ -143,7 +144,7 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: linear-gradient(135deg, #ff8400, #c17e2c);
       color: white;
     }
 
@@ -159,19 +160,19 @@
     }
 
     .btn-secondary:hover {
-      border-color: rgba(99, 102, 241, 0.4);
+      border-color: rgba(255, 132, 0, 0.4);
       color: #e5e5e0;
     }
 
     .btn-accent {
-      background: rgba(99, 102, 241, 0.15);
-      color: #a78bfa;
-      border: 1px solid rgba(99, 102, 241, 0.25);
+      background: rgba(255, 132, 0, 0.15);
+      color: #ff8400;
+      border: 1px solid rgba(255, 132, 0, 0.25);
     }
 
     .btn-accent:hover {
-      background: rgba(99, 102, 241, 0.25);
-      color: #c4b5fd;
+      background: rgba(255, 132, 0, 0.25);
+      color: #ffa940;
     }
 
     .btn-sm {
@@ -264,7 +265,7 @@
 
     .domain-bar {
       height: 3px;
-      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      background: linear-gradient(90deg, #ff8400, #c17e2c);
       border-radius: 2px;
     }
 
@@ -280,8 +281,8 @@
 
     /* History import banner */
     .import-banner {
-      background: rgba(99, 102, 241, 0.08);
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      background: rgba(255, 132, 0, 0.08);
+      border: 1px solid rgba(255, 132, 0, 0.2);
       border-radius: 10px;
       padding: 12px 14px;
       display: flex;
@@ -297,7 +298,7 @@
     }
 
     .import-banner-text strong {
-      color: #a78bfa;
+      color: #ff8400;
       display: block;
       margin-bottom: 2px;
       font-size: 12px;
@@ -325,7 +326,7 @@
 
     .footer-link {
       font-size: 11px;
-      color: #8b5cf6;
+      color: #ff8400;
       cursor: pointer;
       border: none;
       background: none;
@@ -334,7 +335,7 @@
     }
 
     .footer-link:hover {
-      color: #a78bfa;
+      color: #ffa940;
     }
 
     /* Input */
@@ -357,7 +358,7 @@
     }
 
     input[type="text"]:focus {
-      border-color: rgba(99, 102, 241, 0.5);
+      border-color: rgba(255, 132, 0, 0.5);
     }
 
     /* Syncing animation */
@@ -388,10 +389,10 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <div class="logo">&#127760;</div>
+      <div class="logo">&#10022;</div>
       <div>
-        <div class="brand">Twin Me</div>
-        <div class="brand-sub">Soul Signature Collector</div>
+        <div class="brand">TwinMe</div>
+        <div class="brand-sub">Universal Digital Twin</div>
       </div>
     </div>
     <div class="status-badge disconnected" id="status-badge">
@@ -405,9 +406,9 @@
     <!-- Setup (shown when not connected) -->
     <div id="setup-section">
       <div class="setup-card">
-        <div class="icon">&#127760;</div>
-        <h3>Connect to Twin Me</h3>
-        <p>Sign into Twin Me first, then click below to auto-detect your account.</p>
+        <div class="icon">&#10022;</div>
+        <h3>Connect to TwinMe</h3>
+        <p>Sign into TwinMe first, then click below to auto-detect your account.</p>
         <button class="btn btn-primary" id="auto-detect-btn">Detect My Account</button>
         <div id="detect-status" class="hidden" style="margin-top:10px;font-size:12px;color:rgba(193,192,182,0.5);"></div>
         <div id="manual-fallback" class="hidden" style="margin-top:12px;">
@@ -420,6 +421,22 @@
 
     <!-- Connected View -->
     <div id="connected-section" class="hidden">
+
+      <!-- Tracking Toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(45,45,41,0.3);border-radius:8px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:14px;">&#128065;&#65039;</span>
+          <div>
+            <div style="font-size:12px;font-weight:500;color:#e5e5e0;">Universal Tracking</div>
+            <div style="font-size:10px;color:rgba(193,192,182,0.4);">Browsing patterns &amp; interests</div>
+          </div>
+        </div>
+        <label style="position:relative;width:36px;height:20px;cursor:pointer;">
+          <input type="checkbox" id="tracking-toggle" checked style="display:none;">
+          <span id="toggle-track" style="position:absolute;inset:0;background:rgba(255,132,0,0.3);border-radius:10px;transition:0.2s;"></span>
+          <span id="toggle-thumb" style="position:absolute;top:2px;left:2px;width:16px;height:16px;background:#ff8400;border-radius:50%;transition:0.2s;"></span>
+        </label>
+      </div>
 
       <!-- Today's stats -->
       <div>
@@ -465,7 +482,7 @@
       <!-- Actions -->
       <div class="actions">
         <button class="btn btn-secondary btn-sm" id="sync-btn">Sync Now</button>
-        <button class="btn btn-primary btn-sm" id="dashboard-btn">Open Twin Me</button>
+        <button class="btn btn-primary btn-sm" id="dashboard-btn">Open TwinMe</button>
       </div>
     </div>
   </div>

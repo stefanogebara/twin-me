@@ -48,6 +48,17 @@ function mapEventType(eventType, platform = '') {
     'page_visit': 'extension_page_visit',
     'article_read': 'extension_article_read',
     'web_video_watch': 'extension_web_video',
+    // Soul observer engagement events
+    'page_summary': 'extension_page_visit',
+    'reading_completion': 'extension_article_read',
+    'reading_analysis': 'extension_article_read',
+    'page_load': 'extension_page_visit',
+    // Tab pattern aggregation (15-min intervals)
+    'tab_pattern': 'extension_page_visit',
+    // History import (one-time bootstrap)
+    'history_import': 'extension_page_visit',
+    // On-demand page analysis
+    'page_analysis': 'extension_page_visit',
     // Pass-throughs: already valid DB storage values
     'extension_page_visit': 'extension_page_visit',
     'extension_article_read': 'extension_article_read',
@@ -177,9 +188,14 @@ router.post('/batch', authenticateUser, async (req, res) => {
 
     // B1: Route web tab visits → memory stream via ingestWebObservations (non-blocking)
     // This converts dwell-time events into NL observations stored in user_memories.
+    const WEB_INGEST_TYPES = new Set([
+      'tab_visit', 'page_visit', 'page_summary', 'page_load', 'history_import', 'page_analysis',
+      'reading_completion', 'reading_analysis', 'search_query',
+      'extension_page_visit', 'extension_article_read', 'extension_search_query', 'extension_web_video',
+    ]);
     const webEvents = events.filter(e =>
       (e.platform === 'web' || platform === 'web') &&
-      ['tab_visit', 'extension_page_visit', 'extension_article_read', 'extension_search_query', 'extension_web_video'].includes(e.data_type || e.eventType || '')
+      WEB_INGEST_TYPES.has(e.data_type || e.eventType || '')
     );
     if (webEvents.length > 0) {
       // Normalise event shape for ingestWebObservations (expects data_type + raw_data)

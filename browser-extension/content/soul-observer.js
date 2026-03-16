@@ -82,6 +82,13 @@ const SEARCH_ENGINE_PARAMS = {
   'www.stackoverflow.com': { param: 'q', path: '/search' },
   'github.com': { param: 'q', path: '/search' },
   'en.wikipedia.org': { param: 'search', path: '/w/index.php' },
+  'search.brave.com': { param: 'q', path: '/search' },
+  'www.perplexity.ai': { param: 'q', path: '/search' },
+  'perplexity.ai': { param: 'q', path: '/search' },
+  'kagi.com': { param: 'q', path: '/search' },
+  'www.ecosia.org': { param: 'q', path: '/search' },
+  'ecosia.org': { param: 'q', path: '/search' },
+  'search.yahoo.com': { param: 'p', path: '/search' },
 };
 
 // Generic search param names (fallback for unknown sites)
@@ -292,14 +299,24 @@ function detectPageContentType() {
   return 'other';
 }
 
-// Check if observer mode is enabled
-chrome.storage.local.get(['observerMode'], (result) => {
-  observerEnabled = result.observerMode || false;
-  if (observerEnabled) {
-    console.log('[Soul Observer] Observer mode ENABLED');
+// Auto-initialize - extension injection = user consent
+// Users can disable via popup toggle which sets trackingEnabled=false
+chrome.storage.local.get(['trackingEnabled'], (result) => {
+  // Default to true if not explicitly set to false
+  const enabled = result.trackingEnabled !== false;
+  if (enabled) {
+    console.log('[Soul Observer] Universal tracking ACTIVE');
+    observerEnabled = true;
     initializeObserver();
+    observerInitialized = true;
+    // Run reading analysis after page settles
+    setTimeout(() => {
+      if (isArticleContent()) {
+        analyzeReadingPatterns();
+      }
+    }, 2000);
   } else {
-    console.log('[Soul Observer] Observer mode DISABLED');
+    console.log('[Soul Observer] Tracking disabled by user');
   }
 });
 
@@ -484,9 +501,10 @@ function updateActivityTime() {
  * Listen for observer mode toggle
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'OBSERVER_MODE_CHANGED') {
-    observerEnabled = message.enabled;
-    if (observerEnabled && !observerInitialized) {
+  if (message.type === 'OBSERVER_MODE_CHANGED' || message.type === 'TRACKING_TOGGLE') {
+    const enabled = message.enabled !== undefined ? message.enabled : message.trackingEnabled;
+    observerEnabled = enabled;
+    if (enabled && !observerInitialized) {
       initializeObserver();
       observerInitialized = true;
     }
@@ -809,19 +827,6 @@ function classifyReadingBehavior(wpm, timeRatio, scrollEngagement) {
   return 'normal_reading';
 }
 
-// Initialize reading analysis when observer starts
-const originalInitializeObserver = initializeObserver;
-function initializeObserver() {
-  originalInitializeObserver();
-
-  // Run reading analysis on page load if it's an article
-  setTimeout(() => {
-    if (isArticleContent()) {
-      analyzeReadingPatterns();
-    }
-  }, 2000); // Wait 2 seconds for page to fully load
-}
-
 // Enhance page summary with reading pattern data and web event emission.
 // We hook into the existing sendPageSummary by patching it via
 // visibilitychange/beforeunload listeners that fire our enhanced logic.
@@ -933,6 +938,20 @@ function emitWebBrowsingEvent() {
   const contentText = extractArticleContent();
   const topics = contentText.length > 100 ? extractTopics(contentText).slice(0, 10) : [];
 
+  // Add content summary for engaged reading (> 15 seconds)
+  let contentSummary = null;
+  if (timeOnPage > 15 && contentText.length > 200) {
+    const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
+      .map(h => h.textContent.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+    contentSummary = {
+      excerpt: contentText.substring(0, 500).trim(),
+      headings,
+      ogDescription: metadata.ogDescription || metadata.description || null
+    };
+  }
+
   const event = {
     eventType,
     url: sanitizeUrlForEvent(currentUrl),
@@ -944,7 +963,8 @@ function emitWebBrowsingEvent() {
       description: (metadata.ogDescription || metadata.description || '').substring(0, 300),
       author: metadata.author || metadata.articleAuthor || null,
       contentType,
-      topics
+      topics,
+      contentSummary
     },
     engagement: {
       timeOnPage,

@@ -2729,7 +2729,9 @@ export async function ingestWebObservations(userId, events) {
       if (e.raw_data?.searchQuery) searches.push(sanitizeExternal(e.raw_data.searchQuery, 80));
       continue;
     }
-    if (!['extension_page_visit', 'extension_article_read', 'extension_web_video', 'tab_visit'].includes(e.data_type || '')) continue;
+    if (!['extension_page_visit', 'extension_article_read', 'extension_web_video', 'tab_visit',
+           'page_visit', 'page_summary', 'page_load', 'reading_completion', 'reading_analysis',
+           'history_import', 'page_analysis'].includes(e.data_type || '')) continue;
 
     const raw = e.raw_data || e;
     const domain = raw.domain || extractDomainFromUrl(raw.url || '');
