@@ -50,7 +50,7 @@ export function PlatformsList({ platforms }: PlatformsListProps) {
 
   return (
     <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
-      <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</p>
+      <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</h2>
       <div>
         {platforms.map((p, i) => (
           <div
