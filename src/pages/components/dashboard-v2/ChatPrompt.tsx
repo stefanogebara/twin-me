@@ -61,6 +61,7 @@ export function ChatPrompt() {
           />
           <button
             type="submit"
+            aria-label="Send message"
             className="flex items-center justify-center border-none cursor-pointer flex-shrink-0"
             style={{
               width: 28,
