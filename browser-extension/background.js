@@ -107,6 +107,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       importBrowsingHistory().then((count) => sendResponse({ success: true, count }));
       return true; // async response
 
+    case 'SET_TRACKING':
+      chrome.storage.local.set({ trackingEnabled: message.enabled });
+      // Notify all content scripts
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, { type: 'SET_TRACKING', enabled: message.enabled }).catch(() => {});
+        });
+      });
+      sendResponse({ success: true });
+      break;
+
     case 'MANUAL_SYNC':
       syncCollectedData().then(() => sendResponse({ success: true }));
       return true;

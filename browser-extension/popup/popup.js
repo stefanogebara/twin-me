@@ -1,12 +1,15 @@
 /**
- * Twin Me - Soul Signature Collector
- * Popup UI Logic v2
+ * TwinMe - Universal Digital Twin
+ * Popup UI Logic v3
  */
 
 let userId = null;
 
 const APP_URL = 'https://twin-ai-learn.vercel.app';
 const APP_ORIGINS = [APP_URL];
+
+// Guard for chrome extension APIs (graceful degradation outside extension context)
+const isExtensionContext = typeof chrome !== 'undefined' && chrome.storage && chrome.runtime;
 
 // DOM refs
 const statusBadge = document.getElementById('status-badge');
@@ -67,6 +70,31 @@ function setupEventListeners() {
   connectBtn.addEventListener('click', handleConnect);
   autoDetectBtn.addEventListener('click', autoDetectUser);
 
+  // Tracking toggle
+  const trackingToggle = document.getElementById('tracking-toggle');
+  const toggleTrack = document.getElementById('toggle-track');
+  const toggleThumb = document.getElementById('toggle-thumb');
+  if (trackingToggle && isExtensionContext) {
+    // Load saved state
+    chrome.storage.local.get(['trackingEnabled'], (result) => {
+      const enabled = result.trackingEnabled !== false; // default on
+      trackingToggle.checked = enabled;
+      updateToggleVisual(enabled);
+    });
+    trackingToggle.addEventListener('change', () => {
+      const enabled = trackingToggle.checked;
+      chrome.storage.local.set({ trackingEnabled: enabled });
+      chrome.runtime.sendMessage({ type: 'SET_TRACKING', enabled });
+      updateToggleVisual(enabled);
+    });
+  }
+  function updateToggleVisual(enabled) {
+    if (!toggleTrack || !toggleThumb) return;
+    toggleTrack.style.background = enabled ? 'rgba(255,132,0,0.3)' : 'rgba(193,192,182,0.2)';
+    toggleThumb.style.background = enabled ? '#ff8400' : '#86807b';
+    toggleThumb.style.left = enabled ? '18px' : '2px';
+  }
+
   analyzeBtn.addEventListener('click', analyzeCurrentPage);
 
   importBtn.addEventListener('click', async () => {
@@ -101,15 +129,22 @@ function setupEventListeners() {
   });
 
   dashboardBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: APP_URL + '/brain' });
+    chrome.tabs.create({ url: APP_URL + '/dashboard' });
   });
 
   settingsBtn.addEventListener('click', () => {
+    // Only toggle in connected mode; in disconnected, open the app
+    if (!userId) {
+      window.open(APP_URL, '_blank');
+      return;
+    }
     if (setupSection.classList.contains('hidden')) {
       setupSection.classList.remove('hidden');
+      connectedSection.classList.add('hidden');
       settingsBtn.textContent = 'Done';
     } else {
       setupSection.classList.add('hidden');
+      connectedSection.classList.remove('hidden');
       settingsBtn.textContent = 'Settings';
     }
   });
@@ -134,7 +169,7 @@ async function analyzeCurrentPage() {
     });
 
     // Show optimistic result (background will receive the full message)
-    analyzeResult.textContent = `Analyzing "${tab.title || tab.url}" — data sent to your Twin Me profile.`;
+    analyzeResult.textContent = `Analyzing "${tab.title || tab.url}" — data sent to your TwinMe profile.`;
     analyzeResult.classList.remove('hidden');
 
     setTimeout(() => analyzeResult.classList.add('hidden'), 4000);
@@ -190,14 +225,14 @@ async function autoDetectUser() {
   autoDetectBtn.textContent = 'Detecting...';
   autoDetectBtn.disabled = true;
   detectStatus.classList.remove('hidden');
-  detectStatus.textContent = 'Checking Twin Me app...';
+  detectStatus.textContent = 'Checking TwinMe app...';
 
   try {
     const tabs = await chrome.tabs.query({});
     let appTab = tabs.find(t => t.url && APP_ORIGINS.some(o => t.url.startsWith(o)));
 
     if (!appTab) {
-      detectStatus.textContent = 'Opening Twin Me to check login...';
+      detectStatus.textContent = 'Opening TwinMe to check login...';
       appTab = await chrome.tabs.create({ url: APP_URL, active: false });
       await new Promise(r => setTimeout(r, 2000));
     }
@@ -233,7 +268,7 @@ async function autoDetectUser() {
         if (r?.success) setTimeout(() => showConnectedState(), 500);
       });
     } else {
-      detectStatus.textContent = 'Not logged in. Sign into Twin Me first, or enter ID manually.';
+      detectStatus.textContent = 'Not logged in. Sign into TwinMe first, or enter ID manually.';
       detectStatus.style.color = '#f87171';
       manualFallback.classList.remove('hidden');
     }
@@ -384,5 +419,10 @@ function formatTimeAgo(dateStr) {
 // Boot
 // ─────────────────────────────────────────────
 
-initialize();
-setInterval(updateStats, 5000);
+if (isExtensionContext) {
+  initialize();
+  setInterval(updateStats, 5000);
+} else {
+  // Outside extension context — show UI without chrome APIs
+  setupEventListeners();
+}
