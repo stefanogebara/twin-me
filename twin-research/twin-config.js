@@ -73,7 +73,7 @@ export const MMR_LAMBDA = 0.5;
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.25;
+export const TYPE_DIVERSITY_WEIGHT = 0.35;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.

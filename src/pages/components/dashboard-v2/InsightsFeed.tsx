@@ -55,12 +55,12 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
 
   return (
     <section className="mb-12">
-      <p
+      <h2
         className="text-[11px] uppercase tracking-[0.15em] font-medium mb-4"
         style={{ color: 'var(--text-narrative-muted)' }}
       >
         More from your twin
-      </p>
+      </h2>
 
       <div className="flex flex-col gap-3">
         {feedInsights.map(insight => (

@@ -37,9 +37,9 @@ export function NextUpEvents({ events }: NextUpEventsProps) {
 
   return (
     <section className="mb-12">
-      <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
+      <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
         NEXT UP
-      </p>
+      </h2>
       <div>
         {visible.map((evt, i) => (
           <div

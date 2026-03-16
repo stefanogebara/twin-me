@@ -445,7 +445,7 @@ const Index = () => {
           >
             {[
               { value: '5+', label: 'Platform integrations', sub: 'And growing' },
-              { value: '1,536d', label: 'Vector embeddings', sub: 'Per memory' },
+              { value: '1,536-dim', label: 'Vector embeddings', sub: 'Per memory' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (
               <div key={i} className="glass-stat-standalone">

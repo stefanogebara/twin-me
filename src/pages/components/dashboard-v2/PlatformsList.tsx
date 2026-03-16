@@ -36,7 +36,7 @@ export function PlatformsList({ platforms }: PlatformsListProps) {
   if (platforms.length === 0) {
     return (
       <section className="mb-12">
-        <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</p>
+        <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</h2>
         <Link
           to="/get-started"
           className="text-sm transition-colors duration-150 hover:brightness-150"

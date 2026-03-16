@@ -112,15 +112,15 @@ const Settings = () => {
 
   const error = statusError?.message || null;
 
-  // Fetch memory count
+  // Fetch memory count from dashboard context (more reliable than /chat/context)
   useEffect(() => {
     const fetchMemoryCount = async () => {
       if (!user?.id) return;
       try {
-        const res = await fetch(`${API_URL}/chat/context`, { headers: getAuthHeaders() });
+        const res = await fetch(`${API_URL}/dashboard/context`, { headers: getAuthHeaders() });
         if (res.ok) {
           const data = await res.json();
-          setMemoryCount(data.memoryStats?.total ?? null);
+          setMemoryCount(data.twinStats?.totalMemories ?? null);
         }
       } catch { /* non-fatal */ }
     };

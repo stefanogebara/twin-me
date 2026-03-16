@@ -19,9 +19,9 @@ export function HeroInsight({ body, source, insightId }: HeroInsightProps) {
 
   return (
     <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
-      <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
+      <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
         YOUR TWIN NOTICED
-      </p>
+      </h2>
       <p
         className="leading-relaxed"
         style={{ fontSize: '18px', color: 'var(--foreground)' }}
