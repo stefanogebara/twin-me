@@ -198,11 +198,21 @@ router.post('/batch', authenticateUser, async (req, res) => {
       WEB_INGEST_TYPES.has(e.data_type || e.eventType || '')
     );
     if (webEvents.length > 0) {
-      // Normalise event shape for ingestWebObservations (expects data_type + raw_data)
-      const normalised = webEvents.map(e => ({
-        data_type: e.data_type || mapEventType(e.eventType || 'page_visit', 'web'),
-        raw_data: e.raw_data || e,
-      }));
+      // Normalise event shape for ingestWebObservations (expects data_type + raw_data with flat fields)
+      const normalised = webEvents.map(e => {
+        // Extension sends {eventType, platform, data: {url, domain, timeOnPage, ...}}
+        // ingestWebObservations expects {data_type, raw_data: {url, domain, duration_seconds, title, ...}}
+        const inner = e.raw_data || e.data || e;
+        const timeMs = inner.timeOnPage || inner.duration || 0;
+        return {
+          data_type: e.data_type || mapEventType(e.eventType || 'page_visit', 'web'),
+          raw_data: {
+            ...inner,
+            duration_seconds: inner.duration_seconds || inner.durationSeconds || Math.round(timeMs / 1000),
+            timestamp: e.timestamp || new Date().toISOString(),
+          },
+        };
+      });
       ingestWebObservations(userId, normalised).catch(err =>
         log.warn('Web observation ingestion failed (non-fatal):', err.message)
       );
