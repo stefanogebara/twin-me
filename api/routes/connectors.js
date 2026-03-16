@@ -387,8 +387,9 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
 
         log.info("Token refreshed successfully", { provider });
 
-        // Invalidate cache
+        // Invalidate cache (both Redis and in-memory)
         await invalidatePlatformStatusCache(userId);
+        clearStatusMemoryCache(userId);
 
         return res.json({
           success: true,
@@ -923,8 +924,9 @@ router.post('/callback', async (req, res) => {
 
       log.info("Connection stored", { platformKey, userId });
 
-      // Invalidate cached platform status for this user
+      // Invalidate cached platform status for this user (both Redis and in-memory)
       await invalidatePlatformStatusCache(userUuid);
+      clearStatusMemoryCache(userUuid);
 
       // Trigger background extraction using Bull queue (if available)
       // Falls back to direct execution if queue not available
@@ -1108,8 +1110,9 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
           await ensureFreshToken(userUuid, connection.platform);
           log.info("Token automatically refreshed", { platform: connection.platform });
           isTokenExpired = false;  // Token is now valid
-          // Invalidate cache so next request gets fresh status
+          // Invalidate cache so next request gets fresh status (both Redis and in-memory)
           await invalidatePlatformStatusCache(userUuid);
+          clearStatusMemoryCache(userUuid);
         } catch (refreshError) {
           log.warn("Auto-refresh failed", { platform: connection.platform, error: refreshError });
           // Keep isTokenExpired = true, user will need to reconnect
@@ -1245,8 +1248,9 @@ router.post('/reset/:userId', authenticateUser, async (req, res) => {
     const deletedCount = data?.length || 0;
     log.info("Deactivated connections", { deletedCount, userId });
 
-    // Invalidate cached platform status for this user
+    // Invalidate cached platform status for this user (both Redis and in-memory)
     await invalidatePlatformStatusCache(userUuid);
+    clearStatusMemoryCache(userUuid);
 
     res.json({
       success: true,
@@ -1344,8 +1348,9 @@ router.delete('/:provider/:userId', authenticateUser, async (req, res) => {
       log.warn("No connection found", { provider, userUuid });
     }
 
-    // Invalidate cached platform status for this user BEFORE responding
+    // Invalidate cached platform status for this user BEFORE responding (both Redis and in-memory)
     await invalidatePlatformStatusCache(userUuid);
+    clearStatusMemoryCache(userUuid);
     log.debug("Cache invalidated", { userUuid });
 
     res.json({

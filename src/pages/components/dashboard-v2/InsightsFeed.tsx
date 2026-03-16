@@ -66,17 +66,14 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
         {feedInsights.map(insight => (
           <div
             key={insight.id}
-            className="rounded-[12px] px-4 py-3"
+            className="py-3"
             style={{
-              background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
-              border: '1px solid var(--glass-surface-border, #d9d1cb)',
+              borderBottom: '1px solid var(--glass-surface-border)',
             }}
           >
             <div className="flex items-start gap-3">
               {/* Category icon + urgency dot */}
-              <div className="relative shrink-0 mt-0.5" style={{ color: 'var(--text-secondary, #4a4242)' }}>
+              <div className="relative shrink-0 mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                 {CATEGORY_ICON[insight.category] ?? <Lightbulb className="w-4 h-4" />}
                 <div
                   className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"

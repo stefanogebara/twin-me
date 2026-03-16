@@ -54,6 +54,7 @@ import { getProfile } from '../services/personalityProfileService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
+import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -756,6 +757,13 @@ Make it sound natural and curious, not like a survey question.`;
             personalityProfile,
           );
         }
+        // Fire-and-forget: collect preference pair for DPO training
+        if (result?._rerankerMeta?.candidateCount > 1) {
+          const promptForDPO = llmMessages.slice(-3);
+          collectPreferencePair(userId, promptForDPO, result._rerankerMeta)
+            .catch(err => log.debug('Preference collection skipped', { error: err.message }));
+        }
+
         if (!result) {
           // Apply neurotransmitter mode modifiers on top of personality-derived sampling params
           const baseSamplingNonStream = {

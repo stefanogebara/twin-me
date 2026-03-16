@@ -49,7 +49,7 @@ export function PlatformsList({ platforms }: PlatformsListProps) {
   }
 
   return (
-    <section className="mb-12">
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
       <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</p>
       <div>
         {platforms.map((p, i) => (
@@ -57,7 +57,7 @@ export function PlatformsList({ platforms }: PlatformsListProps) {
             key={p.provider}
             className="flex items-center justify-between py-3"
             style={{
-              borderBottom: i < platforms.length - 1 ? '1px solid rgba(255,255,255,0.06)' : undefined,
+              borderBottom: i < platforms.length - 1 ? '1px solid var(--border)' : undefined,
             }}
           >
             <div className="flex items-center gap-2.5">

@@ -109,7 +109,7 @@ const App = () => {
                       <SidebarProvider>
                       <NavigationProvider>
                       <DemoBanner variant="top" />
-          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin opacity-40" /></div>}>
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><img src="/images/backgrounds/flower-hero.png" alt="Loading" className="w-12 h-12 animate-pulse" /></div>}>
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />

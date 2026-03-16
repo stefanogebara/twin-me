@@ -47,7 +47,10 @@ export const ContextSidebar = ({
         !showContext && "md:hidden"
       )}
       style={{
-        borderLeft: '1px solid rgba(255,255,255,0.04)',
+        background: 'var(--glass-surface-bg)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        borderLeft: '1px solid var(--glass-surface-border)',
       }}
     >
       <div className="p-5">

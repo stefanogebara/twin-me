@@ -66,11 +66,13 @@ export const ChatEmptyState = ({
             <button
               key={idx}
               onClick={() => onQuickAction(action.label)}
-              className="px-4 py-2 rounded-full text-[13px] transition-all hover:border-[rgba(16,183,127,0.3)] hover:text-[rgba(255,255,255,0.85)]"
+              className="px-3 py-2.5 rounded-[46px] text-[12px] font-medium transition-all hover:brightness-110"
               style={{
                 color: 'rgba(255,255,255,0.6)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                background: 'transparent',
+                background: 'var(--glass-surface-bg)',
+                backdropFilter: 'blur(42px)',
+                WebkitBackdropFilter: 'blur(42px)',
+                border: '1px solid var(--glass-surface-border)',
                 fontFamily: "'Inter', sans-serif",
               }}
             >
@@ -84,7 +86,7 @@ export const ChatEmptyState = ({
       {connectedPlatforms.length === 0 && (
         <button
           onClick={() => navigate('/get-started')}
-          className="mt-4 px-5 py-2 rounded-full text-sm font-medium hover:bg-[rgba(16,183,127,0.08)] transition-colors"
+          className="mt-4 px-5 py-2 rounded-[100px] text-sm font-medium hover:bg-[rgba(16,183,127,0.08)] transition-colors"
           style={{
             border: '1px solid #10b77f',
             color: '#10b77f',

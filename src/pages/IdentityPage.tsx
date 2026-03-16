@@ -316,14 +316,14 @@ const IdentityPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={() => navigate('/get-started')}
-            className="px-5 py-2 rounded-full text-sm font-medium"
+            className="px-5 py-2 rounded-[100px] text-sm font-medium"
             style={{ border: '1px solid #10b77f', color: '#10b77f' }}
           >
             Connect platforms
           </button>
           <button
             onClick={() => navigate('/interview')}
-            className="px-5 py-2 rounded-full text-sm font-medium"
+            className="px-5 py-2 rounded-[100px] text-sm font-medium"
             style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
           >
             Complete your interview
@@ -443,7 +443,7 @@ const IdentityPage: React.FC = () => {
               {uniquenessMarkers.map((marker, i) => (
                 <span
                   key={i}
-                  className="text-[12px] px-3 py-1.5 rounded-full"
+                  className="text-[12px] px-3 py-2 rounded-[46px]"
                   style={{
                     color: 'rgba(255,255,255,0.6)',
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -560,14 +560,14 @@ const IdentityPage: React.FC = () => {
       <div className="flex gap-3">
         <button
           onClick={() => navigate('/get-started')}
-          className="px-4 py-2 rounded-full text-[13px] font-medium transition-opacity hover:opacity-80"
+          className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
           style={{ border: '1px solid #10b77f', color: '#10b77f' }}
         >
           Connect Platforms
         </button>
         <button
           onClick={() => navigate('/interview')}
-          className="px-4 py-2 rounded-full text-[13px] font-medium transition-opacity hover:opacity-80"
+          className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
           style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
         >
           Redo Interview

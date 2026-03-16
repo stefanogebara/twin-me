@@ -449,7 +449,11 @@ const TalkToTwin = () => {
         {/* Minimal top bar — emerald "Twin" label + status dot */}
         <header
           className="flex items-center justify-between px-6 py-3"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+          style={{
+            borderBottom: '1px solid var(--glass-surface-border)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+          }}
         >
           <div className="flex items-center gap-2">
             <span
@@ -529,7 +533,7 @@ const TalkToTwin = () => {
               </p>
             </div>
             <span
-              className="text-xs px-3 py-1.5 rounded-full"
+              className="text-xs px-3 py-1.5 rounded-[46px]"
               style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }}
             >
               Pro coming soon

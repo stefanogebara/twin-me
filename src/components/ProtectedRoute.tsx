@@ -42,11 +42,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         <div className="flex flex-col items-center gap-5">
           {/* Pulsing brand mark */}
           <div className="relative">
-            <div className="w-12 h-12 rounded-2xl bg-foreground flex items-center justify-center animate-pulse">
-              <span className="text-lg font-semibold text-background" style={{ fontFamily: 'var(--font-heading)' }}>
-                T
-              </span>
-            </div>
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="Twin Me"
+              className="w-12 h-12 animate-pulse"
+              style={{ objectFit: 'contain' }}
+            />
           </div>
           {/* Skeleton content shimmer */}
           <div className="flex flex-col items-center gap-2">

@@ -37,12 +37,13 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     return (
       <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="flex items-end gap-3 rounded-2xl px-4 py-3"
+          className="flex items-end gap-3 rounded-[20px] px-5 py-4"
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
           <label htmlFor="twin-chat-input" className="sr-only">
@@ -93,14 +94,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
               className="flex items-center justify-center transition-all"
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
+                width: '28px',
+                height: '28px',
+                borderRadius: '100px',
+                padding: '4px',
                 background: hasText && !isDisabled && !limitReached
-                  ? '#10b77f'
+                  ? '#252222'
                   : 'rgba(255,255,255,0.06)',
                 color: hasText && !isDisabled && !limitReached
-                  ? '#0a0f0a'
+                  ? 'var(--foreground)'
                   : 'rgba(255,255,255,0.2)',
                 cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
                 flexShrink: 0,

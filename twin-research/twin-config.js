@@ -88,8 +88,8 @@ export const ALPHA_CITATION_BASELINE = 0.85;
 export const MEMORY_CONTEXT_BUDGETS = {
   reflections:   5,
   platform_data: 4,
-  facts:         6,
-  conversations: 4,
+  facts:         5,    // was 6 — free 1 slot for conversations
+  conversations: 6,    // was 4 — conversation boost (Feature A3)
 };
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────

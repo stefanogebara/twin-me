@@ -14,6 +14,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { decryptToken, encryptToken, encryptState } from '../services/encryption.js';
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
+import { clearStatusMemoryCache } from './connectors.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
 // Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
 import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
@@ -653,8 +654,9 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to disconnect calendar' });
     }
 
-    // Invalidate cache
+    // Invalidate cache (both Redis and in-memory)
     await invalidatePlatformStatusCache(userId);
+    clearStatusMemoryCache(userId);
 
     // Optionally delete cached events
     const { error: eventsDeleteErr } = await supabaseAdmin
