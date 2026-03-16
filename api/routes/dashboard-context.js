@@ -142,11 +142,16 @@ router.get('/', authenticateUser, async (req, res) => {
       nextEventsResult,
       platformsResult,
     ] = await Promise.all([
-      // 1. Greeting
-      safeRun(async () => ({
-        name: firstName(req.user.name, req.user.email),
-        timeOfDay: getTimeOfDay(),
-      })),
+      // 1. Greeting — prefer DB first_name over JWT/email extraction
+      safeRun(async () => {
+        const { data: userRow } = await supabaseAdmin
+          .from('users')
+          .select('first_name')
+          .eq('id', userId)
+          .single();
+        const name = userRow?.first_name || firstName(req.user.name, req.user.email);
+        return { name, timeOfDay: getTimeOfDay() };
+      }),
 
       // 2. Hero insight
       safeRun(async () => {

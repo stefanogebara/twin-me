@@ -158,7 +158,7 @@ export function errorHandler(err, req, res, next) {
     return res.status(err.statusCode).json(err.toJSON());
   }
 
-  // Handle Supabase errors
+  // Handle Supabase errors — never expose raw DB error messages in production
   if (err.code && err.code.startsWith('PGRST')) {
     return res.status(400).json({
       success: false,
@@ -167,8 +167,8 @@ export function errorHandler(err, req, res, next) {
       statusCode: 400,
       details: {
         code: err.code,
-        message: err.message,
-        action: 'check_database_schema'
+        action: 'check_database_schema',
+        ...(process.env.NODE_ENV === 'development' && { message: err.message })
       },
       timestamp: new Date().toISOString()
     });
@@ -189,21 +189,25 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // Handle generic errors
+  // Handle generic errors — sanitize in production to prevent info leaks
   const statusCode = err.statusCode || err.status || 500;
-  const message = err.message || 'Internal server error';
+  const isDev = process.env.NODE_ENV === 'development';
+  // In production, only expose messages for client errors (4xx), not server errors (5xx)
+  const safeMessage = isDev || statusCode < 500
+    ? (err.message || 'Internal server error')
+    : 'Internal server error';
 
   res.status(statusCode).json({
     success: false,
-    error: message,
+    error: safeMessage,
     errorType: err.name || 'Error',
     statusCode,
     details: {
       action: 'contact_support'
     },
     timestamp: new Date().toISOString(),
-    // Include stack trace in development
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    // Include stack trace ONLY in development
+    ...(isDev && { stack: err.stack })
   });
 }
 
