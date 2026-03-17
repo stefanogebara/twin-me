@@ -44,9 +44,9 @@ const router = express.Router();
 // Interview Configuration
 // ====================================================================
 
-const MIN_QUESTIONS = 12;
-const MAX_QUESTIONS = 18;
-const QUESTIONS_PER_DOMAIN = 3; // Target: 2-3 per domain
+const MIN_QUESTIONS = 10;
+const MAX_QUESTIONS = 12;
+const QUESTIONS_PER_DOMAIN = 2; // Target: 2 per domain
 
 /**
  * The 5 interview domains, aligned with the Expert Reflection Personas.
@@ -276,10 +276,10 @@ function classifyDomainByKeywords(question, answer) {
   }
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   const [top, second] = sorted;
-  // Require clear winner: top score > 0 AND at least 2-point margin over runner-up
-  // Otherwise fall through to LLM classifier for better accuracy
-  if (top[1] >= 2 && (top[1] - second[1]) >= 2) return top[0];
-  return null; // ambiguous — let LLM decide
+  // Return top scorer even if ambiguous — avoids LLM call that causes Vercel timeouts.
+  // Keyword classification is good enough for domain tracking; the interview adapts regardless.
+  if (top[1] >= 1) return top[0];
+  return 'motivation'; // default fallback
 }
 
 async function classifyDomain(question, answer) {

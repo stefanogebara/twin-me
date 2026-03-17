@@ -253,8 +253,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           className="text-xs"
           style={{ fontFamily: "'Geist', sans-serif", color: 'rgba(255,255,255,0.4)' }}
         >
-          {questionNumber <= 18
-            ? `Question ${Math.min(questionNumber, 18)} of ~18`
+          {questionNumber <= 12
+            ? `Question ${Math.min(questionNumber, 12)} of ~12`
             : 'Wrapping up'}
         </p>
       </div>
