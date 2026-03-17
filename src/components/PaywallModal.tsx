@@ -5,16 +5,28 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const PLANS = [
   {
-    key: 'pro', name: 'Pro', price: '$19', period: '/mo',
+    key: 'pro', name: 'Plus', price: '$20', period: '/mo',
     description: 'The ongoing twin relationship',
-    features: ['Unlimited twin chat', '3 platform integrations', '30-day rolling memory', 'Expert personas', 'Weekly email digest'],
-    cta: 'Start with Pro', highlight: false,
+    features: [
+      '500 messages / month',
+      '5 platform integrations',
+      '90-day memory',
+      'Expert reflection personas',
+      'Weekly email digest',
+    ],
+    cta: 'Start with Plus', highlight: false,
   },
   {
-    key: 'max', name: 'Max', price: '$50', period: '/mo',
+    key: 'max', name: 'Pro', price: '$100', period: '/mo',
     description: 'The deepest mirror',
-    features: ['Everything in Pro', 'All integrations', 'Full memory history', 'Best models', 'Health + wearables + location'],
-    cta: 'Go Max', highlight: true,
+    features: [
+      'Unlimited messages',
+      'All integrations',
+      'Full memory history',
+      'Best AI models',
+      'Priority support',
+    ],
+    cta: 'Go Pro', highlight: true,
   },
 ];
 

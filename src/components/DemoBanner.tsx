@@ -66,19 +66,21 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
               <button
                 onClick={handleSignUp}
                 aria-label="Sign up for an account to save your data"
-                className="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-white/15 text-white rounded-lg text-sm font-medium hover:bg-white/25 transition-all shadow-md"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 bg-white/15 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition-all shadow-md"
               >
-                Sign up to save your data
-                <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Sign up to save your data</span>
+                <span className="sm:hidden">Sign up</span>
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
               </button>
             )}
             <button
               onClick={handleExitDemo}
               aria-label="Exit demo mode and return to home"
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/20 text-white rounded-lg text-sm font-medium hover:bg-white/30 transition-all"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-all"
             >
-              <LogOut className="w-4 h-4" aria-hidden="true" />
-              Exit Demo
+              <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Exit Demo</span>
+              <span className="sm:hidden">Exit</span>
             </button>
             <button
               onClick={handleDismiss}

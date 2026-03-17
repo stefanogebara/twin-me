@@ -7,21 +7,44 @@
 
 import { supabaseAdmin } from './database.js';
 import { extractSpotifyData } from './spotifyExtraction.js';
-import { extractDiscordData } from './discordExtraction.js';
-import { extractGitHubData } from './githubExtraction.js';
+// Discord/GitHub now use observation-based extraction (observationIngestion.js)
 // MVP Feature Extractors
 import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
 import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
-// Gmail, Outlook, LinkedIn extractors removed (TIER 1 cleanup)
-const gmailFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
-const outlookFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
-const linkedinFeatureExtractor = { extractFeatures: async () => ({}), saveFeatures: async () => {} };
+// Gmail, Outlook, LinkedIn now use observation-based extraction (observationIngestion.js)
 // Pattern Learning Bridge
 import patternLearningBridge from './patternLearningBridge.js';
 
+import { addPlatformObservation } from './memoryStreamService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('ExtractionOrchestrator');
+
+/**
+ * Store observation array into memory stream. Shared by YouTube/Whoop/etc.
+ * @param {string} userId
+ * @param {string} platform
+ * @param {Array<string|{content:string, contentType?:string}>} observations
+ * @returns {number} count stored
+ */
+async function storeObservationsToMemory(userId, platform, observations) {
+  let stored = 0;
+  for (const obs of observations) {
+    const content = typeof obs === 'string' ? obs : obs.content;
+    const contentType = typeof obs === 'string' ? undefined : obs.contentType;
+    try {
+      const ok = await addPlatformObservation(userId, content, platform, {
+        ingestion_source: 'on_demand',
+        ingested_at: new Date().toISOString(),
+        ...(contentType ? { content_type: contentType } : {}),
+      });
+      if (ok) stored++;
+    } catch (e) {
+      log.warn('Failed to store observation', { platform, error: e.message });
+    }
+  }
+  return stored;
+}
 
 
 class ExtractionOrchestrator {
@@ -170,41 +193,100 @@ class ExtractionOrchestrator {
           break;
 
         case 'discord':
-          result = await extractDiscordData(userId);
-          itemsExtracted = result.itemsExtracted || 0;
+          try {
+            const { fetchDiscordObservations } = await import('./observationIngestion.js');
+            const discordObs = await fetchDiscordObservations(userId);
+            const discordStored = await storeObservationsToMemory(userId, 'discord', discordObs);
+            itemsExtracted = discordStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Discord observations', { fetched: discordObs.length, stored: discordStored });
+            // Extract behavioral features for personality
+            try {
+              const discordExtractor = await import('./featureExtractors/discordExtractor.js');
+              const features = await discordExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await discordExtractor.default.saveFeatures(features);
+                log.info('Extracted Discord behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Discord feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (discordError) {
+            log.error('Discord extraction error', { error: discordError });
+            result = { success: false, error: discordError.message };
+          }
           break;
 
         case 'github':
-          result = await extractGitHubData(userId);
-          itemsExtracted = result.itemsExtracted || 0;
+          try {
+            const { fetchGitHubObservations } = await import('./observationIngestion.js');
+            const githubObs = await fetchGitHubObservations(userId);
+            const githubStored = await storeObservationsToMemory(userId, 'github', githubObs);
+            itemsExtracted = githubStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted GitHub observations', { fetched: githubObs.length, stored: githubStored });
+            // Extract behavioral features for personality
+            try {
+              const githubExtractor = await import('./featureExtractors/githubExtractor.js');
+              const features = await githubExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await githubExtractor.default.saveFeatures(features);
+                log.info('Extracted GitHub behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('GitHub feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (githubError) {
+            log.error('GitHub extraction error', { error: githubError });
+            result = { success: false, error: githubError.message };
+          }
           break;
 
         case 'youtube': {
-          // Use Nango extraction + storage for YouTube
-          const nangoService = await import('./nangoService.js');
-          const extractResult = await nangoService.extractPlatformData(userId, platform);
-          if (extractResult.success) {
-            await nangoService.storeNangoExtractionData(userId, platform, extractResult);
-            itemsExtracted = Object.keys(extractResult.data || {}).length;
-            result = { success: true };
-          } else {
-            result = { success: false, error: extractResult.error || 'Nango extraction failed' };
+          try {
+            const { fetchYouTubeObservations } = await import('./observationIngestion.js');
+            const observations = await fetchYouTubeObservations(userId);
+            const stored = await storeObservationsToMemory(userId, 'youtube', observations);
+            itemsExtracted = stored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted YouTube observations', { fetched: observations.length, stored });
+            // Also extract behavioral features for personality
+            try {
+              const ytExtractor = await import('./featureExtractors/youtubeFeatureExtractor.js');
+              const features = await ytExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await ytExtractor.default.saveFeatures(features);
+                log.info('Extracted YouTube behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('YouTube feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (youtubeError) {
+            log.error('YouTube extraction error', { error: youtubeError });
+            result = { success: false, error: youtubeError.message };
           }
           break;
         }
 
         case 'gmail':
         case 'google_gmail':
-          // Use feature extractor for Gmail
           try {
-            const gmailFeatures = await gmailFeatureExtractor.extractFeatures(userId);
-            if (gmailFeatures.length > 0) {
-              await gmailFeatureExtractor.saveFeatures(gmailFeatures);
-              itemsExtracted = gmailFeatures.length;
-              result = { success: true, itemsExtracted };
-              log.info('Extracted Gmail behavioral features', { count: gmailFeatures.length });
-            } else {
-              result = { success: true, itemsExtracted: 0, message: 'No Gmail data available' };
+            const { fetchGmailObservations } = await import('./observationIngestion.js');
+            const gmailObs = await fetchGmailObservations(userId);
+            const gmailStored = await storeObservationsToMemory(userId, 'google_gmail', gmailObs);
+            itemsExtracted = gmailStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Gmail observations', { fetched: gmailObs.length, stored: gmailStored });
+            // Extract behavioral features for personality
+            try {
+              const gmailExtractor = await import('./featureExtractors/gmailExtractor.js');
+              const features = await gmailExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await gmailExtractor.default.saveFeatures(features);
+                log.info('Extracted Gmail behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Gmail feature extraction error (non-blocking)', { error: featureError.message });
             }
           } catch (gmailError) {
             log.error('Gmail extraction error', { error: gmailError });
@@ -213,17 +295,13 @@ class ExtractionOrchestrator {
           break;
 
         case 'outlook':
-          // Use feature extractor for Outlook
           try {
-            const outlookFeatures = await outlookFeatureExtractor.extractFeatures(userId);
-            if (outlookFeatures.length > 0) {
-              await outlookFeatureExtractor.saveFeatures(outlookFeatures);
-              itemsExtracted = outlookFeatures.length;
-              result = { success: true, itemsExtracted };
-              log.info('Extracted Outlook behavioral features', { count: outlookFeatures.length });
-            } else {
-              result = { success: true, itemsExtracted: 0, message: 'No Outlook data available' };
-            }
+            const { fetchOutlookObservations } = await import('./observationIngestion.js');
+            const outlookObs = await fetchOutlookObservations(userId);
+            const outlookStored = await storeObservationsToMemory(userId, 'outlook', outlookObs);
+            itemsExtracted = outlookStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Outlook observations', { fetched: outlookObs.length, stored: outlookStored });
           } catch (outlookError) {
             log.error('Outlook extraction error', { error: outlookError });
             result = { success: false, error: outlookError.message };
@@ -231,16 +309,23 @@ class ExtractionOrchestrator {
           break;
 
         case 'linkedin':
-          // Use feature extractor for LinkedIn
           try {
-            const linkedinFeatures = await linkedinFeatureExtractor.extractFeatures(userId);
-            if (linkedinFeatures.length > 0) {
-              await linkedinFeatureExtractor.saveFeatures(linkedinFeatures);
-              itemsExtracted = linkedinFeatures.length;
-              result = { success: true, itemsExtracted };
-              log.info('Extracted LinkedIn behavioral features', { count: linkedinFeatures.length });
-            } else {
-              result = { success: true, itemsExtracted: 0, message: 'No LinkedIn data available' };
+            const { fetchLinkedInObservations } = await import('./observationIngestion.js');
+            const linkedinObs = await fetchLinkedInObservations(userId);
+            const linkedinStored = await storeObservationsToMemory(userId, 'linkedin', linkedinObs);
+            itemsExtracted = linkedinStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted LinkedIn observations', { fetched: linkedinObs.length, stored: linkedinStored });
+            // Extract behavioral features for personality
+            try {
+              const linkedinExtractor = await import('./featureExtractors/linkedinExtractor.js');
+              const features = await linkedinExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await linkedinExtractor.default.saveFeatures(features);
+                log.info('Extracted LinkedIn behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('LinkedIn feature extraction error (non-blocking)', { error: featureError.message });
             }
           } catch (linkedinError) {
             log.error('LinkedIn extraction error', { error: linkedinError });
@@ -252,19 +337,75 @@ class ExtractionOrchestrator {
           try {
             const { fetchWhoopObservations } = await import('./observationIngestion.js');
             const observations = await fetchWhoopObservations(userId);
-            itemsExtracted = observations.length;
+            const whoopStored = await storeObservationsToMemory(userId, 'whoop', observations);
+            itemsExtracted = whoopStored;
             result = { success: true, itemsExtracted };
-            log.info('Extracted Whoop observations', { count: itemsExtracted });
+            log.info('Extracted Whoop observations', { fetched: observations.length, stored: whoopStored });
+            // Extract behavioral features for personality
+            try {
+              const whoopExtractor = await import('./featureExtractors/whoopExtractor.js');
+              const features = await whoopExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await whoopExtractor.default.saveFeatures(features);
+                log.info('Extracted Whoop behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Whoop feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (whoopError) {
             log.error('Whoop extraction error', { error: whoopError });
             result = { success: false, error: whoopError.message };
           }
           break;
 
-        // Platforms not yet implemented
+        case 'twitch':
+          try {
+            const { fetchTwitchObservations } = await import('./observationIngestion.js');
+            const twitchObs = await fetchTwitchObservations(userId);
+            const twitchStored = await storeObservationsToMemory(userId, 'twitch', twitchObs);
+            itemsExtracted = twitchStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Twitch observations', { fetched: twitchObs.length, stored: twitchStored });
+            // Extract behavioral features for personality
+            try {
+              const twitchExtractor = await import('./featureExtractors/twitchExtractor.js');
+              const features = await twitchExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await twitchExtractor.default.saveFeatures(features);
+                log.info('Extracted Twitch behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Twitch feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (twitchError) {
+            log.error('Twitch extraction error', { error: twitchError });
+            result = { success: false, error: twitchError.message };
+          }
+          break;
+
         case 'reddit':
-          log.info('Extractor not yet implemented', { platform });
-          result = { success: false, error: 'Extractor not implemented' };
+          try {
+            const { fetchRedditObservations } = await import('./observationIngestion.js');
+            const redditObs = await fetchRedditObservations(userId);
+            const redditStored = await storeObservationsToMemory(userId, 'reddit', redditObs);
+            itemsExtracted = redditStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Reddit observations', { fetched: redditObs.length, stored: redditStored });
+            // Extract behavioral features for personality
+            try {
+              const redditExtractor = await import('./featureExtractors/redditExtractor.js');
+              const features = await redditExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await redditExtractor.default.saveFeatures(features);
+                log.info('Extracted Reddit behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Reddit feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (redditError) {
+            log.error('Reddit extraction error', { error: redditError });
+            result = { success: false, error: redditError.message };
+          }
           break;
 
         default:
@@ -509,6 +650,7 @@ class ExtractionOrchestrator {
       .insert({
         user_id: userId,
         platform,
+        job_type: 'extraction',
         status: 'running',
         started_at: new Date().toISOString()
       })

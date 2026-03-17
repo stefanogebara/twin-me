@@ -35,3 +35,4 @@ fa73289	0.800423	0.850238	0.961039	0.434963	discard	identity importance 1.8 — 
 41df213	0.797739	0.850238	0.961039	0.418000	discard	recent recency 0.1 — diversity dropped
 7d3be92	0.800207	0.850238	0.961039	0.434810	discard	reflection importance 0.0 — q16 diversity dropped
 b505acf	0.831920	-	-	-	discard	reflection importance 1.5 marginal
+s8_p01	0.870	0.850	0.795	0.953	0.889	discard	prompt: citations + thorough scan (high variance, avg=baseline)

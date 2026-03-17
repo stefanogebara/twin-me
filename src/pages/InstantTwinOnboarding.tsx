@@ -85,6 +85,7 @@ const InstantTwinOnboarding = () => {
     categorySocial: '#a855f7',
     categoryProfessional: '#78716c',
     categoryHealth: '#00A7E1',
+    categoryBrowsing: '#ff8400',
     connected: 'var(--text-secondary)',
   };
 
@@ -465,6 +466,7 @@ const InstantTwinOnboarding = () => {
   };
 
   const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);
+  const browsingConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'browsing'));
   const entertainmentConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'entertainment'));
   const healthConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'health'));
   const socialConnectors = sortConnectors(availableConnectors.filter(c => c.category === 'social'));
@@ -641,6 +643,17 @@ const InstantTwinOnboarding = () => {
       {currentStep === 1 && (
         <div className="space-y-8">
           <SoulRichnessBar connectedPlatforms={activeConnections} />
+
+          <SectionLabel label="Browsing" />
+          <PlatformCategorySection
+            categoryName="Browsing"
+            categorySubtext="Universal web tracking"
+            categoryColor={colors.categoryBrowsing}
+            connectors={browsingConnectors}
+            animationDelay={0}
+            dotDelay={0}
+            {...categoryProps}
+          />
 
           <SectionLabel label="Entertainment" />
           <PlatformCategorySection

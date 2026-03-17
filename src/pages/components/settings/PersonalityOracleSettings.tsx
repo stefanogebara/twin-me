@@ -188,6 +188,9 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
                 </p>
               </div>
               <button
+                role="switch"
+                aria-checked={flagState.personality_oracle}
+                aria-label="Enable Personality Oracle"
                 onClick={handleToggle}
                 disabled={toggling}
                 className="relative w-11 h-6 rounded-full transition-colors"

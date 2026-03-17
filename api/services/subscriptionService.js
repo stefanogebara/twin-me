@@ -1,10 +1,45 @@
 // api/services/subscriptionService.js
+//
+// Littlebird pricing model:
+//   free  → "Free"    $0/mo   — 50 msgs/mo, 2 platforms, 7-day memory
+//   pro   → "Plus"   $20/mo   — 500 msgs/mo, 5 platforms, 90-day memory, expert personas, email digest
+//   max   → "Pro"   $100/mo   — Unlimited, all platforms, full history, best models, priority support
+//
+// DB enum stays ('free','pro','max') — display names differ.
 import { supabaseAdmin } from './database.js';
 
 const PLAN_LIMITS = {
-  free:  { chatMessages: 0,        platformConnections: 1,        memoryDays: 0,        emailDigest: false },
-  pro:   { chatMessages: Infinity, platformConnections: 3,        memoryDays: 30,       emailDigest: true  },
-  max:   { chatMessages: Infinity, platformConnections: Infinity, memoryDays: Infinity, emailDigest: true  },
+  free: {
+    chatMessages: 50,
+    platformConnections: 2,
+    memoryDays: 7,
+    reflections: false,
+    emailDigest: false,
+    bestModels: false,
+  },
+  pro: {
+    chatMessages: 500,
+    platformConnections: 5,
+    memoryDays: 90,
+    reflections: true,
+    emailDigest: true,
+    bestModels: false,
+  },
+  max: {
+    chatMessages: Infinity,
+    platformConnections: Infinity,
+    memoryDays: Infinity,
+    reflections: true,
+    emailDigest: true,
+    bestModels: true,
+  },
+};
+
+// Display names for each DB plan key
+export const PLAN_DISPLAY_NAMES = {
+  free: 'Free',
+  pro: 'Plus',
+  max: 'Pro',
 };
 
 export async function getUserSubscription(userId) {

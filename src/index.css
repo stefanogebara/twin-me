@@ -14,16 +14,23 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== DESIGN TOKENS - TWINME DESIGN SYSTEM ===== */
+/* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors */
+    /* Background Colors — Dark only */
     --background: #1C1917;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
-    /* Button */
-    --button-bg-dark: #252222;
+    /* Claude Theme Variables */
+    --claude-bg: #1C1917;
+    --claude-surface: rgba(255, 255, 255, 0.06);
+    --claude-surface-raised: rgba(255, 255, 255, 0.12);
+    --claude-text: #F5F5F4;
+    --claude-text-muted: #A8A29E;
+    --claude-accent: #F5F5F4;
+    --claude-accent-hover: #E7E5E4;
+    --claude-border: rgba(255, 255, 255, 0.10);
 
     /* Text Colors */
     --foreground: #F5F5F4;
@@ -32,6 +39,10 @@
     --text-muted: #9C9590;
     --text-placeholder: #57534E;
     --accent-streak: #ff8400;
+
+    /* Glass Surface (dark mode) */
+    --glass-surface-bg: rgba(255, 255, 255, 0.06);
+    --glass-surface-border: rgba(255, 255, 255, 0.10);
 
     /* Border Colors */
     --border: rgba(255, 255, 255, 0.08);
@@ -67,18 +78,6 @@
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-ring: rgba(255, 255, 255, 0.15);
 
-    /* Glass Effects */
-    --glass-blur: 16px;
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
-    --glass-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
-
-    /* Glass Surface Variables */
-    --glass-surface-bg: rgba(72, 65, 65, 0.6);
-    --glass-surface-bg-hover: rgba(72, 65, 65, 0.75);
-    --glass-surface-bg-subtle: rgba(255, 255, 255, 0.05);
-    --glass-surface-border: rgba(94, 86, 86, 0.6);
-    --glass-surface-border-hover: rgba(255, 255, 255, 0.22);
-    --glass-inset-highlight: rgba(255, 255, 255, 0.18);
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
     --body-gradient-1: rgba(210, 145, 55, 0.38);
@@ -103,9 +102,9 @@
     /* Typography */
     --font-heading: 'Instrument Serif', Georgia, serif;
     --font-accent: 'Instrument Serif', Georgia, serif;
-    --font-body: 'Inter', 'Geist', system-ui, sans-serif;
-    --font-ui: 'Inter', 'Geist', system-ui, sans-serif;
-    --font-sans: 'Inter', 'Geist', system-ui, sans-serif;
+    --font-body: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-ui: 'Geist', 'Inter', system-ui, sans-serif;
+    --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
     --font-serif: 'Instrument Serif', Georgia, serif;
     --font-mono: ui-monospace, monospace;
 
@@ -290,127 +289,7 @@
 
 /* ===== COMPONENT STYLES ===== */
 @layer components {
-  /* === Glass Container — Claura light cards === */
-  .glass-container {
-    background: var(--glass-surface-bg);
-    border: 1px solid var(--glass-surface-border);
-    border-radius: 28px;
-  }
-
-  .glass-container-solid {
-    background: var(--glass-surface-bg-hover);
-    border: 1px solid var(--glass-surface-border);
-    border-radius: 16px;
-  }
-
-  /* === Buttons — Claura Design System === */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 14px 28px;
-    font-size: 12px;
-    line-height: 1.25rem;
-    font-weight: 400;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-  }
-
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-primary {
-    background-color: var(--foreground);
-    color: var(--background);
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background-color: var(--accent-vibrant-hover, #e67700);
-    color: var(--background);
-    transform: translateY(-2px);
-  }
-
-  .btn-secondary {
-    background: transparent;
-    color: var(--foreground);
-    border: 1.5px solid var(--glass-surface-border-hover);
-  }
-
-  .btn-secondary:hover:not(:disabled) {
-    border-color: var(--foreground);
-    transform: translateY(-1px);
-  }
-
-  .btn-accent {
-    background: linear-gradient(135deg, var(--accent-vibrant), var(--accent-vibrant-hover));
-    color: #1a1a17;
-    box-shadow: 0 2px 12px var(--accent-vibrant-glow);
-    font-weight: 500;
-  }
-
-  .btn-accent:hover:not(:disabled) {
-    box-shadow: 0 4px 20px var(--accent-vibrant-glow);
-    transform: translateY(-1px);
-  }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--text-secondary);
-  }
-
-  .btn-ghost:hover:not(:disabled) {
-    background: var(--glass-surface-bg-subtle);
-    color: var(--text-primary);
-  }
-
-  /* === Inputs — Claura style === */
-  .input {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 14px;
-    line-height: 1.25rem;
-    background: var(--glass-surface-bg-subtle);
-    border: 1px solid var(--glass-surface-border);
-    border-radius: 12px;
-    color: var(--text-primary);
-    transition: all 200ms ease;
-  }
-
-  .input::placeholder {
-    color: var(--text-placeholder);
-  }
-
-  .input:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--ring);
-  }
-
-  .input-with-icon {
-    padding-left: 2.5rem;
-  }
-
-  /* === Cards — glass style === */
-  .card {
-    background: var(--glass-surface-bg);
-    border: 1px solid var(--glass-surface-border);
-    border-radius: 28px;
-    padding: 2rem;
-  }
-
-  .card-solid {
-    background: var(--glass-surface-bg-hover);
-    border: 1px solid var(--glass-surface-border);
-    border-radius: 16px;
-    padding: 1.5rem;
-  }
-
-  /* === Typography Utilities — Claura === */
+  /* === Typography Utilities === */
   .text-heading {
     font-family: 'Instrument Serif', Georgia, serif;
     font-weight: 400;
@@ -511,64 +390,6 @@
     padding-bottom: 4rem;
   }
 
-  /* === Navbar Glass === */
-  .navbar-glass {
-    background: var(--surface);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border: 1px solid var(--border-glass);
-    box-shadow: var(--glass-shadow);
-  }
-
-  /* === Sidebar — Claura solid cream === */
-  .sidebar-glass {
-    background: var(--sidebar);
-    border-right: 1px solid var(--sidebar-border);
-  }
-
-  /* === Divider (from login page) === */
-  .divider {
-    position: relative;
-    display: flex;
-    align-items: center;
-    margin: 1.5rem 0;
-  }
-
-  .divider::before,
-  .divider::after {
-    content: '';
-    flex: 1;
-    border-top: 1px solid var(--border);
-  }
-
-  .divider-text {
-    padding: 0 0.75rem;
-    font-size: 14px;
-    color: var(--text-secondary);
-    background: var(--surface);
-  }
-
-  /* === Error Alert (from login page) === */
-  .alert-error {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: rgba(127, 29, 29, 0.3);
-    border: 1px solid rgba(220, 38, 38, 0.2);
-    border-radius: var(--radius);
-  }
-
-  /* === Links === */
-  .link {
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: color 200ms ease;
-  }
-
-  .link:hover {
-    color: var(--text-primary);
-  }
 }
 
 /* ===== UTILITY CLASSES ===== */
@@ -691,49 +512,6 @@
   }
 
 
-
-  /* Glass Navigation */
-  .glass-nav {
-    background: var(--surface);
-    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-    border: 1px solid var(--border-glass);
-    position: fixed;
-    border-radius: 9999px;
-    padding: 0.25rem;
-    z-index: 50;
-  }
-
-  /* Hero Text — Claura */
-  .hero-text {
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-size: clamp(2.625rem, 8vw, 4.375rem);
-    font-weight: 400;
-    letter-spacing: -0.05em;
-    line-height: 1.1;
-    color: var(--text-primary);
-  }
-
-  /* Grok-inspired spacing utilities */
-  .space-grok {
-    padding: 2rem;
-  }
-
-  .space-grok-sm {
-    padding: 1.5rem;
-  }
-
-  .space-grok-lg {
-    padding: 3rem;
-  }
-
-  .gap-grok {
-    gap: 1.5rem;
-  }
-
-  .gap-grok-sm {
-    gap: 0.75rem;
-  }
 
   /* Platform brand color accent backgrounds */
   .platform-bg-spotify { background-color: rgba(29, 185, 84, 0.15); }

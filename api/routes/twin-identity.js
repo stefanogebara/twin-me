@@ -16,6 +16,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { inferIdentityContext } from '../services/identityContextService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinIdentity');
@@ -152,6 +153,13 @@ async function fetchTwinSummary(userId) {
  */
 router.get('/identity', authenticateUser, async (req, res) => {
   const userId = req.user.id;
+  const cacheKey = `identity:${userId}`;
+
+  // Check cache first (5 min TTL — identity data changes slowly)
+  const cached = await cacheGet(cacheKey);
+  if (cached) {
+    return res.json({ success: true, data: cached });
+  }
 
   // Run all data fetches in parallel for maximum throughput
   const [identity, profile, expertInsights, summaryRow, calibration] = await Promise.all([
@@ -174,16 +182,18 @@ router.get('/identity', authenticateUser, async (req, res) => {
     mergedProfile.personality_summary = calibration.personality_summary;
   }
 
-  return res.json({
-    success: true,
-    data: {
-      identity: identity ?? null,
-      profile: mergedProfile,
-      expertInsights: expertInsights ?? {},
-      summary: summaryRow?.summary ?? null,
-      summaryUpdatedAt: summaryRow?.updated_at ?? null,
-    },
-  });
+  const data = {
+    identity: identity ?? null,
+    profile: mergedProfile,
+    expertInsights: expertInsights ?? {},
+    summary: summaryRow?.summary ?? null,
+    summaryUpdatedAt: summaryRow?.updated_at ?? null,
+  };
+
+  // Cache for 5 minutes (identity changes slowly)
+  cacheSet(cacheKey, data, 300).catch(() => {});
+
+  return res.json({ success: true, data });
 });
 
 export default router;

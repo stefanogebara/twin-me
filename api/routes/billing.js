@@ -102,11 +102,15 @@ router.post('/checkout', authenticateToken, async (req, res) => {
     return res.status(503).json({ error: 'Billing not configured' });
   }
   const { plan } = req.body;
-  if (!['pro', 'max'].includes(plan)) return res.status(400).json({ error: 'Invalid plan' });
+  // Accept both DB keys (pro/max) and display names (plus/pro)
+  const planMap = { plus: 'pro', pro_display: 'max' };
+  const dbPlan = planMap[plan] || plan;
+  if (!['pro', 'max'].includes(dbPlan)) return res.status(400).json({ error: 'Invalid plan' });
 
-  const priceId = plan === 'pro'
-    ? (process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRICE_PRO)
-    : (process.env.STRIPE_MAX_PRICE_ID || process.env.STRIPE_PRICE_MAX);
+  // STRIPE_PLUS_PRICE_ID → Plus ($20), STRIPE_PRO_PRICE_ID → Pro ($100)
+  const priceId = dbPlan === 'pro'
+    ? (process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRICE_PRO)
+    : (process.env.STRIPE_PRO_PRICE_ID_100 || process.env.STRIPE_MAX_PRICE_ID || process.env.STRIPE_PRICE_MAX);
 
   try {
     const { data: existingSub } = await supabaseAdmin

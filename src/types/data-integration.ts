@@ -13,7 +13,8 @@ export type DataProvider =
   | 'slack' | 'discord' | 'linkedin' | 'twitter' | 'instagram'
   | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'reddit'
   | 'strava' | 'oura' | 'whoop'
-  | 'apple_music' | 'fitbit' | 'garmin' | 'twitch';
+  | 'apple_music' | 'fitbit' | 'garmin' | 'twitch'
+  | 'browser_extension';
 
 export type DataType =
   | 'email' | 'calendar_event' | 'slack_message' | 'teams_message'

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ArrowRight, Globe, MessageSquare, Music, Brain, Database, Bell, Shield } from 'lucide-react';
+import { ArrowRight, Music, Brain, Database, Bell, Shield } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
+import { useDemo } from '../contexts/DemoContext';
 
 import { InlineEvidence } from '../components/landing/InlineEvidence';
 import { useLenis } from '../hooks/useLenis';
@@ -12,22 +13,15 @@ import {
   DiscordLogo,
   LinkedinLogo,
 } from '../components/PlatformLogos';
+import '../styles/landing.css';
 
-/* ── Active platform integrations + import-based sources ── */
-const BrowserExtIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-  <Globe className={className} style={style} />
-);
-const WhatsAppIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
-  <MessageSquare className={className} style={style} />
-);
-
+/* ── Active platform integrations ── */
 const PLATFORMS = [
   { id: 'spotify',   name: 'Spotify',            Icon: SpotifyLogo,         color: '#1DB954' },
   { id: 'calendar',  name: 'Google Calendar',     Icon: GoogleCalendarLogo,  color: '#4285F4' },
   { id: 'youtube',   name: 'YouTube',             Icon: YoutubeLogo,         color: '#FF0000' },
   { id: 'discord',   name: 'Discord',             Icon: DiscordLogo,         color: '#5865F2' },
   { id: 'linkedin',  name: 'LinkedIn',            Icon: LinkedinLogo,        color: '#0A66C2' },
-  { id: 'browser',   name: 'Browser Extension',   Icon: BrowserExtIcon,      color: '#8B5CF6' },
 ];
 
 /* ── Card images from Gemini ── */
@@ -79,6 +73,7 @@ const Index = () => {
   useLenis();
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
+  const { enterDemoMode } = useDemo();
   const [activeService, setActiveService] = useState(0);
   /* Auto-cycle services every 4s */
   useEffect(() => {
@@ -94,220 +89,15 @@ const Index = () => {
   }
 
   return (
-    <div className="w-full min-h-screen" style={{ backgroundColor: '#141414', color: '#F5F0EB', fontFamily: "'Geist', sans-serif", fontSize: '14px', fontWeight: 500 }}>
-      <style>{`
-        /* ── Sundust Dark Typography System ── */
-        .h1 { font-size: 80px; }
-        .h2 { font-size: 56px; }
-        .h3 { font-size: 32px; }
-        .body-text {
-          font-family: 'Geist', sans-serif;
-          font-size: 14px;
-          font-weight: 500;
-          color: #A8A29E;
-          line-height: 1.65;
-        }
-        .claura-label {
-          font-family: 'Geist', sans-serif;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 8px;
-          padding: 6px 14px;
-          font-size: 12px;
-          font-weight: 400;
-          color: #A8A29E;
-          display: inline-block;
-        }
-        .btn-cta {
-          font-family: 'Geist', sans-serif;
-          background-color: #F5F0EB;
-          color: #141414;
-          border-radius: 9999px;
-          padding: 14px 28px;
-          font-size: 12px;
-          font-weight: 400;
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          letter-spacing: 0.02em;
-        }
-        .btn-cta:hover { opacity: 0.85; transform: translateY(-2px); }
-        .btn-outline {
-          font-family: 'Geist', sans-serif;
-          background: transparent;
-          color: #F5F0EB;
-          border: 1.5px solid rgba(255,255,255,0.15);
-          border-radius: 9999px;
-          padding: 13px 26px;
-          font-size: 12px;
-          font-weight: 400;
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          letter-spacing: 0.02em;
-        }
-        .btn-outline:hover { border-color: rgba(255,255,255,0.4); transform: translateY(-1px); }
-
-        /* Nav link style */
-        .nav-link {
-          font-family: 'Geist', sans-serif;
-          font-size: 13px;
-          font-weight: 500;
-          color: #A8A29E;
-          transition: color 0.2s ease;
-          cursor: pointer;
-        }
-        .nav-link:hover { color: #F5F0EB; }
-
-        /* Sign in text button */
-        .btn-signin {
-          font-family: 'Geist', sans-serif;
-          font-size: 13px;
-          font-weight: 500;
-          color: #A8A29E;
-          background: none;
-          border: none;
-          cursor: pointer;
-          transition: color 0.2s ease;
-          padding: 8px 16px;
-        }
-        .btn-signin:hover { color: #F5F0EB; }
-
-        /* Service tab highlight */
-        .service-tab {
-          cursor: pointer;
-          padding: 20px 28px;
-          border-radius: 16px;
-          transition: all 0.3s ease;
-        }
-        .service-tab:hover { background: rgba(255,255,255,0.03); }
-        .service-tab.active {
-          background: rgba(255,255,255,0.05);
-        }
-
-        /* Glass stat card — standalone */
-        .glass-stat-standalone {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          padding: 32px 28px;
-          text-align: center;
-          position: relative;
-          overflow: hidden;
-        }
-        .glass-stat-standalone::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
-          opacity: 0.6;
-        }
-
-        /* Step circle */
-        .step-circle {
-          width: 48px;
-          height: 48px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(232,160,80,0.25);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Geist', sans-serif;
-          font-size: 12px;
-          font-weight: 400;
-          color: #A8A29E;
-          flex-shrink: 0;
-        }
-        .step-badge {
-          font-family: 'Geist', sans-serif;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 6px;
-          padding: 3px 10px;
-          font-size: 12px;
-          font-weight: 400;
-          color: #A8A29E;
-        }
-
-        /* Glass feature card */
-        .glass-feature-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px;
-          padding: 32px 28px;
-          position: relative;
-          overflow: hidden;
-          transition: border-color 0.3s ease, background 0.3s ease;
-        }
-        .glass-feature-card:hover {
-          border-color: rgba(232, 160, 80, 0.25);
-          background: rgba(255,255,255,0.05);
-        }
-        .glass-feature-card::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
-          opacity: 0.4;
-        }
-
-        /* Warm ambient glow */
-        .warm-glow {
-          position: relative;
-        }
-        .warm-glow {
-          overflow: hidden;
-        }
-        .warm-glow::before {
-          content: '';
-          position: absolute;
-          top: -100px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: min(600px, 100vw);
-          height: 400px;
-          background: radial-gradient(ellipse at center, rgba(232, 160, 80, 0.06) 0%, transparent 70%);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        /* Floating pill navbar */
-        .nav-dark {
-          background: rgba(20, 20, 20, 0.7);
-          backdrop-filter: blur(19.65px);
-          -webkit-backdrop-filter: blur(19.65px);
-          border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        /* Responsive heading sizes */
-        @media (max-width: 768px) {
-          .h1 { font-size: 48px; }
-          .h2 { font-size: 36px; }
-          .h3 { font-size: 24px; }
-          .glass-prompt { max-width: 100%; }
-          .prompt-glow-wrapper::before {
-            width: 100%;
-            height: 300px;
-          }
-        }
-      `}</style>
+    <div className="w-full min-h-screen bg-[#141414] text-[#F5F0EB] font-sans text-sm font-medium">
 
       {/* ────────────── NAV ────────────── */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
-      <nav className="flex items-center justify-between pl-5 pr-3 py-[10px] rounded-[32px] nav-dark">
+      <nav className="flex items-center justify-between pl-5 pr-3 py-[10px] rounded-[32px] bg-[rgba(20,20,20,0.7)] backdrop-blur-[19.65px] border border-white/[0.08]">
         <div className="flex items-center justify-between w-full">
           {/* Left: Logo */}
           <span
-            className="text-[22px] cursor-pointer"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
+            className="text-[22px] cursor-pointer font-heading font-normal"
             onClick={() => navigate('/')}
           >
             Twin Me
@@ -317,21 +107,21 @@ const Index = () => {
           <div className="hidden md:flex items-center gap-8">
             <a
               href="#services"
-              className="nav-link"
+              className="font-sans text-[13px] font-medium text-[#A8A29E] transition-colors duration-200 cursor-pointer hover:text-[#F5F0EB]"
               onClick={(e) => { e.preventDefault(); document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               Services
             </a>
             <a
               href="#features"
-              className="nav-link"
+              className="font-sans text-[13px] font-medium text-[#A8A29E] transition-colors duration-200 cursor-pointer hover:text-[#F5F0EB]"
               onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               Features
             </a>
             <a
               href="#how-it-works"
-              className="nav-link"
+              className="font-sans text-[13px] font-medium text-[#A8A29E] transition-colors duration-200 cursor-pointer hover:text-[#F5F0EB]"
               onClick={(e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               How it works
@@ -341,18 +131,18 @@ const Index = () => {
           {/* Right: Auth */}
           <div className="flex items-center gap-2">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="btn-cta">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Dashboard
               </button>
             ) : (
               <>
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-signin">
+                  <button className="font-sans text-[13px] font-medium text-[#A8A29E] bg-none border-none cursor-pointer transition-colors duration-200 py-2 px-4 hover:text-[#F5F0EB]">
                     Sign in
                   </button>
                 </SignInButton>
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-cta">
+                  <button className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                     Start Free
                   </button>
                 </SignInButton>
@@ -368,32 +158,36 @@ const Index = () => {
         <div className="max-w-[520px] mx-auto text-center flex flex-col items-center">
           {/* Main heading — let it breathe */}
           <h1
-            className="h1 mb-8"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}
+            className="text-[48px] md:text-[80px] font-heading font-normal mb-8"
           >
             What if your data could reveal your soul?
           </h1>
 
           {/* One paragraph — narrative voice, 60% opacity */}
           <p
-            className="narrative-voice mb-10"
-            style={{ fontSize: '18px', maxWidth: '460px' }}
+            className="narrative-voice mb-10 text-lg max-w-[460px]"
           >
             Your music, your calendar, your conversations — they already know who you are. We just listen to what they're saying.
           </p>
 
           {/* Single earned CTA — not loud, not multiple */}
-          <div>
+          <div className="flex flex-col items-center gap-3">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="btn-cta">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
-              <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="btn-cta">
+              <>
+                <button onClick={() => navigate('/discover')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Discover yourself <ArrowRight className="w-4 h-4" />
                 </button>
-              </SignInButton>
+                <button
+                  onClick={() => { enterDemoMode(); navigate('/dashboard'); }}
+                  className="text-xs bg-none border-none cursor-pointer text-[#706B63] transition-colors hover:text-[#A8A29E]"
+                >
+                  or try the demo
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -401,28 +195,22 @@ const Index = () => {
 
       {/* ── Act transition — subtle breathing space ── */}
       <div className="flex justify-center py-8">
-        <div
-          className="w-12 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(232,160,80,0.4), transparent)' }}
-        />
+        <div className="w-12 h-px landing-divider-gradient" />
       </div>
 
       {/* ────────────── ACT 2: PRODUCT DEPTH ────────────── */}
 
       {/* ────────────── PLATFORMS STRIP (Act 2 opens) ────────────── */}
-      <section className="px-6 lg:px-16 py-12 border-t border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <section className="px-6 lg:px-16 py-12 border-t border-b border-white/[0.06]">
         <div className="max-w-[1200px] mx-auto">
-          <p className="text-center mb-7" style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#706B63' }}>
+          <p className="text-center mb-7 font-sans text-[11px] font-normal tracking-[0.12em] uppercase text-[#706B63]">
             Your data, your insights — powered by
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-14">
             {PLATFORMS.map(({ id, name, Icon, color }) => (
-              <div key={id} className="flex items-center gap-2.5 transition-opacity duration-200" style={{ opacity: 0.5 }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
-              >
+              <div key={id} className="flex items-center gap-2.5 transition-opacity duration-200 opacity-50 hover:opacity-90">
                 <Icon className="w-5 h-5" style={{ color }} />
-                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: 500, color: '#A8A29E' }}>{name}</span>
+                <span className="font-sans text-[13px] font-medium text-[#A8A29E]">{name}</span>
               </div>
             ))}
           </div>
@@ -430,18 +218,18 @@ const Index = () => {
       </section>
 
       {/* ────────────── WHO WE ARE + STATS ────────────── */}
-      <section className="px-6 lg:px-16 py-24 warm-glow">
+      <section className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto relative z-10">
           {/* Header row */}
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-14">
             <div className="lg:w-1/2">
-              <span className="claura-label mb-5 block">Who we are</span>
-              <h2 className="h2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
-                The soul signature built for <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>you.</span>
+              <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">Who we are</span>
+              <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
+                The soul signature built for <span className="font-heading font-normal italic">you.</span>
               </h2>
             </div>
             <div className="lg:w-1/2 flex items-end">
-              <p className="body-text max-w-[520px]">
+              <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[520px]">
                 We built Twin Me to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
               </p>
             </div>
@@ -453,25 +241,17 @@ const Index = () => {
           >
             {[
               { value: '5+', label: 'Platform integrations', sub: 'And growing' },
-              { value: '1,536d', label: 'Vector embeddings', sub: 'Per memory' },
+              { value: '1,536-dim', label: 'Vector embeddings', sub: 'Per memory' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (
-              <div key={i} className="glass-stat-standalone">
+              <div key={i} className="glass-stat-standalone bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 text-center relative overflow-hidden">
                 <div
-                  style={{
-                    fontFamily: "'Instrument Serif', Georgia, serif",
-                    fontSize: '52px',
-                    fontWeight: 600,
-                    lineHeight: 1.05,
-                    color: '#F5F0EB',
-                    marginBottom: '10px',
-                    letterSpacing: '-0.03em',
-                  }}
+                  className="font-heading text-[52px] font-semibold leading-[1.05] text-[#F5F0EB] mb-2.5 tracking-[-0.03em]"
                 >
                   {stat.value}
                 </div>
-                <p className="body-text" style={{ margin: 0 }}>{stat.label}</p>
-                <p style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: '#706B63', marginTop: '4px' }}>{stat.sub}</p>
+                <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] m-0">{stat.label}</p>
+                <p className="font-sans text-[11px] text-[#706B63] mt-1">{stat.sub}</p>
               </div>
             ))}
           </div>
@@ -483,12 +263,12 @@ const Index = () => {
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
           <div className="mb-14">
-            <span className="claura-label mb-5 block">Services</span>
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">Services</span>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
-              <h2 className="h2 lg:max-w-[520px]" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
+              <h2 className="text-[36px] md:text-[56px] font-heading font-normal lg:max-w-[520px]">
                 We handle everything so you don't have to.
               </h2>
-              <p className="body-text max-w-[480px] lg:pt-2">
+              <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[480px] lg:pt-2">
                 From connecting your platforms to generating insights and building your AI twin -- we manage the entire process while you discover yourself.
               </p>
             </div>
@@ -501,15 +281,15 @@ const Index = () => {
               {SERVICES.map((svc, idx) => (
                 <div
                   key={svc.id}
-                  className={`service-tab flex items-baseline gap-3 ${idx === activeService ? 'active' : ''}`}
+                  className={`cursor-pointer py-5 px-7 rounded-2xl transition-all duration-300 hover:bg-white/[0.03] flex items-baseline gap-3 ${idx === activeService ? 'bg-white/[0.05]' : ''}`}
                   onClick={() => setActiveService(idx)}
                 >
-                  <h3 className={`h3 transition-colors duration-300 ${
+                  <h3 className={`text-[24px] md:text-[32px] font-heading font-normal transition-colors duration-300 ${
                     idx === activeService ? 'text-[#F5F0EB]' : 'text-[#A8A29E] opacity-40'
-                  }`} style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
+                  }`}>
                     {svc.title}
                   </h3>
-                  <span className={`body-text transition-colors duration-300 ${
+                  <span className={`font-sans text-sm font-medium leading-[1.65] transition-colors duration-300 ${
                     idx === activeService ? 'text-[#A8A29E]' : 'text-[#706B63] opacity-40'
                   }`}>
                     {svc.num}
@@ -523,11 +303,7 @@ const Index = () => {
               <div key={activeService}>
                   {/* Flower image card */}
                   <div
-                    className="relative overflow-hidden w-full mb-6"
-                    style={{
-                      borderRadius: '28px',
-                      aspectRatio: '1.4 / 1',
-                    }}
+                    className="relative overflow-hidden w-full mb-6 rounded-[28px] aspect-[1.4/1]"
                   >
                     <img
                       src={SERVICES[activeService].img}
@@ -536,10 +312,10 @@ const Index = () => {
                     />
                   </div>
                   {/* Description */}
-                  <h4 className="body-text mb-2" style={{ fontWeight: 600, color: '#F5F0EB' }}>
+                  <h4 className="font-sans text-sm font-semibold text-[#F5F0EB] leading-[1.65] mb-2">
                     {SERVICES[activeService].heading}
                   </h4>
-                  <p className="body-text max-w-[480px]">
+                  <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[480px]">
                     {SERVICES[activeService].desc}
                   </p>
               </div>
@@ -549,12 +325,12 @@ const Index = () => {
       </section>
 
       {/* ────────────── FEATURES — 2x2 Grid ────────────── */}
-      <section id="features" className="px-6 lg:px-16 py-24 warm-glow">
+      <section id="features" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto relative z-10">
           <div className="mb-14">
-            <span className="claura-label mb-5 block">Features</span>
-            <h2 className="h2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
-              Everything your twin needs to <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>know you.</span>
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">Features</span>
+            <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
+              Everything your twin needs to <span className="font-heading font-normal italic">know you.</span>
             </h2>
           </div>
 
@@ -612,24 +388,17 @@ const Index = () => {
               return (
                 <div
                   key={feature.title}
-                  className="glass-feature-card"
+                  className="glass-feature-card bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 relative overflow-hidden transition-all duration-300 hover:border-[rgba(232,160,80,0.25)] hover:bg-white/[0.05]"
                 >
                   <div
-                    className="mb-4 flex items-center justify-center"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '14px',
-                      background: 'rgba(232, 160, 80, 0.08)',
-                      border: '1px solid rgba(232, 160, 80, 0.18)',
-                    }}
+                    className="mb-4 flex items-center justify-center w-12 h-12 rounded-[14px] bg-[rgba(232,160,80,0.08)] border border-[rgba(232,160,80,0.18)]"
                   >
-                    <FeatureIcon className="w-5 h-5" style={{ color: '#E8A050' }} />
+                    <FeatureIcon className="w-5 h-5 text-[#E8A050]" />
                   </div>
-                  <h4 className="body-text mb-2" style={{ fontWeight: 600, color: '#F5F0EB', fontSize: '16px' }}>
+                  <h4 className="font-sans text-base font-semibold text-[#F5F0EB] leading-[1.65] mb-2">
                     {feature.title}
                   </h4>
-                  <p className="body-text">{feature.desc}</p>
+                  <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">{feature.desc}</p>
                   <InlineEvidence {...feature.evidence} />
                 </div>
               );
@@ -639,25 +408,25 @@ const Index = () => {
       </section>
 
       {/* ────────────── HOW WE WORK — 3 Steps ────────────── */}
-      <section id="how-it-works" className="px-6 lg:px-16 py-24 warm-glow">
+      <section id="how-it-works" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20 relative z-10">
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
-            <span className="claura-label mb-5 block">How we work</span>
-            <h2 className="h2 mb-5" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
-              Getting you results <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>without</span> the complexity.
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">How we work</span>
+            <h2 className="text-[36px] md:text-[56px] font-heading font-normal mb-5">
+              Getting you results <span className="font-heading font-normal italic">without</span> the complexity.
             </h2>
-            <p className="body-text mb-8 max-w-[440px]">
+            <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] mb-8 max-w-[440px]">
               Our three-step process takes you from connecting platforms to discovering your soul signature, with clear progress and insights at every stage.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               {isLoaded && isSignedIn ? (
-                <button onClick={() => navigate('/dashboard')} className="btn-cta">
+                <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Go to Dashboard <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="btn-cta">
+                  <button className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                     Start Free <ArrowRight className="w-4 h-4" />
                   </button>
                 </SignInButton>
@@ -676,13 +445,13 @@ const Index = () => {
                 key={step.num}
                 className="flex gap-5"
               >
-                <div className="step-circle">{step.num}</div>
+                <div className="w-12 h-12 rounded-full border-[1.5px] border-[rgba(232,160,80,0.25)] flex items-center justify-center font-sans text-xs font-normal text-[#A8A29E] shrink-0">{step.num}</div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="body-text" style={{ fontWeight: 600, color: '#F5F0EB' }}>{step.title}</h4>
-                    <span className="step-badge">{step.badge}</span>
+                    <h4 className="font-sans text-sm font-semibold text-[#F5F0EB] leading-[1.65]">{step.title}</h4>
+                    <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-md py-[3px] px-2.5 text-xs font-normal text-[#A8A29E]">{step.badge}</span>
                   </div>
-                  <p className="body-text max-w-[420px]">
+                  <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[420px]">
                     {step.desc}
                   </p>
                 </div>
@@ -693,16 +462,15 @@ const Index = () => {
       </section>
 
       {/* ────────────── FINAL CTA ────────────── */}
-      <section className="px-6 lg:px-16 py-24 warm-glow">
+      <section className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
-          <h2 className="h2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>
-            Turn confusion into <span style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400, fontStyle: 'italic' }}>clarity,</span> today.
+          <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
+            Turn confusion into <span className="font-heading font-normal italic">clarity,</span> today.
           </h2>
 
           {/* Standalone flower image */}
           <div
-            className="w-full max-w-[820px] overflow-hidden"
-            style={{ borderRadius: '28px' }}
+            className="w-full max-w-[820px] overflow-hidden rounded-[28px]"
           >
             <img
               src={CARD_IMAGES.cta}
@@ -711,18 +479,18 @@ const Index = () => {
             />
           </div>
 
-          <p className="body-text max-w-[520px]">
+          <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[520px]">
             Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="btn-cta">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="btn-cta">
+                <button className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Start Free <ArrowRight className="w-4 h-4" />
                 </button>
               </SignInButton>
@@ -732,44 +500,44 @@ const Index = () => {
       </section>
 
       {/* ────────────── FOOTER ────────────── */}
-      <footer className="px-6 lg:px-16 pb-10 pt-12" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <footer className="px-6 lg:px-16 pb-10 pt-12 border-t border-white/[0.06]">
         <div className="max-w-[1200px] mx-auto">
           {/* Top row — 3 columns */}
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
             {/* Brand */}
             <div className="lg:max-w-[220px]">
-              <h3 className="text-[22px] mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>Twin Me</h3>
-              <p className="body-text">Discover what makes you authentically you.</p>
+              <h3 className="text-[22px] font-heading font-normal mb-2">Twin Me</h3>
+              <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">Discover what makes you authentically you.</p>
             </div>
 
             {/* Product links */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4" style={{ color: '#706B63' }}>
+              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#706B63]">
                 Product
               </p>
-              <ul className="space-y-2.5 body-text">
-                <li><a href="/#features" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Features</a></li>
-                <li><a href="/#how-it-works" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>How it works</a></li>
-                <li><a href="/get-started" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Connect your data</a></li>
-                <li><a href="/soul-signature" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Soul Signature</a></li>
+              <ul className="space-y-2.5 font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">
+                <li><a href="/#features" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Features</a></li>
+                <li><a href="/#how-it-works" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">How it works</a></li>
+                <li><a href="/get-started" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Connect your data</a></li>
+                <li><a href="/soul-signature" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Soul Signature</a></li>
               </ul>
             </div>
 
             {/* Community */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4" style={{ color: '#706B63' }}>
+              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#706B63]">
                 Community
               </p>
-              <ul className="space-y-2.5 body-text">
-                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>GitHub</a></li>
-                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Twitter / X</a></li>
-                <li><a href="mailto:hello@twinme.ai" className="hover:text-[#F5F0EB] transition-colors" style={{ color: '#A8A29E' }}>Contact us</a></li>
+              <ul className="space-y-2.5 font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">
+                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">GitHub</a></li>
+                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Twitter / X</a></li>
+                <li><a href="mailto:hello@twinme.ai" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Contact us</a></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 body-text pt-6" style={{ fontSize: '12px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex flex-col sm:flex-row justify-between gap-4 font-sans text-xs font-medium text-[#A8A29E] leading-[1.65] pt-6 border-t border-white/[0.06]">
             <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="/privacy-policy" className="hover:text-[#F5F0EB] transition-colors">Privacy Policy</a>

@@ -38,6 +38,7 @@ export async function createFinetune(userId, filePath, {
   batchSize = 8,
   learningRate = 1e-5,
   suffix = 'twinme',
+  trainingMethod = 'sft',
 } = {}) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Training file not found: ${filePath}`);
@@ -81,6 +82,7 @@ export async function createFinetune(userId, filePath, {
     batch_size: batchSize,
     learning_rate: learningRate,
     suffix: `${suffix}-${userId.slice(0, 8)}`,
+    ...(trainingMethod === 'dpo' ? { training_method: 'dpo', dpo_beta: 0.1 } : {}),
   };
 
   const jobRes = await fetch(`${TOGETHER_API}/fine-tunes`, {
@@ -109,6 +111,7 @@ export async function createFinetune(userId, filePath, {
       base_model: BASE_MODEL,
       job_id: jobData.id,
       status: jobData.status || 'pending',
+      training_method: trainingMethod,
       metadata: { file_id: fileId, hyperparams: jobBody },
       created_at: new Date().toISOString(),
     }, { onConflict: 'user_id, provider' });

@@ -19,6 +19,10 @@ const API_BASE_URL = EXTENSION_CONFIG.API_URL;
 const tabTimestamps = {};
 let activeTabId = null;
 
+// Tab switching pattern tracking
+const tabSwitchLog = [];
+const TAB_PATTERN_INTERVAL = 15 * 60 * 1000; // 15 minutes
+
 // In-memory state
 let userId = null;
 let authToken = null;
@@ -103,8 +107,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       importBrowsingHistory().then((count) => sendResponse({ success: true, count }));
       return true; // async response
 
+    case 'SET_TRACKING':
+      chrome.storage.local.set({ trackingEnabled: message.enabled });
+      // Notify all content scripts
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, { type: 'SET_TRACKING', enabled: message.enabled }).catch(() => {});
+        });
+      });
+      sendResponse({ success: true });
+      break;
+
     case 'MANUAL_SYNC':
       syncCollectedData().then(() => sendResponse({ success: true }));
+      return true;
+
+    case 'WEB_BROWSING_EVENT':
+      handleWebBrowsingEvent(message.data).then(() => sendResponse({ success: true }));
+      return true; // async response
+
+    case 'BROWSING_ACTIVITY':
+      // Store browsing activity from soul-observer (scroll, clicks, page_load, etc.)
+      handleBrowsingActivity(message.data).then(() => sendResponse({ success: true }));
       return true;
 
     default:
@@ -207,6 +231,17 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   // Flush previous tab
   flushActiveTab();
 
+  // Log tab switch for pattern tracking
+  if (activeTabId && tabTimestamps[activeTabId]) {
+    const fromInfo = tabTimestamps[activeTabId];
+    tabSwitchLog.push({
+      fromDomain: fromInfo.domain,
+      toDomain: '', // filled after we get new tab info
+      timestamp: Date.now()
+    });
+    if (tabSwitchLog.length > 500) tabSwitchLog.splice(0, tabSwitchLog.length - 500);
+  }
+
   activeTabId = activeInfo.tabId;
 
   // Get the tab details
@@ -233,6 +268,37 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
   delete tabTimestamps[tabId];
 });
+
+// Periodic tab pattern aggregation (every 15 minutes)
+setInterval(async () => {
+  if (tabSwitchLog.length < 3 || !userId) return;
+
+  const now = Date.now();
+  const recentSwitches = tabSwitchLog.filter(s => now - s.timestamp < TAB_PATTERN_INTERVAL);
+  if (recentSwitches.length < 3) return;
+
+  const domainCounts = {};
+  recentSwitches.forEach(s => {
+    if (s.fromDomain) domainCounts[s.fromDomain] = (domainCounts[s.fromDomain] || 0) + 1;
+  });
+  const topDomains = Object.entries(domainCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([d]) => d);
+
+  const patternEvent = {
+    data_type: 'tab_pattern',
+    platform: 'web',
+    switchCount: recentSwitches.length,
+    uniqueDomains: new Set(recentSwitches.map(s => s.fromDomain).filter(Boolean)).size,
+    topDomains,
+    periodMinutes: 15,
+    timestamp: new Date().toISOString(),
+    synced: false,
+  };
+
+  await sendToBackend('web', [patternEvent]);
+
+  // Clear processed switches
+  tabSwitchLog.length = 0;
+}, TAB_PATTERN_INTERVAL);
 
 // ─────────────────────────────────────────────
 // History import (one-time bootstrap)
@@ -316,6 +382,47 @@ async function handlePageAnalysis(data) {
   const { web_history = [] } = await chrome.storage.local.get('web_history');
   const trimmed = [...web_history, event].slice(-1000);
   await chrome.storage.local.set({ web_history: trimmed });
+  await sendToBackend('web', [event]);
+  updateBadge();
+}
+
+async function handleWebBrowsingEvent(data) {
+  const events = data?.events || [];
+  if (events.length === 0) return;
+
+  // Store in web_history
+  const { web_history = [] } = await chrome.storage.local.get('web_history');
+  const newEvents = events.map(e => ({
+    ...e,
+    platform: 'web',
+    data_type: e.eventType || 'page_visit',
+    collectedAt: new Date().toISOString(),
+    synced: false,
+  }));
+  const trimmed = [...web_history, ...newEvents].slice(-1000);
+  await chrome.storage.local.set({ web_history: trimmed });
+
+  // Send to backend
+  await sendToBackend('web', newEvents);
+  updateBadge();
+}
+
+async function handleBrowsingActivity(data) {
+  // Only forward significant activities (page_summary, reading_completion, reading_analysis)
+  const significantTypes = ['page_summary', 'reading_completion', 'reading_analysis', 'page_load'];
+  if (!data || !significantTypes.includes(data.type)) return;
+
+  const event = {
+    ...data,
+    platform: 'web',
+    data_type: data.type === 'page_load' ? 'page_visit' : data.type,
+    collectedAt: new Date().toISOString(),
+    synced: false,
+  };
+  const { web_history = [] } = await chrome.storage.local.get('web_history');
+  const trimmed = [...web_history, event].slice(-1000);
+  await chrome.storage.local.set({ web_history: trimmed });
+
   await sendToBackend('web', [event]);
   updateBadge();
 }

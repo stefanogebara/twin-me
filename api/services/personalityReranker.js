@@ -52,7 +52,17 @@ export async function rerankByPersonality(
     }
 
     if (candidates.length === 1) {
-      return candidates[0];
+      return {
+        ...candidates[0],
+        _rerankerMeta: {
+          chosen: candidates[0],
+          rejected: null,
+          chosenSimilarity: 0,
+          rejectedSimilarity: 0,
+          similarityGap: 0,
+          candidateCount: 1,
+        },
+      };
     }
 
     const embeddingResults = await Promise.allSettled(
@@ -61,23 +71,44 @@ export async function rerankByPersonality(
 
     let bestIdx = 0;
     let bestSim = -Infinity;
+    let worstIdx = 0;
+    let worstSim = Infinity;
+    const similarities = [];
 
     for (let i = 0; i < candidates.length; i++) {
       const embResult = embeddingResults[i];
-      if (embResult.status !== 'fulfilled' || !embResult.value) continue;
+      if (embResult.status !== 'fulfilled' || !embResult.value) {
+        similarities.push(null);
+        continue;
+      }
 
       const sim = cosineSimilarity(embResult.value, personalityEmbedding);
+      similarities.push(sim);
       if (sim > bestSim) {
         bestSim = sim;
         bestIdx = i;
       }
+      if (sim < worstSim) {
+        worstSim = sim;
+        worstIdx = i;
+      }
     }
 
     log.info(
-      `[PersonalityReranker] Selected candidate ${bestIdx + 1}/${candidates.length} (similarity: ${bestSim.toFixed(4)})`
+      `[PersonalityReranker] Selected candidate ${bestIdx + 1}/${candidates.length} (similarity: ${bestSim.toFixed(4)}, gap: ${(bestSim - worstSim).toFixed(4)})`
     );
 
-    return candidates[bestIdx];
+    return {
+      ...candidates[bestIdx],
+      _rerankerMeta: {
+        chosen: candidates[bestIdx],
+        rejected: candidates[worstIdx],
+        chosenSimilarity: bestSim,
+        rejectedSimilarity: worstSim,
+        similarityGap: bestSim - worstSim,
+        candidateCount: candidates.length,
+      },
+    };
   } catch (err) {
     log.warn('Reranking failed, returning null:', err.message);
     return null;

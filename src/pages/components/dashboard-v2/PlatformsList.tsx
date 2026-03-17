@@ -36,7 +36,7 @@ export function PlatformsList({ platforms }: PlatformsListProps) {
   if (platforms.length === 0) {
     return (
       <section className="mb-12">
-        <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</p>
+        <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</h2>
         <Link
           to="/get-started"
           className="text-sm transition-colors duration-150 hover:brightness-150"
@@ -49,15 +49,15 @@ export function PlatformsList({ platforms }: PlatformsListProps) {
   }
 
   return (
-    <section className="mb-12">
-      <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</p>
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
+      <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>PLATFORMS</h2>
       <div>
         {platforms.map((p, i) => (
           <div
             key={p.provider}
             className="flex items-center justify-between py-3"
             style={{
-              borderBottom: i < platforms.length - 1 ? '1px solid rgba(255,255,255,0.06)' : undefined,
+              borderBottom: i < platforms.length - 1 ? '1px solid var(--border)' : undefined,
             }}
           >
             <div className="flex items-center gap-2.5">

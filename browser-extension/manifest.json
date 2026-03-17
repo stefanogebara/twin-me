@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Soul Signature - Digital Twin Collector",
-  "version": "2.1.0",
-  "description": "Capture your digital footprint from streaming platforms to build your authentic Soul Signature profile",
+  "name": "TwinMe - Digital Twin",
+  "version": "3.0.0",
+  "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first: sensitive sites blocked, incognito excluded.",
   "permissions": [
     "storage",
     "tabs",
@@ -22,7 +22,8 @@
     "https://www.primevideo.com/*",
     "https://www.amazon.com/gp/video/*",
     "https://www.disneyplus.com/*",
-    "https://twin-ai-learn.vercel.app/*"
+    "https://twin-ai-learn.vercel.app/*",
+    "*://*/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -63,18 +64,36 @@
       "matches": ["https://www.disneyplus.com/*"],
       "js": ["collectors/disneyplus.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://*/*"],
+      "js": ["content/soul-observer.js"],
+      "run_at": "document_idle",
+      "exclude_matches": [
+        "https://www.youtube.com/*",
+        "https://www.twitch.tv/*",
+        "https://www.netflix.com/*",
+        "https://www.hulu.com/*",
+        "https://www.hbomax.com/*",
+        "https://max.com/*",
+        "https://www.primevideo.com/*",
+        "https://www.amazon.com/gp/video/*",
+        "https://www.disneyplus.com/*"
+      ]
     }
   ],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
   },
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
@@ -85,7 +104,8 @@
         "https://www.youtube.com/*",
         "https://www.twitch.tv/*",
         "https://www.netflix.com/*",
-        "https://twin-ai-learn.vercel.app/*"
+        "https://twin-ai-learn.vercel.app/*",
+        "*://*/*"
       ]
     }
   ]

@@ -79,9 +79,10 @@ const PLATFORM_META: Record<string, { label: string; icon: string; description: 
   discord: { label: 'Discord', icon: '💬', description: 'Community activity, communication style' },
   linkedin: { label: 'LinkedIn', icon: '💼', description: 'Career trajectory, professional skills' },
   whoop: { label: 'Whoop', icon: '❤️', description: 'Recovery, sleep, HRV, strain' },
+  browser_extension: { label: 'Browser Extension', icon: '🌐', description: 'Browsing history, reading depth, search queries' },
 };
 
-const ORDERED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop'];
+const ORDERED_PLATFORMS = ['browser_extension', 'spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'whoop'];
 
 const DEMO_INSIGHTS: Insight[] = [
   { content: "Your music shifts dramatically between focused work hours and evenings — you seem to use sound as a deliberate tool for managing mental state.", category: "lifestyle" },

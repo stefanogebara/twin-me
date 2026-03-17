@@ -113,6 +113,12 @@ const TwitchLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
+const BrowserExtensionLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+  </svg>
+);
+
 const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 32 32" fill="none">
     <path d="M19.484 7.937v5.477l1.916 1.205a.489.489 0 00.21.063.5.5 0 00.229-.063l5.677-3.416a.476.476 0 00-.026-.063.9.9 0 00-.379-.334l-6.417-3.326a1.837 1.837 0 00-1.21.457z" fill="currentColor"/>
@@ -137,11 +143,25 @@ export interface ConnectorConfig {
   estimatedInsights: number;
   setupTime: string;
   privacyLevel: 'low' | 'medium' | 'high';
-  category: 'entertainment' | 'social' | 'professional' | 'health';
+  category: 'entertainment' | 'social' | 'professional' | 'health' | 'browsing';
   comingSoon?: boolean;
+  externalUrl?: string; // For non-OAuth connectors (e.g. Chrome Web Store)
 }
 
 export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
+  {
+    provider: 'browser_extension',
+    name: 'Browser Extension',
+    description: 'Track everything you browse — pages visited, reading time, content topics, search queries, and engagement patterns',
+    icon: <BrowserExtensionLogo className="w-6 h-6" />,
+    color: '#ff8400',
+    dataTypes: ['Browsing History', 'Reading Depth', 'Search Queries', 'Content Topics'],
+    estimatedInsights: 20,
+    setupTime: '30 seconds',
+    privacyLevel: 'medium',
+    category: 'browsing',
+    externalUrl: 'https://chromewebstore.google.com/detail/twinme/ajcjojimfedkcaamgegebgcdakdlhffi',
+  },
   {
     provider: 'spotify',
     name: 'Spotify',

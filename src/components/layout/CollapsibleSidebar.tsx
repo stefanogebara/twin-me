@@ -113,8 +113,11 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         <div
           className="flex flex-col h-full overflow-hidden lg:rounded-2xl"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
         <style>
@@ -166,7 +169,9 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               <span
                 className="text-2xl"
                 style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
                   fontWeight: 400,
+                  letterSpacing: '-0.02em',
                   color: 'var(--foreground)'
                 }}
               >
@@ -188,10 +193,10 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
-                  isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center",
+                  "w-full flex items-center gap-3 rounded-full transition-all duration-200",
+                  isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
-                    ? "font-semibold"
+                    ? "font-medium"
                     : isExpanded
                       ? 'text-sidebar-foreground hover:bg-sidebar-accent'
                       : 'text-sidebar-foreground hover:bg-sidebar-accent'
@@ -208,7 +213,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   style={active ? { color: 'var(--accent-vibrant)' } : undefined}
                   aria-hidden="true"
                 />
-                {isExpanded && <span className="text-sm font-semibold">{item.label}</span>}
+                {isExpanded && <span className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>{item.label}</span>}
               </button>
             );
           })}

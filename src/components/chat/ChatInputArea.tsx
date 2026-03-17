@@ -37,13 +37,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     return (
       <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="flex items-end gap-3 rounded-[20px] px-5 py-4"
+          className="flex items-end gap-3 rounded-[20px] px-5 py-4 transition-opacity"
           style={{
             background: 'var(--glass-surface-bg)',
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
             border: '1px solid var(--glass-surface-border)',
             boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+            opacity: limitReached ? 0.4 : 1,
+            pointerEvents: limitReached ? 'none' : 'auto',
           }}
         >
           <label htmlFor="twin-chat-input" className="sr-only">
@@ -73,15 +75,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           />
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {chatUsage && chatUsage.tier === 'free' && (
+            {chatUsage && chatUsage.limit != null && chatUsage.limit !== Infinity && (
               <span
                 className="text-[11px] whitespace-nowrap"
                 style={{
-                  color: chatUsage.remaining <= 2
+                  color: chatUsage.remaining <= 5
                     ? 'rgba(239,68,68,0.6)'
-                    : 'var(--text-muted)',
+                    : 'rgba(255,255,255,0.2)',
                 }}
-                title={`${chatUsage.remaining} of ${chatUsage.limit} free messages remaining`}
+                title={`${chatUsage.remaining} of ${chatUsage.limit} messages remaining this month`}
               >
                 {chatUsage.remaining} left
               </span>
@@ -94,15 +96,16 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
               className="flex items-center justify-center transition-all"
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '50%',
+                width: '28px',
+                height: '28px',
+                borderRadius: '100px',
+                padding: '4px',
                 background: hasText && !isDisabled && !limitReached
-                  ? 'var(--button-bg-dark, #252222)'
-                  : 'var(--glass-surface-bg-subtle)',
+                  ? '#252222'
+                  : 'rgba(255,255,255,0.06)',
                 color: hasText && !isDisabled && !limitReached
-                  ? '#fdfcfb'
-                  : 'var(--text-muted)',
+                  ? 'var(--foreground)'
+                  : 'rgba(255,255,255,0.2)',
                 cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
                 flexShrink: 0,
               }}

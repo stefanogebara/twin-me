@@ -26,10 +26,10 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
   const last90 = heatmap.slice(-90);
 
   return (
-    <section className="mb-12">
-      <p className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
+      <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
         YOUR TWIN
-      </p>
+      </h2>
 
       <div className="grid grid-cols-3 gap-6">
         {/* Readiness */}
@@ -69,12 +69,13 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
       </div>
 
       {/* Heatmap */}
-      <div className="mt-6 overflow-x-auto">
+      <div className="mt-6 overflow-x-auto" role="img" aria-label="Memory activity heatmap for the last 90 days">
         <div className="flex gap-[2px] flex-wrap">
           {last90.map((day) => (
             <div
               key={day.date}
               title={`${day.date}: ${day.count} memories`}
+              aria-label={`${day.date}: ${day.count} memories`}
               style={{
                 width: 8,
                 height: 8,

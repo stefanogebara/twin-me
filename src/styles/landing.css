@@ -1,0 +1,46 @@
+/* ── Landing page pseudo-element styles ── */
+/* Only styles that CANNOT be expressed as Tailwind utilities belong here. */
+/* All other styles have been migrated to Tailwind classes in Index.tsx. */
+
+/* Glass stat card — top gradient line (::before pseudo-element) */
+.glass-stat-standalone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
+  opacity: 0.6;
+}
+
+/* Glass feature card — top gradient line (::before pseudo-element) */
+.glass-feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #E8A050, #D4644A, transparent);
+  opacity: 0.4;
+}
+
+/* Warm ambient glow (::before pseudo-element) */
+.warm-glow::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(600px, 100vw);
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(232, 160, 80, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Act transition divider — 3-stop gradient not expressible in Tailwind */
+.landing-divider-gradient {
+  background: linear-gradient(90deg, transparent, rgba(232, 160, 80, 0.4), transparent);
+}

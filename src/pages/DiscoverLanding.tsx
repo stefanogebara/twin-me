@@ -1,42 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Music, Brain, BarChart3, Globe,
   TrendingUp, Zap, Shield, Puzzle,
-  Check, ChevronDown, Sun, Moon,
-  Menu, X,
+  Check, ChevronDown,
+  Menu, X, ArrowRight, Loader2,
 } from 'lucide-react';
+import { discoveryScan, QuickEnrichmentData } from '../services/enrichmentService';
+import { useDemo } from '../contexts/DemoContext';
+import SoulOrb from './onboarding/components/SoulOrb';
+import DataRevealItem from './onboarding/components/DataRevealItem';
 
-// ── Light mode tokens (Figma exact) ────────────────────────────────────
-const LIGHT = {
-  BG:       '#fdfcfb',
-  FG:       '#1b1818',
-  TEXT_SEC: '#4a4242',
-  TEXT_PH:  '#86807b',
-  CARD_BG:  'rgba(244, 241, 236, 0.7)',  // warm cream glass
-  CARD_BDR: '#d9d1cb',
-  BENTO_BG: 'rgba(241, 245, 249, 0.04)',
-  CTA_BG:   '#252222',
-  CTA_FG:   '#fdfcfb',
-  SIGN_UP_BG: '#1b1818',
-  SIGN_UP_FG: '#fdfcfb',
-  GHOST_BG: '#f4f1ec',
-};
-
-// ── Dark mode tokens (Figma exact) ─────────────────────────────────────
-const DARK = {
+// ── Design tokens (dark-only) ──────────────────────────────────────────
+const T = {
   BG:       '#1b1818',
   FG:       '#fdfcfb',
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',
-  CARD_BG:  'rgba(72, 65, 65, 0.6)',    // dark glass
-  CARD_BDR: 'rgba(94, 86, 86, 0.6)',
-  BENTO_BG: 'rgba(241, 245, 249, 0.04)',
+  CARD_BG:  'rgba(255, 255, 255, 0.02)',
+  CARD_BDR: 'rgba(255, 255, 255, 0.06)',
+  BENTO_BG: 'rgba(255, 255, 255, 0.02)',
   CTA_BG:   '#fdfcfb',
   CTA_FG:   '#110f0f',
   SIGN_UP_BG: '#fdfcfb',
   SIGN_UP_FG: '#222528',
-  GHOST_BG: 'rgba(72, 65, 65, 0.6)',
+  GHOST_BG: 'rgba(255, 255, 255, 0.02)',
 };
 
 // ── Hero glow: RADIAL gradient (Figma exact — two stacked 455.74px ellipses) ──
@@ -82,13 +69,14 @@ const FOOTER_GLOW_3 = `radial-gradient(ellipse at 45.3% 148%,
   rgba(93,92,174,0.3) 74.519%, rgba(73,56,57,0) 96.635%
 )`;
 
-// ── Data ──────────────────────────────────────────────────────────────
-const SUGGESTION_PILLS = [
-  { icon: Music,     label: 'My music taste' },
-  { icon: Brain,     label: 'My personality' },
-  { icon: BarChart3, label: 'My productivity' },
-  { icon: Globe,     label: 'My daily rhythms' },
-];
+// ── Types ─────────────────────────────────────────────────────────────
+type DiscoverPhase = 'idle' | 'scanning' | 'revealed';
+
+interface DataPoint {
+  icon: string;
+  label: string;
+  value: string;
+}
 
 const PLATFORM_LOGOS = ['Spotify', 'YouTube', 'Discord', 'LinkedIn', 'Whoop'];
 
@@ -129,23 +117,67 @@ const FAQ_ANSWERS: Record<string, string> = {
 // ── Main component ─────────────────────────────────────────────────────
 export default function DiscoverLanding() {
   const navigate  = useNavigate();
-  const [query, setQuery]             = useState('');
   const [billingAnnual, setBillingAnnual] = useState(false);
   const [openFaq, setOpenFaq]         = useState<number | null>(null);
-  const [isDark, setIsDark]           = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const T = isDark ? DARK : LIGHT;
+  const { enterDemoMode } = useDemo();
+
+  // Discovery scan state
+  const [email, setEmail] = useState('');
+  const [phase, setPhase] = useState<DiscoverPhase>('idle');
+  const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
+  const [error, setError] = useState('');
+
+  // Redirect if already signed in
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    if (token) navigate('/dashboard', { replace: true });
+  }, [navigate]);
+
+  const handleDiscover = async () => {
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    setError('');
+    setPhase('scanning');
+    setDataPoints([]);
+
+    const result = await discoveryScan(trimmed);
+
+    if (!result.success && result.error) {
+      setError(result.error);
+      setPhase('idle');
+      return;
+    }
+
+    const d = result.discovered;
+    if (d) {
+      const points: DataPoint[] = [];
+      if (d.discovered_name) points.push({ icon: 'name', label: 'Name', value: d.discovered_name });
+      if (d.discovered_company) points.push({ icon: 'company', label: 'Company', value: d.discovered_company });
+      if (d.discovered_location) points.push({ icon: 'location', label: 'Location', value: d.discovered_location });
+      if (d.discovered_bio) points.push({ icon: 'bio', label: 'Bio', value: d.discovered_bio });
+      if (d.discovered_github_url) points.push({ icon: 'github', label: 'GitHub', value: 'Profile found' });
+      if (d.discovered_twitter_url) points.push({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
+      setDataPoints(points);
+
+      // Cache for post-auth pickup
+      sessionStorage.setItem('twinme_discovery_data', JSON.stringify(d));
+      sessionStorage.setItem('twinme_discovery_email', trimmed);
+    }
+
+    setPhase('revealed');
+  };
 
   const glassStyle = {
-    backdropFilter: 'blur(19.65px)',
-    WebkitBackdropFilter: 'blur(19.65px)',
     background: T.CARD_BG,
     border: `1px solid ${T.CARD_BDR}`,
   };
   const chatboxStyle = {
-    backdropFilter: 'blur(42px)',
-    WebkitBackdropFilter: 'blur(42px)',
     background: T.CARD_BG,
     border: `1px solid ${T.CARD_BDR}`,
     boxShadow: '0 4px 4px rgba(0,0,0,0.12)',
@@ -214,14 +246,6 @@ export default function DiscoverLanding() {
 
           {/* Desktop actions — hidden on mobile */}
           <div className="hidden md:flex items-center gap-1 shrink-0">
-            {/* Theme toggle */}
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
-              style={{ color: T.FG }}
-            >
-              {isDark ? <Sun className="w-[14px] h-[14px]" /> : <Moon className="w-[14px] h-[14px]" />}
-            </button>
             {/* Sign in — Figma: ghost, 12px, min-w-[64px], px-2 py-0.5 */}
             <button
               onClick={() => navigate('/auth')}
@@ -239,7 +263,7 @@ export default function DiscoverLanding() {
                 borderRadius: '6px',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Sign in
@@ -269,15 +293,8 @@ export default function DiscoverLanding() {
             </button>
           </div>
 
-          {/* Mobile: theme toggle + hamburger — visible only on mobile */}
+          {/* Mobile: hamburger — visible only on mobile */}
           <div className="flex md:hidden items-center gap-1 ml-auto shrink-0">
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
-              style={{ color: T.FG }}
-            >
-              {isDark ? <Sun className="w-[14px] h-[14px]" /> : <Moon className="w-[14px] h-[14px]" />}
-            </button>
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="flex items-center justify-center w-8 h-8 rounded-full transition-opacity hover:opacity-70"
@@ -303,9 +320,7 @@ export default function DiscoverLanding() {
           <div
             className="absolute top-0 left-0 right-0 rounded-b-[20px] px-6 pt-5 pb-8"
             style={{
-              backdropFilter: 'blur(19.65px)',
-              WebkitBackdropFilter: 'blur(19.65px)',
-              background: isDark ? 'rgba(27, 24, 24, 0.95)' : 'rgba(244, 241, 236, 0.97)',
+              background: 'rgba(27, 24, 24, 0.95)',
               borderBottom: `1px solid ${T.CARD_BDR}`,
               boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
             }}
@@ -364,7 +379,7 @@ export default function DiscoverLanding() {
                     fontSize: '16px',
                     color: T.FG,
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   {label}
@@ -421,7 +436,6 @@ export default function DiscoverLanding() {
       <section className="relative flex flex-col items-center pt-48 pb-36 px-6" style={{ overflowX: 'clip' }}>
 
         {/* Hero glow — two stacked ellipses from Figma CSS export */}
-        {/* Ellipse 3: blurred layer — Figma: y=-55.87px from hero frame, border-radius:50% = ellipse */}
         <div
           className="absolute pointer-events-none"
           style={{
@@ -431,11 +445,10 @@ export default function DiscoverLanding() {
             height: '455.74px',
             borderRadius: '50%',
             background: HERO_GLOW_GRADIENT,
-            opacity: isDark ? 0.85 : 0.6,
+            opacity: 0.85,
             filter: 'blur(42px)',
           }}
         />
-        {/* Ellipse 1: sharp layer with grain texture */}
         <div
           className="absolute pointer-events-none"
           style={{
@@ -445,7 +458,7 @@ export default function DiscoverLanding() {
             height: '455.74px',
             borderRadius: '50%',
             background: HERO_GLOW_GRADIENT,
-            opacity: isDark ? 0.3 : 0.15,
+            opacity: 0.3,
             filter: 'url(#sundust-grain)',
           }}
         />
@@ -469,80 +482,112 @@ export default function DiscoverLanding() {
           className="relative text-center mb-14 max-w-[608px]"
           style={{ color: T.TEXT_SEC, fontSize: '16px', lineHeight: 1.25 }}
         >
-          TwinMe builds a living portrait of your authentic self from the platforms you actually use — not just what you say about yourself.
+          {phase === 'revealed' && dataPoints.length > 0
+            ? 'Here\'s what your digital footprint reveals about you.'
+            : 'TwinMe builds a living portrait of your authentic self from the platforms you actually use — not just what you say about yourself.'}
         </p>
 
-        {/* Chatbox */}
-        <div
-          className="relative w-full max-w-[608px] rounded-[20px] px-5 py-4 mb-3"
-          style={chatboxStyle}
-        >
-          <div className="flex flex-col" style={{ minHeight: '87px', justifyContent: 'space-between', gap: '10px' }}>
-            <p className="text-sm leading-[1.25]" style={{ color: T.TEXT_PH }}>
-              {query || 'What do you want to understand about yourself?'}
-            </p>
-            <div className="flex items-center justify-between h-7">
-              <div className="flex items-center gap-2">
-                <button
-                  className="flex items-center gap-1 min-w-[64px] px-2 py-0.5 rounded-[200px] text-xs font-medium"
-                  style={{ fontFamily: "'Inter', sans-serif", color: T.FG }}
-                  onMouseEnter={e => (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 13.5L5.5 10M11 2.5a2 2 0 0 1 2 2L7 10.5l-3 .5.5-3 6.5-5.5Z"/>
-                  </svg>
-                  <span className="px-1">Explore</span>
-                </button>
-                <button
-                  className="flex items-center gap-1 min-w-[64px] px-2 py-0.5 rounded-md text-xs font-medium"
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    color: T.FG,
-                    background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(17,15,15,0.05)',
-                  }}
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-                    <circle cx="8" cy="8" r="6.5"/>
-                    <path d="M8 1.5a9 5 0 0 1 0 13M8 1.5a9 5 0 0 0 0 13M1.5 8h13"/>
-                  </svg>
-                  <span className="px-1">Platforms</span>
-                </button>
-              </div>
-              <button
-                onClick={() => navigate('/auth')}
-                className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: isDark ? '#fdfcfb' : '#252222', opacity: query ? 1 : 0.5 }}
+        {/* ── PHASE: IDLE — Email input ── */}
+        {phase === 'idle' && (
+          <div className="relative w-full max-w-[608px]">
+            <div
+              className="rounded-[20px] px-5 py-4"
+              style={chatboxStyle}
+            >
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleDiscover(); }}
+                className="flex items-center gap-3"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 10V2M2 6L6 2L10 6" stroke={isDark ? '#222528' : '#fdfcfb'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                  placeholder="Enter your email to discover yourself"
+                  className="flex-1 bg-transparent outline-none text-sm"
+                  style={{
+                    color: T.FG,
+                    fontFamily: "'Inter', sans-serif",
+                    caretColor: T.FG,
+                  }}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-opacity"
+                  style={{ background: T.CTA_BG, opacity: email.trim() ? 1 : 0.4 }}
+                  aria-label="Discover"
+                >
+                  <ArrowRight className="w-4 h-4" style={{ color: T.CTA_FG }} />
+                </button>
+              </form>
+            </div>
+            {error && (
+              <p className="text-xs mt-2 text-center" style={{ color: '#ef4444' }}>{error}</p>
+            )}
+            <button
+              onClick={() => { enterDemoMode(); navigate('/dashboard'); }}
+              className="mt-4 text-xs transition-opacity hover:opacity-70"
+              style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              or try the demo
+            </button>
+          </div>
+        )}
+
+        {/* ── PHASE: SCANNING — SoulOrb awakening ── */}
+        {phase === 'scanning' && (
+          <div className="relative flex flex-col items-center">
+            <SoulOrb phase="awakening" dataPointCount={0} />
+            <div className="flex items-center gap-2 mt-6">
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: T.TEXT_SEC }} />
+              <p className="text-sm" style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif" }}>
+                Discovering you...
+              </p>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Suggestion pills */}
-        <div className="relative flex items-center gap-2 flex-wrap justify-center">
-          {SUGGESTION_PILLS.map(({ icon: Icon, label }) => (
+        {/* ── PHASE: REVEALED — SoulOrb alive + data points ── */}
+        {phase === 'revealed' && (
+          <div className="relative flex flex-col items-center w-full max-w-[480px]">
+            <SoulOrb phase="alive" dataPointCount={dataPoints.length} />
+
+            {dataPoints.length > 0 ? (
+              <div className="w-full max-w-sm mt-6">
+                {dataPoints.map((dp) => (
+                  <DataRevealItem key={dp.label} icon={dp.icon} label={dp.label} value={dp.value} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm mt-6 text-center" style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif" }}>
+                We couldn't find public info for that email yet — but your twin is ready to learn from you directly.
+              </p>
+            )}
+
+            {/* CTA: Create your twin */}
             <button
-              key={label}
-              onClick={() => setQuery(label)}
-              className="flex items-center gap-1 px-3 py-[10px] rounded-[46px] text-xs font-medium transition-all"
+              onClick={() => navigate(`/auth?email=${encodeURIComponent(email.trim())}`)}
+              className="mt-8 flex items-center gap-2 px-8 py-3 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
               style={{
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                background: T.CARD_BG,
-                border: `1px solid ${T.CARD_BDR}`,
-                color: T.FG,
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                background: T.CTA_BG,
+                color: T.CTA_FG,
+                fontFamily: "'Inter', sans-serif",
               }}
             >
-              <Icon className="w-4 h-4 shrink-0" />
-              <span className="px-1">{label}</span>
+              Create your twin
+              <ArrowRight className="w-4 h-4" />
             </button>
-          ))}
-        </div>
+
+            {/* Try different email */}
+            <button
+              onClick={() => { setPhase('idle'); setDataPoints([]); setEmail(''); }}
+              className="mt-3 text-xs transition-opacity hover:opacity-70"
+              style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              Try a different email
+            </button>
+          </div>
+        )}
       </section>
 
       {/* ══ TRUST LOGOS ══════════════════════════════════════════════════ */}
@@ -601,7 +646,7 @@ export default function DiscoverLanding() {
                 transform: 'translateX(-50%)',
                 background: 'radial-gradient(ellipse at 50% 50%, rgba(255,132,0,0.45) 0%, rgba(224,129,22,0.3) 40%, transparent 75%)',
                 filter: 'blur(24px)',
-                opacity: isDark ? 1 : 0.55,
+                opacity: 1,
               }}
             />
             <h2
@@ -662,7 +707,7 @@ export default function DiscoverLanding() {
             bottom: 0, left: '50%',
             transform: 'translateX(-50%)',
             width: '1512px', height: '764px',
-            opacity: isDark ? 0.5 : 0.4,
+            opacity: 0.5,
             background: AMBER_GLOW_CSS,
           }} />
         </div>
@@ -687,8 +732,6 @@ export default function DiscoverLanding() {
           <div
             className="flex items-center gap-3 h-12 px-[5px] py-1 rounded-[32px]"
             style={{
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
               background: 'rgba(255,255,255,0.05)',
               border: `1px solid ${T.CARD_BDR}`,
             }}
@@ -739,8 +782,6 @@ export default function DiscoverLanding() {
                   onClick={() => navigate('/auth')}
                   className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
                   style={{
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
                     background: T.GHOST_BG,
                     border: `1px solid ${T.CARD_BDR}`,
                     color: T.FG,
@@ -808,8 +849,6 @@ export default function DiscoverLanding() {
                 <button
                   className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
                   style={{
-                    backdropFilter: 'blur(16px)',
-                    WebkitBackdropFilter: 'blur(16px)',
                     background: T.GHOST_BG,
                     border: `1px solid ${T.CARD_BDR}`,
                     color: T.FG,
@@ -847,7 +886,7 @@ export default function DiscoverLanding() {
                   top: '16px', left: '60px',
                   background: 'radial-gradient(ellipse at 40% 50%, rgba(255,132,0,0.35) 0%, transparent 70%)',
                   filter: 'blur(20px)',
-                  opacity: isDark ? 1 : 0.5,
+                  opacity: 1,
                 }}
               />
               <h2
@@ -915,9 +954,9 @@ export default function DiscoverLanding() {
       >
         {/* Three layered sunset gradients (exact from Figma footer frame SVG) */}
         <div className="absolute inset-0 pointer-events-none">
-          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_1, opacity: isDark ? 0.5 : 0.3 }} />
-          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_2, opacity: isDark ? 0.5 : 0.25 }} />
-          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_3, opacity: isDark ? 0.5 : 0.2 }} />
+          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_1, opacity: 0.5 }} />
+          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_2, opacity: 0.5 }} />
+          <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_3, opacity: 0.5 }} />
         </div>
 
         <div className="relative max-w-[1512px] mx-auto px-[100px] pt-12 pb-8">

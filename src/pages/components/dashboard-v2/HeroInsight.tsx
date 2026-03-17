@@ -18,23 +18,23 @@ export function HeroInsight({ body, source, insightId }: HeroInsightProps) {
   }, [insightId]);
 
   return (
-    <section className="narrative mb-12">
-      <p className={LABEL_STYLE} style={{ color: 'var(--text-narrative-muted)' }}>
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
+      <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
         YOUR TWIN NOTICED
-      </p>
+      </h2>
       <p
         className="leading-relaxed"
-        style={{ fontSize: '18px', color: 'var(--text-narrative)' }}
+        style={{ fontSize: '18px', color: 'var(--foreground)' }}
       >
         {body}
       </p>
-      <p className="mt-2 text-xs" style={{ color: 'var(--text-narrative-muted)' }}>
+      <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
         Based on {source}
       </p>
       <button
         onClick={() => navigate('/talk-to-twin', { state: { prefill: body } })}
         className="mt-3 text-sm bg-transparent border-none cursor-pointer transition-colors duration-150 hover:brightness-150 p-0"
-        style={{ color: 'var(--text-narrative-secondary)' }}
+        style={{ color: 'var(--text-secondary)' }}
       >
         Talk about this &rarr;
       </button>

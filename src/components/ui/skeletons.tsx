@@ -197,6 +197,54 @@ export const DashboardSkeleton = () => {
   );
 };
 
+// Section Skeleton — for content pages (Identity chapters, articles)
+export const SectionSkeleton = ({ lines = 3 }: { lines?: number }) => {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <Skeleton className="h-3 w-20" style={{ background: 'rgba(255,255,255,0.08)' }} />
+      <Skeleton className="h-5 w-48" />
+      <div className="space-y-2">
+        {[...Array(lines)].map((_, i) => (
+          <Skeleton
+            key={i}
+            className="h-4"
+            style={{ width: `${100 - i * 12}%`, background: 'rgba(255,255,255,0.04)' }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Chart Skeleton — for data visualization pages
+export const ChartSkeleton = ({ height = 200 }: { height?: number }) => {
+  return (
+    <div className="rounded-lg p-6 shadow-md" style={darkCardStyle}>
+      <Skeleton className="h-5 w-32 mb-4" />
+      <div className="flex items-end gap-2" style={{ height }}>
+        {[40, 65, 50, 80, 55, 70, 45].map((h, i) => (
+          <Skeleton key={i} className="flex-1 rounded-t" style={{ height: `${h}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Table Row Skeleton — for tabular data (goals, memory stream)
+export const TableRowSkeleton = ({ rows = 5, cols = 3 }: { rows?: number; cols?: number }) => {
+  return (
+    <div className="space-y-2">
+      {[...Array(rows)].map((_, i) => (
+        <div key={i} className="flex items-center gap-4 p-3 rounded-lg" style={darkCardStyle}>
+          {[...Array(cols)].map((_, j) => (
+            <Skeleton key={j} className="h-4 flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default {
   Skeleton,
   CardSkeleton,
@@ -207,5 +255,8 @@ export default {
   ActivityListSkeleton,
   JourneyProgressSkeleton,
   QuickActionsSkeleton,
-  DashboardSkeleton
+  DashboardSkeleton,
+  SectionSkeleton,
+  ChartSkeleton,
+  TableRowSkeleton,
 };
