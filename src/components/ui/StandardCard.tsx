@@ -29,14 +29,17 @@ export const StandardCard: React.FC<StandardCardProps> = ({
   return (
     <div
       className={cn(
-        'rounded-lg',
+        'rounded-[20px]',
         variant === 'interactive' && 'cursor-pointer',
         paddings[padding],
         className
       )}
       style={{
-        border: '1px solid rgba(255,255,255,0.06)',
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--glass-surface-border)',
+        background: 'var(--glass-surface-bg)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
         ...style,
       }}
       {...props}
@@ -78,7 +81,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.4)' }}>
+            <p className="text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-muted, #86807b)' }}>
               {subtitle}
             </p>
           )}
@@ -117,7 +120,7 @@ export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   return (
     <div
       className={cn('flex items-center justify-between pt-4 mt-4', className)}
-      style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ borderTop: '1px solid var(--card-separator, rgba(50,47,47,0.05))' }}
       {...props}
     >
       {children}

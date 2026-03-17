@@ -143,3 +143,19 @@ export function criticalErrors(errors: string[]): string[] {
       e.includes('ReferenceError'),
   );
 }
+
+/**
+ * Check if the backend API is healthy (DB connected).
+ * Returns true if /api/health returns status "ok", false if degraded/unreachable.
+ * Use to skip DB-dependent tests gracefully during Supabase outages.
+ */
+export async function isBackendHealthy(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/health`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.status === 'ok';
+  } catch {
+    return false;
+  }
+}

@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Player } from '@remotion/player';
 import {
   Paperclip, ArrowUp, Globe, Zap, Shield, Brain,
   Music, Calendar, Youtube, Linkedin, MessageSquare, Activity,
 } from 'lucide-react';
 import '../sundust.css';
-import { MemoryFlow } from '../../remotion/cinematic/MemoryFlow';
-import { SoulPortrait } from '../../remotion/cinematic/SoulPortrait';
-import { PlatformMosaic } from '../../remotion/cinematic/PlatformMosaic';
-import { TwinDialog } from '../../remotion/cinematic/TwinDialog';
+
+// Remotion cinematic components were removed — stubs until re-implemented
+const MemoryFlow = () => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sd-text-muted, #86807b)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>Memory Flow</div>;
+const SoulPortrait = () => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sd-text-muted, #86807b)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>Soul Portrait</div>;
+const PlatformMosaic = () => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sd-text-muted, #86807b)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>Platform Mosaic</div>;
+const TwinDialog = () => <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sd-text-muted, #86807b)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>Twin Dialog</div>;
 
 // ── Scattered soul words ──
 const SOUL_WORDS = [
@@ -445,27 +446,19 @@ export default function PrototypeLanding() {
   );
 }
 
-// ── Remotion tab players ──
-const TAB_CONFIGS: Record<string, { component: React.ComponentType; duration: number; w: number; h: number }> = {
-  remember: { component: MemoryFlow,     duration: 160, w: 400, h: 320 },
-  discover: { component: PlatformMosaic, duration: 160, w: 400, h: 320 },
-  reflect:  { component: SoulPortrait,   duration: 180, w: 400, h: 320 },
-  chat:     { component: TwinDialog,     duration: 220, w: 400, h: 320 },
+// ── Tab visual placeholders (Remotion animations to be re-implemented) ──
+const TAB_COMPONENTS: Record<string, React.ComponentType> = {
+  remember: MemoryFlow,
+  discover: PlatformMosaic,
+  reflect:  SoulPortrait,
+  chat:     TwinDialog,
 };
 
 function TabPlayer({ tabId }: { tabId: string }) {
-  const cfg = TAB_CONFIGS[tabId] ?? TAB_CONFIGS.remember;
+  const Component = TAB_COMPONENTS[tabId] ?? TAB_COMPONENTS.remember;
   return (
-    <Player
-      key={tabId}
-      component={cfg.component}
-      durationInFrames={cfg.duration}
-      compositionWidth={cfg.w}
-      compositionHeight={cfg.h}
-      fps={30}
-      loop
-      autoPlay
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div style={{ width: '100%', height: '100%', minHeight: 320 }}>
+      <Component />
+    </div>
   );
 }

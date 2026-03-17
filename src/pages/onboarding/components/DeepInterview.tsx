@@ -59,7 +59,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const [summary, setSummary] = useState('');
   const [enhancedSignature, setEnhancedSignature] = useState<SoulSignature | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const initRan = useRef(false);
 
   const STORAGE_KEY = 'twinme_interview_progress';
@@ -188,6 +188,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     const newMessages: Message[] = [...messages, { role: 'user', content: text }];
     setMessages(newMessages);
     setInput('');
+    // Reset textarea height after send
+    if (inputRef.current) inputRef.current.style.height = 'auto';
     saveProgress(newMessages, questionNumber, domainProgress);
 
     fetchNextQuestion(newMessages);
@@ -325,7 +327,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                     ? 'rgba(255,255,255,0.02)'
                     : 'rgba(255,255,255,0.04)',
                   border: '1px solid rgba(255,255,255,0.06)',
-                  color: msg.role === 'user' ? 'var(--text-primary)' : 'rgba(255,255,255,0.4)',
+                  color: msg.role === 'user' ? 'rgba(255,255,255,0.4)' : 'var(--text-primary)',
                   fontFamily: "'Geist', sans-serif",
                   borderBottomRightRadius: msg.role === 'user' ? 6 : undefined,
                   borderBottomLeftRadius: msg.role === 'assistant' ? 6 : undefined,
@@ -472,20 +474,29 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           </button>
         </div>
       ) : (
-        <div className="flex gap-2">
-          <input
+        <div className="flex gap-2 items-end">
+          <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              // Auto-grow: reset then set to scrollHeight
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Type your answer..."
             disabled={loading}
-            className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200"
+            rows={1}
+            className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 resize-none"
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.06)',
               color: 'var(--text-primary)',
               fontFamily: "'Geist', sans-serif",
+              minHeight: '44px',
+              maxHeight: '120px',
+              overflowY: 'auto',
             }}
           />
           <button

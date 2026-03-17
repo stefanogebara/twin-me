@@ -964,14 +964,22 @@ export default function DiscoverLanding() {
           <div className="flex justify-end gap-[200px] mb-[200px]">
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium" style={{ color: T.FG }}>Resources</p>
-              {['Documentation', 'Blog', 'Community'].map(l => (
-                <a key={l} href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l}</a>
+              {[
+                { label: 'Documentation', href: '/docs' },
+                { label: 'Blog', href: '/blog' },
+                { label: 'Community', href: '/community' },
+              ].map(l => (
+                <span key={l.label} className="text-sm cursor-default" style={{ color: T.TEXT_SEC, opacity: 0.5 }}>{l.label}</span>
               ))}
             </div>
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium" style={{ color: T.FG }}>Social</p>
-              {['X', 'Instagram', 'LinkedIn'].map(l => (
-                <a key={l} href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l}</a>
+              {[
+                { label: 'X', href: 'https://x.com' },
+                { label: 'Instagram', href: 'https://instagram.com' },
+                { label: 'LinkedIn', href: 'https://linkedin.com' },
+              ].map(l => (
+                <span key={l.label} className="text-sm cursor-default" style={{ color: T.TEXT_SEC, opacity: 0.5 }}>{l.label}</span>
               ))}
             </div>
           </div>
@@ -1001,8 +1009,8 @@ export default function DiscoverLanding() {
           >
             <p className="text-sm" style={{ color: T.TEXT_SEC }}>©2026 TwinMe Inc.</p>
             <div className="flex items-center gap-8">
-              <a href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Terms of service</a>
-              <a href="#" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
+              <a href="/terms" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Terms of service</a>
+              <a href="/privacy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
             </div>
           </div>
         </div>

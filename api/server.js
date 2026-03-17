@@ -226,6 +226,34 @@ app.use((req, res, next) => {
   next();
 });
 
+// Circuit breaker — fast-fail when DB is down instead of waiting 30-40s per request
+import { circuitBreakerMiddleware, recordFailure, recordSuccess } from './middleware/circuitBreaker.js';
+app.use(circuitBreakerMiddleware);
+
+// Sanitize error responses — strip leaked HTML (Cloudflare 522 pages, Supabase errors)
+// Also feeds the circuit breaker: detects DB failures from response content
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (body) => {
+    if (body && res.statusCode >= 400) {
+      const sanitize = (val) => {
+        if (typeof val !== 'string') return val;
+        if (val.includes('<!DOCTYPE') || val.includes('<html') || val.includes('<head>')) {
+          recordFailure(); // DB is down — feed circuit breaker
+          return 'Service temporarily unavailable';
+        }
+        return val.length > 500 ? val.slice(0, 500) + '...' : val;
+      };
+      if (body.error) body = { ...body, error: sanitize(body.error) };
+      if (body.message) body = { ...body, message: sanitize(body.message) };
+    } else if (body && res.statusCode < 400) {
+      recordSuccess(); // DB responded OK — reset circuit breaker
+    }
+    return originalJson(body);
+  };
+  next();
+});
+
 // Structured request logging (before routes, after rate limiting)
 import { requestLogger } from './services/logger.js';
 app.use(requestLogger());

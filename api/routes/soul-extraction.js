@@ -1567,17 +1567,18 @@ router.post('/build-signature/:userId', authenticateUser, async (req, res) => {
  * POST /api/soul/extension-tracking
  * Receive real-time tracking data from browser extension
  */
-router.post('/extension-tracking', async (req, res) => {
+router.post('/extension-tracking', authenticateUser, async (req, res) => {
   try {
-    const { userId, platform, eventType, data } = req.body;
+    const userId = req.user.id;
+    const { platform, eventType, data } = req.body;
 
     log.info('Received extension tracking event', { eventType, platform, userId });
 
     // Validate required fields
-    if (!userId || !platform || !eventType || !data) {
+    if (!platform || !eventType || !data) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: userId, platform, eventType, data'
+        error: 'Missing required fields: platform, eventType, data'
       });
     }
 
@@ -1634,17 +1635,18 @@ router.post('/extension-tracking', async (req, res) => {
  * POST /api/soul/extension-historical-import
  * Receive historical viewing data from browser extension (one-time import)
  */
-router.post('/extension-historical-import', async (req, res) => {
+router.post('/extension-historical-import', authenticateUser, async (req, res) => {
   try {
-    const { userId, platform, videos, importedAt } = req.body;
+    const userId = req.user.id;
+    const { platform, videos, importedAt } = req.body;
 
     log.info('Historical import request', { videoCount: videos?.length || 0, platform, userId });
 
     // Validate required fields
-    if (!userId || !platform || !videos || !Array.isArray(videos)) {
+    if (!platform || !videos || !Array.isArray(videos)) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: userId, platform, videos (array)'
+        error: 'Missing required fields: platform, videos (array)'
       });
     }
 

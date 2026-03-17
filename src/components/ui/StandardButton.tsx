@@ -16,10 +16,10 @@ export interface StandardButtonProps extends React.ButtonHTMLAttributes<HTMLButt
 }
 
 const variants = {
-  primary: 'bg-[var(--claude-accent)] hover:bg-[var(--claude-accent-hover)] text-white',
-  secondary: 'bg-[var(--claude-text-muted)] hover:bg-[var(--claude-text)] text-white',
-  outline: 'border-2 border-[var(--claude-accent)] text-[var(--claude-accent)] hover:bg-[var(--claude-accent)] hover:text-white',
-  ghost: 'text-[var(--claude-text)] hover:bg-[var(--claude-surface-raised)]',
+  primary: 'bg-[var(--accent-vibrant)] hover:bg-[var(--accent-vibrant-hover)] text-white',
+  secondary: 'bg-[var(--text-muted)] hover:bg-[var(--foreground)] text-white',
+  outline: 'border-2 border-[var(--accent-vibrant)] text-[var(--accent-vibrant)] hover:bg-[var(--accent-vibrant)] hover:text-white',
+  ghost: 'text-[var(--foreground)] hover:bg-[var(--glass-surface-bg-subtle)]',
   danger: 'bg-red-600 hover:bg-red-700 text-white'
 };
 
@@ -47,7 +47,7 @@ export const StandardButton: React.FC<StandardButtonProps> = ({
         'inline-flex items-center justify-center rounded-lg',
         'font-[family-name:var(--font-ui)] font-medium',
         'transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-[var(--claude-accent)] focus:ring-offset-2',
+        'focus:outline-none focus:ring-2 focus:ring-[var(--accent-vibrant)] focus:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
 
         // Variant styles

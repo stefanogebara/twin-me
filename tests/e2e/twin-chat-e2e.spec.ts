@@ -13,11 +13,15 @@ import {
   screenshot,
   waitForPageLoad,
   criticalErrors,
+  isBackendHealthy,
   BASE_URL,
 } from './helpers';
 
 test.describe.serial('Twin Chat E2E', () => {
   test('chat page loads with input visible', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Twin Chat] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
     await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
@@ -42,6 +46,9 @@ test.describe.serial('Twin Chat E2E', () => {
   });
 
   test('suggestion pills or starter prompts are displayed', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Twin Chat] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     await injectAuth(page);
     await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);
@@ -59,6 +66,9 @@ test.describe.serial('Twin Chat E2E', () => {
   });
 
   test('send message and receive streaming response', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Twin Chat] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     const errors = collectConsoleErrors(page);
     await injectAuth(page);
     await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
@@ -116,6 +126,9 @@ test.describe.serial('Twin Chat E2E', () => {
   });
 
   test('chat preserves auth after page reload', async ({ page }) => {
+    const healthy = await isBackendHealthy();
+    if (!healthy) { console.log('[Twin Chat] ⚠ Backend DB unavailable — skipping'); test.skip(); return; }
+
     await injectAuth(page);
     await page.goto(`${BASE_URL}/talk-to-twin`, { waitUntil: 'domcontentloaded' });
     await waitForPageLoad(page);
