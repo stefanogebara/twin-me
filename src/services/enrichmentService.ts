@@ -41,6 +41,7 @@ export interface QuickEnrichmentData {
   github_followers: number | null;
   source: string;
   social_links: Array<{ platform: string; url: string; username?: string }>;
+  persona_summary?: string | null;
 }
 
 export interface EnrichmentData {

@@ -127,6 +127,7 @@ export default function DiscoverLanding() {
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<DiscoverPhase>('idle');
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
+  const [personaSummary, setPersonaSummary] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   // Redirect if already signed in
@@ -145,6 +146,7 @@ export default function DiscoverLanding() {
     setError('');
     setPhase('scanning');
     setDataPoints([]);
+    setPersonaSummary(null);
 
     const result = await discoveryScan(trimmed);
 
@@ -171,6 +173,7 @@ export default function DiscoverLanding() {
         }
       }
       setDataPoints(points);
+      if (d.persona_summary) setPersonaSummary(d.persona_summary);
 
       // Cache for post-auth pickup
       sessionStorage.setItem('twinme_discovery_data', JSON.stringify(d));
@@ -559,7 +562,22 @@ export default function DiscoverLanding() {
           <div className="relative flex flex-col items-center w-full max-w-[480px]">
             <SoulOrb phase="alive" dataPointCount={dataPoints.length} />
 
-            {dataPoints.length > 0 ? (
+            {personaSummary ? (
+              <div className="w-full max-w-md mt-6 px-5 py-4 rounded-[20px]" style={{ background: 'rgba(244,241,236,0.08)', border: `1px solid rgba(232,213,183,0.12)` }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(232, 213, 183, 0.85)', fontFamily: "'Inter', sans-serif" }}>
+                  {personaSummary}
+                </p>
+                {dataPoints.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(232,213,183,0.08)' }}>
+                    {dataPoints.map((dp) => (
+                      <span key={dp.label} className="text-xs px-2.5 py-1 rounded-full" style={{ background: 'rgba(232,213,183,0.08)', color: 'rgba(232,213,183,0.5)' }}>
+                        {dp.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : dataPoints.length > 0 ? (
               <div className="w-full max-w-sm mt-6">
                 {dataPoints.map((dp) => (
                   <DataRevealItem key={dp.label} icon={dp.icon} label={dp.label} value={dp.value} />

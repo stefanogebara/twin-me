@@ -1,6 +1,9 @@
 // api/routes/discovery.js
 import express from 'express';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
+import { braveWebSearch } from '../services/enrichment/braveSearchProvider.js';
+import { inferNameFromEmail } from '../services/enrichment/enrichmentUtils.js';
+import { complete, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
@@ -81,9 +84,61 @@ router.post('/scan', async (req, res) => {
   const safeName = name && typeof name === 'string' ? name.substring(0, 100).trim() : null;
 
   try {
+    // Phase 1: Quick enrichment (Gravatar + GitHub + social probing) — ~2s
     const result = await profileEnrichmentService.quickEnrich(email, safeName);
     const innerData = result?.data;
     const discovered = (innerData && innerData.source !== 'none') ? innerData : null;
+
+    // Phase 2: Brave search + LLM persona summary — runs in parallel with response delay
+    // Only if we have BRAVE_SEARCH_API_KEY and either a name or an inferred one
+    let persona_summary = null;
+    const personName = discovered?.discovered_name || safeName || inferNameFromEmail(email);
+
+    if (personName && process.env.BRAVE_SEARCH_API_KEY) {
+      try {
+        const searchQuery = `"${personName}" ${email.split('@')[0]}`;
+        const braveResults = await braveWebSearch(searchQuery, process.env.BRAVE_SEARCH_API_KEY);
+
+        // Gather all evidence: Brave snippets + quickEnrich data
+        const snippets = (braveResults || [])
+          .map(r => `${r.title}: ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
+          .join('\n');
+
+        const socialInfo = (discovered?.social_links || [])
+          .map(l => `${l.platform}: ${l.url}`).join(', ');
+
+        const knownFacts = [
+          discovered?.discovered_name && `Name: ${discovered.discovered_name}`,
+          discovered?.discovered_company && `Company: ${discovered.discovered_company}`,
+          discovered?.discovered_location && `Location: ${discovered.discovered_location}`,
+          discovered?.discovered_bio && `Bio: ${discovered.discovered_bio}`,
+          discovered?.github_repos && `GitHub repos: ${discovered.github_repos}`,
+          discovered?.github_languages?.length && `Languages: ${discovered.github_languages.join(', ')}`,
+          socialInfo && `Social profiles: ${socialInfo}`,
+        ].filter(Boolean).join('\n');
+
+        const evidence = [knownFacts, snippets].filter(Boolean).join('\n\n---\nWeb results:\n');
+
+        if (evidence.length > 50) {
+          const llmResult = await complete({
+            tier: TIER_EXTRACTION,
+            system: `You write brief, warm persona summaries for a soul signature app. Be specific — mention actual details found. If info is scarce, be honest but intriguing. Never fabricate. Write in second person ("You..."). 2-4 sentences max.`,
+            messages: [{
+              role: 'user',
+              content: `Based on what we found about this person (email: ${email}), write a brief persona snapshot:\n\n${evidence}`,
+            }],
+            serviceName: 'discovery-persona',
+          });
+          persona_summary = llmResult?.content?.trim() || null;
+        }
+      } catch (braveErr) {
+        log.warn('Persona summary failed (non-blocking):', braveErr.message);
+      }
+    }
+
+    if (discovered) {
+      discovered.persona_summary = persona_summary;
+    }
 
     // Normalize response timing to prevent enumeration via latency
     const elapsed = Date.now() - startTime;
