@@ -163,6 +163,13 @@ export default function DiscoverLanding() {
       if (d.discovered_bio) points.push({ icon: 'bio', label: 'Bio', value: d.discovered_bio });
       if (d.discovered_github_url) points.push({ icon: 'github', label: 'GitHub', value: 'Profile found' });
       if (d.discovered_twitter_url) points.push({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
+      if (d.social_links?.length) {
+        for (const link of d.social_links) {
+          if (!points.some(p => p.label === link.platform)) {
+            points.push({ icon: 'social', label: link.platform, value: 'Profile found' });
+          }
+        }
+      }
       setDataPoints(points);
 
       // Cache for post-auth pickup
