@@ -75,15 +75,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           />
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {chatUsage && chatUsage.tier === 'free' && (
+            {chatUsage && chatUsage.limit != null && chatUsage.limit !== Infinity && (
               <span
                 className="text-[11px] whitespace-nowrap"
                 style={{
-                  color: chatUsage.remaining <= 2
+                  color: chatUsage.remaining <= 5
                     ? 'rgba(239,68,68,0.6)'
                     : 'rgba(255,255,255,0.2)',
                 }}
-                title={`${chatUsage.remaining} of ${chatUsage.limit} free messages remaining`}
+                title={`${chatUsage.remaining} of ${chatUsage.limit} messages remaining this month`}
               >
                 {chatUsage.remaining} left
               </span>

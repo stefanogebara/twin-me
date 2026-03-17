@@ -35,14 +35,14 @@ export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsag
         className="text-[20px] tracking-tight"
         style={{ fontFamily: "'Instrument Serif', serif", color: 'var(--foreground)' }}
       >
-        You've reached today's limit
+        You've reached this month's limit
       </h3>
 
       <p
         className="text-sm leading-relaxed"
         style={{ fontFamily: 'Inter, sans-serif', color: 'var(--text-muted)' }}
       >
-        Your twin needs a rest. Come back tomorrow for more conversations.
+        Upgrade your plan for more conversations with your twin.
       </p>
 
       {chatUsage && (

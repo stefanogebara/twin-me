@@ -27,9 +27,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isDemoMode: demoDemoMode } = useDemo();
   const location = useLocation();
 
-  // Quick check: If demo mode is active (from either context), always allow access
-  // We check both contexts because DemoContext state updates immediately on enterDemoMode(),
+  // Demo mode: only grant access if explicitly activated via "Try Demo" button.
+  // Both contexts are checked because DemoContext state updates immediately on enterDemoMode(),
   // while AuthContext's isDemoMode (which reads localStorage) may lag by one render cycle.
+  // NOTE: This is NOT a silent fallback — demo mode requires an explicit user action.
   if (authDemoMode || demoDemoMode) {
     return <>{children}</>;
   }

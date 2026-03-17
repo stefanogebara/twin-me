@@ -200,6 +200,17 @@ class ExtractionOrchestrator {
             itemsExtracted = discordStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted Discord observations', { fetched: discordObs.length, stored: discordStored });
+            // Extract behavioral features for personality
+            try {
+              const discordExtractor = await import('./featureExtractors/discordExtractor.js');
+              const features = await discordExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await discordExtractor.default.saveFeatures(features);
+                log.info('Extracted Discord behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Discord feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (discordError) {
             log.error('Discord extraction error', { error: discordError });
             result = { success: false, error: discordError.message };
@@ -214,6 +225,17 @@ class ExtractionOrchestrator {
             itemsExtracted = githubStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted GitHub observations', { fetched: githubObs.length, stored: githubStored });
+            // Extract behavioral features for personality
+            try {
+              const githubExtractor = await import('./featureExtractors/githubExtractor.js');
+              const features = await githubExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await githubExtractor.default.saveFeatures(features);
+                log.info('Extracted GitHub behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('GitHub feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (githubError) {
             log.error('GitHub extraction error', { error: githubError });
             result = { success: false, error: githubError.message };
@@ -255,6 +277,17 @@ class ExtractionOrchestrator {
             itemsExtracted = gmailStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted Gmail observations', { fetched: gmailObs.length, stored: gmailStored });
+            // Extract behavioral features for personality
+            try {
+              const gmailExtractor = await import('./featureExtractors/gmailExtractor.js');
+              const features = await gmailExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await gmailExtractor.default.saveFeatures(features);
+                log.info('Extracted Gmail behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Gmail feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (gmailError) {
             log.error('Gmail extraction error', { error: gmailError });
             result = { success: false, error: gmailError.message };
@@ -283,6 +316,17 @@ class ExtractionOrchestrator {
             itemsExtracted = linkedinStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted LinkedIn observations', { fetched: linkedinObs.length, stored: linkedinStored });
+            // Extract behavioral features for personality
+            try {
+              const linkedinExtractor = await import('./featureExtractors/linkedinExtractor.js');
+              const features = await linkedinExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await linkedinExtractor.default.saveFeatures(features);
+                log.info('Extracted LinkedIn behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('LinkedIn feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (linkedinError) {
             log.error('LinkedIn extraction error', { error: linkedinError });
             result = { success: false, error: linkedinError.message };
@@ -297,6 +341,17 @@ class ExtractionOrchestrator {
             itemsExtracted = whoopStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted Whoop observations', { fetched: observations.length, stored: whoopStored });
+            // Extract behavioral features for personality
+            try {
+              const whoopExtractor = await import('./featureExtractors/whoopExtractor.js');
+              const features = await whoopExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await whoopExtractor.default.saveFeatures(features);
+                log.info('Extracted Whoop behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Whoop feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (whoopError) {
             log.error('Whoop extraction error', { error: whoopError });
             result = { success: false, error: whoopError.message };
@@ -311,6 +366,17 @@ class ExtractionOrchestrator {
             itemsExtracted = twitchStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted Twitch observations', { fetched: twitchObs.length, stored: twitchStored });
+            // Extract behavioral features for personality
+            try {
+              const twitchExtractor = await import('./featureExtractors/twitchExtractor.js');
+              const features = await twitchExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await twitchExtractor.default.saveFeatures(features);
+                log.info('Extracted Twitch behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Twitch feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (twitchError) {
             log.error('Twitch extraction error', { error: twitchError });
             result = { success: false, error: twitchError.message };
@@ -325,6 +391,17 @@ class ExtractionOrchestrator {
             itemsExtracted = redditStored;
             result = { success: true, itemsExtracted };
             log.info('Extracted Reddit observations', { fetched: redditObs.length, stored: redditStored });
+            // Extract behavioral features for personality
+            try {
+              const redditExtractor = await import('./featureExtractors/redditExtractor.js');
+              const features = await redditExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await redditExtractor.default.saveFeatures(features);
+                log.info('Extracted Reddit behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Reddit feature extraction error (non-blocking)', { error: featureError.message });
+            }
           } catch (redditError) {
             log.error('Reddit extraction error', { error: redditError });
             result = { success: false, error: redditError.message };

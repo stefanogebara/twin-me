@@ -2,33 +2,35 @@
  * Chat Usage Routes
  *
  * Tracks monthly chat message usage for freemium gating.
- * Uses twin_messages table to count user messages per month.
+ * Limits are plan-aware: Free=50, Plus=500, Pro=unlimited.
  */
 
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
+import { getUserSubscription, getPlanLimits } from '../services/subscriptionService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('ChatUsage');
 
 const router = express.Router();
 
-const FREE_TIER_LIMIT = 500; // messages per month
-
 /**
- * Get the user's current monthly chat usage
+ * Get the user's current monthly chat usage (plan-aware)
  */
 async function getMonthlyUsage(userId) {
-  if (!supabaseAdmin) return { used: 0, limit: FREE_TIER_LIMIT, tier: 'free' };
+  if (!supabaseAdmin) return { used: 0, limit: 50, tier: 'free' };
+
+  // Get user's plan
+  const sub = await getUserSubscription(userId);
+  const limits = getPlanLimits(sub.plan);
+  const limit = limits.chatMessages;
 
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
   // Count user conversation memories this month from the memory stream.
-  // Twin chat stores messages via addConversationMemory → user_memories with role metadata.
-  // metadata->>role = 'user' selects only the user's messages (not assistant replies).
   const { count, error: countErr } = await supabaseAdmin
     .from('user_memories')
     .select('id', { count: 'exact', head: true })
@@ -43,8 +45,8 @@ async function getMonthlyUsage(userId) {
 
   return {
     used: messageCount,
-    limit: FREE_TIER_LIMIT,
-    tier: 'free'
+    limit,
+    tier: sub.plan,
   };
 }
 
@@ -69,5 +71,5 @@ router.get('/usage', authenticateUser, async (req, res) => {
   }
 });
 
-export { getMonthlyUsage, FREE_TIER_LIMIT };
+export { getMonthlyUsage };
 export default router;

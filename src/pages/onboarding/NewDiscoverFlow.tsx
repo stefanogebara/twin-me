@@ -172,10 +172,26 @@ const NewDiscoverFlow: React.FC = () => {
     setOrbPhase('awakening');
 
     try {
+      // Check sessionStorage for cached discovery data from /discover page
+      const cachedRaw = sessionStorage.getItem('twinme_discovery_data');
+      let cachedDiscovery: QuickEnrichmentData | null = null;
+      if (cachedRaw) {
+        try {
+          cachedDiscovery = JSON.parse(cachedRaw);
+          sessionStorage.removeItem('twinme_discovery_data');
+          sessionStorage.removeItem('twinme_discovery_email');
+        } catch {
+          cachedDiscovery = null;
+        }
+      }
+
       // Phase 1: Quick enrichment (< 1 second)
+      // Use cached discovery data if available, otherwise call API
       // Pass Google OAuth name so backend can use it for better results
       const oauthName = user.fullName || undefined;
-      const quickResult = await enrichmentService.quickEnrich(oauthName);
+      const quickResult = cachedDiscovery
+        ? { success: true, data: cachedDiscovery, elapsed: 0 }
+        : await enrichmentService.quickEnrich(oauthName);
       const q = quickResult?.data;
 
       if (q && q.source !== 'none' && q.source !== 'error') {

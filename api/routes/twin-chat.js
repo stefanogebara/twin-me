@@ -14,7 +14,8 @@ import { complete, stream as streamLLM, TIER_CHAT } from '../services/llmGateway
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { serverDb, supabaseAdmin } from '../services/database.js';
-import { getMonthlyUsage, FREE_TIER_LIMIT } from './chat-usage.js';
+import { getMonthlyUsage } from './chat-usage.js';
+import { PLAN_DISPLAY_NAMES } from '../services/subscriptionService.js';
 
 // Shared conversation logging (unified with MCP server)
 import {
@@ -262,14 +263,15 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
 
-    // Freemium quota check
+    // Freemium quota check (plan-aware: Free=50, Plus=500, Pro=unlimited)
     try {
       const usage = await getMonthlyUsage(userId);
-      if (usage.tier === 'free' && usage.used >= usage.limit) {
+      if (usage.limit !== Infinity && usage.used >= usage.limit) {
+        const displayName = PLAN_DISPLAY_NAMES[usage.tier] || usage.tier;
         return res.status(429).json({
           success: false,
           error: 'monthly_limit_reached',
-          message: `You've used all ${FREE_TIER_LIMIT} free messages this month. Upgrade to Pro for unlimited conversations.`,
+          message: `You've used all ${usage.limit} ${displayName} messages this month. Upgrade for more conversations.`,
           usage: { used: usage.used, limit: usage.limit, tier: usage.tier }
         });
       }

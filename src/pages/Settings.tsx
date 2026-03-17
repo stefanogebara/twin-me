@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { Download, Trash2, Info } from 'lucide-react';
+import { Download, Trash2, Info, Shield, ArrowRight, Sparkles } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -87,6 +87,10 @@ const Settings = () => {
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [memoryCount, setMemoryCount] = useState<number | null>(null);
 
+  // Subscription state
+  const [subscription, setSubscription] = useState<{ plan: string; status: string; cancelAtPeriodEnd?: boolean } | null>(null);
+  const [managingBilling, setManagingBilling] = useState(false);
+
   // Data management state
   const [exporting, setExporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -112,20 +116,36 @@ const Settings = () => {
 
   const error = statusError?.message || null;
 
-  // Fetch memory count from dashboard context (more reliable than /chat/context)
+  // Fetch memory count + subscription in parallel
   useEffect(() => {
-    const fetchMemoryCount = async () => {
-      if (!user?.id) return;
-      try {
-        const res = await fetch(`${API_URL}/dashboard/context`, { headers: getAuthHeaders() });
-        if (res.ok) {
-          const data = await res.json();
-          setMemoryCount(data.twinStats?.totalMemories ?? null);
-        }
-      } catch { /* non-fatal */ }
-    };
-    fetchMemoryCount();
+    if (!user?.id) return;
+    const headers = getAuthHeaders();
+    // Memory count
+    fetch(`${API_URL}/dashboard/context`, { headers })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setMemoryCount(data.twinStats?.totalMemories ?? null); })
+      .catch(() => {});
+    // Subscription
+    fetch(`${API_URL}/billing/subscription`, { headers })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.subscription) setSubscription(data.subscription); })
+      .catch(() => {});
   }, [user?.id]);
+
+  const PLAN_NAMES: Record<string, string> = { free: 'Free', pro: 'Plus', max: 'Pro' };
+
+  const handleManageBilling = async () => {
+    setManagingBilling(true);
+    try {
+      const res = await fetch(`${API_URL}/billing/portal`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch { /* non-fatal */ }
+    finally { setManagingBilling(false); }
+  };
 
   const handleDisconnectService = async (provider: string) => {
     try {
@@ -235,7 +255,59 @@ const Settings = () => {
 
       <Divider />
 
-      {/* ── SECTION 2: CONNECTED PLATFORMS ── */}
+      {/* ── SECTION 2: PLAN ── */}
+      <SectionLabel label="Plan" />
+      <div
+        className="flex items-center justify-between p-4 mb-2 rounded-xl"
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center justify-center w-10 h-10 rounded-lg"
+            style={{ background: 'rgba(196,162,101,0.1)', border: '1px solid rgba(196,162,101,0.2)' }}
+          >
+            <Sparkles className="w-5 h-5" style={{ color: '#C4A265' }} />
+          </div>
+          <div>
+            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
+              {PLAN_NAMES[subscription?.plan || 'free'] || 'Free'}
+            </span>
+            {subscription?.cancelAtPeriodEnd && (
+              <p className="text-[11px] mt-0.5" style={{ color: 'rgba(239,68,68,0.6)' }}>
+                Cancels at end of period
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {subscription?.plan && subscription.plan !== 'free' ? (
+            <button
+              onClick={handleManageBilling}
+              disabled={managingBilling || isDemoMode}
+              className="text-[12px] px-3 py-1.5 rounded-lg transition-opacity hover:opacity-60 disabled:opacity-30"
+              style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+            >
+              {managingBilling ? '...' : 'Manage'}
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/talk-to-twin')}
+              disabled={isDemoMode}
+              className="text-[12px] px-3 py-1.5 rounded-lg font-medium transition-opacity hover:opacity-80"
+              style={{ background: 'rgba(196,162,101,0.15)', color: '#C4A265' }}
+            >
+              Upgrade
+            </button>
+          )}
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
       <SectionLabel label="Connected Platforms" />
       <ConnectedPlatformsSettings
         isDemoMode={isDemoMode}
@@ -250,7 +322,7 @@ const Settings = () => {
 
       <Divider />
 
-      {/* ── SECTION 3: PERSONALITY ENGINE ── */}
+      {/* ── SECTION 4: PERSONALITY ENGINE ── */}
       <SectionLabel label="Personality Engine" />
       <SettingsRow
         label="Personality Oracle"
@@ -295,8 +367,35 @@ const Settings = () => {
 
       <Divider />
 
-      {/* ── SECTION 4: DATA & PRIVACY ── */}
+      {/* ── SECTION 5: DATA & PRIVACY ── */}
       <SectionLabel label="Data & Privacy" />
+
+      {/* Privacy Spectrum — prominent card */}
+      <button
+        onClick={() => navigate('/privacy-spectrum')}
+        className="w-full flex items-center gap-4 p-4 mb-4 rounded-xl transition-colors"
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+      >
+        <div
+          className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
+          style={{ background: 'rgba(16,183,127,0.1)', border: '1px solid rgba(16,183,127,0.2)' }}
+        >
+          <Shield className="w-5 h-5" style={{ color: '#10b77f' }} />
+        </div>
+        <div className="flex-1 text-left">
+          <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
+          <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Control what your twin knows and shares
+          </p>
+        </div>
+        <ArrowRight className="w-4 h-4 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+      </button>
+
       <SettingsRow label="Export My Data">
         <button
           onClick={handleExportData}

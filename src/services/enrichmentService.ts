@@ -269,6 +269,42 @@ export interface PlatformPreviewResponse {
   rawCount: number;
 }
 
+// ============================================================================
+// DISCOVERY SCAN (PUBLIC / UNAUTHENTICATED)
+// ============================================================================
+
+interface DiscoveryScanResponse {
+  success: boolean;
+  discovered: QuickEnrichmentData | null;
+  error?: string;
+}
+
+/**
+ * Public discovery scan — calls POST /api/discovery/scan without auth.
+ * Rate limited to 3 requests per IP per 15 min.
+ */
+export const discoveryScan = async (email: string): Promise<DiscoveryScanResponse> => {
+  try {
+    const response = await fetch(`${API_URL}/discovery/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    if (response.status === 429) {
+      return { success: false, discovered: null, error: 'Too many requests. Try again in 15 minutes.' };
+    }
+
+    if (!response.ok) {
+      return { success: false, discovered: null, error: 'Something went wrong. Please try again.' };
+    }
+
+    return response.json();
+  } catch {
+    return { success: false, discovered: null, error: 'Network error. Please check your connection.' };
+  }
+};
+
 export const enrichmentService = {
   /**
    * Fetch personalized quick questions based on enrichment context.
