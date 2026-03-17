@@ -1,9 +1,9 @@
 // api/routes/discovery.js
 import express from 'express';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
-import { braveWebSearch } from '../services/enrichment/braveSearchProvider.js';
+import { searchWithBrave } from '../services/enrichment/braveSearchProvider.js';
 import { inferNameFromEmail } from '../services/enrichment/enrichmentUtils.js';
-import { complete, TIER_EXTRACTION } from '../services/llmGateway.js';
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
@@ -89,47 +89,61 @@ router.post('/scan', async (req, res) => {
     const innerData = result?.data;
     const discovered = (innerData && innerData.source !== 'none') ? innerData : null;
 
-    // Phase 2: Brave search + LLM persona summary — runs in parallel with response delay
-    // Only if we have BRAVE_SEARCH_API_KEY and either a name or an inferred one
+    // Phase 2: Deep web scraping + LLM persona narrative
+    // searchWithBrave runs 5 queries, scrapes top 6 pages (prioritizing interviews/bios/blogs)
     let persona_summary = null;
     const personName = discovered?.discovered_name || safeName || inferNameFromEmail(email);
 
     if (personName && process.env.BRAVE_SEARCH_API_KEY) {
       try {
-        const searchQuery = `"${personName}" ${email.split('@')[0]}`;
-        const braveResults = await braveWebSearch(searchQuery, process.env.BRAVE_SEARCH_API_KEY);
+        log.info(`Deep discovery for "${personName}" (${email})`);
+        const braveResult = await searchWithBrave(personName, email);
 
-        // Gather all evidence: Brave snippets + quickEnrich data
-        const snippets = (braveResults || [])
-          .map(r => `${r.title}: ${r.description}${r.extra_snippets ? ' ' + r.extra_snippets.join(' ') : ''}`)
-          .join('\n');
+        if (braveResult) {
+          // Combine all evidence: scraped pages + snippets + quickEnrich data
+          const socialInfo = (discovered?.social_links || [])
+            .map(l => `${l.platform}: ${l.url}`).join(', ');
 
-        const socialInfo = (discovered?.social_links || [])
-          .map(l => `${l.platform}: ${l.url}`).join(', ');
+          const knownFacts = [
+            discovered?.discovered_name && `Name: ${discovered.discovered_name}`,
+            discovered?.discovered_company && `Company: ${discovered.discovered_company}`,
+            discovered?.discovered_location && `Location: ${discovered.discovered_location}`,
+            discovered?.discovered_bio && `Bio: ${discovered.discovered_bio}`,
+            discovered?.github_repos && `GitHub repos: ${discovered.github_repos}`,
+            discovered?.github_languages?.length && `Languages: ${discovered.github_languages.join(', ')}`,
+            socialInfo && `Social profiles: ${socialInfo}`,
+          ].filter(Boolean).join('\n');
 
-        const knownFacts = [
-          discovered?.discovered_name && `Name: ${discovered.discovered_name}`,
-          discovered?.discovered_company && `Company: ${discovered.discovered_company}`,
-          discovered?.discovered_location && `Location: ${discovered.discovered_location}`,
-          discovered?.discovered_bio && `Bio: ${discovered.discovered_bio}`,
-          discovered?.github_repos && `GitHub repos: ${discovered.github_repos}`,
-          discovered?.github_languages?.length && `Languages: ${discovered.github_languages.join(', ')}`,
-          socialInfo && `Social profiles: ${socialInfo}`,
-        ].filter(Boolean).join('\n');
+          // Use full scraped content (not just snippets) for maximum depth
+          const evidence = [
+            knownFacts && `=== KNOWN FACTS ===\n${knownFacts}`,
+            braveResult.scrapedOnly && `=== SCRAPED WEB PAGES ===\n${braveResult.scrapedOnly.substring(0, 12000)}`,
+            braveResult.snippetsOnly && `=== SEARCH SNIPPETS ===\n${braveResult.snippetsOnly.substring(0, 4000)}`,
+          ].filter(Boolean).join('\n\n');
 
-        const evidence = [knownFacts, snippets].filter(Boolean).join('\n\n---\nWeb results:\n');
+          if (evidence.length > 100) {
+            const llmResult = await complete({
+              tier: TIER_ANALYSIS,
+              system: `You are a soul signature analyst. From web-scraped data about a person, write a vivid persona portrait.
 
-        if (evidence.length > 50) {
-          const llmResult = await complete({
-            tier: TIER_EXTRACTION,
-            system: `You write brief, warm persona summaries for a soul signature app. Be specific — mention actual details found. If info is scarce, be honest but intriguing. Never fabricate. Write in second person ("You..."). 2-4 sentences max.`,
-            messages: [{
-              role: 'user',
-              content: `Based on what we found about this person (email: ${email}), write a brief persona snapshot:\n\n${evidence}`,
-            }],
-            serviceName: 'discovery-persona',
-          });
-          persona_summary = llmResult?.content?.trim() || null;
+RULES:
+- Write in second person ("You...")
+- Cover what you actually found: career, location, interests, personality, life details
+- Be specific — mention real names, places, companies, projects, hobbies
+- If you found a lot, write 4-6 sentences covering career, personal life, and what makes them unique
+- If info is scarce, write 2-3 honest sentences with what you found — don't pad with generics
+- NEVER fabricate or assume facts not in the evidence
+- Tone: warm, perceptive, like a friend who just looked you up and is genuinely impressed
+- Do NOT list social profiles or say "Profile found" — synthesize into narrative`,
+              messages: [{
+                role: 'user',
+                content: `Write a persona portrait for this person (email username: ${email.split('@')[0]}):\n\n${evidence}`,
+              }],
+              serviceName: 'discovery-persona',
+            });
+            persona_summary = llmResult?.content?.trim() || null;
+            log.info(`Persona summary generated: ${persona_summary?.length || 0} chars`);
+          }
         }
       } catch (braveErr) {
         log.warn('Persona summary failed (non-blocking):', braveErr.message);
