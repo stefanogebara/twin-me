@@ -175,7 +175,10 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   skip: (req) => {
     // Skip rate limiting for auth verification in development
-    return isDevelopment && req.path === '/auth/verify';
+    if (isDevelopment && req.path === '/auth/verify') return true;
+    // Onboarding has its own dedicated limiter (18-question interview needs ~40 requests)
+    if (req.path.startsWith('/onboarding/')) return true;
+    return false;
   }
 });
 
@@ -191,6 +194,16 @@ const authLimiter = rateLimit({
 // Apply auth rate limiter before general API limiter
 app.use('/api/auth/signin', authLimiter);
 app.use('/api/auth/signup', authLimiter);
+
+// Generous rate limit for onboarding interview (18 questions = ~40 requests)
+const onboardingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 80,
+  message: { error: 'Onboarding rate limit reached. Please wait a moment and try again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/onboarding/', onboardingLimiter);
 
 // Apply rate limiting to all API routes (except skipped ones)
 app.use('/api/', apiLimiter);
