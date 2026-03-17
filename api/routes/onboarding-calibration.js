@@ -665,14 +665,35 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
     const { phase } = analyzeProgress(history, currentQ);
     const systemPrompt = buildInterviewPrompt(enrichmentContext, currentQ, domainProgress, phase);
 
-    const messages = history.length > 0
-      ? history
-      : [{ role: 'user', content: `Hi, I'm ${enrichmentContext.name || 'here'}. Ask me your first question.` }];
+    // Trim conversation for LLM to prevent timeouts on long interviews.
+    // Keep last 10 messages (5 Q&A pairs) for direct context.
+    // Summarize earlier messages as a compact recap in the first user message.
+    const MAX_LLM_MESSAGES = 10;
+    let llmMessages;
+    if (history.length <= MAX_LLM_MESSAGES) {
+      llmMessages = history.length > 0
+        ? history
+        : [{ role: 'user', content: `Hi, I'm ${enrichmentContext.name || 'here'}. Ask me your first question.` }];
+    } else {
+      // Build compact recap of earlier Q&A pairs
+      const earlier = history.slice(0, history.length - MAX_LLM_MESSAGES);
+      const recapParts = [];
+      for (let i = 0; i < earlier.length - 1; i += 2) {
+        const q = earlier[i]?.content?.substring(0, 80) || '';
+        const a = earlier[i + 1]?.content?.substring(0, 120) || '';
+        if (q && a) recapParts.push(`Q: ${q}... → A: ${a}...`);
+      }
+      const recap = recapParts.length > 0
+        ? [{ role: 'user', content: `[Earlier conversation recap — ${recapParts.length} exchanges]\n${recapParts.join('\n')}` },
+           { role: 'assistant', content: 'Got it, I have context from our earlier conversation. Let me continue.' }]
+        : [];
+      llmMessages = [...recap, ...history.slice(-MAX_LLM_MESSAGES)];
+    }
 
     const result = await complete({
       tier: TIER_CHAT,
       system: systemPrompt,
-      messages,
+      messages: llmMessages,
       maxTokens: 256,
       temperature: 0.8,
       userId,
