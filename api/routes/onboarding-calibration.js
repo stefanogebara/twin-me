@@ -665,10 +665,10 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
     const { phase } = analyzeProgress(history, currentQ);
     const systemPrompt = buildInterviewPrompt(enrichmentContext, currentQ, domainProgress, phase);
 
-    // Trim conversation for LLM to prevent timeouts on long interviews.
-    // Keep last 10 messages (5 Q&A pairs) for direct context.
-    // Summarize earlier messages as a compact recap in the first user message.
-    const MAX_LLM_MESSAGES = 10;
+    // Trim conversation for LLM to prevent Vercel function timeouts (504).
+    // Keep last 6 messages (3 Q&A pairs) for direct context.
+    // Summarize earlier messages as a compact recap.
+    const MAX_LLM_MESSAGES = 6;
     let llmMessages;
     if (history.length <= MAX_LLM_MESSAGES) {
       llmMessages = history.length > 0
@@ -679,9 +679,9 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       const earlier = history.slice(0, history.length - MAX_LLM_MESSAGES);
       const recapParts = [];
       for (let i = 0; i < earlier.length - 1; i += 2) {
-        const q = earlier[i]?.content?.substring(0, 80) || '';
-        const a = earlier[i + 1]?.content?.substring(0, 120) || '';
-        if (q && a) recapParts.push(`Q: ${q}... → A: ${a}...`);
+        const q = earlier[i]?.content?.substring(0, 60) || '';
+        const a = earlier[i + 1]?.content?.substring(0, 100) || '';
+        if (q && a) recapParts.push(`Q: ${q}… → A: ${a}…`);
       }
       const recap = recapParts.length > 0
         ? [{ role: 'user', content: `[Earlier conversation recap — ${recapParts.length} exchanges]\n${recapParts.join('\n')}` },
@@ -690,11 +690,13 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       llmMessages = [...recap, ...history.slice(-MAX_LLM_MESSAGES)];
     }
 
+    // Use TIER_ANALYSIS (DeepSeek) for question generation — fast enough to avoid
+    // Vercel function timeouts. Reserve TIER_CHAT (Claude Sonnet) for the final summary.
     const result = await complete({
-      tier: TIER_CHAT,
+      tier: TIER_ANALYSIS,
       system: systemPrompt,
       messages: llmMessages,
-      maxTokens: 256,
+      maxTokens: 200,
       temperature: 0.8,
       userId,
       serviceName: 'onboarding-calibration',
