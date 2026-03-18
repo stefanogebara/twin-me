@@ -452,10 +452,9 @@ export default function DiscoverLanding() {
 
         {/* H1 */}
         <h1
-          className="relative text-center mb-3 max-w-[608px]"
+          className="relative text-center mb-3 max-w-[608px] text-[32px] md:text-[48px]"
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
-            fontSize: '48px',
             lineHeight: 1,
             letterSpacing: '-0.96px',
             color: T.FG,
@@ -618,7 +617,7 @@ export default function DiscoverLanding() {
         <div className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none z-10"
           style={{ background: `linear-gradient(to left, ${T.BG}, transparent)` }} />
 
-        <div className="flex flex-col items-center gap-12 w-full px-[100px]">
+        <div className="flex flex-col items-center gap-12 w-full px-6 md:px-[100px]">
           {/* Section label */}
           <div
             className="inline-flex items-center justify-center px-9 py-5 rounded-[32px] text-sm"
@@ -645,7 +644,7 @@ export default function DiscoverLanding() {
       </section>
 
       {/* ══ FEATURES ═════════════════════════════════════════════════════ */}
-      <section id="features" className="px-[100px] mt-[80px]">
+      <section id="features" className="px-6 md:px-[100px] mt-[80px]">
         <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-[42px]">
 
           {/* Section label */}
@@ -682,14 +681,13 @@ export default function DiscoverLanding() {
           </div>
 
           {/* Bento grid — sharp edges, merged borders */}
-          <div className="flex w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
             {FEATURES.map(({ icon: Icon, title, body }, i) => (
               <div
                 key={title}
-                className="flex-1 flex flex-col gap-6 p-10"
+                className="flex flex-col gap-6 p-6 md:p-10"
                 style={{
                   ...bentoStyle,
-                  marginRight: i < FEATURES.length - 1 ? '-1px' : undefined,
                   borderRadius: 0,
                 }}
               >
@@ -715,7 +713,7 @@ export default function DiscoverLanding() {
       </section>
 
       {/* ══ PRICING ══════════════════════════════════════════════════════ */}
-      <section id="pricing" className="relative px-[100px] py-[37px] mt-[120px] overflow-hidden">
+      <section id="pricing" className="relative px-6 md:px-[100px] py-[37px] mt-[120px] overflow-hidden">
 
         {/* Amber glow from Figma pricing SVG — rising from bottom center */}
         <div
@@ -776,7 +774,7 @@ export default function DiscoverLanding() {
           </div>
 
           {/* Cards */}
-          <div className="flex w-full">
+          <div className="flex flex-col md:flex-row w-full">
 
             {/* Free */}
             <div className="flex flex-col flex-1" style={{ marginRight: '-1px' }}>
@@ -814,7 +812,7 @@ export default function DiscoverLanding() {
             </div>
 
             {/* Pro — elevated */}
-            <div className="flex flex-col shrink-0 w-[438px]" style={{ marginRight: '-1px', marginTop: '-26px', marginBottom: '-26px' }}>
+            <div className="flex flex-col shrink-0 w-full md:w-[438px] md:-my-[26px]" style={{ marginRight: '-1px' }}>
               <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
                 <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
                 <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
@@ -885,7 +883,7 @@ export default function DiscoverLanding() {
       </section>
 
       {/* ══ FAQ ══════════════════════════════════════════════════════════ */}
-      <section id="faq" className="px-[100px] mt-[120px] mb-[120px]">
+      <section id="faq" className="px-6 md:px-[100px] mt-[120px] mb-[120px]">
         <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-14">
 
           <div
@@ -895,10 +893,10 @@ export default function DiscoverLanding() {
             FAQ
           </div>
 
-          <div className="flex gap-8 items-start w-full">
+          <div className="flex flex-col md:flex-row gap-8 items-start w-full">
 
             {/* Left — CTA */}
-            <div className="flex-1 flex flex-col gap-4 px-[60px] py-[10px] relative">
+            <div className="flex-1 flex flex-col gap-4 px-4 md:px-[60px] py-[10px] relative">
               <div
                 className="absolute pointer-events-none"
                 style={{
@@ -979,9 +977,9 @@ export default function DiscoverLanding() {
           <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_3, opacity: 0.5 }} />
         </div>
 
-        <div className="relative max-w-[1512px] mx-auto px-[100px] pt-12 pb-8">
+        <div className="relative max-w-[1512px] mx-auto px-6 md:px-[100px] pt-12 pb-8">
           {/* Top — 2 column links */}
-          <div className="flex justify-end gap-[200px] mb-[200px]">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-8 sm:gap-[200px] mb-16 md:mb-[200px]">
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium" style={{ color: T.FG }}>Resources</p>
               {[
@@ -1024,13 +1022,13 @@ export default function DiscoverLanding() {
 
           {/* Bottom bar */}
           <div
-            className="flex items-center justify-between pt-4"
+            className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4"
             style={{ borderTop: `1px solid ${T.CARD_BDR}` }}
           >
             <p className="text-sm" style={{ color: T.TEXT_SEC }}>©2026 TwinMe Inc.</p>
             <div className="flex items-center gap-8">
               <a href="/terms" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Terms of service</a>
-              <a href="/privacy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
+              <a href="/privacy-policy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
             </div>
           </div>
         </div>

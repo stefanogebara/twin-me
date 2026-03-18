@@ -96,10 +96,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
               className="flex items-center justify-center transition-all"
               style={{
-                width: '28px',
-                height: '28px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '100px',
-                padding: '4px',
+                padding: '8px',
                 background: hasText && !isDisabled && !limitReached
                   ? '#252222'
                   : 'rgba(255,255,255,0.06)',

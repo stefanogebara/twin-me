@@ -50,15 +50,14 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       <main
         className="relative flex-1 overflow-y-auto transition-all duration-300"
         style={{
-          marginLeft: window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0',
           zIndex: 0,
           isolation: 'isolate',
         }}
       >
         <style>{`
-          @media (max-width: 1023px) {
+          @media (min-width: 1024px) {
             main {
-              margin-left: 0 !important;
+              margin-left: ${sidebarWidth}px !important;
             }
           }
         `}</style>

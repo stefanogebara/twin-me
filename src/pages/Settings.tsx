@@ -243,14 +243,10 @@ const Settings = () => {
           {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
         </span>
       </SettingsRow>
-      <SettingsRow label="Password">
-        <button
-          className="text-[12px] transition-opacity hover:opacity-60"
-          style={{ color: '#10b77f' }}
-          onClick={() => navigate('/auth?action=reset')}
-        >
-          Change
-        </button>
+      <SettingsRow label="Authentication" description="Managed via Google OAuth">
+        <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          Google
+        </span>
       </SettingsRow>
 
       <Divider />
