@@ -87,12 +87,15 @@ router.post('/scan', async (req, res) => {
     // Phase 1: Quick enrichment (Gravatar + GitHub + social probing) — ~2s
     const result = await profileEnrichmentService.quickEnrich(email, safeName);
     const innerData = result?.data;
-    const discovered = (innerData && innerData.source !== 'none') ? innerData : null;
+    // Always create a discovered object so we can attach persona_summary
+    const discovered = (innerData && innerData.source !== 'none')
+      ? innerData
+      : { source: 'web_scrape', social_links: [], discovered_name: null, discovered_photo: null, discovered_company: null, discovered_location: null, discovered_bio: null, discovered_github_url: null, discovered_twitter_url: null, github_repos: null, github_followers: null, github_languages: null, github_top_repos: null };
 
     // Phase 2: Deep web scraping + LLM persona narrative
     // searchWithBrave runs 5 queries, scrapes top 6 pages (prioritizing interviews/bios/blogs)
     let persona_summary = null;
-    const personName = discovered?.discovered_name || safeName || inferNameFromEmail(email);
+    const personName = discovered.discovered_name || safeName || inferNameFromEmail(email);
 
     if (personName && process.env.BRAVE_SEARCH_API_KEY) {
       try {
@@ -150,16 +153,18 @@ RULES:
       }
     }
 
-    if (discovered) {
-      discovered.persona_summary = persona_summary;
-    }
+    discovered.persona_summary = persona_summary;
+
+    // Only return discovered if we actually found something useful
+    const hasAnything = persona_summary || discovered.discovered_name || discovered.social_links?.length > 0 || discovered.discovered_github_url;
+    const finalDiscovered = hasAnything ? discovered : null;
 
     // Normalize response timing to prevent enumeration via latency
     const elapsed = Date.now() - startTime;
     const delay = Math.max(0, MIN_RESPONSE_DELAY_MS - elapsed);
     if (delay > 0) await new Promise(r => setTimeout(r, delay));
 
-    res.json({ success: true, discovered });
+    res.json({ success: true, discovered: finalDiscovered });
   } catch (err) {
     log.error('Scan error:', err.message);
     // Same response shape on error — prevents enumeration
