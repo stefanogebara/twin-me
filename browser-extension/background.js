@@ -40,10 +40,14 @@ chrome.runtime.onInstalled.addListener(async () => {
   chrome.alarms.create('sync-data', { periodInMinutes: 5 });
 });
 
-// Restore state on service worker wake-up
+// Restore state on service worker wake-up + ensure alarm exists
 chrome.storage.local.get(['userId', 'auth_token']).then(({ userId: id, auth_token: token }) => {
   if (id) userId = id;
   if (token) authToken = token;
+});
+// Re-create alarm on every wake (survives service worker restarts)
+chrome.alarms.get('sync-data', (alarm) => {
+  if (!alarm) chrome.alarms.create('sync-data', { periodInMinutes: 5 });
 });
 
 // ─────────────────────────────────────────────
@@ -52,6 +56,12 @@ chrome.storage.local.get(['userId', 'auth_token']).then(({ userId: id, auth_toke
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === 'sync-data') {
+    // Flush current active tab so time-on-page is recorded even without tab switching
+    flushActiveTab();
+    // Re-start timing for the active tab so next flush captures the next interval
+    if (activeTabId && tabTimestamps[activeTabId]) {
+      tabTimestamps[activeTabId].activatedAt = Date.now();
+    }
     await syncCollectedData();
   }
 });
@@ -141,7 +151,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 // Tab tracking (replaces soul-observer.js)
 // ─────────────────────────────────────────────
 
-const SKIP_SCHEMES = ['chrome://', 'chrome-extension://', 'about:', 'moz-extension://'];
+const SKIP_SCHEMES = ['chrome://', 'chrome-extension://', 'about:', 'moz-extension://', 'brave://'];
 const SENSITIVE_DOMAINS = [
   'accounts.google.com', 'login.', 'signin.',
   'chase.com', 'wellsfargo.com', 'capitalone.com', 'citi.com',
