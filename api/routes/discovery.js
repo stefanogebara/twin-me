@@ -147,6 +147,11 @@ RULES:
             persona_summary = llmResult?.content?.trim() || null;
             log.info(`Persona summary generated: ${persona_summary?.length || 0} chars`);
           }
+
+          // Attach web sources for frontend display
+          if (braveResult.sources?.length) {
+            discovered._web_sources = braveResult.sources.slice(0, 8);
+          }
         }
       } catch (braveErr) {
         log.warn('Persona summary failed (non-blocking):', braveErr.message);
@@ -154,6 +159,8 @@ RULES:
     }
 
     discovered.persona_summary = persona_summary;
+    discovered.web_sources = discovered._web_sources || [];
+    delete discovered._web_sources;
 
     // Only return discovered if we actually found something useful
     const hasAnything = persona_summary || discovered.discovered_name || discovered.social_links?.length > 0 || discovered.discovered_github_url;

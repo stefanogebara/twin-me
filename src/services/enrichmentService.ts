@@ -42,6 +42,7 @@ export interface QuickEnrichmentData {
   source: string;
   social_links: Array<{ platform: string; url: string; username?: string }>;
   persona_summary?: string | null;
+  web_sources?: Array<{ title: string; url: string; scraped?: boolean }>;
 }
 
 export interface EnrichmentData {

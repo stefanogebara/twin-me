@@ -182,7 +182,17 @@ export async function searchWithBrave(name, email) {
     allSnippets.toLowerCase().includes(emailUsernameLower) ||
     scrapedText.toLowerCase().includes(emailUsernameLower)
   );
-  return { combined, snippetsOnly: allSnippets, scrapedOnly: scrapedText, _emailUsernameFound };
+  // Collect all sources: scraped pages first, then top snippet-only results
+  const scrapedUrls = new Set(scrapedPages.map(({ target }) => target.url));
+  const sources = [
+    ...scrapedPages.map(({ target }) => ({ title: target.title, url: target.url, scraped: true })),
+    ...uniqueResults
+      .filter(r => !scrapedUrls.has(r.url) && !blockedDomains.some(d => r.url.includes(d)))
+      .slice(0, 5)
+      .map(r => ({ title: r.title, url: r.url, scraped: false })),
+  ];
+
+  return { combined, snippetsOnly: allSnippets, scrapedOnly: scrapedText, _emailUsernameFound, sources };
 }
 
 /**

@@ -128,6 +128,7 @@ export default function DiscoverLanding() {
   const [phase, setPhase] = useState<DiscoverPhase>('idle');
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [personaSummary, setPersonaSummary] = useState<string | null>(null);
+  const [webSources, setWebSources] = useState<Array<{ title: string; url: string }>>([]);
   const [error, setError] = useState('');
 
   // Redirect if already signed in
@@ -147,6 +148,7 @@ export default function DiscoverLanding() {
     setPhase('scanning');
     setDataPoints([]);
     setPersonaSummary(null);
+    setWebSources([]);
 
     const result = await discoveryScan(trimmed);
 
@@ -174,6 +176,7 @@ export default function DiscoverLanding() {
       }
       setDataPoints(points);
       if (d.persona_summary) setPersonaSummary(d.persona_summary);
+      if (d.web_sources?.length) setWebSources(d.web_sources);
 
       // Cache for post-auth pickup
       sessionStorage.setItem('twinme_discovery_data', JSON.stringify(d));
@@ -563,10 +566,37 @@ export default function DiscoverLanding() {
             <SoulOrb phase="alive" dataPointCount={dataPoints.length} />
 
             {personaSummary ? (
-              <div className="w-full max-w-md mt-6 px-5 py-4 rounded-[20px]" style={{ background: 'rgba(244,241,236,0.08)', border: `1px solid rgba(232,213,183,0.12)` }}>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(232, 213, 183, 0.85)', fontFamily: "'Inter', sans-serif" }}>
-                  {personaSummary}
-                </p>
+              <div className="w-full max-w-md mt-6">
+                <div className="px-5 py-4 rounded-[20px]" style={{ background: 'rgba(244,241,236,0.08)', border: `1px solid rgba(232,213,183,0.12)` }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(232, 213, 183, 0.85)', fontFamily: "'Inter', sans-serif" }}>
+                    {personaSummary}
+                  </p>
+                </div>
+                {webSources.length > 0 && (
+                  <div className="mt-3 px-1">
+                    <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'rgba(232,213,183,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                      Sources
+                    </p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      {webSources.map((src, i) => {
+                        const domain = new URL(src.url).hostname.replace('www.', '');
+                        return (
+                          <a
+                            key={i}
+                            href={src.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] hover:underline truncate max-w-[200px]"
+                            style={{ color: 'rgba(232,213,183,0.4)', fontFamily: "'Inter', sans-serif" }}
+                            title={src.title}
+                          >
+                            {domain}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : dataPoints.length > 0 ? (
               <div className="w-full max-w-sm mt-6">
