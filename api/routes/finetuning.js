@@ -1,9 +1,10 @@
 /**
  * Finetuning API Routes
  * =====================
- * POST /api/finetuning/train           — Export data + start finetuning job
- * GET  /api/finetuning/status          — Check model status
+ * POST /api/finetuning/train            — Export data + start finetuning job
+ * GET  /api/finetuning/status           — Check model status
  * GET  /api/finetuning/preference-stats — Preference pair & feedback stats
+ * POST /api/finetuning/generate-pairs   — Trigger synthetic DPO pair generation
  */
 
 import express from 'express';
@@ -11,6 +12,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { exportTrainingData } from '../services/finetuning/trainingDataExporter.js';
 import { createFinetune, checkFinetuneStatus } from '../services/finetuning/finetuneManager.js';
 import { collectFromUserFeedback } from '../services/finetuning/preferenceCollector.js';
+import { generateSyntheticPairs } from '../services/finetuning/syntheticPairGenerator.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -234,6 +236,51 @@ router.get('/preference-stats', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('Preference stats error:', error.message);
     return res.status(500).json({ success: false, error: 'Failed to fetch preference stats' });
+  }
+});
+
+/**
+ * POST /api/finetuning/generate-pairs
+ * Manually trigger synthetic DPO preference pair generation.
+ * Generates oracle candidate responses at varying temperatures,
+ * scores them against the user's personality embedding centroid,
+ * and stores chosen/rejected pairs.
+ */
+router.post('/generate-pairs', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const requestedBatchSize = req.body.batchSize;
+
+    // Validate and cap batchSize
+    let batchSize = 20;
+    if (requestedBatchSize != null) {
+      const parsed = parseInt(requestedBatchSize, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'batchSize must be a positive integer',
+        });
+      }
+      batchSize = Math.min(parsed, 50);
+    }
+
+    log.info('Synthetic pair generation requested', {
+      userId: userId.slice(0, 8),
+      batchSize,
+    });
+
+    const stats = await generateSyntheticPairs(userId, batchSize);
+
+    return res.json({
+      success: true,
+      ...stats,
+    });
+  } catch (error) {
+    log.error('Generate pairs error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to generate synthetic pairs',
+    });
   }
 });
 
