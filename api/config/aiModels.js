@@ -15,7 +15,7 @@
  */
 
 // Interactive/chat model - used when user is waiting for a response
-export const CLAUDE_MODEL_INTERACTIVE = 'claude-sonnet-4.5';
+export const CLAUDE_MODEL_INTERACTIVE = 'claude-sonnet-4.6';
 
 // Background/analysis model - used for scheduled jobs, feature extraction, pattern analysis
 export const CLAUDE_MODEL_BACKGROUND = 'claude-haiku-4.5';
@@ -43,7 +43,7 @@ export const TIER_EXTRACTION = 'extraction';
 export const FINETUNED_MODEL = process.env.FINETUNED_TWIN_MODEL || null;
 
 export const OPENROUTER_MODELS = {
-  [TIER_CHAT]: 'anthropic/claude-sonnet-4.5', // $3.00/$15.00 per M — quality is critical for twin personality
+  [TIER_CHAT]: 'anthropic/claude-sonnet-4.6', // $3.00/$15.00 per M — 1M context, better personality lock than 4.5
   [TIER_CHAT_FINETUNED]: FINETUNED_MODEL,     // OpenAI finetuned model — routed directly, not via OpenRouter
   [TIER_ANALYSIS]: 'deepseek/deepseek-v3.2',          // $0.25/$0.38 per M — 90% cheaper than Haiku
   [TIER_EXTRACTION]: 'mistralai/mistral-small-creative', // $0.10/$0.30 per M — replaces deprecated gemini-2.0-flash

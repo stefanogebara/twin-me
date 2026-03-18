@@ -89,7 +89,7 @@ const Index = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#141414] text-[#F5F0EB] font-sans text-sm font-medium">
+    <div className="w-full min-h-screen bg-[#110f0f] text-[#F5F0EB] font-sans text-sm font-medium">
 
       {/* ────────────── NAV ────────────── */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
@@ -131,7 +131,7 @@ const Index = () => {
           {/* Right: Auth */}
           <div className="flex items-center gap-2">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Dashboard
               </button>
             ) : (
@@ -142,7 +142,7 @@ const Index = () => {
                   </button>
                 </SignInButton>
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                  <button className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                     Start Free
                   </button>
                 </SignInButton>
@@ -173,12 +173,12 @@ const Index = () => {
           {/* Single earned CTA — not loud, not multiple */}
           <div className="flex flex-col items-center gap-3">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/discover')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                <button onClick={() => navigate('/discover')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Discover yourself <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
@@ -421,12 +421,12 @@ const Index = () => {
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               {isLoaded && isSignedIn ? (
-                <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Go to Dashboard <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                  <button className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                     Start Free <ArrowRight className="w-4 h-4" />
                   </button>
                 </SignInButton>
@@ -485,12 +485,12 @@ const Index = () => {
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="font-sans bg-[#F5F0EB] text-[#141414] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                <button className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-300 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Start Free <ArrowRight className="w-4 h-4" />
                 </button>
               </SignInButton>

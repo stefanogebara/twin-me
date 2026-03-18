@@ -116,7 +116,7 @@ For privacy concerns: privacy@twinme.ai`
   return (
     <div
       className="min-h-screen flex"
-      style={{ backgroundColor: '#0a0f0a' }}
+      style={{ backgroundColor: '#110f0f' }}
     >
       {/* Left panel — form */}
       <div className="flex-1 flex items-center justify-center px-6">
@@ -199,7 +199,7 @@ For privacy concerns: privacy@twinme.ai`
           className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
-            color: '#0a0f0a',
+            color: '#110f0f',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -331,7 +331,7 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
             style={{
-              backgroundColor: '#111511',
+              backgroundColor: '#110f0f',
               border: '1px solid rgba(255,255,255,0.06)',
             }}
             onClick={e => e.stopPropagation()}

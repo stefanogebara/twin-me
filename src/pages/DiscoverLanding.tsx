@@ -12,7 +12,7 @@ import DataRevealItem from './onboarding/components/DataRevealItem';
 
 // ── Design tokens (dark-only) ──────────────────────────────────────────
 const T = {
-  BG:       '#1b1818',
+  BG:       '#110f0f',
   FG:       '#fdfcfb',
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',
@@ -811,19 +811,19 @@ export default function DiscoverLanding() {
               </div>
             </div>
 
-            {/* Pro — elevated */}
+            {/* Plus — elevated */}
             <div className="flex flex-col shrink-0 w-full md:w-[438px] md:-my-[26px]" style={{ marginRight: '-1px' }}>
               <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Plus</p>
                 <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
               </div>
               <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
                 <div className="flex flex-col gap-2 flex-1">
                   <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
-                    {billingAnnual ? '$9/mo' : '$15/mo'}
+                    {billingAnnual ? '$15/mo' : '$20/mo'}
                   </p>
                   <p className="text-xs" style={{ color: T.TEXT_SEC }}>
-                    {billingAnnual ? 'Billed annually ($108/yr)' : 'Billed monthly'}
+                    {billingAnnual ? 'Billed annually ($180/yr)' : 'Billed monthly'}
                   </p>
                   <div className="flex flex-col gap-px mt-5">
                     {['All platforms connected', 'Unlimited memories', 'Expert reflection engine', 'Soul signature portrait', 'Goal tracking & nudges'].map(f => (
@@ -840,23 +840,27 @@ export default function DiscoverLanding() {
                   className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
                   style={{ background: T.CTA_BG, color: T.CTA_FG, fontFamily: "'Inter', sans-serif" }}
                 >
-                  Start with Pro
+                  Start with Plus
                 </button>
               </div>
             </div>
 
-            {/* Enterprise */}
+            {/* Pro */}
             <div className="flex flex-col flex-1">
               <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Enterprise</p>
-                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For teams and organizations</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
+                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For power users who want it all</p>
               </div>
               <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
                 <div className="flex flex-col gap-2 flex-1">
-                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>Custom</p>
-                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>Flexible billing</p>
+                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
+                    {billingAnnual ? '$75/mo' : '$100/mo'}
+                  </p>
+                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>
+                    {billingAnnual ? 'Billed annually ($900/yr)' : 'Billed monthly'}
+                  </p>
                   <div className="flex flex-col gap-px mt-5">
-                    {['Everything in Pro', 'Team soul signatures', 'Custom integrations', 'Priority support'].map(f => (
+                    {['Everything in Plus', 'Unlimited reflections & insights', 'Personality oracle fine-tuning', 'Priority support', 'Early access to new features'].map(f => (
                       <div key={f} className="flex items-center gap-2 h-6">
                         <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
                         <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
@@ -865,6 +869,7 @@ export default function DiscoverLanding() {
                   </div>
                 </div>
                 <button
+                  onClick={() => navigate('/auth')}
                   className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
                   style={{
                     background: T.GHOST_BG,
@@ -873,7 +878,7 @@ export default function DiscoverLanding() {
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
-                  Book a demo
+                  Start with Pro
                 </button>
               </div>
             </div>

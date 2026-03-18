@@ -18,12 +18,12 @@
 @layer base {
   :root {
     /* Background Colors — Dark only */
-    --background: #1C1917;
+    --background: #110f0f;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
     /* Claude Theme Variables */
-    --claude-bg: #1C1917;
+    --claude-bg: #110f0f;
     --claude-surface: rgba(255, 255, 255, 0.06);
     --claude-surface-raised: rgba(255, 255, 255, 0.12);
     --claude-text: #F5F5F4;
@@ -50,7 +50,7 @@
 
     /* Interactive Colors */
     --primary: #F5F5F4;
-    --primary-foreground: #1C1917;
+    --primary-foreground: #110f0f;
     --ring: rgba(255, 255, 255, 0.15);
 
     /* Component Colors */
@@ -60,7 +60,7 @@
     --popover-foreground: #F5F5F4;
     --secondary: rgba(255, 255, 255, 0.08);
     --secondary-foreground: #F5F5F4;
-    --muted: rgba(28, 25, 23, 0.8);
+    --muted: rgba(17, 15, 15, 0.8);
     --muted-foreground: #A8A29E;
     --accent: rgba(255, 255, 255, 0.06);
     --accent-foreground: #F5F5F4;
@@ -72,7 +72,7 @@
     --sidebar: rgba(255, 255, 255, 0.05);
     --sidebar-foreground: #D6D3D1;
     --sidebar-primary: #F5F5F4;
-    --sidebar-primary-foreground: #1C1917;
+    --sidebar-primary-foreground: #110f0f;
     --sidebar-accent: rgba(255, 255, 255, 0.08);
     --sidebar-accent-foreground: #F5F5F4;
     --sidebar-border: rgba(255, 255, 255, 0.08);
