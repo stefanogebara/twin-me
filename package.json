@@ -19,6 +19,8 @@
   "dependencies": {
     "@bull-board/api": "^6.13.1",
     "@bull-board/express": "^6.13.1",
+    "@elevenlabs/client": "^0.15.2",
+    "@elevenlabs/react": "^0.14.3",
     "@fontsource/inter": "^5.2.8",
     "@google/genai": "^1.41.0",
     "@google/generative-ai": "^0.24.1",

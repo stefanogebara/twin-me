@@ -120,7 +120,9 @@ const allowedOrigins = [
   'http://localhost:8085',
   'http://localhost:8086',
   'http://127.0.0.1:8086',
-  'https://twin-ai-learn.vercel.app'
+  'https://twin-ai-learn.vercel.app',
+  'https://twinme.me',
+  'https://www.twinme.me',
 ].filter(Boolean);
 
 app.use(cors({
@@ -359,6 +361,7 @@ import extensionDataRoutes from './routes/extension-data.js';
 import journalRoutes from './routes/journal.js';
 import adminLlmCostsRoutes from './routes/admin-llm-costs.js';
 import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
+import onboardingVoiceRoutes from './routes/onboarding-voice.js';
 import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
 import onboardingPlatformPreviewRoutes from './routes/onboarding-platform-preview.js';
 import accountRoutes from './routes/account.js';
@@ -446,6 +449,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
 app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibration Q&A for cofounder.co-style onboarding
+app.use('/api/onboarding/voice', onboardingVoiceRoutes);  // Voice interview — ElevenLabs custom LLM wrapper
 app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
 app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
 app.use('/api/account', accountRoutes); // Account deletion + data export

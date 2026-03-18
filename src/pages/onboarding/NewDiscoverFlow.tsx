@@ -483,7 +483,7 @@ const NewDiscoverFlow: React.FC = () => {
     || inferNameFromEmail(user.email);
 
   return (
-    <div className="min-h-screen bg-[#0C0C0C] relative overflow-hidden">
+    <div className={`bg-[#0C0C0C] relative ${phase === 'deep-interview' ? 'h-dvh flex flex-col overflow-hidden' : 'min-h-screen overflow-hidden'}`}>
       {/* Scrollbar utility (fonts loaded via index.html) */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -513,7 +513,7 @@ const NewDiscoverFlow: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 flex flex-col items-center px-6 md:px-8">
+      <div className={`relative z-10 flex flex-col items-center px-6 md:px-8 ${phase === 'deep-interview' ? 'flex-1 min-h-0' : ''}`}>
         {/* ===== PHASE: ENTRY / REVEAL ===== */}
         {(phase === 'entry' || phase === 'reveal') && (
           <div
@@ -828,7 +828,7 @@ const NewDiscoverFlow: React.FC = () => {
         {/* ===== PHASE: DEEP INTERVIEW ===== */}
         {phase === 'deep-interview' && (
           <div
-            className="w-full max-w-lg transition-all duration-500"
+            className="w-full flex-1 flex flex-col min-h-0 transition-all duration-500"
           >
             <DeepInterview
               enrichmentContext={{

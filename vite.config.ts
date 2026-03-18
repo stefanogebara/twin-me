@@ -62,6 +62,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-tooltip',
           ],
           'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-elevenlabs': ['@elevenlabs/react', '@elevenlabs/client'],
         },
       },
     },
