@@ -448,33 +448,7 @@ export default function DiscoverLanding() {
       {/* ══ HERO ═════════════════════════════════════════════════════════ */}
       <section className="relative flex flex-col items-center pt-48 pb-36 px-6" style={{ overflowX: 'clip' }}>
 
-        {/* Hero glow — two stacked ellipses from Figma CSS export */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: 'calc(50% - 455.74px / 2 - 1.37px)',
-            top: '-56px',
-            width: '455.74px',
-            height: '455.74px',
-            borderRadius: '50%',
-            background: HERO_GLOW_GRADIENT,
-            opacity: 0.85,
-            filter: 'blur(42px)',
-          }}
-        />
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: 'calc(50% - 455.74px / 2 - 1.37px)',
-            top: '-56px',
-            width: '455.74px',
-            height: '455.74px',
-            borderRadius: '50%',
-            background: HERO_GLOW_GRADIENT,
-            opacity: 0.3,
-            filter: 'url(#sundust-grain)',
-          }}
-        />
+        {/* Hero glow removed — was overlapping SoulOrb */}
 
         {/* H1 */}
         <h1
@@ -567,14 +541,14 @@ export default function DiscoverLanding() {
 
             {personaSummary ? (
               <div className="w-full max-w-md mt-6">
-                <div className="px-5 py-4 rounded-[20px]" style={{ background: 'rgba(244,241,236,0.08)', border: `1px solid rgba(232,213,183,0.12)` }}>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(232, 213, 183, 0.85)', fontFamily: "'Inter', sans-serif" }}>
+                <div className="px-5 py-4 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}>
                     {personaSummary}
                   </p>
                 </div>
                 {webSources.length > 0 && (
                   <div className="mt-3 px-1">
-                    <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'rgba(232,213,183,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                    <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
                       Sources
                     </p>
                     <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -587,7 +561,7 @@ export default function DiscoverLanding() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[11px] hover:underline truncate max-w-[200px]"
-                            style={{ color: 'rgba(232,213,183,0.4)', fontFamily: "'Inter', sans-serif" }}
+                            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
                             title={src.title}
                           >
                             {domain}
@@ -605,7 +579,7 @@ export default function DiscoverLanding() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm mt-6 text-center" style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-sm mt-6 text-center" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
                 We couldn't find public info for that email yet — but your twin is ready to learn from you directly.
               </p>
             )}
@@ -626,9 +600,9 @@ export default function DiscoverLanding() {
 
             {/* Try different email */}
             <button
-              onClick={() => { setPhase('idle'); setDataPoints([]); setEmail(''); }}
-              className="mt-3 text-xs transition-opacity hover:opacity-70"
-              style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => { setPhase('idle'); setDataPoints([]); setPersonaSummary(null); setWebSources([]); setEmail(''); }}
+              className="mt-3 text-sm transition-opacity hover:opacity-70"
+              style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '3px' }}
             >
               Try a different email
             </button>
