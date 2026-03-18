@@ -1,9 +1,9 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const REMARK_PLUGINS = [remarkGfm];
-import { RotateCcw, AlertCircle } from 'lucide-react';
+import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -27,10 +27,20 @@ interface MessageListProps {
   isTyping: boolean;
   formatTime: (date: Date) => string;
   onRetry?: (content: string, messageId: string) => void;
+  onRate?: (messageId: string, rating: number, messageContent: string, userMessage: string | null) => void;
+}
+
+/** Track which messages the user has already rated this session. */
+function useRatedMessages() {
+  const [rated, setRated] = useState<Record<string, number>>({});
+  const markRated = (messageId: string, rating: number) =>
+    setRated(prev => ({ ...prev, [messageId]: rating }));
+  return { rated, markRated };
 }
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
-  ({ messages, isTyping, formatTime, onRetry }, ref) => {
+  ({ messages, isTyping, formatTime, onRetry, onRate }, ref) => {
+    const { rated, markRated } = useRatedMessages();
     return (
       <div className="px-6 py-8 space-y-6 max-w-3xl mx-auto w-full">
         {messages.map((message, idx) => {
@@ -112,6 +122,53 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                         >
                           {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
                         </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Thumbs up/down — assistant messages only */}
+                  {message.role === 'assistant' && !message.failed && onRate && (
+                    <div className="flex items-center gap-1 mt-2">
+                      {rated[message.id] != null ? (
+                        <span
+                          className="text-[11px] px-2 py-0.5 rounded-full"
+                          style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+                        >
+                          {rated[message.id] === 1 ? 'Thanks!' : 'Noted'}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              const prevUserMsg = messages
+                                .slice(0, messages.findIndex(m => m.id === message.id))
+                                .reverse()
+                                .find(m => m.role === 'user');
+                              markRated(message.id, 1);
+                              onRate(message.id, 1, message.content, prevUserMsg?.content ?? null);
+                            }}
+                            className="p-1 rounded-md transition-all hover:scale-110"
+                            style={{ color: 'rgba(255,255,255,0.25)' }}
+                            title="Helpful"
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const prevUserMsg = messages
+                                .slice(0, messages.findIndex(m => m.id === message.id))
+                                .reverse()
+                                .find(m => m.role === 'user');
+                              markRated(message.id, -1);
+                              onRate(message.id, -1, message.content, prevUserMsg?.content ?? null);
+                            }}
+                            className="p-1 rounded-md transition-all hover:scale-110"
+                            style={{ color: 'rgba(255,255,255,0.25)' }}
+                            title="Not helpful"
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                   )}

@@ -508,6 +508,7 @@ app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 ho
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 
 app.use('/api/finetuning', finetuningRoutes); // Behavioral finetuning (together.ai personality oracle)
+app.use('/api/chat', finetuningRoutes); // Chat feedback endpoint (POST /api/chat/feedback) — shared router
 app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes); // Evidence pipeline debugging

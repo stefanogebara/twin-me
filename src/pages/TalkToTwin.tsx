@@ -279,6 +279,29 @@ const TalkToTwin = () => {
     }
   };
 
+  const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      await fetch(`${API_BASE}/chat/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          messageId,
+          conversationId,
+          rating,
+          messageContent,
+          userMessage,
+          modelVersion: 'claude-sonnet',
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to send feedback:', err);
+    }
+  };
+
   const handleQuickAction = (text: string) => {
     setInputMessage(text);
     inputRef.current?.focus();
@@ -335,6 +358,7 @@ const TalkToTwin = () => {
               isTyping={isTyping}
               formatTime={formatTime}
               onRetry={handleRetry}
+              onRate={handleRate}
             />
           )}
 
