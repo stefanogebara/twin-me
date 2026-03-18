@@ -137,7 +137,9 @@ RULES:
 - If info is scarce, write 2-3 honest sentences with what you found — don't pad with generics
 - NEVER fabricate or assume facts not in the evidence
 - Tone: warm, perceptive, like a friend who just looked you up and is genuinely impressed
-- Do NOT list social profiles or say "Profile found" — synthesize into narrative`,
+- NEVER mention platform names where you found the data (no "your Instagram", "on Pinterest", "your Twitter", "on LinkedIn", "your GitHub" etc.) — talk about the PERSON, not where you scraped them from
+- Do NOT mention follower counts, profile URLs, or any social media metrics
+- Focus on WHO they are, not WHERE they post`,
               messages: [{
                 role: 'user',
                 content: `Write a persona portrait for this person (email username: ${email.split('@')[0]}):\n\n${evidence}`,
