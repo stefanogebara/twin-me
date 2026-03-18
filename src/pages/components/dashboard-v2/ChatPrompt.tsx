@@ -32,7 +32,7 @@ export function ChatPrompt() {
             <button
               key={chip}
               onClick={() => submit(chip)}
-              className="rounded-[46px] text-xs px-3 py-2.5 cursor-pointer transition-colors duration-150 hover:brightness-125"
+              className="rounded-[46px] text-xs px-3 py-2.5 cursor-pointer transition-all duration-150 ease-out hover:brightness-125 active:scale-[0.97]"
               style={{
                 background: 'var(--glass-surface-bg)',
                 backdropFilter: 'blur(42px)',
@@ -62,7 +62,7 @@ export function ChatPrompt() {
           <button
             type="submit"
             aria-label="Send message"
-            className="flex items-center justify-center border-none cursor-pointer flex-shrink-0"
+            className="flex items-center justify-center border-none cursor-pointer flex-shrink-0 transition-all duration-150 ease-out hover:brightness-110 active:scale-90"
             style={{
               width: 28,
               height: 28,

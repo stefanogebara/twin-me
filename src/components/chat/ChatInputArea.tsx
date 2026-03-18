@@ -89,12 +89,12 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               </span>
             )}
 
-            {/* Circular emerald send button */}
+            {/* Circular send button — Rule 2.10: 150ms hover/press */}
             <button
               onClick={onSend}
               disabled={!hasText || isDisabled || isTyping || limitReached}
               aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
-              className="flex items-center justify-center transition-all"
+              className="flex items-center justify-center transition-all duration-150 ease-out hover:brightness-110 active:scale-95"
               style={{
                 width: '36px',
                 height: '36px',

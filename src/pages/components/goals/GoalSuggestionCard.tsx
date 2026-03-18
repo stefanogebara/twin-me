@@ -141,7 +141,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
             <button
               onClick={() => onAccept(goal.id)}
               disabled={isLoading}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.96] disabled:opacity-40"
               style={{
                 backgroundColor: '#10b77f',
                 color: '#0a0f0a',
@@ -158,7 +158,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
             <button
               onClick={() => onDismiss(goal.id)}
               disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.96] disabled:opacity-40"
               style={{ color: TEXT_SECONDARY }}
             >
               {isDismissing ? (

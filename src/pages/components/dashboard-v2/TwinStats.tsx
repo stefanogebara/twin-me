@@ -32,9 +32,9 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
       </h2>
 
       <div className="grid grid-cols-3 gap-6">
-        {/* Readiness */}
+        {/* Readiness — Rule 11.1: tabular-nums for data */}
         <div>
-          <span className="text-[32px] font-semibold" style={{ color: 'var(--foreground)' }}>
+          <span className="text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
             {readiness.score}
           </span>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>readiness</p>
@@ -45,9 +45,9 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
           )}
         </div>
 
-        {/* Memories */}
+        {/* Memories — tabular-nums */}
         <div>
-          <span className="text-[32px] font-semibold" style={{ color: 'var(--foreground)' }}>
+          <span className="text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
             {formatMemoryCount(memoryCount)}
           </span>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>memories</p>
@@ -56,9 +56,9 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
           </p>
         </div>
 
-        {/* Streak */}
+        {/* Streak — tabular-nums */}
         <div>
-          <span className="text-[32px] font-semibold" style={{ color: 'var(--foreground)' }}>
+          <span className="text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
             {streak}
           </span>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>day streak</p>

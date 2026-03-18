@@ -24,7 +24,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       {/* Mobile Menu Button - Only visible on small screens */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-200"
+        className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-150 ease-out active:scale-95"
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.08)',
           backdropFilter: 'blur(20px) saturate(180%)',
@@ -48,7 +48,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Main Content Area - margin adjusts based on sidebar collapsed state */}
       <main
-        className="relative flex-1 overflow-y-auto transition-all duration-300"
+        className="relative flex-1 overflow-y-auto transition-all duration-200 ease-out"
         style={{
           zIndex: 0,
           isolation: 'isolate',

@@ -33,7 +33,7 @@ export function HeroInsight({ body, source, insightId }: HeroInsightProps) {
       </p>
       <button
         onClick={() => navigate('/talk-to-twin', { state: { prefill: body } })}
-        className="mt-3 text-sm bg-transparent border-none cursor-pointer transition-colors duration-150 hover:brightness-150 p-0"
+        className="mt-3 text-sm bg-transparent border-none cursor-pointer transition-all duration-150 ease-out hover:brightness-150 active:scale-[0.97] p-0"
         style={{ color: 'var(--text-secondary)' }}
       >
         Talk about this &rarr;

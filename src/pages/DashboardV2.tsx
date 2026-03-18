@@ -34,7 +34,7 @@ export function DashboardV2() {
           </p>
           <button
             onClick={() => refetch()}
-            className="text-sm px-4 py-2 rounded-[100px] transition-opacity hover:opacity-70"
+            className="text-sm px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97]"
             style={{
               border: '1px solid rgba(255,255,255,0.08)',
               color: 'rgba(255,255,255,0.5)',

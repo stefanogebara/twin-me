@@ -63,7 +63,7 @@ const ToggleSwitch: React.FC<{
     aria-checked={enabled}
     aria-label={label}
     onClick={() => !disabled && onChange(!enabled)}
-    className="relative w-10 h-5 rounded-full transition-colors"
+    className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
       backgroundColor: enabled ? '#10b77f' : 'rgba(255,255,255,0.1)',
       cursor: disabled ? 'not-allowed' : 'pointer',
@@ -71,7 +71,7 @@ const ToggleSwitch: React.FC<{
     }}
   >
     <div
-      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ease-out"
       style={{ left: enabled ? '22px' : '2px' }}
     />
   </button>
@@ -369,13 +369,11 @@ const Settings = () => {
       {/* Privacy Spectrum — prominent card */}
       <button
         onClick={() => navigate('/privacy-spectrum')}
-        className="w-full flex items-center gap-4 p-4 mb-4 rounded-xl transition-colors"
+        className="w-full flex items-center gap-4 p-4 mb-4 rounded-xl transition-all duration-150 ease-out active:scale-[0.98] hover:border-white/15"
         style={{
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.08)',
         }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
       >
         <div
           className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0"

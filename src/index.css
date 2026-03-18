@@ -394,13 +394,14 @@
 
 /* ===== UTILITY CLASSES ===== */
 @layer utilities {
-  /* Animations */
+  /* Animations — Rule 1.1: User animations under 300ms */
+  /* Rule 2.6: Ease-out for entrances */
   .fade-in {
-    animation: fadeIn 0.6s ease-out forwards;
+    animation: fadeIn 0.26s ease-out forwards;
   }
 
   .slide-up {
-    animation: slideUp 0.6s ease-out forwards;
+    animation: slideUp 0.26s ease-out forwards;
   }
 
   @keyframes fadeIn {
@@ -425,9 +426,9 @@
     }
   }
 
-  /* Hover effects */
+  /* Hover effects — Rule 2.10: 120-180ms for hover */
   .hover-lift {
-    transition: transform 200ms ease, box-shadow 200ms ease;
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out;
   }
 
   .hover-lift:hover {
@@ -456,20 +457,21 @@
   }
 
   /* Smooth entrance for staggered children */
+  /* Rule 1.9: Stagger under 50ms per item — using 30ms */
   .stagger-enter > * {
     opacity: 0;
     transform: translateY(12px);
-    animation: staggerFadeIn 0.5s ease-out forwards;
+    animation: staggerFadeIn 0.26s ease-out forwards;
   }
 
-  .stagger-enter > *:nth-child(1) { animation-delay: 0.05s; }
-  .stagger-enter > *:nth-child(2) { animation-delay: 0.1s; }
-  .stagger-enter > *:nth-child(3) { animation-delay: 0.15s; }
-  .stagger-enter > *:nth-child(4) { animation-delay: 0.2s; }
-  .stagger-enter > *:nth-child(5) { animation-delay: 0.25s; }
-  .stagger-enter > *:nth-child(6) { animation-delay: 0.3s; }
-  .stagger-enter > *:nth-child(7) { animation-delay: 0.35s; }
-  .stagger-enter > *:nth-child(8) { animation-delay: 0.4s; }
+  .stagger-enter > *:nth-child(1) { animation-delay: 0.03s; }
+  .stagger-enter > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger-enter > *:nth-child(3) { animation-delay: 0.09s; }
+  .stagger-enter > *:nth-child(4) { animation-delay: 0.12s; }
+  .stagger-enter > *:nth-child(5) { animation-delay: 0.15s; }
+  .stagger-enter > *:nth-child(6) { animation-delay: 0.18s; }
+  .stagger-enter > *:nth-child(7) { animation-delay: 0.21s; }
+  .stagger-enter > *:nth-child(8) { animation-delay: 0.24s; }
 
   @keyframes staggerFadeIn {
     to {
@@ -490,7 +492,7 @@
     border-radius: inherit;
     background: linear-gradient(135deg, rgba(212, 168, 83, 0.2), rgba(212, 168, 83, 0.05));
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease-out;
     pointer-events: none;
     z-index: -1;
     filter: blur(8px);
@@ -556,6 +558,35 @@
 
 }
 
+/* ===== SMOOTH SCROLL ===== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== TEXT SELECTION ===== */
+::selection {
+  background: rgba(255, 132, 0, 0.25);
+  color: var(--foreground);
+}
+
+::-moz-selection {
+  background: rgba(255, 132, 0, 0.25);
+  color: var(--foreground);
+}
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar {
   width: 6px;
@@ -577,8 +608,9 @@
 
 /* ===== FOCUS VISIBLE ===== */
 *:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid rgba(255, 132, 0, 0.5);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* ===== TEXT OVERFLOW PROTECTION ===== */
@@ -616,5 +648,76 @@
 
 .font-inter {
   font-family: var(--font-body);
+}
+
+/* ===== BUTTON INTERACTION PHYSICS ===== */
+/* Rule 1.6: Active State Scale Transform — all interactive elements */
+/* Rule 2.10: Press and hover 120-180ms */
+button,
+a,
+[role="button"] {
+  transition: transform 150ms ease-out, opacity 150ms ease-out, background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+button:active:not(:disabled),
+a:active,
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Rule 4.5: Hit target expansion for small interactive elements */
+/* Ensures minimum 44x44px touch target per WCAG 2.5.8 */
+/* Applied via ::after to avoid conflicts with ::before pseudo-elements */
+[role="switch"] {
+  position: relative;
+}
+
+[role="switch"]::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+}
+
+/* ===== TYPOGRAPHY REFINEMENTS ===== */
+/* Rule 11.7: Antialiased font smoothing (already set on body, reinforce) */
+/* Rule 11.8: Balance headings with text-wrap */
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+/* Rule 11.13: text-wrap pretty for body text */
+p {
+  text-wrap: pretty;
+}
+
+/* Rule 11.15: Letter spacing for uppercase text */
+[class*="uppercase"] {
+  letter-spacing: 0.05em;
+}
+
+/* ===== PLACEHOLDER STYLING ===== */
+/* Rule 4.12: Use ::placeholder for input styling */
+::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+
+::-webkit-input-placeholder {
+  color: var(--text-placeholder);
+}
+
+::-moz-placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+
+/* ===== TABULAR NUMBERS FOR DATA ===== */
+/* Rule 11.1: Tabular numbers for data display */
+.tabular-nums,
+[class*="stat"],
+[class*="count"],
+[class*="streak"] {
+  font-variant-numeric: tabular-nums;
 }
 

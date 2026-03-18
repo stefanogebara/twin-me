@@ -84,7 +84,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
       {/* Sidebar wrapper — overflow-visible so the toggle button can protrude */}
       <div
         className={cn(
-          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300",
+          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isExpanded ? "w-64" : "w-20 lg:w-20",
           "lg:m-4",
@@ -96,7 +96,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           onClick={toggleSidebar}
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isExpanded}
-          className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all shadow-xl hover:shadow-2xl hover:scale-110 z-50 border-2 border-sidebar"
+          className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all duration-150 ease-out shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 z-50 border-2 border-sidebar"
           style={{
             right: '-16px'
           }}
@@ -193,7 +193,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-full transition-all duration-200",
+                  "w-full flex items-center gap-3 rounded-full transition-all duration-150 ease-out active:scale-[0.97]",
                   isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
                     ? "font-medium"
@@ -225,7 +225,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           <button
             onClick={handleSignOut}
             className={cn(
-              "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-200",
+              "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-150 ease-out active:scale-[0.97]",
               isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center"
             )}
             title="Sign Out"

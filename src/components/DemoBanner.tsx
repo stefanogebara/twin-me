@@ -66,7 +66,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
               <button
                 onClick={handleSignUp}
                 aria-label="Sign up for an account to save your data"
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 bg-white/15 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition-all shadow-md"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 bg-white/15 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition-all duration-150 ease-out active:scale-[0.97] shadow-md"
               >
                 <span className="hidden sm:inline">Sign up to save your data</span>
                 <span className="sm:hidden">Sign up</span>
@@ -76,7 +76,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={handleExitDemo}
               aria-label="Exit demo mode and return to home"
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-all"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-all duration-150 ease-out active:scale-[0.97]"
             >
               <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Exit Demo</span>
@@ -84,7 +84,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             </button>
             <button
               onClick={handleDismiss}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
+              className="p-1 hover:bg-white/20 rounded transition-colors duration-150"
               aria-label="Dismiss banner"
             >
               <X className="w-4 h-4" />
@@ -111,7 +111,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={handleSignUp}
               aria-label="Create your real soul signature by signing up"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-vibrant)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent-vibrant-hover)] transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-vibrant)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent-vibrant-hover)] transition-all duration-150 ease-out active:scale-[0.97] shadow-sm"
             >
               Create Your Real Soul Signature
               <ArrowRight className="w-4 h-4" aria-hidden="true" />

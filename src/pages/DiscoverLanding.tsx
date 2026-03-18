@@ -386,7 +386,7 @@ export default function DiscoverLanding() {
                   key={label}
                   href={href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block py-3 px-3 rounded-[12px] transition-colors"
+                  className="block py-3 px-3 rounded-[12px] transition-colors duration-150 ease-out"
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontSize: '16px',
@@ -760,7 +760,7 @@ export default function DiscoverLanding() {
                 <button
                   key={label}
                   onClick={() => setBillingAnnual(label === 'Annually')}
-                  className="flex items-center justify-center w-[120px] h-full rounded-[32px] text-sm transition-all"
+                  className="flex items-center justify-center w-[120px] h-full rounded-[32px] text-sm transition-all duration-200 ease-out active:scale-[0.97]"
                   style={{
                     fontFamily: "'Inter', sans-serif",
                     background: active ? T.FG : 'transparent',
