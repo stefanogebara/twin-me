@@ -11,6 +11,23 @@ import { createLogger } from '../services/logger.js';
 
 const log = createLogger('Auth');
 
+// ====================================================================
+// Shared: Resolve the canonical app URL for OAuth redirects
+// Priority: APP_URL env > twinme.me detection > vercel.app detection > VITE_APP_URL > localhost
+// ====================================================================
+function resolveAppUrl(req) {
+  if (process.env.APP_URL) return process.env.APP_URL;
+
+  const host = req?.get('host') || '';
+  // Production custom domain
+  if (host.includes('twinme.me')) return 'https://twinme.me';
+  // Vercel deployment — always use canonical production domain
+  if (host.includes('vercel.app')) return 'https://twinme.me';
+
+  // Local development fallback
+  return process.env.VITE_APP_URL || 'http://localhost:8086';
+}
+
 // Rate limiting for auth endpoints — prevents brute force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -441,19 +458,7 @@ router.get('/oauth/google', (req, res) => {
     });
   }
 
-  // Auto-detect production URL from request or use environment variable
-  let appUrl;
-  if (process.env.APP_URL) {
-    appUrl = process.env.APP_URL;
-  } else if (req.get('host')?.includes('vercel.app')) {
-    // IMPORTANT: Always use the production domain for OAuth, not deployment-specific URLs
-    // This ensures redirect_uri matches between authorization and token exchange
-    appUrl = 'https://twin-ai-learn.vercel.app';
-  } else {
-    // Local development fallback
-    appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
-  }
-
+  const appUrl = resolveAppUrl(req);
   const isMobile = req.query.mobile === 'true';
 
   // For mobile: redirect straight to backend callback so we can issue deep-link redirect.
@@ -581,10 +586,7 @@ async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
 // OAuth callback handler (GET for redirects)
 router.get('/oauth/callback', async (req, res) => {
   // Declared outside try so catch block can use it for error redirect
-  let appUrl = process.env.APP_URL
-    || (req.get('host')?.includes('vercel.app') ? 'https://twin-ai-learn.vercel.app' : null)
-    || process.env.VITE_APP_URL
-    || 'http://localhost:8086';
+  let appUrl = resolveAppUrl(req);
 
   try {
     const { code, state, error } = req.query;
@@ -798,19 +800,7 @@ router.post('/oauth/callback', async (req, res) => {
 
     log.info('POST /oauth/callback - received', { hasCode: !!code, hasState: !!state, provider });
 
-    // Auto-detect production URL from request or use environment variable
-    let appUrl;
-    if (process.env.APP_URL) {
-      appUrl = process.env.APP_URL;
-    } else if (req.get('host')?.includes('vercel.app')) {
-      // IMPORTANT: Always use the production domain for OAuth, not deployment-specific URLs
-      // This ensures redirect_uri matches between authorization and token exchange
-      appUrl = 'https://twin-ai-learn.vercel.app';
-    } else {
-      // Local development fallback
-      appUrl = process.env.VITE_APP_URL || 'http://localhost:8086';
-    }
-
+    const appUrl = resolveAppUrl(req);
     log.info('Detected appUrl', { appUrl });
 
     // Decode state to check if this is a connector OAuth

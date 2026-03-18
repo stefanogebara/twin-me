@@ -1,23 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Brain, Heart, Palette, Users, Flame, ArrowRight, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Send, ArrowRight, Sparkles, Mic, MicOff } from 'lucide-react';
+import { useVoiceInterview, type OrbVoiceState } from '../../../hooks/useVoiceInterview';
+import SoulOrb from './SoulOrb';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+const ELEVENLABS_AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || '';
 
-const DOMAIN_ICONS: Record<string, React.ReactNode> = {
-  motivation: <Flame className="w-3.5 h-3.5" />,
-  lifestyle: <Heart className="w-3.5 h-3.5" />,
-  personality: <Brain className="w-3.5 h-3.5" />,
-  cultural: <Palette className="w-3.5 h-3.5" />,
-  social: <Users className="w-3.5 h-3.5" />,
-};
-
-const DOMAIN_LABELS: Record<string, string> = {
-  motivation: 'Motivation',
-  lifestyle: 'Lifestyle',
-  personality: 'Personality',
-  cultural: 'Cultural',
-  social: 'Social',
-};
 
 interface SoulSignature {
   archetype_name: string;
@@ -58,11 +46,73 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const [isDone, setIsDone] = useState(false);
   const [summary, setSummary] = useState('');
   const [enhancedSignature, setEnhancedSignature] = useState<SoulSignature | undefined>(undefined);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const initRan = useRef(false);
 
   const STORAGE_KEY = 'twinme_interview_progress';
+
+  // Get userId from auth token
+  const getUserId = useCallback(() => {
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) return null;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.id || payload.userId || null;
+    } catch { return null; }
+  }, []);
+
+  // Voice transcript callback — feeds voice turns into the unified messages array
+  const handleVoiceTranscript = useCallback((text: string, role: 'user' | 'assistant') => {
+    setMessages(prev => {
+      const newMsg: Message = { role, content: text };
+      return [...prev, newMsg];
+    });
+    // Increment question counter after each user answer (voice endpoint tracks its own state)
+    if (role === 'user') {
+      setQuestionNumber(q => q + 1);
+    }
+  }, []);
+
+  const handleVoiceStatusChange = useCallback((state: OrbVoiceState) => {
+    // Clear voice error when voice starts working
+    if (state !== 'idle') setVoiceError(null);
+  }, []);
+
+  const handleVoiceError = useCallback((message: string) => {
+    setVoiceError(message);
+    // Auto-clear error after 5 seconds
+    setTimeout(() => setVoiceError(null), 5000);
+  }, []);
+
+  // Voice interview hook
+  const voiceEnabled = !!ELEVENLABS_AGENT_ID;
+  const voice = useVoiceInterview({
+    agentId: ELEVENLABS_AGENT_ID,
+    userId: getUserId(),
+    enrichmentContext,
+    onTranscript: handleVoiceTranscript,
+    onStatusChange: handleVoiceStatusChange,
+    onError: handleVoiceError,
+  });
+
+  // Derive orb phase from question progress
+  const getOrbPhase = (): 'dormant' | 'awakening' | 'alive' => {
+    if (questionNumber <= 3) return 'dormant';
+    if (questionNumber <= 8) return 'awakening';
+    return 'alive';
+  };
+
+  // Voice status label for the orb
+  const getVoiceLabel = (): string | undefined => {
+    if (!voiceEnabled || !voice.isAvailable) return undefined;
+    if (voice.orbState === 'listening') return 'Listening...';
+    if (voice.orbState === 'thinking') return 'Thinking...';
+    if (voice.orbState === 'speaking') return 'Speaking...';
+    if (voice.isActive) return 'Stop voice';
+    return 'Start voice';
+  };
 
   // Save progress to localStorage
   const saveProgress = (msgs: Message[], qNum: number, dp: Record<string, { asked: number; covered: boolean }>) => {
@@ -236,138 +286,150 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Header */}
-      <div className="text-center mb-4">
-        <h2
-          className="text-xl md:text-2xl mb-1"
-          style={{
-            fontFamily: 'Instrument Serif, Georgia, serif',
-            fontWeight: 400,
-            letterSpacing: '-0.03em',
-            color: 'var(--foreground)',
-          }}
-        >
-          Deep Conversation
-        </h2>
-        <p
-          className="text-xs"
-          style={{ fontFamily: "'Geist', sans-serif", color: 'rgba(255,255,255,0.4)' }}
-        >
-          {questionNumber <= 12
-            ? `Question ${Math.min(questionNumber, 12)} of ~12`
-            : 'Wrapping up'}
-        </p>
-      </div>
+      <style>{`
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes typingBounce {
+          0%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-4px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .typing-dot, [class*="animate-"] {
+            animation: none !important;
+            transition: none !important;
+          }
+        }
+        .soul-orb-responsive {
+          transform: scale(0.65);
+          transform-origin: center center;
+          margin-top: -20px;
+          margin-bottom: -20px;
+        }
+        @media (min-width: 640px) {
+          .soul-orb-responsive {
+            transform: scale(0.85);
+            margin-top: 0;
+            margin-bottom: 4px;
+          }
+        }
+      `}</style>
 
-      {/* Domain progress dots */}
-      <div className="flex items-center justify-center gap-3 mb-6">
-        {['motivation', 'lifestyle', 'personality', 'cultural', 'social'].map(domain => {
-          const progress = domainProgress[domain];
-          const isActive = progress?.asked > 0;
-          const isCovered = progress?.covered || (progress?.asked ?? 0) >= 2;
-          return (
-            <div
-              key={domain}
-              className="flex flex-col items-center gap-1"
-              title={DOMAIN_LABELS[domain]}
-            >
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300"
-                style={{
-                  backgroundColor: isCovered
-                    ? 'rgba(255,255,255,0.04)'
-                    : isActive
-                      ? 'rgba(255,255,255,0.02)'
-                      : 'transparent',
-                  border: isCovered
-                    ? '1.5px solid rgba(255,255,255,0.08)'
-                    : isActive
-                      ? '1px solid rgba(255,255,255,0.08)'
-                      : '1px solid rgba(255,255,255,0.06)',
-                  color: isCovered
-                    ? 'var(--text-primary)'
-                    : isActive
-                      ? 'rgba(255,255,255,0.4)'
-                      : 'var(--text-placeholder)',
-                }}
-              >
-                {DOMAIN_ICONS[domain]}
-              </div>
-              <span
-                className="text-[10px]"
-                style={{
-                  fontFamily: "'Geist', sans-serif",
-                  color: isCovered
-                    ? 'rgba(255,255,255,0.4)'
-                    : 'var(--text-placeholder)',
-                }}
-              >
-                {DOMAIN_LABELS[domain]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Chat messages */}
-      <div
-        className="flex-1 overflow-y-auto px-1 mb-4 scrollbar-hide min-h-0"
-        style={{ maxHeight: 'min(50vh, 400px)' }}
-      >
-        <div className="flex flex-col min-h-full justify-end space-y-3">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className="max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed"
-                style={{
-                  backgroundColor: msg.role === 'user'
-                    ? 'rgba(255,255,255,0.02)'
-                    : 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.06)',
-                  color: msg.role === 'user' ? 'rgba(255,255,255,0.4)' : 'var(--text-primary)',
-                  fontFamily: "'Geist', sans-serif",
-                  borderBottomRightRadius: msg.role === 'user' ? 6 : undefined,
-                  borderBottomLeftRadius: msg.role === 'assistant' ? 6 : undefined,
-                }}
-              >
-                {msg.content}
-              </div>
-            </div>
-          ))}
-
-        {/* Loading indicator */}
-        {loading && (
-          <div
-            className="flex justify-start"
-          >
-            <div
-              className="px-4 py-3 rounded-2xl"
+      {/* Scrollable area: full width, scrollbar at screen edge */}
+      <div className="flex-1 overflow-y-auto mb-3 scrollbar-hide min-h-0">
+        <div className="flex flex-col">
+          {/* Header */}
+          <div className="text-center mb-2 pt-6 lg:pt-8 flex-shrink-0 max-w-lg mx-auto w-full">
+            <h2
+              className="text-lg md:text-xl mb-0.5"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                fontFamily: 'Instrument Serif, Georgia, serif',
+                fontWeight: 400,
+                letterSpacing: '-0.03em',
+                color: 'var(--foreground)',
               }}
             >
-              <div className="flex gap-1.5">
+              Deep Conversation
+            </h2>
+            <p
+              className="text-xs"
+              style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
+            >
+              {questionNumber <= 12
+                ? `Question ${Math.max(1, Math.min(questionNumber - 1, 12))} of 12`
+                : 'Wrapping up'}
+            </p>
+          </div>
+
+          {/* SoulOrb — voice trigger, CSS-scaled for responsive */}
+          {voiceEnabled && voice.isAvailable && (
+            <div
+              className="soul-orb-responsive flex justify-center flex-shrink-0 max-w-lg mx-auto w-full"
+              style={{ animation: 'fadeInScale 0.8s ease-out both' }}
+            >
+              <SoulOrb
+                phase={getOrbPhase()}
+                dataPointCount={Math.min(questionNumber * 2, 20)}
+                voiceState={voice.orbState}
+                outputVolume={voice.outputVolume}
+                onClick={voice.toggleVoice}
+                statusLabel={getVoiceLabel()}
+              />
+            </div>
+          )}
+
+          {/* Voice error toast */}
+          {voiceError && (
+            <div
+              className="mx-auto mb-2 px-4 py-2 rounded-xl text-xs max-w-sm text-center flex-shrink-0"
+              style={{
+                backgroundColor: 'rgba(255, 100, 100, 0.1)',
+                border: '1px solid rgba(255, 100, 100, 0.2)',
+                color: 'rgba(255, 150, 150, 0.8)',
+                fontFamily: "'Geist', sans-serif",
+              }}
+            >
+              {voiceError}
+            </div>
+          )}
+
+          {/* Chat messages — plain text, no bubbles (matches TalkToTwin) */}
+          <div className="space-y-6 py-6 px-6 max-w-3xl mx-auto w-full">
+          {messages.map((msg, i) => {
+            const isUser = msg.role === 'user';
+            // Show divider when speaker changes
+            const prevMsg = i > 0 ? messages[i - 1] : null;
+            const showDivider = prevMsg && prevMsg.role !== msg.role;
+            return (
+              <div key={i} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+                {showDivider && (
+                  <div className="w-full my-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} />
+                )}
+                <div className={`max-w-[85%] ${isUser ? 'text-right' : 'text-left'}`}>
+                  <p
+                    className="whitespace-pre-wrap leading-relaxed"
+                    style={{
+                      fontSize: '15px',
+                      lineHeight: 1.7,
+                      color: 'var(--foreground)',
+                      opacity: isUser ? 0.95 : 0.7,
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    {msg.content}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Loading indicator — staggered typing dots */}
+          {loading && (
+            <div className="flex items-start">
+              <div className="flex gap-1.5 py-1">
                 {[0, 1, 2].map(i => (
                   <div
                     key={i}
-                    className="w-2 h-2 rounded-full animate-pulse"
-                    style={{ backgroundColor: 'rgba(255,255,255,0.3)', animationDelay: `${i * 0.2}s` }}
+                    className="typing-dot w-1.5 h-1.5 rounded-full"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.35)',
+                      animation: 'typingBounce 1.2s ease-in-out infinite',
+                      animationDelay: `${i * 0.2}s`,
+                    }}
                   />
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+          </div>
         </div>
       </div>
 
-      {/* Input area or completion */}
+      {/* Input area or completion — constrained width */}
+      <div className="max-w-3xl mx-auto w-full px-6 pb-2">
       {isDone ? (
         <div
           className="flex flex-col items-center gap-4 py-4"
@@ -474,40 +536,87 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           </button>
         </div>
       ) : (
-        <div className="flex gap-2 items-end">
+        <div
+          className="flex items-end gap-3 rounded-[20px] px-5 py-4 transition-all duration-300"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: voice.isActive
+              ? '1px solid rgba(240, 200, 128, 0.25)'
+              : '1px solid var(--glass-surface-border)',
+            boxShadow: voice.isActive
+              ? '0 4px 4px rgba(0,0,0,0.12), 0 0 20px rgba(240, 200, 128, 0.06)'
+              : '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+          }}
+        >
+          {/* Mic toggle button — 44px touch target */}
+          {voiceEnabled && voice.isAvailable && (
+            <button
+              onClick={voice.toggleVoice}
+              className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
+              title={voice.isActive ? 'Stop voice' : 'Start voice conversation'}
+              aria-label={voice.isActive ? 'Stop voice conversation' : 'Start voice conversation'}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '100px',
+                color: voice.isActive
+                  ? 'rgba(240, 200, 128, 0.8)'
+                  : 'var(--text-muted)',
+                cursor: 'pointer',
+                backgroundColor: voice.isActive ? 'rgba(240, 200, 128, 0.08)' : 'transparent',
+              }}
+            >
+              {voice.isActive ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+          )}
+
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
-              // Auto-grow: reset then set to scrollHeight
               e.target.style.height = 'auto';
               e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
             }}
             onKeyDown={handleKeyDown}
-            placeholder="Type your answer..."
+            placeholder={
+              voice.isActive
+                ? voice.orbState === 'listening'
+                  ? 'Listening... or type here'
+                  : voice.orbState === 'speaking'
+                    ? 'Twin is speaking...'
+                    : 'Or type here...'
+                : 'Type your answer...'
+            }
             disabled={loading}
             rows={1}
-            className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 resize-none"
+            className="flex-1 bg-transparent resize-none"
             style={{
-              backgroundColor: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: 'var(--text-primary)',
-              fontFamily: "'Geist', sans-serif",
-              minHeight: '44px',
+              color: 'var(--foreground)',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '15px',
+              minHeight: '24px',
               maxHeight: '120px',
               overflowY: 'auto',
+              caretColor: 'rgba(232, 213, 183, 0.6)',
+              outline: 'none',
             }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="px-4 py-3 rounded-xl transition-all duration-200"
+            aria-label="Send message"
+            className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
             style={{
-              backgroundColor: input.trim() ? 'var(--foreground)' : 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: input.trim() ? 'var(--background)' : 'var(--text-placeholder)',
+              width: '36px',
+              height: '36px',
+              borderRadius: '100px',
+              backgroundColor: input.trim() ? '#252222' : 'transparent',
+              color: input.trim() ? 'var(--background)' : 'var(--text-muted)',
               cursor: input.trim() ? 'pointer' : 'default',
+              opacity: input.trim() ? 1 : 0.5,
             }}
           >
             <Send className="w-4 h-4" />
@@ -515,23 +624,34 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         </div>
       )}
 
-      {/* Done for now escape hatch */}
+      {/* Done for now escape hatch — 44px min touch target */}
       {!isDone && (
         <button
-          onClick={onSkip}
-          className="mt-3 text-xs transition-opacity hover:opacity-70"
+          onClick={() => {
+            // End voice session if active
+            if (voice.isActive) {
+              voice.toggleVoice();
+            }
+            onSkip();
+          }}
+          className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"
           style={{
-            color: 'rgba(255,255,255,0.4)',
-            fontFamily: "'Geist', sans-serif",
+            color: 'rgba(255,255,255,0.45)',
+            fontFamily: "'Inter', sans-serif",
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             textAlign: 'center',
+            minHeight: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          Done for now — continue to platforms
+          Done for now
         </button>
       )}
+      </div>
     </div>
   );
 };

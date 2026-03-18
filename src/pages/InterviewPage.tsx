@@ -72,7 +72,7 @@ export default function InterviewPage() {
 
   if (loading) {
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="flex items-center justify-center h-64">
           <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
@@ -92,7 +92,7 @@ export default function InterviewPage() {
       : null;
 
     return (
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div className="max-w-3xl mx-auto px-6 py-16">
         {/* Header */}
         <h1
           className="mb-2"
@@ -120,7 +120,7 @@ export default function InterviewPage() {
               <>
                 <span
                   className="text-[11px] font-medium tracking-widest uppercase block mb-3"
-                  style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--accent-vibrant, #ff8400)', fontFamily: 'Inter, sans-serif' }}
                 >
                   Your Archetype
                 </span>
@@ -154,11 +154,13 @@ export default function InterviewPage() {
         <div className="space-y-3">
           <button
             onClick={() => navigate('/identity')}
-            className="w-full py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+            className="w-full py-3.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: '#10b77f',
-              color: '#0a0f0a',
+              backgroundColor: '#252222',
+              color: '#fdfcfb',
               fontFamily: "'Inter', sans-serif",
+              cursor: 'pointer',
+              minHeight: '48px',
             }}
           >
             Explore Your Soul Signature
@@ -170,11 +172,13 @@ export default function InterviewPage() {
                 setAlreadyDone(false);
                 setCalibrationData(null);
               }}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm transition-opacity hover:opacity-70"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.1))',
                 color: 'rgba(255,255,255,0.5)',
                 fontFamily: "'Inter', sans-serif",
+                cursor: 'pointer',
+                minHeight: '44px',
               }}
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -182,11 +186,13 @@ export default function InterviewPage() {
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex-1 py-3 rounded-lg text-sm transition-opacity hover:opacity-70"
+              className="flex-1 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--glass-surface-border, rgba(255,255,255,0.1))',
                 color: 'rgba(255,255,255,0.5)',
                 fontFamily: "'Inter', sans-serif",
+                cursor: 'pointer',
+                minHeight: '44px',
               }}
             >
               Back to Home
@@ -198,27 +204,7 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
-      {/* Header */}
-      <h1
-        className="mb-2"
-        style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
-          fontStyle: 'italic',
-          fontSize: '28px',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        Tell Your Story
-      </h1>
-      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)' }}>
-        A quick conversation across 5 life domains. Your answers seed your twin with context no platform data can capture.
-      </p>
-
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
-
+    <div className="flex flex-col h-[calc(100dvh-9rem)] lg:h-dvh">
       <DeepInterview
         enrichmentContext={enrichmentContext}
         onComplete={handleComplete}
@@ -227,3 +213,6 @@ export default function InterviewPage() {
     </div>
   );
 }
+
+// Note: The "Tell Your Story" header was removed because DeepInterview has its own
+// "Deep Conversation" header + question counter. Reducing visual redundancy.
