@@ -94,7 +94,7 @@ export async function createFinetune(userId, filePath, {
     batch_size: batchSize,
     learning_rate: learningRate,
     suffix: `${suffix}-${userId.slice(0, 8)}`,
-    ...(trainingMethod === 'dpo' ? { training_method: 'dpo', dpo_beta: 0.1 } : {}),
+    ...(trainingMethod === 'dpo' ? { training_method: 'dpo', dpo_beta: 0.1, lora: true } : { lora: true }),
   };
 
   const jobRes = await fetch(`${TOGETHER_API}/fine-tunes`, {

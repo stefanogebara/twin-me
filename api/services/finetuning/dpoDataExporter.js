@@ -69,13 +69,15 @@ export async function exportDPOTrainingData(userId, minPairs = 200) {
     };
   }
 
-  // Convert to JSONL lines
+  // Convert to JSONL lines (together.ai DPO format: input.messages array)
   const allLines = pairs.map(pair => {
-    const prompt = formatPrompt(pair.prompt_messages);
+    const messages = Array.isArray(pair.prompt_messages)
+      ? pair.prompt_messages
+      : [{ role: 'user', content: String(pair.prompt_messages) }];
     return JSON.stringify({
-      input: prompt,
-      preferred_output: pair.chosen_response,
-      non_preferred_output: pair.rejected_response,
+      input: { messages },
+      preferred_output: [{ role: 'assistant', content: pair.chosen_response }],
+      non_preferred_output: [{ role: 'assistant', content: pair.rejected_response }],
     });
   });
 
