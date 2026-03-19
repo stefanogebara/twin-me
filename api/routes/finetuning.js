@@ -1,7 +1,8 @@
 /**
  * Finetuning API Routes
  * =====================
- * POST /api/finetuning/train            — Export data + start finetuning job
+ * POST /api/finetuning/train            — Export data + start SFT finetuning job
+ * POST /api/finetuning/train-dpo        — Export preference data + start DPO training
  * GET  /api/finetuning/status           — Check model status
  * GET  /api/finetuning/preference-stats — Preference pair & feedback stats
  * POST /api/finetuning/generate-pairs   — Trigger synthetic DPO pair generation
@@ -13,6 +14,7 @@ import { exportTrainingData } from '../services/finetuning/trainingDataExporter.
 import { createFinetune, checkFinetuneStatus } from '../services/finetuning/finetuneManager.js';
 import { collectFromUserFeedback } from '../services/finetuning/preferenceCollector.js';
 import { generateSyntheticPairs } from '../services/finetuning/syntheticPairGenerator.js';
+import { trainDPO, checkDPOEligibility } from '../services/finetuning/dpoTrainer.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -68,6 +70,44 @@ router.post('/train', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('Train error:', error.message);
     return res.status(500).json({ success: false, error: 'Failed to start finetuning' });
+  }
+});
+
+/**
+ * POST /api/finetuning/train-dpo
+ * Manually trigger DPO training on top of an existing SFT model.
+ * Requires: ready SFT model + >= 200 quality preference pairs.
+ */
+router.post('/train-dpo', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Check eligibility before attempting training
+    const eligibility = await checkDPOEligibility(userId);
+    if (!eligibility.eligible) {
+      return res.status(400).json({
+        success: false,
+        error: eligibility.reason,
+        eligibility,
+      });
+    }
+
+    log.info(`Starting DPO training for user ${userId.slice(0, 8)}`);
+    const result = await trainDPO(userId);
+
+    log.info(`DPO training started for user ${userId.slice(0, 8)}: job ${result.jobId}`);
+
+    return res.json({
+      success: true,
+      jobId: result.jobId,
+      status: result.status,
+      trainCount: result.trainCount,
+      evalCount: result.evalCount,
+      sftModelId: result.sftModelId,
+    });
+  } catch (error) {
+    log.error('Train DPO error:', error.message);
+    return res.status(500).json({ success: false, error: 'Failed to start DPO training' });
   }
 });
 
