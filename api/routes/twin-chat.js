@@ -758,14 +758,15 @@ Make it sound natural and curious, not like a survey question.`;
     } else {
       try {
         chatLog('Starting LLM call');
-        // Use personality reranker if enabled and profile has embedding
+        // Use personality reranker ONLY for DEEP tier (too expensive for light/standard)
         const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
           && personalityProfile?.personality_embedding
-          && personalityProfile?.confidence > 0.3;
+          && personalityProfile?.confidence > 0.3
+          && routingTier === 'deep';
 
         let result;
         if (useReranker) {
-          chatLog('Using personality reranker (best-of-N)');
+          chatLog('Using personality reranker (best-of-N) — DEEP tier');
           result = await rerankByPersonality(
             { system: systemPrompt, messages: llmMessages, maxTokens: 2048, userId },
             personalityProfile.personality_embedding,
