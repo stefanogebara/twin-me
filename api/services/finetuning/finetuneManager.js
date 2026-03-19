@@ -46,31 +46,16 @@ export async function createFinetune(userId, filePath, {
 
   const apiKey = getApiKey();
 
-  // Step 1: Upload file via together.ai REST API
+  // Step 1: Upload file via together.ai JS SDK
   log.info(`Uploading training file for user ${userId.slice(0, 8)}...`);
 
   let fileId;
   try {
-    const fileContent = fs.readFileSync(filePath);
-    const fileName = filePath.split(/[/\\]/).pop() || 'training.jsonl';
-
-    const formData = new FormData();
-    formData.append('file', new Blob([fileContent], { type: 'application/jsonl' }), fileName);
-    formData.append('purpose', 'fine-tune');
-
-    const uploadRes = await fetch(`${TOGETHER_API}/files`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-      body: formData,
-    });
-
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text();
-      throw new Error(`Upload HTTP ${uploadRes.status}: ${errText}`);
-    }
-
-    const uploadData = await uploadRes.json();
-    fileId = uploadData.id;
+    const Together = (await import('together-ai')).default;
+    const together = new Together({ apiKey });
+    const fileStream = fs.createReadStream(filePath);
+    const uploadResult = await together.files.upload({ file: fileStream, purpose: 'fine-tune' });
+    fileId = uploadResult.id;
   } catch (uploadErr) {
     throw new Error(`File upload failed: ${uploadErr.message}`);
   }
