@@ -205,7 +205,12 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       }
     } catch { /* corrupted data — start fresh */ }
 
-    fetchNextQuestion([]);
+    // If voice is enabled, DON'T fetch the text-based first question —
+    // the voice agent sends its own firstMessage greeting.
+    // Only fetch if voice is not available (text-only mode).
+    if (!voiceEnabled) {
+      fetchNextQuestion([]);
+    }
   }, []);
 
   const getAuthToken = () => localStorage.getItem('auth_token') || localStorage.getItem('token');
