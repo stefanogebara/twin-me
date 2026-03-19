@@ -128,25 +128,27 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
     }
   }, [updateOrbState]);
 
-  // Toggle voice session — starts new session or mutes/unmutes existing one
+  // Toggle voice session — starts new session or pauses/resumes existing one
   const toggleVoice = useCallback(async () => {
-    // If session exists and active, mute mic (don't kill session)
+    // If session exists and active, pause: mute mic + silence output
     if (isActive && sessionRef.current) {
       sessionRef.current.setMicMuted(true);
+      sessionRef.current.setVolume({ volume: 0 }); // Stop agent audio output
       setIsActive(false);
       updateOrbState('idle');
       stopVolumePolling();
-      console.log('[VoiceInterview] Paused voice (mic muted, session alive)');
+      console.log('[VoiceInterview] Paused voice (mic muted, audio silenced)');
       return;
     }
 
-    // If session exists but paused, unmute and resume
+    // If session exists but paused, resume: unmute mic + restore volume
     if (!isActive && sessionRef.current && sessionRef.current.isOpen()) {
       sessionRef.current.setMicMuted(false);
+      sessionRef.current.setVolume({ volume: 1 }); // Restore agent audio
       setIsActive(true);
       updateOrbState('listening');
       startVolumePolling();
-      console.log('[VoiceInterview] Resumed voice (mic unmuted)');
+      console.log('[VoiceInterview] Resumed voice (mic + audio restored)');
       return;
     }
 
