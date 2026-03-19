@@ -53,8 +53,10 @@ export async function createFinetune(userId, filePath, {
   try {
     const Together = (await import('together-ai')).default;
     const together = new Together({ apiKey });
-    const fileStream = fs.createReadStream(filePath);
-    const uploadResult = await together.files.upload({ file: fileStream, purpose: 'fine-tune' });
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const fileName = filePath.split(/[/\\]/).pop() || 'training.jsonl';
+    const file = new File([fileContent], fileName, { type: 'application/jsonl' });
+    const uploadResult = await together.files.upload({ file, purpose: 'fine-tune' });
     fileId = uploadResult.id;
   } catch (uploadErr) {
     throw new Error(`File upload failed: ${uploadErr.message}`);
