@@ -82,6 +82,51 @@ ${newMemories > 0 ? `<p style="color:#6b7280;font-size:13px;margin-top:8px">+${n
 }
 
 /**
+ * Welcome email for new beta users.
+ * @param {object} opts
+ * @param {string} opts.toEmail
+ * @param {string} opts.firstName
+ */
+export async function sendWelcomeEmail({ toEmail, firstName }) {
+  if (!resend) return; // Silently skip if no Resend key
+
+  const safeName = escapeHtml(firstName || 'there');
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: `Welcome to TwinMe, ${safeName}`,
+      html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
+.c{max-width:600px;margin:0 auto;padding:40px 24px}
+.logo{font-size:20px;font-weight:700;color:#ff8400;margin-bottom:32px}
+.cta{display:inline-block;background:#ff8400;color:#fff;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
+.footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
+</style></head><body><div class="c">
+<div class="logo">TwinMe</div>
+<p style="font-size:18px;line-height:1.6;margin-bottom:8px">Hey ${safeName},</p>
+<p style="color:#9ca3af;font-size:15px;line-height:1.6">Welcome to TwinMe &mdash; you're one of the first people to try this. Your digital twin is now live and learning about you.</p>
+<p style="color:#9ca3af;font-size:15px;line-height:1.6">Here's how to get the most out of it:</p>
+<ul style="color:#9ca3af;font-size:14px;line-height:1.8;padding-left:20px">
+  <li><strong style="color:#e5e5e5">Connect platforms</strong> &mdash; Spotify, YouTube, Gmail give your twin real context</li>
+  <li><strong style="color:#e5e5e5">Chat with your twin</strong> &mdash; the more you talk, the better it knows you</li>
+  <li><strong style="color:#e5e5e5">Give feedback</strong> &mdash; use the orange Feedback button anytime</li>
+</ul>
+<a href="${APP_URL}/dashboard" class="cta">Open your dashboard</a>
+<div class="footer">
+  <p>You're part of a small group shaping what TwinMe becomes. We read every piece of feedback.</p>
+  <p style="color:#374151">TwinMe &mdash; discover what makes you, you.</p>
+</div>
+</div></body></html>`,
+    });
+  } catch (err) {
+    // Non-blocking — don't fail signup if email fails
+    log.error('Welcome email failed', { error: err.message, email: toEmail });
+  }
+}
+
+/**
  * Beta invite email.
  * @param {object} opts
  * @param {string} opts.toEmail

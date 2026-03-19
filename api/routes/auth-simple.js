@@ -7,6 +7,7 @@ import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import * as betaInviteService from '../services/betaInviteService.js';
+import { sendWelcomeEmail } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
@@ -808,6 +809,9 @@ router.get('/oauth/callback', async (req, res) => {
         })
         .then(() => log.info('Enrichment completed for user', { userId: user.id }))
         .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+
+      // Send welcome email (non-blocking)
+      sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
     }
 
     // Handle redirect for connector OAuth flow
@@ -1074,6 +1078,9 @@ router.post('/oauth/callback', async (req, res) => {
           })
           .then(() => log.info('Enrichment completed for user', { userId: user.id }))
           .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+
+        // Send welcome email (non-blocking)
+        sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
       } else {
         log.info('Existing user found', { userId: existingUser.id });
         user = existingUser;

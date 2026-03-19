@@ -24,6 +24,35 @@ function heatmapColor(count: number): string {
 
 export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, heatmap }: TwinStatsProps) {
   const last90 = heatmap.slice(-90);
+  const isNewUser = memoryCount === 0 && readiness.score === 0;
+
+  // L3: Show a warm welcome card for brand-new users instead of empty stats
+  if (isNewUser) {
+    return (
+      <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
+        <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
+          YOUR TWIN
+        </h2>
+        <div
+          className="rounded-2xl p-6"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,132,0,0.08) 0%, rgba(93,92,174,0.06) 100%)',
+            border: '1px solid rgba(255,132,0,0.12)',
+          }}
+        >
+          <p
+            className="text-lg mb-2"
+            style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: 'var(--foreground)' }}
+          >
+            Your twin is waking up
+          </p>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Connect a platform or chat with your twin to start building memories. The more you share, the more your twin understands what makes you, you.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
@@ -68,25 +97,27 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
         </div>
       </div>
 
-      {/* Heatmap */}
-      <div className="mt-6 overflow-x-auto" role="img" aria-label="Memory activity heatmap for the last 90 days">
-        <div className="flex gap-[2px] flex-wrap">
-          {last90.map((day) => (
-            <div
-              key={day.date}
-              title={`${day.date}: ${day.count} memories`}
-              aria-label={`${day.date}: ${day.count} memories`}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 2,
-                backgroundColor: heatmapColor(day.count),
-                flexShrink: 0,
-              }}
-            />
-          ))}
+      {/* Heatmap — L2: only show when there's actual data */}
+      {last90.some(d => d.count > 0) && (
+        <div className="mt-6 overflow-x-auto" role="img" aria-label="Memory activity heatmap for the last 90 days">
+          <div className="flex gap-[2px] flex-wrap">
+            {last90.map((day) => (
+              <div
+                key={day.date}
+                title={`${day.date}: ${day.count} memories`}
+                aria-label={`${day.date}: ${day.count} memories`}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  backgroundColor: heatmapColor(day.count),
+                  flexShrink: 0,
+                }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
