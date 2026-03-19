@@ -51,14 +51,36 @@ export async function createFinetune(userId, filePath, {
 
   let fileId;
   try {
-    log.info(`File exists check: ${fs.existsSync(filePath)}, size: ${fs.existsSync(filePath) ? fs.statSync(filePath).size : 'N/A'} bytes`);
-    const Together = (await import('together-ai')).default;
-    const together = new Together({ apiKey });
-    // SDK upload(file, purpose, check) — file can be path string or ReadStream
-    const uploadResult = await together.files.upload(filePath, 'fine-tune', false);
-    fileId = uploadResult.id;
+    const fileContent = fs.readFileSync(filePath);
+    const fileSize = fileContent.length;
+    const fileName = filePath.split(/[/\\]/).pop() || 'training.jsonl';
+    log.info(`File ready: ${fileName}, ${fileSize} bytes`);
+
+    // Step 1a: Request upload URL from together.ai (returns 302 redirect)
+    const params = new URLSearchParams({ file_name: fileName, file_type: 'jsonl', purpose: 'fine-tune' });
+    const initRes = await fetch(`${TOGETHER_API}/files?${params}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Bearer ${apiKey}` },
+      redirect: 'manual',
+    });
+
+    if (initRes.status !== 302) {
+      throw new Error(`Init upload failed: ${initRes.status} ${await initRes.text()}`);
+    }
+
+    const uploadUrl = initRes.headers.get('location');
+    fileId = initRes.headers.get('x-together-file-id');
+    if (!uploadUrl || !fileId) throw new Error('Missing upload URL or file ID from redirect');
+
+    // Step 1b: PUT file content to the signed upload URL
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': fileSize.toString() },
+      body: fileContent,
+    });
+
+    if (!putRes.ok) throw new Error(`PUT upload failed: ${putRes.status} ${putRes.statusText}`);
   } catch (uploadErr) {
-    log.error('Upload error details:', uploadErr.stack || uploadErr.message);
     throw new Error(`File upload failed: ${uploadErr.message}`);
   }
   log.info(`File uploaded: ${fileId}`);
