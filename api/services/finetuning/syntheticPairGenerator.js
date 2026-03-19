@@ -22,7 +22,7 @@ import { createLogger } from '../../services/logger.js';
 const log = createLogger('SyntheticPairGen');
 
 const MAX_BATCH_SIZE = 50;
-const MIN_SIMILARITY_GAP = 0.03;
+const MIN_SIMILARITY_GAP = 0.01;
 const TEMPERATURES = [0.5, 0.7, 0.9, 1.1];
 const PROGRESS_LOG_INTERVAL = 10;
 
