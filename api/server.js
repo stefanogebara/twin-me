@@ -393,6 +393,8 @@ import systemHealthRoutes from './routes/system-health.js';
 import healthRoutes from './routes/health.js';
 import testEvidencePipelineRoutes from './routes/test-evidence-pipeline.js';
 import finetuningRoutes from './routes/finetuning.js';
+import betaPublicRoutes from './routes/beta-public.js';
+import { betaFeedbackRouter, betaAdminRouter } from './routes/beta-admin.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -495,6 +497,9 @@ app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
+app.use('/api/beta', betaPublicRoutes); // Beta invite validation + waitlist (public, no auth)
+app.use('/api/beta', betaFeedbackRouter); // Beta feedback submission (auth required, not admin)
+app.use('/api/beta/admin', betaAdminRouter); // Beta admin: invite CRUD, waitlist, feedback list
 app.use('/api/location', locationRoutes); // Location clusters — privacy-first lifestyle signals
 app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)

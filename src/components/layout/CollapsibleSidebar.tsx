@@ -166,17 +166,29 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               style={{ width: isExpanded ? 36 : 32, height: isExpanded ? 36 : 32 }}
             />
             {isExpanded && (
-              <span
-                className="text-2xl"
-                style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
-                  fontWeight: 400,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--foreground)'
-                }}
-              >
-                Twin Me
-              </span>
+              <>
+                <span
+                  className="text-2xl"
+                  style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontWeight: 400,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--foreground)'
+                  }}
+                >
+                  Twin Me
+                </span>
+                <span
+                  className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
+                  style={{
+                    backgroundColor: 'rgba(255,132,0,0.12)',
+                    color: '#ff8400',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  BETA
+                </span>
+              </>
             )}
           </button>
         </div>

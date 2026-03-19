@@ -1,6 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { BottomNav } from './BottomNav';
+import BetaFeedbackWidget from '../BetaFeedbackWidget';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { Menu } from 'lucide-react';
 
@@ -68,6 +69,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Bottom nav bar — mobile only (hidden on lg+) */}
       <BottomNav />
+
+      {/* Beta feedback widget — floating on all authenticated pages */}
+      <BetaFeedbackWidget />
     </div>
   );
 };

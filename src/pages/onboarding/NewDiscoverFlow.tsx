@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion } from '@/services/enrichmentService';
 import SoulOrb from './components/SoulOrb';
 import ParticleField from './components/ParticleField';
@@ -65,6 +66,13 @@ interface SoulSignature {
 const NewDiscoverFlow: React.FC = () => {
   const navigate = useNavigate();
   const { user, isLoaded: authLoaded } = useAuth();
+  const { trackFunnel } = useAnalytics();
+
+  // Tracked phase setter — fires PostHog event on every transition
+  const setPhaseTracked = (next: FlowPhase, extra?: Record<string, unknown>) => {
+    trackFunnel(`discover_${next}_entered`, { phase: next, ...extra });
+    setPhase(next);
+  };
 
   // Flow state
   const [phase, setPhase] = useState<FlowPhase>('entry');
@@ -168,7 +176,7 @@ const NewDiscoverFlow: React.FC = () => {
 
   const startReveal = async () => {
     if (!user) return;
-    setPhase('reveal');
+    setPhaseTracked('reveal');
     setOrbPhase('awakening');
 
     try {
@@ -386,11 +394,11 @@ const NewDiscoverFlow: React.FC = () => {
       // Skip enrichment failed silently
     }
     enrichmentDataRef.current = null;
-    setPhase('platforms');
+    setPhaseTracked('platforms');
   };
 
   const handlePlatformsComplete = (_connectedPlatforms: string[]) => {
-    setPhase('deepening');
+    setPhaseTracked('deepening', { platforms_connected: _connectedPlatforms.length });
   };
 
   const handleQuestionAnswer = (questionId: string, answer: string, domain: string) => {
@@ -462,7 +470,7 @@ const NewDiscoverFlow: React.FC = () => {
   };
 
   const handleComplete = () => {
-    setPhase('complete');
+    setPhaseTracked('complete');
     navigate('/dashboard');
   };
 
@@ -791,7 +799,7 @@ const NewDiscoverFlow: React.FC = () => {
 
                 {/* Secondary CTA — Go Deeper */}
                 <button
-                  onClick={() => setPhase('deep-interview')}
+                  onClick={() => setPhaseTracked('deep-interview')}
                   className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
                   style={{
                     background: 'transparent',

@@ -38,6 +38,7 @@ const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
 const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const DiscoverLanding = lazy(() => import("./pages/DiscoverLanding"));
+const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
 const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
 const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
 const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
@@ -112,6 +113,7 @@ const App = () => {
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />
+            <Route path="/waitlist" element={<Suspense fallback={null}><WaitlistPage /></Suspense>} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
             <Route path="/signin" element={<Navigate to="/auth" replace />} />
 

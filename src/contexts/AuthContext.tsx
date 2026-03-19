@@ -260,12 +260,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   const signInWithOAuth = async (provider: 'google', redirectAfterAuth?: string) => {
-    // Build OAuth URL with optional redirect parameter
+    // Build OAuth URL with query parameters
     let oauthUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
+    const params = new URLSearchParams();
 
-    // If redirectAfterAuth is provided, pass it as a query parameter
     if (redirectAfterAuth) {
-      oauthUrl += `?redirect=${encodeURIComponent(redirectAfterAuth)}`;
+      params.set('redirect', redirectAfterAuth);
+    }
+
+    // Pass beta invite code through to backend OAuth state
+    const inviteCode = sessionStorage.getItem('beta_invite_code');
+    if (inviteCode) {
+      params.set('invite', inviteCode);
+    }
+
+    if (params.toString()) {
+      oauthUrl += `?${params.toString()}`;
     }
 
     // Redirect to OAuth provider
