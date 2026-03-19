@@ -78,6 +78,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
         aria-label={isClickable ? (voiceState === 'idle' ? 'Start voice conversation' : 'Stop voice conversation') : undefined}
         tabIndex={isClickable ? 0 : undefined}
         onKeyDown={isClickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); } : undefined}
+        style={{ outline: 'none' }}
       >
         {/* Outer glow */}
         <div
