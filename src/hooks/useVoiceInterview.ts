@@ -40,12 +40,16 @@ interface VoiceInterviewReturn {
   orbState: OrbVoiceState;
   isAvailable: boolean;
   toggleVoice: () => Promise<void>;
+  /** Fully end the voice session (for "Done for now" / page exit) */
+  endVoice: () => Promise<void>;
   sendText: (text: string) => void;
   inputVolume: number;
   outputVolume: number;
   connectionStatus: ElevenLabsStatus;
   /** Number of assistant messages (questions asked) */
   questionCount: number;
+  /** Whether a session exists (may be paused but still connected) */
+  hasSession: boolean;
 }
 
 // ====================================================================
@@ -115,26 +119,48 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
     onStatusChangeRef.current?.(state);
   }, []);
 
-  // Toggle voice session
+  // Mute/unmute mic (pause voice without killing session)
+  const setMicMuted = useCallback((muted: boolean) => {
+    if (sessionRef.current) {
+      sessionRef.current.setMicMuted(muted);
+      updateOrbState(muted ? 'idle' : 'listening');
+      console.log('[VoiceInterview] Mic muted:', muted);
+    }
+  }, [updateOrbState]);
+
+  // Toggle voice session — starts new session or mutes/unmutes existing one
   const toggleVoice = useCallback(async () => {
+    // If session exists and active, mute mic (don't kill session)
     if (isActive && sessionRef.current) {
-      await sessionRef.current.endSession();
-      sessionRef.current = null;
+      sessionRef.current.setMicMuted(true);
       setIsActive(false);
       updateOrbState('idle');
-      setConnectionStatus('disconnected');
       stopVolumePolling();
+      console.log('[VoiceInterview] Paused voice (mic muted, session alive)');
       return;
     }
 
+    // If session exists but paused, unmute and resume
+    if (!isActive && sessionRef.current && sessionRef.current.isOpen()) {
+      sessionRef.current.setMicMuted(false);
+      setIsActive(true);
+      updateOrbState('listening');
+      startVolumePolling();
+      console.log('[VoiceInterview] Resumed voice (mic unmuted)');
+      return;
+    }
+
+    // No session — start a new one
     try {
       updateOrbState('thinking');
       setConnectionStatus('connecting');
       messagesRef.current = [];
       setQuestionCount(0);
-      console.log('[VoiceInterview] Starting VoiceConversation with agentId:', agentId);
+      console.log('[VoiceInterview] Starting new VoiceConversation with agentId:', agentId);
 
       const enrichmentJson = JSON.stringify({ userId, enrichmentContext });
+      const userName = (enrichmentContext as Record<string, string>)?.name || '';
+      const firstName = userName.split(' ')[0] || '';
 
       // Conversation auto-delegates to VoiceConversation when textOnly is false
       const session = await Conversation.startSession({
@@ -144,12 +170,14 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
             prompt: {
               prompt: `You are a warm, perceptive interviewer for Twin Me. This is a VOICE conversation — keep responses short (2-3 sentences max) and natural. ENRICHMENT_JSON:${enrichmentJson}END_ENRICHMENT`,
             },
-            firstMessage: 'Hey! Welcome to Twin Me. I\'m going to ask you a few questions to get to know you better. Ready to dive in?',
+            firstMessage: firstName
+              ? `Hey ${firstName}! Welcome to Twin Me. I'm going to ask you a few questions to get to know you better. Ready to dive in?`
+              : `Hey! Welcome to Twin Me. I'm going to ask you a few questions to get to know you better. Ready to dive in?`,
           },
           tts: {
-            speed: 1.0,            // Natural pace — 1.05 sounds slightly robotic
-            stability: 0.5,        // Balance expressiveness with consistency (0.35 was too low)
-            similarityBoost: 0.85, // Higher = more natural-sounding voice
+            speed: 1.0,
+            stability: 0.5,
+            similarityBoost: 0.85,
           },
         },
         onConnect: ({ conversationId }) => {
@@ -234,22 +262,37 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
     }
   }, [isActive, agentId, userId, enrichmentContext, startVolumePolling, stopVolumePolling, updateOrbState]);
 
-  // Send text through voice session
+  // Fully end the voice session (for "Done for now" or page exit)
+  const endVoice = useCallback(async () => {
+    if (sessionRef.current) {
+      await sessionRef.current.endSession();
+      sessionRef.current = null;
+      setIsActive(false);
+      updateOrbState('idle');
+      setConnectionStatus('disconnected');
+      stopVolumePolling();
+      console.log('[VoiceInterview] Session ended fully');
+    }
+  }, [updateOrbState, stopVolumePolling]);
+
+  // Send text through voice session (works even when mic is muted)
   const sendText = useCallback((text: string) => {
-    if (isActive && sessionRef.current && text.trim()) {
+    if (sessionRef.current?.isOpen() && text.trim()) {
       sessionRef.current.sendUserMessage(text.trim());
     }
-  }, [isActive]);
+  }, []);
 
   return {
     isActive,
     orbState,
     isAvailable,
     toggleVoice,
+    endVoice,
     sendText,
     inputVolume,
     outputVolume,
     connectionStatus,
     questionCount,
+    hasSession: !!sessionRef.current,
   };
 }

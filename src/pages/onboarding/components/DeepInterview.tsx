@@ -681,10 +681,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       {!isDone && (
         <button
           onClick={async () => {
-            // End voice session if active
-            if (voice.isActive) {
-              voice.toggleVoice();
-            }
+            // Fully end voice session (not just pause)
+            await voice.endVoice();
             // If enough conversation data, trigger completion to generate archetype
             if (messages.length >= 4) {
               setLoading(true);
