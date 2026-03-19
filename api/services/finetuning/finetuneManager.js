@@ -51,12 +51,14 @@ export async function createFinetune(userId, filePath, {
 
   let fileId;
   try {
+    log.info(`File exists check: ${fs.existsSync(filePath)}, size: ${fs.existsSync(filePath) ? fs.statSync(filePath).size : 'N/A'} bytes`);
     const Together = (await import('together-ai')).default;
     const together = new Together({ apiKey });
-    // SDK signature: upload(file, purpose, check) — positional args
+    // SDK upload(file, purpose, check) — file can be path string or ReadStream
     const uploadResult = await together.files.upload(filePath, 'fine-tune', false);
     fileId = uploadResult.id;
   } catch (uploadErr) {
+    log.error('Upload error details:', uploadErr.stack || uploadErr.message);
     throw new Error(`File upload failed: ${uploadErr.message}`);
   }
   log.info(`File uploaded: ${fileId}`);
