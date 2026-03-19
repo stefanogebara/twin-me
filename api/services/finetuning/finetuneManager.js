@@ -108,7 +108,7 @@ export async function createFinetune(userId, filePath, {
 
   if (!jobRes.ok) {
     const err = await jobRes.text();
-    throw new Error(`Fine-tune job creation failed: ${jobRes.status} — ${err}`);
+    throw new Error(`Fine-tune job creation failed: ${jobRes.status} — fileId=${fileId} — ${err} — body=${JSON.stringify(jobBody)}`);
   }
 
   const jobData = await jobRes.json();
