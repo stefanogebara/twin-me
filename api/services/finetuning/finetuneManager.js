@@ -74,11 +74,13 @@ export async function createFinetune(userId, filePath, {
     if (!uploadUrl || !fileId) throw new Error('Missing upload URL or file ID from redirect');
 
     // Step 1b: PUT file content to the signed upload URL
+    const fileString = fileContent.toString('utf-8');
     const putRes = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': fileSize.toString() },
-      body: fileContent,
+      headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': Buffer.byteLength(fileString).toString() },
+      body: fileString,
     });
+    log.info(`PUT response: ${putRes.status}, uploaded ${Buffer.byteLength(fileString)} bytes`);
 
     if (!putRes.ok) throw new Error(`PUT upload failed: ${putRes.status} ${putRes.statusText}`);
   } catch (uploadErr) {
