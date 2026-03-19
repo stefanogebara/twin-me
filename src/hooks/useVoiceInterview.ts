@@ -19,6 +19,11 @@ export type OrbVoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 type ElevenLabsStatus = 'connecting' | 'connected' | 'disconnecting' | 'disconnected';
 
+interface VoiceMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface VoiceInterviewConfig {
   agentId: string;
   userId: string | null;
@@ -26,6 +31,8 @@ interface VoiceInterviewConfig {
   onTranscript: (text: string, role: 'user' | 'assistant') => void;
   onStatusChange?: (state: OrbVoiceState) => void;
   onError?: (message: string) => void;
+  /** Called when voice session ends — provides full transcript for completion pipeline */
+  onSessionEnd?: (messages: VoiceMessage[], reason: 'agent' | 'user' | 'error') => void;
 }
 
 interface VoiceInterviewReturn {
@@ -37,6 +44,8 @@ interface VoiceInterviewReturn {
   inputVolume: number;
   outputVolume: number;
   connectionStatus: ElevenLabsStatus;
+  /** Number of assistant messages (questions asked) */
+  questionCount: number;
 }
 
 // ====================================================================
@@ -44,7 +53,7 @@ interface VoiceInterviewReturn {
 // ====================================================================
 
 export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewReturn {
-  const { agentId, userId, enrichmentContext, onTranscript, onStatusChange, onError } = config;
+  const { agentId, userId, enrichmentContext, onTranscript, onStatusChange, onError, onSessionEnd } = config;
 
   const [isActive, setIsActive] = useState(false);
   const [orbState, setOrbState] = useState<OrbVoiceState>('idle');
@@ -52,19 +61,23 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
   const [inputVolume, setInputVolume] = useState(0);
   const [outputVolume, setOutputVolume] = useState(0);
   const [connectionStatus, setConnectionStatus] = useState<ElevenLabsStatus>('disconnected');
+  const [questionCount, setQuestionCount] = useState(0);
 
-  // Refs for session and callbacks
+  // Refs for session, callbacks, and message accumulation
   const sessionRef = useRef<Awaited<ReturnType<typeof Conversation.startSession>> | null>(null);
   const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const messagesRef = useRef<VoiceMessage[]>([]);
   const onTranscriptRef = useRef(onTranscript);
   const onStatusChangeRef = useRef(onStatusChange);
   const onErrorRef = useRef(onError);
+  const onSessionEndRef = useRef(onSessionEnd);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
     onStatusChangeRef.current = onStatusChange;
     onErrorRef.current = onError;
-  }, [onTranscript, onStatusChange, onError]);
+    onSessionEndRef.current = onSessionEnd;
+  }, [onTranscript, onStatusChange, onError, onSessionEnd]);
 
   // Volume polling
   const startVolumePolling = useCallback(() => {
@@ -117,6 +130,8 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
     try {
       updateOrbState('thinking');
       setConnectionStatus('connecting');
+      messagesRef.current = [];
+      setQuestionCount(0);
       console.log('[VoiceInterview] Starting VoiceConversation with agentId:', agentId);
 
       const enrichmentJson = JSON.stringify({ userId, enrichmentContext });
@@ -130,6 +145,9 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
               prompt: `You are a warm, perceptive interviewer for Twin Me. This is a VOICE conversation — keep responses short (2-3 sentences max) and natural. ENRICHMENT_JSON:${enrichmentJson}END_ENRICHMENT`,
             },
             firstMessage: 'Hey! Welcome to Twin Me. I\'m going to ask you a few questions to get to know you better. Ready to dive in?',
+          },
+          tts: {
+            speed: 1.05, // Slightly faster TTS playback for snappier feel
           },
         },
         onConnect: ({ conversationId }) => {
@@ -145,11 +163,22 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
           setConnectionStatus('disconnected');
           stopVolumePolling();
           sessionRef.current = null;
+
+          // Trigger session end callback with accumulated messages
+          const reason = details.reason as 'agent' | 'user' | 'error';
+          if (messagesRef.current.length >= 4) {
+            onSessionEndRef.current?.(messagesRef.current, reason);
+          }
         },
         onMessage: (payload) => {
           console.log('[VoiceInterview] Message:', payload.role, payload.message?.slice(0, 80));
           if (payload.message) {
             const role = payload.role === 'user' ? 'user' as const : 'assistant' as const;
+            // Accumulate messages for completion pipeline
+            messagesRef.current = [...messagesRef.current, { role, content: payload.message }];
+            if (role === 'assistant') {
+              setQuestionCount(c => c + 1);
+            }
             onTranscriptRef.current(payload.message, role);
           }
         },
@@ -219,5 +248,6 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
     inputVolume,
     outputVolume,
     connectionStatus,
+    questionCount,
   };
 }

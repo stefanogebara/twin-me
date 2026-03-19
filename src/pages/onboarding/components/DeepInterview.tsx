@@ -86,6 +86,50 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     setTimeout(() => setVoiceError(null), 5000);
   }, []);
 
+  // Voice session ended — run completion pipeline
+  const handleVoiceSessionEnd = useCallback(async (
+    voiceMessages: Array<{ role: string; content: string }>,
+    reason: 'agent' | 'user' | 'error'
+  ) => {
+    // Only run completion if we have enough messages (at least 4 Q&A exchanges)
+    if (voiceMessages.length < 4) return;
+    console.log('[DeepInterview] Voice session ended:', reason, 'messages:', voiceMessages.length);
+
+    setLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/onboarding/voice/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          conversationHistory: voiceMessages,
+          enrichmentContext,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.done) {
+          setIsDone(true);
+          setSummary(result.personality_summary || '');
+          clearProgress();
+          await generateEnhancedSignature({
+            insights: result.insights,
+            archetypeHint: result.archetype_hint,
+            summary: result.personality_summary,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[DeepInterview] Voice completion error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [enrichmentContext]);
+
   // Voice interview hook
   const voiceEnabled = !!ELEVENLABS_AGENT_ID;
   const voice = useVoiceInterview({
@@ -95,6 +139,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     onTranscript: handleVoiceTranscript,
     onStatusChange: handleVoiceStatusChange,
     onError: handleVoiceError,
+    onSessionEnd: handleVoiceSessionEnd,
   });
 
   // Derive orb phase from question progress
