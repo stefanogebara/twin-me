@@ -506,7 +506,31 @@ Return ONLY this JSON array (no markdown, no explanation):
 router.post('/calibrate', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;
-    let { enrichmentContext, conversationHistory, questionNumber, domainProgress: clientDomainProgress } = req.body;
+    let { enrichmentContext, conversationHistory, questionNumber, domainProgress: clientDomainProgress, history: rawHistory, forceComplete } = req.body;
+
+    // Handle partial save on skip (forceComplete from "Done for now" button)
+    if (forceComplete && rawHistory && userId) {
+      try {
+        const pairs = [];
+        for (let i = 0; i < rawHistory.length - 1; i += 2) {
+          if (rawHistory[i]?.role === 'assistant' && rawHistory[i + 1]?.role === 'user') {
+            pairs.push({ question: rawHistory[i].content, answer: rawHistory[i + 1].content });
+          }
+        }
+        if (pairs.length > 0) {
+          for (const pair of pairs) {
+            await addConversationMemory(userId, pair.answer, {
+              source: 'onboarding_interview',
+              question: pair.question,
+            });
+          }
+          log.info('Partial interview saved', { userId, pairs: pairs.length });
+        }
+      } catch (err) {
+        log.error('Partial interview save failed', { error: err });
+      }
+      return res.json({ success: true, partialSave: true });
+    }
 
     if (!enrichmentContext || !questionNumber) {
       return res.status(400).json({ success: false, error: 'enrichmentContext and questionNumber required' });

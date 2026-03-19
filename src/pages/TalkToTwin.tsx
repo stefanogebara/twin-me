@@ -121,14 +121,24 @@ const TalkToTwin = () => {
     if (messages.length > 0) saveChatHistory(messages);
   }, [messages]);
 
-  // Pre-populate input from "Discuss with Twin" navigation
+  // Auto-send message from "Discuss with Twin" / dashboard chat navigation
+  const pendingDiscussContext = useRef<string | null>(null);
   useEffect(() => {
     const state = location.state as { discussContext?: string } | null;
     if (state?.discussContext) {
+      pendingDiscussContext.current = state.discussContext;
       setInputMessage(state.discussContext);
       window.history.replaceState({}, '');
     }
   }, [location.state]);
+
+  // Fire auto-send once inputMessage is set and user is loaded
+  useEffect(() => {
+    if (pendingDiscussContext.current && inputMessage === pendingDiscussContext.current && user?.id) {
+      pendingDiscussContext.current = null;
+      handleSendMessage();
+    }
+  }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;

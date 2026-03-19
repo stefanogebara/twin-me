@@ -53,8 +53,27 @@ const OnboardingFlow: React.FC = () => {
     navigate('/dashboard', { replace: true });
   };
 
+  const STEPS: Step[] = ['welcome', 'interview', 'platforms', 'awakening'];
+  const currentIdx = STEPS.indexOf(step);
+
   return (
     <Suspense fallback={<LoadingFallback />}>
+      {/* Progress dots — hidden on welcome (intro) and awakening (finale) */}
+      {step !== 'welcome' && step !== 'awakening' && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+          {STEPS.map((s, i) => (
+            <div
+              key={s}
+              className="w-2 h-2 rounded-full transition-all duration-300"
+              style={{
+                backgroundColor: i <= currentIdx ? '#ff8400' : 'rgba(255,255,255,0.15)',
+                transform: i === currentIdx ? 'scale(1.3)' : 'scale(1)',
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {step === 'welcome' && (
         <WelcomeStep onBegin={() => advanceStep('welcome', 'interview')} />
       )}

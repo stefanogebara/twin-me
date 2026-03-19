@@ -632,6 +632,24 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             if (voice.isActive) {
               voice.toggleVoice();
             }
+            // Save partial interview answers as memories before skipping
+            const token = getAuthToken();
+            if (token && messages.length >= 2) {
+              fetch(`${API_URL}/onboarding/calibrate`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  history: messages.map(m => ({ role: m.role, content: m.content })),
+                  questionNumber: questionNumber,
+                  domainProgress,
+                  forceComplete: true,
+                }),
+              }).catch(() => {});
+            }
+            clearProgress();
             onSkip();
           }}
           className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"

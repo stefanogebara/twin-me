@@ -102,16 +102,16 @@ const WhoopIcon = () => (
 );
 
 const MORE_PLATFORMS = [
-  { name: 'YouTube', color: '#FF0000', icon: <YouTubeIcon /> },
   { name: 'LinkedIn', color: '#0A66C2', icon: <LinkedInIcon /> },
   { name: 'Whoop', color: 'var(--foreground)', icon: <WhoopIcon /> },
-  { name: 'Gmail', color: '#EA4335', icon: <GmailIcon /> },
   { name: 'GitHub', color: '#24292E', icon: <GitHubIcon /> },
 ];
 
 const RECOMMENDED = [
   { id: 'spotify', name: 'Spotify', description: 'Music taste & mood patterns', color: '#1DB954', icon: <SpotifyIcon />, type: 'entertainment' },
   { id: 'google_calendar', name: 'Google Calendar', description: 'Daily rhythms & priorities', color: '#4285F4', icon: <CalendarIcon />, type: 'entertainment' },
+  { id: 'youtube', name: 'YouTube', description: 'What you watch reveals what you care about', color: '#FF0000', icon: <YouTubeIcon />, type: 'entertainment' },
+  { id: 'gmail', name: 'Gmail', description: 'Communication patterns & priorities', color: '#EA4335', icon: <GmailIcon />, type: 'entertainment' },
   { id: 'discord', name: 'Discord', description: 'Community & communication style', color: '#5865F2', icon: <DiscordIcon />, type: 'entertainment' },
 ];
 

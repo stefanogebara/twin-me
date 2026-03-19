@@ -56,7 +56,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             ref={ref}
             placeholder={hasConnectedPlatforms
               ? "Say something..."
-              : "Connect platforms to start chatting..."
+              : "Message your twin..."
             }
             value={inputMessage}
             onChange={(e) => onInputChange(e.target.value)}
