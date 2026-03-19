@@ -124,13 +124,27 @@ async function fetchPersonalityProfile(userId) {
  * @returns {string[]}
  */
 async function fetchHistoricalPrompts(userId, limit) {
+  // twin_messages has conversation_id, not user_id — join through twin_conversations
+  const { data: convos, error: convErr } = await supabaseAdmin
+    .from('twin_conversations')
+    .select('id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (convErr || !convos?.length) {
+    log.warn('No conversations found for user', { userId: userId.slice(0, 8), error: convErr?.message });
+    return [];
+  }
+
+  const convoIds = convos.map(c => c.id);
   const { data, error } = await supabaseAdmin
     .from('twin_messages')
     .select('content')
-    .eq('user_id', userId)
+    .in('conversation_id', convoIds)
     .eq('role', 'user')
     .order('created_at', { ascending: false })
-    .limit(limit * 2); // Fetch extra to filter duplicates/short prompts
+    .limit(limit * 2);
 
   if (error) {
     log.error('Failed to fetch historical prompts', { userId: userId.slice(0, 8), error: error.message });
