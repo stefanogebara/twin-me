@@ -70,7 +70,7 @@ function buildOracleSystemPrompt(ocean) {
 async function fetchPersonalityProfile(userId) {
   const { data: profile, error } = await supabaseAdmin
     .from('user_personality_profiles')
-    .select('ocean_scores, stylometric_fingerprint, personality_embedding_centroid')
+    .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, personality_embedding')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -84,14 +84,20 @@ async function fetchPersonalityProfile(userId) {
     return null;
   }
 
-  if (!profile.personality_embedding_centroid) {
+  if (!profile.personality_embedding) {
     log.warn('Personality profile has no embedding centroid', { userId: userId.slice(0, 8) });
     return null;
   }
 
   return {
-    oceanScores: profile.ocean_scores || {},
-    centroid: profile.personality_embedding_centroid,
+    oceanScores: {
+      openness: profile.openness,
+      conscientiousness: profile.conscientiousness,
+      extraversion: profile.extraversion,
+      agreeableness: profile.agreeableness,
+      neuroticism: profile.neuroticism,
+    },
+    centroid: profile.personality_embedding,
   };
 }
 
