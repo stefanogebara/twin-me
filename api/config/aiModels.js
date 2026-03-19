@@ -5,9 +5,14 @@
  * Update here to change models across the entire platform.
  *
  * OPENROUTER COST TIERS (via llmGateway.js):
- * - Chat (Claude Sonnet 4.5):    $3.00/M input, $15.00/M output  (~$0.01-0.03/msg, quality matters)
+ * - Chat (Claude Sonnet 4.6):    $3.00/M input, $15.00/M output  (~$0.01-0.03/msg, quality matters)
  * - Analysis (DeepSeek V3.2):    $0.25/M input, $0.38/M output
  * - Extraction (Mistral Small):  $0.10/M input, $0.30/M output
+ *
+ * SMART ROUTING (via chatRouter.js):
+ * - Chat Light (Gemini 2.5 Flash):  $0.15/M input, $0.60/M output  — greetings, acks, short factual
+ * - Chat Standard (DeepSeek V3.2):  $0.25/M input, $0.38/M output  — medium complexity
+ * - Chat Deep (Claude Sonnet 4.6):  $3.00/M input, $15.00/M output — emotional, identity, complex
  *
  * LEGACY DIRECT (kept for backward compat, not used by gateway):
  * - Sonnet 4.5: $3/M input, $15/M output
@@ -55,6 +60,9 @@ export const MODEL_PRICING = {
   'moonshotai/kimi-k2.5': { input: 0.45, output: 2.25, cachedInput: 0.045 },
   'deepseek/deepseek-v3.2': { input: 0.25, output: 0.38, cachedInput: 0.025 },
   'mistralai/mistral-small-creative': { input: 0.10, output: 0.30, cachedInput: 0.01 },
+  // Smart routing models (chatRouter.js)
+  'google/gemini-2.5-flash-preview': { input: 0.15, output: 0.60, cachedInput: 0.015 },
+  'anthropic/claude-sonnet-4.6': { input: 3.00, output: 15.00, cachedInput: 0.30 },
   // Fallback models (kept for cost tracking if manually overridden)
   'anthropic/claude-sonnet-4.5': { input: 3.00, output: 15.00, cachedInput: 0.30 },
   'anthropic/claude-haiku-4.5': { input: 0.80, output: 4.00, cachedInput: 0.08 },

@@ -286,6 +286,7 @@ function formatMessages(system, messages) {
  * @param {number} [opts.temperature=0.7]
  * @param {string} [opts.userId]
  * @param {string} [opts.serviceName]
+ * @param {string} [opts.modelOverride] - Override the tier-based model selection (e.g., for smart routing)
  * @returns {{ content: string, model: string, usage: Object, cost: number, cacheHit: boolean }}
  */
 export async function complete({
@@ -299,8 +300,9 @@ export async function complete({
   presence_penalty,
   userId,
   serviceName,
+  modelOverride,
 }) {
-  const model = OPENROUTER_MODELS[tier] || OPENROUTER_MODELS[TIER_ANALYSIS];
+  const model = modelOverride || OPENROUTER_MODELS[tier] || OPENROUTER_MODELS[TIER_ANALYSIS];
   const ttl = CACHE_TTL_BY_TIER[tier] || 0;
 
   // Circuit breaker check (4B)
@@ -418,6 +420,7 @@ export async function complete({
  * @param {string} [opts.userId]
  * @param {string} [opts.serviceName]
  * @param {Function} [opts.onChunk] - Called with each text chunk
+ * @param {string} [opts.modelOverride] - Override the tier-based model selection (e.g., for smart routing)
  * @returns {{ content: string, model: string, usage: Object, cost: number, cacheHit: boolean }}
  */
 export async function stream({
@@ -432,8 +435,9 @@ export async function stream({
   userId,
   serviceName,
   onChunk,
+  modelOverride,
 }) {
-  const model = OPENROUTER_MODELS[tier] || OPENROUTER_MODELS[TIER_CHAT];
+  const model = modelOverride || OPENROUTER_MODELS[tier] || OPENROUTER_MODELS[TIER_CHAT];
   const startTime = Date.now();
 
   // Circuit breaker check (4B)
