@@ -93,6 +93,9 @@ const NewDiscoverFlow: React.FC = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
 
+  // Identity confirmation gate — user must explicitly confirm scraped data is theirs
+  const [identityConfirmed, setIdentityConfirmed] = useState(false);
+
   // Refs to prevent double-fire
   const hasStartedRef = useRef(false);
   const enrichmentDataRef = useRef<EnrichmentData | null>(null);
@@ -319,6 +322,7 @@ const NewDiscoverFlow: React.FC = () => {
       || '';
     setCorrectionName(currentName);
     setCorrectionLinkedIn('');
+    setIdentityConfirmed(false);
     setRevealSubView('correction');
   };
 
@@ -338,6 +342,7 @@ const NewDiscoverFlow: React.FC = () => {
     setNarrative('');
     setShowContinue(false);
     setEnrichError(null);
+    setIdentityConfirmed(false);
     quickDataRef.current = null;
 
     try {
@@ -531,9 +536,9 @@ const NewDiscoverFlow: React.FC = () => {
               {orbPhase === 'dormant' && 'Discovering you...'}
               {orbPhase === 'awakening' && 'Piecing together your story...'}
               {orbPhase === 'alive' && (
-                confidenceRef.current !== null && confidenceRef.current < 0.5
-                  ? `We found someone named ${userName.split(' ')[0]} — is this you?`
-                  : `Hello, ${userName.split(' ')[0]}`
+                dataPoints.length === 0
+                  ? `Hello, ${userName.split(' ')[0]}`
+                  : `We found some info about ${userName.split(' ')[0]}`
               )}
             </p>
 
@@ -602,11 +607,56 @@ const NewDiscoverFlow: React.FC = () => {
               </p>
             )}
 
-            {/* Continue button + "This isn't me" OR Correction form */}
-            {revealSubView === 'data' && showContinue && (
-              <div
-                className="flex flex-col items-center mt-8 transition-all duration-300"
-              >
+            {/* Identity confirmation gate — must confirm before proceeding */}
+            {revealSubView === 'data' && showContinue && dataPoints.length > 0 && !identityConfirmed && (
+              <div className="w-full max-w-sm mt-8 transition-all duration-300">
+                <div
+                  className="rounded-xl p-5 text-center"
+                  style={{
+                    background: 'rgba(232, 213, 183, 0.06)',
+                    border: '1px solid rgba(232, 213, 183, 0.15)',
+                  }}
+                >
+                  <p
+                    className="text-sm mb-4"
+                    style={{ color: 'rgba(232, 213, 183, 0.8)', fontFamily: 'var(--font-body)' }}
+                  >
+                    Is this information about you?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIdentityConfirmed(true)}
+                      className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
+                      style={{
+                        background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
+                        color: '#0C0C0C',
+                        fontFamily: 'var(--font-body)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Yes, that's me
+                    </button>
+                    <button
+                      onClick={handleNotMe}
+                      className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-80"
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid rgba(232, 213, 183, 0.3)',
+                        color: 'rgba(232, 213, 183, 0.7)',
+                        fontFamily: 'var(--font-body)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Not me
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Continue button — only shown after identity is confirmed (or no data found) */}
+            {revealSubView === 'data' && showContinue && (identityConfirmed || dataPoints.length === 0) && (
+              <div className="flex flex-col items-center mt-8 transition-all duration-300">
                 <button
                   onClick={handleAdvanceToDeepening}
                   className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
@@ -620,27 +670,6 @@ const NewDiscoverFlow: React.FC = () => {
                   Continue
                   <ArrowRight className="w-4 h-4" />
                 </button>
-
-                {dataPoints.length > 0 && (() => {
-                  const isLowConfidence = confidenceRef.current !== null && confidenceRef.current < 0.5;
-                  return (
-                    <button
-                      onClick={handleNotMe}
-                      className={`mt-4 transition-opacity hover:opacity-70 ${isLowConfidence ? 'text-sm' : 'text-xs'}`}
-                      style={{
-                        color: isLowConfidence ? 'rgba(232, 213, 183, 0.7)' : 'rgba(232, 213, 183, 0.35)',
-                        fontFamily: 'var(--font-body)',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        textUnderlineOffset: '3px',
-                      }}
-                    >
-                      {isLowConfidence ? "This isn't me — search again" : 'This isn\'t me'}
-                    </button>
-                  );
-                })()}
               </div>
             )}
 
@@ -831,12 +860,14 @@ const NewDiscoverFlow: React.FC = () => {
             className="w-full flex-1 flex flex-col min-h-0 transition-all duration-500"
           >
             <DeepInterview
-              enrichmentContext={{
+              enrichmentContext={identityConfirmed ? {
                 name: enrichmentDataRef.current?.discovered_name || quickDataRef.current?.discovered_name || user.fullName || inferNameFromEmail(user.email),
                 company: enrichmentDataRef.current?.discovered_company || quickDataRef.current?.discovered_company || undefined,
                 title: enrichmentDataRef.current?.discovered_title || undefined,
                 location: enrichmentDataRef.current?.discovered_location || quickDataRef.current?.discovered_location || undefined,
                 bio: enrichmentDataRef.current?.discovered_bio || enrichmentDataRef.current?.discovered_summary || quickDataRef.current?.discovered_bio || undefined,
+              } : {
+                name: user.fullName || inferNameFromEmail(user.email),
               }}
               onComplete={(enhancedSignature) => {
                 if (enhancedSignature) {
