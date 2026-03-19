@@ -106,8 +106,8 @@ router.post('/train-dpo', authenticateUser, async (req, res) => {
       sftModelId: result.sftModelId,
     });
   } catch (error) {
-    log.error('Train DPO error:', error.message);
-    return res.status(500).json({ success: false, error: 'Failed to start DPO training' });
+    log.error('Train DPO error:', error.message, error.stack);
+    return res.status(500).json({ success: false, error: 'Failed to start DPO training', details: error.message });
   }
 });
 
