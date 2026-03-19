@@ -89,6 +89,21 @@ async function fetchPersonalityProfile(userId) {
     return null;
   }
 
+  // pgvector returns embedding as string "[0.1,0.2,...]" — parse if needed
+  let centroid = profile.personality_embedding;
+  if (typeof centroid === 'string') {
+    try {
+      centroid = JSON.parse(centroid);
+    } catch {
+      log.error('Failed to parse personality embedding', { userId: userId.slice(0, 8) });
+      return null;
+    }
+  }
+  if (!Array.isArray(centroid) || centroid.length === 0) {
+    log.warn('Personality embedding is empty or invalid', { userId: userId.slice(0, 8), type: typeof centroid });
+    return null;
+  }
+
   return {
     oceanScores: {
       openness: profile.openness,
@@ -97,7 +112,7 @@ async function fetchPersonalityProfile(userId) {
       agreeableness: profile.agreeableness,
       neuroticism: profile.neuroticism,
     },
-    centroid: profile.personality_embedding,
+    centroid,
   };
 }
 
