@@ -5,7 +5,7 @@
  * IMPORTANT: Must use VoiceConversation (NOT Conversation) for mic input.
  *
  * Architecture:
- *   Browser mic → ElevenLabs Agent (WebSocket) → LLM → ElevenLabs TTS → Audio playback
+ *   Browser mic → ElevenLabs Agent (WebRTC) → LLM → ElevenLabs TTS → Audio playback
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -163,8 +163,10 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
       const firstName = userName.split(' ')[0] || '';
 
       // Conversation auto-delegates to VoiceConversation when textOnly is false
+      // WebRTC: UDP-based, echo cancellation, noise removal, lower perceived latency
       const session = await Conversation.startSession({
         agentId,
+        connectionType: 'webrtc',
         overrides: {
           agent: {
             prompt: {
