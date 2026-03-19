@@ -61,7 +61,7 @@ export const MODEL_PRICING = {
   'deepseek/deepseek-v3.2': { input: 0.25, output: 0.38, cachedInput: 0.025 },
   'mistralai/mistral-small-creative': { input: 0.10, output: 0.30, cachedInput: 0.01 },
   // Smart routing models (chatRouter.js)
-  'google/gemini-2.5-flash-preview': { input: 0.15, output: 0.60, cachedInput: 0.015 },
+  'google/gemini-2.5-flash': { input: 0.30, output: 2.50, cachedInput: 0.03 },
   'anthropic/claude-sonnet-4.6': { input: 3.00, output: 15.00, cachedInput: 0.30 },
   // Fallback models (kept for cost tracking if manually overridden)
   'anthropic/claude-sonnet-4.5': { input: 3.00, output: 15.00, cachedInput: 0.30 },
