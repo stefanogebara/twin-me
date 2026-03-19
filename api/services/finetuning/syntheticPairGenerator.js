@@ -124,25 +124,12 @@ async function fetchPersonalityProfile(userId) {
  * @returns {string[]}
  */
 async function fetchHistoricalPrompts(userId, limit) {
-  // twin_messages has conversation_id, not user_id — join through twin_conversations
-  const { data: convos, error: convErr } = await supabaseAdmin
-    .from('twin_conversations')
-    .select('id')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (convErr || !convos?.length) {
-    log.warn('No conversations found for user', { userId: userId.slice(0, 8), error: convErr?.message });
-    return [];
-  }
-
-  const convoIds = convos.map(c => c.id);
+  // Chat history is in mcp_conversation_logs (not twin_messages which is empty)
   const { data, error } = await supabaseAdmin
-    .from('twin_messages')
-    .select('content')
-    .in('conversation_id', convoIds)
-    .eq('role', 'user')
+    .from('mcp_conversation_logs')
+    .select('user_message')
+    .eq('user_id', userId)
+    .not('user_message', 'is', null)
     .order('created_at', { ascending: false })
     .limit(limit * 2);
 
@@ -161,7 +148,7 @@ async function fetchHistoricalPrompts(userId, limit) {
   const prompts = [];
 
   for (const row of data) {
-    const content = (row.content || '').trim();
+    const content = (row.user_message || '').trim();
     if (content.length < 10) continue;
 
     const normalized = content.toLowerCase();
