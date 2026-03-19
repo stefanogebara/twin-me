@@ -147,7 +147,9 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
             firstMessage: 'Hey! Welcome to Twin Me. I\'m going to ask you a few questions to get to know you better. Ready to dive in?',
           },
           tts: {
-            speed: 1.05, // Slightly faster TTS playback for snappier feel
+            speed: 1.0,            // Natural pace — 1.05 sounds slightly robotic
+            stability: 0.5,        // Balance expressiveness with consistency (0.35 was too low)
+            similarityBoost: 0.85, // Higher = more natural-sounding voice
           },
         },
         onConnect: ({ conversationId }) => {

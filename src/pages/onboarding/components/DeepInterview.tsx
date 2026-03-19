@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ArrowRight, Sparkles, Mic, MicOff } from 'lucide-react';
+import { Send, ArrowRight, Sparkles, Mic, MicOff, Keyboard } from 'lucide-react';
 import { useVoiceInterview, type OrbVoiceState } from '../../../hooks/useVoiceInterview';
 import SoulOrb from './SoulOrb';
 
@@ -595,13 +595,21 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               : '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
-          {/* Mic toggle button — 44px touch target */}
+          {/* Mode toggle: Mic (start voice) / Keyboard (switch to text) */}
           {voiceEnabled && voice.isAvailable && (
             <button
-              onClick={voice.toggleVoice}
+              onClick={() => {
+                if (voice.isActive) {
+                  // Stop voice and focus text input
+                  voice.toggleVoice();
+                  setTimeout(() => inputRef.current?.focus(), 100);
+                } else {
+                  voice.toggleVoice();
+                }
+              }}
               className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
-              title={voice.isActive ? 'Stop voice' : 'Start voice conversation'}
-              aria-label={voice.isActive ? 'Stop voice conversation' : 'Start voice conversation'}
+              title={voice.isActive ? 'Switch to typing' : 'Start voice conversation'}
+              aria-label={voice.isActive ? 'Switch to typing' : 'Start voice conversation'}
               style={{
                 width: '36px',
                 height: '36px',
@@ -613,7 +621,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                 backgroundColor: voice.isActive ? 'rgba(240, 200, 128, 0.08)' : 'transparent',
               }}
             >
-              {voice.isActive ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {voice.isActive ? <Keyboard className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
           )}
 
@@ -669,23 +677,61 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         </div>
       )}
 
-      {/* Done for now escape hatch — 44px min touch target */}
+      {/* Done for now — triggers completion pipeline if enough data, otherwise skips */}
       {!isDone && (
         <button
-          onClick={() => {
+          onClick={async () => {
             // End voice session if active
             if (voice.isActive) {
               voice.toggleVoice();
             }
+            // If enough conversation data, trigger completion to generate archetype
+            if (messages.length >= 4) {
+              setLoading(true);
+              try {
+                const token = getAuthToken();
+                // Use voice completion endpoint which handles both voice and text transcripts
+                const response = await fetch(`${API_URL}/onboarding/voice/complete`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({
+                    conversationHistory: messages,
+                    enrichmentContext,
+                  }),
+                });
+                if (response.ok) {
+                  const result = await response.json();
+                  if (result.done) {
+                    setIsDone(true);
+                    setSummary(result.personality_summary || '');
+                    clearProgress();
+                    await generateEnhancedSignature({
+                      insights: result.insights,
+                      archetypeHint: result.archetype_hint,
+                      summary: result.personality_summary,
+                    });
+                    setLoading(false);
+                    return; // Show completion view, don't navigate yet
+                  }
+                }
+              } catch (err) {
+                console.error('[DeepInterview] Early completion error:', err);
+              }
+              setLoading(false);
+            }
             onSkip();
           }}
+          disabled={loading}
           className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"
           style={{
             color: 'rgba(255,255,255,0.45)',
             fontFamily: "'Inter', sans-serif",
             background: 'none',
             border: 'none',
-            cursor: 'pointer',
+            cursor: loading ? 'wait' : 'pointer',
             textAlign: 'center',
             minHeight: '44px',
             display: 'flex',
@@ -693,7 +739,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             justifyContent: 'center',
           }}
         >
-          Done for now
+          {loading ? 'Generating your profile...' : 'Done for now'}
         </button>
       )}
       </div>
