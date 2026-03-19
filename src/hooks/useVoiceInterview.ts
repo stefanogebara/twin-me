@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { VoiceConversation } from '@elevenlabs/client';
+import { Conversation, type VoiceConversation } from '@elevenlabs/client';
 
 // ====================================================================
 // Types
@@ -54,7 +54,7 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
   const [connectionStatus, setConnectionStatus] = useState<ElevenLabsStatus>('disconnected');
 
   // Refs for session and callbacks
-  const sessionRef = useRef<VoiceConversation | null>(null);
+  const sessionRef = useRef<Awaited<ReturnType<typeof Conversation.startSession>> | null>(null);
   const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onTranscriptRef = useRef(onTranscript);
   const onStatusChangeRef = useRef(onStatusChange);
@@ -121,15 +121,15 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
 
       const enrichmentJson = JSON.stringify({ userId, enrichmentContext });
 
-      // VoiceConversation handles mic input + audio output (NOT Conversation which is text-only)
-      const session = await VoiceConversation.startSession({
+      // Conversation auto-delegates to VoiceConversation when textOnly is false
+      const session = await Conversation.startSession({
         agentId,
-        connectionType: 'websocket',
         overrides: {
           agent: {
             prompt: {
               prompt: `You are a warm, perceptive interviewer for Twin Me. This is a VOICE conversation — keep responses short (2-3 sentences max) and natural. ENRICHMENT_JSON:${enrichmentJson}END_ENRICHMENT`,
             },
+            firstMessage: 'Hey! Welcome to Twin Me. I\'m going to ask you a few questions to get to know you better. Ready to dive in?',
           },
         },
         onConnect: ({ conversationId }) => {
