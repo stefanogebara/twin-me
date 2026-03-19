@@ -208,13 +208,19 @@ export async function checkFinetuneStatus(userId) {
 export async function getModelId(userId) {
   const { data } = await supabaseAdmin
     .from('user_finetuned_models')
-    .select('model_id')
+    .select('model_id, sft_model_id, training_method')
     .eq('user_id', userId)
     .eq('provider', 'together')
     .eq('status', 'ready')
     .maybeSingle();
 
-  return data?.model_id || null;
+  if (!data) return null;
+
+  return {
+    modelId: data.model_id,
+    sftModelId: data.sft_model_id,
+    trainingMethod: data.training_method || 'sft',
+  };
 }
 
 export default { createFinetune, checkFinetuneStatus, getModelId };
