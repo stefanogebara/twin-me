@@ -303,13 +303,8 @@ export async function generateSyntheticPairs(userId, batchSize = 50) {
       const rejected = scored[scored.length - 1]; // lowest similarity
       const gap = chosen.similarity - rejected.similarity;
 
-      // Skip near-ties
-      if (gap < MIN_SIMILARITY_GAP) {
-        skipped++;
-        continue;
-      }
-
-      const qualityScore = computeQualityScore(gap);
+      // Very small gaps get low quality score but still generate pairs
+      const qualityScore = gap < 0.005 ? 0.15 : computeQualityScore(gap);
 
       // Insert preference pair
       const { error: insertError } = await supabaseAdmin
