@@ -158,9 +158,27 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
       setQuestionCount(0);
       console.log('[VoiceInterview] Starting new VoiceConversation with agentId:', agentId);
 
-      const enrichmentJson = JSON.stringify({ userId, enrichmentContext });
-      const userName = (enrichmentContext as Record<string, string>)?.name || '';
+      // Sanitize enrichment context — only pass clean, short fields (no raw web scraping)
+      const safeContext: Record<string, string> = {};
+      const ec = enrichmentContext as Record<string, string>;
+      if (ec?.name && ec.name.length < 100) safeContext.name = ec.name;
+      if (ec?.company && ec.company.length < 100) safeContext.company = ec.company;
+      if (ec?.title && ec.title.length < 100) safeContext.title = ec.title;
+      if (ec?.location && ec.location.length < 100) safeContext.location = ec.location;
+      // Skip bio — often contains raw web scraping junk
+
+      const userName = safeContext.name || '';
       const firstName = userName.split(' ')[0] || '';
+
+      // Build a clean context string (NOT raw JSON dump)
+      const contextParts: string[] = [];
+      if (safeContext.name) contextParts.push(`Name: ${safeContext.name}`);
+      if (safeContext.company) contextParts.push(`Company: ${safeContext.company}`);
+      if (safeContext.title) contextParts.push(`Title: ${safeContext.title}`);
+      if (safeContext.location) contextParts.push(`Location: ${safeContext.location}`);
+      const contextBlock = contextParts.length > 0
+        ? `\n\nWhat you know about the user:\n${contextParts.join('\n')}`
+        : '';
 
       // Conversation auto-delegates to VoiceConversation when textOnly is false
       // WebRTC: UDP-based, echo cancellation, noise removal, lower perceived latency
@@ -170,11 +188,29 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
         overrides: {
           agent: {
             prompt: {
-              prompt: `You are a warm, perceptive interviewer for Twin Me. This is a VOICE conversation — keep responses short (2-3 sentences max) and natural. ENRICHMENT_JSON:${enrichmentJson}END_ENRICHMENT`,
+              prompt: `You are a warm, curious interviewer for Twin Me — a platform that creates digital twins of people's personalities. You're conducting a voice interview to understand who this person truly is.
+
+VOICE RULES:
+- Keep every response to 1-2 sentences max — this is spoken aloud
+- Sound like a perceptive friend having coffee, not a therapist
+- React specifically to what they said, never generic
+- ONE question per turn
+- Use conversational language (contractions, casual tone)
+- NO markdown, no labels, no numbering
+
+QUESTION FLOW (follow this arc):
+1. Start with what they're passionate about right now
+2. Ask about their daily rhythms and energy
+3. Explore their creative or aesthetic side
+4. Ask about their relationships and social energy
+5. Go deeper into values and what drives them
+6. End with a reflective question tying themes together
+
+After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank them genuinely.${contextBlock}`,
             },
             firstMessage: firstName
-              ? `Hey ${firstName}! Welcome to Twin Me. I'm going to ask you a few questions to get to know you better. Ready to dive in?`
-              : `Hey! Welcome to Twin Me. I'm going to ask you a few questions to get to know you better. Ready to dive in?`,
+              ? `Hey ${firstName}! I'm excited to get to know you. Let's start with something fun — what's something you're genuinely passionate about right now?`
+              : `Hey! I'm excited to get to know you. Let's start with something fun — what's something you're genuinely passionate about right now?`,
           },
           tts: {
             speed: 1.0,
