@@ -285,13 +285,23 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     const text = input.trim();
     if (!text || loading || isDone) return;
 
-    const newMessages: Message[] = [...messages, { role: 'user', content: text }];
-    setMessages(newMessages);
     setInput('');
     // Reset textarea height after send
     if (inputRef.current) inputRef.current.style.height = 'auto';
-    saveProgress(newMessages, questionNumber, domainProgress);
 
+    // If voice session is active, route text through voice agent (NOT text calibration)
+    // The voice agent's onMessage callback will handle adding it to messages
+    if (voice.hasSession) {
+      voice.sendText(text);
+      // Add user message to UI immediately (voice onMessage will add agent response)
+      setMessages(prev => [...prev, { role: 'user', content: text }]);
+      return;
+    }
+
+    // Text-only mode: use the text calibration endpoint
+    const newMessages: Message[] = [...messages, { role: 'user', content: text }];
+    setMessages(newMessages);
+    saveProgress(newMessages, questionNumber, domainProgress);
     fetchNextQuestion(newMessages);
   };
 
