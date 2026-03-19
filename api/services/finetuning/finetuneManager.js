@@ -57,11 +57,12 @@ export async function createFinetune(userId, filePath, {
     log.info(`File ready: ${fileName}, ${fileSize} bytes`);
 
     // Step 1a: Request upload URL from together.ai (returns 302 redirect)
-    const params = new URLSearchParams({ file_name: fileName, file_type: 'jsonl', purpose: 'Fine-tune' });
-    const initRes = await fetch(`${TOGETHER_API}/files?${params}`, {
+    const params = new URLSearchParams({ file_name: fileName, file_type: 'jsonl', purpose: 'fine-tune' });
+    const initRes = await fetch(`${TOGETHER_API}/files`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Bearer ${apiKey}` },
       redirect: 'manual',
+      body: params.toString(),
     });
 
     if (initRes.status !== 302) {
