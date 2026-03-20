@@ -892,8 +892,10 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
       // Real Google OAuth for authentication
-      log.info('Calling exchangeGoogleCode', { appUrl });
-      userData = await exchangeGoogleCode(code, appUrl);
+      // Use the exact redirectUri from state to ensure it matches what Google received
+      const exactRedirectUri = stateData?.redirectUri || null;
+      log.info('Calling exchangeGoogleCode', { appUrl, exactRedirectUri });
+      userData = await exchangeGoogleCode(code, appUrl, exactRedirectUri);
       log.info('exchangeGoogleCode result', { success: !!userData });
 
       // If we failed to get real data, don't fall back to demo for auth flows
