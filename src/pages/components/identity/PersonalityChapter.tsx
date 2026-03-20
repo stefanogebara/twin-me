@@ -16,17 +16,13 @@ const PersonalityChapter: React.FC<PersonalityChapterProps> = ({
   confidence,
 }) => (
   <>
-    <SectionLabel label="Personality" color="#c17e2c" />
+    <SectionLabel label="OCEAN Profile" color="#c17e2c" />
     <div className="space-y-3">
       {oceanCards.map((oc) => (
         <OceanBar key={oc.trait} trait={oc.trait} value={oc.value} />
       ))}
     </div>
-    {temperature != null && topP != null && (
-      <p className="text-[11px] mt-3" style={{ color: 'rgba(255,255,255,0.2)' }}>
-        temp {temperature.toFixed(2)} · top_p {topP.toFixed(3)} · confidence {Math.round((confidence ?? 0) * 100)}%
-      </p>
-    )}
+    {/* Sampling params (temp, top_p) are internal — not shown to users */}
     <Divider />
   </>
 );

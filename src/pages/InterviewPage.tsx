@@ -171,6 +171,8 @@ export default function InterviewPage() {
               onClick={() => {
                 setAlreadyDone(false);
                 setCalibrationData(null);
+                // Clear saved interview progress so DeepInterview starts fresh
+                localStorage.removeItem('twinme_interview_progress');
               }}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-[100px] text-sm transition-opacity hover:opacity-70"
               style={{

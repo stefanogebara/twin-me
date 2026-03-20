@@ -1127,7 +1127,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
 
       // If database status is 'expired' or 'token_expired', use that as the primary status
       // AND set isTokenExpired to true
-      if (connection.status === 'expired' || connection.status === 'token_expired') {
+      if (connection.status === 'expired' || connection.status === 'token_expired' || connection.status === 'needs_reauth') {
         status = 'token_expired';
         isTokenExpired = true;  // Force token expired flag when status indicates expired
         log.debug("Platform token expired", { platform: connection.platform, status: connection.status });

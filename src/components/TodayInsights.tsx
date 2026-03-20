@@ -173,7 +173,7 @@ export const TodayInsights: React.FC = () => {
       <div className="space-y-5">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: 'var(--foreground)' }}>
+          <h2 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Today's Insights
           </h2>
         </div>
@@ -238,7 +238,7 @@ export const TodayInsights: React.FC = () => {
       <div className="space-y-5">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
-          <h2 className="text-lg font-medium" style={{ fontFamily: "'Instrument Serif', Georgia, serif", color: 'var(--foreground)' }}>
+          <h2 className="text-lg font-medium" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--foreground)' }}>
             Today's Insights
           </h2>
         </div>
@@ -265,7 +265,7 @@ export const TodayInsights: React.FC = () => {
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
           <h2 className="text-lg font-medium" style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: "'Inter', sans-serif",
             color: 'var(--foreground)'
           }}>
             Today's Insights

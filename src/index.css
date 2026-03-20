@@ -222,20 +222,20 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings — Instrument Serif serif for all headings (Claura system) */
+  /* Headings — Inter for all UI headings; Instrument Serif only via inline style on hero/display/auth titles */
   h1, h2 {
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-weight: 400;
-    letter-spacing: -0.05em;
-    line-height: 1.1;
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
     color: var(--text-primary);
   }
 
   h3 {
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-weight: 400;
-    letter-spacing: -0.03em;
-    line-height: 1.2;
+    font-family: var(--font-body);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
     color: var(--text-primary);
   }
 

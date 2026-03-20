@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, ArrowRight, Sparkles, Mic, MicOff } from 'lucide-react';
+import { Send, ArrowRight, Sparkles, Mic, MicOff, Keyboard } from 'lucide-react';
 import { useVoiceInterview, type OrbVoiceState } from '../../../hooks/useVoiceInterview';
 import SoulOrb from './SoulOrb';
 
@@ -33,11 +33,16 @@ interface DeepInterviewProps {
   onSkip: () => void;
 }
 
+type InterviewMode = 'voice' | 'text' | null;
+
 const DeepInterview: React.FC<DeepInterviewProps> = ({
   enrichmentContext,
   onComplete,
   onSkip,
 }) => {
+  // Mode selection — null means "show picker"
+  const [mode, setMode] = useState<InterviewMode>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -86,8 +91,53 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     setTimeout(() => setVoiceError(null), 5000);
   }, []);
 
+  // Voice session ended — run completion pipeline
+  const handleVoiceSessionEnd = useCallback(async (
+    voiceMessages: Array<{ role: string; content: string }>,
+    reason: 'agent' | 'user' | 'error'
+  ) => {
+    // Only run completion if we have enough messages (at least 4 Q&A exchanges)
+    if (voiceMessages.length < 4) return;
+    console.log('[DeepInterview] Voice session ended:', reason, 'messages:', voiceMessages.length);
+
+    setLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_URL}/onboarding/voice/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          conversationHistory: voiceMessages,
+          enrichmentContext,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.done) {
+          setIsDone(true);
+          setSummary(result.personality_summary || '');
+          clearProgress();
+          await generateEnhancedSignature({
+            insights: result.insights,
+            archetypeHint: result.archetype_hint,
+            summary: result.personality_summary,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[DeepInterview] Voice completion error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [enrichmentContext]);
+
   // Voice interview hook
-  const voiceEnabled = !!ELEVENLABS_AGENT_ID;
+  const voiceAvailable = !!ELEVENLABS_AGENT_ID;
+  const voiceEnabled = voiceAvailable && mode === 'voice';
   const voice = useVoiceInterview({
     agentId: ELEVENLABS_AGENT_ID,
     userId: getUserId(),
@@ -95,6 +145,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     onTranscript: handleVoiceTranscript,
     onStatusChange: handleVoiceStatusChange,
     onError: handleVoiceError,
+    onSessionEnd: handleVoiceSessionEnd,
   });
 
   // Derive orb phase from question progress
@@ -136,16 +187,23 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Restore or start fresh on mount
+  // Restore or start fresh — only when a mode is selected
   useEffect(() => {
+    if (mode === null) return; // Wait for mode selection
     if (initRan.current) return;
     initRan.current = true;
 
+    // Voice mode: start voice session immediately, skip text question fetch
+    if (mode === 'voice') {
+      voice.toggleVoice();
+      return;
+    }
+
+    // Text mode: restore progress or fetch first question
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const progress = JSON.parse(saved);
-        // Only restore if saved within last 7 days
         if (progress.savedAt && Date.now() - progress.savedAt < 7 * 24 * 60 * 60 * 1000) {
           const restoredMessages = progress.messages || [];
           const restoredQ = progress.questionNumber || 1;
@@ -153,7 +211,6 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           setMessages(restoredMessages);
           setQuestionNumber(restoredQ);
           setDomainProgress(restoredDp);
-          // Resume from where we left off
           fetchNextQuestion(restoredMessages, 0, restoredQ, restoredDp);
           return;
         }
@@ -161,7 +218,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     } catch { /* corrupted data — start fresh */ }
 
     fetchNextQuestion([]);
-  }, []);
+  }, [mode]);
 
   const getAuthToken = () => localStorage.getItem('auth_token') || localStorage.getItem('token');
 
@@ -235,13 +292,23 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     const text = input.trim();
     if (!text || loading || isDone) return;
 
-    const newMessages: Message[] = [...messages, { role: 'user', content: text }];
-    setMessages(newMessages);
     setInput('');
     // Reset textarea height after send
     if (inputRef.current) inputRef.current.style.height = 'auto';
-    saveProgress(newMessages, questionNumber, domainProgress);
 
+    // If voice session is active, route text through voice agent (NOT text calibration)
+    // The voice agent's onMessage callback will handle adding it to messages
+    if (voice.hasSession) {
+      voice.sendText(text);
+      // Add user message to UI immediately (voice onMessage will add agent response)
+      setMessages(prev => [...prev, { role: 'user', content: text }]);
+      return;
+    }
+
+    // Text-only mode: use the text calibration endpoint
+    const newMessages: Message[] = [...messages, { role: 'user', content: text }];
+    setMessages(newMessages);
+    saveProgress(newMessages, questionNumber, domainProgress);
     fetchNextQuestion(newMessages);
   };
 
@@ -283,6 +350,145 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       // Fall through — signature generation is non-critical
     }
   };
+
+  // ===== MODE SELECTION SCREEN =====
+  if (mode === null) {
+    const firstName = enrichmentContext?.name?.split(' ')[0] || '';
+    return (
+      <div className="flex flex-col flex-1 min-h-0 items-center justify-center px-6">
+        <style>{`
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .mode-animate { animation: none !important; }
+          }
+        `}</style>
+
+        {/* SoulOrb */}
+        <div className="mb-6 mode-animate" style={{ animation: 'fadeInScale 0.8s ease-out both' }}>
+          <SoulOrb phase="alive" dataPointCount={4} />
+        </div>
+
+        {/* Greeting */}
+        <h2
+          className="text-2xl md:text-3xl text-center mb-2 mode-animate"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontWeight: 400,
+            letterSpacing: '-0.02em',
+            color: '#E8D5B7',
+            animation: 'fadeInUp 0.6s ease-out 0.3s both',
+          }}
+        >
+          {firstName ? `Hey ${firstName}` : 'Hey there'}
+        </h2>
+
+        <p
+          className="text-sm text-center mb-10 max-w-xs mode-animate"
+          style={{
+            color: 'rgba(232, 213, 183, 0.5)',
+            fontFamily: "'Inter', sans-serif",
+            animation: 'fadeInUp 0.6s ease-out 0.5s both',
+          }}
+        >
+          How would you like to tell your story?
+        </p>
+
+        {/* Mode options — two elegant choices */}
+        <div className="flex flex-col gap-4 w-full max-w-xs mode-animate" style={{ animation: 'fadeInUp 0.6s ease-out 0.7s both' }}>
+          {/* Voice option */}
+          {voiceAvailable && (
+            <button
+              onClick={() => setMode('voice')}
+              className="group flex items-center gap-4 w-full py-4 px-5 rounded-2xl transition-all duration-200 hover:scale-[1.02]"
+              style={{
+                background: 'rgba(232, 213, 183, 0.06)',
+                border: '1px solid rgba(232, 213, 183, 0.15)',
+                cursor: 'pointer',
+              }}
+            >
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                style={{ background: 'rgba(232, 213, 183, 0.1)' }}
+              >
+                <Mic className="w-5 h-5" style={{ color: 'rgba(232, 213, 183, 0.7)' }} />
+              </div>
+              <div className="text-left">
+                <p
+                  className="text-sm font-medium"
+                  style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+                >
+                  Voice conversation
+                </p>
+                <p
+                  className="text-xs mt-0.5"
+                  style={{ color: 'rgba(232, 213, 183, 0.4)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  Talk naturally with your AI interviewer
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: '#E8D5B7' }} />
+            </button>
+          )}
+
+          {/* Text option */}
+          <button
+            onClick={() => setMode('text')}
+            className="group flex items-center gap-4 w-full py-4 px-5 rounded-2xl transition-all duration-200 hover:scale-[1.02]"
+            style={{
+              background: 'rgba(232, 213, 183, 0.06)',
+              border: '1px solid rgba(232, 213, 183, 0.15)',
+              cursor: 'pointer',
+            }}
+          >
+            <div
+              className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(232, 213, 183, 0.1)' }}
+            >
+              <Keyboard className="w-5 h-5" style={{ color: 'rgba(232, 213, 183, 0.7)' }} />
+            </div>
+            <div className="text-left">
+              <p
+                className="text-sm font-medium"
+                style={{ color: '#E8D5B7', fontFamily: "'Inter', sans-serif" }}
+              >
+                Text conversation
+              </p>
+              <p
+                className="text-xs mt-0.5"
+                style={{ color: 'rgba(232, 213, 183, 0.4)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Type your answers at your own pace
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: '#E8D5B7' }} />
+          </button>
+        </div>
+
+        {/* Skip link */}
+        <button
+          onClick={onSkip}
+          className="mt-8 text-xs transition-opacity hover:opacity-70 mode-animate"
+          style={{
+            color: 'rgba(232, 213, 183, 0.25)',
+            fontFamily: "'Inter', sans-serif",
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            animation: 'fadeInUp 0.6s ease-out 0.9s both',
+          }}
+        >
+          Skip for now
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -548,29 +754,35 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               : '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
-          {/* Mic toggle button — always visible, disabled when voice unavailable */}
-          <button
-            onClick={voiceEnabled && voice.isAvailable ? voice.toggleVoice : undefined}
-            disabled={!voiceEnabled || !voice.isAvailable}
-            className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
-            title={!voiceEnabled || !voice.isAvailable ? 'Voice unavailable' : voice.isActive ? 'Stop voice' : 'Start voice conversation'}
-            aria-label={voice.isActive ? 'Stop voice conversation' : 'Start voice conversation'}
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '100px',
-              color: !voiceEnabled || !voice.isAvailable
-                ? 'rgba(255,255,255,0.15)'
-                : voice.isActive
+          {/* Mode toggle: Mic (start voice) / Keyboard (switch to text) */}
+          {voiceEnabled && voice.isAvailable && (
+            <button
+              onClick={() => {
+                if (voice.isActive) {
+                  // Stop voice and focus text input
+                  voice.toggleVoice();
+                  setTimeout(() => inputRef.current?.focus(), 100);
+                } else {
+                  voice.toggleVoice();
+                }
+              }}
+              className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
+              title={voice.isActive ? 'Switch to typing' : 'Start voice conversation'}
+              aria-label={voice.isActive ? 'Switch to typing' : 'Start voice conversation'}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '100px',
+                color: voice.isActive
                   ? 'rgba(240, 200, 128, 0.8)'
                   : 'var(--text-muted)',
-              cursor: !voiceEnabled || !voice.isAvailable ? 'not-allowed' : 'pointer',
-              backgroundColor: voice.isActive ? 'rgba(240, 200, 128, 0.08)' : 'transparent',
-              opacity: !voiceEnabled || !voice.isAvailable ? 0.4 : 1,
-            }}
-          >
-            {voice.isActive ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </button>
+                cursor: 'pointer',
+                backgroundColor: voice.isActive ? 'rgba(240, 200, 128, 0.08)' : 'transparent',
+              }}
+            >
+              {voice.isActive ? <Keyboard className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+          )}
 
           <textarea
             ref={inputRef}
@@ -624,13 +836,48 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         </div>
       )}
 
-      {/* Done for now escape hatch — 44px min touch target */}
+      {/* Done for now — triggers completion pipeline if enough data, otherwise skips */}
       {!isDone && (
         <button
-          onClick={() => {
-            // End voice session if active
-            if (voice.isActive) {
-              voice.toggleVoice();
+          onClick={async () => {
+            // Fully end voice session (not just pause)
+            await voice.endVoice();
+            // If enough conversation data, trigger completion to generate archetype
+            if (messages.length >= 4) {
+              setLoading(true);
+              try {
+                const token = getAuthToken();
+                // Use voice completion endpoint which handles both voice and text transcripts
+                const response = await fetch(`${API_URL}/onboarding/voice/complete`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                  },
+                  body: JSON.stringify({
+                    conversationHistory: messages,
+                    enrichmentContext,
+                  }),
+                });
+                if (response.ok) {
+                  const result = await response.json();
+                  if (result.done) {
+                    setIsDone(true);
+                    setSummary(result.personality_summary || '');
+                    clearProgress();
+                    await generateEnhancedSignature({
+                      insights: result.insights,
+                      archetypeHint: result.archetype_hint,
+                      summary: result.personality_summary,
+                    });
+                    setLoading(false);
+                    return; // Show completion view, don't navigate yet
+                  }
+                }
+              } catch (err) {
+                console.error('[DeepInterview] Early completion error:', err);
+              }
+              setLoading(false);
             }
             // Save partial interview answers as memories before skipping
             const token = getAuthToken();
@@ -653,14 +900,14 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             clearProgress();
             onSkip();
           }}
-          className="mt-2 py-2.5 text-[13px] transition-all hover:opacity-80 w-full"
+          disabled={loading}
+          className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"
           style={{
             color: 'rgba(255,255,255,0.6)',
             fontFamily: "'Inter', sans-serif",
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px',
-            cursor: 'pointer',
+            background: 'none',
+            border: 'none',
+            cursor: loading ? 'wait' : 'pointer',
             textAlign: 'center',
             minHeight: '44px',
             display: 'flex',
@@ -668,7 +915,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             justifyContent: 'center',
           }}
         >
-          Done for now
+          {loading ? 'Generating your profile...' : 'Done for now'}
         </button>
       )}
       </div>

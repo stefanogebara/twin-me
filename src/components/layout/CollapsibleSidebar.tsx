@@ -87,7 +87,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isExpanded ? "w-64" : "w-20 lg:w-20",
-          "lg:m-4",
           "overflow-visible"
         )}
       >
@@ -96,9 +95,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           onClick={toggleSidebar}
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isExpanded}
-          className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all duration-150 ease-out shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 z-50 border-2 border-sidebar"
+          className="hidden lg:flex absolute top-8 w-7 h-7 rounded-full items-center justify-center transition-all z-50"
           style={{
-            right: '-16px'
+            background: 'var(--background)',
+            border: '1px solid var(--glass-surface-border)',
+            color: 'rgba(255, 255, 255, 0.4)',
+            right: '-16px',
           }}
           title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
         >
@@ -111,13 +113,10 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
         {/* Inner glass container — overflow-hidden clips content to rounded corners */}
         <div
-          className="flex flex-col h-full overflow-hidden lg:rounded-2xl"
+          className="flex flex-col h-full overflow-hidden"
           style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+            background: 'var(--background)',
+            borderRight: '1px solid var(--glass-surface-border)',
           }}
         >
         <style>
@@ -209,23 +208,22 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
                     ? "font-medium"
-                    : isExpanded
-                      ? 'text-sidebar-foreground hover:bg-sidebar-accent'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
-                  background: 'var(--accent-vibrant-glow)',
-                  borderRadius: '9999px',
-                  color: 'var(--sidebar-accent-foreground)',
-                } : undefined}
+                  background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                  color: 'var(--accent-vibrant, #ff8400)',
+                } : {
+                  color: 'rgba(255, 255, 255, 0.45)',
+                }}
                 title={item.label}
               >
                 <Icon
-                  className={cn("w-5 h-5 transition-transform", active && "scale-110")}
-                  style={active ? { color: 'var(--accent-vibrant)' } : undefined}
+                  className="w-5 h-5"
+                  style={active ? { color: 'var(--accent-vibrant, #ff8400)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
-                {isExpanded && <span className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>{item.label}</span>}
+                {isExpanded && <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: active ? 500 : 400 }}>{item.label}</span>}
               </button>
             );
           })}

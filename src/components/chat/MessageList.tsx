@@ -57,20 +57,31 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               )}
 
               <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
-                <div className={cn(
-                  "max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-2xl px-4 py-3",
-                  isUser ? "text-right" : "text-left"
-                )} style={{
-                  backgroundColor: isUser ? 'rgba(255,132,0,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: isUser ? '1px solid rgba(255,132,0,0.12)' : '1px solid rgba(255,255,255,0.06)',
-                }}>
+                {/* Glass bubbles per Design Rule #1 */}
+                <div
+                  className={cn("max-w-[90%] sm:max-w-[85%] lg:max-w-[75%]", isUser ? "text-right" : "text-left")}
+                  style={isUser ? {
+                    background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                    border: '1px solid rgba(255,132,0,0.2)',
+                    borderRadius: '20px',
+                    padding: '12px 16px',
+                  } : {
+                    background: 'var(--glass-surface-bg, rgba(72,65,65,0.6))',
+                    backdropFilter: 'blur(42px)',
+                    WebkitBackdropFilter: 'blur(42px)',
+                    border: '1px solid var(--glass-surface-border, rgba(94,86,86,0.6))',
+                    borderRadius: '20px',
+                    padding: '12px 16px',
+                    boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+                  }}
+                >
                   {message.role === 'assistant' ? (
                     <div
                       className="prose prose-sm prose-invert max-w-none"
                       style={{
                         fontSize: '15px',
                         color: 'var(--foreground)',
-                        opacity: 0.9,
+                        opacity: 0.85,
                         lineHeight: 1.7,
                       }}
                     >

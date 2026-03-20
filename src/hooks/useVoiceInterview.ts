@@ -1,26 +1,28 @@
 /**
  * useVoiceInterview — Voice conversation hook for the deep interview
  * ===================================================================
- * Wraps ElevenLabs React SDK's useConversation to provide:
- * - Tap-to-talk voice sessions with the SoulOrb
- * - Transcript callbacks that feed into the unified messages array
- * - Orb state (idle/listening/thinking/speaking) for visual feedback
- * - Seamless text fallback if voice is unavailable
+ * Uses the ElevenLabs VoiceConversation client SDK directly.
+ * IMPORTANT: Must use VoiceConversation (NOT Conversation) for mic input.
  *
  * Architecture:
- *   Browser mic → ElevenLabs Agent (WebRTC) → Custom LLM (/api/onboarding/voice)
- *   → ElevenLabs TTS → Audio playback + transcript callbacks
+ *   Browser mic → ElevenLabs Agent (WebRTC) → LLM → ElevenLabs TTS → Audio playback
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useConversation } from '@elevenlabs/react';
-import type { Status, Mode } from '@elevenlabs/react';
+import { Conversation, type VoiceConversation } from '@elevenlabs/client';
 
 // ====================================================================
 // Types
 // ====================================================================
 
 export type OrbVoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
+
+type ElevenLabsStatus = 'connecting' | 'connected' | 'disconnecting' | 'disconnected';
+
+interface VoiceMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface VoiceInterviewConfig {
   agentId: string;
@@ -29,108 +31,68 @@ interface VoiceInterviewConfig {
   onTranscript: (text: string, role: 'user' | 'assistant') => void;
   onStatusChange?: (state: OrbVoiceState) => void;
   onError?: (message: string) => void;
+  /** Called when voice session ends — provides full transcript for completion pipeline */
+  onSessionEnd?: (messages: VoiceMessage[], reason: 'agent' | 'user' | 'error') => void;
 }
 
 interface VoiceInterviewReturn {
-  /** Whether the voice session is active */
   isActive: boolean;
-  /** Current orb visual state */
   orbState: OrbVoiceState;
-  /** Whether voice is available (mic permissions, ElevenLabs configured) */
   isAvailable: boolean;
-  /** Start or stop the voice session */
   toggleVoice: () => Promise<void>;
-  /** Send a text message through the voice session (hybrid mode) */
+  /** Fully end the voice session (for "Done for now" / page exit) */
+  endVoice: () => Promise<void>;
   sendText: (text: string) => void;
-  /** Current input audio volume (0-1, for waveform visualization) */
   inputVolume: number;
-  /** Current output audio volume (0-1, for orb pulse sync) */
   outputVolume: number;
-  /** ElevenLabs connection status */
-  connectionStatus: Status;
+  connectionStatus: ElevenLabsStatus;
+  /** Number of assistant messages (questions asked) */
+  questionCount: number;
+  /** Whether a session exists (may be paused but still connected) */
+  hasSession: boolean;
 }
 
 // ====================================================================
-// Hook
+// Hook — uses VoiceConversation (with mic input/output)
 // ====================================================================
 
 export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewReturn {
-  const { agentId, userId, enrichmentContext, onTranscript, onStatusChange, onError } = config;
+  const { agentId, userId, enrichmentContext, onTranscript, onStatusChange, onError, onSessionEnd } = config;
 
   const [isActive, setIsActive] = useState(false);
   const [orbState, setOrbState] = useState<OrbVoiceState>('idle');
   const [isAvailable, setIsAvailable] = useState(true);
   const [inputVolume, setInputVolume] = useState(0);
   const [outputVolume, setOutputVolume] = useState(0);
-  const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ElevenLabsStatus>('disconnected');
+  const [questionCount, setQuestionCount] = useState(0);
 
-  // Track the latest callbacks via refs to avoid stale closures
+  // Refs for session, callbacks, and message accumulation
+  const sessionRef = useRef<Awaited<ReturnType<typeof Conversation.startSession>> | null>(null);
+  const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const messagesRef = useRef<VoiceMessage[]>([]);
   const onTranscriptRef = useRef(onTranscript);
   const onStatusChangeRef = useRef(onStatusChange);
   const onErrorRef = useRef(onError);
+  const onSessionEndRef = useRef(onSessionEnd);
 
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
     onStatusChangeRef.current = onStatusChange;
     onErrorRef.current = onError;
-  }, [onTranscript, onStatusChange, onError]);
+    onSessionEndRef.current = onSessionEnd;
+  }, [onTranscript, onStatusChange, onError, onSessionEnd]);
 
-  // Update orb state and notify parent
-  const updateOrbState = useCallback((newState: OrbVoiceState) => {
-    setOrbState(newState);
-    onStatusChangeRef.current?.(newState);
-  }, []);
-
-  // ElevenLabs conversation hook
-  const conversation = useConversation({
-    onConnect: () => {
-      setIsActive(true);
-      updateOrbState('listening');
-    },
-    onDisconnect: () => {
-      setIsActive(false);
-      updateOrbState('idle');
-      stopVolumePolling();
-    },
-    onMessage: (payload) => {
-      // Map ElevenLabs role to our role format
-      const role = payload.role === 'agent' ? 'assistant' : 'user';
-      onTranscriptRef.current(payload.message, role);
-    },
-    onModeChange: ({ mode }: { mode: Mode }) => {
-      // 'speaking' = agent is talking, 'listening' = waiting for user
-      if (mode === 'speaking') {
-        updateOrbState('speaking');
-      } else {
-        updateOrbState('listening');
-      }
-    },
-    onStatusChange: ({ status }: { status: Status }) => {
-      if (status === 'connecting') {
-        updateOrbState('thinking');
-      } else if (status === 'disconnected') {
-        updateOrbState('idle');
-        setIsActive(false);
-      }
-    },
-    onError: (message: string) => {
-      console.error('[VoiceInterview] Error:', message);
-      onErrorRef.current?.(message);
-      // Don't kill voice availability on transient errors
-      if (message.includes('microphone') || message.includes('permission')) {
-        setIsAvailable(false);
-      }
-    },
-  });
-
-  // Poll audio volumes for visualization (60fps)
+  // Volume polling
   const startVolumePolling = useCallback(() => {
     if (volumeIntervalRef.current) return;
     volumeIntervalRef.current = setInterval(() => {
-      setInputVolume(conversation.getInputVolume());
-      setOutputVolume(conversation.getOutputVolume());
-    }, 50); // 20Hz is enough for smooth animation
-  }, [conversation]);
+      if (sessionRef.current) {
+        setInputVolume(sessionRef.current.getInputVolume());
+        setOutputVolume(sessionRef.current.getOutputVolume());
+      }
+    }, 50);
+  }, []);
 
   const stopVolumePolling = useCallback(() => {
     if (volumeIntervalRef.current) {
@@ -145,48 +107,187 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
   useEffect(() => {
     return () => {
       stopVolumePolling();
+      if (sessionRef.current) {
+        sessionRef.current.endSession();
+        sessionRef.current = null;
+      }
     };
   }, [stopVolumePolling]);
 
-  // Toggle voice session on/off
+  const updateOrbState = useCallback((state: OrbVoiceState) => {
+    setOrbState(state);
+    onStatusChangeRef.current?.(state);
+  }, []);
+
+  // Mute/unmute mic (pause voice without killing session)
+  const setMicMuted = useCallback((muted: boolean) => {
+    if (sessionRef.current) {
+      sessionRef.current.setMicMuted(muted);
+      updateOrbState(muted ? 'idle' : 'listening');
+      console.log('[VoiceInterview] Mic muted:', muted);
+    }
+  }, [updateOrbState]);
+
+  // Toggle voice session — starts new session or pauses/resumes existing one
   const toggleVoice = useCallback(async () => {
-    if (isActive) {
-      await conversation.endSession();
+    // If session exists and active, pause: mute mic + silence output
+    if (isActive && sessionRef.current) {
+      sessionRef.current.setMicMuted(true);
+      sessionRef.current.setVolume({ volume: 0 }); // Stop agent audio output
       setIsActive(false);
       updateOrbState('idle');
       stopVolumePolling();
+      console.log('[VoiceInterview] Paused voice (mic muted, audio silenced)');
       return;
     }
 
+    // If session exists but paused, resume: unmute mic + restore volume
+    if (!isActive && sessionRef.current && sessionRef.current.isOpen()) {
+      sessionRef.current.setMicMuted(false);
+      sessionRef.current.setVolume({ volume: 1 }); // Restore agent audio
+      setIsActive(true);
+      updateOrbState('listening');
+      startVolumePolling();
+      console.log('[VoiceInterview] Resumed voice (mic + audio restored)');
+      return;
+    }
+
+    // No session — start a new one
     try {
-      // Check mic permission first
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(t => t.stop()); // Release immediately — ElevenLabs will acquire its own
-
-      // Build the system prompt override with enrichment context
-      // ElevenLabs passes this to our custom LLM endpoint
-      const enrichmentJson = JSON.stringify({
-        userId,
-        enrichmentContext,
-      });
-
       updateOrbState('thinking');
+      setConnectionStatus('connecting');
+      messagesRef.current = [];
+      setQuestionCount(0);
+      console.log('[VoiceInterview] Starting new VoiceConversation with agentId:', agentId);
 
-      await conversation.startSession({
+      // Sanitize enrichment context — only pass clean, short fields (no raw web scraping)
+      const safeContext: Record<string, string> = {};
+      const ec = enrichmentContext as Record<string, string>;
+      if (ec?.name && ec.name.length < 100) safeContext.name = ec.name;
+      if (ec?.company && ec.company.length < 100) safeContext.company = ec.company;
+      if (ec?.title && ec.title.length < 100) safeContext.title = ec.title;
+      if (ec?.location && ec.location.length < 100) safeContext.location = ec.location;
+      // Skip bio — often contains raw web scraping junk
+
+      const userName = safeContext.name || '';
+      const firstName = userName.split(' ')[0] || '';
+
+      // Build a clean context string (NOT raw JSON dump)
+      const contextParts: string[] = [];
+      if (safeContext.name) contextParts.push(`Name: ${safeContext.name}`);
+      if (safeContext.company) contextParts.push(`Company: ${safeContext.company}`);
+      if (safeContext.title) contextParts.push(`Title: ${safeContext.title}`);
+      if (safeContext.location) contextParts.push(`Location: ${safeContext.location}`);
+      const contextBlock = contextParts.length > 0
+        ? `\n\nWhat you know about the user:\n${contextParts.join('\n')}`
+        : '';
+
+      // Conversation auto-delegates to VoiceConversation when textOnly is false
+      // WebRTC: UDP-based, echo cancellation, noise removal, lower perceived latency
+      const session = await Conversation.startSession({
         agentId,
+        connectionType: 'webrtc',
         overrides: {
           agent: {
             prompt: {
-              prompt: `You are a warm, perceptive interviewer for Twin Me. This is a VOICE conversation — keep responses short and natural. ENRICHMENT_JSON:${enrichmentJson}END_ENRICHMENT`,
+              prompt: `You are a warm, curious interviewer for Twin Me — a platform that creates digital twins of people's personalities. You're conducting a voice interview to understand who this person truly is.
+
+VOICE RULES:
+- Keep every response to 1-2 sentences max — this is spoken aloud
+- Sound like a perceptive friend having coffee, not a therapist
+- React specifically to what they said, never generic
+- ONE question per turn
+- Use conversational language (contractions, casual tone)
+- NO markdown, no labels, no numbering
+
+QUESTION FLOW (follow this arc):
+1. Start with what they're passionate about right now
+2. Ask about their daily rhythms and energy
+3. Explore their creative or aesthetic side
+4. Ask about their relationships and social energy
+5. Go deeper into values and what drives them
+6. End with a reflective question tying themes together
+
+After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank them genuinely.${contextBlock}`,
             },
+            firstMessage: firstName
+              ? `Hey ${firstName}! I'm excited to get to know you. Let's start with something fun — what's something you're genuinely passionate about right now?`
+              : `Hey! I'm excited to get to know you. Let's start with something fun — what's something you're genuinely passionate about right now?`,
           },
+          tts: {
+            speed: 1.0,
+            stability: 0.5,
+            similarityBoost: 0.85,
+          },
+        },
+        onConnect: ({ conversationId }) => {
+          console.log('[VoiceInterview] Connected, conversationId:', conversationId);
+          setIsActive(true);
+          updateOrbState('listening');
+          setConnectionStatus('connected');
+        },
+        onDisconnect: (details) => {
+          console.log('[VoiceInterview] Disconnected:', details.reason);
+          setIsActive(false);
+          updateOrbState('idle');
+          setConnectionStatus('disconnected');
+          stopVolumePolling();
+          sessionRef.current = null;
+
+          // Trigger session end callback with accumulated messages
+          const reason = details.reason as 'agent' | 'user' | 'error';
+          if (messagesRef.current.length >= 4) {
+            onSessionEndRef.current?.(messagesRef.current, reason);
+          }
+        },
+        onMessage: (payload) => {
+          console.log('[VoiceInterview] Message:', payload.role, payload.message?.slice(0, 80));
+          if (payload.message) {
+            const role = payload.role === 'user' ? 'user' as const : 'assistant' as const;
+            // Accumulate messages for completion pipeline
+            messagesRef.current = [...messagesRef.current, { role, content: payload.message }];
+            if (role === 'assistant') {
+              setQuestionCount(c => c + 1);
+            }
+            onTranscriptRef.current(payload.message, role);
+          }
+        },
+        onModeChange: ({ mode }) => {
+          console.log('[VoiceInterview] Mode:', mode);
+          if (mode === 'speaking') {
+            updateOrbState('speaking');
+          } else {
+            updateOrbState('listening');
+          }
+        },
+        onStatusChange: ({ status }) => {
+          console.log('[VoiceInterview] Status:', status);
+          setConnectionStatus(status);
+        },
+        onError: (message, context) => {
+          console.error('[VoiceInterview] Error:', message, context);
+          onErrorRef.current?.(message);
+          if (message.includes('microphone') || message.includes('permission')) {
+            setIsAvailable(false);
+          }
+        },
+        onVadScore: ({ vadScore }) => {
+          // Log periodically to verify mic is picking up audio
+          if (vadScore > 0.3) {
+            console.log('[VoiceInterview] VAD speech detected:', vadScore.toFixed(2));
+          }
+        },
+        onDebug: (info) => {
+          console.log('[VoiceInterview] Debug:', info);
         },
       });
 
+      sessionRef.current = session;
+      console.log('[VoiceInterview] Session started:', session.getId());
       startVolumePolling();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start voice session';
-      console.error('[VoiceInterview] Start failed:', message);
+      console.error('[VoiceInterview] Start failed:', message, err);
 
       if (message.includes('Permission denied') || message.includes('NotAllowedError')) {
         setIsAvailable(false);
@@ -197,24 +298,41 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
 
       updateOrbState('idle');
       setIsActive(false);
+      setConnectionStatus('disconnected');
     }
-  }, [isActive, conversation, agentId, userId, enrichmentContext, updateOrbState, startVolumePolling, stopVolumePolling]);
+  }, [isActive, agentId, userId, enrichmentContext, startVolumePolling, stopVolumePolling, updateOrbState]);
 
-  // Send text through the voice session (hybrid mode)
-  const sendText = useCallback((text: string) => {
-    if (isActive && text.trim()) {
-      conversation.sendUserMessage(text.trim());
+  // Fully end the voice session (for "Done for now" or page exit)
+  const endVoice = useCallback(async () => {
+    if (sessionRef.current) {
+      await sessionRef.current.endSession();
+      sessionRef.current = null;
+      setIsActive(false);
+      updateOrbState('idle');
+      setConnectionStatus('disconnected');
+      stopVolumePolling();
+      console.log('[VoiceInterview] Session ended fully');
     }
-  }, [isActive, conversation]);
+  }, [updateOrbState, stopVolumePolling]);
+
+  // Send text through voice session (works even when mic is muted)
+  const sendText = useCallback((text: string) => {
+    if (sessionRef.current?.isOpen() && text.trim()) {
+      sessionRef.current.sendUserMessage(text.trim());
+    }
+  }, []);
 
   return {
     isActive,
     orbState,
     isAvailable,
     toggleVoice,
+    endVoice,
     sendText,
     inputVolume,
     outputVolume,
-    connectionStatus: conversation.status,
+    connectionStatus,
+    questionCount,
+    hasSession: !!sessionRef.current,
   };
 }

@@ -17,7 +17,7 @@ const T = {
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',
   CARD_BG:  'rgba(255, 255, 255, 0.02)',
-  CARD_BDR: 'rgba(255, 255, 255, 0.06)',
+  CARD_BDR: 'rgba(255, 255, 255, 0.10)',
   BENTO_BG: 'rgba(255, 255, 255, 0.02)',
   CTA_BG:   '#fdfcfb',
   CTA_FG:   '#110f0f',
@@ -210,7 +210,11 @@ export default function DiscoverLanding() {
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
         <nav
           className="flex items-center pl-5 pr-3 py-[10px] rounded-[32px] gap-9"
-          style={glassStyle}
+          style={{
+            ...glassStyle,
+            backdropFilter: 'blur(19.65px)',
+            WebkitBackdropFilter: 'blur(19.65px)',
+          }}
         >
           {/* Logo — flower circle overlaps wordmark by 21px (Figma exact) */}
           <div className="flex items-center shrink-0" style={{ width: '108px', paddingRight: '21px' }}>

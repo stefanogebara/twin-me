@@ -171,9 +171,20 @@ For privacy concerns: privacy@twinme.ai`
       className="min-h-screen flex"
       style={{ backgroundColor: '#110f0f' }}
     >
-      {/* Left panel — form */}
+      {/* Left panel — form (glass surface per Design Rule #1) */}
       <div className="flex-1 flex items-center justify-center px-6">
-      <div className="w-full max-w-[380px]">
+      <div
+        className="w-full max-w-[420px]"
+        style={{
+          background: 'var(--glass-surface-bg, rgba(72,65,65,0.6))',
+          backdropFilter: 'blur(51px)',
+          WebkitBackdropFilter: 'blur(51px)',
+          border: '1px solid var(--glass-surface-border, rgba(94,86,86,0.6))',
+          borderRadius: '24px',
+          padding: '40px 32px',
+          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
 
         {/* Logo */}
         <div className="flex items-center gap-2 mb-16">
@@ -313,7 +324,7 @@ For privacy concerns: privacy@twinme.ai`
         <button
           onClick={handleGoogleSignIn}
           disabled={loading || !inviteValid}
-          className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
             color: '#110f0f',
@@ -382,7 +393,7 @@ For privacy concerns: privacy@twinme.ai`
 
         {/* Footer */}
         <div className="mt-20 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>
@@ -396,7 +407,7 @@ For privacy concerns: privacy@twinme.ai`
           background: `linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
             linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
               rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%)`,
-          borderRadius: '16px',
+          borderRadius: '24px',
         }}
       >
         {/* Decorative ring */}

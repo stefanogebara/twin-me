@@ -52,7 +52,7 @@ router.get('/connected', authenticateUser, async (req, res) => {
     // Get connection status from database
     const { data: connections, error } = await supabaseAdmin
       .from('platform_connections')
-      .select('platform, connected_at, metadata, last_sync_at, created_at')
+      .select('platform, connected_at, metadata, last_sync_at')
       .eq('user_id', userUuid)
       .not('connected_at', 'is', null);
 
@@ -71,7 +71,7 @@ router.get('/connected', authenticateUser, async (req, res) => {
       status: conn.connected_at ? 'connected' : 'disconnected',
       data_points: conn.metadata?.data_points || 0,
       last_sync_at: conn.last_sync_at,
-      created_at: conn.created_at,
+      connected_at: conn.connected_at,
       metadata: conn.metadata
     }));
 

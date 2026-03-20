@@ -162,7 +162,7 @@ export const requireProfessor = async (req, res, next) => {
       .single();
 
     if (!dbUser) {
-      return res.status(403).json({ error: 'Forbidden', message: 'User not found' });
+      return res.status(403).json({ error: 'Forbidden', message: 'Admin access required' });
     }
 
     const dbRole = dbUser.role || dbUser.user_type;

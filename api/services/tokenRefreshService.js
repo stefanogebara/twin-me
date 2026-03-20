@@ -285,7 +285,18 @@ async function checkAndRefreshExpiringTokens() {
 
     // Refresh each token
     for (const connection of refreshableConnections) {
-      const decryptedRefreshToken = decryptToken(connection.refresh_token);
+      let decryptedRefreshToken;
+      try {
+        decryptedRefreshToken = decryptToken(connection.refresh_token);
+      } catch (decryptErr) {
+        log.error(`Decryption failed for ${connection.platform} (user ${connection.user_id}) — marking needs_reauth:`, decryptErr.message);
+        // Mark connection as needing re-auth so frontend can prompt user to reconnect
+        await supabaseAdmin
+          .from('platform_connections')
+          .update({ status: 'needs_reauth', updated_at: new Date().toISOString() })
+          .eq('id', connection.id);
+        continue;
+      }
 
       if (!decryptedRefreshToken) {
         log.error(`Could not decrypt refresh token for ${connection.platform}`);

@@ -210,7 +210,7 @@ router.post('/signup', authLimiter, async (req, res) => {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
     const { data: newUser, error: insertError } = await supabaseAdmin

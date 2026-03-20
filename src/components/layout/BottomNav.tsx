@@ -25,14 +25,16 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden"
+      className="fixed bottom-3 left-3 right-3 z-50 flex lg:hidden"
       aria-label="Bottom navigation"
       style={{
         backgroundColor: 'var(--glass-surface-bg)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        borderTop: '1px solid var(--glass-surface-border)',
+        border: '1px solid var(--glass-surface-border)',
+        borderRadius: '32px',
         paddingBottom: 'env(safe-area-inset-bottom)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       }}
     >
       {bottomNavItems.map((item) => {

@@ -1,5 +1,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
+import { getCircuitBreakerStatus, resetCircuitBreaker } from '../services/llmGateway.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 
 const router = express.Router();
 
@@ -24,6 +26,7 @@ router.get('/', async (req, res) => {
     memoryStreamCount: 0,
     ingestionLastRun: null,
     llmCallsLastHour: 0,
+    circuitBreaker: getCircuitBreakerStatus(),
   };
 
   try {
@@ -92,6 +95,21 @@ router.get('/', async (req, res) => {
   }
 
   res.status(200).json(checks);
+});
+
+// LLM Circuit Breaker status (no auth — for uptime monitors)
+router.get('/circuit-breaker', (req, res) => {
+  res.json(getCircuitBreakerStatus());
+});
+
+// LLM Circuit Breaker manual reset (requires CRON_SECRET for safety)
+router.post('/circuit-breaker/reset', (req, res) => {
+  const authResult = verifyCronSecret(req);
+  if (!authResult.authorized) {
+    return res.status(authResult.status).json({ error: authResult.error });
+  }
+  const result = resetCircuitBreaker();
+  res.json({ success: true, ...result });
 });
 
 export default router;
