@@ -57,6 +57,9 @@ import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
 import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
 import { classifyMessageTier } from '../services/chatRouter.js';
+import { getBlocks, formatBlocksForPrompt, initializeBlocks } from '../services/coreMemoryService.js';
+import { classifyTaskIntent } from '../services/taskIntentClassifier.js';
+import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -378,9 +381,27 @@ router.post('/message', authenticateUser, async (req, res) => {
     const contextBuildMs = Date.now() - chatStartTime;
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory } = twinContext;
 
+    // Fetch core memory blocks for identity anchoring (prevents personality drift)
+    let coreBlockText = null;
+    try {
+      const coreBlocks = await getBlocks(userId);
+      if (Object.keys(coreBlocks).length === 0) {
+        // First chat — initialize blocks (non-blocking, don't wait for content generation)
+        initializeBlocks(userId).catch(err => log.warn('Core memory init failed (non-fatal)', { error: err }));
+      } else {
+        coreBlockText = formatBlocksForPrompt(coreBlocks);
+        if (coreBlockText) {
+          log.debug('Core memory blocks loaded', { chars: coreBlockText.length, blocks: Object.keys(coreBlocks).filter(k => coreBlocks[k]?.content?.length > 0) });
+        }
+      }
+    } catch (coreErr) {
+      log.warn('Core memory block fetch failed (non-fatal)', { error: coreErr.message });
+    }
+
     // Build personalized system prompt with structured context layers
+    // Core memory blocks are passed through to be injected as FIRST dynamic element
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation, coreBlockText);
 
     // Inject persona block: translates personality data into prescriptive behavioral rules
     const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
@@ -702,6 +723,21 @@ Make it sound natural and curious, not like a survey question.`;
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
     log.info('System prompt built', { chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
 
+    // Task intent classification — detect "remind me to..." / "schedule..." / "draft..."
+    // Pure heuristic, <1ms, no LLM call. Routes task requests to agentic core (future).
+    const taskIntent = classifyTaskIntent(message);
+    if (taskIntent.isTask) {
+      log.info('Task intent detected', {
+        userId,
+        taskType: taskIntent.taskType,
+        confidence: taskIntent.confidence,
+        message: message.slice(0, 60)
+      });
+      // TODO Phase 1 Week 2: Route to AgenticCore for planning + execution
+      // For now, log the intent and let conversation handle it naturally
+      // The twin will respond conversationally but the intent is tracked for learning
+    }
+
     // Smart routing: classify message complexity to select cheapest adequate model
     let routedModel = null;
     let routingTier = null;
@@ -715,7 +751,19 @@ Make it sound natural and curious, not like a survey question.`;
     // Send message via LLM Gateway
     let assistantMessage;
     const chatSource = 'direct';
-    const llmMessages = [...conversationHistory, { role: 'user', content: message }];
+    let llmMessages = [...conversationHistory, { role: 'user', content: message }];
+
+    // Context condensation — replace truncation with intelligent summarization
+    // Fires once when messages exceed threshold, preserving critical context
+    try {
+      llmMessages = await condenseIfNeeded(llmMessages, {
+        thresholdTokens: 12000,
+        recentTurnsToKeep: 8,
+        userId
+      });
+    } catch (condenseErr) {
+      log.warn('Context condensation failed (non-fatal)', { error: condenseErr.message });
+    }
 
     if (isStreaming) {
       try {
@@ -940,6 +988,46 @@ Make it sound natural and curious, not like a survey question.`;
       markInsightsDelivered(insightIds).catch(err =>
         log.warn('Failed to mark insights delivered', { error: err })
       );
+    }
+
+    // Session tracking for post-conversation reflection (Inngest)
+    // Track last message time. When 15 min pass without a message,
+    // Inngest triggers a session reflection (facts, HUMAN block update, follow-ups).
+    // Uses Redis with in-memory Map fallback (same pattern as chatRateLimitMap).
+    if (!evalMode) {
+      try {
+        let prevTimestamp = null;
+        const sessionKey = `twin:lastMsg:${userId}`;
+        const nowStr = Date.now().toString();
+
+        // Try Redis first
+        const client = getRedisClient();
+        if (client && isRedisAvailable()) {
+          prevTimestamp = await client.get(sessionKey);
+          await client.set(sessionKey, nowStr, 'EX', 1800); // 30 min TTL
+        } else {
+          // In-memory fallback
+          if (!global._twinSessionTracker) global._twinSessionTracker = new Map();
+          prevTimestamp = global._twinSessionTracker.get(userId);
+          global._twinSessionTracker.set(userId, nowStr);
+        }
+
+        // If there was a previous message and it was >15 min ago, a new session started
+        // The OLD session ended — trigger reflection for it
+        if (prevTimestamp) {
+          const gap = Date.now() - parseInt(prevTimestamp);
+          if (gap > 15 * 60 * 1000) { // 15 minute silence = session ended
+            log.info('Session gap detected, triggering reflection', { userId, gapMinutes: Math.round(gap / 60000) });
+            // Fire Inngest event for session reflection (non-blocking)
+            import('../services/inngestClient.js').then(({ inngest, EVENTS }) => {
+              inngest.send({ name: EVENTS.SESSION_ENDED, data: { userId } })
+                .catch(err => log.warn('Inngest session reflection trigger failed', { error: err }));
+            });
+          }
+        }
+      } catch (sessionErr) {
+        log.debug('Session tracking failed (non-fatal)', { error: sessionErr.message });
+      }
     }
 
     // Return response

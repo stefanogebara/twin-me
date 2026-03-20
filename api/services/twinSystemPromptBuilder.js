@@ -195,8 +195,15 @@ Dry humor and light teasing are welcome when the context supports it. Specificit
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null) {
   let dynamicContext = '';
+
+  // === CORE IDENTITY (pinned blocks — highest attention weight) ===
+  // Injected FIRST in dynamic context for maximum attention (prevents personality drift).
+  // Based on Letta Memory Blocks + Identity Drift research (arXiv:2412.00804).
+  if (coreMemoryBlockText) {
+    dynamicContext += coreMemoryBlockText;
+  }
 
   // === TEMPORAL + GEOGRAPHIC AWARENESS ===
   const now = new Date();

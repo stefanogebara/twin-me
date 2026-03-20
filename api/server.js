@@ -402,6 +402,13 @@ try {
 } catch (err) {
   log.warn('Failed to load OG image routes', { error: err });
 }
+// Phase 1 Agentic Foundation routes
+import autonomyRoutes from './routes/autonomy.js';
+import agentActionsRoutes from './routes/agent-actions.js';
+import cronProspectiveCheckRoutes from './routes/cron-prospective-check.js';
+import { inngestHandler } from './routes/inngest.js';
+import skillsRoutes from './routes/skills.js';
+
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authenticateUser } from './middleware/auth.js';
@@ -502,6 +509,13 @@ app.use('/api/beta', betaFeedbackRouter); // Beta feedback submission (auth requ
 app.use('/api/beta/admin', betaAdminRouter); // Beta admin: invite CRUD, waitlist, feedback list
 app.use('/api/location', locationRoutes); // Location clusters — privacy-first lifestyle signals
 app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
+
+// Phase 1 Agentic Foundation
+app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum settings
+app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
+app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
+app.use('/api/inngest', inngestHandler); // Inngest durable execution endpoint
+app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
 app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for digest emails
 
