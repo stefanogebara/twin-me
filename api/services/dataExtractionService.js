@@ -10,10 +10,26 @@ import LinkedInExtractor from './extractors/linkedinExtractor.js';
 import SpotifyExtractor from './extractors/spotifyExtractor.js';
 import RedditExtractor from './extractors/redditExtractor.js';
 // Gmail, Teams extractors removed (TIER 1 cleanup) — stub classes so `new XExtractor()` doesn't throw
-class GmailExtractor { constructor() {} async extract() { return {}; } }
+class GmailExtractor {
+  constructor() {}
+  async extract() { return {}; }
+  async extractAll(userId) {
+    try {
+      const { fetchGmailObservations } = await import('./observationIngestion.js');
+      const obs = await fetchGmailObservations(userId);
+      return { success: true, itemsExtracted: obs.length };
+    } catch (err) {
+      return { success: false, error: err.message, itemsExtracted: 0 };
+    }
+  }
+}
 import SlackExtractor from './extractors/slackExtractor.js';
 import CalendarExtractor from './extractors/calendarExtractor.js';
-class TeamsExtractor { constructor() {} async extract() { return {}; } }
+class TeamsExtractor {
+  constructor() {}
+  async extract() { return {}; }
+  async extractAll() { return { success: false, error: 'Teams extraction not implemented', itemsExtracted: 0 }; }
+}
 import TikTokExtractor from './extractors/tiktokExtractor.js';
 import { decryptToken } from './encryption.js';
 import { getValidAccessToken } from './tokenRefreshService.js';
