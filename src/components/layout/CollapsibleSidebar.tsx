@@ -87,7 +87,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isExpanded ? "w-64" : "w-20 lg:w-20",
-          "lg:m-4",
           "overflow-visible"
         )}
       >
@@ -96,7 +95,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           onClick={toggleSidebar}
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isExpanded}
-          className="hidden lg:flex absolute top-8 w-8 h-8 bg-sidebar-primary hover:opacity-90 text-sidebar-primary-foreground rounded-full items-center justify-center transition-all shadow-xl hover:shadow-2xl hover:scale-110 z-50 border-2 border-sidebar"
+          className="hidden lg:flex absolute top-8 w-7 h-7 rounded-full items-center justify-center transition-all z-50"
+          style={{
+            background: 'var(--background)',
+            border: '1px solid var(--glass-surface-border)',
+            color: 'rgba(255, 255, 255, 0.4)',
+          }}
           style={{
             right: '-16px'
           }}
@@ -111,13 +115,10 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
         {/* Inner glass container — overflow-hidden clips content to rounded corners */}
         <div
-          className="flex flex-col h-full overflow-hidden lg:rounded-2xl"
+          className="flex flex-col h-full overflow-hidden"
           style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+            background: 'var(--background)',
+            borderRight: '1px solid var(--glass-surface-border)',
           }}
         >
         <style>
@@ -193,27 +194,26 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-full transition-all duration-200",
+                  "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
                   isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
                     ? "font-medium"
-                    : isExpanded
-                      ? 'text-sidebar-foreground hover:bg-sidebar-accent'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
-                  background: 'var(--accent-vibrant-glow)',
-                  borderRadius: '9999px',
-                  color: 'var(--sidebar-accent-foreground)',
-                } : undefined}
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  color: 'var(--foreground)',
+                } : {
+                  color: 'rgba(255, 255, 255, 0.45)',
+                }}
                 title={item.label}
               >
                 <Icon
-                  className={cn("w-5 h-5 transition-transform", active && "scale-110")}
-                  style={active ? { color: 'var(--accent-vibrant)' } : undefined}
+                  className="w-5 h-5"
+                  style={active ? { color: 'var(--foreground)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
-                {isExpanded && <span className="text-sm font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>{item.label}</span>}
+                {isExpanded && <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: active ? 500 : 400 }}>{item.label}</span>}
               </button>
             );
           })}
