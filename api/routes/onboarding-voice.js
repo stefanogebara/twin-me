@@ -235,7 +235,7 @@ router.post('/v1/chat/completions', async (req, res) => {
     // Validate the ElevenLabs webhook secret
     const secret = req.headers['x-elevenlabs-secret'] || req.headers['authorization']?.replace('Bearer ', '');
     const expectedSecret = process.env.ELEVENLABS_WEBHOOK_SECRET;
-    if (expectedSecret && secret !== expectedSecret) {
+    if (!expectedSecret || secret !== expectedSecret) {
       log.warn('Invalid ElevenLabs webhook secret');
       return res.status(401).json({ error: 'Unauthorized' });
     }
