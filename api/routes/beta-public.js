@@ -37,7 +37,7 @@ router.post('/validate', async (req, res) => {
 router.post('/waitlist', waitlistLimiter, async (req, res) => {
   try {
     const { email, name } = req.body;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return res.status(400).json({ success: false, error: 'Valid email is required' });
     }
 

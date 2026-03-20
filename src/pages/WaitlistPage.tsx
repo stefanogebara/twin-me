@@ -17,7 +17,7 @@ const WaitlistPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError('Please enter a valid email');
       return;
     }

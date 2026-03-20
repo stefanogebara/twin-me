@@ -37,7 +37,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
         className="flex-shrink-0 px-4 py-1.5 text-xs rounded-full transition-opacity disabled:opacity-60"
         style={{
           backgroundColor: 'var(--foreground)',
-          color: 'var(--foreground)',
+          color: 'var(--background)',
           fontFamily: "'Geist', sans-serif",
           fontWeight: 400,
           letterSpacing: '0.02em',

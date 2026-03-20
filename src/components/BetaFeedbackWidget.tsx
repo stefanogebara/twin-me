@@ -46,7 +46,7 @@ const BetaFeedbackWidget: React.FC = () => {
           setSent(false);
           setMessage('');
           setCategory('general');
-        }, 1500);
+        }, 3000);
       }
     } catch {
       // Silent fail for feedback

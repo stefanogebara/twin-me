@@ -134,7 +134,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
  * @param {string} opts.inviteCode
  */
 export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
-  if (!resend) throw new Error('Email service not configured');
+  if (!resend) { log.warn('Skipping beta invite email (Resend not configured)'); return; }
 
   const safeName = escapeHtml(firstName || 'there');
   const safeCode = escapeHtml(inviteCode);

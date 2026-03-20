@@ -38,11 +38,13 @@ const CustomAuth = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validateCode = useCallback(async (code: string) => {
-    if (!code || code.length < 4) {
+    if (!code || code.trim().length < 4) {
       setInviteValid(false);
+      if (code && code.trim().length > 0) setError('Code must be at least 4 characters');
       return;
     }
     setValidating(true);
+    setError('');
     try {
       const res = await fetch(`${API_URL}/beta/validate`, {
         method: 'POST',
