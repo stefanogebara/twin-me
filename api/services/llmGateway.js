@@ -37,26 +37,46 @@ const circuitBreaker = {
   state: 'closed',     // closed | open | half-open
   failures: 0,
   lastFailure: null,
+  consecutiveOpens: 0, // tracks repeated open cycles for backoff
   threshold: 3,        // failures before opening
-  resetTimeout: 30000, // ms before trying half-open
+  baseResetTimeout: 30000, // ms before trying half-open (base)
+  maxResetTimeout: 300000, // max 5 minutes between retries
 };
+
+/** Current reset timeout with exponential backoff */
+function getResetTimeout() {
+  const backoff = Math.min(
+    circuitBreaker.baseResetTimeout * Math.pow(2, circuitBreaker.consecutiveOpens),
+    circuitBreaker.maxResetTimeout
+  );
+  return backoff;
+}
 
 function checkCircuitBreaker() {
   if (circuitBreaker.state === 'open') {
     const elapsed = Date.now() - circuitBreaker.lastFailure;
-    if (elapsed >= circuitBreaker.resetTimeout) {
+    if (elapsed >= getResetTimeout()) {
       circuitBreaker.state = 'half-open';
-      log.info('Circuit breaker: open -> half-open');
+      circuitBreaker.failures = 0; // Reset counter so half-open retry gets a fair chance
+      log.info('Circuit breaker: open -> half-open', { nextTimeout: getResetTimeout() });
     }
   }
 }
 
 function recordCircuitBreakerFailure() {
+  const wasHalfOpen = circuitBreaker.state === 'half-open';
   circuitBreaker.failures++;
   circuitBreaker.lastFailure = Date.now();
   if (circuitBreaker.failures >= circuitBreaker.threshold) {
     circuitBreaker.state = 'open';
-    log.warn('Circuit breaker OPEN', { failures: circuitBreaker.failures });
+    if (wasHalfOpen) {
+      circuitBreaker.consecutiveOpens++;
+    }
+    log.warn('Circuit breaker OPEN', {
+      failures: circuitBreaker.failures,
+      consecutiveOpens: circuitBreaker.consecutiveOpens,
+      nextRetryIn: `${getResetTimeout() / 1000}s`,
+    });
   }
 }
 
@@ -66,6 +86,31 @@ function recordCircuitBreakerSuccess() {
   }
   circuitBreaker.state = 'closed';
   circuitBreaker.failures = 0;
+  circuitBreaker.consecutiveOpens = 0;
+}
+
+/** Manual circuit breaker reset (admin use) */
+export function resetCircuitBreaker() {
+  const prevState = circuitBreaker.state;
+  circuitBreaker.state = 'closed';
+  circuitBreaker.failures = 0;
+  circuitBreaker.consecutiveOpens = 0;
+  circuitBreaker.lastFailure = null;
+  log.info('Circuit breaker: manually reset', { prevState });
+  return { prevState, newState: 'closed' };
+}
+
+/** Circuit breaker status (for health checks) */
+export function getCircuitBreakerStatus() {
+  return {
+    state: circuitBreaker.state,
+    failures: circuitBreaker.failures,
+    consecutiveOpens: circuitBreaker.consecutiveOpens,
+    lastFailure: circuitBreaker.lastFailure,
+    nextRetryIn: circuitBreaker.state === 'open'
+      ? Math.max(0, getResetTimeout() - (Date.now() - circuitBreaker.lastFailure))
+      : null,
+  };
 }
 
 // ====================================================================
@@ -306,7 +351,7 @@ export async function complete({
   // Circuit breaker check (4B)
   checkCircuitBreaker();
   if (circuitBreaker.state === 'open') {
-    throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil((circuitBreaker.resetTimeout - (Date.now() - circuitBreaker.lastFailure)) / 1000)}s`);
+    throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil(getResetTimeout() / 1000)}s`);
   }
 
   // Budget guard (4D) - ALL tiers are budget-checked
@@ -397,8 +442,15 @@ export async function complete({
 
     log.error('LLM error', { tier, model, error, latencyMs });
 
-    // Record circuit breaker failure (4B)
-    recordCircuitBreakerFailure();
+    // Only trip circuit breaker on transient infrastructure errors (5xx, timeouts, network)
+    // Don't trip on billing (402), auth (401), bad request (400), rate limit (429) — those won't self-heal
+    const httpStatus = error?.status || error?.code;
+    const isTransient = !httpStatus || httpStatus >= 500;
+    if (isTransient) {
+      recordCircuitBreakerFailure();
+    } else {
+      log.warn('LLM non-transient error (circuit breaker NOT tripped)', { status: httpStatus, tier, model });
+    }
 
     // Rethrow - let callers handle errors as they did before
     throw error;
@@ -439,7 +491,7 @@ export async function stream({
   // Circuit breaker check (4B)
   checkCircuitBreaker();
   if (circuitBreaker.state === 'open') {
-    throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil((circuitBreaker.resetTimeout - (Date.now() - circuitBreaker.lastFailure)) / 1000)}s`);
+    throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil(getResetTimeout() / 1000)}s`);
   }
 
   // Budget guard (4D) - consistent with complete()
@@ -514,8 +566,14 @@ export async function stream({
     const latencyMs = Date.now() - startTime;
     log.error('LLM stream error', { tier, model, error, latencyMs });
 
-    // Record circuit breaker failure (4B)
-    recordCircuitBreakerFailure();
+    // Only trip circuit breaker on transient infrastructure errors
+    const httpStatus = error?.status || error?.code;
+    const isTransient = !httpStatus || httpStatus >= 500;
+    if (isTransient) {
+      recordCircuitBreakerFailure();
+    } else {
+      log.warn('LLM stream non-transient error (circuit breaker NOT tripped)', { status: httpStatus, tier, model });
+    }
 
     throw error;
   }
