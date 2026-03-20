@@ -44,7 +44,7 @@ const router = express.Router();
 // Interview Configuration
 // ====================================================================
 
-const MIN_QUESTIONS = 10;
+const MIN_QUESTIONS = 12;
 const MAX_QUESTIONS = 12;
 const QUESTIONS_PER_DOMAIN = 2; // Target: 2 per domain
 

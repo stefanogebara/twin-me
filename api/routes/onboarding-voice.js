@@ -27,7 +27,7 @@ const router = express.Router();
 // Config — mirrors onboarding-calibration.js
 // ====================================================================
 
-const MIN_QUESTIONS = 10;
+const MIN_QUESTIONS = 12;
 const MAX_QUESTIONS = 12;
 const QUESTIONS_PER_DOMAIN = 2;
 

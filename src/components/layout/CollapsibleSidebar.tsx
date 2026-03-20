@@ -100,9 +100,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             background: 'var(--background)',
             border: '1px solid var(--glass-surface-border)',
             color: 'rgba(255, 255, 255, 0.4)',
-          }}
-          style={{
-            right: '-16px'
+            right: '-16px',
           }}
           title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
         >
