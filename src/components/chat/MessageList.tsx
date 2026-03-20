@@ -52,20 +52,25 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               {showDivider && (
                 <div
                   className="my-6"
-                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
                 />
               )}
 
               <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
-                {/* Plain text — no bubbles, no backgrounds */}
-                <div className={cn("max-w-[85%]", isUser ? "text-right" : "text-left")}>
+                <div className={cn(
+                  "max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] rounded-2xl px-4 py-3",
+                  isUser ? "text-right" : "text-left"
+                )} style={{
+                  backgroundColor: isUser ? 'rgba(255,132,0,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: isUser ? '1px solid rgba(255,132,0,0.12)' : '1px solid rgba(255,255,255,0.06)',
+                }}>
                   {message.role === 'assistant' ? (
                     <div
-                      className="prose prose-sm prose-invert max-w-none leading-relaxed"
+                      className="prose prose-sm prose-invert max-w-none"
                       style={{
                         fontSize: '15px',
                         color: 'var(--foreground)',
-                        opacity: 0.7,
+                        opacity: 0.9,
                         lineHeight: 1.7,
                       }}
                     >
@@ -75,11 +80,11 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     </div>
                   ) : (
                     <p
-                      className="whitespace-pre-wrap leading-relaxed"
+                      className="whitespace-pre-wrap"
                       style={{
                         fontSize: '15px',
                         color: message.failed ? '#EF4444' : 'var(--foreground)',
-                        opacity: message.failed ? 0.8 : 0.95,
+                        opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
                       }}
                     >
@@ -110,7 +115,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       {message.contextUsed.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                         <span
                           className="text-[11px] px-2 py-0.5 rounded-full"
-                          style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+                          style={{ color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.1)' }}
                         >
                           {message.contextUsed.memoryStream.total} memories
                         </span>
@@ -148,7 +153,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                               onRate(message.id, 1, message.content, prevUserMsg?.content ?? null);
                             }}
                             className="p-1 rounded-md transition-all hover:scale-110"
-                            style={{ color: 'rgba(255,255,255,0.25)' }}
+                            style={{ color: 'rgba(255,255,255,0.35)' }}
                             title="Helpful"
                           >
                             <ThumbsUp className="w-3.5 h-3.5" />
@@ -163,7 +168,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                               onRate(message.id, -1, message.content, prevUserMsg?.content ?? null);
                             }}
                             className="p-1 rounded-md transition-all hover:scale-110"
-                            style={{ color: 'rgba(255,255,255,0.25)' }}
+                            style={{ color: 'rgba(255,255,255,0.35)' }}
                             title="Not helpful"
                           >
                             <ThumbsDown className="w-3.5 h-3.5" />
@@ -175,7 +180,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
 
                   <div
                     className={cn("text-[11px] mt-1.5", isUser ? "text-right" : "text-left")}
-                    style={{ color: 'rgba(255,255,255,0.2)' }}
+                    style={{ color: 'rgba(255,255,255,0.35)' }}
                   >
                     {formatTime(message.timestamp)}
                   </div>
@@ -191,18 +196,18 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               <div className="flex gap-1">
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#10b77f', animationDelay: '0ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#10b77f', animationDelay: '150ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#10b77f', animationDelay: '300ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '300ms' }}
                 />
               </div>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>thinking...</span>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>thinking...</span>
             </div>
           </div>
         )}
