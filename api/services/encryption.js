@@ -150,7 +150,7 @@ export function testEncryption() {
  */
 export async function hashPassword(password) {
   const bcrypt = await import('bcrypt');
-  return bcrypt.hash(password, 10);
+  return bcrypt.hash(password, 12);
 }
 
 /**

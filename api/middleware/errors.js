@@ -216,15 +216,16 @@ export function errorHandler(err, req, res, next) {
  * Must be placed after all routes but before error handler
  */
 export function notFoundHandler(req, res, next) {
+  const isDev = process.env.NODE_ENV === 'development';
   const error = new PlatformError(
-    `Route not found: ${req.method} ${req.path}`,
+    isDev ? `Route not found: ${req.method} ${req.path}` : 'Route not found',
     404,
-    {
+    isDev ? {
       method: req.method,
       path: req.path,
       action: 'check_api_documentation',
       suggestion: 'Verify the endpoint URL is correct'
-    }
+    } : undefined
   );
 
   res.status(404).json(error.toJSON());

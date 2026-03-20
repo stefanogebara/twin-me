@@ -276,7 +276,7 @@ For privacy concerns: privacy@twinme.ai`
 
         {/* Footer */}
         <div className="mt-20 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>
