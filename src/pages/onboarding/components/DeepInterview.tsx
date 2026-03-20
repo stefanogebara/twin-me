@@ -342,22 +342,20 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             </p>
           </div>
 
-          {/* SoulOrb — voice trigger, CSS-scaled for responsive */}
-          {voiceEnabled && voice.isAvailable && (
-            <div
-              className="soul-orb-responsive flex justify-center flex-shrink-0 max-w-lg mx-auto w-full"
-              style={{ animation: 'fadeInScale 0.8s ease-out both' }}
-            >
-              <SoulOrb
-                phase={getOrbPhase()}
-                dataPointCount={Math.min(questionNumber * 2, 20)}
-                voiceState={voice.orbState}
-                outputVolume={voice.outputVolume}
-                onClick={voice.toggleVoice}
-                statusLabel={getVoiceLabel()}
-              />
-            </div>
-          )}
+          {/* SoulOrb — always shows as visual anchor, voice-interactive when available */}
+          <div
+            className="soul-orb-responsive flex justify-center flex-shrink-0 max-w-lg mx-auto w-full"
+            style={{ animation: 'fadeInScale 0.8s ease-out both' }}
+          >
+            <SoulOrb
+              phase={getOrbPhase()}
+              dataPointCount={Math.min(questionNumber * 2, 20)}
+              voiceState={voiceEnabled && voice.isAvailable ? voice.orbState : 'idle'}
+              outputVolume={voiceEnabled && voice.isAvailable ? voice.outputVolume : 0}
+              onClick={voiceEnabled && voice.isAvailable ? voice.toggleVoice : undefined}
+              statusLabel={voiceEnabled && voice.isAvailable ? getVoiceLabel() : undefined}
+            />
+          </div>
 
           {/* Voice error toast */}
           {voiceError && (
@@ -550,27 +548,29 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               : '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
-          {/* Mic toggle button — 44px touch target */}
-          {voiceEnabled && voice.isAvailable && (
-            <button
-              onClick={voice.toggleVoice}
-              className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
-              title={voice.isActive ? 'Stop voice' : 'Start voice conversation'}
-              aria-label={voice.isActive ? 'Stop voice conversation' : 'Start voice conversation'}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '100px',
-                color: voice.isActive
+          {/* Mic toggle button — always visible, disabled when voice unavailable */}
+          <button
+            onClick={voiceEnabled && voice.isAvailable ? voice.toggleVoice : undefined}
+            disabled={!voiceEnabled || !voice.isAvailable}
+            className="flex-shrink-0 flex items-center justify-center transition-all duration-200"
+            title={!voiceEnabled || !voice.isAvailable ? 'Voice unavailable' : voice.isActive ? 'Stop voice' : 'Start voice conversation'}
+            aria-label={voice.isActive ? 'Stop voice conversation' : 'Start voice conversation'}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '100px',
+              color: !voiceEnabled || !voice.isAvailable
+                ? 'rgba(255,255,255,0.15)'
+                : voice.isActive
                   ? 'rgba(240, 200, 128, 0.8)'
                   : 'var(--text-muted)',
-                cursor: 'pointer',
-                backgroundColor: voice.isActive ? 'rgba(240, 200, 128, 0.08)' : 'transparent',
-              }}
-            >
-              {voice.isActive ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </button>
-          )}
+              cursor: !voiceEnabled || !voice.isAvailable ? 'not-allowed' : 'pointer',
+              backgroundColor: voice.isActive ? 'rgba(240, 200, 128, 0.08)' : 'transparent',
+              opacity: !voiceEnabled || !voice.isAvailable ? 0.4 : 1,
+            }}
+          >
+            {voice.isActive ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          </button>
 
           <textarea
             ref={inputRef}
@@ -653,12 +653,13 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             clearProgress();
             onSkip();
           }}
-          className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"
+          className="mt-2 py-2.5 text-[13px] transition-all hover:opacity-80 w-full"
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgba(255,255,255,0.6)',
             fontFamily: "'Inter', sans-serif",
-            background: 'none',
-            border: 'none',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: '10px',
             cursor: 'pointer',
             textAlign: 'center',
             minHeight: '44px',

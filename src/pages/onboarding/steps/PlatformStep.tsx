@@ -257,11 +257,11 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
                   >
                     {p.icon}
                   </div>
-                  <p className="text-xs font-medium text-[#0c0a09] truncate">{p.name}</p>
+                  <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{p.name}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-[#6B6B63] text-center">Available in Settings after onboarding</p>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>Available in Settings after onboarding</p>
           </div>
         )}
 
