@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import SoulOrb from '../components/SoulOrb';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -57,54 +58,55 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
     };
   }, [message, loading]);
 
+  // Progress the orb phase as text types
+  const orbPhase = loading ? 'dormant' : done ? 'active' : 'awakening';
+
   return (
-    <div
-      className="h-screen flex flex-col items-center px-6 py-10"
-      
-    >
-      <div
-        className="w-full max-w-lg flex flex-col min-h-0 flex-1"
-      >
-        {/* Flower card — fixed-height hero visual */}
+    <div className="h-screen flex flex-col items-center px-6 py-10">
+      <div className="w-full max-w-lg flex flex-col min-h-0 flex-1 items-center">
+        {/* Soul Orb — cinematic awakening visual instead of static flower */}
         <div
-          className="w-full mb-8 overflow-hidden flex-shrink-0"
-          style={{ borderRadius: '28px', height: '220px' }}
+          className="mb-6 flex-shrink-0 flex justify-center"
+          style={{
+            opacity: loading ? 0.3 : 1,
+            transition: 'opacity 1s ease-out',
+          }}
         >
-          <img
-            src="/images/backgrounds/flower-card-4.jpg"
-            alt=""
-            className="w-full h-full object-cover"
+          <SoulOrb
+            phase={orbPhase}
+            dataPointCount={done ? 20 : 8}
           />
         </div>
 
         {/* Message — scrollable so long AI responses don't push CTA off screen */}
         <div className="flex-1 overflow-y-auto mb-8 w-full text-center scrollbar-hide">
           {loading ? (
-            <div className="flex gap-2 justify-center mt-2">
+            <div className="flex gap-2 justify-center mt-4">
               {[0, 1, 2].map(i => (
                 <span
                   key={i}
-                  className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.25)', animationDelay: `${i * 150}ms` }}
+                  className="w-1.5 h-1.5 rounded-full animate-bounce"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.3)', animationDelay: `${i * 150}ms` }}
                 />
               ))}
             </div>
           ) : (
             <p
               style={{
-                fontFamily: 'Instrument Serif, Georgia, serif',
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontStyle: 'italic',
                 fontWeight: 400,
-                fontSize: 'clamp(18px, 3vw, 24px)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.4,
-                color: 'var(--foreground)',
+                fontSize: 'clamp(18px, 3vw, 22px)',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.6,
+                color: 'rgba(255,255,255,0.7)',
               }}
             >
               {displayedText}
               {!done && (
                 <span
                   className="inline-block w-0.5 h-5 ml-1 animate-pulse align-middle"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}
                 />
               )}
             </p>
@@ -119,17 +121,16 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           <button
             onClick={onEnter}
             disabled={!done}
-            className="flex items-center gap-2 disabled:pointer-events-none"
+            className="flex items-center gap-2.5 disabled:pointer-events-none"
             style={{
               fontFamily: "'Inter', sans-serif",
               backgroundColor: 'var(--foreground)',
               color: '#110f0f',
               borderRadius: '100px',
               padding: '14px 36px',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
-              letterSpacing: '0.02em',
-              textTransform: 'uppercase',
+              letterSpacing: '0.01em',
               border: 'none',
               cursor: done ? 'pointer' : 'default',
               transition: 'all 0.2s ease',
