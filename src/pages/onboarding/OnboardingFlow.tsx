@@ -66,7 +66,7 @@ const OnboardingFlow: React.FC = () => {
               key={s}
               className="w-2 h-2 rounded-full transition-all duration-300"
               style={{
-                backgroundColor: i <= currentIdx ? '#ff8400' : 'rgba(255,255,255,0.15)',
+                backgroundColor: i <= currentIdx ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.15)',
                 transform: i === currentIdx ? 'scale(1.3)' : 'scale(1)',
               }}
             />
