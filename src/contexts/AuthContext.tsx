@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { DEMO_USER } from '../services/demoDataService';
 
 /**
@@ -77,9 +77,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(getCachedUser());
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [isLoaded, setIsLoaded] = useState(false); // Don't set true until verification completes
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start true — we're verifying on mount
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  // Guard against concurrent checkAuth calls (StrictMode double-mount, demo-mode events)
+  const verifyInFlightRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     // Check for existing session on mount
@@ -91,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (demoActive) {
         setUser(DEMO_USER);
         setIsLoaded(true);
+        setIsLoading(false);
       } else {
         setUser(null);
         checkAuth();
@@ -102,6 +106,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener('storage', handleDemoModeChange);
       window.removeEventListener('demo-mode-change', handleDemoModeChange);
+      // Abort any in-flight verify request on unmount (StrictMode cleanup)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      verifyInFlightRef.current = false;
     };
   }, []);
 
@@ -110,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (localStorage.getItem('demo_mode') === 'true') {
       setUser(DEMO_USER);
       setIsLoaded(true);
+      setIsLoading(false);
       return;
     }
 
@@ -120,11 +131,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthToken(null);
       localStorage.removeItem('auth_user');
       setIsLoaded(true);
+      setIsLoading(false);
       return;
     }
 
+    // Prevent concurrent verify calls (StrictMode fires effects twice)
+    if (verifyInFlightRef.current) {
+      return;
+    }
+
+    // Abort any previous in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    verifyInFlightRef.current = true;
+
     // Sync authToken state with localStorage
     setAuthToken(token);
+    setIsLoading(true);
 
     // If we have a cached user, use it for display while verifying
     // But don't set isLoaded until verification completes
@@ -135,13 +161,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     // Token verification - must complete before isLoaded is set
-    setIsVerifying(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        signal: abortController.signal,
       });
+
+      // If this request was aborted (component unmounted), bail out silently
+      if (abortController.signal.aborted) return;
 
       if (response.ok) {
         const userData = await response.json();
@@ -162,7 +191,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(null);
         setAuthToken(null);
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      // Aborted fetch — component unmounted, don't touch state
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
       // Network error - keep cached state if we have one
       // This prevents logout on temporary network issues
       if (!cachedUser) {
@@ -174,8 +207,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       // If we have cached user, keep them logged in despite network error
     } finally {
-      setIsVerifying(false);
-      setIsLoaded(true);
+      // Only update loading states if this request wasn't aborted
+      if (!abortController.signal.aborted) {
+        verifyInFlightRef.current = false;
+        abortControllerRef.current = null;
+        setIsLoading(false);
+        setIsLoaded(true);
+      }
     }
   };
 
