@@ -121,22 +121,22 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
             disabled={!done}
             className="flex items-center gap-2 disabled:pointer-events-none"
             style={{
-              fontFamily: "'Geist', sans-serif",
-              backgroundColor: '#ff8400',
-              color: '#fff',
-              borderRadius: '9999px',
-              padding: '14px 32px',
-              fontSize: '12px',
+              fontFamily: "'Inter', sans-serif",
+              backgroundColor: 'var(--foreground)',
+              color: '#110f0f',
+              borderRadius: '100px',
+              padding: '14px 36px',
+              fontSize: '13px',
               fontWeight: 500,
               letterSpacing: '0.02em',
               textTransform: 'uppercase',
               border: 'none',
               cursor: done ? 'pointer' : 'default',
-              transition: 'background-color 0.2s ease',
-              boxShadow: '0 4px 20px rgba(255, 132, 0, 0.3)',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 20px rgba(255,255,255,0.08)',
             }}
-            onMouseEnter={e => { if (done) e.currentTarget.style.backgroundColor = '#e67600'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#ff8400'; }}
+            onMouseEnter={e => { if (done) { e.currentTarget.style.opacity = '0.85'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
           >
             Enter your world
             <ArrowRight className="w-4 h-4" />

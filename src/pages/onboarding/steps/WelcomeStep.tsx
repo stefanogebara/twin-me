@@ -77,7 +77,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
           width: '600px',
           height: '600px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,132,0,0.1) 0%, rgba(193,126,44,0.04) 40%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 40%, transparent 70%)',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -55%)',
@@ -149,27 +149,27 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
           onClick={onBegin}
           style={{
             fontFamily: "'Inter', sans-serif",
-            backgroundColor: '#ff8400',
-            color: '#fff',
+            backgroundColor: 'var(--foreground)',
+            color: '#110f0f',
             borderRadius: '100px',
-            padding: '16px 36px',
+            padding: '16px 40px',
             fontSize: '14px',
             fontWeight: 500,
             letterSpacing: '0.01em',
             cursor: 'pointer',
             border: 'none',
-            boxShadow: '0 4px 24px rgba(255,132,0,0.25)',
+            boxShadow: '0 4px 24px rgba(255,255,255,0.08)',
             transition: 'all 0.2s ease, opacity 0.8s ease-out 0.8s',
             opacity: visible ? 1 : 0,
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = '#e67600';
-            e.currentTarget.style.boxShadow = '0 6px 32px rgba(255,132,0,0.35)';
+            e.currentTarget.style.opacity = '0.85';
+            e.currentTarget.style.boxShadow = '0 6px 32px rgba(255,255,255,0.12)';
             e.currentTarget.style.transform = 'translateY(-1px)';
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = '#ff8400';
-            e.currentTarget.style.boxShadow = '0 4px 24px rgba(255,132,0,0.25)';
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.boxShadow = '0 4px 24px rgba(255,255,255,0.08)';
             e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
