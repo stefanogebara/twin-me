@@ -103,7 +103,11 @@ router.get('/circuit-breaker', (req, res) => {
 });
 
 // LLM Circuit Breaker manual reset (requires CRON_SECRET for safety)
-router.post('/circuit-breaker/reset', verifyCronSecret, (req, res) => {
+router.post('/circuit-breaker/reset', (req, res) => {
+  const authResult = verifyCronSecret(req);
+  if (!authResult.authorized) {
+    return res.status(authResult.status).json({ error: authResult.error });
+  }
   const result = resetCircuitBreaker();
   res.json({ success: true, ...result });
 });
