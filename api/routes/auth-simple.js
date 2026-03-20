@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
+import * as betaInviteService from '../services/betaInviteService.js';
+import { sendWelcomeEmail } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
@@ -189,6 +191,24 @@ router.post('/signup', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
+    // Beta gate: check invite code for email signup
+    if (betaInviteService.isBetaGateEnabled()) {
+      const inviteCode = req.body.inviteCode;
+      const preInvite = await betaInviteService.isEmailPreInvited(normalizedEmail);
+      const code = inviteCode || preInvite?.code;
+      req._betaInviteCode = code; // Cache for redemption after user creation
+
+      if (!code) {
+        betaInviteService.addToWaitlist(normalizedEmail, `${(firstName || '')} ${(lastName || '')}`.trim(), 'rejected_signup').catch(() => {});
+        return res.status(403).json({ success: false, error: 'Beta invite code required', waitlist: true });
+      }
+
+      const validation = await betaInviteService.validateInviteCode(code);
+      if (!validation.valid) {
+        return res.status(403).json({ success: false, error: validation.error, waitlist: true });
+      }
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -207,6 +227,16 @@ router.post('/signup', authLimiter, async (req, res) => {
     if (insertError) {
       log.error('Database error', { error: insertError });
       return res.status(500).json({ error: 'Failed to create user' });
+    }
+
+    // Redeem invite code after email signup (reuse code from gate check above)
+    if (betaInviteService.isBetaGateEnabled()) {
+      const code = req.body.inviteCode || req._betaInviteCode;
+      if (code) {
+        betaInviteService.redeemInviteCode(code, newUser.id).catch(err =>
+          log.error('Invite redeem failed (non-blocking)', { error: err })
+        );
+      }
     }
 
     // Generate token pair
@@ -479,6 +509,11 @@ router.get('/oauth/google', (req, res) => {
     redirectUri: isMobile ? `${req.protocol}://${req.get('host')}/api/auth/oauth/callback` : `${appUrl}/oauth/callback`,
   };
 
+  // Include beta invite code in state (survives OAuth round-trip)
+  if (req.query.invite) {
+    stateData.inviteCode = req.query.invite.trim();
+  }
+
   // Include redirect parameter in state if provided (relative paths only — prevent open redirect)
   if (req.query.redirect) {
     const redirectParam = req.query.redirect;
@@ -710,6 +745,27 @@ router.get('/oauth/callback', async (req, res) => {
       .single();
 
     if (!user) {
+      // Beta gate: check invite code for new users
+      let resolvedInviteCode = null;
+      if (betaInviteService.isBetaGateEnabled()) {
+        const inviteCode = stateData?.inviteCode;
+        const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
+        resolvedInviteCode = inviteCode || preInvite?.code;
+
+        if (!resolvedInviteCode) {
+          log.info('New user rejected (no invite code)', { email: userData.email });
+          betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
+          return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}`);
+        }
+
+        const validation = await betaInviteService.validateInviteCode(resolvedInviteCode);
+        if (!validation.valid) {
+          log.info('New user rejected (invalid invite)', { email: userData.email, error: validation.error });
+          betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'invalid_invite').catch(() => {});
+          return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}&error=${encodeURIComponent(validation.error)}`);
+        }
+      }
+
       // Create new user with encrypted tokens
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('users')
@@ -730,6 +786,13 @@ router.get('/oauth/callback', async (req, res) => {
 
       user = newUser;
 
+      // Redeem invite code after successful user creation (reuse cached code)
+      if (resolvedInviteCode) {
+        betaInviteService.redeemInviteCode(resolvedInviteCode, user.id).catch(err =>
+          log.error('Invite redeem failed (non-blocking)', { error: err })
+        );
+      }
+
       // Trigger background enrichment for new users
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
       log.info('Triggering background enrichment for new user', { userId: user.id });
@@ -741,6 +804,9 @@ router.get('/oauth/callback', async (req, res) => {
         })
         .then(() => log.info('Enrichment completed for user', { userId: user.id }))
         .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+
+      // Send welcome email (non-blocking)
+      sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
     }
 
     // Handle redirect for connector OAuth flow
@@ -826,8 +892,10 @@ router.post('/oauth/callback', async (req, res) => {
 
     if (isGoogleBased && code && (isAuthFlow || !isConnectorFlow)) {
       // Real Google OAuth for authentication
-      log.info('Calling exchangeGoogleCode', { appUrl });
-      userData = await exchangeGoogleCode(code, appUrl);
+      // Use the exact redirectUri from state to ensure it matches what Google received
+      const exactRedirectUri = stateData?.redirectUri || null;
+      log.info('Calling exchangeGoogleCode', { appUrl, exactRedirectUri });
+      userData = await exchangeGoogleCode(code, appUrl, exactRedirectUri);
       log.info('exchangeGoogleCode result', { success: !!userData });
 
       // If we failed to get real data, don't fall back to demo for auth flows
@@ -930,6 +998,26 @@ router.post('/oauth/callback', async (req, res) => {
       log.info('Existing user query result', { found: !!existingUser, error: userFetchError });
 
       if (!existingUser) {
+        // Beta gate: check invite code for new users (POST callback)
+        let resolvedInviteCodePost = null;
+        if (betaInviteService.isBetaGateEnabled()) {
+          const inviteCode = stateData?.inviteCode || req.body?.inviteCode;
+          const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
+          resolvedInviteCodePost = inviteCode || preInvite?.code;
+
+          if (!resolvedInviteCodePost) {
+            log.info('New user rejected via POST (no invite)', { email: userData.email });
+            betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
+            return res.status(403).json({ success: false, error: 'Beta invite code required', waitlist: true });
+          }
+
+          const validation = await betaInviteService.validateInviteCode(resolvedInviteCodePost);
+          if (!validation.valid) {
+            log.info('New user rejected via POST (invalid invite)', { email: userData.email });
+            return res.status(403).json({ success: false, error: validation.error, waitlist: true });
+          }
+        }
+
         // Create new user
         log.info('Creating new user');
         let newUser, insertError;
@@ -965,6 +1053,13 @@ router.post('/oauth/callback', async (req, res) => {
         log.info('New user created', { userId: newUser.id });
         user = newUser;
 
+        // Redeem invite code after user creation (reuse cached code)
+        if (resolvedInviteCodePost) {
+          betaInviteService.redeemInviteCode(resolvedInviteCodePost, user.id).catch(err =>
+            log.error('Invite redeem failed (non-blocking)', { error: err })
+          );
+        }
+
         // Trigger background enrichment for new users
         const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
         log.info('Triggering background enrichment for new user', { userId: user.id });
@@ -976,6 +1071,9 @@ router.post('/oauth/callback', async (req, res) => {
           })
           .then(() => log.info('Enrichment completed for user', { userId: user.id }))
           .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
+
+        // Send welcome email (non-blocking)
+        sendWelcomeEmail({ toEmail: userData.email, firstName: userData.firstName }).catch(() => {});
       } else {
         log.info('Existing user found', { userId: existingUser.id });
         user = existingUser;

@@ -34,8 +34,8 @@ const CACHE_TTL = 60; // 60s cache on oracle drafts
  */
 export async function getOracleDraft(userId, userMessage, topMemories = []) {
   try {
-    const modelId = await getModelId(userId);
-    if (!modelId) return null;
+    const modelInfo = await getModelId(userId);
+    if (!modelInfo) return null;
 
     const apiKey = process.env.TOGETHER_API_KEY;
     if (!apiKey) return null;
@@ -58,48 +58,65 @@ export async function getOracleDraft(userId, userMessage, topMemories = []) {
       { role: 'user', content: userMessage },
     ];
 
-    // Call finetuned model with strict timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), ORACLE_FETCH_TIMEOUT_MS);
-
-    const res = await fetch(`${TOGETHER_API}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: modelId,
-        messages,
-        max_tokens: ORACLE_MAX_TOKENS,
-        temperature: 0.7,
-        stop: ['\n\n'], // Stop at paragraph boundary for concise drafts
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!res.ok) {
-      log.error(`Oracle inference failed: ${res.status}`);
-      return null;
+    // Try primary model (DPO if available, else SFT), fallback to SFT on failure
+    const modelsToTry = [modelInfo.modelId];
+    if (modelInfo.sftModelId && modelInfo.sftModelId !== modelInfo.modelId) {
+      modelsToTry.push(modelInfo.sftModelId);
     }
 
-    const data = await res.json();
-    const draft = data.choices?.[0]?.message?.content?.trim();
+    for (const modelId of modelsToTry) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), ORACLE_FETCH_TIMEOUT_MS);
 
-    if (!draft || draft.length < 10) return null;
+        const res = await fetch(`${TOGETHER_API}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: modelId,
+            messages,
+            max_tokens: ORACLE_MAX_TOKENS,
+            temperature: 0.7,
+            stop: ['\n\n'],
+          }),
+          signal: controller.signal,
+        });
 
-    // Cache the draft
-    cacheSet(cacheKey, draft, CACHE_TTL).catch(() => {});
+        clearTimeout(timeout);
 
-    return draft;
+        if (!res.ok) {
+          log.warn(`Oracle model ${modelId.slice(-12)} failed: ${res.status}, trying fallback...`);
+          continue;
+        }
+
+        const data = await res.json();
+        const draft = data.choices?.[0]?.message?.content?.trim();
+
+        if (!draft || draft.length < 10) continue;
+
+        const isDPO = modelId === modelInfo.modelId && modelInfo.trainingMethod === 'dpo';
+        log.info(`Oracle draft from ${isDPO ? 'DPO' : 'SFT'} model (${modelId.slice(-12)})`);
+
+        // Cache the draft
+        cacheSet(cacheKey, draft, CACHE_TTL).catch(() => {});
+
+        return draft;
+      } catch (innerErr) {
+        if (innerErr.name === 'AbortError') {
+          log.warn(`Oracle ${modelId.slice(-12)} timed out, trying fallback...`);
+        } else {
+          log.warn(`Oracle ${modelId.slice(-12)} error: ${innerErr.message}, trying fallback...`);
+        }
+        continue;
+      }
+    }
+
+    return null;
   } catch (err) {
-    if (err.name === 'AbortError') {
-      log.warn('Oracle timed out (4s fetch budget exceeded)');
-    } else {
-      log.error('Oracle error:', err.message);
-    }
+    log.error('Oracle error:', err.message);
     return null;
   }
 }

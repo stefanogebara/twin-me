@@ -124,7 +124,7 @@ const IdentityPage: React.FC = () => {
           </div>
           <button
             onClick={() => refetch()}
-            className="text-sm font-medium px-4 py-2 rounded-[100px] transition-opacity hover:opacity-80"
+            className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
             style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--background, #fdfcfb)' }}
           >
             Try again
@@ -201,7 +201,7 @@ const IdentityPage: React.FC = () => {
                 toast.error('Could not copy link');
               });
             }}
-            className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 flex-shrink-0 mt-2"
+            className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97] flex-shrink-0 mt-2"
             style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             <Share2 className="w-3.5 h-3.5" />

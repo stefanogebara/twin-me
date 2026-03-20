@@ -59,14 +59,14 @@ function getTimezoneLocation(): [number, number] {
 
 async function fetchIPLocation(): Promise<[number, number] | null> {
   try {
-    // Use ip-api.com (free, no CORS issues) instead of ipapi.co (blocked by CORS)
-    const res = await fetch('http://ip-api.com/json/?fields=lat,lon', {
+    // Use ipwho.is (free, HTTPS, no CORS issues, no API key)
+    const res = await fetch('https://ipwho.is/', {
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    if (typeof data.lat === 'number' && typeof data.lon === 'number') {
-      return [data.lat, data.lon];
+    if (data.success !== false && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+      return [data.latitude, data.longitude];
     }
   } catch { /* ignore */ }
   return null;

@@ -63,7 +63,7 @@ const ToggleSwitch: React.FC<{
     aria-checked={enabled}
     aria-label={label}
     onClick={() => !disabled && onChange(!enabled)}
-    className="relative w-10 h-5 rounded-full transition-colors"
+    className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
       backgroundColor: enabled ? 'var(--accent-vibrant, #ff8400)' : 'rgba(255,255,255,0.1)',
       cursor: disabled ? 'not-allowed' : 'pointer',
@@ -71,7 +71,7 @@ const ToggleSwitch: React.FC<{
     }}
   >
     <div
-      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ease-out"
       style={{ left: enabled ? '22px' : '2px' }}
     />
   </button>
@@ -252,14 +252,10 @@ const Settings = () => {
             {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
           </span>
         </SettingsRow>
-        <SettingsRow label="Password">
-          <button
-            className="text-[12px] transition-opacity hover:opacity-60"
-            style={{ color: 'var(--accent-vibrant, #ff8400)' }}
-            onClick={() => navigate('/auth?action=reset')}
-          >
-            Change
-          </button>
+        <SettingsRow label="Authentication" description="Managed via Google OAuth">
+          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Google
+          </span>
         </SettingsRow>
       </div>
 

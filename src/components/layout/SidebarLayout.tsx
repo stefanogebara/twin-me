@@ -1,6 +1,7 @@
 import React, { ReactNode, useState } from 'react';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { BottomNav } from './BottomNav';
+import BetaFeedbackWidget from '../BetaFeedbackWidget';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { Menu } from 'lucide-react';
 
@@ -24,7 +25,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       {/* Mobile Menu Button - Only visible on small screens */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-200"
+        className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-150 ease-out active:scale-95"
         style={{
           backgroundColor: 'rgba(255, 255, 255, 0.08)',
           backdropFilter: 'blur(20px) saturate(180%)',
@@ -48,17 +49,16 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Main Content Area - margin adjusts based on sidebar collapsed state */}
       <main
-        className="relative flex-1 overflow-y-auto transition-all duration-300"
+        className="relative flex-1 overflow-y-auto transition-all duration-200 ease-out"
         style={{
-          marginLeft: window.innerWidth >= 1024 ? `${sidebarWidth}px` : '0',
           zIndex: 0,
           isolation: 'isolate',
         }}
       >
         <style>{`
-          @media (max-width: 1023px) {
+          @media (min-width: 1024px) {
             main {
-              margin-left: 0 !important;
+              margin-left: ${sidebarWidth}px !important;
             }
           }
         `}</style>
@@ -69,6 +69,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Bottom nav bar — mobile only (hidden on lg+) */}
       <BottomNav />
+
+      {/* Beta feedback widget — floating on all authenticated pages */}
+      <BetaFeedbackWidget />
     </div>
   );
 };

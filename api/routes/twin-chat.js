@@ -56,6 +56,7 @@ import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js'
 import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
 import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
+import { classifyMessageTier } from '../services/chatRouter.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -227,6 +228,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     const useConnectomeNeuropils = featureFlags.connectome_neuropils !== false;
     const useEmbodiedFeedback = featureFlags.embodied_feedback_loop !== false;
     const usePersonalityOracle = featureFlags.personality_oracle === true; // opt-in: requires trained model
+    const useSmartRouting = featureFlags.smart_routing !== false; // default enabled: routes simple messages to cheaper models
 
     // Subscription gate: free users get 1 assistant reply, then paywall
     const sub = await getUserSubscription(userId);
@@ -700,6 +702,16 @@ Make it sound natural and curious, not like a survey question.`;
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
     log.info('System prompt built', { chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
 
+    // Smart routing: classify message complexity to select cheapest adequate model
+    let routedModel = null;
+    let routingTier = null;
+    if (useSmartRouting) {
+      const routing = classifyMessageTier(message, conversationHistory);
+      routedModel = routing.model;
+      routingTier = routing.tier;
+      log.info('Smart routing', { tier: routing.tier, model: routing.model, reason: routing.reason, msgWords: message.trim().split(/\s+/).length });
+    }
+
     // Send message via LLM Gateway
     let assistantMessage;
     const chatSource = 'direct';
@@ -729,7 +741,8 @@ Make it sound natural and curious, not like a survey question.`;
           frequency_penalty: finalSampling.frequency_penalty,
           presence_penalty: finalSampling.presence_penalty,
           userId,
-          serviceName: 'twin-chat',
+          serviceName: routingTier ? `twin-chat:${routingTier}` : 'twin-chat',
+          modelOverride: routedModel,
           onChunk: (chunk) => {
             res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
           },
@@ -745,14 +758,15 @@ Make it sound natural and curious, not like a survey question.`;
     } else {
       try {
         chatLog('Starting LLM call');
-        // Use personality reranker if enabled and profile has embedding
+        // Use personality reranker ONLY for DEEP tier (too expensive for light/standard)
         const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
           && personalityProfile?.personality_embedding
-          && personalityProfile?.confidence > 0.3;
+          && personalityProfile?.confidence > 0.3
+          && routingTier === 'deep';
 
         let result;
         if (useReranker) {
-          chatLog('Using personality reranker (best-of-N)');
+          chatLog('Using personality reranker (best-of-N) — DEEP tier');
           result = await rerankByPersonality(
             { system: systemPrompt, messages: llmMessages, maxTokens: 2048, userId },
             personalityProfile.personality_embedding,
@@ -788,7 +802,8 @@ Make it sound natural and curious, not like a survey question.`;
             frequency_penalty: finalSamplingNonStream.frequency_penalty,
             presence_penalty: finalSamplingNonStream.presence_penalty,
             userId,
-            serviceName: 'twin-chat'
+            serviceName: routingTier ? `twin-chat:${routingTier}` : 'twin-chat',
+            modelOverride: routedModel,
           });
         }
         chatLog('LLM call complete');

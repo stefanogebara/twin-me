@@ -197,7 +197,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
       {/* Expandable section */}
       <button
         onClick={() => setExpanded((prev) => !prev)}
-        className="flex items-center gap-1 w-full pt-1 transition-opacity hover:opacity-70"
+        className="flex items-center gap-1 w-full pt-1 transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97]"
         style={{ color: TEXT_SECONDARY }}
       >
         {expanded ? (
@@ -242,7 +242,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
                   <button
                     onClick={handleAbandonClick}
                     disabled={isAbandoning}
-                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
                     style={{ color: '#ef4444' }}
                   >
                     {isAbandoning ? (
@@ -254,7 +254,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
                   </button>
                   <button
                     onClick={() => setShowAbandonConfirm(false)}
-                    className="px-3 py-1 rounded-lg text-xs transition-opacity hover:opacity-70"
+                    className="px-3 py-1 rounded-lg text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97]"
                     style={{ color: TEXT_SECONDARY }}
                   >
                     Cancel
@@ -263,7 +263,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
               ) : (
                 <button
                   onClick={handleAbandonClick}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-opacity hover:opacity-70"
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97]"
                   style={{ color: '#ef4444' }}
                 >
                   <XCircle className="w-3 h-3" />

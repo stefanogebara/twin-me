@@ -37,7 +37,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     return (
       <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="flex items-end gap-3 rounded-[20px] px-5 py-4 transition-opacity"
+          className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-opacity"
           style={{
             background: 'var(--glass-surface-bg)',
             backdropFilter: 'blur(42px)',
@@ -54,10 +54,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           <textarea
             id="twin-chat-input"
             ref={ref}
-            placeholder={hasConnectedPlatforms
-              ? "Say something..."
-              : "Connect platforms to start chatting..."
-            }
+            placeholder="Message your twin..."
             value={inputMessage}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyDown}
@@ -69,7 +66,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               color: 'var(--foreground)',
               minHeight: '24px',
               maxHeight: '120px',
-              caretColor: '#10b77f',
+              caretColor: '#ff8400',
               fontFamily: 'Inter, sans-serif',
             }}
           />
@@ -77,11 +74,11 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           <div className="flex items-center gap-2 flex-shrink-0">
             {chatUsage && chatUsage.limit != null && chatUsage.limit !== Infinity && (
               <span
-                className="text-[11px] whitespace-nowrap"
+                className="text-xs whitespace-nowrap"
                 style={{
                   color: chatUsage.remaining <= 5
-                    ? 'rgba(239,68,68,0.6)'
-                    : 'rgba(255,255,255,0.2)',
+                    ? '#ef4444'
+                    : 'rgba(255,255,255,0.3)',
                 }}
                 title={`${chatUsage.remaining} of ${chatUsage.limit} messages remaining this month`}
               >
@@ -89,17 +86,17 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               </span>
             )}
 
-            {/* Circular emerald send button */}
+            {/* Circular send button — Rule 2.10: 150ms hover/press */}
             <button
               onClick={onSend}
               disabled={!hasText || isDisabled || isTyping || limitReached}
               aria-label={isTyping ? 'Twin is responding...' : 'Send message'}
-              className="flex items-center justify-center transition-all"
+              className="flex items-center justify-center transition-all duration-150 ease-out hover:brightness-110 active:scale-95"
               style={{
-                width: '28px',
-                height: '28px',
+                width: '36px',
+                height: '36px',
                 borderRadius: '100px',
-                padding: '4px',
+                padding: '8px',
                 background: hasText && !isDisabled && !limitReached
                   ? '#252222'
                   : 'rgba(255,255,255,0.06)',

@@ -46,29 +46,43 @@ export async function createFinetune(userId, filePath, {
 
   const apiKey = getApiKey();
 
-  // Step 1: Upload file via Python SDK (together.ai REST upload has undocumented format requirements)
+  // Step 1: Upload file via together.ai JS SDK
   log.info(`Uploading training file for user ${userId.slice(0, 8)}...`);
-  const { execFile } = await import('child_process');
-  const { promisify } = await import('util');
-  const execFileAsync = promisify(execFile);
-  const absPath = fs.realpathSync(filePath).replace(/\\/g, '/');
 
   let fileId;
   try {
-    const pyScript = [
-      'import os, json',
-      'from together import Together',
-      'c = Together()',
-      `r = c.files.upload(file="${absPath}", check=False)`,
-      'print(json.dumps({"id": r.id, "filename": r.filename}))',
-    ].join('\n');
+    const fileContent = fs.readFileSync(filePath);
+    const fileSize = fileContent.length;
+    const fileName = filePath.split(/[/\\]/).pop() || 'training.jsonl';
+    log.info(`File ready: ${fileName}, ${fileSize} bytes`);
 
-    const { stdout } = await execFileAsync('python', ['-c', pyScript], {
-      timeout: 120_000,
-      env: { ...process.env, TOGETHER_API_KEY: apiKey },
+    // Step 1a: Request upload URL from together.ai (returns 302 redirect)
+    const params = new URLSearchParams({ file_name: fileName, file_type: 'jsonl', purpose: 'fine-tune' });
+    const initRes = await fetch(`${TOGETHER_API}/files`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', Authorization: `Bearer ${apiKey}` },
+      redirect: 'manual',
+      body: params.toString(),
     });
-    const parsed = JSON.parse(stdout.trim().split('\n').pop());
-    fileId = parsed.id;
+
+    if (initRes.status !== 302) {
+      throw new Error(`Init upload failed: ${initRes.status} ${await initRes.text()}`);
+    }
+
+    const uploadUrl = initRes.headers.get('location');
+    fileId = initRes.headers.get('x-together-file-id');
+    if (!uploadUrl || !fileId) throw new Error('Missing upload URL or file ID from redirect');
+
+    // Step 1b: PUT file content to the signed upload URL
+    const fileString = fileContent.toString('utf-8');
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/octet-stream', 'Content-Length': Buffer.byteLength(fileString).toString() },
+      body: fileString,
+    });
+    log.info(`PUT response: ${putRes.status}, uploaded ${Buffer.byteLength(fileString)} bytes`);
+
+    if (!putRes.ok) throw new Error(`PUT upload failed: ${putRes.status} ${putRes.statusText}`);
   } catch (uploadErr) {
     throw new Error(`File upload failed: ${uploadErr.message}`);
   }
@@ -82,7 +96,9 @@ export async function createFinetune(userId, filePath, {
     batch_size: batchSize,
     learning_rate: learningRate,
     suffix: `${suffix}-${userId.slice(0, 8)}`,
-    ...(trainingMethod === 'dpo' ? { training_method: 'dpo', dpo_beta: 0.1 } : {}),
+    lora: true,
+    n_checkpoints: 1,
+    ...(trainingMethod === 'dpo' ? { training_method: { method: 'dpo', dpo_beta: 0.1 } } : {}),
   };
 
   const jobRes = await fetch(`${TOGETHER_API}/fine-tunes`, {
@@ -96,7 +112,7 @@ export async function createFinetune(userId, filePath, {
 
   if (!jobRes.ok) {
     const err = await jobRes.text();
-    throw new Error(`Fine-tune job creation failed: ${jobRes.status} — ${err}`);
+    throw new Error(`Fine-tune job creation failed: ${jobRes.status} — fileId=${fileId} — ${err} — body=${JSON.stringify(jobBody)}`);
   }
 
   const jobData = await jobRes.json();
@@ -192,13 +208,19 @@ export async function checkFinetuneStatus(userId) {
 export async function getModelId(userId) {
   const { data } = await supabaseAdmin
     .from('user_finetuned_models')
-    .select('model_id')
+    .select('model_id, sft_model_id, training_method')
     .eq('user_id', userId)
     .eq('provider', 'together')
     .eq('status', 'ready')
     .maybeSingle();
 
-  return data?.model_id || null;
+  if (!data) return null;
+
+  return {
+    modelId: data.model_id,
+    sftModelId: data.sft_model_id,
+    trainingMethod: data.training_method || 'sft',
+  };
 }
 
 export default { createFinetune, checkFinetuneStatus, getModelId };

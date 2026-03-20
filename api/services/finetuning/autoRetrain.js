@@ -6,18 +6,31 @@
  *
  * Trigger: 200+ new memories since last training, with 7-day cooldown.
  * Called after observation ingestion for users who had new data stored.
+ *
+ * DPO awareness: Also checks if enough preference pairs exist (>= 200)
+ * for DPO training eligibility. If SFT model exists but pairs are
+ * insufficient, optionally triggers a synthetic batch to build up pairs.
+ *
+ * Phase 3: After SFT retrain completes, auto-triggers DPO training if
+ * 200+ quality pairs exist. DPO has its own 7-day cooldown independent
+ * of SFT cooldown.
  */
 
 import { supabaseAdmin } from '../database.js';
 import { exportTrainingData } from './trainingDataExporter.js';
 import { createFinetune, getModelId } from './finetuneManager.js';
+import { generateSyntheticPairs } from './syntheticPairGenerator.js';
+import { trainDPO, checkDPOEligibility as checkDPOEligibilityFromTrainer } from './dpoTrainer.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('AutoRetrain');
 
 const MIN_NEW_MEMORIES = 200;
 const COOLDOWN_DAYS = 7;
+const DPO_COOLDOWN_DAYS = 7;
 const MIN_TRAINING_EXAMPLES = 50;
+const MIN_DPO_PAIRS = 200;
+const SYNTHETIC_BATCH_SIZE = 20;
 
 /**
  * Check if a user is eligible for automatic retraining.
@@ -68,8 +81,129 @@ export async function checkRetrainEligibility(userId) {
 }
 
 /**
+ * Check if a user is eligible for DPO training.
+ * Requires an existing SFT model and >= MIN_DPO_PAIRS preference pairs.
+ * @param {string} userId
+ * @returns {{ eligible: boolean, reason: string, pairCount?: number, hasSFTModel?: boolean }}
+ */
+export async function checkDPOEligibility(userId) {
+  // 1. Check if an SFT model exists and is complete
+  const { data: model } = await supabaseAdmin
+    .from('user_finetuned_models')
+    .select('id, status, training_method, model_id')
+    .eq('user_id', userId)
+    .eq('provider', 'together')
+    .maybeSingle();
+
+  const hasSFTModel = !!(model && model.status === 'ready' && model.model_id);
+
+  if (!hasSFTModel) {
+    return {
+      eligible: false,
+      reason: 'No ready SFT model — SFT training must succeed before DPO',
+      pairCount: 0,
+      hasSFTModel: false,
+    };
+  }
+
+  // 2. Count preference pairs
+  const { count, error: countError } = await supabaseAdmin
+    .from('preference_pairs')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (countError) {
+    log.warn('Failed to count preference pairs for DPO check', { error: countError.message });
+    return {
+      eligible: false,
+      reason: `Failed to count preference pairs: ${countError.message}`,
+      pairCount: 0,
+      hasSFTModel: true,
+    };
+  }
+
+  const pairCount = count || 0;
+
+  if (pairCount < MIN_DPO_PAIRS) {
+    return {
+      eligible: false,
+      reason: `Only ${pairCount}/${MIN_DPO_PAIRS} preference pairs`,
+      pairCount,
+      hasSFTModel: true,
+    };
+  }
+
+  return {
+    eligible: true,
+    reason: 'Eligible for DPO training',
+    pairCount,
+    hasSFTModel: true,
+  };
+}
+
+/**
+ * Check if DPO auto-training is within its independent cooldown period.
+ * Uses metadata.last_dpo_attempt stored on the user_finetuned_models record.
+ * @param {string} userId
+ * @returns {{ onCooldown: boolean, daysRemaining: number }}
+ */
+async function checkDPOCooldown(userId) {
+  const { data: model } = await supabaseAdmin
+    .from('user_finetuned_models')
+    .select('metadata')
+    .eq('user_id', userId)
+    .eq('provider', 'together')
+    .maybeSingle();
+
+  const lastDPOAttempt = model?.metadata?.last_dpo_attempt;
+  if (!lastDPOAttempt) {
+    return { onCooldown: false, daysRemaining: 0 };
+  }
+
+  const daysSince = (Date.now() - new Date(lastDPOAttempt).getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince < DPO_COOLDOWN_DAYS) {
+    return { onCooldown: true, daysRemaining: Math.ceil(DPO_COOLDOWN_DAYS - daysSince) };
+  }
+
+  return { onCooldown: false, daysRemaining: 0 };
+}
+
+/**
+ * Record the timestamp of a DPO training attempt in metadata.
+ * Merges with existing metadata to avoid overwriting other fields.
+ * @param {string} userId
+ */
+async function recordDPOAttempt(userId) {
+  const { data: model } = await supabaseAdmin
+    .from('user_finetuned_models')
+    .select('metadata')
+    .eq('user_id', userId)
+    .eq('provider', 'together')
+    .maybeSingle();
+
+  const existingMetadata = model?.metadata || {};
+  const updatedMetadata = {
+    ...existingMetadata,
+    last_dpo_attempt: new Date().toISOString(),
+  };
+
+  await supabaseAdmin
+    .from('user_finetuned_models')
+    .update({ metadata: updatedMetadata })
+    .eq('user_id', userId)
+    .eq('provider', 'together');
+}
+
+/**
  * Trigger automatic retraining for a user if eligible.
  * Non-blocking — logs and returns immediately on error.
+ *
+ * After SFT eligibility, also checks DPO readiness:
+ * - If SFT model exists but preference pairs < MIN_DPO_PAIRS, triggers
+ *   a small synthetic batch to build toward DPO eligibility.
+ * - If SFT model is ready and 200+ quality pairs exist, auto-triggers DPO
+ *   (with independent 7-day cooldown).
+ *
  * @param {string} userId
  */
 export async function triggerAutoRetrain(userId) {
@@ -77,6 +211,14 @@ export async function triggerAutoRetrain(userId) {
     const eligibility = await checkRetrainEligibility(userId);
     if (!eligibility.eligible) {
       log.debug('Auto-retrain skipped', { userId: userId.slice(0, 8), reason: eligibility.reason });
+
+      // Even if SFT isn't eligible, check if we should generate synthetic pairs
+      // to build toward DPO eligibility
+      await maybeTriggerSyntheticBatch(userId);
+
+      // Also check if DPO can be auto-triggered independently
+      await maybeTriggerAutoDPO(userId);
+
       return { triggered: false, reason: eligibility.reason };
     }
 
@@ -98,6 +240,93 @@ export async function triggerAutoRetrain(userId) {
   } catch (err) {
     log.error('Auto-retrain failed', { userId: userId.slice(0, 8), error: err.message });
     return { triggered: false, reason: err.message };
+  }
+}
+
+/**
+ * Auto-trigger DPO training if SFT model is ready and enough pairs exist.
+ * Independent 7-day cooldown from SFT retrain cooldown.
+ * Non-blocking — silently logs and returns on any error.
+ * @param {string} userId
+ */
+async function maybeTriggerAutoDPO(userId) {
+  try {
+    // Check independent DPO cooldown
+    const { onCooldown, daysRemaining } = await checkDPOCooldown(userId);
+    if (onCooldown) {
+      log.debug('Auto-DPO skipped: cooldown', { userId: userId.slice(0, 8), daysRemaining });
+      return;
+    }
+
+    // Use the dpoTrainer's eligibility check (checks ready SFT + quality pair count)
+    const eligibility = await checkDPOEligibilityFromTrainer(userId);
+    if (!eligibility.eligible) {
+      log.debug('Auto-DPO skipped: not eligible', {
+        userId: userId.slice(0, 8),
+        reason: eligibility.reason,
+      });
+      return;
+    }
+
+    log.info('Auto-DPO triggered', {
+      userId: userId.slice(0, 8),
+      pairCount: eligibility.pairCount,
+      sftModelId: eligibility.sftModelId?.slice(0, 30),
+    });
+
+    // Record attempt before starting (so cooldown applies even if job fails to launch)
+    await recordDPOAttempt(userId);
+
+    const result = await trainDPO(userId);
+
+    log.info('Auto-DPO job started', {
+      userId: userId.slice(0, 8),
+      jobId: result.jobId,
+      trainCount: result.trainCount,
+      evalCount: result.evalCount,
+    });
+  } catch (err) {
+    log.warn('Auto-DPO failed (non-fatal)', {
+      userId: userId.slice(0, 8),
+      error: err.message,
+    });
+  }
+}
+
+/**
+ * If a completed SFT model exists but DPO pairs are insufficient,
+ * trigger one small synthetic batch to incrementally build up pairs.
+ * Non-blocking — silently logs and returns on any error.
+ * @param {string} userId
+ */
+async function maybeTriggerSyntheticBatch(userId) {
+  try {
+    const dpoStatus = await checkDPOEligibility(userId);
+
+    // Only trigger if SFT model exists but pairs are insufficient
+    if (!dpoStatus.hasSFTModel || dpoStatus.eligible) {
+      return;
+    }
+
+    log.info('Triggering synthetic batch to build DPO pairs', {
+      userId: userId.slice(0, 8),
+      currentPairs: dpoStatus.pairCount,
+      needed: MIN_DPO_PAIRS,
+    });
+
+    const stats = await generateSyntheticPairs(userId, SYNTHETIC_BATCH_SIZE);
+
+    log.info('Synthetic batch complete', {
+      userId: userId.slice(0, 8),
+      generated: stats.generated,
+      skipped: stats.skipped,
+      newTotal: dpoStatus.pairCount + stats.generated,
+    });
+  } catch (err) {
+    log.warn('Synthetic batch failed (non-fatal)', {
+      userId: userId.slice(0, 8),
+      error: err.message,
+    });
   }
 }
 

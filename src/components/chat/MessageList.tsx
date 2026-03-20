@@ -1,9 +1,9 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const REMARK_PLUGINS = [remarkGfm];
-import { RotateCcw, AlertCircle } from 'lucide-react';
+import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Message {
@@ -27,10 +27,20 @@ interface MessageListProps {
   isTyping: boolean;
   formatTime: (date: Date) => string;
   onRetry?: (content: string, messageId: string) => void;
+  onRate?: (messageId: string, rating: number, messageContent: string, userMessage: string | null) => void;
+}
+
+/** Track which messages the user has already rated this session. */
+function useRatedMessages() {
+  const [rated, setRated] = useState<Record<string, number>>({});
+  const markRated = (messageId: string, rating: number) =>
+    setRated(prev => ({ ...prev, [messageId]: rating }));
+  return { rated, markRated };
 }
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
-  ({ messages, isTyping, formatTime, onRetry }, ref) => {
+  ({ messages, isTyping, formatTime, onRetry, onRate }, ref) => {
+    const { rated, markRated } = useRatedMessages();
     return (
       <div className="px-6 py-8 space-y-6 max-w-3xl mx-auto w-full">
         {messages.map((message, idx) => {
@@ -42,14 +52,14 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               {showDivider && (
                 <div
                   className="my-6"
-                  style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+                  style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
                 />
               )}
 
               <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
                 {/* Glass bubbles per Design Rule #1 */}
                 <div
-                  className={cn("max-w-[85%]", isUser ? "text-right" : "text-left")}
+                  className={cn("max-w-[90%] sm:max-w-[85%] lg:max-w-[75%]", isUser ? "text-right" : "text-left")}
                   style={isUser ? {
                     background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
                     border: '1px solid rgba(255,132,0,0.2)',
@@ -67,7 +77,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 >
                   {message.role === 'assistant' ? (
                     <div
-                      className="prose prose-sm prose-invert max-w-none leading-relaxed"
+                      className="prose prose-sm prose-invert max-w-none"
                       style={{
                         fontSize: '15px',
                         color: 'var(--foreground)',
@@ -81,11 +91,11 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     </div>
                   ) : (
                     <p
-                      className="whitespace-pre-wrap leading-relaxed"
+                      className="whitespace-pre-wrap"
                       style={{
                         fontSize: '15px',
                         color: message.failed ? '#EF4444' : 'var(--foreground)',
-                        opacity: message.failed ? 0.8 : 0.95,
+                        opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
                       }}
                     >
@@ -116,7 +126,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       {message.contextUsed.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                         <span
                           className="text-[11px] px-2 py-0.5 rounded-full"
-                          style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+                          style={{ color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.1)' }}
                         >
                           {message.contextUsed.memoryStream.total} memories
                         </span>
@@ -132,9 +142,56 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     </div>
                   )}
 
+                  {/* Thumbs up/down — assistant messages only */}
+                  {message.role === 'assistant' && !message.failed && onRate && (
+                    <div className="flex items-center gap-1 mt-2">
+                      {rated[message.id] != null ? (
+                        <span
+                          className="text-[11px] px-2 py-0.5 rounded-full"
+                          style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+                        >
+                          {rated[message.id] === 1 ? 'Thanks!' : 'Noted'}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              const prevUserMsg = messages
+                                .slice(0, messages.findIndex(m => m.id === message.id))
+                                .reverse()
+                                .find(m => m.role === 'user');
+                              markRated(message.id, 1);
+                              onRate(message.id, 1, message.content, prevUserMsg?.content ?? null);
+                            }}
+                            className="p-1 rounded-md transition-all hover:scale-110"
+                            style={{ color: 'rgba(255,255,255,0.35)' }}
+                            title="Helpful"
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const prevUserMsg = messages
+                                .slice(0, messages.findIndex(m => m.id === message.id))
+                                .reverse()
+                                .find(m => m.role === 'user');
+                              markRated(message.id, -1);
+                              onRate(message.id, -1, message.content, prevUserMsg?.content ?? null);
+                            }}
+                            className="p-1 rounded-md transition-all hover:scale-110"
+                            style={{ color: 'rgba(255,255,255,0.35)' }}
+                            title="Not helpful"
+                          >
+                            <ThumbsDown className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <div
                     className={cn("text-[11px] mt-1.5", isUser ? "text-right" : "text-left")}
-                    style={{ color: 'rgba(255,255,255,0.2)' }}
+                    style={{ color: 'rgba(255,255,255,0.35)' }}
                   >
                     {formatTime(message.timestamp)}
                   </div>
@@ -150,18 +207,18 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               <div className="flex gap-1">
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#10b77f', animationDelay: '0ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#10b77f', animationDelay: '150ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#10b77f', animationDelay: '300ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '300ms' }}
                 />
               </div>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>thinking...</span>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>thinking...</span>
             </div>
           </div>
         )}

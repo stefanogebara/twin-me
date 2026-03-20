@@ -37,7 +37,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
         className="flex-shrink-0 px-4 py-1.5 text-xs rounded-full transition-opacity disabled:opacity-60"
         style={{
           backgroundColor: 'var(--foreground)',
-          color: 'var(--foreground)',
+          color: 'var(--background)',
           fontFamily: "'Geist', sans-serif",
           fontWeight: 400,
           letterSpacing: '0.02em',
@@ -102,16 +102,16 @@ const WhoopIcon = () => (
 );
 
 const MORE_PLATFORMS = [
-  { name: 'YouTube', color: '#FF0000', icon: <YouTubeIcon /> },
   { name: 'LinkedIn', color: '#0A66C2', icon: <LinkedInIcon /> },
   { name: 'Whoop', color: 'var(--foreground)', icon: <WhoopIcon /> },
-  { name: 'Gmail', color: '#EA4335', icon: <GmailIcon /> },
   { name: 'GitHub', color: '#24292E', icon: <GitHubIcon /> },
 ];
 
 const RECOMMENDED = [
   { id: 'spotify', name: 'Spotify', description: 'Music taste & mood patterns', color: '#1DB954', icon: <SpotifyIcon />, type: 'entertainment' },
   { id: 'google_calendar', name: 'Google Calendar', description: 'Daily rhythms & priorities', color: '#4285F4', icon: <CalendarIcon />, type: 'entertainment' },
+  { id: 'youtube', name: 'YouTube', description: 'What you watch reveals what you care about', color: '#FF0000', icon: <YouTubeIcon />, type: 'entertainment' },
+  { id: 'gmail', name: 'Gmail', description: 'Communication patterns & priorities', color: '#EA4335', icon: <GmailIcon />, type: 'entertainment' },
   { id: 'discord', name: 'Discord', description: 'Community & communication style', color: '#5865F2', icon: <DiscordIcon />, type: 'entertainment' },
 ];
 
@@ -257,11 +257,11 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
                   >
                     {p.icon}
                   </div>
-                  <p className="text-xs font-medium text-[#0c0a09] truncate">{p.name}</p>
+                  <p className="text-xs font-medium truncate" style={{ color: 'rgba(255,255,255,0.5)' }}>{p.name}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-[#6B6B63] text-center">Available in Settings after onboarding</p>
+            <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>Available in Settings after onboarding</p>
           </div>
         )}
 

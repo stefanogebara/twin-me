@@ -548,22 +548,20 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             </p>
           </div>
 
-          {/* SoulOrb — voice trigger, CSS-scaled for responsive */}
-          {voiceEnabled && voice.isAvailable && (
-            <div
-              className="soul-orb-responsive flex justify-center flex-shrink-0 max-w-lg mx-auto w-full"
-              style={{ animation: 'fadeInScale 0.8s ease-out both' }}
-            >
-              <SoulOrb
-                phase={getOrbPhase()}
-                dataPointCount={Math.min(questionNumber * 2, 20)}
-                voiceState={voice.orbState}
-                outputVolume={voice.outputVolume}
-                onClick={voice.toggleVoice}
-                statusLabel={getVoiceLabel()}
-              />
-            </div>
-          )}
+          {/* SoulOrb — always shows as visual anchor, voice-interactive when available */}
+          <div
+            className="soul-orb-responsive flex justify-center flex-shrink-0 max-w-lg mx-auto w-full"
+            style={{ animation: 'fadeInScale 0.8s ease-out both' }}
+          >
+            <SoulOrb
+              phase={getOrbPhase()}
+              dataPointCount={Math.min(questionNumber * 2, 20)}
+              voiceState={voiceEnabled && voice.isAvailable ? voice.orbState : 'idle'}
+              outputVolume={voiceEnabled && voice.isAvailable ? voice.outputVolume : 0}
+              onClick={voiceEnabled && voice.isAvailable ? voice.toggleVoice : undefined}
+              statusLabel={voiceEnabled && voice.isAvailable ? getVoiceLabel() : undefined}
+            />
+          </div>
 
           {/* Voice error toast */}
           {voiceError && (
@@ -881,12 +879,31 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               }
               setLoading(false);
             }
+            // Save partial interview answers as memories before skipping
+            const token = getAuthToken();
+            const userAnswers = messages.filter(m => m.role === 'user');
+            if (token && userAnswers.length > 0) {
+              fetch(`${API_URL}/onboarding/calibrate`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  history: messages.map(m => ({ role: m.role, content: m.content })),
+                  questionNumber: questionNumber,
+                  domainProgress,
+                  forceComplete: true,
+                }),
+              }).catch(err => console.warn('[DeepInterview] Partial save failed:', err));
+            }
+            clearProgress();
             onSkip();
           }}
           disabled={loading}
           className="mt-1 py-2.5 text-[13px] transition-opacity hover:opacity-70 w-full"
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgba(255,255,255,0.6)',
             fontFamily: "'Inter', sans-serif",
             background: 'none',
             border: 'none',

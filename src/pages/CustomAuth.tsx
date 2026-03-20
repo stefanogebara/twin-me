@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Check, Ticket } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -14,10 +16,61 @@ const CustomAuth = () => {
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | null>(null);
 
+  // Beta invite state
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteValid, setInviteValid] = useState(false);
+  const [validating, setValidating] = useState(false);
+
+  // On mount: check URL param or sessionStorage for invite code
+  useEffect(() => {
+    trackFunnel('auth_page_viewed', {});
+    const urlCode = searchParams.get('invite');
+    const storedCode = sessionStorage.getItem('beta_invite_code');
+    // URL param always wins over stale sessionStorage
+    const code = urlCode || storedCode || '';
+
+    if (code) {
+      setInviteCode(code);
+      // Only persist if from URL (fresh) — sessionStorage already has stale one
+      if (urlCode) sessionStorage.setItem('beta_invite_code', code);
+      validateCode(code);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const validateCode = useCallback(async (code: string) => {
+    if (!code || code.trim().length < 4) {
+      setInviteValid(false);
+      if (code && code.trim().length > 0) setError('Code must be at least 4 characters');
+      return;
+    }
+    setValidating(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/beta/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      setInviteValid(data.valid === true);
+      if (data.valid) {
+        sessionStorage.setItem('beta_invite_code', code.trim());
+        trackFunnel('beta_invite_validated', { code: code.trim() });
+      } else {
+        setError(data.error || 'Invalid invite code');
+        sessionStorage.removeItem('beta_invite_code');
+      }
+    } catch {
+      setInviteValid(false);
+    } finally {
+      setValidating(false);
+    }
+  }, [trackFunnel]);
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError('');
-    trackFunnel('auth_initiated', { provider: 'google' });
+    trackFunnel('auth_initiated', { provider: 'google', has_invite: inviteValid });
     try {
       const redirectAfterAuth = searchParams.get('redirect');
       await signInWithOAuth('google', redirectAfterAuth || undefined);
@@ -116,7 +169,7 @@ For privacy concerns: privacy@twinme.ai`
   return (
     <div
       className="min-h-screen flex"
-      style={{ backgroundColor: '#0a0f0a' }}
+      style={{ backgroundColor: '#110f0f' }}
     >
       {/* Left panel — form (glass surface per Design Rule #1) */}
       <div className="flex-1 flex items-center justify-center px-6">
@@ -175,6 +228,70 @@ For privacy concerns: privacy@twinme.ai`
           Sign in to discover your soul signature
         </p>
 
+        {/* Beta invite code section */}
+        {inviteValid ? (
+          <div
+            className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
+            style={{
+              backgroundColor: 'rgba(255,132,0,0.08)',
+              border: '1px solid rgba(255,132,0,0.2)',
+            }}
+          >
+            <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#ff8400' }} />
+            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+              Invite code: <strong style={{ color: '#ff8400', letterSpacing: '1px' }}>{inviteCode}</strong>
+            </span>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.25)' }} />
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => {
+                    setInviteCode(e.target.value);
+                    setError('');
+                    setInviteValid(false);
+                  }}
+                  placeholder="Enter invite code"
+                  className="w-full h-10 pl-9 pr-3 rounded-lg text-sm outline-none"
+                  style={{
+                    backgroundColor: 'rgba(218,217,215,0.08)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'var(--foreground)',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && validateCode(inviteCode)}
+                />
+              </div>
+              <button
+                onClick={() => validateCode(inviteCode)}
+                disabled={validating || inviteCode.length < 4}
+                className="h-10 px-4 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+                style={{
+                  backgroundColor: '#252222',
+                  color: 'var(--foreground)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+              </button>
+            </div>
+            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+              No code?{' '}
+              <button
+                onClick={() => navigate('/waitlist')}
+                className="underline transition-opacity hover:opacity-70"
+                style={{ color: 'rgba(255,132,0,0.6)' }}
+              >
+                Join the waitlist
+              </button>
+            </p>
+          </div>
+        )}
+
         {/* Email hint */}
         {searchParams.get('email') && (
           <div
@@ -206,11 +323,11 @@ For privacy concerns: privacy@twinme.ai`
         {/* Google sign-in */}
         <button
           onClick={handleGoogleSignIn}
-          disabled={loading}
+          disabled={loading || !inviteValid}
           className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
-            color: '#0a0f0a',
+            color: '#110f0f',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -342,7 +459,7 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
             style={{
-              backgroundColor: '#111511',
+              backgroundColor: '#110f0f',
               border: '1px solid rgba(255,255,255,0.06)',
             }}
             onClick={e => e.stopPropagation()}

@@ -121,14 +121,26 @@ const TalkToTwin = () => {
     if (messages.length > 0) saveChatHistory(messages);
   }, [messages]);
 
-  // Pre-populate input from "Discuss with Twin" navigation
+  // Auto-send message from "Discuss with Twin" / dashboard chat navigation
+  const autoSendFired = useRef(false);
+  const pendingAutoSend = useRef<string | null>(null);
   useEffect(() => {
     const state = location.state as { discussContext?: string } | null;
-    if (state?.discussContext) {
+    if (state?.discussContext && !autoSendFired.current) {
+      pendingAutoSend.current = state.discussContext;
       setInputMessage(state.discussContext);
       window.history.replaceState({}, '');
     }
   }, [location.state]);
+
+  // Trigger send once input is set and user is ready — fires at most once
+  useEffect(() => {
+    if (pendingAutoSend.current && user?.id && !autoSendFired.current && inputMessage === pendingAutoSend.current) {
+      autoSendFired.current = true;
+      pendingAutoSend.current = null;
+      handleSendMessage();
+    }
+  }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
@@ -279,6 +291,29 @@ const TalkToTwin = () => {
     }
   };
 
+  const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      await fetch(`${API_BASE}/chat/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          messageId,
+          conversationId,
+          rating,
+          messageContent,
+          userMessage,
+          modelVersion: 'claude-sonnet',
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to send feedback:', err);
+    }
+  };
+
   const handleQuickAction = (text: string) => {
     setInputMessage(text);
     inputRef.current?.focus();
@@ -335,6 +370,7 @@ const TalkToTwin = () => {
               isTyping={isTyping}
               formatTime={formatTime}
               onRetry={handleRetry}
+              onRate={handleRate}
             />
           )}
 

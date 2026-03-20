@@ -119,6 +119,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.168.0",
     "three-stdlib": "^2.36.1",
+    "together-ai": "^0.38.0",
     "unicornstudio-react": "^1.4.29-1",
     "vaul": "^0.9.9",
     "ws": "^8.18.3",

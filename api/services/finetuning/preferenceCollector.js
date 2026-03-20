@@ -51,6 +51,59 @@ export async function collectPreferencePair(userId, promptMessages, rerankerMeta
 }
 
 /**
+ * Collect a preference pair from explicit user feedback (thumbs down + regeneration).
+ * User-validated pairs get the highest quality score (1.0).
+ *
+ * @param {string} userId
+ * @param {string} userMessage - The user's prompt that generated the responses
+ * @param {string} rejectedResponse - The response the user thumbs-downed
+ * @param {string} chosenResponse - The regenerated response the user preferred
+ * @returns {string|null} The preference pair ID, or null on failure
+ */
+export async function collectFromUserFeedback(userId, userMessage, rejectedResponse, chosenResponse) {
+  if (!userId || !userMessage || !rejectedResponse || !chosenResponse) {
+    log.warn('collectFromUserFeedback: missing required fields');
+    return null;
+  }
+
+  // Don't create a pair if chosen and rejected are identical
+  if (rejectedResponse.trim() === chosenResponse.trim()) {
+    log.debug('Skipping identical chosen/rejected pair from user feedback');
+    return null;
+  }
+
+  try {
+    const promptMessages = [{ role: 'user', content: userMessage }];
+
+    const { data, error } = await supabaseAdmin
+      .from('preference_pairs')
+      .insert({
+        user_id: userId,
+        prompt_messages: promptMessages,
+        chosen_response: chosenResponse,
+        rejected_response: rejectedResponse,
+        source: 'user_feedback',
+        source_detail: 'thumbs_down_regeneration',
+        quality_score: 1.0,
+        user_validated: true,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      log.warn('Failed to insert user feedback preference pair', { error: error.message });
+      return null;
+    }
+
+    log.info('Collected user feedback preference pair', { id: data.id });
+    return data.id;
+  } catch (err) {
+    log.warn('User feedback preference collection error', { error: err.message });
+    return null;
+  }
+}
+
+/**
  * Get preference pair stats for a user.
  */
 export async function getPreferenceStats(userId) {

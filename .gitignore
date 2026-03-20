@@ -1,3 +1,6 @@
+# Autoresearch results (generated, large)
+scripts/autoresearch-results/
+
 # Secrets / deploy hooks
 DEPLOY_HOOK_URL.txt
 AZURE_CREDENTIALS*

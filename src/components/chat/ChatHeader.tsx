@@ -38,7 +38,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       {hasMessages && (
         <button
           onClick={onClearChat}
-          className="p-1.5 rounded-lg transition-colors hover:opacity-70"
+          className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
           style={{ color: 'rgba(255,255,255,0.25)' }}
           title="Clear conversation"
         >
@@ -47,7 +47,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       )}
       <button
         onClick={onToggleContext}
-        className="p-1.5 rounded-lg transition-colors hover:opacity-70"
+        className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
         style={{ color: showContext ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
         title="Toggle context"
       >

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TwinMe - Digital Twin",
-  "version": "3.0.0",
-  "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first: sensitive sites blocked, incognito excluded.",
+  "version": "3.1.0",
+  "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first, incognito excluded.",
   "permissions": [
     "storage",
     "tabs",

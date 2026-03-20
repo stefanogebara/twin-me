@@ -12,7 +12,7 @@ import DataRevealItem from './onboarding/components/DataRevealItem';
 
 // ── Design tokens (dark-only) ──────────────────────────────────────────
 const T = {
-  BG:       '#1b1818',
+  BG:       '#110f0f',
   FG:       '#fdfcfb',
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',
@@ -127,6 +127,8 @@ export default function DiscoverLanding() {
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<DiscoverPhase>('idle');
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
+  const [personaSummary, setPersonaSummary] = useState<string | null>(null);
+  const [webSources, setWebSources] = useState<Array<{ title: string; url: string }>>([]);
   const [error, setError] = useState('');
 
   // Redirect if already signed in
@@ -145,6 +147,8 @@ export default function DiscoverLanding() {
     setError('');
     setPhase('scanning');
     setDataPoints([]);
+    setPersonaSummary(null);
+    setWebSources([]);
 
     const result = await discoveryScan(trimmed);
 
@@ -171,6 +175,8 @@ export default function DiscoverLanding() {
         }
       }
       setDataPoints(points);
+      if (d.persona_summary) setPersonaSummary(d.persona_summary);
+      if (d.web_sources?.length) setWebSources(d.web_sources);
 
       // Cache for post-auth pickup
       sessionStorage.setItem('twinme_discovery_data', JSON.stringify(d));
@@ -384,7 +390,7 @@ export default function DiscoverLanding() {
                   key={label}
                   href={href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block py-3 px-3 rounded-[12px] transition-colors"
+                  className="block py-3 px-3 rounded-[12px] transition-colors duration-150 ease-out"
                   style={{
                     fontFamily: "'Poppins', sans-serif",
                     fontSize: '16px',
@@ -446,40 +452,13 @@ export default function DiscoverLanding() {
       {/* ══ HERO ═════════════════════════════════════════════════════════ */}
       <section className="relative flex flex-col items-center pt-48 pb-36 px-6" style={{ overflowX: 'clip' }}>
 
-        {/* Hero glow — two stacked ellipses from Figma CSS export */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: 'calc(50% - 455.74px / 2 - 1.37px)',
-            top: '-56px',
-            width: '455.74px',
-            height: '455.74px',
-            borderRadius: '50%',
-            background: HERO_GLOW_GRADIENT,
-            opacity: 0.85,
-            filter: 'blur(42px)',
-          }}
-        />
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: 'calc(50% - 455.74px / 2 - 1.37px)',
-            top: '-56px',
-            width: '455.74px',
-            height: '455.74px',
-            borderRadius: '50%',
-            background: HERO_GLOW_GRADIENT,
-            opacity: 0.3,
-            filter: 'url(#sundust-grain)',
-          }}
-        />
+        {/* Hero glow removed — was overlapping SoulOrb */}
 
         {/* H1 */}
         <h1
-          className="relative text-center mb-3 max-w-[608px]"
+          className="relative text-center mb-3 max-w-[608px] text-[32px] md:text-[48px]"
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
-            fontSize: '48px',
             lineHeight: 1,
             letterSpacing: '-0.96px',
             color: T.FG,
@@ -563,14 +542,47 @@ export default function DiscoverLanding() {
           <div className="relative flex flex-col items-center w-full max-w-[480px]">
             <SoulOrb phase="alive" dataPointCount={dataPoints.length} />
 
-            {dataPoints.length > 0 ? (
+            {personaSummary ? (
+              <div className="w-full max-w-md mt-6">
+                <div className="px-5 py-4 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}>
+                    {personaSummary}
+                  </p>
+                </div>
+                {webSources.length > 0 && (
+                  <div className="mt-3 px-1">
+                    <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                      Sources
+                    </p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      {webSources.map((src, i) => {
+                        const domain = new URL(src.url).hostname.replace('www.', '');
+                        return (
+                          <a
+                            key={i}
+                            href={src.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] hover:underline truncate max-w-[200px]"
+                            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+                            title={src.title}
+                          >
+                            {domain}
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : dataPoints.length > 0 ? (
               <div className="w-full max-w-sm mt-6">
                 {dataPoints.map((dp) => (
                   <DataRevealItem key={dp.label} icon={dp.icon} label={dp.label} value={dp.value} />
                 ))}
               </div>
             ) : (
-              <p className="text-sm mt-6 text-center" style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-sm mt-6 text-center" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
                 We couldn't find public info for that email yet — but your twin is ready to learn from you directly.
               </p>
             )}
@@ -591,9 +603,9 @@ export default function DiscoverLanding() {
 
             {/* Try different email */}
             <button
-              onClick={() => { setPhase('idle'); setDataPoints([]); setEmail(''); }}
-              className="mt-3 text-xs transition-opacity hover:opacity-70"
-              style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => { setPhase('idle'); setDataPoints([]); setPersonaSummary(null); setWebSources([]); setEmail(''); }}
+              className="mt-3 text-sm transition-opacity hover:opacity-70"
+              style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '3px' }}
             >
               Try a different email
             </button>
@@ -609,7 +621,7 @@ export default function DiscoverLanding() {
         <div className="absolute right-0 top-0 bottom-0 w-32 pointer-events-none z-10"
           style={{ background: `linear-gradient(to left, ${T.BG}, transparent)` }} />
 
-        <div className="flex flex-col items-center gap-12 w-full px-[100px]">
+        <div className="flex flex-col items-center gap-12 w-full px-6 md:px-[100px]">
           {/* Section label */}
           <div
             className="inline-flex items-center justify-center px-9 py-5 rounded-[32px] text-sm"
@@ -636,7 +648,7 @@ export default function DiscoverLanding() {
       </section>
 
       {/* ══ FEATURES ═════════════════════════════════════════════════════ */}
-      <section id="features" className="px-[100px] mt-[80px]">
+      <section id="features" className="px-6 md:px-[100px] mt-[80px]">
         <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-[42px]">
 
           {/* Section label */}
@@ -673,14 +685,13 @@ export default function DiscoverLanding() {
           </div>
 
           {/* Bento grid — sharp edges, merged borders */}
-          <div className="flex w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 w-full">
             {FEATURES.map(({ icon: Icon, title, body }, i) => (
               <div
                 key={title}
-                className="flex-1 flex flex-col gap-6 p-10"
+                className="flex flex-col gap-6 p-6 md:p-10"
                 style={{
                   ...bentoStyle,
-                  marginRight: i < FEATURES.length - 1 ? '-1px' : undefined,
                   borderRadius: 0,
                 }}
               >
@@ -706,7 +717,7 @@ export default function DiscoverLanding() {
       </section>
 
       {/* ══ PRICING ══════════════════════════════════════════════════════ */}
-      <section id="pricing" className="relative px-[100px] py-[37px] mt-[120px] overflow-hidden">
+      <section id="pricing" className="relative px-6 md:px-[100px] py-[37px] mt-[120px] overflow-hidden">
 
         {/* Amber glow from Figma pricing SVG — rising from bottom center */}
         <div
@@ -753,7 +764,7 @@ export default function DiscoverLanding() {
                 <button
                   key={label}
                   onClick={() => setBillingAnnual(label === 'Annually')}
-                  className="flex items-center justify-center w-[120px] h-full rounded-[32px] text-sm transition-all"
+                  className="flex items-center justify-center w-[120px] h-full rounded-[32px] text-sm transition-all duration-200 ease-out active:scale-[0.97]"
                   style={{
                     fontFamily: "'Inter', sans-serif",
                     background: active ? T.FG : 'transparent',
@@ -767,7 +778,7 @@ export default function DiscoverLanding() {
           </div>
 
           {/* Cards */}
-          <div className="flex w-full">
+          <div className="flex flex-col md:flex-row w-full">
 
             {/* Free */}
             <div className="flex flex-col flex-1" style={{ marginRight: '-1px' }}>
@@ -804,19 +815,19 @@ export default function DiscoverLanding() {
               </div>
             </div>
 
-            {/* Pro — elevated */}
-            <div className="flex flex-col shrink-0 w-[438px]" style={{ marginRight: '-1px', marginTop: '-26px', marginBottom: '-26px' }}>
+            {/* Plus — elevated */}
+            <div className="flex flex-col shrink-0 w-full md:w-[438px] md:-my-[26px]" style={{ marginRight: '-1px' }}>
               <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Plus</p>
                 <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
               </div>
               <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
                 <div className="flex flex-col gap-2 flex-1">
                   <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
-                    {billingAnnual ? '$9/mo' : '$15/mo'}
+                    {billingAnnual ? '$15/mo' : '$20/mo'}
                   </p>
                   <p className="text-xs" style={{ color: T.TEXT_SEC }}>
-                    {billingAnnual ? 'Billed annually ($108/yr)' : 'Billed monthly'}
+                    {billingAnnual ? 'Billed annually ($180/yr)' : 'Billed monthly'}
                   </p>
                   <div className="flex flex-col gap-px mt-5">
                     {['All platforms connected', 'Unlimited memories', 'Expert reflection engine', 'Soul signature portrait', 'Goal tracking & nudges'].map(f => (
@@ -833,23 +844,27 @@ export default function DiscoverLanding() {
                   className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
                   style={{ background: T.CTA_BG, color: T.CTA_FG, fontFamily: "'Inter', sans-serif" }}
                 >
-                  Start with Pro
+                  Start with Plus
                 </button>
               </div>
             </div>
 
-            {/* Enterprise */}
+            {/* Pro */}
             <div className="flex flex-col flex-1">
               <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Enterprise</p>
-                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For teams and organizations</p>
+                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
+                <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For power users who want it all</p>
               </div>
               <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
                 <div className="flex flex-col gap-2 flex-1">
-                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>Custom</p>
-                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>Flexible billing</p>
+                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
+                    {billingAnnual ? '$75/mo' : '$100/mo'}
+                  </p>
+                  <p className="text-xs" style={{ color: T.TEXT_SEC }}>
+                    {billingAnnual ? 'Billed annually ($900/yr)' : 'Billed monthly'}
+                  </p>
                   <div className="flex flex-col gap-px mt-5">
-                    {['Everything in Pro', 'Team soul signatures', 'Custom integrations', 'Priority support'].map(f => (
+                    {['Everything in Plus', 'Unlimited reflections & insights', 'Personality oracle fine-tuning', 'Priority support', 'Early access to new features'].map(f => (
                       <div key={f} className="flex items-center gap-2 h-6">
                         <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
                         <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
@@ -858,6 +873,7 @@ export default function DiscoverLanding() {
                   </div>
                 </div>
                 <button
+                  onClick={() => navigate('/auth')}
                   className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
                   style={{
                     background: T.GHOST_BG,
@@ -866,7 +882,7 @@ export default function DiscoverLanding() {
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
-                  Book a demo
+                  Start with Pro
                 </button>
               </div>
             </div>
@@ -876,7 +892,7 @@ export default function DiscoverLanding() {
       </section>
 
       {/* ══ FAQ ══════════════════════════════════════════════════════════ */}
-      <section id="faq" className="px-[100px] mt-[120px] mb-[120px]">
+      <section id="faq" className="px-6 md:px-[100px] mt-[120px] mb-[120px]">
         <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-14">
 
           <div
@@ -886,10 +902,10 @@ export default function DiscoverLanding() {
             FAQ
           </div>
 
-          <div className="flex gap-8 items-start w-full">
+          <div className="flex flex-col md:flex-row gap-8 items-start w-full">
 
             {/* Left — CTA */}
-            <div className="flex-1 flex flex-col gap-4 px-[60px] py-[10px] relative">
+            <div className="flex-1 flex flex-col gap-4 px-4 md:px-[60px] py-[10px] relative">
               <div
                 className="absolute pointer-events-none"
                 style={{
@@ -970,9 +986,9 @@ export default function DiscoverLanding() {
           <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_3, opacity: 0.5 }} />
         </div>
 
-        <div className="relative max-w-[1512px] mx-auto px-[100px] pt-12 pb-8">
+        <div className="relative max-w-[1512px] mx-auto px-6 md:px-[100px] pt-12 pb-8">
           {/* Top — 2 column links */}
-          <div className="flex justify-end gap-[200px] mb-[200px]">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-8 sm:gap-[200px] mb-16 md:mb-[200px]">
             <div className="flex flex-col gap-3">
               <p className="text-sm font-medium" style={{ color: T.FG }}>Resources</p>
               {[
@@ -1015,13 +1031,13 @@ export default function DiscoverLanding() {
 
           {/* Bottom bar */}
           <div
-            className="flex items-center justify-between pt-4"
+            className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4"
             style={{ borderTop: `1px solid ${T.CARD_BDR}` }}
           >
             <p className="text-sm" style={{ color: T.TEXT_SEC }}>©2026 TwinMe Inc.</p>
             <div className="flex items-center gap-8">
               <a href="/terms" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Terms of service</a>
-              <a href="/privacy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
+              <a href="/privacy-policy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
             </div>
           </div>
         </div>

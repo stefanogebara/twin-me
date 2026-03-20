@@ -110,7 +110,7 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
                   </span>
                   <button
                     onClick={() => handleDiscuss(insight)}
-                    className="text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0"
+                    className="text-[11px] bg-transparent border-none cursor-pointer transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97] p-0"
                     style={{ color: 'var(--text-narrative-secondary, #ff8400)' }}
                   >
                     Discuss with twin &rarr;

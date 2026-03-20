@@ -228,7 +228,7 @@ const GoalsPage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/get-started')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
             style={{
               backgroundColor: '#10b77f',
               color: '#0a0f0a',
@@ -340,7 +340,7 @@ const GoalsPage: React.FC = () => {
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-6" />
           <button
             onClick={() => setShowCompleted((prev) => !prev)}
-            className="flex items-center gap-2 w-full text-left transition-opacity hover:opacity-70 mb-4"
+            className="flex items-center gap-2 w-full text-left transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.98] mb-4"
           >
             <Trophy className="w-4 h-4" style={{ color: '#10b77f' }} />
             <span

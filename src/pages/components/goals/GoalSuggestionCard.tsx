@@ -15,6 +15,22 @@ import {
 import { TEXT_PRIMARY, TEXT_SECONDARY, BORDER_COLOR, PILL_STYLE, CATEGORY_ICONS } from './goalStyles';
 import type { Goal } from '@/services/api/goalsAPI';
 
+const PLATFORM_LABELS: Record<string, string> = {
+  spotify: 'Spotify',
+  google_calendar: 'Google Calendar',
+  youtube: 'YouTube',
+  discord: 'Discord',
+  linkedin: 'LinkedIn',
+  github: 'GitHub',
+  reddit: 'Reddit',
+  twitch: 'Twitch',
+  whoop: 'Whoop',
+  gmail: 'Gmail',
+};
+
+const formatPlatformName = (platform: string): string =>
+  PLATFORM_LABELS[platform] || platform.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
 interface GoalSuggestionCardProps {
   goal: Goal;
   onAccept: (id: string) => void;
@@ -115,7 +131,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
                   border: `1px solid ${BORDER_COLOR}`,
                 }}
               >
-                via {goal.source_platform}
+                via {formatPlatformName(goal.source_platform)}
               </span>
             )}
           </div>
@@ -125,7 +141,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
             <button
               onClick={() => onAccept(goal.id)}
               disabled={isLoading}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.96] disabled:opacity-40"
               style={{
                 backgroundColor: '#10b77f',
                 color: '#0a0f0a',
@@ -142,7 +158,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
             <button
               onClick={() => onDismiss(goal.id)}
               disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-opacity hover:opacity-70 disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.96] disabled:opacity-40"
               style={{ color: TEXT_SECONDARY }}
             >
               {isDismissing ? (

@@ -84,7 +84,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
       {/* Sidebar wrapper — overflow-visible so the toggle button can protrude */}
       <div
         className={cn(
-          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-300",
+          "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           isExpanded ? "w-64" : "w-20 lg:w-20",
           "overflow-visible"
@@ -165,17 +165,29 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               style={{ width: isExpanded ? 36 : 32, height: isExpanded ? 36 : 32 }}
             />
             {isExpanded && (
-              <span
-                className="text-2xl"
-                style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
-                  fontWeight: 400,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--foreground)'
-                }}
-              >
-                Twin Me
-              </span>
+              <>
+                <span
+                  className="text-2xl"
+                  style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontWeight: 400,
+                    letterSpacing: '-0.02em',
+                    color: 'var(--foreground)'
+                  }}
+                >
+                  Twin Me
+                </span>
+                <span
+                  className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
+                  style={{
+                    backgroundColor: 'rgba(255,132,0,0.12)',
+                    color: '#ff8400',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  BETA
+                </span>
+              </>
             )}
           </button>
         </div>
@@ -192,7 +204,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-full transition-all duration-200",
+                  "w-full flex items-center gap-3 rounded-full transition-all duration-150 ease-out active:scale-[0.97]",
                   isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
                     ? "font-medium"
@@ -223,7 +235,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           <button
             onClick={handleSignOut}
             className={cn(
-              "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-200",
+              "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-150 ease-out active:scale-[0.97]",
               isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center"
             )}
             title="Sign Out"
