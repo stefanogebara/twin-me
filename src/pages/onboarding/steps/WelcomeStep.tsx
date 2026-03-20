@@ -1,31 +1,83 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import ParticleField from '../components/ParticleField';
 
 interface WelcomeStepProps {
   onBegin: () => void;
 }
 
+/**
+ * Subtle welcome chime using Web Audio API — no file needed.
+ * Two soft sine tones (C5 + E5) with quick decay. Respects reduced motion.
+ */
+function playWelcomeChime() {
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+
+    [523.25, 659.25].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + i * 0.12);
+      gain.gain.linearRampToValueAtTime(0.06, now + i * 0.12 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.8);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.12);
+      osc.stop(now + i * 0.12 + 1);
+    });
+
+    // Cleanup after sounds finish
+    setTimeout(() => ctx.close(), 2000);
+  } catch {
+    // Web Audio not available — silent fallback
+  }
+}
+
 const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
+  const chimePlayedRef = useRef(false);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 200);
     return () => clearTimeout(t);
   }, []);
 
+  // Play chime once content is visible
+  useEffect(() => {
+    if (visible && !chimePlayedRef.current) {
+      chimePlayedRef.current = true;
+      // Small delay so it feels intentional, not jarring
+      setTimeout(playWelcomeChime, 600);
+    }
+  }, [visible]);
+
   const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'you';
+
+  const handleSkipToChat = useCallback(() => {
+    navigate('/talk-to-twin');
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden">
+      {/* Particle field — warm amber floating particles behind content */}
+      <div className="absolute inset-0 pointer-events-none">
+        <ParticleField />
+      </div>
+
       {/* Ambient glow behind content */}
       <div
         className="absolute pointer-events-none"
         style={{
-          width: '500px',
-          height: '500px',
+          width: '600px',
+          height: '600px',
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,132,0,0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(255,132,0,0.1) 0%, rgba(193,126,44,0.04) 40%, transparent 70%)',
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -55%)',
@@ -40,7 +92,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
           transition: 'opacity 0.9s ease-out, transform 0.9s ease-out',
         }}
       >
-        {/* Flower brand mark */}
+        {/* Flower brand mark — gentle float animation */}
         <div
           className="mb-8 flex justify-center"
           style={{
@@ -52,6 +104,9 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
             src="/images/backgrounds/flower-hero.png"
             alt="Twin Me"
             className="w-20 h-20 object-contain drop-shadow-lg"
+            style={{
+              animation: visible ? 'welcomeFloat 4s ease-in-out infinite' : 'none',
+            }}
           />
         </div>
 
@@ -92,7 +147,6 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
         {/* CTA — brand orange, warm pill */}
         <button
           onClick={onBegin}
-          className="group"
           style={{
             fontFamily: "'Inter', sans-serif",
             backgroundColor: '#ff8400',
@@ -121,7 +175,41 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
         >
           Let's go
         </button>
+
+        {/* Skip link for returning users */}
+        <div
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 0.8s ease-out 1.2s',
+          }}
+        >
+          <button
+            onClick={handleSkipToChat}
+            className="mt-8 text-[12px] transition-opacity hover:opacity-70"
+            style={{
+              color: 'rgba(255,255,255,0.2)',
+              fontFamily: "'Inter', sans-serif",
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Already set up? Skip to chat
+          </button>
+        </div>
       </div>
+
+      {/* CSS animation for flower float */}
+      <style>{`
+        @keyframes welcomeFloat {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          25% { transform: translateY(-6px) rotate(1deg); }
+          75% { transform: translateY(4px) rotate(-1deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .welcome-float { animation: none !important; }
+        }
+      `}</style>
     </div>
   );
 };
