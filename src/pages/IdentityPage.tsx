@@ -214,31 +214,93 @@ const IdentityPage: React.FC = () => {
       </p>
 
       {summary && (
-        <SoulChapter
-          summary={summary}
-          archetype={profile?.archetype ?? null}
-          uniquenessMarkers={uniquenessMarkers}
-        />
+        <div
+          className="rounded-[20px] px-6 py-6 mb-8"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+          }}
+        >
+          <SoulChapter
+            summary={summary}
+            archetype={profile?.archetype ?? null}
+            uniquenessMarkers={uniquenessMarkers}
+          />
+        </div>
       )}
-
-      {oceanCards && <ByTheNumbersChapter oceanCards={oceanCards} />}
 
       {oceanCards && (
-        <PersonalityChapter
-          oceanCards={oceanCards}
-          temperature={pp?.temperature ?? null}
-          topP={pp?.top_p ?? null}
-          confidence={pp?.confidence ?? null}
-        />
+        <div
+          className="rounded-[20px] px-6 py-6 mb-8"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+          }}
+        >
+          <ByTheNumbersChapter oceanCards={oceanCards} />
+        </div>
       )}
 
-      <ExpertDomainsChapter expertInsights={expertInsights} />
+      {oceanCards && (
+        <div
+          className="rounded-[20px] px-6 py-6 mb-8"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+          }}
+        >
+          <PersonalityChapter
+            oceanCards={oceanCards}
+            temperature={pp?.temperature ?? null}
+            topP={pp?.top_p ?? null}
+            confidence={pp?.confidence ?? null}
+          />
+        </div>
+      )}
+
+      <div
+        className="rounded-[20px] px-6 py-6 mb-8"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <ExpertDomainsChapter expertInsights={expertInsights} />
+      </div>
 
       {musicGenres.length > 0 && (
-        <MusicSignatureChapter genres={musicGenres} listeningPattern={listeningPattern} />
+        <div
+          className="rounded-[20px] px-6 py-6 mb-8"
+          style={{
+            background: 'var(--glass-surface-bg)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+          }}
+        >
+          <MusicSignatureChapter genres={musicGenres} listeningPattern={listeningPattern} />
+        </div>
       )}
 
-      <WhatsNextChapter />
+      <div
+        className="rounded-[20px] px-6 py-6"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <WhatsNextChapter />
+      </div>
     </div>
   );
 };

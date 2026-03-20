@@ -192,15 +192,15 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-lg transition-all duration-200",
+                  "w-full flex items-center gap-3 rounded-full transition-all duration-200",
                   isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
                   active
                     ? "font-medium"
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: 'var(--foreground)',
+                  background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                  color: 'var(--accent-vibrant, #ff8400)',
                 } : {
                   color: 'rgba(255, 255, 255, 0.45)',
                 }}
@@ -208,7 +208,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               >
                 <Icon
                   className="w-5 h-5"
-                  style={active ? { color: 'var(--foreground)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
+                  style={active ? { color: 'var(--accent-vibrant, #ff8400)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
                 {isExpanded && <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: active ? 500 : 400 }}>{item.label}</span>}
