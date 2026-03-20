@@ -358,7 +358,7 @@ export async function generateGoalsBlock(userId) {
   try {
     const { data: goals } = await supabaseAdmin
       .from('twin_goals')
-      .select('goal_title, progress, target_value, metric_type, current_streak')
+      .select('title, total_days_met, total_days_tracked, current_streak')
       .eq('user_id', userId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
@@ -369,9 +369,11 @@ export async function generateGoalsBlock(userId) {
     }
 
     const content = goals.map(g => {
-      const progress = g.progress != null ? ` (${Math.round(g.progress)}%)` : '';
+      const progress = g.total_days_tracked > 0
+        ? ` (${Math.round((g.total_days_met / g.total_days_tracked) * 100)}%)`
+        : '';
       const streak = g.current_streak > 0 ? ` - ${g.current_streak} day streak` : '';
-      return `- ${g.goal_title}${progress}${streak}`;
+      return `- ${g.title}${progress}${streak}`;
     }).join('\n');
 
     await updateBlock(userId, 'goals', content, 'system');
