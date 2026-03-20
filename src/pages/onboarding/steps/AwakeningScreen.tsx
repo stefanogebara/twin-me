@@ -59,7 +59,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
   }, [message, loading]);
 
   // Progress the orb phase as text types
-  const orbPhase = loading ? 'dormant' : done ? 'active' : 'awakening';
+  const orbPhase = loading ? 'dormant' : done ? 'alive' : 'awakening';
 
   return (
     <div className="h-screen flex flex-col items-center px-6 py-10">
