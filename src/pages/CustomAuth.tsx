@@ -26,12 +26,13 @@ const CustomAuth = () => {
     trackFunnel('auth_page_viewed', {});
     const urlCode = searchParams.get('invite');
     const storedCode = sessionStorage.getItem('beta_invite_code');
+    // URL param always wins over stale sessionStorage
     const code = urlCode || storedCode || '';
 
     if (code) {
       setInviteCode(code);
-      sessionStorage.setItem('beta_invite_code', code);
-      // Auto-validate
+      // Only persist if from URL (fresh) — sessionStorage already has stale one
+      if (urlCode) sessionStorage.setItem('beta_invite_code', code);
       validateCode(code);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -55,6 +56,7 @@ const CustomAuth = () => {
         trackFunnel('beta_invite_validated', { code: code.trim() });
       } else {
         setError(data.error || 'Invalid invite code');
+        sessionStorage.removeItem('beta_invite_code');
       }
     } catch {
       setInviteValid(false);

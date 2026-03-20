@@ -511,8 +511,9 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
     // Handle partial save on skip (forceComplete from "Done for now" button)
     if (forceComplete && rawHistory && userId) {
       try {
+        // Pair each assistant question with the next user answer (handles any message order)
         const pairs = [];
-        for (let i = 0; i < rawHistory.length - 1; i += 2) {
+        for (let i = 0; i < rawHistory.length - 1; i++) {
           if (rawHistory[i]?.role === 'assistant' && rawHistory[i + 1]?.role === 'user') {
             pairs.push({ question: rawHistory[i].content, answer: rawHistory[i + 1].content });
           }
@@ -525,6 +526,8 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
             });
           }
           log.info('Partial interview saved', { userId, pairs: pairs.length });
+        } else {
+          log.info('No Q&A pairs to save', { userId, historyLength: rawHistory.length });
         }
       } catch (err) {
         log.error('Partial interview save failed', { error: err });

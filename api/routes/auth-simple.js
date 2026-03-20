@@ -196,6 +196,7 @@ router.post('/signup', authLimiter, async (req, res) => {
       const inviteCode = req.body.inviteCode;
       const preInvite = await betaInviteService.isEmailPreInvited(normalizedEmail);
       const code = inviteCode || preInvite?.code;
+      req._betaInviteCode = code; // Cache for redemption after user creation
 
       if (!code) {
         betaInviteService.addToWaitlist(normalizedEmail, `${(firstName || '')} ${(lastName || '')}`.trim(), 'rejected_signup').catch(() => {});
@@ -228,11 +229,9 @@ router.post('/signup', authLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Failed to create user' });
     }
 
-    // Redeem invite code after email signup
+    // Redeem invite code after email signup (reuse code from gate check above)
     if (betaInviteService.isBetaGateEnabled()) {
-      const inviteCode = req.body.inviteCode;
-      const preInvite = await betaInviteService.isEmailPreInvited(normalizedEmail);
-      const code = inviteCode || preInvite?.code;
+      const code = req.body.inviteCode || req._betaInviteCode;
       if (code) {
         betaInviteService.redeemInviteCode(code, newUser.id).catch(err =>
           log.error('Invite redeem failed (non-blocking)', { error: err })
@@ -747,18 +746,19 @@ router.get('/oauth/callback', async (req, res) => {
 
     if (!user) {
       // Beta gate: check invite code for new users
+      let resolvedInviteCode = null;
       if (betaInviteService.isBetaGateEnabled()) {
         const inviteCode = stateData?.inviteCode;
         const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
-        const code = inviteCode || preInvite?.code;
+        resolvedInviteCode = inviteCode || preInvite?.code;
 
-        if (!code) {
+        if (!resolvedInviteCode) {
           log.info('New user rejected (no invite code)', { email: userData.email });
           betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
           return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}`);
         }
 
-        const validation = await betaInviteService.validateInviteCode(code);
+        const validation = await betaInviteService.validateInviteCode(resolvedInviteCode);
         if (!validation.valid) {
           log.info('New user rejected (invalid invite)', { email: userData.email, error: validation.error });
           betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'invalid_invite').catch(() => {});
@@ -786,16 +786,11 @@ router.get('/oauth/callback', async (req, res) => {
 
       user = newUser;
 
-      // Redeem invite code after successful user creation
-      if (betaInviteService.isBetaGateEnabled()) {
-        const inviteCode = stateData?.inviteCode;
-        const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
-        const code = inviteCode || preInvite?.code;
-        if (code) {
-          betaInviteService.redeemInviteCode(code, user.id).catch(err =>
-            log.error('Invite redeem failed (non-blocking)', { error: err })
-          );
-        }
+      // Redeem invite code after successful user creation (reuse cached code)
+      if (resolvedInviteCode) {
+        betaInviteService.redeemInviteCode(resolvedInviteCode, user.id).catch(err =>
+          log.error('Invite redeem failed (non-blocking)', { error: err })
+        );
       }
 
       // Trigger background enrichment for new users
@@ -1002,18 +997,19 @@ router.post('/oauth/callback', async (req, res) => {
 
       if (!existingUser) {
         // Beta gate: check invite code for new users (POST callback)
+        let resolvedInviteCodePost = null;
         if (betaInviteService.isBetaGateEnabled()) {
           const inviteCode = stateData?.inviteCode || req.body?.inviteCode;
           const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
-          const code = inviteCode || preInvite?.code;
+          resolvedInviteCodePost = inviteCode || preInvite?.code;
 
-          if (!code) {
+          if (!resolvedInviteCodePost) {
             log.info('New user rejected via POST (no invite)', { email: userData.email });
             betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
             return res.status(403).json({ success: false, error: 'Beta invite code required', waitlist: true });
           }
 
-          const validation = await betaInviteService.validateInviteCode(code);
+          const validation = await betaInviteService.validateInviteCode(resolvedInviteCodePost);
           if (!validation.valid) {
             log.info('New user rejected via POST (invalid invite)', { email: userData.email });
             return res.status(403).json({ success: false, error: validation.error, waitlist: true });
@@ -1055,16 +1051,11 @@ router.post('/oauth/callback', async (req, res) => {
         log.info('New user created', { userId: newUser.id });
         user = newUser;
 
-        // Redeem invite code after user creation (POST callback)
-        if (betaInviteService.isBetaGateEnabled()) {
-          const inviteCode = stateData?.inviteCode || req.body?.inviteCode;
-          const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
-          const code = inviteCode || preInvite?.code;
-          if (code) {
-            betaInviteService.redeemInviteCode(code, user.id).catch(err =>
-              log.error('Invite redeem failed (non-blocking)', { error: err })
-            );
-          }
+        // Redeem invite code after user creation (reuse cached code)
+        if (resolvedInviteCodePost) {
+          betaInviteService.redeemInviteCode(resolvedInviteCodePost, user.id).catch(err =>
+            log.error('Invite redeem failed (non-blocking)', { error: err })
+          );
         }
 
         // Trigger background enrichment for new users

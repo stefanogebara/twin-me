@@ -122,20 +122,22 @@ const TalkToTwin = () => {
   }, [messages]);
 
   // Auto-send message from "Discuss with Twin" / dashboard chat navigation
-  const pendingDiscussContext = useRef<string | null>(null);
+  const autoSendFired = useRef(false);
+  const pendingAutoSend = useRef<string | null>(null);
   useEffect(() => {
     const state = location.state as { discussContext?: string } | null;
-    if (state?.discussContext) {
-      pendingDiscussContext.current = state.discussContext;
+    if (state?.discussContext && !autoSendFired.current) {
+      pendingAutoSend.current = state.discussContext;
       setInputMessage(state.discussContext);
       window.history.replaceState({}, '');
     }
   }, [location.state]);
 
-  // Fire auto-send once inputMessage is set and user is loaded
+  // Trigger send once input is set and user is ready — fires at most once
   useEffect(() => {
-    if (pendingDiscussContext.current && inputMessage === pendingDiscussContext.current && user?.id) {
-      pendingDiscussContext.current = null;
+    if (pendingAutoSend.current && user?.id && !autoSendFired.current && inputMessage === pendingAutoSend.current) {
+      autoSendFired.current = true;
+      pendingAutoSend.current = null;
       handleSendMessage();
     }
   }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -634,7 +634,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
             }
             // Save partial interview answers as memories before skipping
             const token = getAuthToken();
-            if (token && messages.length >= 2) {
+            const userAnswers = messages.filter(m => m.role === 'user');
+            if (token && userAnswers.length > 0) {
               fetch(`${API_URL}/onboarding/calibrate`, {
                 method: 'POST',
                 headers: {
@@ -647,7 +648,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                   domainProgress,
                   forceComplete: true,
                 }),
-              }).catch(() => {});
+              }).catch(err => console.warn('[DeepInterview] Partial save failed:', err));
             }
             clearProgress();
             onSkip();
