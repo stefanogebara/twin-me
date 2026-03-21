@@ -20,6 +20,7 @@ import { getBlocks } from './coreMemoryService.js';
 import { canAct, logAgentAction, getAutonomyBySkillName } from './autonomyService.js';
 import { checkPolicy } from './policyEngine.js';
 import { getRedisClient, isRedisAvailable } from './redisClient.js';
+import { reportProgress } from './taskProgressService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
@@ -317,6 +318,15 @@ export async function runAgentLoop(userId, taskDescription, options = {}) {
     const taskContext = buildTaskContext(plan, stepResults, i);
     const result = await executeStep(userId, step, taskContext);
     stepResults.push({ ...step, result });
+
+    // Report progress (fire-and-forget — don't block the loop)
+    reportProgress(userId, `task_${Date.now()}`, {
+      step: i + 1,
+      total: Math.min(plan.steps.length, maxSteps),
+      status: result.success ? 'done' : 'failed',
+      detail: step.action?.slice(0, 80),
+      summary: plan.summary,
+    }).catch(() => {});
 
     // Track errors for future avoidance
     if (!result.success && step.tool) {

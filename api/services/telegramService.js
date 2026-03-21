@@ -109,3 +109,55 @@ export async function sendInsight(chatId, insight) {
 
   return sendMessage(chatId, formatted, options);
 }
+
+/**
+ * Edit an existing Telegram message (for progress updates).
+ */
+export async function editMessage(chatId, messageId, text, options = {}) {
+  const b = getBot();
+  if (!b) return { success: false, error: 'bot_not_initialized' };
+
+  try {
+    await b.api.editMessageText(chatId, messageId, text, {
+      parse_mode: 'Markdown',
+      ...options,
+    });
+    return { success: true };
+  } catch (err) {
+    // "message is not modified" is expected when text hasn't changed
+    if (err.message?.includes('not modified')) return { success: true };
+    log.error('Failed to edit Telegram message', { chatId, messageId, error: err.message });
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Build an inline keyboard with quick-reply suggestion buttons.
+ * Used after twin responses that contain questions or suggestions.
+ */
+export function buildQuickReplyKeyboard(options) {
+  if (!options || options.length === 0) return null;
+  return {
+    inline_keyboard: [options.slice(0, 3).map(opt => ({
+      text: opt.text || opt,
+      callback_data: `quick_reply_${opt.value || opt.text || opt}`.slice(0, 64),
+    }))],
+  };
+}
+
+/**
+ * Format a morning briefing for rich Telegram delivery.
+ * Sections: greeting, health, calendar, music, closing.
+ */
+export function formatBriefingCard(data) {
+  const parts = [];
+
+  parts.push(`\u2615 *Morning Briefing*`);
+  if (data.greeting) parts.push(data.greeting);
+  if (data.health) parts.push(`\n\u{1F4AA} *Health*\n${data.health}`);
+  if (data.calendar) parts.push(`\n\u{1F4C5} *Today*\n${data.calendar}`);
+  if (data.music) parts.push(`\n\u{1F3B5} *Music*\n${data.music}`);
+  if (data.closing) parts.push(`\n${data.closing}`);
+
+  return parts.join('\n');
+}

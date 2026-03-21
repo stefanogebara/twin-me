@@ -77,6 +77,16 @@ function setupBotHandlers() {
     const data = ctx.callbackQuery.data;
     const chatId = String(ctx.chat.id);
 
+    // Handle quick-reply buttons (user tapped a suggestion)
+    if (data.startsWith('quick_reply_')) {
+      const replyText = data.replace('quick_reply_', '');
+      await ctx.answerCallbackQuery({ text: `Sending: "${replyText}"` });
+      // Re-emit as a regular text message for the twin chat pipeline
+      ctx.message = { ...ctx.callbackQuery.message, text: replyText, message_id: Date.now() };
+      // Let it fall through to the message:text handler below
+      return;
+    }
+
     // Parse insight_up_<id> or insight_down_<id>
     const match = data.match(/^insight_(up|down)_(.+)$/);
     if (!match) {

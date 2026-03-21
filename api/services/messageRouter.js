@@ -9,6 +9,7 @@
  */
 
 import { sendInsight as sendTelegramInsight } from './telegramService.js';
+import { sendWhatsAppInsight } from './whatsappService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
@@ -66,8 +67,10 @@ export async function deliverInsight(userId, insight) {
       if (ch.channel === 'telegram') {
         const result = await sendTelegramInsight(ch.channel_id, insight);
         results.push({ channel: 'telegram', ...result });
+      } else if (ch.channel === 'whatsapp') {
+        const result = await sendWhatsAppInsight(ch.channel_id, insight);
+        results.push({ channel: 'whatsapp', ...result });
       }
-      // Future: whatsapp, sms, etc.
     } catch (err) {
       log.warn('Channel delivery failed', { channel: ch.channel, userId, error: err.message });
       results.push({ channel: ch.channel, success: false, error: err.message });
