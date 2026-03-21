@@ -15,7 +15,9 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { getValidAccessToken } from './tokenRefreshService.js';
 import { createLogger } from './logger.js';
+import axios from 'axios';
 
 const log = createLogger('ToolRegistry');
 
@@ -229,6 +231,96 @@ function registerBuiltInTools() {
         .limit(1)
         .single();
       return data?.raw_data || [];
+    }
+  });
+
+  // Genre-energy mapping for playlist scoring (shared with spotify-oauth.js)
+  const GENRE_ENERGY_MAP = {
+    calm: ['ambient', 'classical', 'jazz', 'acoustic', 'chill', 'piano', 'blues', 'folk', 'soul', 'world-music'],
+    focused: ['indie', 'alternative', 'folk', 'indie-pop', 'singer-songwriter', 'acoustic', 'jazz', 'blues', 'classical', 'study'],
+    energizing: ['pop', 'rock', 'hip-hop', 'r-n-b', 'soul', 'funk', 'disco', 'synth-pop', 'indie-pop', 'dance', 'reggae', 'party'],
+    power: ['edm', 'dance', 'electronic', 'house', 'techno', 'dubstep', 'drum-and-bass', 'metal', 'punk', 'hardcore', 'hardstyle', 'trance'],
+  };
+
+  registerTool({
+    name: 'spotify_search_playlists',
+    platform: 'spotify',
+    description: 'Search user playlists filtered by energy level (calm/focused/energizing/power). Returns top 3 matches.',
+    category: 'music',
+    parameters: {
+      type: 'object',
+      properties: {
+        energyLevel: { type: 'string', enum: ['calm', 'focused', 'energizing', 'power'], description: 'Target energy level' }
+      },
+      required: ['energyLevel']
+    },
+    requiresConnection: true,
+    executor: async (userId, params) => {
+      const tokenResult = await getValidAccessToken(userId, 'spotify');
+      if (!tokenResult.success) return { success: false, error: 'Spotify not connected' };
+
+      const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+      // Fetch user playlists
+      const playlistsRes = await axios.get('https://api.spotify.com/v1/me/playlists?limit=50', { headers, timeout: 8000 });
+      const playlists = playlistsRes.data?.items || [];
+      if (playlists.length === 0) return [];
+
+      // Score each playlist by name heuristics (fast, no extra API calls)
+      const targetLevel = params.energyLevel || 'focused';
+      const targetGenres = GENRE_ENERGY_MAP[targetLevel] || GENRE_ENERGY_MAP.focused;
+
+      const scored = playlists.map(pl => {
+        const name = (pl.name || '').toLowerCase();
+        let score = 0;
+        for (const genre of targetGenres) {
+          if (name.includes(genre)) score += 10;
+        }
+        // Boost common mood keywords in playlist names
+        if (targetLevel === 'calm' && /chill|relax|sleep|ambient|quiet|peace/i.test(name)) score += 15;
+        if (targetLevel === 'focused' && /focus|study|work|deep|concentrate|flow/i.test(name)) score += 15;
+        if (targetLevel === 'energizing' && /energy|hype|pump|morning|vibe|party|mood/i.test(name)) score += 15;
+        if (targetLevel === 'power' && /workout|gym|beast|power|intense|run|lift/i.test(name)) score += 15;
+        return { id: pl.id, name: pl.name, trackCount: pl.tracks?.total || 0, imageUrl: pl.images?.[0]?.url, score };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      return scored.slice(0, 3).map(({ score, ...rest }) => rest);
+    }
+  });
+
+  registerTool({
+    name: 'spotify_start_playlist',
+    platform: 'spotify',
+    description: 'Start playing a Spotify playlist on the user\'s active device',
+    category: 'music',
+    parameters: {
+      type: 'object',
+      properties: {
+        playlistId: { type: 'string', description: 'Spotify playlist ID to play' }
+      },
+      required: ['playlistId']
+    },
+    requiresConnection: true,
+    executor: async (userId, params) => {
+      const tokenResult = await getValidAccessToken(userId, 'spotify');
+      if (!tokenResult.success) return { success: false, error: 'Spotify not connected' };
+
+      const headers = { Authorization: `Bearer ${tokenResult.accessToken}`, 'Content-Type': 'application/json' };
+
+      try {
+        await axios.put(
+          'https://api.spotify.com/v1/me/player/play',
+          { context_uri: `spotify:playlist:${params.playlistId}` },
+          { headers, timeout: 8000 }
+        );
+        return { success: true, playlistId: params.playlistId, action: 'playback_started' };
+      } catch (err) {
+        if (err.response?.status === 404) {
+          return { success: false, error: 'no_active_device', message: 'No active Spotify device found. Open Spotify on any device first.' };
+        }
+        return { success: false, error: err.response?.status || err.message };
+      }
     }
   });
 

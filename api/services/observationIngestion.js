@@ -3525,6 +3525,15 @@ async function runObservationIngestion() {
                   log.warn('Prospective condition check failed (non-fatal)', { platform, userId, error: err })
                 );
               }
+
+              // Fire Music Mood Match skill when Whoop data is ingested (non-blocking).
+              // Uses lazy import to avoid circular dependency with inngestClient.
+              if (platform === 'whoop') {
+                import('./inngestClient.js').then(({ inngest, EVENTS }) => {
+                  inngest.send({ name: EVENTS.MUSIC_MOOD_MATCH, data: { userId } })
+                    .catch(err => log.warn('Music mood match trigger failed (non-fatal)', { userId, error: err }));
+                }).catch(() => {});
+              }
             }
 
             // Update last_sync_at in platform_connections for tracking (non-blocking)
