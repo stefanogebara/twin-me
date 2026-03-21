@@ -5,10 +5,11 @@
  * in the twin's system prompt. Prevents personality drift by anchoring
  * the twin's identity in stable, explicitly managed context.
  *
- * Four blocks:
+ * Five blocks:
  *   SOUL_SIGNATURE  — Immutable personality anchor (OCEAN + style + examples)
  *   HUMAN           — Editable user facts (updated by twin + sleep-time agent)
  *   GOALS           — Active goals and priorities
+ *   USER_RULES      — Explicit user instructions the twin must always obey
  *   RECENT_CONTEXT  — Auto-generated 48h behavioral summary
  *
  * Research:
@@ -39,6 +40,12 @@ const BLOCK_DEFINITIONS = Object.freeze({
   goals: {
     displayName: 'Goals',
     maxChars: 800,
+    isImmutable: false,
+    defaultContent: ''
+  },
+  user_rules: {
+    displayName: 'User Rules',
+    maxChars: 1200,
     isImmutable: false,
     defaultContent: ''
   },
@@ -397,13 +404,16 @@ export function formatBlocksForPrompt(blocks) {
   const sections = [];
 
   // Order matters — soul_signature first for maximum attention weight
-  const order = ['soul_signature', 'human', 'goals', 'recent_context'];
+  const order = ['soul_signature', 'human', 'goals', 'user_rules', 'recent_context'];
 
   for (const name of order) {
     const block = blocks[name];
     if (block?.content && block.content.trim().length > 0) {
       const label = BLOCK_DEFINITIONS[name]?.displayName || name;
-      sections.push(`=== ${label.toUpperCase()} ===\n${block.content}`);
+      const header = name === 'user_rules'
+        ? `=== USER RULES (obey these always) ===`
+        : `=== ${label.toUpperCase()} ===`;
+      sections.push(`${header}\n${block.content}`);
     }
   }
 

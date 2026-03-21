@@ -411,6 +411,7 @@ import cronDeliverInsightsRoutes from './routes/cron-deliver-insights.js';
 import cronIntelligentTriggersRoutes from './routes/cron-intelligent-triggers.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
+import userRulesRoutes from './routes/user-rules.js';
 import telegramWebhookRoutes from './routes/telegram-webhook.js';
 import telegramLinkRoutes from './routes/telegram-link.js';
 import inngestRoutes from './routes/inngest.js';
@@ -526,6 +527,7 @@ app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver ins
 app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Daily intelligent triggers (10am UTC)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
+app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
 app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint

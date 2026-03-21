@@ -18,12 +18,75 @@ import { complete, TIER_ANALYSIS, TIER_CHAT } from './llmGateway.js';
 import { getAvailableTools, executeTool, getToolSchemas } from './toolRegistry.js';
 import { getBlocks } from './coreMemoryService.js';
 import { canAct, logAgentAction, getAutonomyBySkillName } from './autonomyService.js';
+import { getRedisClient, isRedisAvailable } from './redisClient.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('AgenticCore');
 
 const MAX_STEPS = 8;
+
+// In-memory fallback for error history when Redis is unavailable
+const errorHistoryCache = new Map();
+const ERROR_HISTORY_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Build a running task checklist (Manus todo.md attention trick).
+ * Keeps the model aware of what's done, what failed, and what's next.
+ */
+function buildTaskContext(plan, stepResults, currentStepIndex) {
+  const lines = [`TASK: ${plan.summary}`, '', 'PROGRESS:'];
+  for (let i = 0; i < plan.steps.length; i++) {
+    const step = plan.steps[i];
+    const result = stepResults[i];
+    const status = result
+      ? (result.result?.success ? '[DONE]' : '[FAILED]')
+      : (i === currentStepIndex ? '[CURRENT]' : '[ ]');
+    lines.push(`${status} Step ${i + 1}: ${step.action}`);
+    if (result?.result?.error) {
+      lines.push(`  Error: ${result.result.error}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Get past error history for a user (from Redis or in-memory fallback).
+ */
+async function getErrorHistory(userId) {
+  try {
+    if (isRedisAvailable()) {
+      const redis = getRedisClient();
+      const data = await redis.get(`agent_errors:${userId}`);
+      return data ? JSON.parse(data) : [];
+    }
+  } catch (err) {
+    log.warn('Failed to read error history from Redis', { error: err.message });
+  }
+  // In-memory fallback
+  const cached = errorHistoryCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < ERROR_HISTORY_TTL_MS) {
+    return cached.errors;
+  }
+  return [];
+}
+
+/**
+ * Save error history for a user (Redis with in-memory fallback).
+ */
+async function saveErrorHistory(userId, errors) {
+  const trimmed = errors.slice(-10); // Keep last 10 errors max
+  try {
+    if (isRedisAvailable()) {
+      const redis = getRedisClient();
+      await redis.set(`agent_errors:${userId}`, JSON.stringify(trimmed), 'EX', 3600);
+      return;
+    }
+  } catch (err) {
+    log.warn('Failed to save error history to Redis', { error: err.message });
+  }
+  errorHistoryCache.set(userId, { errors: trimmed, timestamp: Date.now() });
+}
 
 /**
  * Plan a task: break it into executable steps.
@@ -33,6 +96,17 @@ export async function planTask(userId, taskDescription, context = {}) {
   const coreBlocks = await getBlocks(userId);
   const availableTools = await getAvailableTools(userId);
   const toolNames = availableTools.map(t => `${t.name}: ${t.description}`).join('\n');
+
+  // Fetch past errors so the agent avoids repeating mistakes
+  let errorBlock = '';
+  try {
+    const pastErrors = await getErrorHistory(userId);
+    if (pastErrors.length > 0) {
+      errorBlock = `\nPAST ERRORS (avoid these approaches):\n${pastErrors.map(e => `- Tool "${e.tool}": ${e.error}`).join('\n')}\n`;
+    }
+  } catch (err) {
+    log.warn('Failed to fetch error history', { userId, error: err.message });
+  }
 
   // Fetch procedure memories — learned patterns from past action outcomes
   let procedureBlock = '';
@@ -61,8 +135,7 @@ ${coreBlocks.soul_signature?.content || 'Unknown'}
 USER'S CONTEXT:
 ${coreBlocks.human?.content || 'Unknown'}
 ${coreBlocks.goals?.content || ''}
-${procedureBlock}
-
+${procedureBlock}${errorBlock}
 AVAILABLE TOOLS:
 ${toolNames}
 
@@ -124,8 +197,11 @@ Rules:
 /**
  * Execute a single step from a plan.
  * Calls the specified tool and returns the observation.
+ * @param {string} userId
+ * @param {object} step - Plan step with tool, tool_params, action
+ * @param {string} taskContext - Running task checklist for agent attention
  */
-export async function executeStep(userId, step) {
+export async function executeStep(userId, step, taskContext = '') {
   if (!step.tool) {
     // No tool needed — this is a reasoning/output step
     return { success: true, data: step.action, source: 'reasoning' };
@@ -223,19 +299,31 @@ export async function runAgentLoop(userId, taskDescription, options = {}) {
     return { success: false, reason: 'planning_failed' };
   }
 
-  // Phase 2: Execute steps
+  // Phase 2: Execute steps with running task checklist (Manus todo.md trick)
   const stepResults = [];
-  for (const step of plan.steps.slice(0, maxSteps)) {
-    const result = await executeStep(userId, step);
+  const newErrors = [];
+  for (let i = 0; i < Math.min(plan.steps.length, maxSteps); i++) {
+    const step = plan.steps[i];
+
+    // Build running task context so model sees progress
+    const taskContext = buildTaskContext(plan, stepResults, i);
+    const result = await executeStep(userId, step, taskContext);
     stepResults.push({ ...step, result });
 
-    // Stop on critical failure
+    // Track errors for future avoidance
     if (!result.success && step.tool) {
+      newErrors.push({ tool: step.tool, error: (result.error || 'unknown').slice(0, 200), timestamp: Date.now() });
       log.warn('Step failed, stopping execution', {
         userId, step: step.step_number, tool: step.tool, error: result.error
       });
       break;
     }
+  }
+
+  // Persist new errors for future agent loops
+  if (newErrors.length > 0) {
+    const pastErrors = await getErrorHistory(userId);
+    await saveErrorHistory(userId, [...pastErrors, ...newErrors]);
   }
 
   // Phase 3: Review
@@ -265,6 +353,7 @@ export async function runAgentLoop(userId, taskDescription, options = {}) {
         task: taskDescription,
         stepsPlanned: plan.steps.length,
         stepsExecuted: stepResults.length,
+        errors: newErrors.length > 0 ? newErrors : undefined,
         review,
         actionId: action?.id,
       },

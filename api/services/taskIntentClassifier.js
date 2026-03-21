@@ -50,6 +50,10 @@ const TASK_PATTERNS = [
   [/\b(what should i|should i|recommend|suggest|advise me|help me (decide|choose|pick))\b/i, 'suggest', 0.7],
   [/\b(give me (a |some )?ideas|brainstorm|help me plan)\b/i, 'suggest', 0.7],
 
+  // User Rules — explicit memory instructions
+  [/\b(remember that|always remember|never mention|don'?t (ever )?mention|don'?t bring up|keep in mind|from now on)\b/i, 'user_rule', 0.9],
+  [/\b(i('?m| am) (vegan|vegetarian|allergic|celiac|gluten|lactose|diabetic))\b/i, 'user_rule', 0.85],
+
   // Platform Control
   [/\b(play|queue|add to playlist|skip|pause|start playing)\b/i, 'control', 0.8],
   [/\b(set .* alarm|turn (on|off)|start (a )?timer)\b/i, 'control', 0.8],

@@ -30,6 +30,7 @@ import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingServic
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
+import { tagSensitivity } from './sensitivityClassifier.js';
 
 import { createLogger } from './logger.js';
 
@@ -3546,11 +3547,14 @@ async function runObservationIngestion() {
                 if (dup) continue;
               }
 
-              const result = await addPlatformObservation(userId, content, platform, {
+              const baseMeta = {
                 ingestion_source: 'background',
                 ingested_at: new Date().toISOString(),
                 ...(contentType ? { content_type: contentType } : {}),
-              });
+              };
+              const result = await addPlatformObservation(userId, content, platform,
+                tagSensitivity(content, { ...baseMeta, platform })
+              );
 
               if (result) {
                 userObsCount++;
@@ -3904,11 +3908,14 @@ async function runPostOnboardingIngestion(userId) {
           const dup = await isDuplicate(userId, platform, content, contentType);
           if (dup) continue;
 
-          const result = await addPlatformObservation(userId, content, platform, {
+          const onboardMeta = {
             ingestion_source: 'post_onboarding',
             ingested_at: new Date().toISOString(),
             ...(contentType ? { content_type: contentType } : {}),
-          });
+          };
+          const result = await addPlatformObservation(userId, content, platform,
+            tagSensitivity(content, { ...onboardMeta, platform })
+          );
           if (result) totalStored++;
         }
       } catch (err) {

@@ -777,6 +777,39 @@ RULES:
         } else {
           systemPrompt.push({ type: 'text', text: draftBlock.trim() });
         }
+      } else if (taskIntent.taskType === 'user_rule') {
+        // User rule intent: extract the rule and save to user_rules core memory block
+        const ruleBlock = `\n\n[AGENTIC CAPABILITY: USER RULE]\nThe user is telling you to remember an explicit rule or preference. Confirm what you understood and that you'll always follow it. Be warm and specific about what you'll remember.`;
+        const lastBlockRule = systemPrompt[systemPrompt.length - 1];
+        if (lastBlockRule && !lastBlockRule.cache_control) {
+          lastBlockRule.text += ruleBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: ruleBlock.trim() });
+        }
+
+        // Fire-and-forget: extract and save the rule via LLM
+        (async () => {
+          try {
+            const { complete: llmComplete, TIER_EXTRACTION: tier } = await import('../services/llmGateway.js');
+            const { updateBlock: ub, getBlocks: gb } = await import('../services/coreMemoryService.js');
+            const resp = await llmComplete({
+              messages: [{ role: 'user', content: `Extract the core rule or preference from this message. Return ONLY the rule as a short statement (max 80 chars). No quotes, no explanation.\n\nMessage: "${message}"` }],
+              tier, maxTokens: 60, temperature: 0, userId, purpose: 'extract_user_rule'
+            });
+            const rule = (resp?.content || resp?.text || '').trim().slice(0, 120);
+            if (rule.length >= 3) {
+              const blocks = await gb(userId);
+              const existing = (blocks.user_rules?.content || '').split('\n').filter(l => l.trim());
+              if (existing.length < 20 && !existing.some(r => r.toLowerCase() === rule.toLowerCase())) {
+                existing.push(rule);
+                await ub(userId, 'user_rules', existing.join('\n'), 'twin');
+                log.info('User rule saved from chat', { userId, rule });
+              }
+            }
+          } catch (err) {
+            log.warn('Failed to extract user rule', { userId, error: err.message });
+          }
+        })();
       } else {
         // Other task types: inject awareness so twin acknowledges capability
         const taskBlock = `\n\n[AGENTIC CAPABILITY: ${taskIntent.taskType.toUpperCase()}]\nThe user is requesting an action (${taskIntent.taskType}). You're developing agentic capabilities for this. Acknowledge their request naturally — explain what you understand they want and how you'd approach it. Be helpful and conversational, not robotic. If it's something you can discuss or advise on, do that now.`;
