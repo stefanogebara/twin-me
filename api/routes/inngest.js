@@ -14,6 +14,7 @@ import { musicMoodMatchFunction } from '../inngest/functions/musicMoodMatch.js';
 import { eveningRecapFunction } from '../inngest/functions/eveningRecap.js';
 import { emailTriageFunction } from '../inngest/functions/emailTriage.js';
 import { intelligentTriggersFunction } from '../inngest/functions/intelligentTriggers.js';
+import { actionReflectionFunction } from '../inngest/functions/actionReflection.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('InngestRoute');
@@ -33,6 +34,7 @@ function getHandler() {
           eveningRecapFunction,
           emailTriageFunction,
           intelligentTriggersFunction,
+          actionReflectionFunction,
         ],
       });
       log.info('Inngest handler initialized');

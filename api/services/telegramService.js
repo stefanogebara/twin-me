@@ -91,8 +91,21 @@ function formatCategoryLabel(category) {
 
 /**
  * Send a proactive insight to a Telegram user.
+ * Includes inline keyboard for thumbs up/down feedback.
  */
 export async function sendInsight(chatId, insight) {
   const formatted = formatInsightMessage(insight);
-  return sendMessage(chatId, formatted);
+
+  // Add inline feedback keyboard if insight has an ID
+  const options = {};
+  if (insight.id) {
+    options.reply_markup = {
+      inline_keyboard: [[
+        { text: '\u{1F44D} Helpful', callback_data: `insight_up_${insight.id}` },
+        { text: '\u{1F44E} Not helpful', callback_data: `insight_down_${insight.id}` },
+      ]],
+    };
+  }
+
+  return sendMessage(chatId, formatted, options);
 }

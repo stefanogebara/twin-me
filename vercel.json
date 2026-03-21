@@ -84,6 +84,10 @@
     {
       "path": "/api/cron/intelligent-triggers",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/action-reflection",
+      "schedule": "0 5 * * *"
     }
   ]
 }

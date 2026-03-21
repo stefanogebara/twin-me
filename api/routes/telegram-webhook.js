@@ -72,6 +72,71 @@ function setupBotHandlers() {
     }
   });
 
+  // Callback queries — inline keyboard feedback (insight thumbs up/down)
+  bot.on('callback_query:data', async (ctx) => {
+    const data = ctx.callbackQuery.data;
+    const chatId = String(ctx.chat.id);
+
+    // Parse insight_up_<id> or insight_down_<id>
+    const match = data.match(/^insight_(up|down)_(.+)$/);
+    if (!match) {
+      await ctx.answerCallbackQuery({ text: 'Unknown action' });
+      return;
+    }
+
+    const [, direction, insightId] = match;
+    const rating = direction === 'up' ? 1 : -1;
+
+    // Look up user
+    const { data: channel } = await supabaseAdmin
+      .from('messaging_channels')
+      .select('user_id')
+      .eq('channel', 'telegram')
+      .eq('channel_id', chatId)
+      .single();
+
+    if (!channel) {
+      await ctx.answerCallbackQuery({ text: 'Account not linked' });
+      return;
+    }
+
+    try {
+      // Update insight engagement
+      await supabaseAdmin
+        .from('proactive_insights')
+        .update({ engaged: rating === 1 })
+        .eq('id', insightId)
+        .eq('user_id', channel.user_id);
+
+      // Log as agent_action for the reflection engine
+      const { logAgentAction } = await import('../services/autonomyService.js');
+      const action = await logAgentAction(channel.user_id, {
+        skillName: 'proactive_insight',
+        actionType: 'insight_delivery',
+        content: `Telegram insight feedback: ${direction}`,
+        autonomyLevel: 1,
+      });
+
+      if (action?.id) {
+        await supabaseAdmin
+          .from('agent_actions')
+          .update({
+            user_response: rating === 1 ? 'accepted' : 'rejected',
+            outcome_data: { source: 'telegram_feedback', insight_id: insightId },
+            resolved_at: new Date().toISOString(),
+          })
+          .eq('id', action.id);
+      }
+
+      const emoji = rating === 1 ? '\u{1F44D}' : '\u{1F44E}';
+      await ctx.answerCallbackQuery({ text: `${emoji} Feedback recorded! This helps me learn.` });
+      log.info('Telegram insight feedback', { userId: channel.user_id, insightId, direction });
+    } catch (err) {
+      log.error('Callback query error', { insightId, error: err.message });
+      await ctx.answerCallbackQuery({ text: 'Failed to record feedback' });
+    }
+  });
+
   // Text messages — twin chat
   bot.on('message:text', async (ctx) => {
     const chatId = String(ctx.chat.id);

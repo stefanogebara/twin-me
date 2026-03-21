@@ -41,4 +41,5 @@ export const EVENTS = {
   EVENING_RECAP: 'twin/skill.evening_recap',
   EMAIL_TRIAGE: 'twin/skill.email_triage',
   INTELLIGENT_TRIGGERS: 'twin/skill.intelligent_triggers',
+  ACTION_REFLECTION: 'twin/skill.action_reflection',
 };

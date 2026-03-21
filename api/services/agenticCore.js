@@ -34,6 +34,25 @@ export async function planTask(userId, taskDescription, context = {}) {
   const availableTools = await getAvailableTools(userId);
   const toolNames = availableTools.map(t => `${t.name}: ${t.description}`).join('\n');
 
+  // Fetch procedure memories — learned patterns from past action outcomes
+  let procedureBlock = '';
+  try {
+    const { data: procedures } = await supabaseAdmin
+      .from('user_memories')
+      .select('content')
+      .eq('user_id', userId)
+      .eq('memory_type', 'fact')
+      .like('content', '[PROCEDURE:%')
+      .order('importance_score', { ascending: false })
+      .limit(5);
+
+    if (procedures?.length > 0) {
+      procedureBlock = `\nLEARNED PATTERNS (from past outcomes):\n${procedures.map(p => `- ${p.content.replace(/^\[PROCEDURE:\w+\]\s*/, '')}`).join('\n')}\n`;
+    }
+  } catch (err) {
+    log.warn('Failed to fetch procedures', { userId, error: err.message });
+  }
+
   const prompt = `You are a task planner for a personal digital twin. Break this task into concrete steps.
 
 USER'S PERSONALITY:
@@ -42,6 +61,7 @@ ${coreBlocks.soul_signature?.content || 'Unknown'}
 USER'S CONTEXT:
 ${coreBlocks.human?.content || 'Unknown'}
 ${coreBlocks.goals?.content || ''}
+${procedureBlock}
 
 AVAILABLE TOOLS:
 ${toolNames}
