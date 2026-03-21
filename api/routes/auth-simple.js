@@ -23,8 +23,10 @@ function resolveAppUrl(req) {
   const host = req?.get('host') || '';
   // Production custom domain
   if (host.includes('twinme.me')) return 'https://twinme.me';
-  // Vercel deployment — always use canonical production domain
-  if (host.includes('vercel.app')) return 'https://twinme.me';
+  // Vercel deployment — use canonical production alias (registered in Google OAuth)
+  // NOT the deployment-specific URL (twin-ai-learn-abc123-xxx.vercel.app)
+  // NOT twinme.me (was causing redirect_uri mismatch when domain was down)
+  if (host.includes('vercel.app')) return 'https://twin-ai-learn.vercel.app';
 
   // Local development fallback
   return process.env.VITE_APP_URL || 'http://localhost:8086';
