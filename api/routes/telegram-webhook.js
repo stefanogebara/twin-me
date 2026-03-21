@@ -30,6 +30,10 @@ const rateLimitMap = new Map();
 const RATE_LIMIT_MAX = 20;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
+// Dedup: prevent processing the same message twice (Telegram retries on slow responses)
+const processedMessages = new Set();
+const DEDUP_TTL_MS = 300_000; // 5 minutes
+
 /**
  * Initialize bot commands and handlers.
  */
@@ -75,6 +79,12 @@ function setupBotHandlers() {
 
     // Skip commands (already handled above)
     if (text.startsWith('/')) return;
+
+    // Dedup: skip if this exact message was already processed (Telegram webhook retry)
+    const msgId = String(ctx.message.message_id);
+    if (processedMessages.has(msgId)) return;
+    processedMessages.add(msgId);
+    setTimeout(() => processedMessages.delete(msgId), DEDUP_TTL_MS);
 
     // Rate limit check
     if (isRateLimited(chatId)) {
@@ -204,15 +214,32 @@ async function processTwinMessage(userId, message) {
     systemParts.push(blockText);
   }
 
-  // Personality prompt
+  // Twin summary (dynamic personality portrait)
+  if (twinContext.twinSummary) {
+    systemParts.push(`WHO YOU ARE:\n${twinContext.twinSummary}`);
+  }
+
+  // Personality prompt (OCEAN-derived behavioral instructions)
   if (personalityProfile) {
     const personalityBlock = buildPersonalityPrompt(personalityProfile);
     if (personalityBlock) systemParts.push(personalityBlock);
   }
 
-  // Twin context (memories, reflections, insights)
-  if (twinContext.systemPrompt) {
-    systemParts.push(twinContext.systemPrompt);
+  // Memories (reflections + observations)
+  if (twinContext.memories?.length > 0) {
+    const reflections = twinContext.memories.filter(m => m.memory_type === 'reflection').slice(0, 5);
+    const facts = twinContext.memories.filter(m => m.memory_type !== 'reflection').slice(0, 8);
+    if (reflections.length > 0) {
+      systemParts.push(`Deep patterns I've noticed:\n${reflections.map(r => `- ${r.content.slice(0, 200)}`).join('\n')}`);
+    }
+    if (facts.length > 0) {
+      systemParts.push(`[USER DATA]\n${facts.map(f => `- ${f.content.slice(0, 150)}`).join('\n')}\n[END USER DATA]`);
+    }
+  }
+
+  // Proactive insights (things to surface)
+  if (twinContext.proactiveInsights?.length > 0) {
+    systemParts.push(`THINGS I NOTICED (bring up naturally):\n${twinContext.proactiveInsights.map(i => `- ${i.insight?.slice(0, 150)}`).join('\n')}`);
   }
 
   // Channel-specific instructions
