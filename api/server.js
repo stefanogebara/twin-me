@@ -407,6 +407,9 @@ import autonomyRoutes from './routes/autonomy.js';
 import agentActionsRoutes from './routes/agent-actions.js';
 import cronProspectiveCheckRoutes from './routes/cron-prospective-check.js';
 import cronEveningRecapRoutes from './routes/cron-evening-recap.js';
+import cronDeliverInsightsRoutes from './routes/cron-deliver-insights.js';
+import telegramWebhookRoutes from './routes/telegram-webhook.js';
+import telegramLinkRoutes from './routes/telegram-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
 
@@ -516,6 +519,9 @@ app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum setting
 app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
 app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)
+app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (*/5 min)
+app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
+app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
 app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
