@@ -58,7 +58,7 @@ import { getOracleDraft, formatOracleBlock } from '../services/finetuning/person
 import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
 import { classifyMessageTier } from '../services/chatRouter.js';
 import { getBlocks, formatBlocksForPrompt, initializeBlocks } from '../services/coreMemoryService.js';
-import { classifyTaskIntent } from '../services/taskIntentClassifier.js';
+import { classifyTaskIntent, parseAndCreateReminder } from '../services/taskIntentClassifier.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { createLogger } from '../services/logger.js';
 
@@ -724,18 +724,45 @@ Make it sound natural and curious, not like a survey question.`;
     log.info('System prompt built', { chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
 
     // Task intent classification — detect "remind me to..." / "schedule..." / "draft..."
-    // Pure heuristic, <1ms, no LLM call. Routes task requests to agentic core (future).
+    // Pure heuristic, <1ms, no LLM call. Routes task requests to agentic core.
     const taskIntent = classifyTaskIntent(message);
-    if (taskIntent.isTask) {
-      log.info('Task intent detected', {
+    if (taskIntent.isTask && taskIntent.confidence >= 0.7) {
+      log.info('Task intent detected — routing', {
         userId,
         taskType: taskIntent.taskType,
         confidence: taskIntent.confidence,
         message: message.slice(0, 60)
       });
-      // TODO Phase 1 Week 2: Route to AgenticCore for planning + execution
-      // For now, log the intent and let conversation handle it naturally
-      // The twin will respond conversationally but the intent is tracked for learning
+
+      if (taskIntent.taskType === 'remind') {
+        // Reminder intent: inject agentic prompt + create prospective memory async
+        const reminderBlock = `\n\n[AGENTIC CAPABILITY: REMINDER]\nThe user is asking you to remember something for later. You HAVE the ability to set reminders and you are doing so right now. Confirm the reminder naturally — mention WHAT you'll remember and WHEN you'll bring it back up. Be specific about what you understood. Do NOT say "I can't set reminders" — you can and are.`;
+        const lastBlock = systemPrompt[systemPrompt.length - 1];
+        if (lastBlock && !lastBlock.cache_control) {
+          lastBlock.text += reminderBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: reminderBlock.trim() });
+        }
+
+        // Fire-and-forget: parse reminder details and create prospective memory
+        parseAndCreateReminder(userId, message).catch(err =>
+          log.warn('Reminder creation failed (non-fatal)', { userId, error: err.message })
+        );
+      } else {
+        // Other task types: inject awareness so twin acknowledges capability
+        const taskBlock = `\n\n[AGENTIC CAPABILITY: ${taskIntent.taskType.toUpperCase()}]\nThe user is requesting an action (${taskIntent.taskType}). You're developing agentic capabilities for this. Acknowledge their request naturally — explain what you understand they want and how you'd approach it. Be helpful and conversational, not robotic. If it's something you can discuss or advise on, do that now.`;
+        const lastBlock = systemPrompt[systemPrompt.length - 1];
+        if (lastBlock && !lastBlock.cache_control) {
+          lastBlock.text += taskBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: taskBlock.trim() });
+        }
+      }
+    } else if (taskIntent.isTask) {
+      // Low-confidence task intent — log for learning but don't route
+      log.debug('Task intent below routing threshold', {
+        userId, taskType: taskIntent.taskType, confidence: taskIntent.confidence
+      });
     }
 
     // Smart routing: classify message complexity to select cheapest adequate model

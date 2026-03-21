@@ -5,6 +5,7 @@ import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { Download, Trash2, Info, Shield, ArrowRight, Sparkles } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
+import AutonomySettings from './components/settings/AutonomySettings';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -389,7 +390,21 @@ const Settings = () => {
         </SettingsRow>
       </div>
 
-      {/* ── SECTION 5: DATA & PRIVACY ── */}
+      {/* ── SECTION 5: TWIN AUTONOMY ── */}
+      <SectionLabel label="Twin Autonomy" />
+      <div
+        className="rounded-[20px] px-5 py-4 mb-10"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <AutonomySettings isDemoMode={isDemoMode} />
+      </div>
+
+      {/* ── SECTION 6: DATA & PRIVACY ── */}
       <SectionLabel label="Data & Privacy" />
       <div
         className="rounded-[20px] px-5 py-4 mb-10"

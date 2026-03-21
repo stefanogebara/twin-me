@@ -194,7 +194,6 @@ async function createSkillSuggestion(userId, skill, triggerContext) {
       insight: suggestion,
       urgency: 'medium',
       category: 'suggestion',
-      source_type: `skill:${skill.name}`,
       delivered: false,
     });
 

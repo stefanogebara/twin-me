@@ -18,6 +18,8 @@
  *   control   — "play...", "queue...", "pause..." (platform control)
  */
 
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
+import { createProspective } from './prospectiveMemoryService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TaskIntent');
@@ -127,4 +129,99 @@ export function classifyTaskIntent(message) {
   }
 
   return result;
+}
+
+/**
+ * Parse a reminder message and create a prospective memory.
+ * Uses TIER_EXTRACTION (Mistral Small, ~$0.001) to extract what + when.
+ * Designed to run async (fire-and-forget) — errors are logged, not thrown.
+ *
+ * @param {string} userId
+ * @param {string} message - The user's original message
+ */
+export async function parseAndCreateReminder(userId, message) {
+  const today = new Date().toISOString().split('T')[0];
+  const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
+
+  const prompt = `Extract the reminder details from this message. Today is ${dayOfWeek}, ${today}.
+
+Message: "${message}"
+
+Respond with VALID JSON only (no markdown):
+{
+  "what": "the thing to remember/do",
+  "when_description": "human-readable time (e.g., 'Monday morning', 'in 2 hours', 'tomorrow at 9am')",
+  "trigger_type": "time" or "condition",
+  "iso_datetime": "ISO 8601 datetime if time-based (e.g., 2026-03-23T09:00:00Z), or null if condition-based",
+  "condition_keywords": ["keyword1", "keyword2"] if condition-based (e.g., "when I mention X"), or null
+}
+
+Rules:
+- If the user says "Monday" with no time, default to 09:00 local time (UTC-3 for São Paulo)
+- "tomorrow" means the next calendar day
+- "next week" means next Monday
+- "in X hours/minutes" → compute from now
+- If the trigger is "when I mention X" or "next time X comes up", use trigger_type "condition" with keywords`;
+
+  try {
+    const response = await complete({
+      messages: [{ role: 'user', content: prompt }],
+      tier: TIER_EXTRACTION,
+      maxTokens: 200,
+      temperature: 0.1,
+      userId,
+      purpose: 'reminder_parsing'
+    });
+
+    const text = response?.content || response?.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      log.warn('Reminder parse returned non-JSON', { userId, text: text.slice(0, 200) });
+      return null;
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Build trigger spec based on type
+    const triggerType = parsed.trigger_type === 'condition' ? 'condition' : 'time';
+    let triggerSpec;
+
+    if (triggerType === 'time' && parsed.iso_datetime) {
+      triggerSpec = { at: parsed.iso_datetime };
+    } else if (triggerType === 'condition' && parsed.condition_keywords?.length > 0) {
+      triggerSpec = {
+        keywords: parsed.condition_keywords,
+        description: parsed.when_description
+      };
+    } else {
+      // Fallback: create a time trigger for tomorrow 9am UTC-3 (12:00 UTC)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setUTCHours(12, 0, 0, 0);
+      triggerSpec = { at: tomorrow.toISOString() };
+      log.info('Reminder fallback to tomorrow 9am', { userId, parsed });
+    }
+
+    const memory = await createProspective(
+      userId,
+      triggerType,
+      triggerSpec,
+      parsed.what || message.slice(0, 200),
+      `User asked: "${message.slice(0, 150)}" — parsed as: ${parsed.when_description || 'unknown time'}`,
+      { source: 'chat_intent', priority: 'medium' }
+    );
+
+    log.info('Reminder created from chat intent', {
+      userId,
+      memoryId: memory.id,
+      triggerType,
+      what: parsed.what?.slice(0, 60),
+      when: parsed.when_description
+    });
+
+    return { ...parsed, memoryId: memory.id };
+  } catch (err) {
+    log.error('Failed to parse/create reminder', { userId, error: err.message });
+    return null;
+  }
 }

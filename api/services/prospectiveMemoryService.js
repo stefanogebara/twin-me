@@ -217,7 +217,6 @@ export async function triggerMemory(memory) {
         insight: memory.action,
         urgency: memory.priority === 'high' ? 'high' : 'medium',
         category: 'reminder',
-        source_type: 'prospective_memory',
         delivered: false
       });
 

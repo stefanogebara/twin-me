@@ -29,6 +29,7 @@ import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveIns
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
+import { checkConditionTriggered } from './prospectiveMemoryService.js';
 
 import { createLogger } from './logger.js';
 
@@ -141,6 +142,82 @@ async function isDuplicate(userId, platform, content, contentType) {
     log.warn('De-dup check failed, proceeding', { error: err });
     return false;
   }
+}
+
+// ====================================================================
+// Prospective memory: extract metrics from observations for condition triggers
+// ====================================================================
+
+/**
+ * Extract numeric metrics from observation strings for condition-triggered
+ * prospective memory matching. Returns a flat { metric: value } object.
+ *
+ * @param {string} platform - Platform name (e.g., 'whoop', 'spotify')
+ * @param {Array} observations - Array of observation strings or { content } objects
+ * @returns {Object} Extracted metrics (e.g., { recovery: 65, hrv: 45, sleep_hours: 7.2 })
+ */
+function extractPlatformMetrics(platform, observations) {
+  const metrics = {};
+  for (const obs of observations) {
+    const text = typeof obs === 'string' ? obs : obs.content;
+    if (!text) continue;
+
+    if (platform === 'whoop') {
+      const recovery = text.match(/Recovery score:\s*(\d+)%/i);
+      if (recovery) metrics.recovery = parseInt(recovery[1], 10);
+
+      const hrv = text.match(/HRV\s+(\d+)ms/i);
+      if (hrv) metrics.hrv = parseInt(hrv[1], 10);
+
+      const rhr = text.match(/resting heart rate\s+(\d+)bpm/i);
+      if (rhr) metrics.resting_heart_rate = parseInt(rhr[1], 10);
+
+      const sleep = text.match(/Slept\s+([\d.]+)\s+hours/i);
+      if (sleep) metrics.sleep_hours = parseFloat(sleep[1]);
+
+      const sleepPerf = text.match(/sleep performance\s+(\d+)%/i);
+      if (sleepPerf) metrics.sleep_performance = parseInt(sleepPerf[1], 10);
+
+      const strain = text.match(/strain[:\s]+(\d+\.?\d*)/i);
+      if (strain) metrics.strain = parseFloat(strain[1]);
+    }
+
+    if (platform === 'spotify') {
+      if (/Currently listening/i.test(text)) metrics.is_playing = 1;
+      const mins = text.match(/(\d+)\s*minutes?\s+of\s+listening/i);
+      if (mins) metrics.listening_minutes = parseInt(mins[1], 10);
+    }
+
+    if (platform === 'google_calendar') {
+      const events = text.match(/(\d+)\s+events?\s+today/i);
+      if (events) metrics.events_today = parseInt(events[1], 10);
+
+      const meetings = text.match(/(\d+)\s+meetings?/i);
+      if (meetings) metrics.meetings = parseInt(meetings[1], 10);
+    }
+  }
+
+  return metrics;
+}
+
+/**
+ * Extract simple keywords from observation text for keyword-based condition matching.
+ */
+function extractObservationKeywords(observations) {
+  const keywords = new Set();
+  for (const obs of observations) {
+    const text = (typeof obs === 'string' ? obs : obs.content || '').toLowerCase();
+    // Extract meaningful terms
+    if (/low recovery|under-slept|poor sleep|exhausted/i.test(text)) keywords.add('tired');
+    if (/high recovery|excellent|well-rested/i.test(text)) keywords.add('energized');
+    if (/workout|exercise|training|gym/i.test(text)) keywords.add('workout');
+    if (/meeting|call|event/i.test(text)) keywords.add('meeting');
+    if (/streak/i.test(text)) keywords.add('streak');
+    if (/overtraining/i.test(text)) keywords.add('overtraining');
+    if (/irregular|inconsistent/i.test(text)) keywords.add('irregular');
+    if (/consistent/i.test(text)) keywords.add('consistent');
+  }
+  return [...keywords];
 }
 
 // ====================================================================
@@ -3434,6 +3511,20 @@ async function runObservationIngestion() {
               runPlatformExpert(userId, platform).catch(err =>
                 log.warn('Platform expert failed', { platform, userId, error: err })
               );
+
+              // Check prospective memory condition triggers against new platform data.
+              // Non-blocking: fires for condition-triggered memories (e.g., "remind me when recovery < 50").
+              const platformMetrics = extractPlatformMetrics(platform, observations);
+              const platformKeywords = extractObservationKeywords(observations);
+              if (Object.keys(platformMetrics).length > 0 || platformKeywords.length > 0) {
+                checkConditionTriggered(userId, {
+                  platform,
+                  data: platformMetrics,
+                  keywords: platformKeywords,
+                }).catch(err =>
+                  log.warn('Prospective condition check failed (non-fatal)', { platform, userId, error: err })
+                );
+              }
             }
 
             // Update last_sync_at in platform_connections for tracking (non-blocking)

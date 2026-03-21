@@ -126,7 +126,6 @@ Write it like a text from their smartest, most perceptive friend.`;
           insight: briefing,
           urgency: 'medium',
           category: 'briefing',
-          source_type: 'morning_briefing_skill',
           delivered: false
         });
 
