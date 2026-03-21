@@ -72,6 +72,10 @@
     {
       "path": "/api/cron/prospective-check",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/evening-recap",
+      "schedule": "0 23 * * *"
     }
   ]
 }

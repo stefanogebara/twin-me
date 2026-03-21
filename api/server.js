@@ -406,6 +406,7 @@ try {
 import autonomyRoutes from './routes/autonomy.js';
 import agentActionsRoutes from './routes/agent-actions.js';
 import cronProspectiveCheckRoutes from './routes/cron-prospective-check.js';
+import cronEveningRecapRoutes from './routes/cron-evening-recap.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
 
@@ -514,6 +515,7 @@ app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
 app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum settings
 app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
+app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
 app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)

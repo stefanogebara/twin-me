@@ -11,6 +11,7 @@ import { inngest } from '../services/inngestClient.js';
 import { sessionReflectionFunction } from '../inngest/functions/sessionReflection.js';
 import { morningBriefingFunction } from '../inngest/functions/morningBriefing.js';
 import { musicMoodMatchFunction } from '../inngest/functions/musicMoodMatch.js';
+import { eveningRecapFunction } from '../inngest/functions/eveningRecap.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('InngestRoute');
@@ -27,6 +28,7 @@ function getHandler() {
           sessionReflectionFunction,
           morningBriefingFunction,
           musicMoodMatchFunction,
+          eveningRecapFunction,
         ],
       });
       log.info('Inngest handler initialized');
