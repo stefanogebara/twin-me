@@ -10,6 +10,7 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { logAgentAction } from '../services/autonomyService.js';
+import { collectFromActionFeedback } from '../services/finetuning/preferenceCollector.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -73,6 +74,36 @@ router.post('/:id/feedback', authenticateUser, async (req, res) => {
     }).catch(err => {
       log.warn('Failed to log feedback action', { id, error: err.message });
     });
+
+    // Try to create a DPO preference pair from contrasting insights
+    // Look for a recent insight from the same category with opposite engagement
+    const contrastEngaged = rating === 1 ? false : true;
+    const { data: contrastInsight } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('insight')
+      .eq('user_id', userId)
+      .eq('category', insight.category)
+      .eq('engaged', contrastEngaged)
+      .neq('id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (contrastInsight?.insight && insight.insight) {
+      const actions = rating === 1
+        ? [
+            { content: insight.insight.slice(0, 500), response: 'accepted' },
+            { content: contrastInsight.insight.slice(0, 500), response: 'rejected' },
+          ]
+        : [
+            { content: contrastInsight.insight.slice(0, 500), response: 'accepted' },
+            { content: insight.insight.slice(0, 500), response: 'rejected' },
+          ];
+
+      collectFromActionFeedback(userId, insight.category, actions).catch(err => {
+        log.warn('DPO pair from insight feedback failed', { error: err.message });
+      });
+    }
 
     log.info('Insight feedback recorded', { userId, insightId: id, rating });
     return res.json({ success: true, rating });
