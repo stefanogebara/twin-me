@@ -18,6 +18,7 @@ import { complete, TIER_ANALYSIS, TIER_CHAT } from './llmGateway.js';
 import { getAvailableTools, executeTool, getToolSchemas } from './toolRegistry.js';
 import { getBlocks } from './coreMemoryService.js';
 import { canAct, logAgentAction, getAutonomyBySkillName } from './autonomyService.js';
+import { checkPolicy } from './policyEngine.js';
 import { getRedisClient, isRedisAvailable } from './redisClient.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
@@ -291,6 +292,13 @@ export async function runAgentLoop(userId, taskDescription, options = {}) {
       reason: `Autonomy level ${permission.label} does not allow execution. Minimum required: Level ${permission.requiredLevel}.`,
       autonomyLevel: permission.level,
     };
+  }
+
+  // Policy engine check (action allowlist + rate limits + blocked actions)
+  const policy = await checkPolicy(userId, effectiveAutonomy, 'execute', effectiveSkillName);
+  if (!policy.allowed) {
+    log.info('Agent action blocked by policy', { userId, skillName: effectiveSkillName, reason: policy.reason });
+    return { success: false, blocked: true, reason: policy.reason };
   }
 
   // Phase 1: Plan

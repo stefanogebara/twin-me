@@ -424,4 +424,28 @@ export function formatBlocksForPrompt(blocks) {
     '\n--- END CORE IDENTITY ---\n';
 }
 
+/**
+ * Get blocks that rarely change (cache-friendly for KV-cache hits).
+ * soul_signature is immutable; human changes only after session reflection.
+ */
+export function getStableBlocks(blocks) {
+  const stable = {};
+  for (const name of ['soul_signature', 'human']) {
+    if (blocks[name]) stable[name] = blocks[name];
+  }
+  return stable;
+}
+
+/**
+ * Get blocks that change frequently (goals, rules, recent context).
+ * These should NOT be in cached system prompt sections.
+ */
+export function getVolatileBlocks(blocks) {
+  const volatile = {};
+  for (const name of ['goals', 'user_rules', 'recent_context']) {
+    if (blocks[name]) volatile[name] = blocks[name];
+  }
+  return volatile;
+}
+
 export { BLOCK_DEFINITIONS, BLOCK_NAMES };

@@ -13,6 +13,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { getAutonomyLevel, canAct, AUTONOMY_LEVELS } from './autonomyService.js';
+import { checkPolicy } from './policyEngine.js';
 import { runAgentLoop } from './agenticCore.js';
 import { getBlocks } from './coreMemoryService.js';
 import { createLogger } from './logger.js';
@@ -116,6 +117,13 @@ export async function executeSkill(userId, skillIdOrName, triggerContext = {}) {
   }
 
   const permission = canAct(autonomyLevel, 'execute');
+
+  // Policy engine check (allowlist + rate limits)
+  const policy = await checkPolicy(userId, autonomyLevel, 'execute', skill.name);
+  if (!policy.allowed) {
+    log.info('Skill blocked by policy', { userId, skill: skill.name, reason: policy.reason });
+    return { success: false, error: policy.reason, skillName: skill.name };
+  }
 
   // For suggest-only autonomy, create a suggestion instead of executing
   if (!permission.allowed) {

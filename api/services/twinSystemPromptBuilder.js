@@ -219,7 +219,10 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
   const southSeasons = ['summer', 'fall', 'winter', 'spring'];
   const season = isNorthern ? northSeasons[seasonIndex] : southSeasons[seasonIndex];
 
-  let temporalLine = `Right now: ${dayOfWeek} ${timeOfDay} (${hour}:${String(now.getMinutes()).padStart(2, '0')}), ${season}`;
+  // Round minutes to 15-min intervals for KV-cache friendliness
+  // (exact minute busts the cache on every call; 15-min granularity is plenty for the twin)
+  const roundedMinute = Math.floor(now.getMinutes() / 15) * 15;
+  let temporalLine = `Right now: ${dayOfWeek} ${timeOfDay} (~${hour}:${String(roundedMinute).padStart(2, '0')}), ${season}`;
 
   if (userLocation) {
     if (userLocation.sun_phase) {

@@ -573,6 +573,62 @@ function registerBuiltInTools() {
     }
   });
 
+  // ---- SMART EMAIL DRAFT ----
+  registerTool({
+    name: 'draft_email_reply',
+    platform: 'google_gmail',
+    description: 'Draft an email reply in the user\'s writing voice using their OCEAN personality + stylometric fingerprint',
+    category: 'communication',
+    parameters: {
+      type: 'object',
+      properties: {
+        to: { type: 'string', description: 'Recipient name or email context' },
+        context: { type: 'string', description: 'What the email should say/address' },
+      },
+      required: ['to']
+    },
+    requiresConnection: false,
+    executor: async (userId, params) => {
+      const { complete: llmComplete, TIER_ANALYSIS: tier } = await import('./llmGateway.js');
+      const { getBlocks: gb } = await import('./coreMemoryService.js');
+
+      // Fetch personality + stylometrics
+      const { data: prof } = await supabaseAdmin
+        .from('user_personality_profiles')
+        .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, stylometric_fingerprint')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      const blocks = await gb(userId);
+      const sl = prof?.stylometric_fingerprint?.avg_sentence_length;
+      const f = prof?.stylometric_fingerprint?.formality_score;
+
+      const styleGuide = prof ? `\nWRITING STYLE TO MATCH:
+- Sentences: ${sl ? (sl < 12 ? 'short, punchy' : sl < 20 ? 'medium' : 'long, detailed') : 'natural'}
+- Formality: ${f != null ? (f < 0.3 ? 'very casual' : f < 0.6 ? 'balanced' : 'professional') : 'natural'}
+- OCEAN: O=${((prof.openness||0.5)*100).toFixed(0)} C=${((prof.conscientiousness||0.5)*100).toFixed(0)} E=${((prof.extraversion||0.5)*100).toFixed(0)} A=${((prof.agreeableness||0.5)*100).toFixed(0)} N=${((prof.neuroticism||0.5)*100).toFixed(0)}` : '';
+
+      const prompt = `Draft an email reply for this person.
+
+PERSONALITY: ${blocks.soul_signature?.content || 'Unknown'}
+${styleGuide}
+
+TO: ${params.to}
+CONTEXT: ${params.context || 'General reply'}
+
+Write the email EXACTLY in their voice. Include Subject (if new), greeting, body, sign-off. Do NOT sound like a generic AI.`;
+
+      const resp = await llmComplete({
+        messages: [{ role: 'user', content: prompt }],
+        tier, maxTokens: 500, temperature: 0.6, userId, purpose: 'draft_email'
+      });
+
+      return { draft: resp?.content || resp?.text || 'Failed to generate draft' };
+    }
+  });
+
   log.info('Built-in tools registered', { count: registry.size });
 }
 
