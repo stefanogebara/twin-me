@@ -1159,7 +1159,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       .from('nango_connection_mappings')
       .select('platform, status, created_at, updated_at, last_synced_at')
       .eq('user_id', userUuid)
-      .eq('status', 'connected');
+      .in('status', ['connected', 'active']);
 
     for (const mapping of nangoMappings || []) {
       if (!connectionStatus[mapping.platform]) {
