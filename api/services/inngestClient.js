@@ -40,4 +40,5 @@ export const EVENTS = {
   MUSIC_MOOD_MATCH: 'twin/skill.music_mood_match',
   EVENING_RECAP: 'twin/skill.evening_recap',
   EMAIL_TRIAGE: 'twin/skill.email_triage',
+  INTELLIGENT_TRIGGERS: 'twin/skill.intelligent_triggers',
 };
