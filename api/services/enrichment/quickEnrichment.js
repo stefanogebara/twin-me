@@ -1,4 +1,9 @@
 import { createLogger } from '../logger.js';
+import { lookupReddit } from './redditProvider.js';
+import { lookupHackerNews } from './hackerNewsProvider.js';
+import { lookupHunter } from './hunterProvider.js';
+import { probeSpotify } from './spotifyProbeProvider.js';
+import { lookupTwitterViaBrave } from './twitterBraveProvider.js';
 
 const log = createLogger('Quickenrichment');
 
@@ -20,18 +25,31 @@ export async function quickEnrich(email, name = null) {
   const startTime = Date.now();
   const username = email.split('@')[0];
 
-  // Run Gravatar + GitHub (email) + GitHub (username) + Social probing in parallel
-  const [gravatarResult, githubEmailResult, githubUsernameResult, socialResult] = await Promise.allSettled([
+  // Run all providers in parallel (9 lookups, each with own timeout)
+  const [
+    gravatarResult, githubEmailResult, githubUsernameResult, socialResult,
+    redditResult, hnResult, hunterResult, spotifyResult, twitterResult,
+  ] = await Promise.allSettled([
     lookupGravatar(email),
     lookupGitHub(email),
     lookupGitHubByUsername(username),
     probeSocialProfiles(username),
+    lookupReddit(username),
+    lookupHackerNews(username),
+    lookupHunter(email),
+    probeSpotify(username),
+    lookupTwitterViaBrave(username, name),
   ]);
 
   const gravatar = gravatarResult.status === 'fulfilled' ? gravatarResult.value : null;
   const githubByEmail = githubEmailResult.status === 'fulfilled' ? githubEmailResult.value : null;
   const githubByUsername = githubUsernameResult.status === 'fulfilled' ? githubUsernameResult.value : null;
   const socialProfiles = socialResult.status === 'fulfilled' ? socialResult.value : [];
+  const reddit = redditResult.status === 'fulfilled' ? redditResult.value : null;
+  const hackerNews = hnResult.status === 'fulfilled' ? hnResult.value : null;
+  const hunter = hunterResult.status === 'fulfilled' ? hunterResult.value : null;
+  const spotify = spotifyResult.status === 'fulfilled' ? spotifyResult.value : null;
+  const twitterBrave = twitterResult.status === 'fulfilled' ? twitterResult.value : null;
 
   // Use email-matched GitHub if found, otherwise username-matched
   const github = githubByEmail || githubByUsername;
@@ -41,6 +59,11 @@ export async function quickEnrich(email, name = null) {
     ...(gravatar?.socialLinks || []),
     github?.profileUrl ? { platform: 'github', url: github.profileUrl } : null,
     ...socialProfiles.map(s => ({ platform: s.platform, url: s.url })),
+    reddit?.profileUrl ? { platform: 'reddit', url: reddit.profileUrl } : null,
+    hackerNews?.profileUrl ? { platform: 'hackernews', url: hackerNews.profileUrl } : null,
+    spotify?.profileUrl ? { platform: 'spotify', url: spotify.profileUrl } : null,
+    twitterBrave?.profileUrl ? { platform: 'twitter', url: twitterBrave.profileUrl } : null,
+    hunter?.linkedInUrl ? { platform: 'linkedin', url: hunter.linkedInUrl } : null,
   ].filter(Boolean);
 
   // Deduplicate by platform
@@ -52,23 +75,46 @@ export async function quickEnrich(email, name = null) {
     return true;
   });
 
-  // Merge results (GitHub is richer, Gravatar has photo fallback)
+  // Merge results — priority: GitHub > Hunter > Gravatar > Reddit/HN/Twitter for each field
   const data = {
-    discovered_name: github?.name || gravatar?.name || name,
+    discovered_name: github?.name || hunter?.firstName ? `${hunter.firstName} ${hunter.lastName || ''}`.trim() : gravatar?.name || name,
     discovered_photo: github?.avatar || gravatar?.photo || null,
-    discovered_company: github?.company || null,
+    discovered_company: github?.company || hunter?.company || null,
     discovered_location: github?.location || gravatar?.location || null,
-    discovered_bio: github?.bio || null,
+    discovered_bio: github?.bio || reddit?.bio || hackerNews?.bio || twitterBrave?.bio || null,
     discovered_github_url: github?.profileUrl || null,
-    discovered_twitter_url: github?.twitter ? `https://twitter.com/${github.twitter}` : null,
+    discovered_twitter_url: twitterBrave?.profileUrl || (github?.twitter ? `https://twitter.com/${github.twitter}` : null),
     github_repos: github?.publicRepos || null,
     github_followers: github?.followers || null,
     github_languages: github?.languages || null,
     github_top_repos: github?.topRepos || null,
+    // New: Reddit data
+    reddit_interests: reddit?.topSubreddits || null,
+    reddit_karma: reddit ? { link: reddit.karma.link, comment: reddit.karma.comment } : null,
+    reddit_bio: reddit?.bio || null,
+    // New: Hacker News data
+    hn_karma: hackerNews?.karma || null,
+    hn_topics: hackerNews?.topTopics || null,
+    hn_bio: hackerNews?.bio || null,
+    // New: Hunter.io data
+    hunter_company: hunter?.company || null,
+    hunter_position: hunter?.position || null,
+    hunter_seniority: hunter?.seniority || null,
+    // New: Spotify probe
+    spotify_exists: spotify?.exists || false,
+    // New: Twitter/X via Brave
+    twitter_bio: twitterBrave?.bio || null,
+    twitter_handle: twitterBrave?.handle || null,
+    // Source tracking
     source: [
       gravatar ? 'gravatar' : null,
       github ? 'github' : null,
       socialProfiles.length > 0 ? 'social_probe' : null,
+      reddit ? 'reddit' : null,
+      hackerNews ? 'hn' : null,
+      hunter ? 'hunter' : null,
+      spotify ? 'spotify' : null,
+      twitterBrave ? 'twitter' : null,
     ].filter(Boolean).join('+') || 'none',
     social_links: uniqueSocialLinks,
   };
@@ -81,6 +127,11 @@ export async function quickEnrich(email, name = null) {
     hasCompany: !!data.discovered_company,
     socialCount: uniqueSocialLinks.length,
     languages: data.github_languages?.join(', ') || 'none',
+    reddit: reddit ? `${reddit.topSubreddits.length} subs` : 'miss',
+    hn: hackerNews ? `${hackerNews.karma} karma` : 'miss',
+    hunter: hunter ? hunter.company : 'miss',
+    spotify: spotify ? 'found' : 'miss',
+    twitter: twitterBrave ? twitterBrave.handle : 'miss',
     source: data.source,
   });
 
