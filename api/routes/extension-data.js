@@ -72,6 +72,10 @@ function mapEventType(eventType, platform = '') {
     'extension_browse': 'extension_browse',
     'extension_chat': 'extension_chat',
     'extension_clip_view': 'extension_clip_view',
+    // Screen context (active app tracking)
+    'active_app': 'extension_page_visit',
+    'app_switch': 'extension_page_visit',
+    'screen_time': 'extension_page_visit',
     // Generic
     'capture': 'activity'
   };

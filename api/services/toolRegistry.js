@@ -635,4 +635,44 @@ Write the email EXACTLY in their voice. Include Subject (if new), greeting, body
 // Auto-register on module load
 registerBuiltInTools();
 
+/**
+ * Bridge MCP servers into the twin's tool registry.
+ * Each enabled MCP server becomes a callable tool for the agent.
+ * Called once at startup if MCP config exists.
+ */
+export async function registerMCPTools() {
+  try {
+    const mcpClient = (await import('./mcp-client.js')).default;
+    const { mcpServers } = await mcpClient.listAvailableServers();
+
+    let registered = 0;
+    for (const server of mcpServers) {
+      registerTool({
+        name: `mcp_${server.platform}_extract`,
+        platform: server.platform,
+        description: `Extract data from ${server.platform} via MCP server`,
+        category: 'mcp',
+        parameters: {
+          type: 'object',
+          properties: {
+            action: { type: 'string', description: 'Optional: specific data action' },
+          },
+        },
+        requiresConnection: true,
+        executor: async (userId, params) => {
+          return mcpClient.extractData(server.platform, null, userId);
+        },
+      });
+      registered++;
+    }
+
+    if (registered > 0) {
+      log.info('MCP tools registered', { count: registered });
+    }
+  } catch (err) {
+    // Non-fatal — MCP is optional
+    log.debug('MCP tool registration skipped', { error: err.message });
+  }
+}
+
 export { registry };
