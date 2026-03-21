@@ -114,9 +114,8 @@ function setupBotHandlers() {
       // Run twin chat pipeline (same as web)
       const response = await processTwinMessage(userId, text);
 
-      // Store conversation in memory stream
-      await addConversationMemory(userId, text, 'user').catch(() => {});
-      await addConversationMemory(userId, response, 'assistant').catch(() => {});
+      // Store conversation in memory stream (single call stores both user + assistant)
+      await addConversationMemory(userId, text, response, { source: 'telegram' }).catch(() => {});
 
       // Send response (split long messages at 4096 char Telegram limit)
       if (response.length <= 4096) {
