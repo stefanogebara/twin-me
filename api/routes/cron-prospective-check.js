@@ -5,7 +5,7 @@
  * When triggered, injects the memory as a high-priority proactive insight
  * that the twin will surface in the next conversation.
  *
- * Schedule: */5 * * * * (every 5 minutes)
+ * Schedule: every 5 minutes
  * Security: protected by CRON_SECRET Bearer token.
  */
 
