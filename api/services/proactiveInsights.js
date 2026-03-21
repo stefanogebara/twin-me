@@ -70,16 +70,21 @@ Return ONLY a JSON array. First element MUST be a nudge with nudge_action:
 async function isInsightDuplicate(userId, insightText) {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    // Check ALL insights from last 7 days — not just undelivered.
+    // Previously only checked delivered=false, so delivered insights got regenerated.
     const { data } = await supabaseAdmin
       .from('proactive_insights')
       .select('insight')
       .eq('user_id', userId)
-      .eq('delivered', false)
       .gte('created_at', since)
-      .limit(50);
+      .limit(100);
     if (!data?.length) return false;
-    const snippet = insightText.substring(0, 80).toLowerCase();
-    return data.some(r => (r.insight || '').substring(0, 80).toLowerCase() === snippet);
+    // Match on first 60 chars (more aggressive dedup) — catches rephrased duplicates
+    const snippet = insightText.substring(0, 60).toLowerCase().replace(/[^a-z0-9\s]/g, '');
+    return data.some(r => {
+      const existing = (r.insight || '').substring(0, 60).toLowerCase().replace(/[^a-z0-9\s]/g, '');
+      return existing === snippet;
+    });
   } catch (err) {
     log.warn('isInsightDuplicate error', { error: err });
     return false; // fail open
