@@ -748,6 +748,35 @@ Make it sound natural and curious, not like a survey question.`;
         parseAndCreateReminder(userId, message).catch(err =>
           log.warn('Reminder creation failed (non-fatal)', { userId, error: err.message })
         );
+      } else if (taskIntent.taskType === 'draft') {
+        // Draft intent: inject stylometric fingerprint for voice-matched writing
+        let styleGuide = '';
+        if (personalityProfile) {
+          const sl = personalityProfile.avg_sentence_length;
+          const f = personalityProfile.formality_score;
+          const ttr = personalityProfile.vocabulary_richness;
+          styleGuide = `\nUSER'S WRITING STYLE (match this exactly):
+- Sentence length: ${sl ? (sl < 12 ? 'short and punchy' : sl < 20 ? 'medium length' : 'long and detailed') : 'natural'}
+- Formality: ${f != null ? (f < 0.3 ? 'very casual/informal' : f < 0.6 ? 'balanced' : 'formal/professional') : 'natural'}
+- Vocabulary: ${ttr ? (ttr < 0.4 ? 'simple and direct' : ttr < 0.6 ? 'moderately varied' : 'rich and expressive') : 'natural'}
+- OCEAN: ${personalityProfile.openness ? `O=${(personalityProfile.openness*100).toFixed(0)} C=${(personalityProfile.conscientiousness*100).toFixed(0)} E=${(personalityProfile.extraversion*100).toFixed(0)} A=${(personalityProfile.agreeableness*100).toFixed(0)} N=${(personalityProfile.neuroticism*100).toFixed(0)}` : 'use personality from core memory'}`;
+        }
+
+        const draftBlock = `\n\n[AGENTIC CAPABILITY: SMART DRAFT]\nThe user is asking you to compose something (email, message, reply, text). You HAVE this capability. Write it EXACTLY in their voice — not generic AI text.${styleGuide}
+
+RULES:
+- Match their EXACT communication style, not a polished version of it
+- If they're casual, be casual. If they're formal, be formal.
+- Format the draft clearly (with Subject line if email, greeting, body, sign-off)
+- After the draft, briefly note what tone/approach you used and offer to adjust
+- Do NOT add disclaimers about being an AI`;
+
+        const lastBlock = systemPrompt[systemPrompt.length - 1];
+        if (lastBlock && !lastBlock.cache_control) {
+          lastBlock.text += draftBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: draftBlock.trim() });
+        }
       } else {
         // Other task types: inject awareness so twin acknowledges capability
         const taskBlock = `\n\n[AGENTIC CAPABILITY: ${taskIntent.taskType.toUpperCase()}]\nThe user is requesting an action (${taskIntent.taskType}). You're developing agentic capabilities for this. Acknowledge their request naturally — explain what you understand they want and how you'd approach it. Be helpful and conversational, not robotic. If it's something you can discuss or advise on, do that now.`;

@@ -3585,12 +3585,18 @@ async function runObservationIngestion() {
 
               // Fire Music Mood Match skill when ANY health platform data is ingested.
               // Also triggers on calendar changes (schedule affects mood assessment).
-              if (HEALTH_PLATFORMS.includes(platform) || CALENDAR_PLATFORMS.includes(platform)) {
-                import('./inngestClient.js').then(({ inngest, EVENTS }) => {
+              import('./inngestClient.js').then(({ inngest, EVENTS }) => {
+                // Fire Music Mood Match on health/calendar data
+                if (HEALTH_PLATFORMS.includes(platform) || CALENDAR_PLATFORMS.includes(platform)) {
                   inngest.send({ name: EVENTS.MUSIC_MOOD_MATCH, data: { userId, triggerPlatform: platform } })
-                    .catch(err => log.warn('Music mood match trigger failed (non-fatal)', { userId, error: err }));
-                }).catch(() => {});
-              }
+                    .catch(err => log.warn('Music mood match trigger failed', { userId, error: err }));
+                }
+                // Fire Email Triage on email platform data
+                if (platform === 'google_gmail' || platform === 'outlook') {
+                  inngest.send({ name: EVENTS.EMAIL_TRIAGE, data: { userId, triggerPlatform: platform } })
+                    .catch(err => log.warn('Email triage trigger failed', { userId, error: err }));
+                }
+              }).catch(() => {});
             }
 
             // Update last_sync_at in platform_connections for tracking (non-blocking)
