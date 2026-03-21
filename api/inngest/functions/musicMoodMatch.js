@@ -74,38 +74,68 @@ export const musicMoodMatchFunction = inngest.createFunction(
       return { success: false, reason: prerequisites.reason };
     }
 
-    // Step 3: Gather Whoop health data
-    const healthData = await step.run('gather-health', async () => {
-      const { data } = await supabaseAdmin
-        .from('platform_data')
-        .select('raw_data')
-        .eq('user_id', userId)
-        .eq('provider', 'whoop')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      return data?.raw_data || null;
+    // Step 3: Gather health data from ANY connected health platform (fallback chain)
+    const healthResult = await step.run('gather-health', async () => {
+      const HEALTH_PROVIDERS = ['whoop', 'oura', 'garmin', 'fitbit', 'strava'];
+      for (const provider of HEALTH_PROVIDERS) {
+        try {
+          const { data } = await supabaseAdmin
+            .from('platform_data')
+            .select('raw_data')
+            .eq('user_id', userId)
+            .eq('provider', provider)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          if (data?.raw_data) return { provider, data: data.raw_data };
+        } catch { /* try next */ }
+      }
+      return { provider: null, data: null };
     });
 
-    // Step 4: Gather calendar data
-    const calendarData = await step.run('gather-calendar', async () => {
-      const { data } = await supabaseAdmin
-        .from('platform_data')
-        .select('raw_data')
-        .eq('user_id', userId)
-        .eq('provider', 'google_calendar')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      return data?.raw_data || null;
+    // Step 4: Gather calendar data from ANY connected calendar platform
+    const calendarResult = await step.run('gather-calendar', async () => {
+      const CALENDAR_PROVIDERS = ['google_calendar', 'outlook'];
+      for (const provider of CALENDAR_PROVIDERS) {
+        try {
+          const { data } = await supabaseAdmin
+            .from('platform_data')
+            .select('raw_data')
+            .eq('user_id', userId)
+            .eq('provider', provider)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+          if (data?.raw_data) return { provider, data: data.raw_data };
+        } catch { /* try next */ }
+      }
+      return { provider: null, data: null };
     });
 
-    // Step 5: Assess mood (pure heuristic, <1ms)
+    const healthData = healthResult.data;
+    const calendarData = calendarResult.data;
+
+    // Step 5: Assess mood (pure heuristic, <1ms, platform-agnostic)
     const mood = await step.run('assess-mood', async () => {
-      const recoveryScore = healthData?.recovery_score
-        ?? healthData?.score?.recovery_score
-        ?? null;
-      const sleepHours = healthData?.sleep_hours ?? null;
+      // Build platform-agnostic health signals object
+      const healthSignals = {};
+      if (healthData) {
+        // Whoop
+        if (healthData.recovery_score != null) healthSignals.recovery = healthData.recovery_score;
+        else if (healthData.score?.recovery_score != null) healthSignals.recovery = healthData.score.recovery_score;
+        // Oura
+        if (healthData.readiness != null) healthSignals.readiness = healthData.readiness;
+        if (healthData.readiness_score != null) healthSignals.readiness = healthData.readiness_score;
+        // Garmin
+        if (healthData.body_battery != null) healthSignals.body_battery = healthData.body_battery;
+        if (healthData.stress_level != null) healthSignals.stress = healthData.stress_level;
+        // Generic
+        if (healthData.sleep_hours != null) healthSignals.sleep_hours = healthData.sleep_hours;
+        if (healthData.hrv != null) healthSignals.hrv = healthData.hrv;
+        if (healthData.hrv_rmssd_milli != null) healthSignals.hrv = Math.round(healthData.hrv_rmssd_milli);
+        if (healthData.score?.hrv_rmssd_milli != null) healthSignals.hrv = Math.round(healthData.score.hrv_rmssd_milli);
+        if (healthData.sleep_score != null) healthSignals.sleep_score = healthData.sleep_score;
+      }
 
       // Count calendar events
       let calendarEventCount = 0;
@@ -116,7 +146,7 @@ export const musicMoodMatchFunction = inngest.createFunction(
       }
 
       const currentHour = new Date().getHours();
-      return assessMood({ recoveryScore, sleepHours, calendarEventCount, currentHour });
+      return assessMood({ healthSignals, calendarEventCount, currentHour });
     });
 
     // Step 6: Find matching playlist from user's Spotify library
@@ -224,7 +254,7 @@ Write a brief, casual suggestion. No bullet points. No "I suggest" — just say 
         actionType: autoPlayed ? 'execution' : 'suggestion',
         content: `${mood.energyLevel} mood → "${playlist.name}"${autoPlayed ? ' (auto-played)' : ''}`,
         autonomyLevel: prerequisites.autonomyLevel,
-        platformSources: ['spotify', healthData ? 'whoop' : null, calendarData ? 'calendar' : null].filter(Boolean),
+        platformSources: ['spotify', healthResult.provider, calendarResult.provider].filter(Boolean),
       });
 
       // Log agent event
@@ -234,7 +264,7 @@ Write a brief, casual suggestion. No bullet points. No "I suggest" — just say 
         event_data: {
           energyLevel: mood.energyLevel,
           reasoning: mood.reasoning,
-          recoveryScore: healthData?.recovery_score ?? healthData?.score?.recovery_score ?? null,
+          healthSource: mood.healthSource || healthResult.provider,
           playlistName: playlist.name,
           playlistId: playlist.id,
           autoPlayed,

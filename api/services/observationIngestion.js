@@ -148,52 +148,101 @@ async function isDuplicate(userId, platform, content, contentType) {
 // Prospective memory: extract metrics from observations for condition triggers
 // ====================================================================
 
+// Platform categories for skill triggers and metric extraction
+const HEALTH_PLATFORMS = ['whoop', 'oura', 'garmin', 'fitbit', 'strava'];
+const CALENDAR_PLATFORMS = ['google_calendar', 'outlook'];
+const MUSIC_PLATFORMS = ['spotify', 'apple_music'];
+
+// Registry of metric extractors per platform — add new platforms here
+const METRIC_EXTRACTORS = {
+  // Health platforms
+  whoop: [
+    [/Recovery score:\s*(\d+)%/i, 'recovery', parseInt],
+    [/HRV\s+(\d+)ms/i, 'hrv', parseInt],
+    [/resting heart rate\s+(\d+)bpm/i, 'resting_heart_rate', parseInt],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/sleep performance\s+(\d+)%/i, 'sleep_performance', parseInt],
+    [/strain[:\s]+(\d+\.?\d*)/i, 'strain', parseFloat],
+  ],
+  oura: [
+    [/Readiness(?:\s+score)?:\s*(\d+)/i, 'readiness', parseInt],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/Sleep score:\s*(\d+)/i, 'sleep_score', parseInt],
+    [/HRV\s+(\d+)/i, 'hrv', parseInt],
+    [/activity score:\s*(\d+)/i, 'activity_score', parseInt],
+  ],
+  garmin: [
+    [/Body Battery:\s*(\d+)/i, 'body_battery', parseInt],
+    [/Stress:\s*(\d+)/i, 'stress', parseInt],
+    [/(\d[\d,]*)\s*steps/i, 'steps', s => parseInt(s.replace(/,/g, ''), 10)],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/VO2\s*Max:\s*(\d+)/i, 'vo2_max', parseInt],
+  ],
+  fitbit: [
+    [/(\d[\d,]*)\s*steps/i, 'steps', s => parseInt(s.replace(/,/g, ''), 10)],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/Sleep score:\s*(\d+)/i, 'sleep_score', parseInt],
+    [/resting heart rate\s+(\d+)/i, 'resting_heart_rate', parseInt],
+    [/active minutes:\s*(\d+)/i, 'active_minutes', parseInt],
+  ],
+  strava: [
+    [/(\d+\.?\d*)\s*(?:km|miles)/i, 'distance', parseFloat],
+    [/(\d+)\s*min(?:utes)?\s+(?:run|ride|swim|activity)/i, 'activity_minutes', parseInt],
+    [/(?:average|avg)\s+(?:heart rate|HR):\s*(\d+)/i, 'avg_heart_rate', parseInt],
+  ],
+  // Music platforms
+  spotify: [
+    [/Currently listening/i, 'is_playing', () => 1],
+    [/(\d+)\s*minutes?\s+of\s+listening/i, 'listening_minutes', parseInt],
+  ],
+  apple_music: [
+    [/Currently listening/i, 'is_playing', () => 1],
+  ],
+  // Calendar/schedule platforms
+  google_calendar: [
+    [/(\d+)\s+events?\s+today/i, 'events_today', parseInt],
+    [/(\d+)\s+meetings?/i, 'meetings', parseInt],
+  ],
+  outlook: [
+    [/(\d+)\s+events?\s+today/i, 'events_today', parseInt],
+    [/(\d+)\s+meetings?/i, 'meetings', parseInt],
+  ],
+  // Activity platforms
+  github: [
+    [/(\d+)\s+commit/i, 'commits', parseInt],
+    [/(\d+)\s+pull request/i, 'pull_requests', parseInt],
+  ],
+  discord: [
+    [/(\d+)\s+messages?\s+sent/i, 'messages_sent', parseInt],
+  ],
+  youtube: [
+    [/watched\s+(\d+)/i, 'videos_watched', parseInt],
+    [/(\d+)\s*(?:min|minutes)\s+watched/i, 'watch_minutes', parseInt],
+  ],
+};
+
 /**
  * Extract numeric metrics from observation strings for condition-triggered
- * prospective memory matching. Returns a flat { metric: value } object.
+ * prospective memory matching. Platform-agnostic — uses METRIC_EXTRACTORS registry.
  *
- * @param {string} platform - Platform name (e.g., 'whoop', 'spotify')
+ * @param {string} platform - Platform name
  * @param {Array} observations - Array of observation strings or { content } objects
  * @returns {Object} Extracted metrics (e.g., { recovery: 65, hrv: 45, sleep_hours: 7.2 })
  */
 function extractPlatformMetrics(platform, observations) {
+  const extractors = METRIC_EXTRACTORS[platform];
+  if (!extractors) return {};
+
   const metrics = {};
   for (const obs of observations) {
     const text = typeof obs === 'string' ? obs : obs.content;
     if (!text) continue;
 
-    if (platform === 'whoop') {
-      const recovery = text.match(/Recovery score:\s*(\d+)%/i);
-      if (recovery) metrics.recovery = parseInt(recovery[1], 10);
-
-      const hrv = text.match(/HRV\s+(\d+)ms/i);
-      if (hrv) metrics.hrv = parseInt(hrv[1], 10);
-
-      const rhr = text.match(/resting heart rate\s+(\d+)bpm/i);
-      if (rhr) metrics.resting_heart_rate = parseInt(rhr[1], 10);
-
-      const sleep = text.match(/Slept\s+([\d.]+)\s+hours/i);
-      if (sleep) metrics.sleep_hours = parseFloat(sleep[1]);
-
-      const sleepPerf = text.match(/sleep performance\s+(\d+)%/i);
-      if (sleepPerf) metrics.sleep_performance = parseInt(sleepPerf[1], 10);
-
-      const strain = text.match(/strain[:\s]+(\d+\.?\d*)/i);
-      if (strain) metrics.strain = parseFloat(strain[1]);
-    }
-
-    if (platform === 'spotify') {
-      if (/Currently listening/i.test(text)) metrics.is_playing = 1;
-      const mins = text.match(/(\d+)\s*minutes?\s+of\s+listening/i);
-      if (mins) metrics.listening_minutes = parseInt(mins[1], 10);
-    }
-
-    if (platform === 'google_calendar') {
-      const events = text.match(/(\d+)\s+events?\s+today/i);
-      if (events) metrics.events_today = parseInt(events[1], 10);
-
-      const meetings = text.match(/(\d+)\s+meetings?/i);
-      if (meetings) metrics.meetings = parseInt(meetings[1], 10);
+    for (const [pattern, metricName, parser] of extractors) {
+      const match = text.match(pattern);
+      if (match) {
+        metrics[metricName] = parser(match[1] || match[0], 10);
+      }
     }
   }
 
@@ -202,20 +251,28 @@ function extractPlatformMetrics(platform, observations) {
 
 /**
  * Extract simple keywords from observation text for keyword-based condition matching.
+ * Platform-agnostic — works on any observation text.
  */
 function extractObservationKeywords(observations) {
   const keywords = new Set();
   for (const obs of observations) {
     const text = (typeof obs === 'string' ? obs : obs.content || '').toLowerCase();
-    // Extract meaningful terms
-    if (/low recovery|under-slept|poor sleep|exhausted/i.test(text)) keywords.add('tired');
-    if (/high recovery|excellent|well-rested/i.test(text)) keywords.add('energized');
-    if (/workout|exercise|training|gym/i.test(text)) keywords.add('workout');
-    if (/meeting|call|event/i.test(text)) keywords.add('meeting');
+    // Health/energy keywords
+    if (/low recovery|under-slept|poor sleep|exhausted|low readiness|low body battery/i.test(text)) keywords.add('tired');
+    if (/high recovery|excellent|well-rested|high readiness|fully charged/i.test(text)) keywords.add('energized');
+    if (/workout|exercise|training|gym|run|ride|swim/i.test(text)) keywords.add('workout');
+    // Schedule keywords
+    if (/meeting|call|event|appointment/i.test(text)) keywords.add('meeting');
+    if (/free|no events|open/i.test(text)) keywords.add('free');
+    // Pattern keywords
     if (/streak/i.test(text)) keywords.add('streak');
-    if (/overtraining/i.test(text)) keywords.add('overtraining');
+    if (/overtraining|over.?exert/i.test(text)) keywords.add('overtraining');
     if (/irregular|inconsistent/i.test(text)) keywords.add('irregular');
-    if (/consistent/i.test(text)) keywords.add('consistent');
+    if (/consistent|routine/i.test(text)) keywords.add('consistent');
+    // Social/activity keywords
+    if (/commit|push|pull request|merge/i.test(text)) keywords.add('coding');
+    if (/message|chat|dm|replied/i.test(text)) keywords.add('social');
+    if (/watched|listening|played/i.test(text)) keywords.add('consuming');
   }
   return [...keywords];
 }
@@ -3526,11 +3583,11 @@ async function runObservationIngestion() {
                 );
               }
 
-              // Fire Music Mood Match skill when Whoop data is ingested (non-blocking).
-              // Uses lazy import to avoid circular dependency with inngestClient.
-              if (platform === 'whoop') {
+              // Fire Music Mood Match skill when ANY health platform data is ingested.
+              // Also triggers on calendar changes (schedule affects mood assessment).
+              if (HEALTH_PLATFORMS.includes(platform) || CALENDAR_PLATFORMS.includes(platform)) {
                 import('./inngestClient.js').then(({ inngest, EVENTS }) => {
-                  inngest.send({ name: EVENTS.MUSIC_MOOD_MATCH, data: { userId } })
+                  inngest.send({ name: EVENTS.MUSIC_MOOD_MATCH, data: { userId, triggerPlatform: platform } })
                     .catch(err => log.warn('Music mood match trigger failed (non-fatal)', { userId, error: err }));
                 }).catch(() => {});
               }

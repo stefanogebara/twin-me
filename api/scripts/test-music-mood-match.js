@@ -27,20 +27,23 @@ async function run() {
 
   // Step 1: Gather Whoop data
   console.log('Step 1: Gathering Whoop health data...');
+  const HEALTH_PROVIDERS = ['whoop', 'oura', 'garmin', 'fitbit', 'strava'];
   let healthData = null;
-  try {
-    const { data } = await supabaseAdmin
-      .from('platform_data')
-      .select('raw_data')
-      .eq('user_id', TEST_USER_ID)
-      .eq('provider', 'whoop')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    healthData = data?.raw_data || null;
-  } catch {}
-  const recoveryScore = healthData?.recovery_score ?? healthData?.score?.recovery_score ?? null;
-  console.log(`  Recovery: ${recoveryScore != null ? recoveryScore + '%' : 'No data'}`);
+  let healthProvider = null;
+  for (const provider of HEALTH_PROVIDERS) {
+    try {
+      const { data } = await supabaseAdmin
+        .from('platform_data')
+        .select('raw_data')
+        .eq('user_id', TEST_USER_ID)
+        .eq('provider', provider)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (data?.raw_data) { healthData = data.raw_data; healthProvider = provider; break; }
+    } catch {}
+  }
+  console.log(`  Health source: ${healthProvider || 'none'}`);
 
   // Step 2: Gather calendar data
   console.log('Step 2: Gathering calendar data...');
@@ -65,10 +68,20 @@ async function run() {
   }
   console.log(`  Events today: ${calendarEventCount}`);
 
-  // Step 3: Assess mood
-  console.log('\nStep 3: Assessing mood (heuristic)...');
+  // Step 3: Assess mood (platform-agnostic)
+  console.log('\nStep 3: Assessing mood (heuristic, platform-agnostic)...');
+  const healthSignals = {};
+  if (healthData) {
+    if (healthData.recovery_score != null) healthSignals.recovery = healthData.recovery_score;
+    else if (healthData.score?.recovery_score != null) healthSignals.recovery = healthData.score.recovery_score;
+    if (healthData.readiness != null) healthSignals.readiness = healthData.readiness;
+    if (healthData.body_battery != null) healthSignals.body_battery = healthData.body_battery;
+    if (healthData.sleep_hours != null) healthSignals.sleep_hours = healthData.sleep_hours;
+    if (healthData.hrv != null) healthSignals.hrv = healthData.hrv;
+    if (healthData.sleep_score != null) healthSignals.sleep_score = healthData.sleep_score;
+  }
   const currentHour = new Date().getHours();
-  const mood = assessMood({ recoveryScore, calendarEventCount, currentHour });
+  const mood = assessMood({ healthSignals, calendarEventCount, currentHour });
   console.log(`  Energy level: ${mood.energyLevel}`);
   console.log(`  Reasoning: ${mood.reasoning}`);
   console.log(`  Confidence: ${mood.confidence}`);
