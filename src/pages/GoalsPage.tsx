@@ -271,7 +271,7 @@ const GoalsPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
               style={{ border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <Flame className="w-3.5 h-3.5" style={{ color: '#f97316' }} />
+              <Flame className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.6)' }} />
               <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
                 {summary.bestStreak}d best streak
               </span>

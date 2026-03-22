@@ -88,7 +88,7 @@ const iconMap = {
 
 const priorityColors = {
   high: { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.3)', text: '#ef4444' },
-  medium: { bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.3)', text: '#f59e0b' },
+  medium: { bg: 'rgba(255, 255, 255, 0.05)', border: 'rgba(255, 255, 255, 0.15)', text: 'rgba(255,255,255,0.5)' },
   low: { bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.3)', text: '#22c55e' }
 };
 
@@ -296,9 +296,9 @@ export const TodayInsights: React.FC = () => {
                 Calendar {isPlatformActive('google_calendar') ? (
                   <CheckCircle className="w-3 h-3 text-green-500" />
                 ) : platformStatus['google_calendar']?.tokenExpired ? (
-                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+                  <AlertCircle className="w-3 h-3 text-white/60" title="Token expired" />
                 ) : (
-                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                  <AlertCircle className="w-3 h-3 text-white/60" />
                 )}
               </span>
               <span className="flex items-center gap-1">
@@ -306,9 +306,9 @@ export const TodayInsights: React.FC = () => {
                 Spotify {isPlatformActive('spotify') ? (
                   <CheckCircle className="w-3 h-3 text-green-500" />
                 ) : platformStatus['spotify']?.tokenExpired ? (
-                  <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
+                  <AlertCircle className="w-3 h-3 text-white/60" title="Token expired" />
                 ) : (
-                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                  <AlertCircle className="w-3 h-3 text-white/60" />
                 )}
               </span>
             </>
@@ -438,14 +438,14 @@ export const TodayInsights: React.FC = () => {
                         <div>
                           <div className="flex justify-between text-xs mb-1">
                             <span style={{ color: 'rgba(255,255,255,0.3)' }}>Tempo</span>
-                            <span style={{ color: '#F59E0B' }}>{Math.round(insight.audioFeatures.tempo)} BPM</span>
+                            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{Math.round(insight.audioFeatures.tempo)} BPM</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)'
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)'
                           }}>
                             <div
                               className="h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min((insight.audioFeatures.tempo / 180) * 100, 100)}%`, backgroundColor: '#F59E0B' }}
+                              style={{ width: `${Math.min((insight.audioFeatures.tempo / 180) * 100, 100)}%`, backgroundColor: 'rgba(255,255,255,0.5)' }}
                             />
                           </div>
                         </div>

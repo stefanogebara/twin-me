@@ -57,7 +57,7 @@ const FLAG_LABELS: Record<string, { label: string; description: string }> = {
 
 const TYPE_COLORS: Record<string, string> = {
   factual: '#6366F1',
-  preference: '#F59E0B',
+  preference: 'rgba(255,255,255,0.5)',
   behavioral: '#10B981',
   value: '#8B5CF6',
   prediction: '#F43F5E',

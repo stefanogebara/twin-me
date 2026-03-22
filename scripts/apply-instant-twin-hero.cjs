@@ -56,7 +56,7 @@ const Step1Welcome: React.FC<Step1WelcomeProps> = ({ onNext }) => {
             <div
               className="text-2xl"
               style={{
-                color: '#D97706',
+                color: 'rgba(255,255,255,0.6)',
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 fontWeight: 500
               }}
@@ -77,7 +77,7 @@ const Step1Welcome: React.FC<Step1WelcomeProps> = ({ onNext }) => {
             <div
               className="text-2xl"
               style={{
-                color: '#D97706',
+                color: 'rgba(255,255,255,0.6)',
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 fontWeight: 500
               }}
@@ -98,7 +98,7 @@ const Step1Welcome: React.FC<Step1WelcomeProps> = ({ onNext }) => {
             <div
               className="text-2xl"
               style={{
-                color: '#D97706',
+                color: 'rgba(255,255,255,0.6)',
                 fontFamily: 'var(--_typography---font--styrene-a)',
                 fontWeight: 500
               }}
@@ -146,7 +146,7 @@ try {
   console.log('  ✓ Tiempos font for body text');
   console.log('  ✓ Rami quote: "Perhaps we are searching in the branches..."');
   console.log('  ✓ Stats row: 30+ Platforms, 100% Authentic, ∞ Sharable');
-  console.log('  ✓ Orange accent color (#D97706)');
+  console.log('  ✓ Orange accent color (rgba(255,255,255,0.6))');
   console.log('  ✓ Light background (hsl(var(--claude-bg)))');
   console.log('  ✓ Clean centered layout');
 } catch (error) {

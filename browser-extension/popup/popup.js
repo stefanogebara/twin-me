@@ -90,8 +90,8 @@ function setupEventListeners() {
   }
   function updateToggleVisual(enabled) {
     if (!toggleTrack || !toggleThumb) return;
-    toggleTrack.style.background = enabled ? 'rgba(255,132,0,0.3)' : 'rgba(193,192,182,0.2)';
-    toggleThumb.style.background = enabled ? '#ff8400' : '#86807b';
+    toggleTrack.style.background = enabled ? 'rgba(255,255,255,0.15)' : 'rgba(193,192,182,0.2)';
+    toggleThumb.style.background = enabled ? 'rgba(255,255,255,0.85)' : '#86807b';
     toggleThumb.style.left = enabled ? '18px' : '2px';
   }
 

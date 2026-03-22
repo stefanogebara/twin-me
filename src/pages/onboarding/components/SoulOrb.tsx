@@ -161,7 +161,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
                 {[0, 1, 2, 3, 4].map(i => (
                   <div
                     key={i}
-                    className="w-1 bg-amber-200/60 rounded-full soul-orb-bar"
+                    className="w-1 bg-white/30 rounded-full soul-orb-bar"
                     style={{
                       animationDelay: `${i * 0.15}s`,
                       animationDuration: '0.8s',

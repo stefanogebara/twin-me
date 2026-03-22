@@ -17,9 +17,9 @@ function formatMemoryCount(n: number): string {
 
 function heatmapColor(count: number): string {
   if (count === 0) return 'rgba(255,255,255,0.04)';
-  if (count <= 2) return 'rgba(255,132,0,0.15)';
-  if (count <= 5) return 'rgba(255,132,0,0.35)';
-  return 'rgba(255,132,0,0.6)';
+  if (count <= 2) return 'rgba(255,255,255,0.08)';
+  if (count <= 5) return 'rgba(255,255,255,0.2)';
+  return 'rgba(255,255,255,0.4)';
 }
 
 export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, heatmap }: TwinStatsProps) {
@@ -36,8 +36,8 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
         <div
           className="rounded-2xl p-6"
           style={{
-            background: 'linear-gradient(135deg, rgba(255,132,0,0.08) 0%, rgba(93,92,174,0.06) 100%)',
-            border: '1px solid rgba(255,132,0,0.12)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(93,92,174,0.06) 100%)',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
           <p
@@ -92,7 +92,7 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
           </span>
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>day streak</p>
           {streak > 7 && (
-            <p className="text-xs mt-0.5" style={{ color: '#F59E0B' }}>personal best</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>personal best</p>
           )}
         </div>
       </div>

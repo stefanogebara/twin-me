@@ -154,7 +154,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     name: 'Browser Extension',
     description: 'Track everything you browse — pages visited, reading time, content topics, search queries, and engagement patterns',
     icon: <BrowserExtensionLogo className="w-6 h-6" />,
-    color: '#ff8400',
+    color: 'rgba(255,255,255,0.6)',
     dataTypes: ['Browsing History', 'Reading Depth', 'Search Queries', 'Content Topics'],
     estimatedInsights: 20,
     setupTime: '30 seconds',

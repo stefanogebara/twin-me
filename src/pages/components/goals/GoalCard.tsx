@@ -161,11 +161,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div className="flex items-center gap-1">
             <Flame
               className="w-3.5 h-3.5"
-              style={{ color: goal.current_streak >= 3 ? '#f97316' : TEXT_SECONDARY }}
+              style={{ color: goal.current_streak >= 3 ? 'rgba(255,255,255,0.6)' : TEXT_SECONDARY }}
             />
             <span
               className="text-xs font-medium"
-              style={{ color: goal.current_streak >= 3 ? '#f97316' : TEXT_PRIMARY }}
+              style={{ color: goal.current_streak >= 3 ? 'rgba(255,255,255,0.6)' : TEXT_PRIMARY }}
             >
               {goal.current_streak}d streak
             </span>
@@ -186,7 +186,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
             <Clock className="w-3 h-3" style={{ color: TEXT_SECONDARY }} />
             <span
               className="text-[10px]"
-              style={{ color: daysRemaining <= 3 ? '#f97316' : TEXT_SECONDARY }}
+              style={{ color: daysRemaining <= 3 ? 'rgba(255,255,255,0.6)' : TEXT_SECONDARY }}
             >
               {daysRemaining}d left
             </span>

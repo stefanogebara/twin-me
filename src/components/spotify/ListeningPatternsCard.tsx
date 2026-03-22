@@ -99,7 +99,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex-1 h-8 bg-white/8 rounded-lg overflow-hidden relative">
                 <div
-                  className="h-full bg-gradient-to-r from-[#D97706] to-[#F59E0B] flex items-center justify-center transition-all duration-800"
+                  className="h-full bg-gradient-to-r from-white/40 to-white/30 flex items-center justify-center transition-all duration-800"
                   style={{ width: `${weekendPercentage}%` }}
                 >
                   {weekendPercentage > 20 && (

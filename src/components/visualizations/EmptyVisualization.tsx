@@ -60,7 +60,7 @@ export function EmptyVisualization({
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="w-2 h-2 bg-orange-300 rounded-full animate-pulse"
+              className="w-2 h-2 bg-white/30 rounded-full animate-pulse"
             />
           ))}
         </div>

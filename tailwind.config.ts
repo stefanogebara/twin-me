@@ -73,8 +73,8 @@ export default {
           slate: '#141413',
           'slate-medium': '#595959',
           'slate-light': '#8C8C8C',
-          orange: '#D97706',
-          'orange-hover': '#B45309',
+          orange: 'rgba(255,255,255,0.6)',
+          'orange-hover': 'rgba(255,255,255,0.7)',
         },
       },
       fontSize: {

@@ -22,7 +22,7 @@ const getAuthHeaders = () => {
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <span
     className="text-[11px] font-medium tracking-widest uppercase block mb-5"
-    style={{ color: 'var(--accent-vibrant, #ff8400)', fontFamily: 'Inter, sans-serif' }}
+    style={{ color: 'var(--accent-vibrant, rgba(255,255,255,0.85))', fontFamily: 'Inter, sans-serif' }}
   >
     {label}
   </span>
@@ -66,7 +66,7 @@ const ToggleSwitch: React.FC<{
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'var(--accent-vibrant, #ff8400)' : 'rgba(255,255,255,0.1)',
+      backgroundColor: enabled ? 'var(--accent-vibrant, rgba(255,255,255,0.85))' : 'rgba(255,255,255,0.1)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
@@ -116,7 +116,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
     <div>
       <div className="flex items-center justify-between py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center gap-3">
-          <Send className="w-4 h-4" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+          <Send className="w-4 h-4" style={{ color: 'var(--accent-vibrant, rgba(255,255,255,0.85))' }} />
           <div>
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
             <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -535,7 +535,7 @@ const Settings = () => {
             className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
             style={{ background: 'rgba(16,183,127,0.1)', border: '1px solid rgba(16,183,127,0.2)' }}
           >
-            <Shield className="w-5 h-5" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+            <Shield className="w-5 h-5" style={{ color: 'var(--accent-vibrant, rgba(255,255,255,0.85))' }} />
           </div>
           <div className="flex-1 text-left">
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>

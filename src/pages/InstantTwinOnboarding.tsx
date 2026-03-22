@@ -85,7 +85,7 @@ const InstantTwinOnboarding = () => {
     categorySocial: '#a855f7',
     categoryProfessional: '#78716c',
     categoryHealth: '#00A7E1',
-    categoryBrowsing: '#ff8400',
+    categoryBrowsing: 'rgba(255,255,255,0.6)',
     connected: 'var(--text-secondary)',
   };
 
@@ -525,14 +525,14 @@ const InstantTwinOnboarding = () => {
         >
           <CheckCircle2
             className="w-4 h-4 flex-shrink-0"
-            style={{ color: expiredConnections.length > 0 ? '#f59e0b' : '#10b77f' }}
+            style={{ color: expiredConnections.length > 0 ? 'rgba(255,255,255,0.5)' : '#10b77f' }}
           />
           <div>
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>
               {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
             </span>
             {expiredConnections.length > 0 && (
-              <span className="text-sm ml-2" style={{ color: '#f59e0b' }}>
+              <span className="text-sm ml-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
                 ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
               </span>
             )}
@@ -725,7 +725,7 @@ const InstantTwinOnboarding = () => {
                   <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
                     {expiredConnections.length > 0 && (
-                      <span className="ml-1" style={{ color: '#f59e0b' }}>
+                      <span className="ml-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
                         ({expiredConnections.length} expired)
                       </span>
                     )}

@@ -138,8 +138,8 @@ export const FloatingNav: React.FC = () => {
                       }
                     `}
                     style={active ? {
-                      background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
-                      color: 'var(--accent-vibrant, #ff8400)',
+                      background: 'var(--accent-vibrant-glow, rgba(255,255,255,0.06))',
+                      color: 'var(--accent-vibrant, rgba(255,255,255,0.85))',
                     } : {
                       color: 'var(--text-secondary, #4a4242)',
                     }}

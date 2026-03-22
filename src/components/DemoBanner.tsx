@@ -97,7 +97,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
 
   // Inline variant
   return (
-    <div className="bg-gradient-to-r from-stone-800/30 to-amber-900/15 border border-amber-800/20 rounded-lg p-4 mb-6">
+    <div className="bg-gradient-to-r from-stone-800/30 to-white/5 border border-white/10 rounded-lg p-4 mb-6">
       <div className="flex items-start gap-3">
         <Sparkles className="w-5 h-5 text-[var(--accent-vibrant)] flex-shrink-0 mt-0.5" />
         <div className="flex-1">

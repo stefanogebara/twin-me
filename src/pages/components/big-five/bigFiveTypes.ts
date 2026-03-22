@@ -74,7 +74,7 @@ export const DOMAIN_INFO: Record<string, { name: string; color: string; descript
   },
   E: {
     name: 'Extraversion',
-    color: '#f59e0b',
+    color: 'rgba(255,255,255,0.5)',
     description: 'Sociability, assertiveness, and positive emotions'
   },
   A: {

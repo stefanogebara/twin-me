@@ -30,7 +30,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
       >
         <div
           className="w-2 h-2 rounded-full shrink-0"
-          style={{ backgroundColor: '#f59e0b' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}
         />
         <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
         <span
@@ -74,7 +74,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
               <button
                 onClick={() => handleAsk(insight)}
                 className="shrink-0 text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0 whitespace-nowrap"
-                style={{ color: '#ff8400' }}
+                style={{ color: 'rgba(255,255,255,0.85)' }}
               >
                 Ask about this
               </button>

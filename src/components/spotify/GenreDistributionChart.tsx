@@ -12,11 +12,11 @@ interface GenreDistributionChartProps {
 // Color palette for genres
 const GENRE_COLORS = [
   '#1DB954', // Spotify Green
-  '#D97706', // Orange
+  'rgba(255,255,255,0.6)', // Neutral
   '#8B5CF6', // Purple
   '#EF4444', // Red
   '#3B82F6', // Blue
-  '#F59E0B', // Amber
+  'rgba(255,255,255,0.5)', // Neutral
   '#10B981', // Emerald
   '#EC4899', // Pink
 ];

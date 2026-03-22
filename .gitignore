@@ -163,3 +163,4 @@ test-data/
 
 # Claude local launch config
 .claude/launch.json
+.env.vercel-*

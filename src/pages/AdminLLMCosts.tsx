@@ -342,7 +342,7 @@ const AdminLLMCosts: React.FC = () => {
           { icon: DollarSign, color: '#10b77f', label: 'Total Cost', value: `$${(summary?.total_cost_usd || 0).toFixed(4)}`, sub: `${summary?.period_days || 30}-day period` },
           { icon: Phone, color: '#3B82F6', label: 'Total Calls', value: formatNumber(summary?.total_calls || 0), sub: 'API requests' },
           { icon: Zap, color: '#8B5CF6', label: 'Cache Hit Rate', value: `${(summary?.cache_hit_rate || 0).toFixed(1)}%`, sub: 'Prompt caching' },
-          { icon: Clock, color: '#F59E0B', label: 'Avg Latency', value: avgLatency > 0 ? `${Math.round(avgLatency)}ms` : '--', sub: 'Recent calls' },
+          { icon: Clock, color: 'rgba(255,255,255,0.5)', label: 'Avg Latency', value: avgLatency > 0 ? `${Math.round(avgLatency)}ms` : '--', sub: 'Recent calls' },
           { icon: DollarSign, color: '#06B6D4', label: 'Daily Avg', value: `$${(summary?.daily_average_usd || 0).toFixed(4)}`, sub: 'Per day average' },
           { icon: TrendingUp, color: '#EF4444', label: 'Monthly Projection', value: `$${(summary?.monthly_projection_usd || 0).toFixed(2)}`, sub: 'At current rate' },
         ].map(({ icon: Icon, color, label, value, sub }) => (

@@ -13,10 +13,10 @@ const getAuthHeaders = () => {
 // Autonomy level labels and colors
 const AUTONOMY_LEVELS = [
   { label: 'Observe', short: 'OBS', color: 'rgba(255,255,255,0.2)' },
-  { label: 'Suggest', short: 'SUG', color: 'rgba(255,172,64,0.4)' },
-  { label: 'Draft', short: 'DFT', color: 'rgba(255,132,0,0.5)' },
-  { label: 'Act & Notify', short: 'ACT', color: 'rgba(255,132,0,0.7)' },
-  { label: 'Autonomous', short: 'AUTO', color: 'rgba(255,132,0,0.9)' },
+  { label: 'Suggest', short: 'SUG', color: 'rgba(255,255,255,0.15)' },
+  { label: 'Draft', short: 'DFT', color: 'rgba(255,255,255,0.25)' },
+  { label: 'Act & Notify', short: 'ACT', color: 'rgba(255,255,255,0.35)' },
+  { label: 'Autonomous', short: 'AUTO', color: 'rgba(255,255,255,0.55)' },
 ] as const;
 
 // Category icons
@@ -144,7 +144,7 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
         className="flex items-start gap-3 mb-5 p-3 rounded-xl"
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant, rgba(255,255,255,0.85))' }} />
         <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
           Control how much your twin can act on its own. <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Observe</strong> means it only watches. <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Autonomous</strong> means it acts without asking.
         </p>
@@ -242,7 +242,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
           <div
             className="absolute h-1 rounded-full transition-all duration-200"
             style={{
-              background: `linear-gradient(90deg, rgba(255,172,64,0.3), ${levelInfo.color})`,
+              background: `linear-gradient(90deg, rgba(255,255,255,0.1), ${levelInfo.color})`,
               width: `${(level / 4) * 100}%`,
               top: '50%',
               transform: 'translateY(-50%)',
@@ -262,9 +262,9 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
                   ? AUTONOMY_LEVELS[i].color
                   : 'rgba(255,255,255,0.12)',
                 border: i === level
-                  ? '2px solid var(--accent-vibrant, #ff8400)'
+                  ? '2px solid var(--accent-vibrant, rgba(255,255,255,0.85))'
                   : '1px solid rgba(255,255,255,0.1)',
-                boxShadow: i === level ? '0 0 6px rgba(255,132,0,0.3)' : 'none',
+                boxShadow: i === level ? '0 0 6px rgba(255,255,255,0.15)' : 'none',
               }}
               title={AUTONOMY_LEVELS[i].label}
             />

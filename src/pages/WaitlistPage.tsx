@@ -147,7 +147,7 @@ const WaitlistPage = () => {
                 disabled={loading}
                 className="h-11 px-6 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{
-                  backgroundColor: '#ff8400',
+                  backgroundColor: 'rgba(255,255,255,0.85)',
                   color: '#fff',
                   fontFamily: "'Inter', sans-serif",
                 }}
