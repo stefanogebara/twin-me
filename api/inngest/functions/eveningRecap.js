@@ -16,6 +16,7 @@ import { inngest, EVENTS } from '../../services/inngestClient.js';
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { getAutonomyBySkillName, logAgentAction } from '../../services/autonomyService.js';
+import { isInsightDuplicate } from '../../services/proactiveInsights.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -214,8 +215,13 @@ Write it like texting a close friend at the end of the day.`;
       return { success: false, reason: 'recap_generation_failed' };
     }
 
-    // Step 9: Deliver
+    // Step 9: Deliver (with dedup check)
     await step.run('deliver', async () => {
+      if (await isInsightDuplicate(userId, recap, 'evening_recap')) {
+        log.info('Evening recap deduplicated — skipping insert', { userId });
+        return;
+      }
+
       await supabaseAdmin.from('proactive_insights').insert({
         user_id: userId,
         insight: recap,

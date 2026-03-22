@@ -17,6 +17,7 @@ import { inngest, EVENTS } from '../../services/inngestClient.js';
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { getAutonomyBySkillName, logAgentAction } from '../../services/autonomyService.js';
+import { isInsightDuplicate } from '../../services/proactiveInsights.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -180,8 +181,13 @@ Keep the overall tone casual and friend-like. This is their twin helping with em
 
     if (!triage) return { success: false, reason: 'generation_failed' };
 
-    // Step 7: Deliver
+    // Step 7: Deliver (with dedup check)
     await step.run('deliver', async () => {
+      if (await isInsightDuplicate(userId, triage, 'email_triage')) {
+        log.info('Email triage deduplicated — skipping insert', { userId });
+        return;
+      }
+
       await supabaseAdmin.from('proactive_insights').insert({
         user_id: userId,
         insight: triage,

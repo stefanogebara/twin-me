@@ -17,6 +17,7 @@ import { getBlocks } from '../../services/coreMemoryService.js';
 import { assessMood } from '../../services/moodAssessmentService.js';
 import { getAutonomyBySkillName, canAct, logAgentAction } from '../../services/autonomyService.js';
 import { getValidAccessToken } from '../../services/tokenRefreshService.js';
+import { isInsightDuplicate } from '../../services/proactiveInsights.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 import axios from 'axios';
@@ -43,16 +44,29 @@ export const musicMoodMatchFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId } = event.data;
 
-    // Step 1: Check cooldown — skip if triggered recently
+    // Step 1: Check cooldown — skip if triggered recently.
+    // Two-layer cooldown: check both agent_events AND proactive_insights directly.
+    // The proactive_insights check is the source of truth (agent_events can be stale/missing).
     const shouldSkip = await step.run('check-cooldown', async () => {
       const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-      const { count } = await supabaseAdmin
+
+      // Primary cooldown: check proactive_insights for recent music_mood_match entries
+      const { count: insightCount } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('category', 'music_mood_match')
+        .gte('created_at', cutoff);
+      if ((insightCount || 0) > 0) return true;
+
+      // Secondary cooldown: check agent_events (legacy, kept for backward compat)
+      const { count: eventCount } = await supabaseAdmin
         .from('agent_events')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
         .eq('event_type', 'music_mood_match_triggered')
         .gte('created_at', cutoff);
-      return (count || 0) > 0;
+      return (eventCount || 0) > 0;
     });
 
     if (shouldSkip) {
@@ -239,10 +253,18 @@ Write a brief, casual suggestion. No bullet points. No "I suggest" — just say 
         }
       }
 
-      // Always deliver as proactive insight
+      // Dedup check before inserting — prevents near-duplicate insights
+      const insightText = autoPlayed ? `Playing "${playlist.name}" — ${suggestion}` : suggestion;
+      const isDuplicate = await isInsightDuplicate(userId, insightText, 'music_mood_match');
+      if (isDuplicate) {
+        log.info('Music mood match insight deduplicated — skipping insert', { userId });
+        return { autoPlayed, playlistName: playlist.name, deduplicated: true };
+      }
+
+      // Deliver as proactive insight
       await supabaseAdmin.from('proactive_insights').insert({
         user_id: userId,
-        insight: autoPlayed ? `Playing "${playlist.name}" — ${suggestion}` : suggestion,
+        insight: insightText,
         urgency: 'low',
         category: 'music_mood_match',
         delivered: false,

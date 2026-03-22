@@ -24,6 +24,7 @@ import { getBlocks } from '../../services/coreMemoryService.js';
 import { normalizeHealthScore } from '../../services/moodAssessmentService.js';
 import { deliverInsight } from '../../services/messageRouter.js';
 import { logAgentAction } from '../../services/autonomyService.js';
+import { isInsightDuplicate } from '../../services/proactiveInsights.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -282,12 +283,19 @@ export const intelligentTriggersFunction = inngest.createFunction(
 
         const suggestion = response?.content || response?.text || trigger.context;
 
+        // Dedup check before inserting
+        const triggerCategory = trigger.type;
+        if (await isInsightDuplicate(userId, suggestion, triggerCategory)) {
+          log.info('Intelligent trigger insight deduplicated', { userId, type: triggerCategory });
+          continue;
+        }
+
         // Deliver via message router (Telegram + web)
         const insight = {
           user_id: userId,
           insight: suggestion,
           urgency: trigger.severity === 'high' ? 'high' : trigger.severity === 'medium' ? 'medium' : 'low',
-          category: trigger.type,
+          category: triggerCategory,
         };
 
         await supabaseAdmin.from('proactive_insights').insert({
