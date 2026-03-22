@@ -45,6 +45,7 @@ import {
   addReflection,
   getRecentImportanceSum,
   decaySourceMemories,
+  getMemoryStats,
 } from './memoryStreamService.js';
 import { inferIdentityContext } from './identityContextService.js';
 import { supabaseAdmin } from './database.js';
@@ -161,18 +162,18 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
 }
 
 // Reflection threshold: trigger when sum of recent importance scores exceeds this
-// 40 = ~8 platform observations at avg importance 5, prevents runaway triggering
-export const IMPORTANCE_THRESHOLD = 40;
+// 60 = ~12 platform observations at avg importance 5, prevents runaway triggering
+export const IMPORTANCE_THRESHOLD = 60;
 
-// Max recursive reflection depth — depth-2 prevents feedback loops while still
-// allowing reflections to synthesize other reflections (one level of meta-insight)
-const MAX_REFLECTION_DEPTH = 2;
+// Max recursive reflection depth — depth-1 prevents feedback loops by disallowing
+// meta-reflections (reflections-on-reflections), keeping memory composition healthier
+const MAX_REFLECTION_DEPTH = 1;
 
-// Cooldown: don't reflect more than once per hour per user
+// Cooldown: don't reflect more than once per 4 hours per user
 // Uses Redis as primary store (serverless-safe) with in-memory Map as fallback
 const reflectionCooldowns = new Map(); // fallback only — reset on cold starts
-const REFLECTION_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
-const REFLECTION_COOLDOWN_REDIS_TTL = 3600; // 1 hour in seconds
+const REFLECTION_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
+const REFLECTION_COOLDOWN_REDIS_TTL = 14400; // 4 hours in seconds
 
 async function _isReflectionOnCooldown(userId) {
   // Try Redis first (cross-instance, survives cold starts)
@@ -198,6 +199,56 @@ async function _clearReflectionCooldown(userId) {
     await redisDel(`reflectionCooldown:${userId}`);
   } catch { /* Redis unavailable */ }
   reflectionCooldowns.delete(userId);
+}
+
+// ====================================================================
+// Expert Round-Robin Selection (Phase A4)
+// ====================================================================
+
+// In-memory fallback for expert round-robin index (reset on cold starts)
+const expertRoundRobinIdx = new Map();
+const EXPERT_ROUND_ROBIN_REDIS_TTL = 14400; // 4 hours — matches cooldown TTL
+
+/**
+ * Select 3 of 5 experts in a rotating round-robin per user.
+ * Uses Redis key `reflectionExpertIdx:${userId}` to persist the index across instances.
+ * Falls back to in-memory Map if Redis is unavailable.
+ * Returns array of 3 expert objects from EXPERT_PERSONAS.
+ */
+async function selectExpertsForRun(userId) {
+  const redisKey = `reflectionExpertIdx:${userId}`;
+  let idx = 0;
+
+  // Try Redis first (cross-instance, survives cold starts)
+  try {
+    const stored = await redisGet(redisKey);
+    if (stored != null) idx = parseInt(stored, 10) || 0;
+  } catch {
+    // Redis unavailable — fall through to in-memory
+    idx = expertRoundRobinIdx.get(userId) || 0;
+  }
+
+  const total = EXPERT_PERSONAS.length; // 5
+  const selected = [
+    EXPERT_PERSONAS[idx % total],
+    EXPERT_PERSONAS[(idx + 1) % total],
+    EXPERT_PERSONAS[(idx + 2) % total],
+  ];
+
+  // Advance index by 3 and persist
+  const nextIdx = idx + 3;
+  try {
+    await redisSet(redisKey, String(nextIdx), EXPERT_ROUND_ROBIN_REDIS_TTL);
+  } catch { /* Redis unavailable */ }
+  expertRoundRobinIdx.set(userId, nextIdx);
+
+  log.info('Expert round-robin selected', {
+    userId,
+    experts: selected.map(e => e.id),
+    nextIdx,
+  });
+
+  return selected;
 }
 
 // ====================================================================
@@ -563,11 +614,12 @@ async function generateReflections(userId, depth = 0) {
       ? `${formattedObservations}\n\n[PERSONALITY TREND]: ${personalityTrend}`
       : formattedObservations;
 
-    // Step 4: Run all experts in parallel (with identity context injected)
-    log.info('Running expert analyses in parallel', { expertCount: EXPERT_PERSONAS.length });
+    // Step 4: Select 3 experts via round-robin and run in parallel
+    const selectedExperts = await selectExpertsForRun(userId);
+    log.info('Running expert analyses in parallel', { expertCount: selectedExperts.length, experts: selectedExperts.map(e => e.id) });
 
     const expertSettled = await Promise.allSettled(
-      EXPERT_PERSONAS.map(expert =>
+      selectedExperts.map(expert =>
         runExpertAnalysis(userId, expert, observationsWithTrend, depth, identityContext)
       )
     );
@@ -576,19 +628,19 @@ async function generateReflections(userId, depth = 0) {
     let reflectionsGenerated = 0;
     const allEvidenceIds = new Set();
 
-    for (let i = 0; i < EXPERT_PERSONAS.length; i++) {
+    for (let i = 0; i < selectedExperts.length; i++) {
       if (expertSettled[i].status === 'rejected') {
-        log.warn('Expert failed', { expertId: EXPERT_PERSONAS[i].id, error: expertSettled[i].reason });
+        log.warn('Expert failed', { expertId: selectedExperts[i].id, error: expertSettled[i].reason });
         continue;
       }
       const result = expertSettled[i].value;
       if (!Array.isArray(result)) {
-        log.warn('Expert returned invalid result', { expertId: EXPERT_PERSONAS[i].id });
+        log.warn('Expert returned invalid result', { expertId: selectedExperts[i].id });
         continue;
       }
       const count = result.length;
       if (count > 0) {
-        log.info('Expert produced reflections', { expert: EXPERT_PERSONAS[i].name, count });
+        log.info('Expert produced reflections', { expert: selectedExperts[i].name, count });
         // Collect evidence IDs (result items may be { observation, evidenceIds } or just strings)
         // runExpertAnalysis returns stored observation strings; evidenceIds tracked below via a Map
         if (result._evidenceIds) {
@@ -639,9 +691,33 @@ async function generateReflections(userId, depth = 0) {
 /**
  * Check if reflection should be triggered based on accumulated importance.
  */
+/**
+ * Composition circuit breaker: pause reflection generation if reflections
+ * already dominate the memory stream (>50% of total, min 100 memories).
+ */
+async function isReflectionDominant(userId) {
+  try {
+    const stats = await getMemoryStats(userId);
+    if (!stats || stats.total < 100) return false;
+    const ratio = (stats.byType?.reflection || 0) / stats.total;
+    if (ratio > 0.50) {
+      log.warn('Reflection dominance detected, pausing generation', { userId, ratio: ratio.toFixed(2), total: stats.total });
+      return true;
+    }
+    return false;
+  } catch {
+    return false; // fail open
+  }
+}
+
 async function shouldTriggerReflection(userId) {
   // Check cooldown first (cheap)
   if (await _isReflectionOnCooldown(userId)) {
+    return false;
+  }
+
+  // Composition circuit breaker: don't pile on if reflections already dominate
+  if (await isReflectionDominant(userId)) {
     return false;
   }
 

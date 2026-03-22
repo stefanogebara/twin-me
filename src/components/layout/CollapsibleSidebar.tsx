@@ -211,8 +211,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
-                  background: 'var(--accent-vibrant-glow, rgba(255,255,255,0.06))',
-                  color: 'var(--accent-vibrant, rgba(255,255,255,0.85))',
+                  background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                  color: 'var(--accent-vibrant, #ff8400)',
                 } : {
                   color: 'rgba(255, 255, 255, 0.45)',
                 }}
@@ -220,7 +220,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               >
                 <Icon
                   className="w-5 h-5"
-                  style={active ? { color: 'var(--accent-vibrant, rgba(255,255,255,0.85))' } : { color: 'rgba(255, 255, 255, 0.45)' }}
+                  style={active ? { color: 'var(--accent-vibrant, #ff8400)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
                 {isExpanded && <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: active ? 500 : 400 }}>{item.label}</span>}

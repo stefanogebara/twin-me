@@ -378,6 +378,7 @@ import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMemorySaliencyReplayRoutes from './routes/cron-memory-saliency-replay.js';
 import cronPersonalityEvalRoutes from './routes/cron-personality-eval.js';
 import memoryHealthRoutes from './routes/memory-health.js';
+import memoriesRoutes from './routes/memories.js';
 import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
@@ -496,6 +497,7 @@ app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/memory-saliency-replay', cronMemorySaliencyReplayRoutes); // Daily saliency replay (CL1-inspired)
 app.use('/api/cron/personality-eval', cronPersonalityEvalRoutes);   // Weekly personality assessment (Sunday 4am)
+app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 if (process.env.NODE_ENV === 'development') {
