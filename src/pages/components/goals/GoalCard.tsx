@@ -74,7 +74,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         border: `1px solid var(--glass-surface-border, #d9d1cb)`,
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
       }}
     >
       {/* Header: Category badge + title */}
@@ -114,7 +114,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium flex-shrink-0"
             style={{
               background: 'rgba(255, 132, 0, 0.08)',
-              color: '#ff8400',
+              color: 'var(--accent-vibrant)',
               border: '1px solid rgba(255, 132, 0, 0.15)',
             }}
           >
@@ -140,7 +140,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         >
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ backgroundColor: '#ff8400', width: `${progressPercent}%` }}
+            style={{ backgroundColor: 'var(--accent-vibrant)', width: `${progressPercent}%` }}
           />
         </div>
         <div className="flex items-center justify-between">

@@ -15,7 +15,7 @@ export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ labe
 );
 
 export const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-10" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );
 
 export const OceanBar: React.FC<{ trait: string; value: number }> = ({ trait, value }) => (
@@ -23,12 +23,12 @@ export const OceanBar: React.FC<{ trait: string; value: number }> = ({ trait, va
     <span className="text-[13px] w-36 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
       {trait}
     </span>
-    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+    <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
       <div
         className="h-full rounded-full transition-all"
         style={{
           width: `${value}%`,
-          backgroundColor: '#ff8400',
+          backgroundColor: 'var(--accent-vibrant)',
           opacity: 0.6,
         }}
       />

@@ -55,7 +55,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
     <div
       className="rounded-lg relative overflow-hidden transition-all duration-200"
       style={{
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
         backgroundColor: 'rgba(255,255,255,0.02)',
       }}
     >
@@ -66,7 +66,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <div
               className="p-2.5 rounded-lg"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                backgroundColor: 'var(--input)',
               }}
             >
               <Icon className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -138,7 +138,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <Slider.Track
               className="relative grow rounded-full h-2"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.10)',
+                backgroundColor: 'var(--glass-surface-border)',
               }}
             >
               <Slider.Range

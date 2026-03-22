@@ -8,7 +8,7 @@ import React from 'react';
 
 // --- Design tokens (shared with parent) ---
 const TEXT_PRIMARY = 'var(--foreground)';
-const BORDER_COLOR = 'rgba(255,255,255,0.06)';
+const BORDER_COLOR = 'var(--border-glass)';
 const CARD_BG = 'rgba(255,255,255,0.02)';
 
 // --- Stat Card ---

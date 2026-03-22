@@ -250,7 +250,7 @@ export default function EvalDashboard() {
         {/* Score History Chart */}
         <div
           className="p-6 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">Score History</h2>
           {historyChartData.length > 0 ? (
@@ -277,7 +277,7 @@ export default function EvalDashboard() {
         {/* Feature Flags */}
         <div
           className="p-6 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">Feature Flags (A/B)</h2>
           <p className="text-xs text-muted-foreground mb-4">Toggle features off, run an eval, compare scores to measure impact.</p>
@@ -309,7 +309,7 @@ export default function EvalDashboard() {
         {/* Start Eval Run */}
         <div
           className="p-6 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-sm font-semibold text-muted-foreground">Run New Eval</h2>
@@ -340,7 +340,7 @@ export default function EvalDashboard() {
         {activeRun && (
           <div
             className="p-6 space-y-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground">Score Responses</h2>
@@ -376,7 +376,7 @@ export default function EvalDashboard() {
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t p-4 space-y-4" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+                    <div className="border-t p-4 space-y-4" style={{ borderColor: 'var(--border-glass)' }}>
                       <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <div className="text-xs text-muted-foreground mb-1 font-medium">Twin's response:</div>
                         <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{q.twinResponse}</p>
@@ -400,14 +400,14 @@ export default function EvalDashboard() {
               );
             })}
 
-            <div className="pt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            <div className="pt-2 border-t" style={{ borderColor: 'var(--border-glass)' }}>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional notes about this eval run..."
                 rows={2}
                 className="w-full text-sm border rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                style={{ borderColor: 'rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ borderColor: 'var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               />
               <button
                 onClick={() => scoreMutation.mutate()}
@@ -426,7 +426,7 @@ export default function EvalDashboard() {
         {(historyData?.runs || []).length > 0 && (
           <div
             className="p-6 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <h2 className="text-sm font-semibold text-muted-foreground mb-4">Past Runs</h2>
             <div className="space-y-2">

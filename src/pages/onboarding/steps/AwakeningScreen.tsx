@@ -56,7 +56,7 @@ function Stars() {
 
 const GLASS = {
   background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--border-glass)',
   borderRadius: '16px',
   backdropFilter: 'blur(20px)',
   WebkitBackdropFilter: 'blur(20px)',

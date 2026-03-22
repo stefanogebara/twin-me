@@ -224,7 +224,7 @@ const SpotifyInsightsPage: React.FC = () => {
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg"
             style={{
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border)',
               color: 'rgba(255,255,255,0.5)'
             }}
           >
@@ -272,7 +272,7 @@ const SpotifyInsightsPage: React.FC = () => {
           className="p-2 rounded-lg"
           title="Get a fresh observation"
           style={{
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border)',
             color: 'rgba(255,255,255,0.5)'
           }}
         >
@@ -309,7 +309,7 @@ const SpotifyInsightsPage: React.FC = () => {
         <div
           className="mb-8 p-4 rounded-lg"
           style={{
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-glass)',
             backgroundColor: 'rgba(255,255,255,0.02)'
           }}
         >
@@ -367,7 +367,7 @@ const SpotifyInsightsPage: React.FC = () => {
                 key={past.id}
                 className="p-4 rounded-lg"
                 style={{
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-glass)',
                   backgroundColor: 'rgba(255,255,255,0.02)'
                 }}
               >

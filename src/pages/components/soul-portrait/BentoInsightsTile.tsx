@@ -38,7 +38,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights }) => {
       className="rounded-lg p-5 h-full flex flex-col"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
       }}
     >
       {/* Header */}
@@ -82,7 +82,7 @@ export const BentoInsightsTile: React.FC<Props> = ({ insights }) => {
                 {i < top3.length - 1 && (
                   <span
                     className="w-px flex-1 mt-1 min-h-[12px]"
-                    style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+                    style={{ backgroundColor: 'var(--glass-surface-bg)' }}
                   />
                 )}
               </div>

@@ -164,7 +164,7 @@ function PlatformCard({ config, onSelect }: { config: PlatformConfig; onSelect: 
       onClick={onSelect}
       className="rounded-lg w-full text-left p-4 transition-colors hover:bg-white/[0.03]"
       style={{
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
         backgroundColor: 'rgba(255,255,255,0.02)',
       }}
     >
@@ -392,7 +392,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
         <div
           className="rounded-lg p-5 space-y-3"
           style={{
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-glass)',
             backgroundColor: 'rgba(255,255,255,0.02)',
           }}
         >
@@ -410,7 +410,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
             <button
               onClick={reset}
               className="text-xs px-3 py-1.5 rounded-lg text-foreground/60"
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ border: '1px solid var(--border)' }}
             >
               Import another
             </button>

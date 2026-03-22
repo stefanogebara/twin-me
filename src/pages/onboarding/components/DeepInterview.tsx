@@ -640,7 +640,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
           className="flex flex-col items-center gap-4 py-4"
         >
           <div className="flex items-center justify-center w-12 h-12 rounded-full"
-            style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-glass)' }}
           >
             <Sparkles className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
           </div>
@@ -711,7 +711,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
                   className="px-2.5 py-1 rounded-full text-[11px]"
                   style={{
                     backgroundColor: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--border-glass)',
                     color: 'rgba(255,255,255,0.4)',
                     fontFamily: "'Geist', sans-serif",
                   }}
@@ -752,7 +752,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               : '1px solid var(--glass-surface-border)',
             boxShadow: voice.isActive
               ? '0 4px 4px rgba(0,0,0,0.12), 0 0 20px rgba(240, 200, 128, 0.06)'
-              : '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+              : '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
           }}
         >
           {/* Mode toggle: Mic (start voice) / Keyboard (switch to text) */}

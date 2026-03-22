@@ -25,7 +25,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl px-3 py-2 text-xs shadow-lg"
-      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}>
+      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}>
       <p className="font-medium mb-1">{label}</p>
       <p style={{ color: '#8b5cf6' }}>
         Confidence: {((payload[0]?.value ?? 0) * 100).toFixed(0)}%
@@ -70,7 +70,7 @@ export const SoulEvolutionTimeline: React.FC<Props> = ({ snapshots }) => {
               <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glass)" />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }}

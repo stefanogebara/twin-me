@@ -47,7 +47,7 @@ const WaitlistPage = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6"
-      style={{ backgroundColor: '#110f0f' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="w-full max-w-[420px] text-center">
         {/* Logo */}
@@ -137,7 +137,7 @@ const WaitlistPage = () => {
                 className="flex-1 h-11 px-4 rounded-lg text-sm outline-none"
                 style={{
                   backgroundColor: 'rgba(218,217,215,0.08)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border)',
                   color: 'var(--foreground)',
                   fontFamily: "'Inter', sans-serif",
                 }}

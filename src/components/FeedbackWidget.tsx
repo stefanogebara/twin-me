@@ -207,7 +207,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
       className="rounded-lg p-3 space-y-3"
       style={{
         backgroundColor: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)'
+        border: '1px solid var(--border-glass)'
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -316,7 +316,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
             className="w-full text-sm rounded-md px-3 py-2 resize-none"
             style={{
               backgroundColor: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border)',
               color: 'var(--foreground)'
             }}
           />

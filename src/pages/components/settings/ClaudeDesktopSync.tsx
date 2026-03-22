@@ -103,7 +103,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
             backgroundColor: '#252222',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border)',
             color: '#fdfcfb',
             fontFamily: "'Inter', sans-serif",
             fontWeight: 500,
@@ -118,7 +118,7 @@ const ClaudeDesktopSync: React.FC<ClaudeDesktopSyncProps> = ({
           className="rounded-xl"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+            border: '1px solid var(--sidebar)'
           }}
         >
           <button

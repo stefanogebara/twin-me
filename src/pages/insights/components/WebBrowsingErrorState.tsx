@@ -25,7 +25,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
           <button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ border: '1px solid var(--border)' }}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
           </button>
@@ -53,7 +53,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
       <div
         className="p-4 rounded-lg mb-6 cursor-pointer transition-opacity hover:opacity-80"
         style={{
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid var(--border-glass)',
           backgroundColor: 'rgba(255,255,255,0.02)',
           borderLeft: `3px solid ${colors.webAccent}`,
         }}
@@ -77,7 +77,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div
           className="p-5 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -89,7 +89,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
         </div>
         <div
           className="p-5 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Search className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -101,7 +101,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
         </div>
         <div
           className="p-5 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
             <BookOpen className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -113,7 +113,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
         </div>
         <div
           className="p-5 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -128,7 +128,7 @@ export const WebBrowsingErrorState: React.FC<WebBrowsingErrorStateProps> = ({
       {/* Twin observation placeholder */}
       <div
         className="p-5 rounded-lg text-center"
-        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
       >
         <Sparkles className="w-8 h-8 mx-auto mb-3" style={{ color: 'rgba(255,255,255,0.3)', opacity: 0.4 }} />
         <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>

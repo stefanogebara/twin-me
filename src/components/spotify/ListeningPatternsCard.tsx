@@ -120,7 +120,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div
             className="rounded-lg p-3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
           >
             <div className="flex items-center gap-2 mb-1">
               <Headphones className="w-3.5 h-3.5 text-[#1DB954]" />
@@ -135,7 +135,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
 
           <div
             className="rounded-lg p-3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
           >
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-3.5 h-3.5 text-[#1DB954]" />

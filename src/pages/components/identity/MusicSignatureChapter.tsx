@@ -16,7 +16,7 @@ const MusicSignatureChapter: React.FC<MusicSignatureChapterProps> = ({ genres, l
           className="text-[12px] px-3 py-1.5 rounded-[46px]"
           style={{
             color: 'rgba(255,255,255,0.6)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border)',
           }}
         >
           {genre}

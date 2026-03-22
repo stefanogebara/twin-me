@@ -210,12 +210,12 @@ export function SoulChatInterface({
       {/* Header with Conversation Controls */}
       <div
         className="flex items-center justify-between p-4 border-b"
-        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+        style={{ borderColor: 'var(--border-glass)' }}
       >
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
           >
             <img src="/images/backgrounds/flower-hero.png" alt="Twin" className="w-9 h-9 object-contain" />
           </div>
@@ -263,7 +263,7 @@ export function SoulChatInterface({
                   className="px-4 py-2 rounded-full text-sm transition-colors hover:brightness-125"
                   style={{
                     backgroundColor: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)'
                   }}
                 >
@@ -305,7 +305,7 @@ export function SoulChatInterface({
       {/* Input Area */}
       <div
         className="p-4 border-t"
-        style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+        style={{ borderColor: 'var(--border-glass)' }}
       >
         <form onSubmit={handleSubmit} className="flex gap-2">
           <textarea
@@ -318,7 +318,7 @@ export function SoulChatInterface({
             className="flex-1 px-4 py-3 rounded-2xl focus:outline-none resize-none text-sm"
             style={{
               backgroundColor: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid var(--border-glass)',
               color: 'var(--foreground)',
               minHeight: '48px',
               maxHeight: '120px'

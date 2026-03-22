@@ -240,7 +240,7 @@ const YouTubeInsightsPage: React.FC = () => {
     <div
       className={`animate-pulse rounded ${className}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        backgroundColor: 'var(--glass-surface-bg)',
         ...style
       }}
     />
@@ -261,7 +261,7 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
         <div
           className="p-4 rounded-lg mb-6"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <SkeletonPulse className="h-4 w-40 mb-3" />
           <div className="space-y-2">
@@ -272,7 +272,7 @@ const YouTubeInsightsPage: React.FC = () => {
         </div>
         <div
           className="p-4 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <SkeletonPulse className="h-5 w-full mb-2" />
           <SkeletonPulse className="h-5 w-4/5 mb-2" />
@@ -308,7 +308,7 @@ const YouTubeInsightsPage: React.FC = () => {
           <button
             onClick={() => navigate('/dashboard')}
             className="p-2 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <ArrowLeft className="w-5 h-5" style={{ color: colors.text }} />
           </button>
@@ -341,7 +341,7 @@ const YouTubeInsightsPage: React.FC = () => {
           disabled={refreshing}
           className="p-2 rounded-lg"
           title="Get a fresh observation"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} style={{ color: colors.text }} />
         </button>
@@ -352,7 +352,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div
           className="p-4 rounded-lg mb-6"
           style={{
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-glass)',
             backgroundColor: 'rgba(255,255,255,0.02)',
             borderLeft: `3px solid ${colors.youtubeRed}`
           }}
@@ -390,7 +390,7 @@ const YouTubeInsightsPage: React.FC = () => {
           </span>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="space-y-3">
               {insights.youtubeWatchHistory.slice(0, 8).map((item, index) => (
@@ -408,7 +408,7 @@ const YouTubeInsightsPage: React.FC = () => {
                     <div className="flex items-center gap-2 mt-0.5">
                       {item.watchPercentage != null && (
                         <div className="flex items-center gap-1">
-                          <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                          <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
                             <div className="h-full rounded-full" style={{ width: `${item.watchPercentage}%`, backgroundColor: item.completed ? '#22c55e' : colors.youtubeRed }} />
                           </div>
                           <span className="text-xs" style={{ color: colors.textSecondary }}>{item.watchPercentage}%</span>
@@ -439,7 +439,7 @@ const YouTubeInsightsPage: React.FC = () => {
           </span>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="flex flex-wrap gap-2">
               {insights.youtubeSearchQueries.slice(0, 10).map((query, index) => (
@@ -470,7 +470,7 @@ const YouTubeInsightsPage: React.FC = () => {
           </span>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="space-y-3">
               {insights.youtubeChannels.slice(0, 8).map((channel, index) => (
@@ -509,7 +509,7 @@ const YouTubeInsightsPage: React.FC = () => {
           </span>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="flex items-center gap-6">
               <div className="w-32 h-32">
@@ -532,7 +532,7 @@ const YouTubeInsightsPage: React.FC = () => {
                     <RechartsTooltip
                       contentStyle={{
                         backgroundColor: 'rgba(10,15,10,0.9)',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        border: '1px solid var(--glass-surface-border)',
                         borderRadius: '8px',
                       }}
                       labelStyle={{ color: colors.text }}
@@ -574,9 +574,9 @@ const YouTubeInsightsPage: React.FC = () => {
           </span>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
-            <div className="flex gap-1 h-4 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+            <div className="flex gap-1 h-4 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
               <div
                 className="h-full rounded-l-full transition-all"
                 style={{ width: `${insights.youtubeLearningRatio}%`, backgroundColor: '#60a5fa' }}
@@ -612,7 +612,7 @@ const YouTubeInsightsPage: React.FC = () => {
               <div
                 key={index}
                 className="py-3"
-                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                style={{ borderBottom: '1px solid var(--border-glass)' }}
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -686,7 +686,7 @@ const YouTubeInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="p-4 rounded-lg"
-                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <p
                   className="text-sm leading-relaxed"
@@ -708,7 +708,7 @@ const YouTubeInsightsPage: React.FC = () => {
         <div className="space-y-4">
           <div
             className="text-center py-10 p-4 rounded-lg"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <Video className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
             <h3 style={{
@@ -745,7 +745,7 @@ const YouTubeInsightsPage: React.FC = () => {
             {/* Placeholder: Top Subscriptions */}
             <div
               className="p-4 rounded-lg"
-              style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
@@ -754,9 +754,9 @@ const YouTubeInsightsPage: React.FC = () => {
               <div className="space-y-2">
                 {[85, 65, 45].map((width, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+                    <div className="w-8 h-8 rounded-full animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
                     <div className="flex-1">
-                      <div className="h-3 rounded animate-pulse mb-1" style={{ width: `${width}%`, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+                      <div className="h-3 rounded animate-pulse mb-1" style={{ width: `${width}%`, backgroundColor: 'var(--glass-surface-bg)' }} />
                       <div className="h-2 rounded animate-pulse" style={{ width: `${width - 20}%`, backgroundColor: 'rgba(255,255,255,0.04)' }} />
                     </div>
                   </div>
@@ -767,17 +767,17 @@ const YouTubeInsightsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div
                 className="p-4 rounded-lg"
-                style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <PieChart className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
                   <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>Categories</span>
                 </div>
-                <div className="w-16 h-16 mx-auto rounded-full animate-pulse" style={{ border: '3px dashed rgba(255,255,255,0.06)' }} />
+                <div className="w-16 h-16 mx-auto rounded-full animate-pulse" style={{ border: '3px dashed var(--border-glass)' }} />
               </div>
               <div
                 className="p-4 rounded-lg"
-                style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <ThumbsUp className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />

@@ -61,7 +61,7 @@ const CustomBarTooltip = ({
   return (
     <div
       className="rounded-lg px-3 py-2 text-xs shadow-md"
-      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}
+      style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}
     >
       <p className="font-medium text-foreground/60 mb-0.5">{label}</p>
       <p className="font-semibold text-foreground">{payload[0].value.toLocaleString()} memories</p>
@@ -235,7 +235,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
               }))}
               margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
             >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--border-glass)" />
               <XAxis
                 dataKey="week"
                 tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }}

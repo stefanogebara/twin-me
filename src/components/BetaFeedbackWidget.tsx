@@ -63,8 +63,8 @@ const BetaFeedbackWidget: React.FC = () => {
           onClick={() => setOpen(true)}
           className="fixed bottom-20 lg:bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
           style={{
-            backgroundColor: 'rgba(255,132,0,0.12)',
-            color: '#ff8400',
+            backgroundColor: 'var(--accent-vibrant-glow)',
+            color: 'var(--accent-vibrant)',
             border: '1px solid rgba(255,132,0,0.2)',
             fontFamily: "'Inter', sans-serif",
           }}
@@ -80,14 +80,14 @@ const BetaFeedbackWidget: React.FC = () => {
           className="fixed bottom-20 lg:bottom-5 right-5 z-50 w-[320px] rounded-2xl overflow-hidden"
           style={{
             backgroundColor: '#1a1a1a',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}
         >
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 py-3"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ borderBottom: '1px solid var(--border-glass)' }}
           >
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>
               Send feedback
@@ -103,7 +103,7 @@ const BetaFeedbackWidget: React.FC = () => {
 
           <div className="px-4 py-3">
             {sent ? (
-              <p className="text-sm text-center py-6" style={{ color: '#ff8400', fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-sm text-center py-6" style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}>
                 Thank you! Your feedback helps us improve.
               </p>
             ) : (
@@ -117,8 +117,8 @@ const BetaFeedbackWidget: React.FC = () => {
                       className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
                       style={{
                         backgroundColor: category === cat ? 'rgba(255,132,0,0.15)' : 'rgba(255,255,255,0.04)',
-                        color: category === cat ? '#ff8400' : 'rgba(255,255,255,0.4)',
-                        border: `1px solid ${category === cat ? 'rgba(255,132,0,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                        color: category === cat ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)',
+                        border: `1px solid ${category === cat ? 'rgba(255,132,0,0.3)' : 'var(--border-glass)'}`,
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >
@@ -136,7 +136,7 @@ const BetaFeedbackWidget: React.FC = () => {
                   className="w-full text-sm rounded-lg px-3 py-2 outline-none resize-none"
                   style={{
                     backgroundColor: 'rgba(218,217,215,0.06)',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--border-glass)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -148,7 +148,7 @@ const BetaFeedbackWidget: React.FC = () => {
                   disabled={loading || message.trim().length < 3}
                   className="w-full mt-2 h-9 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
                   style={{
-                    backgroundColor: '#ff8400',
+                    backgroundColor: 'var(--accent-vibrant)',
                     color: '#fff',
                     fontFamily: "'Inter', sans-serif",
                   }}

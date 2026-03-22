@@ -27,10 +27,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-150 ease-out active:scale-95"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          backgroundColor: 'var(--input)',
           backdropFilter: 'blur(20px) saturate(180%)',
           WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
+          border: '1px solid var(--surface-solid)',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.30)',
         }}
         aria-label="Toggle menu"

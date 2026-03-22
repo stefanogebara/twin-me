@@ -64,7 +64,7 @@ const DataConsentSettings: React.FC<DataConsentSettingsProps> = ({
               className="flex items-center justify-between p-3 rounded-xl"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-glass)',
               }}
             >
               <div>

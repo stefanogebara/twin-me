@@ -82,7 +82,7 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-4 justify-center">
-        <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.1)' }} />
+        <div className="w-4 h-4 rounded-full animate-pulse" style={{ background: 'var(--glass-surface-border)' }} />
         <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Loading rules...</span>
       </div>
     );
@@ -93,7 +93,7 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
       {/* Explainer */}
       <div
         className="flex items-start gap-3 mb-4 p-3 rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
       >
         <Shield className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
         <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
@@ -144,7 +144,7 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
           disabled={isDemoMode || rules.length >= maxRules}
           className="flex-1 text-[13px] px-3 py-2 rounded-lg border-none outline-none"
           style={{
-            background: 'rgba(255,255,255,0.05)',
+            background: 'var(--sidebar)',
             color: 'var(--foreground)',
             opacity: isDemoMode ? 0.4 : 1,
           }}
@@ -154,7 +154,7 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
           onClick={handleAdd}
           disabled={isDemoMode || adding || !newRule.trim() || rules.length >= maxRules}
           className="px-3 py-2 rounded-lg border-none cursor-pointer transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
-          style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--foreground)' }}
+          style={{ background: 'var(--glass-surface-border)', color: 'var(--foreground)' }}
         >
           <Plus className="w-3.5 h-3.5" />
           <span className="text-[12px]">Add</span>

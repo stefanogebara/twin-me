@@ -176,7 +176,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       <motion.button
         className="relative z-10 mt-10 px-6 py-2.5 rounded-[100px] text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
         style={{
-          backgroundColor: '#ff8400',
+          backgroundColor: 'var(--accent-vibrant)',
           color: '#0a0909',
           fontFamily: "'Inter', sans-serif",
         }}
@@ -415,7 +415,7 @@ const IdentityPage: React.FC = () => {
           <section className="mb-14">
             <ResponsiveContainer width="100%" height={280}>
               <RadarChart data={oceanData} cx="50%" cy="50%" outerRadius="75%">
-                <PolarGrid stroke="rgba(255,255,255,0.08)" />
+                <PolarGrid stroke="var(--border)" />
                 <PolarAngleAxis
                   dataKey="trait"
                   tick={{
@@ -459,7 +459,7 @@ const IdentityPage: React.FC = () => {
                 key={badge}
                 className="px-3 py-1.5 rounded-full text-xs font-medium"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--glass-surface-bg)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                   color: 'rgba(255,255,255,0.6)',
@@ -482,7 +482,7 @@ const IdentityPage: React.FC = () => {
             const isExpanded = expandedDomain === section.key;
 
             return (
-              <div key={section.key} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div key={section.key} style={{ borderBottom: '1px solid var(--border-glass)' }}>
                 <button
                   onClick={() => toggleDomain(section.key)}
                   className="w-full flex items-center gap-3 py-4 text-left transition-opacity hover:opacity-80"
@@ -579,7 +579,7 @@ const IdentityPage: React.FC = () => {
                 onClick={() => handleSuggestion(pill)}
                 className="px-3 py-2.5 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--glass-surface-bg)',
                   backdropFilter: 'blur(12px)',
                   WebkitBackdropFilter: 'blur(12px)',
                   color: 'rgba(255,255,255,0.55)',
@@ -587,14 +587,14 @@ const IdentityPage: React.FC = () => {
                 }}
               >
                 {pill}
-                <ArrowRight className="w-3 h-3" style={{ color: '#ff8400' }} />
+                <ArrowRight className="w-3 h-3" style={{ color: 'var(--accent-vibrant)' }} />
               </button>
             ))}
           </div>
         </section>
 
         {/* ── 7. Footer ────────────────────────────────────────────────── */}
-        <footer className="flex items-center justify-between pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <footer className="flex items-center justify-between pt-6" style={{ borderTop: '1px solid var(--border-glass)' }}>
           {!isDemoMode && user && (
             <button
               onClick={handleShare}
@@ -608,7 +608,7 @@ const IdentityPage: React.FC = () => {
           <button
             onClick={() => navigate('/get-started')}
             className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-            style={{ color: '#ff8400', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
           >
             Connect more platforms
             <ArrowRight className="w-3 h-3" />
@@ -633,7 +633,7 @@ const LoadingSkeleton: React.FC = () => (
   <div className="max-w-[680px] mx-auto px-6 py-16">
     {/* Hero skeleton */}
     <div className="animate-pulse text-center mb-16">
-      <div className="h-12 w-64 rounded mx-auto mb-3" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-12 w-64 rounded mx-auto mb-3" style={{ background: 'var(--glass-surface-bg)' }} />
       <div className="h-4 w-48 rounded mx-auto" style={{ background: 'rgba(255,255,255,0.04)' }} />
     </div>
     {/* Radar skeleton */}
@@ -650,9 +650,9 @@ const LoadingSkeleton: React.FC = () => (
     {/* Expert accordion skeleton */}
     <div className="animate-pulse mb-14">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex items-center gap-3 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="w-2 h-2 rounded-full" style={{ background: 'rgba(255,255,255,0.1)' }} />
-          <div className="h-3 w-20 rounded" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div key={i} className="flex items-center gap-3 py-4" style={{ borderBottom: '1px solid var(--border-glass)' }}>
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--glass-surface-border)' }} />
+          <div className="h-3 w-20 rounded" style={{ background: 'var(--glass-surface-bg)' }} />
           <div className="flex-1 h-3 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
           <div className="w-4 h-4 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
         </div>
@@ -687,14 +687,14 @@ const EmptyState: React.FC = () => {
         <button
           onClick={() => navigate('/get-started')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid #ff8400', color: '#ff8400' }}
+          style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)' }}
         >
           Connect platforms
         </button>
         <button
           onClick={() => navigate('/interview')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+          style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
         >
           Complete your interview
         </button>

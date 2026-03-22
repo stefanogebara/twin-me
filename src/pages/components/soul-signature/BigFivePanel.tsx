@@ -19,7 +19,7 @@ export const BigFivePanel: React.FC<BigFivePanelProps> = ({
   return (
     <div
       className="!p-5 md:!p-6 mb-6 rounded-lg"
-      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">

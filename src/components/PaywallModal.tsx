@@ -59,7 +59,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
       style={{ background: 'rgba(0,0,0,0.45)' }}>
       <div
         className="max-w-xl w-full rounded-3xl p-8 space-y-8"
-        style={{ background: 'var(--background)', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
+        style={{ background: 'var(--background)', border: '1px solid var(--border-glass)', boxShadow: '0 24px 80px rgba(0,0,0,0.15)' }}>
 
         {/* Header */}
         <div className="text-center space-y-2">
@@ -74,7 +74,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
             <div key={plan.key} className="rounded-2xl p-6 space-y-4"
               style={plan.highlight
                 ? { background: 'rgba(196,162,101,0.06)', border: '1px solid rgba(196,162,101,0.3)' }
-                : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                : { background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}>
 
               {/* Plan name */}
               <div className="flex items-center gap-2">

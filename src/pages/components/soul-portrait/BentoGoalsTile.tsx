@@ -19,7 +19,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals }) => {
       className="rounded-lg p-5 h-full flex flex-col"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
       }}
     >
       {/* Header */}
@@ -79,7 +79,7 @@ export const BentoGoalsTile: React.FC<Props> = ({ goals }) => {
               {!isCompleted && !isSuggested && (
                 <div
                   className="h-1 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+                  style={{ backgroundColor: 'var(--glass-surface-bg)' }}
                 >
                   <div
                     className="h-full rounded-full"

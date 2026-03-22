@@ -31,7 +31,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
           </span>
           <div className="space-y-2">
             {deduplicateTracks(insights.recentTracks).slice(0, 5).map((track, index) => (
-              <div key={index} className="py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div key={index} className="py-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded flex items-center justify-center text-lg"
@@ -72,7 +72,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Top Artists with Play Count Bars */}
       {insights?.topArtistsWithPlays && insights.topArtistsWithPlays.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -91,7 +91,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   >
                     {artist.name}
                   </span>
-                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                  <div className="flex-1 h-5 rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
                     <div
                       className="h-full rounded-lg transition-all"
                       style={{
@@ -116,7 +116,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Genre Distribution */}
       {insights?.topGenres && insights.topGenres.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -147,7 +147,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                   <RechartsTooltip
                     contentStyle={{
                       backgroundColor: 'rgba(10,15,10,0.9)',
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      border: '1px solid var(--glass-surface-border)',
                       borderRadius: '8px',
                     }}
                     labelStyle={{ color: colors.text }}
@@ -179,7 +179,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Listening Peak Hours */}
       {insights?.listeningHours && insights.listeningHours.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -200,7 +200,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 <RechartsTooltip
                   contentStyle={{
                     backgroundColor: 'rgba(10,15,10,0.9)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    border: '1px solid var(--glass-surface-border)',
                     borderRadius: '8px',
                   }}
                   labelStyle={{ color: colors.text }}
@@ -225,7 +225,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Current Mood - Visual indicator */}
       {insights?.currentMood && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
           <div className="flex items-center justify-between">
             <div>
               <span
@@ -251,7 +251,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 </div>
                 <div
                   className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+                  style={{ backgroundColor: 'var(--glass-surface-bg)' }}
                 >
                   <div
                     className="h-full rounded-full"
@@ -271,7 +271,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
                 </div>
                 <div
                   className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}
+                  style={{ backgroundColor: 'var(--glass-surface-bg)' }}
                 >
                   <div
                     className="h-full rounded-full"

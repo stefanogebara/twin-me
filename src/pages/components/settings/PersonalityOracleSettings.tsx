@@ -177,7 +177,7 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
           <>
             <div
               className="h-px"
-              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+              style={{ backgroundColor: 'var(--glass-surface-bg)' }}
             />
             <div className="flex items-center justify-between">
               <div>
@@ -198,7 +198,7 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
                 style={{
                   backgroundColor: flagState.personality_oracle
                     ? '#10b77f'
-                    : 'rgba(255,255,255,0.06)',
+                    : 'var(--border-glass)',
                 }}
               >
                 <span

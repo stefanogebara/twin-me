@@ -55,7 +55,7 @@ export const RecentlyWatchedCard: React.FC<RecentlyWatchedCardProps> = ({
                 className="rounded-lg p-4 h-full transition-colors hover:border-[#FF0000]/30"
                 style={{
                   backgroundColor: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-glass)',
                 }}
               >
                 {/* Video Icon */}

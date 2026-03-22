@@ -139,7 +139,7 @@ function formatTimestamp(iso: string): string {
 type SortKey = 'created_at' | 'cost_usd' | 'latency_ms' | 'tier' | 'model' | 'service_name';
 
 const CARD_STYLE = {
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--border-glass)',
   backgroundColor: 'rgba(255,255,255,0.02)',
 } as const;
 
@@ -247,7 +247,7 @@ const AdminLLMCosts: React.FC = () => {
     </button>
   );
 
-  const tableBorder = '1px solid rgba(255,255,255,0.06)';
+  const tableBorder = '1px solid var(--border-glass)';
 
   if (loading) {
     return (
@@ -280,7 +280,7 @@ const AdminLLMCosts: React.FC = () => {
           <button
             onClick={() => { setLoading(true); fetchData(); }}
             className="px-4 py-2 rounded-lg text-sm transition-opacity hover:opacity-70"
-            style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+            style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
           >
             Retry
           </button>
@@ -335,7 +335,7 @@ const AdminLLMCosts: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
+      <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">

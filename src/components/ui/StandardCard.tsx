@@ -39,7 +39,7 @@ export const StandardCard: React.FC<StandardCardProps> = ({
         background: 'var(--glass-surface-bg)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
         ...style,
       }}
       {...props}

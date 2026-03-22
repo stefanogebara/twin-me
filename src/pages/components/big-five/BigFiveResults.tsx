@@ -216,7 +216,7 @@ export function BigFiveResults({
           style={{
             backgroundColor: 'transparent',
             color: 'rgba(255,255,255,0.5)',
-            border: '1px solid rgba(255,255,255,0.08)'
+            border: '1px solid var(--border)'
           }}
         >
           <RotateCcw className="w-4 h-4" />

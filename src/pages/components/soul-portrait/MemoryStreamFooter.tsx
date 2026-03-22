@@ -25,7 +25,7 @@ export const MemoryStreamFooter: React.FC<Props> = ({ stats, firstMemoryAt }) =>
     <div
       className="flex flex-wrap items-center justify-between gap-4 px-5 py-3 rounded-xl"
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        backgroundColor: 'var(--glass-surface-bg)',
         border: '1px solid rgba(255, 255, 255, 0.04)',
       }}
     >

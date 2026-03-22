@@ -67,7 +67,7 @@ const AgentActivityFeed: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-4 justify-center">
-        <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.08)' }} />
+        <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: 'var(--input)' }} />
       </div>
     );
   }

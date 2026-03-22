@@ -5,7 +5,7 @@ export const SkeletonPulse = ({ className = '', style = {} }: { className?: stri
     <div
       className={`rounded ${className}`}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        backgroundColor: 'var(--glass-surface-bg)',
         animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         ...style
       }}
@@ -30,7 +30,7 @@ export const DashboardSkeleton: React.FC = () => {
       {/* Skeleton: Next Event Card */}
       <div
         className="mb-8 rounded-lg"
-        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
       >
         <SkeletonPulse className="h-3 w-full mb-4" style={{ borderRadius: '2px' }} />
         <div className="flex items-start justify-between">
@@ -55,7 +55,7 @@ export const DashboardSkeleton: React.FC = () => {
             <div
               key={i}
               className="rounded-lg"
-              style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+              style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
             >
               <div className="flex items-start gap-3">
                 <SkeletonPulse className="w-10 h-10 rounded-lg flex-shrink-0" />

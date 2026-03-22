@@ -486,7 +486,7 @@ const BrainPage: React.FC = () => {
                 className="rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-all"
                 style={{
                   background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
-                  color: isActive ? '#ff8400' : '#86807b',
+                  color: isActive ? 'var(--accent-vibrant)' : '#86807b',
                   border: 'none',
                 }}
               >
@@ -508,7 +508,7 @@ const BrainPage: React.FC = () => {
                   className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5"
                   style={{
                     background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
-                    color: isActive ? '#ff8400' : '#86807b',
+                    color: isActive ? 'var(--accent-vibrant)' : '#86807b',
                     border: 'none',
                   }}
                 >
@@ -534,7 +534,7 @@ const BrainPage: React.FC = () => {
                   onClick={() => setSort(key as typeof sort)}
                   className="px-2 py-1 text-[11px] font-medium transition-colors"
                   style={{
-                    color: isActive ? '#ff8400' : '#86807b',
+                    color: isActive ? 'var(--accent-vibrant)' : '#86807b',
                     background: 'transparent',
                     border: 'none',
                   }}
@@ -594,10 +594,10 @@ const BrainPage: React.FC = () => {
               </span>
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--glass-surface-bg)',
                   backdropFilter: 'blur(42px)',
                   WebkitBackdropFilter: 'blur(42px)',
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border)',
                   borderRadius: '20px',
                   padding: '20px',
                 }}
@@ -639,7 +639,7 @@ const BrainPage: React.FC = () => {
                   </div>
                   <span
                     className="text-[11px] font-medium"
-                    style={{ color: '#ff8400' }}
+                    style={{ color: 'var(--accent-vibrant)' }}
                   >
                     {featuredMemory.importance_score}/10
                   </span>
@@ -699,7 +699,7 @@ const BrainPage: React.FC = () => {
                     key={memory.id}
                     className="cursor-pointer transition-colors"
                     style={{
-                      borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                      borderBottom: isLast ? 'none' : '1px solid var(--sidebar)',
                       background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
                     }}
                     onClick={() => setExpandedId(prev => prev === memory.id ? null : memory.id)}
@@ -823,7 +823,7 @@ const BrainPage: React.FC = () => {
                 disabled={loadingMore}
                 className="px-6 py-2.5 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
                 style={{
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border)',
                   color: '#86807b',
                   background: 'transparent',
                   borderRadius: '100px',
@@ -846,7 +846,7 @@ const BrainPage: React.FC = () => {
       )}
 
       {/* ===== Collapsible "More" section ===== */}
-      <div className="mt-12" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="mt-12" style={{ borderTop: '1px solid var(--border-glass)' }}>
         <button
           onClick={() => setShowMore(prev => !prev)}
           className="w-full flex items-center justify-between py-4 transition-opacity hover:opacity-70"

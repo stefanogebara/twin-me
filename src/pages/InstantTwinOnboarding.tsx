@@ -63,7 +63,7 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
 );
 
 const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-10" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );
 
 // ====================================================================
@@ -86,7 +86,7 @@ const InstantTwinOnboarding = () => {
     categorySocial: '#a855f7',
     categoryProfessional: '#78716c',
     categoryHealth: '#00A7E1',
-    categoryBrowsing: '#ff8400',
+    categoryBrowsing: 'var(--accent-vibrant)',
     connected: 'var(--text-secondary)',
   };
 
@@ -601,7 +601,7 @@ const InstantTwinOnboarding = () => {
                         key={i}
                         className="px-3 py-1 rounded-full text-xs"
                         style={{
-                          border: '1px solid rgba(255,255,255,0.08)',
+                          border: '1px solid var(--border)',
                           color: 'rgba(255,255,255,0.5)',
                         }}
                       >
@@ -621,7 +621,7 @@ const InstantTwinOnboarding = () => {
                 </p>
               )}
 
-              <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 
               <button
                 onClick={() => navigate('/soul-signature')}

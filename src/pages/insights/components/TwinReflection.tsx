@@ -56,7 +56,7 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
     <div
       className={`p-5 rounded-lg ${className}`}
       style={{
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
         backgroundColor: 'rgba(255,255,255,0.02)'
       }}
     >
@@ -161,7 +161,7 @@ export const PatternObservation: React.FC<PatternObservationProps> = ({
       className={`p-4 rounded-xl flex items-start gap-3 ${className}`}
       style={{
         backgroundColor: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)'
+        border: '1px solid var(--border-glass)'
       }}
     >
       {/* Icon */}
@@ -217,7 +217,7 @@ export const DataHighlight: React.FC<DataHighlightProps> = ({
   const colors = {
     text: 'var(--foreground)',
     textMuted: 'rgba(255,255,255,0.3)',
-    itemBg: 'rgba(255,255,255,0.06)'
+    itemBg: 'var(--glass-surface-bg)'
   };
 
   if (!items || items.length === 0) return null;

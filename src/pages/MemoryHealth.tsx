@@ -140,7 +140,7 @@ export default function MemoryHealth() {
         {data ? `${data.totalCount.toLocaleString('en-US')} memories total` : 'Quality metrics for your twin\'s memory stream'}
       </p>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
+      <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
 
       {error && (
         <div className="flex items-center gap-2 p-4 rounded-lg text-sm mb-6" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', color: '#fca5a5' }}>
@@ -161,7 +161,7 @@ export default function MemoryHealth() {
           {data.readiness !== undefined && (
             <div
               className="p-5 rounded-lg"
-              style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <TwinReadinessScore
                 score={data.readiness.score}
@@ -189,7 +189,7 @@ export default function MemoryHealth() {
                 <div
                   key={label}
                   className="p-4 rounded-lg"
-                  style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <Icon className="w-4 h-4" style={{ color }} />
@@ -206,7 +206,7 @@ export default function MemoryHealth() {
           <div className="grid md:grid-cols-2 gap-6">
             <div
               className="p-5 rounded-lg"
-              style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
                 Memory Composition
@@ -233,14 +233,14 @@ export default function MemoryHealth() {
 
             <div
               className="p-5 rounded-lg"
-              style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <span className="text-[11px] font-medium tracking-widest uppercase block mb-4" style={{ color: '#10b77f' }}>
                 Avg Importance by Type
               </span>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={importanceData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glass)" />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} />
                   <YAxis domain={[0, 10]} tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} />
                   <Tooltip formatter={(val: number) => [val.toFixed(2), 'avg importance']} />
@@ -267,7 +267,7 @@ export default function MemoryHealth() {
                     <div
                       key={name}
                       className="flex items-center justify-between p-3 rounded-lg"
-                      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
                     >
                       <span className="text-xs leading-tight" style={{ color: 'rgba(255,255,255,0.4)' }}>{EXPERT_LABELS[name] ?? name}</span>
                       <span className="text-sm font-semibold ml-2" style={{ color: 'var(--foreground)' }}>{count}</span>

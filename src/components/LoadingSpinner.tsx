@@ -68,7 +68,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
           style={{
             background: 'rgba(255,255,255,0.02)',
 
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-glass)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
           }}
         >
@@ -100,7 +100,7 @@ export const LoadingCard: React.FC<{ text?: string; className?: string }> = ({
       background: 'rgba(255,255,255,0.02)',
       backdropFilter: 'blur(10px) saturate(140%)',
       WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--border-glass)',
     }}
   >
     <LoadingSpinner size="lg" text={text} />
@@ -137,21 +137,21 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className = "" 
     className={`rounded-2xl p-4 ${className}`}
     style={{
       background: 'rgba(255,255,255,0.02)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--border-glass)',
     }}
   >
     <div className="animate-pulse">
       <div
         className="h-4 rounded mb-3"
-        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+        style={{ backgroundColor: 'var(--sidebar)' }}
       />
       <div
         className="h-3 rounded mb-2"
-        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+        style={{ backgroundColor: 'var(--sidebar)' }}
       />
       <div
         className="h-3 rounded w-3/4"
-        style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+        style={{ backgroundColor: 'var(--sidebar)' }}
       />
     </div>
   </div>
@@ -173,38 +173,38 @@ export const SkeletonTwin: React.FC<{ className?: string }> = ({ className = "" 
     className={`rounded-2xl p-6 ${className}`}
     style={{
       background: 'rgba(255,255,255,0.02)',
-      border: '1px solid rgba(255,255,255,0.06)',
+      border: '1px solid var(--border-glass)',
     }}
   >
     <div className="animate-pulse">
       <div className="flex items-center gap-4 mb-4">
         <div
           className="w-12 h-12 rounded-full"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: 'var(--sidebar)' }}
         />
         <div className="flex-1">
           <div
             className="h-5 rounded mb-2"
-            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+            style={{ backgroundColor: 'var(--sidebar)' }}
           />
           <div
             className="h-3 rounded w-2/3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+            style={{ backgroundColor: 'var(--sidebar)' }}
           />
         </div>
       </div>
       <div className="space-y-2">
         <div
           className="h-3 rounded"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: 'var(--sidebar)' }}
         />
         <div
           className="h-3 rounded w-4/5"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: 'var(--sidebar)' }}
         />
         <div
           className="h-3 rounded w-3/5"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: 'var(--sidebar)' }}
         />
       </div>
     </div>

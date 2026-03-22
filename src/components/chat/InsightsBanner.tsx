@@ -39,7 +39,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
   return (
     <div
       className="mx-6 mb-2"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
     >
       {/* Collapsed summary */}
       <button
@@ -115,7 +115,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
                 <button
                   onClick={() => handleAsk(insight)}
                   className="shrink-0 text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0 whitespace-nowrap"
-                  style={{ color: '#ff8400' }}
+                  style={{ color: 'var(--accent-vibrant)' }}
                 >
                   Ask
                 </button>

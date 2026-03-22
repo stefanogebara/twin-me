@@ -14,10 +14,10 @@ const getAuthHeaders = () => {
 // Autonomy level labels and colors
 const AUTONOMY_LEVELS = [
   { label: 'Observe', short: 'OBS', color: 'rgba(255,255,255,0.2)' },
-  { label: 'Suggest', short: 'SUG', color: 'rgba(255,172,64,0.4)' },
-  { label: 'Draft', short: 'DFT', color: 'rgba(255,132,0,0.5)' },
-  { label: 'Act & Notify', short: 'ACT', color: 'rgba(255,132,0,0.7)' },
-  { label: 'Autonomous', short: 'AUTO', color: 'rgba(255,132,0,0.9)' },
+  { label: 'Suggest', short: 'SUG', color: 'rgba(232,224,212,0.4)' },
+  { label: 'Draft', short: 'DFT', color: 'rgba(232,224,212,0.5)' },
+  { label: 'Act & Notify', short: 'ACT', color: 'rgba(232,224,212,0.7)' },
+  { label: 'Autonomous', short: 'AUTO', color: 'rgba(232,224,212,0.9)' },
 ] as const;
 
 // Category icons
@@ -103,7 +103,7 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
       <div className="flex items-center gap-2 py-6 justify-center">
         <div
           className="w-4 h-4 rounded-full animate-pulse"
-          style={{ background: 'rgba(255,255,255,0.1)' }}
+          style={{ background: 'var(--glass-surface-border)' }}
         />
         <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
           Loading skills...
@@ -143,9 +143,9 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
       {/* Explainer */}
       <div
         className="flex items-start gap-3 mb-5 p-3 rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
       >
-        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
         <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
           Control how much your twin can act on its own. <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Observe</strong> means it only watches. <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Autonomous</strong> means it acts without asking.
         </p>
@@ -236,7 +236,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
           {/* Track background */}
           <div
             className="absolute inset-x-0 h-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.08)', top: '50%', transform: 'translateY(-50%)' }}
+            style={{ background: 'var(--input)', top: '50%', transform: 'translateY(-50%)' }}
           />
 
           {/* Filled track */}
@@ -263,9 +263,9 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
                   ? AUTONOMY_LEVELS[i].color
                   : 'rgba(255,255,255,0.12)',
                 border: i === level
-                  ? '2px solid var(--accent-vibrant, #ff8400)'
-                  : '1px solid rgba(255,255,255,0.1)',
-                boxShadow: i === level ? '0 0 6px rgba(255,132,0,0.3)' : 'none',
+                  ? '2px solid var(--accent-vibrant)'
+                  : '1px solid var(--glass-surface-border)',
+                boxShadow: i === level ? '0 0 6px rgba(232,224,212,0.3)' : 'none',
               }}
               title={AUTONOMY_LEVELS[i].label}
             />

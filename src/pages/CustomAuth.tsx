@@ -169,7 +169,7 @@ For privacy concerns: privacy@twinme.ai`
   return (
     <div
       className="min-h-screen flex"
-      style={{ backgroundColor: '#110f0f' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Left panel — form (clean, no card) */}
       <div className="flex-1 flex items-center justify-center px-6">
@@ -223,7 +223,7 @@ For privacy concerns: privacy@twinme.ai`
             className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--glass-surface-border)',
             }}
           >
             <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }} />
@@ -248,7 +248,7 @@ For privacy concerns: privacy@twinme.ai`
                   className="w-full h-10 pl-9 pr-3 rounded-lg text-sm outline-none"
                   style={{
                     backgroundColor: 'rgba(218,217,215,0.08)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid var(--border)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -287,7 +287,7 @@ For privacy concerns: privacy@twinme.ai`
             className="text-sm mb-6 py-3 px-4 rounded-lg"
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid var(--border-glass)',
               color: 'rgba(255,255,255,0.6)',
             }}
           >
@@ -316,7 +316,7 @@ For privacy concerns: privacy@twinme.ai`
           className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
-            color: '#110f0f',
+            color: 'var(--primary-foreground)',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -340,7 +340,7 @@ For privacy concerns: privacy@twinme.ai`
         </button>
 
         {/* Divider */}
-        <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+        <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 
         {/* Terms */}
         <p
@@ -448,14 +448,14 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
             style={{
-              backgroundColor: '#110f0f',
-              border: '1px solid rgba(255,255,255,0.06)',
+              backgroundColor: 'var(--background)',
+              border: '1px solid var(--border-glass)',
             }}
             onClick={e => e.stopPropagation()}
           >
             <div
               className="flex items-center justify-between px-6 py-4"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ borderBottom: '1px solid var(--border-glass)' }}
             >
               <h2
                 style={{

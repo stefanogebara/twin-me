@@ -179,7 +179,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 <span
                   className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: 'var(--input)',
                     color: 'rgba(255,255,255,0.6)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -211,7 +211,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 )}
                 style={active ? {
                   background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
-                  color: 'var(--accent-vibrant, #ff8400)',
+                  color: 'var(--accent-vibrant)',
                 } : {
                   color: 'rgba(255, 255, 255, 0.45)',
                 }}
@@ -219,7 +219,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               >
                 <Icon
                   className="w-5 h-5"
-                  style={active ? { color: 'var(--accent-vibrant, #ff8400)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
+                  style={active ? { color: 'var(--accent-vibrant)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
                 {isExpanded && <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: active ? 500 : 400 }}>{item.label}</span>}

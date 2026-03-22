@@ -208,7 +208,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
           {showSetup && (
             <div
               className="p-4 rounded-xl mt-2 space-y-3"
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
             >
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 <strong>1.</strong> Open Claude Desktop → Settings → Developer → Edit Config
@@ -226,7 +226,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
                 <button
                   onClick={copyConfig}
                   className="absolute top-2 right-2 flex items-center gap-1 text-xs px-2 py-1 rounded"
-                  style={{ background: 'rgba(255,255,255,0.1)', color: copiedConfig ? '#10B981' : 'rgba(255,255,255,0.3)' }}
+                  style={{ background: 'var(--glass-surface-border)', color: copiedConfig ? '#10B981' : 'rgba(255,255,255,0.3)' }}
                 >
                   {copiedConfig ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                   {copiedConfig ? 'Copied' : 'Copy'}
@@ -252,7 +252,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
             <div
               key={k.id}
               className="flex items-center justify-between p-3 rounded-xl"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-glass)' }}
             >
               <div>
                 <div className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{k.name}</div>
@@ -292,7 +292,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
             className="w-full px-3 py-2 text-sm rounded-xl"
             style={{
               background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              border: '1px solid var(--border)',
               color: 'var(--foreground)',
               outline: 'none',
             }}

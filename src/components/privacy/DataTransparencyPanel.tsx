@@ -46,7 +46,7 @@ const getQualityLabel = (quality: number) => {
 };
 
 const darkCardStyle: React.CSSProperties = {
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--border-glass)',
   backgroundColor: 'rgba(255,255,255,0.02)',
 };
 
@@ -227,7 +227,7 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
                         className="px-3 py-1.5 rounded-lg flex items-center gap-2"
                         style={{
                           backgroundColor: 'rgba(255,255,255,0.02)',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          border: '1px solid var(--border-glass)',
                         }}
                       >
                         <TrendingUp className={`w-3.5 h-3.5 ${getQualityColor(source.quality)}`} />

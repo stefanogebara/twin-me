@@ -150,7 +150,7 @@ const WelcomeStep: React.FC<WelcomeStepProps> = ({ onBegin }) => {
           style={{
             fontFamily: "'Inter', sans-serif",
             backgroundColor: 'var(--foreground)',
-            color: '#110f0f',
+            color: 'var(--primary-foreground)',
             borderRadius: '100px',
             padding: '16px 40px',
             fontSize: '14px',

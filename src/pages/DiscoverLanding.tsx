@@ -13,15 +13,15 @@ import DataRevealItem from './onboarding/components/DataRevealItem';
 
 // ── Design tokens (dark-only) ──────────────────────────────────────────
 const T = {
-  BG:       '#110f0f',
+  BG:       'var(--background)',
   FG:       '#fdfcfb',
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',
   CARD_BG:  'rgba(255, 255, 255, 0.02)',
-  CARD_BDR: 'rgba(255, 255, 255, 0.10)',
+  CARD_BDR: 'var(--glass-surface-border)',
   BENTO_BG: 'rgba(255, 255, 255, 0.02)',
   CTA_BG:   '#fdfcfb',
-  CTA_FG:   '#110f0f',
+  CTA_FG:   'var(--primary-foreground)',
   SIGN_UP_BG: '#fdfcfb',
   SIGN_UP_FG: '#222528',
   GHOST_BG: 'rgba(255, 255, 255, 0.02)',
@@ -281,7 +281,7 @@ export default function DiscoverLanding() {
                 borderRadius: '6px',
                 whiteSpace: 'nowrap',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--input)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               Sign in
@@ -397,7 +397,7 @@ export default function DiscoverLanding() {
                     fontSize: '16px',
                     color: T.FG,
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--input)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   {label}
@@ -545,7 +545,7 @@ export default function DiscoverLanding() {
 
             {personaSummary ? (
               <div className="w-full max-w-md mt-6">
-                <div className="px-5 py-4 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div className="px-5 py-4 rounded-[20px]" style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
                   <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}>
                     {personaSummary}
                   </p>
@@ -755,7 +755,7 @@ export default function DiscoverLanding() {
           <div
             className="flex items-center gap-3 h-12 px-[5px] py-1 rounded-[32px]"
             style={{
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--sidebar)',
               border: `1px solid ${T.CARD_BDR}`,
             }}
           >

@@ -131,7 +131,7 @@ export default function PrototypeBrain() {
                       cursor: 'pointer',
                       background: filter === f ? 'var(--sd-fg)' : 'transparent',
                       color: filter === f ? 'var(--sd-bg)' : 'var(--sd-text-muted)',
-                      borderColor: filter === f ? 'var(--sd-fg)' : 'rgba(255,255,255,0.1)',
+                      borderColor: filter === f ? 'var(--sd-fg)' : 'var(--glass-surface-border)',
                       fontFamily: 'Inter, sans-serif',
                     }}
                   >

@@ -16,7 +16,7 @@ interface CompletenessProgressProps {
 }
 
 const darkCardStyle: React.CSSProperties = {
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--border-glass)',
   backgroundColor: 'rgba(255,255,255,0.02)',
 };
 
@@ -174,7 +174,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 ? 'bg-green-900/20 border-green-800/30'
                 : ''
             } border`}
-            style={breakdown.personal < 30 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' } : undefined}
+            style={breakdown.personal < 30 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-glass)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {breakdown.personal >= 30 ? (
@@ -210,7 +210,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 ? 'bg-green-900/20 border-green-800/30'
                 : ''
             } border`}
-            style={completeness < 50 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' } : undefined}
+            style={completeness < 50 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-glass)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {completeness >= 50 ? (
@@ -246,7 +246,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
                 ? 'bg-green-900/20 border-green-800/30'
                 : ''
             } border`}
-            style={completeness < 75 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.06)' } : undefined}
+            style={completeness < 75 ? { backgroundColor: 'rgba(255,255,255,0.02)', borderColor: 'var(--border-glass)' } : undefined}
           >
             <div className="flex items-start space-x-3">
               {completeness >= 75 ? (

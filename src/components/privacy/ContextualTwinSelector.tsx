@@ -130,7 +130,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       <div
         className="rounded-lg p-6"
         style={{
-          border: '1px solid rgba(255,255,255,0.06)',
+          border: '1px solid var(--border-glass)',
           backgroundColor: 'rgba(255,255,255,0.02)',
         }}
       >
@@ -138,7 +138,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
           <div
             className="p-2.5 rounded-lg"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              backgroundColor: 'var(--input)',
             }}
           >
             <div style={{ color: activeTwin.color }}>
@@ -173,7 +173,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                   {level}%
                 </span>
               </div>
-              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255, 255, 255, 0.10)' }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--glass-surface-border)' }}>
                 <div
                   className="h-full rounded-full transition-all duration-600"
                   style={{ backgroundColor: activeTwin.color, width: `${level}%` }}
@@ -198,7 +198,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
               onClick={() => !isActive && onSelectTwin(twin.id)}
               className={`rounded-lg relative p-5 cursor-pointer transition-all duration-200 ${isActive ? '!border-2 !border-amber-600' : ''}`}
               style={{
-                border: isActive ? undefined : '1px solid rgba(255,255,255,0.06)',
+                border: isActive ? undefined : '1px solid var(--border-glass)',
                 backgroundColor: 'rgba(255,255,255,0.02)',
               }}
             >
@@ -208,7 +208,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                     <div
                       className="p-2.5 rounded-lg"
                       style={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                        backgroundColor: 'var(--input)',
                       }}
                     >
                       <div style={{ color: twin.color }}>
@@ -269,7 +269,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
                       key={cluster}
                       className="flex-1 h-1.5 rounded-full overflow-hidden"
                       title={`${cluster}: ${level}%`}
-                      style={{ backgroundColor: 'rgba(255, 255, 255, 0.10)' }}
+                      style={{ backgroundColor: 'var(--glass-surface-border)' }}
                     >
                       <div
                         className="h-full"

@@ -125,7 +125,7 @@ export const BentoPlatformTile: React.FC<Props> = ({
       className="rounded-lg p-4 h-full"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
         borderLeft: `3px solid ${meta.color}`,
       }}
     >

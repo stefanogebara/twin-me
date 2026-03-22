@@ -95,7 +95,7 @@ const priorityColors = {
 
 const darkCardStyle: React.CSSProperties = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  border: '1px solid rgba(255, 255, 255, 0.06)',
+  border: '1px solid var(--border-glass)',
 };
 
 export const TodayInsights: React.FC = () => {
@@ -182,7 +182,7 @@ export const TodayInsights: React.FC = () => {
           className="rounded-xl p-7 space-y-4"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--border-glass)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
@@ -194,7 +194,7 @@ export const TodayInsights: React.FC = () => {
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  backgroundColor: 'var(--glass-surface-bg)',
                   color: 'var(--foreground)',
                 }}
               >
@@ -247,7 +247,7 @@ export const TodayInsights: React.FC = () => {
           className="rounded-xl p-7 flex items-center gap-3"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--border-glass)',
           }}
         >
           <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
@@ -330,7 +330,7 @@ export const TodayInsights: React.FC = () => {
               className="rounded-xl overflow-hidden transition-all duration-200 cursor-pointer"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-glass)',
                 boxShadow: isExpanded
                   ? '0 8px 32px rgba(0, 0, 0, 0.18)'
                   : '0 2px 8px rgba(0, 0, 0, 0.06)'
@@ -377,7 +377,7 @@ export const TodayInsights: React.FC = () => {
               {isExpanded && insight.detail && (
                 <div
                   className="px-4 pb-4 pt-0"
-                  style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}
+                  style={{ borderTop: '1px solid var(--border-glass)' }}
                 >
                   <p className="text-sm mb-3 pt-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {insight.detail}
@@ -498,7 +498,7 @@ export const TodayInsights: React.FC = () => {
           className="rounded-xl p-6 space-y-4"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--sidebar)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
@@ -510,7 +510,7 @@ export const TodayInsights: React.FC = () => {
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  backgroundColor: 'var(--glass-surface-bg)',
                   color: 'var(--foreground)',
                 }}
               >
@@ -529,7 +529,7 @@ export const TodayInsights: React.FC = () => {
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             color: 'rgba(255,255,255,0.4)',
-            border: '1px solid rgba(255, 255, 255, 0.06)'
+            border: '1px solid var(--border-glass)'
           }}
         >
           Explore who you are
