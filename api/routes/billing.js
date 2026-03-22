@@ -118,15 +118,22 @@ router.post('/checkout', authenticateToken, async (req, res) => {
     return res.status(503).json({ error: 'Billing not configured' });
   }
   const { plan } = req.body;
-  // Accept both DB keys (pro/max) and display names (plus/pro)
-  const planMap = { plus: 'pro', pro_display: 'max' };
-  const dbPlan = planMap[plan] || plan;
+
+  // Plan naming mapping:
+  //   User-facing "Plus" ($20/mo) = DB value "pro"   = env STRIPE_PRICE_PLUS
+  //   User-facing "Pro"  ($100/mo) = DB value "max"  = env STRIPE_PRICE_PRO
+  //
+  // We accept either the DB key (pro/max) or the display name (plus/pro) from the frontend.
+  // DB values are NOT changed to avoid breaking existing subscriptions.
+  const PLAN_DISPLAY_TO_DB = { plus: 'pro', pro: 'max' };
+  const dbPlan = PLAN_DISPLAY_TO_DB[plan] || plan;
   if (!['pro', 'max'].includes(dbPlan)) return res.status(400).json({ error: 'Invalid plan' });
 
-  // STRIPE_PLUS_PRICE_ID → Plus ($20), STRIPE_PRO_PRICE_ID → Pro ($100)
+  // Canonical env vars: STRIPE_PRICE_PLUS (Plus $20) and STRIPE_PRICE_PRO (Pro $100)
+  // Legacy fallbacks kept for backward compatibility during migration
   const priceId = dbPlan === 'pro'
-    ? (process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID || process.env.STRIPE_PRICE_PRO)
-    : (process.env.STRIPE_PRO_PRICE_ID_100 || process.env.STRIPE_MAX_PRICE_ID || process.env.STRIPE_PRICE_MAX);
+    ? (process.env.STRIPE_PRICE_PLUS || process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID)
+    : (process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRO_PRICE_ID_100 || process.env.STRIPE_MAX_PRICE_ID);
 
   try {
     const { data: existingSub } = await supabaseAdmin

@@ -93,6 +93,39 @@ export const authenticateUser = async (req, res, next) => {
         ...payload
       };
 
+      // Email verification check with 24-hour grace period
+      // Skip for auth-related paths (verify-email, refresh, etc.) so users can still verify
+      const skipVerificationPaths = ['/auth/', '/verify-email'];
+      const shouldCheckVerification = !skipVerificationPaths.some(p => req.path.includes(p));
+
+      if (shouldCheckVerification) {
+        try {
+          const { supabaseAdmin } = await import('../services/database.js');
+          const { data: dbUser } = await supabaseAdmin
+            .from('users')
+            .select('email_verified, created_at')
+            .eq('id', req.user.id)
+            .single();
+
+          if (dbUser && !dbUser.email_verified) {
+            const accountAgeMs = Date.now() - new Date(dbUser.created_at).getTime();
+            const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+
+            if (accountAgeMs > twentyFourHoursMs) {
+              return res.status(403).json({
+                error: 'Email not verified',
+                message: 'Please verify your email to continue using TwinMe',
+                code: 'EMAIL_NOT_VERIFIED',
+              });
+            }
+          }
+        } catch (verifyCheckError) {
+          // Non-blocking: if the check fails, let the request through
+          // This prevents email verification from breaking the app if DB is slow
+          log.warn('Email verification check failed (non-blocking)', { error: verifyCheckError });
+        }
+      }
+
       next();
     } catch (verifyError) {
       log.error('Token verification failed', { path: req.path, errorName: verifyError.name });

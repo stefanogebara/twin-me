@@ -259,6 +259,35 @@ router.post('/signup', authLimiter, async (req, res) => {
       }
     }
 
+    // Generate email verification token and store it
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+    await supabaseAdmin
+      .from('users')
+      .update({
+        email_verification_token: verificationToken,
+        email_verification_token_expires_at: tokenExpiresAt,
+      })
+      .eq('id', newUser.id);
+
+    // Send verification email (optional — don't block signup if RESEND_API_KEY is missing)
+    try {
+      const appUrl = resolveAppUrl(req);
+      const verifyUrl = `${appUrl}/api/auth/verify-email?token=${verificationToken}`;
+      if (process.env.RESEND_API_KEY) {
+        const { sendVerificationEmail } = await import('../services/emailService.js');
+        if (typeof sendVerificationEmail === 'function') {
+          sendVerificationEmail({ toEmail: normalizedEmail, firstName: (firstName || '').trim(), verifyUrl }).catch(err =>
+            log.warn('Verification email send failed (non-blocking)', { error: err })
+          );
+        }
+      } else {
+        log.warn('RESEND_API_KEY not set — skipping verification email', { userId: newUser.id, verifyUrl });
+      }
+    } catch (emailErr) {
+      log.warn('Email verification setup failed (non-blocking)', { error: emailErr });
+    }
+
     // Generate token pair
     const { accessToken, refreshToken } = generateTokenPair(newUser);
     const refreshTokenHash = hashToken(refreshToken);
@@ -800,6 +829,7 @@ router.get('/oauth/callback', async (req, res) => {
       }
 
       // Create new user with encrypted tokens
+      // Google OAuth users are auto-verified (Google already verified their email)
       const { data: newUser, error: insertError } = await supabaseAdmin
         .from('users')
         .insert({
@@ -807,7 +837,8 @@ router.get('/oauth/callback', async (req, res) => {
           first_name: userData.firstName,
           last_name: userData.lastName,
           oauth_platform: provider,
-          picture_url: userData.picture
+          picture_url: userData.picture,
+          email_verified: true,
         })
         .select()
         .single();
@@ -1061,6 +1092,7 @@ router.post('/oauth/callback', async (req, res) => {
         }
 
         // Create new user
+        // Google OAuth users are auto-verified (Google already verified their email)
         log.info('Creating new user');
         let newUser, insertError;
         try {
@@ -1072,7 +1104,8 @@ router.post('/oauth/callback', async (req, res) => {
                 first_name: userData.firstName,
                 last_name: userData.lastName,
                 oauth_provider: provider,
-                picture_url: userData.picture
+                picture_url: userData.picture,
+                email_verified: true,
               })
               .select()
               .single(),
@@ -1228,6 +1261,65 @@ router.get('/oauth/claim', async (req, res) => {
     provider: session.provider,
     redirectAfterAuth: session.redirect_after_auth || null,
   });
+});
+
+// Email verification endpoint
+// GET /api/auth/verify-email?token=X — marks the user's email as verified
+router.get('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== 'string' || token.length !== 64) {
+      return res.status(400).json({ success: false, error: 'Invalid verification token' });
+    }
+
+    // Find user by verification token
+    const { data: user, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, email_verified, email_verification_token_expires_at')
+      .eq('email_verification_token', token)
+      .single();
+
+    if (fetchError || !user) {
+      return res.status(404).json({ success: false, error: 'Invalid or expired verification token' });
+    }
+
+    // Check if already verified
+    if (user.email_verified) {
+      const appUrl = resolveAppUrl(req);
+      return res.redirect(`${appUrl}/auth?verified=already`);
+    }
+
+    // Check token expiry
+    if (user.email_verification_token_expires_at && new Date(user.email_verification_token_expires_at) < new Date()) {
+      return res.status(410).json({ success: false, error: 'Verification token has expired. Please request a new one.' });
+    }
+
+    // Mark email as verified and clear the token
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({
+        email_verified: true,
+        email_verification_token: null,
+        email_verification_token_expires_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      log.error('Failed to verify email', { error: updateError, userId: user.id });
+      return res.status(500).json({ success: false, error: 'Failed to verify email' });
+    }
+
+    log.info('Email verified successfully', { userId: user.id, email: user.email });
+
+    // Redirect to app with success indicator
+    const appUrl = resolveAppUrl(req);
+    return res.redirect(`${appUrl}/auth?verified=true`);
+  } catch (error) {
+    log.error('Email verification error', { error });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 export default router;
