@@ -157,7 +157,7 @@ export const requireProfessor = async (req, res, next) => {
     const { supabaseAdmin } = await import('../services/database.js');
     const { data: dbUser } = await supabaseAdmin
       .from('users')
-      .select('role, user_type')
+      .select('role')
       .eq('id', req.user.id)
       .single();
 
@@ -165,7 +165,7 @@ export const requireProfessor = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden', message: 'Admin access required' });
     }
 
-    const dbRole = dbUser.role || dbUser.user_type;
+    const dbRole = dbUser.role;
     const isProfessor = dbRole === 'professor' || dbRole === 'admin';
 
     if (!isProfessor) {
