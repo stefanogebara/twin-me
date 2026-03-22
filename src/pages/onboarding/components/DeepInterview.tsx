@@ -99,7 +99,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   ) => {
     // Only run completion if we have enough messages (at least 4 Q&A exchanges)
     if (voiceMessages.length < 4) return;
-    console.log('[DeepInterview] Voice session ended:', reason, 'messages:', voiceMessages.length);
+    // console.log('[DeepInterview] Voice session ended:', reason, 'messages:', voiceMessages.length);
 
     setLoading(true);
     try {
