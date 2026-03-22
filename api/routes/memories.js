@@ -94,7 +94,7 @@ router.get('/', authenticateUser, async (req, res) => {
       .from('user_memories')
       .select(SELECT_COLS, { count: 'exact' })
       .eq('user_id', userId)
-      .eq('is_archived', false);
+      /* archived memories are moved to a separate table, not flagged */;
 
     // Apply type filter
     if (typeFilters && typeFilters.length === 1) {
@@ -174,7 +174,7 @@ async function getComposition(userId) {
         .from('user_memories')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .eq('is_archived', false)
+        /* archived memories are moved to a separate table, not flagged */
         .eq('memory_type', type)
     )
   );

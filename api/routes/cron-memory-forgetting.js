@@ -279,19 +279,22 @@ router.post('/', async (req, res) => {
       const tier6Cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: tier6Rows } = await supabaseAdmin
         .from('user_memories')
-        .select('id')
+        .select('id, content, memory_type, importance_score, metadata, created_at')
         .eq('memory_type', 'reflection')
         .lt('created_at', tier6Cutoff)
         .lt('importance_score', 8)
         .eq('retrieval_count', 0)
-        .eq('is_archived', false)
         .limit(BATCH_SIZE);
 
       if (tier6Rows?.length > 0) {
         const ids = tier6Rows.map(r => r.id);
+        // Follow Tier 1/2 pattern: move to archive table, then delete from user_memories
+        await supabaseAdmin
+          .from('user_memories_archive')
+          .insert(tier6Rows.map(r => ({ ...r, archived_at: new Date().toISOString(), archive_reason: 'tier6_reflection_stale' })));
         await supabaseAdmin
           .from('user_memories')
-          .update({ is_archived: true, archive_reason: 'tier6_reflection_stale', updated_at: new Date().toISOString() })
+          .delete()
           .in('id', ids);
         stats.tier6ReflectionsArchived = ids.length;
         log.info('Tier 6 archived stale reflections', { count: ids.length });
