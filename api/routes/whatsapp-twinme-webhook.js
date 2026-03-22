@@ -40,6 +40,16 @@ router.get('/webhook', (req, res) => {
 
 // Incoming messages (POST)
 router.post('/webhook', express.json(), async (req, res) => {
+  // Verify Meta webhook signature before processing
+  const signature = req.headers['x-hub-signature-256'];
+  if (process.env.TWINME_WHATSAPP_WEBHOOK_SECRET && signature) {
+    const rawBody = JSON.stringify(req.body);
+    if (!verifyWebhookSignature(signature, rawBody)) {
+      log.warn('WhatsApp webhook signature verification failed');
+      return res.sendStatus(403);
+    }
+  }
+
   // Always respond 200 to Meta quickly
   res.sendStatus(200);
 

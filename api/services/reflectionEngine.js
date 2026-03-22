@@ -60,8 +60,10 @@ const log = createLogger('ReflectionEngine');
 // Deduplication — Cosine similarity on stored embeddings
 // ====================================================================
 
-const DEDUP_COSINE_THRESHOLD = 0.85;
-const DEDUP_BIGRAM_THRESHOLD = 0.72;
+// Tightened from 0.85/0.72 after audit found top duplicate appearing 12x.
+// Semantic near-duplicates with slight wording changes were slipping through.
+const DEDUP_COSINE_THRESHOLD = 0.80;
+const DEDUP_BIGRAM_THRESHOLD = 0.65;
 
 /** Dot-product cosine similarity between two equal-length float arrays. */
 function cosineSim(a, b) {

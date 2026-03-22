@@ -64,27 +64,150 @@ Return ONLY a JSON array. First element MUST be a nudge with nudge_action:
 [{"insight": "...", "urgency": "low|medium|high", "category": "nudge", "nudge_action": "specific action"}, ...]`;
 
 /**
- * Check if a similar insight was already generated in the last 7 days.
- * Uses 80-char prefix match to catch near-duplicates without embeddings.
+ * Extract significant keywords from insight text for topic-based dedup.
+ * Strips common filler words and returns the distinctive content words.
  */
-async function isInsightDuplicate(userId, insightText) {
+function _extractKeywords(text) {
+  const STOP_WORDS = new Set([
+    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'shall', 'can', 'need', 'dare', 'ought',
+    'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
+    'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below',
+    'and', 'but', 'or', 'nor', 'not', 'so', 'yet', 'both', 'either',
+    'neither', 'each', 'every', 'all', 'any', 'few', 'more', 'most',
+    'other', 'some', 'such', 'no', 'only', 'own', 'same', 'than', 'too',
+    'very', 'just', 'because', 'if', 'when', 'while', 'that', 'this',
+    'these', 'those', 'it', 'its', 'you', 'your', 'youre', 'youve',
+    'i', 'me', 'my', 'we', 'our', 'they', 'their', 'he', 'she', 'him',
+    'her', 'who', 'what', 'which', 'where', 'how', 'why', 'like', 'got',
+    'get', 'gets', 'getting', 'been', 'about', 'also', 'back', 'still',
+    'even', 'well', 'much', 'then', 'here', 'there', 'really', 'pretty',
+    'something', 'thing', 'things', 'going', 'know', 'feel', 'feels',
+    'feeling', 'kind', 'sort', 'try', 'let', 'lets', 'maybe', 'hey',
+    'hey', 'perfect', 'right', 'keep', 'make', 'want', 'turn', 'start',
+  ]);
+  return text.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+}
+
+/**
+ * Extract proper-noun-like words from text (capitalized words that aren't
+ * at the start of a sentence). Used for topic-level dedup: if both insights
+ * mention "Keinemusik" or "Radiohead", they're likely about the same thing.
+ */
+function _extractProperNouns(text) {
+  // Split on sentence boundaries, then extract capitalized words that aren't sentence-initial
+  const words = text.replace(/[""*_]/g, '').split(/\s+/);
+  const properNouns = [];
+  for (let i = 1; i < words.length; i++) {
+    const w = words[i].replace(/[^a-zA-Z]/g, '');
+    // Capitalized, 4+ chars, not after sentence-ending punctuation
+    if (w.length >= 4 && /^[A-Z]/.test(w) && !/[.!?]$/.test(words[i - 1])) {
+      properNouns.push(w.toLowerCase());
+    }
+  }
+  return [...new Set(properNouns)];
+}
+
+/**
+ * Compute Jaccard similarity between two keyword sets.
+ * Returns value between 0 (no overlap) and 1 (identical).
+ */
+function _keywordSimilarity(keywords1, keywords2) {
+  if (keywords1.length === 0 || keywords2.length === 0) return 0;
+  const set1 = new Set(keywords1);
+  const set2 = new Set(keywords2);
+  let intersection = 0;
+  for (const w of set1) {
+    if (set2.has(w)) intersection++;
+  }
+  const union = new Set([...set1, ...set2]).size;
+  return union > 0 ? intersection / union : 0;
+}
+
+/**
+ * Check if a similar insight was already generated recently.
+ * Uses three-layer dedup:
+ *   1. Exact 60-char prefix match (catches identical starts)
+ *   2. Keyword Jaccard similarity > 0.35 (catches paraphrased duplicates)
+ *   3. Per-category cooldown (max 1 per category per CATEGORY_COOLDOWN_HOURS)
+ */
+const CATEGORY_COOLDOWN_HOURS = {
+  music_mood_match: 6,
+  nudge: 4,
+  trend: 12,
+  anomaly: 6,
+  celebration: 12,
+  concern: 6,
+  goal_progress: 6,
+  goal_suggestion: 12,
+  briefing: 20,
+  evening_recap: 20,
+  email_triage: 6,
+};
+const DEFAULT_CATEGORY_COOLDOWN = 4;
+
+async function isInsightDuplicate(userId, insightText, category = null) {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     // Check ALL insights from last 7 days — not just undelivered.
     // Previously only checked delivered=false, so delivered insights got regenerated.
     const { data } = await supabaseAdmin
       .from('proactive_insights')
-      .select('insight')
+      .select('insight, category, created_at')
       .eq('user_id', userId)
       .gte('created_at', since)
-      .limit(100);
+      .order('created_at', { ascending: false })
+      .limit(200);
     if (!data?.length) return false;
-    // Match on first 60 chars (more aggressive dedup) — catches rephrased duplicates
+
+    // Layer 1: Exact 60-char prefix match (fast path)
     const snippet = insightText.substring(0, 60).toLowerCase().replace(/[^a-z0-9\s]/g, '');
-    return data.some(r => {
+    const prefixMatch = data.some(r => {
       const existing = (r.insight || '').substring(0, 60).toLowerCase().replace(/[^a-z0-9\s]/g, '');
       return existing === snippet;
     });
+    if (prefixMatch) return true;
+
+    // Layer 2: Keyword similarity (catches paraphrased duplicates)
+    // Uses Jaccard > 0.30 OR shared proper-noun-like words (capitalized in original) > 1
+    const newKeywords = _extractKeywords(insightText);
+    const newProperNouns = _extractProperNouns(insightText);
+    if (newKeywords.length >= 3) {
+      const isSimilar = data.some(r => {
+        const existingKeywords = _extractKeywords(r.insight || '');
+        const jaccardSim = _keywordSimilarity(newKeywords, existingKeywords);
+        if (jaccardSim > 0.30) return true;
+
+        // Proper noun overlap: if 2+ distinctive proper nouns match, it's the same topic
+        // (e.g., "Keinemusik" + "Party Is Over" appearing in both)
+        if (newProperNouns.length > 0) {
+          const existingProperNouns = _extractProperNouns(r.insight || '');
+          const sharedProper = newProperNouns.filter(n => existingProperNouns.includes(n));
+          if (sharedProper.length >= 2) return true;
+          // Even 1 shared distinctive proper noun (4+ chars) with any keyword overlap is suspicious
+          if (sharedProper.length >= 1 && jaccardSim > 0.15) return true;
+        }
+
+        return false;
+      });
+      if (isSimilar) return true;
+    }
+
+    // Layer 3: Per-category cooldown
+    if (category) {
+      const cooldownHours = CATEGORY_COOLDOWN_HOURS[category] || DEFAULT_CATEGORY_COOLDOWN;
+      const cooldownSince = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString();
+      const categoryMatch = data.some(r =>
+        r.category === category && r.created_at >= cooldownSince
+      );
+      if (categoryMatch) return true;
+    }
+
+    return false;
   } catch (err) {
     log.warn('isInsightDuplicate error', { error: err });
     return false; // fail open
@@ -196,9 +319,9 @@ async function generateProactiveInsights(userId) {
     for (const item of insights.slice(0, 3)) {
       if (!item.insight || item.insight.length < 10) continue;
 
-      if (await isInsightDuplicate(userId, item.insight)) continue;
-
       const validCategories = ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion', 'nudge'];
+      const itemCategory = validCategories.includes(item.category) ? item.category : null;
+      if (await isInsightDuplicate(userId, item.insight, itemCategory)) continue;
       const insertData = {
         user_id: userId,
         insight: item.insight.substring(0, 500),
@@ -247,7 +370,7 @@ async function generateProactiveInsights(userId) {
         if (correlations?.length) {
           for (const item of correlations) {
             if (!item.insight || item.insight.length < 10) continue;
-            if (await isInsightDuplicate(userId, item.insight)) continue;
+            if (await isInsightDuplicate(userId, item.insight, 'trend')) continue;
             await supabaseAdmin.from('proactive_insights').insert({
               user_id: userId,
               insight: item.insight.substring(0, 500),
@@ -642,4 +765,5 @@ export {
   evaluateNudgeOutcomes,
   getNudgeHistory,
   getNudgeEffectivenessScore,
+  isInsightDuplicate,
 };

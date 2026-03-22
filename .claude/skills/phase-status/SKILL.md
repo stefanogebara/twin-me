@@ -59,54 +59,79 @@ When asked "what's next", "phase status", or "what should we work on", read this
 - Whoop + Gmail in Settings
 - Today's Insights: retry:0 (no more infinite spinner)
 
+### Soul Signature Voting Layer ✅ (2026-03-08)
+- OCEAN Big Five extraction, stylometric fingerprint
+- Best-of-N personality reranking (feature-flagged)
+- Personality drift detection (7d vs 90d)
+
+### Synaptic Maturation ✅ (2026-03-09)
+- STDP exponential decay on memory links
+- Graph-based retrieval traversal (1-hop)
+- Memory saliency replay (daily 4am cron)
+
+### Dashboard V2 ✅ (2026-03-11)
+- Typography-driven design, unified /api/dashboard/context
+- 90-day memory heatmap, proactive insights feed
+
+### Phase 7 — Behavioral Finetuning ✅ (2026-03-12)
+- Finetuned Llama 3.1 8B LoRA as personality oracle
+- 212 clean training examples, oracle latency ~1.8s
+- Feature-flagged (personality_oracle, opt-in)
+
+### Smart Model Routing ✅ (2026-03-18)
+- LIGHT=Gemini Flash / STANDARD=DeepSeek / DEEP=Sonnet
+- 75% cost savings, $0.41/day average
+
+### DPO Training ✅ (2026-03-19)
+- 208 preference pairs, personality-aligned responses
+- Oracle SFT fallback, per-user scaling
+
+### Beta Invite System ✅ (2026-03-21)
+- Invite codes, waitlist, feedback widget, email invites
+- BETA_GATE_ENABLED=true, admin role column
+
+### Phase 8 — Agentic Foundation ✅ (2026-03-21)
+- Core Memory Blocks (4 pinned identity blocks)
+- Session Reflection via Inngest durable workflow
+- Context Condensation (12K token threshold)
+- Task Intent Routing (reminders, prospective memories)
+- 5 seeded skills: morning briefing, evening recap, music mood, pattern alert, social checkin
+- Telegram messaging, Smart Email Draft, Evening Recap
+- Autonomy Spectrum (5 levels per skill)
+- Tool Registry (platform-agnostic)
+
+### 10 Platform Integrations ✅ (2026-03-21)
+- Spotify, Calendar, YouTube, Gmail, Discord, GitHub, Reddit, LinkedIn, Whoop, Twitch
+
+### Enrichment Expansion ✅ (2026-03-21)
+- 9 providers: Gravatar, GitHub, Reddit, HN, Hunter, Spotify, Twitter/Brave + Brave Search
+
+### Session 2026-03-22 Fixes
+- Chrome extension v3.3.0 submitted to CWS (pending review)
+- Auth + sidebar monochromatic, orange accent elsewhere
+- Night sky background (#13121a) + dynamic sun gradient
+- Insight spam killed (3-layer dedup, 400+ duplicates purged)
+- Cost dashboard fixed (requireProfessor bug)
+- Twin research: 0.810 -> 0.837 (+3.3%)
+- 9 plugins + 2 custom skills installed
+
 ---
 
-## CURRENT PHASE: Phase 7 — Beta Readiness
+## CURRENT PHASE: Soul Signature Redesign + Beta Launch
 
-**Goal:** Get 5-10 real users through the full funnel without hand-holding.
-
-### Priority stack (in order):
-
-**1. Onboarding funnel polish** — HIGH ROI
-- New user: auth → interview → get-started → dashboard flow
-- Twin summary should populate within 60s of first platform connect
-- Ensure interview questions save correctly and seed memory
-
-**2. Email digest** — RETENTION
-- Weekly "your twin noticed..." email with 3 top reflections
-- Resend or SendGrid, simple transactional
-- Opt-out link
-
-**3. Share Soul Signature card** — VIRAL LOOP
-- Shareable image card from /soul-signature
-- "Share" button → copy link or native share
-- Public preview page (archetype + top 3 traits) + CTA to try
-
-**4. Stripe paywall** — MONETIZATION
-- Free: 1 platform, 500 memories
-- Pro ($9/mo): unlimited platforms, full memory, priority reflection
-- Gate by memory count or platform count (not on signup)
+1. **Soul Signature page redesign** — archetype system, OCEAN radar, trait badges, expert 1-liners, first-time reveal, weekly drift (IN PROGRESS)
+2. **Invite beta users** — system ready, codes created, no blockers
+3. **Memory Explorer** — demote to Settings > Advanced
+4. **Mobile APK** — push to Play Store internal track
+5. **Monitor** — cost dashboard live at /admin/llm-costs
 
 ---
 
-## Phase 8+ (after PMF signal)
-- Location clusters (foreground only)
-- iOS app
-- WhatsApp communication patterns (metadata only)
-- Financial behavior (Plaid)
-
----
-
-## Stats (as of 2026-03-02)
-- Memories: ~16K+ (fact ~50%, reflection ~27%, conversation ~12%, platform_data ~11%)
-- Active platforms: Spotify, YouTube, Calendar, Discord, LinkedIn (OAuth) + Whoop (Nango)
-- Tests: 68 integration tests passing
-- Target: 5-10 beta users
-- Revenue: $0 (no paywall yet)
-
----
-
-## CURRENT STATUS: All phases complete through Phase 6. Ready to invite beta users.
+## Stats (as of 2026-03-22)
+- Memories: ~6,765
+- Active platforms: 10 (Spotify, Calendar, YouTube, Gmail, Discord, GitHub, Reddit, LinkedIn, Whoop, Twitch)
+- LLM cost: $0.41/day ($12.35/mo projected)
+- Beta codes: stefano01, beta0001-0009, schapchap, cmgebara1, tefinho01
 
 ---
 
@@ -261,28 +286,3 @@ When asked "what's next", "phase status", or "what should we work on", read this
 
 ---
 
-## WHAT'S NEXT — Phase 7
-
-**Remaining Phase 6 (not done):**
-- Play Store alpha release (need to publish signed APK to Google Play)
-- iOS app (React Native reuse)
-
-**Phase 7 candidates:**
-1. **Invite first beta users** — system is ready, invite 2-5 people
-2. **Play Store alpha** — upload APK to Play Store internal testing track
-3. **Behavioral finetuning** (Simile Paper 4) — finetune on user patterns
-4. **Camera-based stress detection** — Syd-style PPG for users without Whoop
-5. **Multi-platform expansion** — Apple Music, Reddit, Oura Ring
-
----
-
-## Stats (as of 2026-02-28)
-- Memories: ~11,000 rows (fact=1,476, reflection=5,034, conversation=2,436, platform_data=2,029)
-- Platform integrations: 5 (Spotify, YouTube, Calendar, Discord, LinkedIn)
-- Expert personas: 11 (5 generic + 6 per-platform domain)
-- Cron jobs: 9 active
-- Integration tests: 68 passing
-- Subscription tiers: free (1 message) / pro ($19/mo) / max ($50/mo)
-- New Phase 6 tables: memory_links, daily_checkins, proactive_insights.engaged
-- APK: 104MB fresh build, ready to install
-- Target users: 5-10 beta

@@ -81,6 +81,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "express-validator": "^7.2.1",
+    "framer-motion": "^12.38.0",
     "googleapis": "^161.0.0",
     "grammy": "^1.41.1",
     "helmet": "^8.1.0",

@@ -35,7 +35,6 @@ const navItems: NavItem[] = [
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'goals',        label: 'Goals',            icon: Target,        path: '/goals' },
-  { id: 'brain',        label: 'Memory Explorer', icon: Brain,         path: '/brain' },
   { id: 'connect-data', label: 'Connect Data',    icon: Link2,         path: '/get-started' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];

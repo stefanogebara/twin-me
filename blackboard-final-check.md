@@ -1,0 +1,1573 @@
+- generic [ref=e1]:
+  - region "Course OPERATIONS MANAGEMENT" [ref=e4]:
+    - generic [ref=e5]:
+      - list [ref=e6]:
+        - listitem [ref=e7]:
+          - link "Skip to main content" [ref=e8] [cursor=pointer]:
+            - /url: "#"
+        - listitem [ref=e9]:
+          - link "Skip to course information" [ref=e10] [cursor=pointer]:
+            - /url: "#"
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e15]:
+            - link [ref=e84] [cursor=pointer]:
+              - /url: https://blackboard.ie.edu/ultra/institution-page
+              - img [ref=e17]
+            - generic [ref=e21]:
+              - button [ref=e85] [cursor=pointer]:
+                - text: Courses
+                - img [ref=e24]
+              - separator [ref=e26]
+              - link [ref=e86] [cursor=pointer]:
+                - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline
+                - generic [ref=e28]: OPERATIONS MANAGEMENT
+              - generic [ref=e90]:
+                - generic [ref=e91]: Open
+                - generic [ref=e92]: Course status Open
+          - toolbar [ref=e93]:
+            - navigation [ref=e94]:
+              - list [ref=e34]:
+                - listitem [ref=e35]:
+                  - link [ref=e95] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline
+                    - generic [ref=e37]: Content
+                - listitem [ref=e96]:
+                  - link [ref=e97] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/calendar
+                    - generic [ref=e98]: Calendar
+                - listitem [ref=e99]:
+                  - link [ref=e100] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/announcements
+                    - generic [ref=e102]:
+                      - generic [ref=e103]: Announcements
+                      - generic [ref=e106]: "15"
+                - listitem [ref=e38]:
+                  - link [ref=e107] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/engagement
+                    - generic [ref=e42]: Discussions
+                - listitem [ref=e108]:
+                  - link [ref=e109] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/grades
+                    - generic [ref=e111]:
+                      - generic [ref=e112]: Gradebook
+                      - generic [ref=e115]: "1"
+                - listitem [ref=e116]:
+                  - link [ref=e117] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/messages
+                    - generic [ref=e120]: Messages
+                - listitem [ref=e121]:
+                  - link [ref=e122] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/groups/enrollments
+                    - generic [ref=e123]: Groups
+                - listitem [ref=e124]:
+                  - link [ref=e125] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/achievements
+                    - generic [ref=e128]: Achievements
+        - main [ref=e43]:
+          - region [ref=e129]:
+            - heading [level=1] [ref=e130]: OPERATIONS MANAGEMENT
+            - generic [ref=e54]:
+              - region [ref=e131]:
+                - generic [ref=e59]:
+                  - heading [level=2] [ref=e132]: Course Content
+                  - button [ref=e133] [cursor=pointer]:
+                    - img [ref=e63]
+                - generic [ref=e138]:
+                  - generic [ref=e140]:
+                    - generic [ref=e145] [cursor=pointer]:
+                      - generic [ref=e146]:
+                        - img [ref=e148]
+                        - heading [level=3] [ref=e150]:
+                          - link [ref=e151]:
+                            - /url: "#"
+                            - text: Syllabus
+                      - generic [ref=e152]: Add or read the information about the course, sessions, content...
+                    - generic [ref=e158] [cursor=pointer]:
+                      - generic [ref=e159]:
+                        - img [ref=e161]
+                        - heading [level=3] [ref=e166]:
+                          - link [ref=e167]:
+                            - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/assessment/_2569802_1/overview?courseId=_130845_1
+                            - text: Vampires Inc
+                      - generic [ref=e169]: "Due date: 3/16/26, 10:00 AM (UTC+1)"
+                      - generic [ref=e170]: Second individual submission
+                    - generic [ref=e177] [cursor=pointer]:
+                      - img [ref=e179]
+                      - heading [level=3] [ref=e183]:
+                        - link [ref=e184]:
+                          - /url: https://chatgpt.com/g/g-695c15bbda9881918f993b183f03202f-operations-management-tutor-beta-s1-2
+                          - text: AI Tutor
+                    - generic [ref=e191] [cursor=pointer]:
+                      - img [ref=e193]
+                      - heading [level=3] [ref=e195]:
+                        - link [ref=e196]:
+                          - /url: "#"
+                          - text: Qwickly Attendance
+                    - generic [ref=e203] [cursor=pointer]:
+                      - img [ref=e205]
+                      - heading [level=3] [ref=e207]:
+                        - link [ref=e208]:
+                          - /url: "#"
+                          - text: Zoom for Blackboard
+                    - generic [ref=e214] [cursor=pointer]:
+                      - generic [ref=e216]:
+                        - img [ref=e218]
+                        - heading [level=3] [ref=e221]:
+                          - button [ref=e222]: Class presentations
+                      - img [ref=e225]
+                    - generic [ref=e232] [cursor=pointer]:
+                      - generic [ref=e233]:
+                        - img [ref=e235]
+                        - heading [level=3] [ref=e240]:
+                          - link [ref=e241]:
+                            - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/assessment/_2465332_1/overview?courseId=_130845_1
+                            - text: Alstom Wagons Inc
+                      - generic [ref=e243]: "Due date: 1/29/26, 3:00 PM (UTC+1)"
+                      - generic [ref=e244]: First individual submission
+                    - button [disabled]: No more content items to load
+                  - status [ref=e246]
+              - complementary [ref=e247]:
+                - generic [ref=e248]:
+                  - heading [level=2] [ref=e250]: Course Faculty
+                  - region [ref=e251]:
+                    - list [ref=e252]:
+                      - listitem [ref=e253] [cursor=pointer]:
+                        - img [ref=e257]
+                        - generic [ref=e258]:
+                          - generic [ref=e263]: GAMALIEL MARTINEZ MUÑOZ
+                          - paragraph [ref=e264]:
+                            - generic [ref=e266]: Instructor
+                        - link [ref=e267]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/assessment/_2569802_1/overview/attempt/_5283078_1/message?courseId=_130845_1&recipientIds=_1444_1&courseId=_130845_1
+                          - img [ref=e269]
+                - generic [ref=e271]:
+                  - heading [level=2] [ref=e275]: Details & Actions
+                  - navigation [ref=e276]:
+                    - list [ref=e277]:
+                      - listitem [ref=e278]:
+                        - link [ref=e279] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/roster
+                          - img [ref=e282]
+                          - generic [ref=e284]:
+                            - generic [ref=e285]: Roster
+                            - paragraph [ref=e287]: View everyone in your course
+                      - listitem [ref=e288]:
+                        - link [ref=e289] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/description
+                          - img [ref=e292]
+                          - generic [ref=e296]:
+                            - generic [ref=e297]: Course Description
+                            - paragraph [ref=e299]: View the course description
+                      - listitem [ref=e300]:
+                        - link [ref=e301] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/attendanceGrade?courseId=_130845_1
+                          - img [ref=e304]
+                          - generic [ref=e308]:
+                            - generic [ref=e309]: Attendance
+                            - paragraph [ref=e311]: View your attendance
+                      - listitem [ref=e312]:
+                        - link [ref=e313] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/booksAndTools?parentId=_2015650_1
+                          - img [ref=e316]
+                          - generic [ref=e319]:
+                            - generic [ref=e320]: Books & Tools
+                            - paragraph [ref=e322]: View course & institution tools
+    - button "Help for current page" [ref=e323] [cursor=pointer]:
+      - generic [ref=e324]:
+        - img [ref=e325]
+        - generic [ref=e329]: Help for current page
+    - generic [ref=e74]:
+      - generic [ref=e334]:
+        - generic [ref=e336]:
+          - generic [ref=e339]:
+            - generic [ref=e341]: OPERATIONS MANAGEMENT
+            - generic [ref=e343]:
+              - heading [level=1] [ref=e344]: Vampires Inc
+              - heading "OPERATIONS MANAGEMENT Vampires Inc" [level=1] [ref=e345]:
+                - generic [ref=e346]: OPERATIONS MANAGEMENT
+                - text: Vampires Inc
+          - generic [ref=e347]:
+            - generic [ref=e348]:
+              - generic [ref=e349]:
+                - generic [ref=e351]:
+                  - progressbar [ref=e352]
+                  - paragraph
+                - generic [ref=e354]:
+                  - generic:
+                    - generic: "| |"
+                  - status [ref=e357]:
+                    - strong [ref=e358]: "0"
+                    - text: of 23 questions remaining
+              - generic [ref=e362]:
+                - heading "Test Content" [level=2] [ref=e364]
+                - region [ref=e365]:
+                  - list [ref=e366]:
+                    - listitem [ref=e367]:
+                      - generic [ref=e370]:
+                        - generic [ref=e371]: Question <bdi></bdi>
+                        - generic [ref=e376]:
+                          - heading "Instructions" [level=3] [ref=e377]
+                          - paragraph [ref=e378]
+                          - paragraph [ref=e379]: Go to the Operations Management AI Tutor, on campus, and start a conversation about the case.
+                          - paragraph [ref=e380]: The tutor will guide you in continuing this conversation, with as many interactions as you wish.
+                          - paragraph [ref=e381]
+                          - paragraph [ref=e382]: Of those interactions, at least 3 of them must have a prompt longer than 20 words. Those prompts may be questions asked to the tutor, answers to its questions,..
+                          - paragraph [ref=e383]
+                          - paragraph [ref=e384]
+                          - paragraph [ref=e385]: Answer all questions and copy-paste your "long" prompts (that cannot be the case questions) and three personal takeaways (not AI generated) of the conversation, and a transcription of the complete conversation (copy-paste from ChatGPT, plus a link to the conversation that you'll be able to obtain from the list of conversations in ChatGPT, in the left side menu). No submission will be valid without a full copy-pasted discussion and the link to it.
+                          - paragraph [ref=e386]
+                          - paragraph [ref=e387]: Prompts will be checked and must be present in the conversation. If not, this exercise may be graded with 0.
+                          - paragraph [ref=e388]: Takeaways must be personal Dedicating 5 minutes to introspection has never harmed anybody, and it is a learning habit that I strongly recommend. Asking yourself what you have learnt, how you can apply your learnings or how this relates to other topics is a very powerful learning tool.
+                          - paragraph [ref=e389]
+                          - paragraph [ref=e390]: You may use the tutor to find your numerical solutions, but be sure there are no errors in them.
+                          - paragraph [ref=e391]
+                          - paragraph [ref=e392]: Only your last submission will be graded, so, it you open the test again, you must answer all questions again.
+                          - paragraph [ref=e393]
+                          - paragraph [ref=e394]: No late submissions will be admitted. This is an individual report that requires time. You must allocate time in advance.
+                          - paragraph [ref=e395]
+                          - paragraph [ref=e396]: I will be sharing with you a summary of all answers of your class.
+                    - listitem [ref=e397]:
+                      - generic [ref=e400]:
+                        - generic [ref=e401]: Question <bdi></bdi>
+                        - generic [ref=e406]:
+                          - 'heading "Case Study: Vampires Inc" [level=3] [ref=e407]'
+                          - paragraph [ref=e408]
+                          - paragraph [ref=e409]
+                          - paragraph [ref=e410]: Year 2030. The world has evolved. Vampires are now fully integrated into society and, thanks to regulatory reform and a surprisingly effective PR campaign, are no longer permitted to attack innocent people in dark alleyways. Instead, they operate licensed “blood clinics,” where small quantities of blood are obtained from willing volunteer donors. Donors are compensated based on the time they spend at the clinic — because nothing says modern compliance like hourly billing.
+                          - paragraph [ref=e411]: Vampires Inc. owns the largest clinic in New York, strategically located in Times Square — a place known for heavy foot traffic, bright lights, and, conveniently, an abundance of nightlife. It is widely acknowledged within vampire circles that blood containing a modest trace of alcohol is considered a delicacy. In fact, even the medically trained vampires responsible for drawing blood occasionally struggle to resist “quality control testing.”
+                          - paragraph [ref=e412]
+                          - paragraph [ref=e413]: Not surprisingly, alcohol levels in donors’ blood tend to rise after dinner, particularly late in the evening — a phenomenon that the operations team politely refers to as “peak flavor hours.”
+                          - paragraph [ref=e414]
+                          - paragraph [ref=e415]: Despite the clinic’s popularity, Vampires Inc. is committed to maintaining high donor satisfaction. After all, a well-treated donor is a repeat donor. To ensure service quality, management has implemented a Statistical Process Control (SPC) system to monitor waiting times.
+                          - paragraph [ref=e416]
+                          - paragraph [ref=e417]: On a typical day, the clinic records the waiting times of six randomly selected donors every hour.
+                          - paragraph [ref=e418]
+                          - paragraph [ref=e419]: The table below presents the data collected on the first day of monitoring — a day when operations appeared to be running as smoothly as a freshly sharpened fang.
+                          - paragraph [ref=e420]
+                          - paragraph [ref=e421]
+                          - table [ref=e422]:
+                            - row "Time D1 D2 D3 D4 D5 D6" [ref=e423]:
+                              - columnheader "Time" [ref=e424]:
+                                - paragraph [ref=e425]: Time
+                              - columnheader "D1" [ref=e426]:
+                                - paragraph [ref=e427]: D1
+                              - columnheader "D2" [ref=e428]:
+                                - paragraph [ref=e429]: D2
+                              - columnheader "D3" [ref=e430]:
+                                - paragraph [ref=e431]: D3
+                              - columnheader "D4" [ref=e432]:
+                                - paragraph [ref=e433]: D4
+                              - columnheader "D5" [ref=e434]:
+                                - paragraph [ref=e435]: D5
+                              - columnheader "D6" [ref=e436]:
+                                - paragraph [ref=e437]: D6
+                            - row "6:00 AM 32.5 27.3 31.7 29.8 31.5 34.0" [ref=e438]:
+                              - cell "6:00 AM" [ref=e439]:
+                                - paragraph [ref=e440]: 6:00 AM
+                              - cell "32.5" [ref=e441]:
+                                - paragraph [ref=e442]: "32.5"
+                              - cell "27.3" [ref=e443]:
+                                - paragraph [ref=e444]: "27.3"
+                              - cell "31.7" [ref=e445]:
+                                - paragraph [ref=e446]: "31.7"
+                              - cell "29.8" [ref=e447]:
+                                - paragraph [ref=e448]: "29.8"
+                              - cell "31.5" [ref=e449]:
+                                - paragraph [ref=e450]: "31.5"
+                              - cell "34.0" [ref=e451]:
+                                - paragraph [ref=e452]: "34.0"
+                            - row "7:00 AM 29.3 30.6 21.2 37.8 31.3 25.5" [ref=e453]:
+                              - cell "7:00 AM" [ref=e454]:
+                                - paragraph [ref=e455]: 7:00 AM
+                              - cell "29.3" [ref=e456]:
+                                - paragraph [ref=e457]: "29.3"
+                              - cell "30.6" [ref=e458]:
+                                - paragraph [ref=e459]: "30.6"
+                              - cell "21.2" [ref=e460]:
+                                - paragraph [ref=e461]: "21.2"
+                              - cell "37.8" [ref=e462]:
+                                - paragraph [ref=e463]: "37.8"
+                              - cell "31.3" [ref=e464]:
+                                - paragraph [ref=e465]: "31.3"
+                              - cell "25.5" [ref=e466]:
+                                - paragraph [ref=e467]: "25.5"
+                            - row "8:00 AM 33.2 24.2 31.6 16.9 30.0 37.0" [ref=e468]:
+                              - cell "8:00 AM" [ref=e469]:
+                                - paragraph [ref=e470]: 8:00 AM
+                              - cell "33.2" [ref=e471]:
+                                - paragraph [ref=e472]: "33.2"
+                              - cell "24.2" [ref=e473]:
+                                - paragraph [ref=e474]: "24.2"
+                              - cell "31.6" [ref=e475]:
+                                - paragraph [ref=e476]: "31.6"
+                              - cell "16.9" [ref=e477]:
+                                - paragraph [ref=e478]: "16.9"
+                              - cell "30.0" [ref=e479]:
+                                - paragraph [ref=e480]: "30.0"
+                              - cell "37.0" [ref=e481]:
+                                - paragraph [ref=e482]: "37.0"
+                            - row "9:00 AM 37.6 31.9 28.1 34.1 28.8 23.0" [ref=e483]:
+                              - cell "9:00 AM" [ref=e484]:
+                                - paragraph [ref=e485]: 9:00 AM
+                              - cell "37.6" [ref=e486]:
+                                - paragraph [ref=e487]: "37.6"
+                              - cell "31.9" [ref=e488]:
+                                - paragraph [ref=e489]: "31.9"
+                              - cell "28.1" [ref=e490]:
+                                - paragraph [ref=e491]: "28.1"
+                              - cell "34.1" [ref=e492]:
+                                - paragraph [ref=e493]: "34.1"
+                              - cell "28.8" [ref=e494]:
+                                - paragraph [ref=e495]: "28.8"
+                              - cell "23.0" [ref=e496]:
+                                - paragraph [ref=e497]: "23.0"
+                            - row "10:00 AM 28.8 27.0 26.6 30.4 22.9 32.9" [ref=e498]:
+                              - cell "10:00 AM" [ref=e499]:
+                                - paragraph [ref=e500]: 10:00 AM
+                              - cell "28.8" [ref=e501]:
+                                - paragraph [ref=e502]: "28.8"
+                              - cell "27.0" [ref=e503]:
+                                - paragraph [ref=e504]: "27.0"
+                              - cell "26.6" [ref=e505]:
+                                - paragraph [ref=e506]: "26.6"
+                              - cell "30.4" [ref=e507]:
+                                - paragraph [ref=e508]: "30.4"
+                              - cell "22.9" [ref=e509]:
+                                - paragraph [ref=e510]: "22.9"
+                              - cell "32.9" [ref=e511]:
+                                - paragraph [ref=e512]: "32.9"
+                            - row "11:00 AM 28.8 28.5 33.1 28.5 27.9 41.0" [ref=e513]:
+                              - cell "11:00 AM" [ref=e514]:
+                                - paragraph [ref=e515]: 11:00 AM
+                              - cell "28.8" [ref=e516]:
+                                - paragraph [ref=e517]: "28.8"
+                              - cell "28.5" [ref=e518]:
+                                - paragraph [ref=e519]: "28.5"
+                              - cell "33.1" [ref=e520]:
+                                - paragraph [ref=e521]: "33.1"
+                              - cell "28.5" [ref=e522]:
+                                - paragraph [ref=e523]: "28.5"
+                              - cell "27.9" [ref=e524]:
+                                - paragraph [ref=e525]: "27.9"
+                              - cell "41.0" [ref=e526]:
+                                - paragraph [ref=e527]: "41.0"
+                            - row "12:00 PM 37.9 27.0 35.2 30.5 28.3 25.0" [ref=e528]:
+                              - cell "12:00 PM" [ref=e529]:
+                                - paragraph [ref=e530]: 12:00 PM
+                              - cell "37.9" [ref=e531]:
+                                - paragraph [ref=e532]: "37.9"
+                              - cell "27.0" [ref=e533]:
+                                - paragraph [ref=e534]: "27.0"
+                              - cell "35.2" [ref=e535]:
+                                - paragraph [ref=e536]: "35.2"
+                              - cell "30.5" [ref=e537]:
+                                - paragraph [ref=e538]: "30.5"
+                              - cell "28.3" [ref=e539]:
+                                - paragraph [ref=e540]: "28.3"
+                              - cell "25.0" [ref=e541]:
+                                - paragraph [ref=e542]: "25.0"
+                            - row "1:00 PM 33.8 39.3 34.7 20.1 26.0 27.2" [ref=e543]:
+                              - cell "1:00 PM" [ref=e544]:
+                                - paragraph [ref=e545]: 1:00 PM
+                              - cell "33.8" [ref=e546]:
+                                - paragraph [ref=e547]: "33.8"
+                              - cell "39.3" [ref=e548]:
+                                - paragraph [ref=e549]: "39.3"
+                              - cell "34.7" [ref=e550]:
+                                - paragraph [ref=e551]: "34.7"
+                              - cell "20.1" [ref=e552]:
+                                - paragraph [ref=e553]: "20.1"
+                              - cell "26.0" [ref=e554]:
+                                - paragraph [ref=e555]: "26.0"
+                              - cell "27.2" [ref=e556]:
+                                - paragraph [ref=e557]: "27.2"
+                            - row "2:00 PM 27.7 29.9 25.8 28.9 29.2 30.5" [ref=e558]:
+                              - cell "2:00 PM" [ref=e559]:
+                                - paragraph [ref=e560]: 2:00 PM
+                              - cell "27.7" [ref=e561]:
+                                - paragraph [ref=e562]: "27.7"
+                              - cell "29.9" [ref=e563]:
+                                - paragraph [ref=e564]: "29.9"
+                              - cell "25.8" [ref=e565]:
+                                - paragraph [ref=e566]: "25.8"
+                              - cell "28.9" [ref=e567]:
+                                - paragraph [ref=e568]: "28.9"
+                              - cell "29.2" [ref=e569]:
+                                - paragraph [ref=e570]: "29.2"
+                              - cell "30.5" [ref=e571]:
+                                - paragraph [ref=e572]: "30.5"
+                            - row "3:00 PM 32.7 24.7 28.5 31.8 32.0 27.5" [ref=e573]:
+                              - cell "3:00 PM" [ref=e574]:
+                                - paragraph [ref=e575]: 3:00 PM
+                              - cell "32.7" [ref=e576]:
+                                - paragraph [ref=e577]: "32.7"
+                              - cell "24.7" [ref=e578]:
+                                - paragraph [ref=e579]: "24.7"
+                              - cell "28.5" [ref=e580]:
+                                - paragraph [ref=e581]: "28.5"
+                              - cell "31.8" [ref=e582]:
+                                - paragraph [ref=e583]: "31.8"
+                              - cell "32.0" [ref=e584]:
+                                - paragraph [ref=e585]: "32.0"
+                              - cell "27.5" [ref=e586]:
+                                - paragraph [ref=e587]: "27.5"
+                            - row "4:00 PM 27.7 34.1 31.7 37.4 39.4 22.2" [ref=e588]:
+                              - cell "4:00 PM" [ref=e589]:
+                                - paragraph [ref=e590]: 4:00 PM
+                              - cell "27.7" [ref=e591]:
+                                - paragraph [ref=e592]: "27.7"
+                              - cell "34.1" [ref=e593]:
+                                - paragraph [ref=e594]: "34.1"
+                              - cell "31.7" [ref=e595]:
+                                - paragraph [ref=e596]: "31.7"
+                              - cell "37.4" [ref=e597]:
+                                - paragraph [ref=e598]: "37.4"
+                              - cell "39.4" [ref=e599]:
+                                - paragraph [ref=e600]: "39.4"
+                              - cell "22.2" [ref=e601]:
+                                - paragraph [ref=e602]: "22.2"
+                            - row "5:00 PM 27.7 23.9 34.9 27.4 30.9 30.3" [ref=e603]:
+                              - cell "5:00 PM" [ref=e604]:
+                                - paragraph [ref=e605]: 5:00 PM
+                              - cell "27.7" [ref=e606]:
+                                - paragraph [ref=e607]: "27.7"
+                              - cell "23.9" [ref=e608]:
+                                - paragraph [ref=e609]: "23.9"
+                              - cell "34.9" [ref=e610]:
+                                - paragraph [ref=e611]: "34.9"
+                              - cell "27.4" [ref=e612]:
+                                - paragraph [ref=e613]: "27.4"
+                              - cell "30.9" [ref=e614]:
+                                - paragraph [ref=e615]: "30.9"
+                              - cell "30.3" [ref=e616]:
+                                - paragraph [ref=e617]: "30.3"
+                            - row "6:00 PM 31.2 31.0 27.6 26.0 31.3 24.7" [ref=e618]:
+                              - cell "6:00 PM" [ref=e619]:
+                                - paragraph [ref=e620]: 6:00 PM
+                              - cell "31.2" [ref=e621]:
+                                - paragraph [ref=e622]: "31.2"
+                              - cell "31.0" [ref=e623]:
+                                - paragraph [ref=e624]: "31.0"
+                              - cell "27.6" [ref=e625]:
+                                - paragraph [ref=e626]: "27.6"
+                              - cell "26.0" [ref=e627]:
+                                - paragraph [ref=e628]: "26.0"
+                              - cell "31.3" [ref=e629]:
+                                - paragraph [ref=e630]: "31.3"
+                              - cell "24.7" [ref=e631]:
+                                - paragraph [ref=e632]: "24.7"
+                            - row "7:00 PM 20.4 20.2 29.1 27.5 29.6 32.4" [ref=e633]:
+                              - cell "7:00 PM" [ref=e634]:
+                                - paragraph [ref=e635]: 7:00 PM
+                              - cell "20.4" [ref=e636]:
+                                - paragraph [ref=e637]: "20.4"
+                              - cell "20.2" [ref=e638]:
+                                - paragraph [ref=e639]: "20.2"
+                              - cell "29.1" [ref=e640]:
+                                - paragraph [ref=e641]: "29.1"
+                              - cell "27.5" [ref=e642]:
+                                - paragraph [ref=e643]: "27.5"
+                              - cell "29.6" [ref=e644]:
+                                - paragraph [ref=e645]: "29.6"
+                              - cell "32.4" [ref=e646]:
+                                - paragraph [ref=e647]: "32.4"
+                            - row "8:00 PM 21.4 23.4 24.5 34.6 20.4 25.4" [ref=e648]:
+                              - cell "8:00 PM" [ref=e649]:
+                                - paragraph [ref=e650]: 8:00 PM
+                              - cell "21.4" [ref=e651]:
+                                - paragraph [ref=e652]: "21.4"
+                              - cell "23.4" [ref=e653]:
+                                - paragraph [ref=e654]: "23.4"
+                              - cell "24.5" [ref=e655]:
+                                - paragraph [ref=e656]: "24.5"
+                              - cell "34.6" [ref=e657]:
+                                - paragraph [ref=e658]: "34.6"
+                              - cell "20.4" [ref=e659]:
+                                - paragraph [ref=e660]: "20.4"
+                              - cell "25.4" [ref=e661]:
+                                - paragraph [ref=e662]: "25.4"
+                            - row "9:00 PM 27.2 31.0 24.0 31.6 29.9 37.7" [ref=e663]:
+                              - cell "9:00 PM" [ref=e664]:
+                                - paragraph [ref=e665]: 9:00 PM
+                              - cell "27.2" [ref=e666]:
+                                - paragraph [ref=e667]: "27.2"
+                              - cell "31.0" [ref=e668]:
+                                - paragraph [ref=e669]: "31.0"
+                              - cell "24.0" [ref=e670]:
+                                - paragraph [ref=e671]: "24.0"
+                              - cell "31.6" [ref=e672]:
+                                - paragraph [ref=e673]: "31.6"
+                              - cell "29.9" [ref=e674]:
+                                - paragraph [ref=e675]: "29.9"
+                              - cell "37.7" [ref=e676]:
+                                - paragraph [ref=e677]: "37.7"
+                            - row "10:00 PM 24.9 33.7 34.1 27.4 30.3 26.1" [ref=e678]:
+                              - cell "10:00 PM" [ref=e679]:
+                                - paragraph [ref=e680]: 10:00 PM
+                              - cell "24.9" [ref=e681]:
+                                - paragraph [ref=e682]: "24.9"
+                              - cell "33.7" [ref=e683]:
+                                - paragraph [ref=e684]: "33.7"
+                              - cell "34.1" [ref=e685]:
+                                - paragraph [ref=e686]: "34.1"
+                              - cell "27.4" [ref=e687]:
+                                - paragraph [ref=e688]: "27.4"
+                              - cell "30.3" [ref=e689]:
+                                - paragraph [ref=e690]: "30.3"
+                              - cell "26.1" [ref=e691]:
+                                - paragraph [ref=e692]: "26.1"
+                            - row "11:00 PM 31.6 30.9 36.8 32.6 42.3 28.4" [ref=e693]:
+                              - cell "11:00 PM" [ref=e694]:
+                                - paragraph [ref=e695]: 11:00 PM
+                              - cell "31.6" [ref=e696]:
+                                - paragraph [ref=e697]: "31.6"
+                              - cell "30.9" [ref=e698]:
+                                - paragraph [ref=e699]: "30.9"
+                              - cell "36.8" [ref=e700]:
+                                - paragraph [ref=e701]: "36.8"
+                              - cell "32.6" [ref=e702]:
+                                - paragraph [ref=e703]: "32.6"
+                              - cell "42.3" [ref=e704]:
+                                - paragraph [ref=e705]: "42.3"
+                              - cell "28.4" [ref=e706]:
+                                - paragraph [ref=e707]: "28.4"
+                            - row "12:00 AM 25.5 29.4 29.6 30.5 29.0 34.1" [ref=e708]:
+                              - cell "12:00 AM" [ref=e709]:
+                                - paragraph [ref=e710]: 12:00 AM
+                              - cell "25.5" [ref=e711]:
+                                - paragraph [ref=e712]: "25.5"
+                              - cell "29.4" [ref=e713]:
+                                - paragraph [ref=e714]: "29.4"
+                              - cell "29.6" [ref=e715]:
+                                - paragraph [ref=e716]: "29.6"
+                              - cell "30.5" [ref=e717]:
+                                - paragraph [ref=e718]: "30.5"
+                              - cell "29.0" [ref=e719]:
+                                - paragraph [ref=e720]: "29.0"
+                              - cell "34.1" [ref=e721]:
+                                - paragraph [ref=e722]: "34.1"
+                            - row "1:00 AM 22.9 28.5 35.0 34.8 31.5 23.8" [ref=e723]:
+                              - cell "1:00 AM" [ref=e724]:
+                                - paragraph [ref=e725]: 1:00 AM
+                              - cell "22.9" [ref=e726]:
+                                - paragraph [ref=e727]: "22.9"
+                              - cell "28.5" [ref=e728]:
+                                - paragraph [ref=e729]: "28.5"
+                              - cell "35.0" [ref=e730]:
+                                - paragraph [ref=e731]: "35.0"
+                              - cell "34.8" [ref=e732]:
+                                - paragraph [ref=e733]: "34.8"
+                              - cell "31.5" [ref=e734]:
+                                - paragraph [ref=e735]: "31.5"
+                              - cell "23.8" [ref=e736]:
+                                - paragraph [ref=e737]: "23.8"
+                            - row "2:00 AM 37.3 22.6 31.8 26.5 29.8 31.1" [ref=e738]:
+                              - cell "2:00 AM" [ref=e739]:
+                                - paragraph [ref=e740]: 2:00 AM
+                              - cell "37.3" [ref=e741]:
+                                - paragraph [ref=e742]: "37.3"
+                              - cell "22.6" [ref=e743]:
+                                - paragraph [ref=e744]: "22.6"
+                              - cell "31.8" [ref=e745]:
+                                - paragraph [ref=e746]: "31.8"
+                              - cell "26.5" [ref=e747]:
+                                - paragraph [ref=e748]: "26.5"
+                              - cell "29.8" [ref=e749]:
+                                - paragraph [ref=e750]: "29.8"
+                              - cell "31.1" [ref=e751]:
+                                - paragraph [ref=e752]: "31.1"
+                            - row "3:00 AM 28.9 26.4 26.8 28.4 24.2 36.5" [ref=e753]:
+                              - cell "3:00 AM" [ref=e754]:
+                                - paragraph [ref=e755]: 3:00 AM
+                              - cell "28.9" [ref=e756]:
+                                - paragraph [ref=e757]: "28.9"
+                              - cell "26.4" [ref=e758]:
+                                - paragraph [ref=e759]: "26.4"
+                              - cell "26.8" [ref=e760]:
+                                - paragraph [ref=e761]: "26.8"
+                              - cell "28.4" [ref=e762]:
+                                - paragraph [ref=e763]: "28.4"
+                              - cell "24.2" [ref=e764]:
+                                - paragraph [ref=e765]: "24.2"
+                              - cell "36.5" [ref=e766]:
+                                - paragraph [ref=e767]: "36.5"
+                            - row "4:00 AM 30.3 27.7 31.8 28.0 35.7 22.0" [ref=e768]:
+                              - cell "4:00 AM" [ref=e769]:
+                                - paragraph [ref=e770]: 4:00 AM
+                              - cell "30.3" [ref=e771]:
+                                - paragraph [ref=e772]: "30.3"
+                              - cell "27.7" [ref=e773]:
+                                - paragraph [ref=e774]: "27.7"
+                              - cell "31.8" [ref=e775]:
+                                - paragraph [ref=e776]: "31.8"
+                              - cell "28.0" [ref=e777]:
+                                - paragraph [ref=e778]: "28.0"
+                              - cell "35.7" [ref=e779]:
+                                - paragraph [ref=e780]: "35.7"
+                              - cell "22.0" [ref=e781]:
+                                - paragraph [ref=e782]: "22.0"
+                            - row "5:00 AM 22.9 35.3 37.7 22.7 33.8 30.9" [ref=e783]:
+                              - cell "5:00 AM" [ref=e784]:
+                                - paragraph [ref=e785]: 5:00 AM
+                              - cell "22.9" [ref=e786]:
+                                - paragraph [ref=e787]: "22.9"
+                              - cell "35.3" [ref=e788]:
+                                - paragraph [ref=e789]: "35.3"
+                              - cell "37.7" [ref=e790]:
+                                - paragraph [ref=e791]: "37.7"
+                              - cell "22.7" [ref=e792]:
+                                - paragraph [ref=e793]: "22.7"
+                              - cell "33.8" [ref=e794]:
+                                - paragraph [ref=e795]: "33.8"
+                              - cell "30.9" [ref=e796]:
+                                - paragraph [ref=e797]: "30.9"
+                          - paragraph [ref=e798]
+                    - listitem [ref=e799]:
+                      - generic [ref=e802]:
+                        - generic [ref=e803]: Question 1
+                        - generic [ref=e804]:
+                          - heading "Question 1" [level=3] [ref=e805]
+                          - generic [ref=e806]:
+                            - generic [ref=e807]: "1"
+                            - text: Point
+                        - generic [ref=e811]:
+                          - paragraph [ref=e817]: What is the UCLx? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e818]:
+                            - textbox "Type question 1 text" [ref=e820]:
+                              - /placeholder: Add your answer
+                              - text: "35.640"
+                            - paragraph [ref=e821]:
+                              - generic [ref=e822]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e823]:
+                      - generic [ref=e826]:
+                        - generic [ref=e827]: Question 2
+                        - generic [ref=e828]:
+                          - heading "Question 2" [level=3] [ref=e829]
+                          - generic [ref=e830]:
+                            - generic [ref=e831]: "1"
+                            - text: Point
+                        - generic [ref=e835]:
+                          - paragraph [ref=e841]: What is the LCLx? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e842]:
+                            - textbox "Type question 2 text" [ref=e844]:
+                              - /placeholder: Add your answer
+                              - text: "23.554"
+                            - paragraph [ref=e845]:
+                              - generic [ref=e846]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e847]:
+                      - generic [ref=e850]:
+                        - generic [ref=e851]: Question 3
+                        - generic [ref=e852]:
+                          - heading "Question 3" [level=3] [ref=e853]
+                          - generic [ref=e854]:
+                            - generic [ref=e855]: "1"
+                            - text: Point
+                        - generic [ref=e859]:
+                          - paragraph [ref=e865]: What is the UCLR? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e866]:
+                            - textbox "Type question 3 text" [ref=e868]:
+                              - /placeholder: Add your answer
+                              - text: "25.074"
+                            - paragraph [ref=e869]:
+                              - generic [ref=e870]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e871]:
+                      - generic [ref=e874]:
+                        - generic [ref=e875]: Question 4
+                        - generic [ref=e876]:
+                          - heading "Question 4" [level=3] [ref=e877]
+                          - generic [ref=e878]:
+                            - generic [ref=e879]: "1"
+                            - text: Point
+                        - generic [ref=e883]:
+                          - paragraph [ref=e889]: What is the LCLR? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e890]:
+                            - textbox "Type question 4 text" [ref=e892]:
+                              - /placeholder: Add your answer
+                              - text: "0.000"
+                            - paragraph [ref=e893]:
+                              - generic [ref=e894]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e895]:
+                      - generic [ref=e898]:
+                        - generic [ref=e899]: Question 5
+                        - generic [ref=e900]:
+                          - heading "Question 5" [level=3] [ref=e901]
+                          - generic [ref=e902]:
+                            - generic [ref=e903]: "1"
+                            - text: Point
+                        - generic [ref=e907]:
+                          - paragraph [ref=e913]: What is the LCLR? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e914]:
+                            - textbox "Type question 5 text" [ref=e916]:
+                              - /placeholder: Add your answer
+                              - text: "0.000"
+                            - paragraph [ref=e917]:
+                              - generic [ref=e918]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e919]:
+                      - generic [ref=e922]:
+                        - generic [ref=e923]: Question 6
+                        - generic [ref=e924]:
+                          - heading "Question 6" [level=3] [ref=e925]
+                          - generic [ref=e926]:
+                            - generic [ref=e927]: "1"
+                            - text: Point
+                        - generic [ref=e930]:
+                          - generic [ref=e931]:
+                            - generic [ref=e932]: Question 6
+                            - paragraph [ref=e935]: Is the system in control?
+                          - radiogroup "Question 6 Is the system in control?" [ref=e936]:
+                            - list [ref=e937]:
+                              - listitem [ref=e938]:
+                                - generic [ref=e939] [cursor=pointer]:
+                                  - radio "Yes Selected" [checked] [ref=e1941]
+                                  - generic [ref=e944]:
+                                    - separator [ref=e945]
+                                    - paragraph [ref=e949]: "Yes"
+                                    - generic [ref=e1942]: Selected
+                              - listitem [ref=e950]:
+                                - generic [ref=e951] [cursor=pointer]:
+                                  - radio "No" [ref=e954]
+                                  - generic [ref=e956]:
+                                    - separator [ref=e957]
+                                    - paragraph [ref=e961]: "No"
+                              - listitem [ref=e962]:
+                                - generic [ref=e963] [cursor=pointer]:
+                                  - radio "Can't know from the data we have" [ref=e966]
+                                  - generic [ref=e968]:
+                                    - separator [ref=e969]
+                                    - paragraph [ref=e973]: Can't know from the data we have
+                          - button "Clear selection" [ref=e975] [cursor=pointer]
+                    - listitem [ref=e976]:
+                      - generic [ref=e979]:
+                        - generic [ref=e980]: Question 7
+                        - generic [ref=e981]:
+                          - heading "Question 7" [level=3] [ref=e982]
+                          - generic [ref=e983]:
+                            - generic [ref=e984]: "1"
+                            - text: Point
+                        - generic [ref=e985]:
+                          - paragraph [ref=e990]: Why?
+                          - generic [ref=e993]:
+                            - generic [ref=e994]: Text Editor
+                            - textbox "Question 7 Why? Text Editor" [ref=e996]:
+                              - paragraph [ref=e997]: All 24 sample means fall within the X-bar control limits (23.554 to 35.640), and all 24 sample ranges fall within the R-chart control limits (0 to 25.074). There are no points outside the control limits on either chart, and no visible non-random patterns such as trends, runs, or cycles. The variation appears random around the grand mean of 29.597 minutes, indicating only common-cause variation is present. Therefore, the process is statistically in control.
+                    - listitem [ref=e998]:
+                      - generic [ref=e1001]:
+                        - generic [ref=e1002]: Question <bdi></bdi>
+                        - generic [ref=e1007]:
+                          - paragraph [ref=e1008]: Vampires Inc. has also established clear service specifications to ensure that donors remain both satisfied and conscious.
+                          - list [ref=e1009]:
+                            - listitem [ref=e1010]: "• Upper Specification Limit (USL): 45 minutes"
+                            - listitem [ref=e1011]: "• Lower Specification Limit (LSL): 15 minutes"
+                          - paragraph [ref=e1012]
+                          - paragraph [ref=e1013]: "Any donor who waits:"
+                          - list [ref=e1014]:
+                            - listitem [ref=e1015]: • More than 45 minutes is considered unacceptable. Even the most dedicated volunteer may begin to reconsider their life choices at that point.
+                            - listitem [ref=e1016]: • Less than 15 minutes is considered operationally unrealistic and potentially unstable. If donors are moving through the clinic that quickly, something is probably being skipped — and in a vampire clinic, that is rarely reassuring.
+                          - paragraph [ref=e1017]
+                          - paragraph [ref=e1018]: In short, the clinic aims for waiting times that are efficient, controlled, and reassuringly professional — neither excessively slow nor suspiciously fast.
+                    - listitem [ref=e1019]:
+                      - generic [ref=e1022]:
+                        - generic [ref=e1023]: Question 8
+                        - generic [ref=e1024]:
+                          - heading "Question 8" [level=3] [ref=e1025]
+                          - generic [ref=e1026]:
+                            - generic [ref=e1027]: "1"
+                            - text: Point
+                        - generic [ref=e1030]:
+                          - generic [ref=e1031]:
+                            - generic [ref=e1032]: Question 8
+                            - paragraph [ref=e1035]: Intuitevely, is the system capable?
+                          - radiogroup "Question 6 Is the system in control?" [ref=e1036]:
+                            - list [ref=e1037]:
+                              - listitem [ref=e1038]:
+                                - generic [ref=e1039] [cursor=pointer]:
+                                  - radio "Yes Selected" [checked] [ref=e1943]
+                                  - generic [ref=e1044]:
+                                    - separator [ref=e1045]
+                                    - paragraph [ref=e1049]: "Yes"
+                                    - generic [ref=e1944]: Selected
+                              - listitem [ref=e1050]:
+                                - generic [ref=e1051] [cursor=pointer]:
+                                  - radio "No" [ref=e1054]
+                                  - generic [ref=e1056]:
+                                    - separator [ref=e1057]
+                                    - paragraph [ref=e1061]: "No"
+                              - listitem [ref=e1062]:
+                                - generic [ref=e1063] [cursor=pointer]:
+                                  - radio "Can't know from the data we have" [ref=e1066]
+                                  - generic [ref=e1068]:
+                                    - separator [ref=e1069]
+                                    - paragraph [ref=e1073]: Can't know from the data we have
+                          - button "Clear selection" [ref=e1075] [cursor=pointer]
+                    - listitem [ref=e1076]:
+                      - generic [ref=e1079]:
+                        - generic [ref=e1080]: Question 9
+                        - generic [ref=e1081]:
+                          - heading "Question 9" [level=3] [ref=e1082]
+                          - generic [ref=e1083]:
+                            - generic [ref=e1084]: "1"
+                            - text: Point
+                        - generic [ref=e1085]:
+                          - paragraph [ref=e1090]: Why?
+                          - generic [ref=e1093]:
+                            - generic [ref=e1094]: Text Editor
+                            - textbox "Question 9 Why? Text Editor" [ref=e1096]:
+                              - paragraph [ref=e1097]: Intuitively, the specification range (USL - LSL = 45 - 15 = 30 minutes) is wide enough to contain the process spread. The control limits (23.554 to 35.640) sit comfortably within the specification limits (15 to 45), so observed waiting times rarely approach the specs. All individual data points in the 24 samples fall well within the specification range. However, the fit is tight — the process spread (6 sigma = 29.63) is almost equal to the spec width (30), leaving very little margin for error.
+                    - listitem [ref=e1098]:
+                      - generic [ref=e1101]:
+                        - generic [ref=e1102]: Question 10
+                        - generic [ref=e1103]:
+                          - heading "Question 10" [level=3] [ref=e1104]
+                          - generic [ref=e1105]:
+                            - generic [ref=e1106]: "1"
+                            - text: Point
+                        - generic [ref=e1109]:
+                          - generic [ref=e1110]:
+                            - generic [ref=e1111]: Question 10
+                            - paragraph [ref=e1114]: Is the system centered?
+                          - radiogroup "Question 6 Is the system in control?" [ref=e1115]:
+                            - list [ref=e1116]:
+                              - listitem [ref=e1117]:
+                                - generic [ref=e1118] [cursor=pointer]:
+                                  - radio "Yes" [ref=e1121]
+                                  - generic [ref=e1123]:
+                                    - separator [ref=e1124]
+                                    - paragraph [ref=e1128]: "Yes"
+                              - listitem [ref=e1129]:
+                                - generic [ref=e1130] [cursor=pointer]:
+                                  - radio "No Selected" [checked] [ref=e1945]
+                                  - generic [ref=e1135]:
+                                    - separator [ref=e1136]
+                                    - paragraph [ref=e1140]: "No"
+                                    - generic [ref=e1946]: Selected
+                              - listitem [ref=e1141]:
+                                - generic [ref=e1142] [cursor=pointer]:
+                                  - radio "Can't know from the data we have" [ref=e1145]
+                                  - generic [ref=e1147]:
+                                    - separator [ref=e1148]
+                                    - paragraph [ref=e1152]: Can't know from the data we have
+                          - button "Clear selection" [ref=e1154] [cursor=pointer]
+                    - listitem [ref=e1155]:
+                      - generic [ref=e1158]:
+                        - generic [ref=e1159]: Question 11
+                        - generic [ref=e1160]:
+                          - heading "Question 11" [level=3] [ref=e1161]
+                          - generic [ref=e1162]:
+                            - generic [ref=e1163]: "1"
+                            - text: Point
+                        - generic [ref=e1164]:
+                          - paragraph [ref=e1169]: Why?
+                          - generic [ref=e1172]:
+                            - generic [ref=e1173]: Text Editor
+                            - textbox "Question 11 Why? Text Editor" [ref=e1175]:
+                              - paragraph [ref=e1176]: The target midpoint of the specification limits is (45 + 15) / 2 = 30.000 minutes, but the process mean (X-double-bar) is 29.597 minutes. Since the process mean is slightly below the target, the process is not perfectly centered — it is shifted marginally toward the lower specification limit. This means defects on the low side (waiting times below 15 minutes) are more likely than defects on the high side, which is reflected in Cpl (0.985) being lower than Cpu (1.040).
+                    - listitem [ref=e1177]:
+                      - generic [ref=e1180]:
+                        - generic [ref=e1181]: Question 12
+                        - generic [ref=e1182]:
+                          - heading "Question 12" [level=3] [ref=e1183]
+                          - generic [ref=e1184]:
+                            - generic [ref=e1185]: "1"
+                            - text: Point
+                        - generic [ref=e1189]:
+                          - paragraph [ref=e1195]: What is the Capability Index? Use the index that fits with the previous answer.
+                          - generic [ref=e1196]:
+                            - textbox "Type question 12 text" [ref=e1198]:
+                              - /placeholder: Add your answer
+                              - text: "0.985"
+                            - paragraph [ref=e1199]:
+                              - generic [ref=e1200]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e1201]:
+                      - generic [ref=e1204]:
+                        - generic [ref=e1205]: Question 13
+                        - generic [ref=e1206]:
+                          - heading "Question 13" [level=3] [ref=e1207]
+                          - generic [ref=e1208]:
+                            - generic [ref=e1209]: "1"
+                            - text: Point
+                        - generic [ref=e1210]:
+                          - paragraph [ref=e1215]: Explain your line of reasoning to find the capability index. You may guide the tutor to find the answer and copy here how you found it.
+                          - generic [ref=e1218]:
+                            - generic [ref=e1219]: Text Editor
+                            - textbox "Question 13 Explain your line of reasoning to find the capability index. You may guide the tutor to find the answer and copy here how you found it. Text Editor" [ref=e1221]:
+                              - paragraph [ref=e1222]: "Since the process is not centered (mean = 29.597 vs target = 30.000), I used Cpk rather than Cp. First, I estimated sigma using sigma_hat = R-bar / d2 = 12.512 / 2.534 = 4.938. Then I calculated both one-sided capability indices: Cpu = (USL - mean) / (3 * sigma_hat) = (45 - 29.597) / (3 * 4.938) = 15.403 / 14.813 = 1.040, and Cpl = (mean - LSL) / (3 * sigma_hat) = (29.597 - 15) / (3 * 4.938) = 14.597 / 14.813 = 0.985. Cpk = min(Cpu, Cpl) = min(1.040, 0.985) = 0.985. Since Cpk < 1, the process is not capable — it cannot reliably meet the specification limits given its current variability and centering."
+                    - listitem [ref=e1223]:
+                      - generic [ref=e1226]:
+                        - generic [ref=e1227]: Question <bdi></bdi>
+                        - generic [ref=e1232]:
+                          - paragraph [ref=e1233]:
+                            - strong [ref=e1234]: The Fourth of July incident
+                          - paragraph [ref=e1235]
+                          - paragraph [ref=e1236]: The process was running smoothly, and donors appeared to be satisfied — waiting times were reasonable, operations were stable, and no one fainted for the wrong reasons.
+                          - paragraph [ref=e1237]
+                          - paragraph [ref=e1238]: However, everything changed on the 4th of July.
+                          - paragraph [ref=e1239]
+                          - paragraph [ref=e1240]: As New York celebrated with fireworks, rooftop parties, and enthusiastic overconsumption of beverages best described as “experimental,” the clinic experienced an unusually eventful evening. The data collected that night are presented in the following table.
+                          - paragraph [ref=e1241]
+                          - table [ref=e1242]:
+                            - row "Time D1 D2 D3 D4 D5 D6" [ref=e1243]:
+                              - columnheader "Time" [ref=e1244]:
+                                - paragraph [ref=e1245]: Time
+                              - columnheader "D1" [ref=e1246]:
+                                - paragraph [ref=e1247]: D1
+                              - columnheader "D2" [ref=e1248]:
+                                - paragraph [ref=e1249]: D2
+                              - columnheader "D3" [ref=e1250]:
+                                - paragraph [ref=e1251]: D3
+                              - columnheader "D4" [ref=e1252]:
+                                - paragraph [ref=e1253]: D4
+                              - columnheader "D5" [ref=e1254]:
+                                - paragraph [ref=e1255]: D5
+                              - columnheader "D6" [ref=e1256]:
+                                - paragraph [ref=e1257]: D6
+                            - row "6:00 AM 30.1 28.4 31.2 29.7 30.5 32.0" [ref=e1258]:
+                              - cell "6:00 AM" [ref=e1259]:
+                                - paragraph [ref=e1260]: 6:00 AM
+                              - cell "30.1" [ref=e1261]:
+                                - paragraph [ref=e1262]: "30.1"
+                              - cell "28.4" [ref=e1263]:
+                                - paragraph [ref=e1264]: "28.4"
+                              - cell "31.2" [ref=e1265]:
+                                - paragraph [ref=e1266]: "31.2"
+                              - cell "29.7" [ref=e1267]:
+                                - paragraph [ref=e1268]: "29.7"
+                              - cell "30.5" [ref=e1269]:
+                                - paragraph [ref=e1270]: "30.5"
+                              - cell "32.0" [ref=e1271]:
+                                - paragraph [ref=e1272]: "32.0"
+                            - row "7:00 AM 27.8 29.9 26.3 30.5 28.4 31.1" [ref=e1273]:
+                              - cell "7:00 AM" [ref=e1274]:
+                                - paragraph [ref=e1275]: 7:00 AM
+                              - cell "27.8" [ref=e1276]:
+                                - paragraph [ref=e1277]: "27.8"
+                              - cell "29.9" [ref=e1278]:
+                                - paragraph [ref=e1279]: "29.9"
+                              - cell "26.3" [ref=e1280]:
+                                - paragraph [ref=e1281]: "26.3"
+                              - cell "30.5" [ref=e1282]:
+                                - paragraph [ref=e1283]: "30.5"
+                              - cell "28.4" [ref=e1284]:
+                                - paragraph [ref=e1285]: "28.4"
+                              - cell "31.1" [ref=e1286]:
+                                - paragraph [ref=e1287]: "31.1"
+                            - row "8:00 AM 31.5 30.8 29.6 28.7 32.2 27.9" [ref=e1288]:
+                              - cell "8:00 AM" [ref=e1289]:
+                                - paragraph [ref=e1290]: 8:00 AM
+                              - cell "31.5" [ref=e1291]:
+                                - paragraph [ref=e1292]: "31.5"
+                              - cell "30.8" [ref=e1293]:
+                                - paragraph [ref=e1294]: "30.8"
+                              - cell "29.6" [ref=e1295]:
+                                - paragraph [ref=e1296]: "29.6"
+                              - cell "28.7" [ref=e1297]:
+                                - paragraph [ref=e1298]: "28.7"
+                              - cell "32.2" [ref=e1299]:
+                                - paragraph [ref=e1300]: "32.2"
+                              - cell "27.9" [ref=e1301]:
+                                - paragraph [ref=e1302]: "27.9"
+                            - row "9:00 AM 29.2 27.4 33.0 30.1 28.8 29.5" [ref=e1303]:
+                              - cell "9:00 AM" [ref=e1304]:
+                                - paragraph [ref=e1305]: 9:00 AM
+                              - cell "29.2" [ref=e1306]:
+                                - paragraph [ref=e1307]: "29.2"
+                              - cell "27.4" [ref=e1308]:
+                                - paragraph [ref=e1309]: "27.4"
+                              - cell "33.0" [ref=e1310]:
+                                - paragraph [ref=e1311]: "33.0"
+                              - cell "30.1" [ref=e1312]:
+                                - paragraph [ref=e1313]: "30.1"
+                              - cell "28.8" [ref=e1314]:
+                                - paragraph [ref=e1315]: "28.8"
+                              - cell "29.5" [ref=e1316]:
+                                - paragraph [ref=e1317]: "29.5"
+                            - row "10:00 AM 26.9 28.1 30.4 27.3 29.2 31.0" [ref=e1318]:
+                              - cell "10:00 AM" [ref=e1319]:
+                                - paragraph [ref=e1320]: 10:00 AM
+                              - cell "26.9" [ref=e1321]:
+                                - paragraph [ref=e1322]: "26.9"
+                              - cell "28.1" [ref=e1323]:
+                                - paragraph [ref=e1324]: "28.1"
+                              - cell "30.4" [ref=e1325]:
+                                - paragraph [ref=e1326]: "30.4"
+                              - cell "27.3" [ref=e1327]:
+                                - paragraph [ref=e1328]: "27.3"
+                              - cell "29.2" [ref=e1329]:
+                                - paragraph [ref=e1330]: "29.2"
+                              - cell "31.0" [ref=e1331]:
+                                - paragraph [ref=e1332]: "31.0"
+                            - row "11:00 AM 32.0 29.7 28.8 30.2 33.1 27.4" [ref=e1333]:
+                              - cell "11:00 AM" [ref=e1334]:
+                                - paragraph [ref=e1335]: 11:00 AM
+                              - cell "32.0" [ref=e1336]:
+                                - paragraph [ref=e1337]: "32.0"
+                              - cell "29.7" [ref=e1338]:
+                                - paragraph [ref=e1339]: "29.7"
+                              - cell "28.8" [ref=e1340]:
+                                - paragraph [ref=e1341]: "28.8"
+                              - cell "30.2" [ref=e1342]:
+                                - paragraph [ref=e1343]: "30.2"
+                              - cell "33.1" [ref=e1344]:
+                                - paragraph [ref=e1345]: "33.1"
+                              - cell "27.4" [ref=e1346]:
+                                - paragraph [ref=e1347]: "27.4"
+                            - row "12:00 PM 30.8 31.2 29.6 28.7 30.5 32.4" [ref=e1348]:
+                              - cell "12:00 PM" [ref=e1349]:
+                                - paragraph [ref=e1350]: 12:00 PM
+                              - cell "30.8" [ref=e1351]:
+                                - paragraph [ref=e1352]: "30.8"
+                              - cell "31.2" [ref=e1353]:
+                                - paragraph [ref=e1354]: "31.2"
+                              - cell "29.6" [ref=e1355]:
+                                - paragraph [ref=e1356]: "29.6"
+                              - cell "28.7" [ref=e1357]:
+                                - paragraph [ref=e1358]: "28.7"
+                              - cell "30.5" [ref=e1359]:
+                                - paragraph [ref=e1360]: "30.5"
+                              - cell "32.4" [ref=e1361]:
+                                - paragraph [ref=e1362]: "32.4"
+                            - row "1:00 PM 27.5 28.8 30.9 29.1 27.6 31.3" [ref=e1363]:
+                              - cell "1:00 PM" [ref=e1364]:
+                                - paragraph [ref=e1365]: 1:00 PM
+                              - cell "27.5" [ref=e1366]:
+                                - paragraph [ref=e1367]: "27.5"
+                              - cell "28.8" [ref=e1368]:
+                                - paragraph [ref=e1369]: "28.8"
+                              - cell "30.9" [ref=e1370]:
+                                - paragraph [ref=e1371]: "30.9"
+                              - cell "29.1" [ref=e1372]:
+                                - paragraph [ref=e1373]: "29.1"
+                              - cell "27.6" [ref=e1374]:
+                                - paragraph [ref=e1375]: "27.6"
+                              - cell "31.3" [ref=e1376]:
+                                - paragraph [ref=e1377]: "31.3"
+                            - row "2:00 PM 30.0 27.7 31.1 29.5 30.4 28.6" [ref=e1378]:
+                              - cell "2:00 PM" [ref=e1379]:
+                                - paragraph [ref=e1380]: 2:00 PM
+                              - cell "30.0" [ref=e1381]:
+                                - paragraph [ref=e1382]: "30.0"
+                              - cell "27.7" [ref=e1383]:
+                                - paragraph [ref=e1384]: "27.7"
+                              - cell "31.1" [ref=e1385]:
+                                - paragraph [ref=e1386]: "31.1"
+                              - cell "29.5" [ref=e1387]:
+                                - paragraph [ref=e1388]: "29.5"
+                              - cell "30.4" [ref=e1389]:
+                                - paragraph [ref=e1390]: "30.4"
+                              - cell "28.6" [ref=e1391]:
+                                - paragraph [ref=e1392]: "28.6"
+                            - row "3:00 PM 28.9 29.3 30.2 27.4 31.6 28.7" [ref=e1393]:
+                              - cell "3:00 PM" [ref=e1394]:
+                                - paragraph [ref=e1395]: 3:00 PM
+                              - cell "28.9" [ref=e1396]:
+                                - paragraph [ref=e1397]: "28.9"
+                              - cell "29.3" [ref=e1398]:
+                                - paragraph [ref=e1399]: "29.3"
+                              - cell "30.2" [ref=e1400]:
+                                - paragraph [ref=e1401]: "30.2"
+                              - cell "27.4" [ref=e1402]:
+                                - paragraph [ref=e1403]: "27.4"
+                              - cell "31.6" [ref=e1404]:
+                                - paragraph [ref=e1405]: "31.6"
+                              - cell "28.7" [ref=e1406]:
+                                - paragraph [ref=e1407]: "28.7"
+                            - row "4:00 PM 31.4 29.8 27.9 30.6 28.5 32.1" [ref=e1408]:
+                              - cell "4:00 PM" [ref=e1409]:
+                                - paragraph [ref=e1410]: 4:00 PM
+                              - cell "31.4" [ref=e1411]:
+                                - paragraph [ref=e1412]: "31.4"
+                              - cell "29.8" [ref=e1413]:
+                                - paragraph [ref=e1414]: "29.8"
+                              - cell "27.9" [ref=e1415]:
+                                - paragraph [ref=e1416]: "27.9"
+                              - cell "30.6" [ref=e1417]:
+                                - paragraph [ref=e1418]: "30.6"
+                              - cell "28.5" [ref=e1419]:
+                                - paragraph [ref=e1420]: "28.5"
+                              - cell "32.1" [ref=e1421]:
+                                - paragraph [ref=e1422]: "32.1"
+                            - row "5:00 PM 28.2 29.4 26.8 31.3 27.7 30.5" [ref=e1423]:
+                              - cell "5:00 PM" [ref=e1424]:
+                                - paragraph [ref=e1425]: 5:00 PM
+                              - cell "28.2" [ref=e1426]:
+                                - paragraph [ref=e1427]: "28.2"
+                              - cell "29.4" [ref=e1428]:
+                                - paragraph [ref=e1429]: "29.4"
+                              - cell "26.8" [ref=e1430]:
+                                - paragraph [ref=e1431]: "26.8"
+                              - cell "31.3" [ref=e1432]:
+                                - paragraph [ref=e1433]: "31.3"
+                              - cell "27.7" [ref=e1434]:
+                                - paragraph [ref=e1435]: "27.7"
+                              - cell "30.5" [ref=e1436]:
+                                - paragraph [ref=e1437]: "30.5"
+                            - row "6:00 PM 29.7 30.6 28.5 27.9 31.2 29.1" [ref=e1438]:
+                              - cell "6:00 PM" [ref=e1439]:
+                                - paragraph [ref=e1440]: 6:00 PM
+                              - cell "29.7" [ref=e1441]:
+                                - paragraph [ref=e1442]: "29.7"
+                              - cell "30.6" [ref=e1443]:
+                                - paragraph [ref=e1444]: "30.6"
+                              - cell "28.5" [ref=e1445]:
+                                - paragraph [ref=e1446]: "28.5"
+                              - cell "27.9" [ref=e1447]:
+                                - paragraph [ref=e1448]: "27.9"
+                              - cell "31.2" [ref=e1449]:
+                                - paragraph [ref=e1450]: "31.2"
+                              - cell "29.1" [ref=e1451]:
+                                - paragraph [ref=e1452]: "29.1"
+                            - row "7:00 PM 27.6 30.8 29.4 28.1 32.0 30.3" [ref=e1453]:
+                              - cell "7:00 PM" [ref=e1454]:
+                                - paragraph [ref=e1455]: 7:00 PM
+                              - cell "27.6" [ref=e1456]:
+                                - paragraph [ref=e1457]: "27.6"
+                              - cell "30.8" [ref=e1458]:
+                                - paragraph [ref=e1459]: "30.8"
+                              - cell "29.4" [ref=e1460]:
+                                - paragraph [ref=e1461]: "29.4"
+                              - cell "28.1" [ref=e1462]:
+                                - paragraph [ref=e1463]: "28.1"
+                              - cell "32.0" [ref=e1464]:
+                                - paragraph [ref=e1465]: "32.0"
+                              - cell "30.3" [ref=e1466]:
+                                - paragraph [ref=e1467]: "30.3"
+                            - row "8:00 PM 31.0 28.7 27.9 30.4 29.6 28.8" [ref=e1468]:
+                              - cell "8:00 PM" [ref=e1469]:
+                                - paragraph [ref=e1470]: 8:00 PM
+                              - cell "31.0" [ref=e1471]:
+                                - paragraph [ref=e1472]: "31.0"
+                              - cell "28.7" [ref=e1473]:
+                                - paragraph [ref=e1474]: "28.7"
+                              - cell "27.9" [ref=e1475]:
+                                - paragraph [ref=e1476]: "27.9"
+                              - cell "30.4" [ref=e1477]:
+                                - paragraph [ref=e1478]: "30.4"
+                              - cell "29.6" [ref=e1479]:
+                                - paragraph [ref=e1480]: "29.6"
+                              - cell "28.8" [ref=e1481]:
+                                - paragraph [ref=e1482]: "28.8"
+                            - row "9:00 PM 29.2 31.1 28.5 27.8 30.7 29.9" [ref=e1483]:
+                              - cell "9:00 PM" [ref=e1484]:
+                                - paragraph [ref=e1485]: 9:00 PM
+                              - cell "29.2" [ref=e1486]:
+                                - paragraph [ref=e1487]: "29.2"
+                              - cell "31.1" [ref=e1488]:
+                                - paragraph [ref=e1489]: "31.1"
+                              - cell "28.5" [ref=e1490]:
+                                - paragraph [ref=e1491]: "28.5"
+                              - cell "27.8" [ref=e1492]:
+                                - paragraph [ref=e1493]: "27.8"
+                              - cell "30.7" [ref=e1494]:
+                                - paragraph [ref=e1495]: "30.7"
+                              - cell "29.9" [ref=e1496]:
+                                - paragraph [ref=e1497]: "29.9"
+                            - row "10:00 PM 30.3 29.4 28.8 30.6 27.5 31.0" [ref=e1498]:
+                              - cell "10:00 PM" [ref=e1499]:
+                                - paragraph [ref=e1500]: 10:00 PM
+                              - cell "30.3" [ref=e1501]:
+                                - paragraph [ref=e1502]: "30.3"
+                              - cell "29.4" [ref=e1503]:
+                                - paragraph [ref=e1504]: "29.4"
+                              - cell "28.8" [ref=e1505]:
+                                - paragraph [ref=e1506]: "28.8"
+                              - cell "30.6" [ref=e1507]:
+                                - paragraph [ref=e1508]: "30.6"
+                              - cell "27.5" [ref=e1509]:
+                                - paragraph [ref=e1510]: "27.5"
+                              - cell "31.0" [ref=e1511]:
+                                - paragraph [ref=e1512]: "31.0"
+                            - row "11:00 PM 27.9 48.4 10.2 35.6 50.1 20.3" [ref=e1513]:
+                              - cell "11:00 PM" [ref=e1514]:
+                                - paragraph [ref=e1515]: 11:00 PM
+                              - cell "27.9" [ref=e1516]:
+                                - paragraph [ref=e1517]: "27.9"
+                              - cell "48.4" [ref=e1518]:
+                                - paragraph [ref=e1519]: "48.4"
+                              - cell "10.2" [ref=e1520]:
+                                - paragraph [ref=e1521]: "10.2"
+                              - cell "35.6" [ref=e1522]:
+                                - paragraph [ref=e1523]: "35.6"
+                              - cell "50.1" [ref=e1524]:
+                                - paragraph [ref=e1525]: "50.1"
+                              - cell "20.3" [ref=e1526]:
+                                - paragraph [ref=e1527]: "20.3"
+                            - row "12:00 AM 15.4 62.3 18.1 43.2 8.6 58.9" [ref=e1528]:
+                              - cell "12:00 AM" [ref=e1529]:
+                                - paragraph [ref=e1530]: 12:00 AM
+                              - cell "15.4" [ref=e1531]:
+                                - paragraph [ref=e1532]: "15.4"
+                              - cell "62.3" [ref=e1533]:
+                                - paragraph [ref=e1534]: "62.3"
+                              - cell "18.1" [ref=e1535]:
+                                - paragraph [ref=e1536]: "18.1"
+                              - cell "43.2" [ref=e1537]:
+                                - paragraph [ref=e1538]: "43.2"
+                              - cell "8.6" [ref=e1539]:
+                                - paragraph [ref=e1540]: "8.6"
+                              - cell "58.9" [ref=e1541]:
+                                - paragraph [ref=e1542]: "58.9"
+                            - row "1:00 AM 21.5 47.2 12.0 40.5 14.3 50.4" [ref=e1543]:
+                              - cell "1:00 AM" [ref=e1544]:
+                                - paragraph [ref=e1545]: 1:00 AM
+                              - cell "21.5" [ref=e1546]:
+                                - paragraph [ref=e1547]: "21.5"
+                              - cell "47.2" [ref=e1548]:
+                                - paragraph [ref=e1549]: "47.2"
+                              - cell "12.0" [ref=e1550]:
+                                - paragraph [ref=e1551]: "12.0"
+                              - cell "40.5" [ref=e1552]:
+                                - paragraph [ref=e1553]: "40.5"
+                              - cell "14.3" [ref=e1554]:
+                                - paragraph [ref=e1555]: "14.3"
+                              - cell "50.4" [ref=e1556]:
+                                - paragraph [ref=e1557]: "50.4"
+                            - row "2:00 AM 30.8 29.6 28.7 31.1 27.9 30.5" [ref=e1558]:
+                              - cell "2:00 AM" [ref=e1559]:
+                                - paragraph [ref=e1560]: 2:00 AM
+                              - cell "30.8" [ref=e1561]:
+                                - paragraph [ref=e1562]: "30.8"
+                              - cell "29.6" [ref=e1563]:
+                                - paragraph [ref=e1564]: "29.6"
+                              - cell "28.7" [ref=e1565]:
+                                - paragraph [ref=e1566]: "28.7"
+                              - cell "31.1" [ref=e1567]:
+                                - paragraph [ref=e1568]: "31.1"
+                              - cell "27.9" [ref=e1569]:
+                                - paragraph [ref=e1570]: "27.9"
+                              - cell "30.5" [ref=e1571]:
+                                - paragraph [ref=e1572]: "30.5"
+                            - row "3:00 AM 28.4 30.2 27.8 29.7 31.0 28.6" [ref=e1573]:
+                              - cell "3:00 AM" [ref=e1574]:
+                                - paragraph [ref=e1575]: 3:00 AM
+                              - cell "28.4" [ref=e1576]:
+                                - paragraph [ref=e1577]: "28.4"
+                              - cell "30.2" [ref=e1578]:
+                                - paragraph [ref=e1579]: "30.2"
+                              - cell "27.8" [ref=e1580]:
+                                - paragraph [ref=e1581]: "27.8"
+                              - cell "29.7" [ref=e1582]:
+                                - paragraph [ref=e1583]: "29.7"
+                              - cell "31.0" [ref=e1584]:
+                                - paragraph [ref=e1585]: "31.0"
+                              - cell "28.6" [ref=e1586]:
+                                - paragraph [ref=e1587]: "28.6"
+                            - row "4:00 AM 29.5 27.9 31.2 28.6 30.4 29.8" [ref=e1588]:
+                              - cell "4:00 AM" [ref=e1589]:
+                                - paragraph [ref=e1590]: 4:00 AM
+                              - cell "29.5" [ref=e1591]:
+                                - paragraph [ref=e1592]: "29.5"
+                              - cell "27.9" [ref=e1593]:
+                                - paragraph [ref=e1594]: "27.9"
+                              - cell "31.2" [ref=e1595]:
+                                - paragraph [ref=e1596]: "31.2"
+                              - cell "28.6" [ref=e1597]:
+                                - paragraph [ref=e1598]: "28.6"
+                              - cell "30.4" [ref=e1599]:
+                                - paragraph [ref=e1600]: "30.4"
+                              - cell "29.8" [ref=e1601]:
+                                - paragraph [ref=e1602]: "29.8"
+                            - row "5:00 AM 28.7 30.1 29.4 27.6 31.3 28.9" [ref=e1603]:
+                              - cell "5:00 AM" [ref=e1604]:
+                                - paragraph [ref=e1605]: 5:00 AM
+                              - cell "28.7" [ref=e1606]:
+                                - paragraph [ref=e1607]: "28.7"
+                              - cell "30.1" [ref=e1608]:
+                                - paragraph [ref=e1609]: "30.1"
+                              - cell "29.4" [ref=e1610]:
+                                - paragraph [ref=e1611]: "29.4"
+                              - cell "27.6" [ref=e1612]:
+                                - paragraph [ref=e1613]: "27.6"
+                              - cell "31.3" [ref=e1614]:
+                                - paragraph [ref=e1615]: "31.3"
+                              - cell "28.9" [ref=e1616]:
+                                - paragraph [ref=e1617]: "28.9"
+                          - paragraph [ref=e1618]
+                    - listitem [ref=e1619]:
+                      - generic [ref=e1622]:
+                        - generic [ref=e1623]: Question 14
+                        - generic [ref=e1624]:
+                          - heading "Question 14" [level=3] [ref=e1625]
+                          - generic [ref=e1626]:
+                            - generic [ref=e1627]: "1"
+                            - text: Point
+                        - generic [ref=e1628]:
+                          - paragraph [ref=e1633]: What in the value of the Capability index you calculated before could be used to forecast this situation?
+                          - generic [ref=e1636]:
+                            - generic [ref=e1637]: Text Editor
+                            - textbox "Question 14 What in the value of the Capability index you calculated before could be used to forecast this situation? Text Editor" [ref=e1639]:
+                              - paragraph [ref=e1640]: The Cpk of 0.985 (less than 1) reveals that the process operates with essentially zero safety margin relative to the specification limits. The process spread nearly fills the entire specification window, leaving no buffer to absorb any increase in variability. When the 4th of July brought a surge of intoxicated donors and potentially impaired staff, the process variability spiked dramatically. Because there was no capability cushion, waiting times immediately breached both specification limits — with values as low as 8.6 minutes and as high as 62.3 minutes. A Cpk closer to 1.33 or higher would have provided enough buffer to absorb such a shock without producing out-of-spec results.
+                    - listitem [ref=e1641]:
+                      - generic [ref=e1644]:
+                        - generic [ref=e1645]: Question 15
+                        - generic [ref=e1646]:
+                          - heading "Question 15" [level=3] [ref=e1647]
+                          - generic [ref=e1648]:
+                            - generic [ref=e1649]: "1"
+                            - text: Point
+                        - generic [ref=e1650]:
+                          - paragraph [ref=e1655]: Can you find operational causes that explain the strange results obtained after dinner time?
+                          - generic [ref=e1658]:
+                            - generic [ref=e1659]: Text Editor
+                            - textbox "Question 15 Can you find operational causes that explain the strange results obtained after dinner time? Text Editor" [ref=e1661]:
+                              - paragraph [ref=e1662]: The strange results after dinner on July 4th can be explained by a compound operational failure affecting both the demand side and the service side. On the demand side, the 4th of July celebrations led to a surge of heavily intoxicated donors arriving during "peak flavor hours." These donors behaved unpredictably — some became impatient and left too quickly (producing very low waiting times like 8.6 and 10.2 minutes), while others became disoriented and took much longer than usual (producing extreme values like 62.3 and 58.9 minutes). This created massive customer-introduced variability in arrivals, capability, and effort. On the service side, the case mentions that even medically trained staff occasionally struggle to resist "quality control testing" of alcohol-containing blood. This suggests staff impairment may have also contributed, increasing service-time variability and reducing effective capacity precisely when demand was most volatile. The combination of erratic donor behavior and potentially impaired staff destabilized both sides of the queuing system simultaneously.
+                    - listitem [ref=e1663]:
+                      - generic [ref=e1666]:
+                        - generic [ref=e1667]: Question <bdi></bdi>
+                        - heading "Your prompts" [level=4] [ref=e1673]
+                    - listitem [ref=e1674]:
+                      - generic [ref=e1677]:
+                        - generic [ref=e1678]: Question 16
+                        - generic [ref=e1679]:
+                          - heading "Question 16" [level=3] [ref=e1680]
+                          - generic [ref=e1681]:
+                            - generic [ref=e1682]: "1"
+                            - text: Point
+                        - generic [ref=e1683]:
+                          - paragraph [ref=e1688]: Prompt 1
+                          - generic [ref=e1691]:
+                            - generic [ref=e1692]: Text Editor
+                            - textbox "Question 16 Prompt 1 Text Editor" [ref=e1694]:
+                              - paragraph [ref=e1695]: Hi! I'm working on the Vampires Inc case study for Operations Management. The case involves a vampire blood clinic in Times Square that monitors donor waiting times using Statistical Process Control. They sample 6 donors every hour over a 24-hour period. I'd like to work through the SPC analysis step by step — starting with calculating the X-bar and R chart control limits. Could you help me understand how to approach this?
+                    - listitem [ref=e1696]:
+                      - generic [ref=e1699]:
+                        - generic [ref=e1700]: Question 17
+                        - generic [ref=e1701]:
+                          - heading "Question 17" [level=3] [ref=e1702]
+                          - generic [ref=e1703]:
+                            - generic [ref=e1704]: "1"
+                            - text: Point
+                        - generic [ref=e1705]:
+                          - paragraph [ref=e1710]: Prompt 2
+                          - generic [ref=e1713]:
+                            - generic [ref=e1714]: Text Editor
+                            - textbox "Question 17 Prompt 2 Text Editor" [ref=e1716]:
+                              - paragraph [ref=e1717]: "Thank you for the explanation! I've calculated the X-bar and Range for each of the 24 hourly samples from the Vampires Inc data. The grand mean (X-double-bar) I got is 29.597 minutes, and the average range (R-bar) is 12.512 minutes. Using the SPC constants for n=6 (A2=0.483, D3=0, D4=2.004, d2=2.534), I calculated: UCLx = 29.597 + 0.483 x 12.512 = 35.641, LCLx = 29.597 - 0.483 x 12.512 = 23.554, UCLR = 2.004 x 12.512 = 25.075, and LCLR = 0. All 24 sample means and ranges fall within these limits, so the process appears to be in control. Can you verify these calculations are correct?"
+                    - listitem [ref=e1718]:
+                      - generic [ref=e1721]:
+                        - generic [ref=e1722]: Question 18
+                        - generic [ref=e1723]:
+                          - heading "Question 18" [level=3] [ref=e1724]
+                          - generic [ref=e1725]:
+                            - generic [ref=e1726]: "1"
+                            - text: Point
+                        - generic [ref=e1727]:
+                          - paragraph [ref=e1732]: Prompt 3
+                          - generic [ref=e1735]:
+                            - generic [ref=e1736]: Text Editor
+                            - textbox "Question 18 Prompt 3 Text Editor" [ref=e1738]:
+                              - paragraph [ref=e1739]: Now I'd like to move to the capability analysis part of the case. The clinic has specification limits of USL = 45 minutes and LSL = 15 minutes. Using sigma_hat = R-bar / d2 = 12.512 / 2.534 = 4.938, I calculated Cp = (45-15)/(6x4.938) = 1.013 and since the process mean (29.597) is slightly below the target midpoint (30.0), I used Cpk = min((45-29.597)/(3x4.938), (29.597-15)/(3x4.938)) = min(1.040, 0.985) = 0.985. This means the process is NOT centered and Cpk < 1, so technically it's not capable. Is my reasoning correct, and how does this relate to what happened on the 4th of July when waiting times went haywire during late-night hours?
+                    - listitem [ref=e1740]:
+                      - generic [ref=e1743]:
+                        - generic [ref=e1744]: Question <bdi></bdi>
+                        - heading "Your personal takeaways" [level=4] [ref=e1750]
+                    - listitem [ref=e1751]:
+                      - generic [ref=e1754]:
+                        - generic [ref=e1755]: Question 19
+                        - generic [ref=e1756]:
+                          - heading "Question 19" [level=3] [ref=e1757]
+                          - generic [ref=e1758]:
+                            - generic [ref=e1759]: "1"
+                            - text: Point
+                        - generic [ref=e1760]:
+                          - paragraph [ref=e1765]: Takeaway 1
+                          - generic [ref=e1768]:
+                            - generic [ref=e1769]: Text Editor
+                            - textbox "Question 19 Takeaway 1 Text Editor" [ref=e1771]:
+                              - paragraph [ref=e1772]: "A process can be statistically in control yet still not capable. This distinction really clicked for me — stability means the variation is predictable and random, but capability means the process can actually meet customer specifications. The Vampires Inc clinic showed both: stable operations day-to-day, but a Cpk below 1 meaning it was always one bad night away from failing its donors."
+                    - listitem [ref=e1773]:
+                      - generic [ref=e1776]:
+                        - generic [ref=e1777]: Question 20
+                        - generic [ref=e1778]:
+                          - heading "Question 20" [level=3] [ref=e1779]
+                          - generic [ref=e1780]:
+                            - generic [ref=e1781]: "1"
+                            - text: Point
+                        - generic [ref=e1782]:
+                          - paragraph [ref=e1787]: Takeaway 2
+                          - generic [ref=e1790]:
+                            - generic [ref=e1791]: Text Editor
+                            - textbox "Question 20 Takeaway 2 Text Editor" [ref=e1793]:
+                              - paragraph [ref=e1794]: Service operations are uniquely vulnerable because capacity cannot be stored. Unlike manufacturing where you can build inventory as a buffer, a clinic must have capacity available exactly when demand spikes. The July 4th incident taught me that service businesses need to plan for predictable demand surges — holidays, events, weekends — because their processes have no inventory cushion to absorb the shock.
+                    - listitem [ref=e1795]:
+                      - generic [ref=e1798]:
+                        - generic [ref=e1799]: Question 21
+                        - generic [ref=e1800]:
+                          - heading "Question 21" [level=3] [ref=e1801]
+                          - generic [ref=e1802]:
+                            - generic [ref=e1803]: "1"
+                            - text: Point
+                        - generic [ref=e1804]:
+                          - paragraph [ref=e1809]: Takeaway 3
+                          - generic [ref=e1812]:
+                            - generic [ref=e1813]: Text Editor
+                            - textbox "Question 21 Takeaway 3 Text Editor" [ref=e1815]:
+                              - paragraph [ref=e1816]: "The Cpk index is not just a number — it is a risk indicator. A Cpk barely below 1 (like 0.985) looks almost fine on paper, but it is actually a warning signal that any disturbance will immediately produce failures. I now understand why industry often targets Cpk of 1.33 or higher: that extra margin is not about perfection, it is about resilience. This case made me realize that operating \"just good enough\" is a fragile strategy in any operations context."
+                    - listitem [ref=e1817]:
+                      - generic [ref=e1820]:
+                        - generic [ref=e1821]: Question <bdi></bdi>
+                        - heading "The discussion" [level=4] [ref=e1827]
+                    - listitem [ref=e1828]:
+                      - generic [ref=e1831]:
+                        - generic [ref=e1832]: Question 22
+                        - generic [ref=e1833]:
+                          - heading "Question 22" [level=3] [ref=e1834]
+                          - generic [ref=e1835]:
+                            - generic [ref=e1836]: "1"
+                            - text: Point
+                        - generic [ref=e1837]:
+                          - paragraph [ref=e1842]: Share here the link to your discussion. It must be a valid link to our tutor in ChatGPT.
+                          - generic [ref=e1845]:
+                            - generic [ref=e1846]: Text Editor
+                            - textbox "Question 22 Share here the link to your discussion. It must be a valid link to our tutor in ChatGPT. Text Editor" [ref=e1848]:
+                              - paragraph [ref=e1849]: https://chatgpt.com/g/g-695c15bbda9881918f993b183f03202f-operations-management-tutor-beta-s1-15/c/69b54edb-17f0-8327-bace-e468a412f6c9
+                    - listitem [ref=e1850]:
+                      - generic [ref=e1853]:
+                        - generic [ref=e1854]: Question 23
+                        - generic [ref=e1855]:
+                          - heading "Question 23" [level=3] [ref=e1856]
+                          - generic [ref=e1857]:
+                            - generic [ref=e1858]: "1"
+                            - text: Point
+                        - generic [ref=e1859]:
+                          - paragraph [ref=e1864]: Copy your discussion and paste it here (links to your discussion are not valid here)
+                          - generic [ref=e1867]:
+                            - generic [ref=e1868]: Text Editor
+                            - toolbar "Text Formatting" [ref=e3046]:
+                              - button "Text styling" [ref=e3047] [cursor=pointer]:
+                                - img [ref=e3050]
+                                - text: ▾
+                              - button "Bold" [ref=e3054] [cursor=pointer]:
+                                - img [ref=e3057]
+                              - button "Italic" [ref=e3060] [cursor=pointer]:
+                                - img [ref=e3063]
+                              - button "Underline" [ref=e3066] [cursor=pointer]:
+                                - img [ref=e3069]
+                              - button "Text options" [ref=e3071] [cursor=pointer]:
+                                - img [ref=e3074]
+                              - button "Alignment options" [ref=e3077] [cursor=pointer]:
+                                - img [ref=e3080]
+                                - text: ▾
+                              - button "Lists" [ref=e3082] [cursor=pointer]:
+                                - img [ref=e3085]
+                                - text: ▾
+                              - button "Undo" [ref=e3088] [cursor=pointer]:
+                                - img [ref=e3091]
+                              - button "Clear format" [ref=e3094] [cursor=pointer]:
+                                - img [ref=e3097]
+                              - button "Insert/edit link" [ref=e3101] [cursor=pointer]:
+                                - img [ref=e3104]
+                              - button "Insert/edit local files" [ref=e3107] [cursor=pointer]:
+                                - img [ref=e3110]
+                              - button "Insert image" [ref=e3113] [cursor=pointer]:
+                                - img [ref=e3116]
+                              - button "Insert content" [ref=e3120] [cursor=pointer]:
+                                - img [ref=e3123]
+                                - text: ▾
+                            - generic [ref=e1869]:
+                              - textbox "Question 23 Copy your discussion and paste it here (links to your discussion are not valid here) Text Editor" [active] [ref=e1870]:
+                                - paragraph [ref=e1871]: FULL CONVERSATION TRANSCRIPT — Operations Management Tutor (Beta) S1-15
+                                - paragraph [ref=e3129]
+                                - paragraph [ref=e3130]: "---"
+                                - paragraph [ref=e3131]
+                                - paragraph [ref=e3132]: "ME: Hi! I'm working on the Vampires Inc case study for Operations Management. The case involves a vampire blood clinic in Times Square that monitors donor waiting times using Statistical Process Control. They sample 6 donors every hour over a 24-hour period. I'd like to work through the SPC analysis step by step — starting with calculating the X-bar and R chart control limits. Could you help me understand how to approach this?"
+                                - paragraph [ref=e3133]
+                                - paragraph [ref=e3134]: "TUTOR: Hi! I'm your AI-Tutor for the full Operations Management course. I can help you understand theory and apply it in real business contexts. Great case to practice with. For the Vampires Inc. waiting-time case, the logic is exactly the same as in your SPC session: for variables data, you use an X-bar and R chart. The steps are: 1) For each hourly sample of n=6 donors, compute the sample mean (X-bar) and the sample range (R). 2) Average those across all k=24 samples to get X-double-bar and R-bar. 3) Use the SPC constants for n=6: A2=0.483, D3=0, D4=2.004. 4) Compute UCLx = X-double-bar + A2*R-bar, LCLx = X-double-bar - A2*R-bar, UCLR = D4*R-bar, LCLR = D3*R-bar. In the vampire clinic, the waiting time is a continuous variable. Since waiting-line performance is central in service operations, using SPC here helps management see whether the process is behaving consistently hour by hour, or whether certain hours are being affected by special causes. Now let's do the next step together: can you send me the 24 hourly samples or at least the 24 sample means and 24 ranges, so we can calculate the actual control limits numerically?"
+                                - paragraph [ref=e3135]
+                                - paragraph [ref=e3136]: "---"
+                                - paragraph [ref=e3137]
+                                - paragraph [ref=e3138]: "ME: Thank you for the explanation! I've calculated the X-bar and Range for each of the 24 hourly samples from the Vampires Inc data. The grand mean (X-double-bar) I got is 29.597 minutes, and the average range (R-bar) is 12.512 minutes. Using the SPC constants for n=6 (A2=0.483, D3=0, D4=2.004, d2=2.534), I calculated: UCLx = 29.597 + 0.483 x 12.512 = 35.641, LCLx = 29.597 - 0.483 x 12.512 = 23.554, UCLR = 2.004 x 12.512 = 25.075, and LCLR = 0. All 24 sample means and ranges fall within these limits, so the process appears to be in control. Can you verify these calculations are correct?"
+                                - paragraph [ref=e3139]
+                                - paragraph [ref=e3140]: "TUTOR: Yes — your setup and interpretation are correct. Using the standard X-bar and R-chart formulas from the course primer, and for n=6, the primer gives A2=0.483, D3=0, and D4=2.004. Let's check your arithmetic carefully."
+                                - paragraph [ref=e3141]
+                                - paragraph [ref=e3142]: "1) X-bar chart: You used X-double-bar = 29.597, R-bar = 12.512. First compute: 0.483 x 12.512 = 6.043296. So: UCLx = 29.597 + 6.043296 = 35.640296, LCLx = 29.597 - 6.043296 = 23.553704. Rounded to three decimals: UCLx = 35.640, LCLx = 23.554. So your LCL is correct, and your UCL of 35.641 is off only by rounding. If you rounded at an intermediate step, 35.641 is acceptable in practice."
+                                - paragraph [ref=e3143]
+                                - paragraph [ref=e3144]: "2) R-chart: UCLR = 2.004 x 12.512 = 25.074048, LCLR = 0 x 12.512 = 0. Rounded to three decimals: UCLR = 25.074, LCLR = 0. So here, your 25.075 is again just a tiny rounding difference."
+                                - paragraph [ref=e3145]
+                                - paragraph [ref=e3146]: "3) Interpretation: Your conclusion is right in principle: if all 24 sample means are between the X-bar chart limits, and all 24 sample ranges are between the R-chart limits, then the process appears to be statistically in control, meaning it shows only common-cause variation. Method: correct. Interpretation: correct. Arithmetic: essentially correct. Minor rounding adjustment: UCLx ≈ 35.640, LCLx ≈ 23.554, UCLR ≈ 25.074, LCLR = 0. Nicely done."
+                                - paragraph [ref=e3147]
+                                - paragraph [ref=e3148]: "---"
+                                - paragraph [ref=e3149]
+                                - paragraph [ref=e3150]: "ME: Now I'd like to move to the capability analysis part of the case. The clinic has specification limits of USL = 45 minutes and LSL = 15 minutes. Using sigma_hat = R-bar / d2 = 12.512 / 2.534 = 4.938, I calculated Cp = (45-15)/(6x4.938) = 1.013 and since the process mean (29.597) is slightly below the target midpoint (30.0), I used Cpk = min((45-29.597)/(3x4.938), (29.597-15)/(3x4.938)) = min(1.040, 0.985) = 0.985. This means the process is NOT centered and Cpk < 1, so technically it's not capable. Is my reasoning correct, and how does this relate to what happened on the 4th of July when waiting times went haywire during late-night hours?"
+                                - paragraph [ref=e3151]
+                                - paragraph [ref=e3152]: "TUTOR: Yes — your capability calculations and interpretation are basically correct. Using the SPC logic from your course material: control charts tell you whether the process is stable; capability tells you whether a stable process can meet specifications; and the slides note that Cpk > 1 indicates a capable process."
+                                - paragraph [ref=e3153]
+                                - paragraph [ref=e3154]: "Verify sigma_hat: 12.512 / 2.534 = 4.9376 ≈ 4.938. Correct."
+                                - paragraph [ref=e3155]: "Verify Cp: (45-15)/(6 x 4.9376) = 30/29.6259 ≈ 1.0126 ≈ 1.013. Your Cp = 1.013 is right."
+                                - paragraph [ref=e3156]: "Verify Cpk: Since the midpoint of specs is 30.000 and process mean is 29.597, the process is slightly off-center to the low side. (USL - mu)/(3*sigma_hat) = 15.403/14.8129 ≈ 1.040. (mu - LSL)/(3*sigma_hat) = 14.597/14.8129 ≈ 0.985. Cpk = min(1.040, 0.985) = 0.985. That is also correct."
+                                - paragraph [ref=e3157]
+                                - paragraph [ref=e3158]: "Your reasoning is: the process is in statistical control but not really capable enough because Cpk < 1. That is a sound OM/SPC conclusion. A process can be stable but still not capable. The nuance: Cp ≈ 1.013 says the potential capability is only barely above 1 even if centered; Cpk ≈ 0.985 says the actual capability is worse because the mean is shifted. The process is stable but only marginally capable in theory, and not capable in practice. Also, experts often look for about 1.33 or higher for a comfortably capable process."
+                                - paragraph [ref=e3159]
+                                - paragraph [ref=e3160]: "How does this connect to the 4th of July? What happened sounds like a special-cause/assignable-cause event. The late-night July 4 behavior likely means: demand spiked abnormally, arrivals became much more uneven, capacity was not sufficient for that surge, and waiting times jumped because the queue system got overloaded. The July 4 issue is best understood as a service-demand shock creating assignable variation."
+                                - paragraph [ref=e3161]
+                                - paragraph [ref=e3162]: "Your capability numbers describe the clinic's baseline process under sampled conditions. But a holiday late-night surge changes the story: the mean waiting time would rise, the variation would rise too, that would reduce both Cp and especially Cpk. The connection is: normal condition = stable but barely capable; 4th of July late night = likely a special-cause overload making the process even less capable and possibly out of control."
+                                - paragraph [ref=e3163]
+                                - paragraph [ref=e3164]: The regular clinic process appears statistically stable, but its capability is weak because it operates too close to the specification limits. Therefore, when an exceptional demand spike occurs, the process has very little cushion, so waiting times can quickly deteriorate.
+                                - paragraph [ref=e3165]
+                                - paragraph [ref=e3166]: "---"
+                                - paragraph [ref=e3167]
+                                - paragraph [ref=e3168]: "ME: That's a really insightful connection between SPC stability and service capacity management. Looking at the 4th of July data more closely, I notice that from 6AM to 10PM the waiting times look very stable and normal (means around 29-30, ranges around 3-5), but then at 11PM we see values like 48.4 and 50.1, and at midnight we get extreme values like 8.6, 62.3, and 58.9. This suggests that the operational cause is the influx of heavily intoxicated donors after the holiday celebrations — their unpredictable behavior creates massive variability. Some leave too quickly (very low times), others take much longer than usual. Combined with the case mentioning that even staff struggle to resist \"quality control testing,\" could staff impairment also be a contributing factor to the loss of process control during those late-night hours?"
+                                - paragraph [ref=e3169]
+                                - paragraph [ref=e3170]: "TUTOR: Yes — that is a very strong operational interpretation. What you're describing is a classic shift from common variation to assignable variation. In the SPC notes, assignable variation means that \"something has changed in the process.\" If the clinic looks steady from 6AM to 10PM and then suddenly shows values like 48.4, 50.1, 62.3, and also an unusually low 8.6, that is exactly the kind of pattern that suggests a special cause rather than normal random noise."
+                                - paragraph [ref=e3171]
+                                - paragraph [ref=e3172]: "Your explanation about heavily intoxicated donors fits very well with the service-process material. The course notes emphasize that services face a lot of customer-introduced variability, especially arrival variability, plus capability variability and effort variability. In this case, intoxicated donors could create all three at once: they may arrive in bunches, behave unpredictably during the service, and require very different amounts of staff attention."
+                                - paragraph [ref=e3173]
+                                - paragraph [ref=e3174]: Your staff-impairment idea is also plausible. From an OM point of view, it is a reasonable contributing-cause hypothesis. The case detail about staff struggling to resist "quality control testing" suggests the service process itself may have deteriorated. The waiting-line notes remind us that queue performance depends on both the arrival process and the service process. So if donors became more erratic and staff became slower, less consistent, or less disciplined, then both sides of the system were destabilized at the same time.
+                                - paragraph [ref=e3175]
+                                - paragraph [ref=e3176]: "That is actually a very mature diagnosis: the late-night breakdown may not be just a \"demand spike.\" It may be a compound OM failure: the arrival process became more volatile, the service times became more variable, and effective capacity may have fallen right when it was needed most."
+                                - paragraph [ref=e3177]
+                                - paragraph [ref=e3178]: "A good case-style conclusion: The loss of control during the late-night July 4 hours was likely caused by assignable variation driven primarily by customer-introduced variability from intoxicated donors. However, the case also suggests that staff impairment may have worsened the problem by increasing service-time variability and reducing effective capacity. In OM terms, both the arrival process and the service process appear to have deteriorated simultaneously."
+                              - generic [ref=e3127]: Press Alt + F10 to access toolbar options
+                              - generic [ref=e3128]: Press Alt + F10 to access toolbar options
+                              - text: "Word count: 1570"
+            - generic [ref=e1873]:
+              - heading "Details & Information" [level=2] [ref=e1876]
+              - list [ref=e1877]:
+                - listitem [ref=e1878]:
+                  - img [ref=e1880]
+                  - generic [ref=e1885]:
+                    - generic [ref=e1886]: Assessment due date
+                    - generic [ref=e1887]: 3/16/26, 10:00 AM (UTC+1)
+                    - list [ref=e1888]:
+                      - listitem [ref=e1889]: You can't submit work after the due date.
+                      - listitem [ref=e1890]: You can't make a new submission attempt after due date.
+                - listitem [ref=e1891]:
+                  - img [ref=e1893]
+                  - generic [ref=e1895]:
+                    - generic [ref=e1896]: Attempts
+                    - generic [ref=e1897]: Unlimited
+                - listitem [ref=e1898]:
+                  - img [ref=e1900]
+                  - generic [ref=e1904]:
+                    - generic [ref=e1905]: Originality Report
+                    - button "SafeAssign enabled" [ref=e1907] [cursor=pointer]
+              - generic [ref=e1908]:
+                - generic [ref=e1909]: Grading
+                - generic [ref=e1910]:
+                  - img [ref=e1914]
+                  - generic [ref=e1917]: Maximum points
+                  - generic [ref=e1919]: 23 points
+              - generic [ref=e1920]:
+                - generic [ref=e1921]: Description
+                - text: Second individual submission
+          - text: 
+        - generic [ref=e1923]:
+          - generic [ref=e1924]:
+            - status [ref=e1940]: Last saved 1:16:51 PM
+            - generic [ref=e1927]:
+              - button "Filter questions" [ref=e1928] [cursor=pointer]:
+                - generic [ref=e1929]:
+                  - generic: Questions Filter (23)
+                  - img [ref=e1930]
+              - status [ref=e1932]: No filters applied. All questions are listed.
+          - generic [ref=e1935]:
+            - button "Save and Close" [ref=e1936] [cursor=pointer]
+            - button "Submit" [ref=e1937] [cursor=pointer]
+      - button "Close" [ref=e76] [cursor=pointer]: ×
+  - alert [ref=e77]
+  - alert [ref=e78]
+  - alert [ref=e79]
+  - status [ref=e80]
+  - status [ref=e81]
+  - alert [ref=e82]
+  - alert [ref=e83]
+  - log [ref=e1938]

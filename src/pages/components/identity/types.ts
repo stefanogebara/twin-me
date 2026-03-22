@@ -38,6 +38,7 @@ export interface PersonalityProfile {
   temperature: number;
   top_p: number;
   confidence: number;
+  memory_count_at_build?: number;
   last_built_at: string;
 }
 

@@ -65,6 +65,22 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         }
         break;
       }
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object;
+        const sub = invoice.subscription;
+        if (sub) {
+          const { data: existing } = await supabaseAdmin
+            .from('user_subscriptions').select('user_id').eq('stripe_subscription_id', sub).single();
+          if (existing) {
+            await supabaseAdmin.from('user_subscriptions').update({
+              status: 'past_due',
+              updated_at: new Date().toISOString(),
+            }).eq('user_id', existing.user_id);
+            log.warn('Payment failed', { userId: existing.user_id, invoice: invoice.id });
+          }
+        }
+        break;
+      }
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
         const { data: existing } = await supabaseAdmin

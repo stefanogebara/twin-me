@@ -45,7 +45,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
+  default: { recency: 0.0, importance: 1.0, relevance: 1.0 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
@@ -73,7 +73,7 @@ export const MMR_LAMBDA = 0.5;
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.35;
+export const TYPE_DIVERSITY_WEIGHT = 0.45;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
@@ -88,8 +88,8 @@ export const ALPHA_CITATION_BASELINE = 0.85;
 export const MEMORY_CONTEXT_BUDGETS = {
   reflections:   5,
   platform_data: 4,
-  facts:         5,    // was 6 — free 1 slot for conversations
-  conversations: 6,    // was 4 — conversation boost (Feature A3)
+  facts:         5,
+  conversations: 6,
 };
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────

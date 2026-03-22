@@ -1,0 +1,1491 @@
+- generic [ref=e1]:
+  - region "Course OPERATIONS MANAGEMENT" [ref=e4]:
+    - generic [ref=e5]:
+      - list [ref=e6]:
+        - listitem [ref=e7]:
+          - link "Skip to main content" [ref=e8] [cursor=pointer]:
+            - /url: "#"
+        - listitem [ref=e9]:
+          - link "Skip to course information" [ref=e10] [cursor=pointer]:
+            - /url: "#"
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - generic [ref=e15]:
+            - link [ref=e16] [cursor=pointer]:
+              - /url: https://blackboard.ie.edu/ultra/institution-page
+              - img [ref=e17]
+            - generic [ref=e21]:
+              - button [ref=e22] [cursor=pointer]:
+                - text: Courses
+                - img [ref=e24]
+              - separator [ref=e26]
+              - link [ref=e27] [cursor=pointer]:
+                - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline
+                - generic [ref=e28]: OPERATIONS MANAGEMENT
+              - generic [ref=e32]:
+                - generic [ref=e33]: Open
+                - generic [ref=e34]: Course status Open
+          - toolbar [ref=e36]:
+            - navigation [ref=e39]:
+              - list [ref=e40]:
+                - listitem [ref=e41]:
+                  - link [ref=e42] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline
+                    - generic [ref=e43]: Content
+                - listitem [ref=e44]:
+                  - link [ref=e45] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/calendar
+                    - generic [ref=e46]: Calendar
+                - listitem [ref=e47]:
+                  - link [ref=e48] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/announcements
+                    - generic [ref=e50]:
+                      - generic [ref=e51]: Announcements
+                      - generic [ref=e54]: "15"
+                - listitem [ref=e55]:
+                  - link [ref=e56] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/engagement
+                    - generic [ref=e59]: Discussions
+                - listitem [ref=e60]:
+                  - link [ref=e61] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/grades
+                    - generic [ref=e63]:
+                      - generic [ref=e64]: Gradebook
+                      - generic [ref=e67]: "1"
+                - listitem [ref=e68]:
+                  - link [ref=e69] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/messages
+                    - generic [ref=e72]: Messages
+                - listitem [ref=e73]:
+                  - link [ref=e74] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/groups/enrollments
+                    - generic [ref=e75]: Groups
+                - listitem [ref=e76]:
+                  - link [ref=e77] [cursor=pointer]:
+                    - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/achievements
+                    - generic [ref=e80]: Achievements
+        - main [ref=e81]:
+          - region [ref=e83]:
+            - heading [level=1] [ref=e90]: OPERATIONS MANAGEMENT
+            - generic [ref=e92]:
+              - region [ref=e93]:
+                - generic [ref=e97]:
+                  - heading [level=2] [ref=e98]: Course Content
+                  - button [ref=e99] [cursor=pointer]:
+                    - img [ref=e101]
+                - generic [ref=e108]:
+                  - generic [ref=e110]:
+                    - generic [ref=e115] [cursor=pointer]:
+                      - generic [ref=e116]:
+                        - img [ref=e118]
+                        - heading [level=3] [ref=e120]:
+                          - link [ref=e121]:
+                            - /url: "#"
+                            - text: Syllabus
+                      - generic [ref=e122]: Add or read the information about the course, sessions, content...
+                    - generic [ref=e128] [cursor=pointer]:
+                      - generic [ref=e129]:
+                        - img [ref=e131]
+                        - heading [level=3] [ref=e136]:
+                          - link [ref=e137]:
+                            - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/assessment/_2569802_1/overview?courseId=_130845_1
+                            - text: Vampires Inc
+                      - generic [ref=e139]: "Due date: 3/16/26, 10:00 AM (UTC+1)"
+                      - generic [ref=e140]: Second individual submission
+                    - generic [ref=e147] [cursor=pointer]:
+                      - img [ref=e149]
+                      - heading [level=3] [ref=e153]:
+                        - link [ref=e154]:
+                          - /url: https://chatgpt.com/g/g-695c15bbda9881918f993b183f03202f-operations-management-tutor-beta-s1-2
+                          - text: AI Tutor
+                    - generic [ref=e161] [cursor=pointer]:
+                      - img [ref=e163]
+                      - heading [level=3] [ref=e165]:
+                        - link [ref=e166]:
+                          - /url: "#"
+                          - text: Qwickly Attendance
+                    - generic [ref=e173] [cursor=pointer]:
+                      - img [ref=e175]
+                      - heading [level=3] [ref=e177]:
+                        - link [ref=e178]:
+                          - /url: "#"
+                          - text: Zoom for Blackboard
+                    - generic [ref=e184] [cursor=pointer]:
+                      - generic [ref=e186]:
+                        - img [ref=e188]
+                        - heading [level=3] [ref=e191]:
+                          - button [ref=e192]: Class presentations
+                      - img [ref=e195]
+                    - generic [ref=e202] [cursor=pointer]:
+                      - generic [ref=e203]:
+                        - img [ref=e205]
+                        - heading [level=3] [ref=e210]:
+                          - link [ref=e211]:
+                            - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/assessment/_2465332_1/overview?courseId=_130845_1
+                            - text: Alstom Wagons Inc
+                      - generic [ref=e213]: "Due date: 1/29/26, 3:00 PM (UTC+1)"
+                      - generic [ref=e214]: First individual submission
+                    - button [disabled]: No more content items to load
+                  - status [ref=e216]
+              - complementary [ref=e217]:
+                - generic [ref=e218]:
+                  - heading [level=2] [ref=e220]: Course Faculty
+                  - region [ref=e221]:
+                    - list [ref=e222]:
+                      - listitem [ref=e223] [cursor=pointer]:
+                        - img [ref=e227]
+                        - generic [ref=e228]:
+                          - generic [ref=e233]: GAMALIEL MARTINEZ MUÑOZ
+                          - paragraph [ref=e234]:
+                            - generic [ref=e236]: Instructor
+                        - link [ref=e237]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/assessment/_2569802_1/overview/attempt/_5283078_1/message?courseId=_130845_1&recipientIds=_1444_1&courseId=_130845_1
+                          - img [ref=e239]
+                - generic [ref=e241]:
+                  - heading [level=2] [ref=e245]: Details & Actions
+                  - navigation [ref=e246]:
+                    - list [ref=e247]:
+                      - listitem [ref=e248]:
+                        - link [ref=e249] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/roster
+                          - img [ref=e252]
+                          - generic [ref=e254]:
+                            - generic [ref=e255]: Roster
+                            - paragraph [ref=e257]: View everyone in your course
+                      - listitem [ref=e258]:
+                        - link [ref=e259] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/description
+                          - img [ref=e262]
+                          - generic [ref=e266]:
+                            - generic [ref=e267]: Course Description
+                            - paragraph [ref=e269]: View the course description
+                      - listitem [ref=e270]:
+                        - link [ref=e271] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/attendanceGrade?courseId=_130845_1
+                          - img [ref=e274]
+                          - generic [ref=e278]:
+                            - generic [ref=e279]: Attendance
+                            - paragraph [ref=e281]: View your attendance
+                      - listitem [ref=e282]:
+                        - link [ref=e283] [cursor=pointer]:
+                          - /url: https://blackboard.ie.edu/ultra/courses/_130845_1/outline/booksAndTools?parentId=_2015650_1
+                          - img [ref=e286]
+                          - generic [ref=e289]:
+                            - generic [ref=e290]: Books & Tools
+                            - paragraph [ref=e292]: View course & institution tools
+    - button "Help for current page" [ref=e293] [cursor=pointer]:
+      - generic [ref=e294]:
+        - img [ref=e295]
+        - generic [ref=e299]: Help for current page
+    - generic [ref=e302]:
+      - generic [ref=e308]:
+        - generic [ref=e310]:
+          - generic [ref=e313]:
+            - generic [ref=e315]: OPERATIONS MANAGEMENT
+            - generic [ref=e317]:
+              - heading [level=1] [ref=e318]: Vampires Inc
+              - heading "OPERATIONS MANAGEMENT Vampires Inc" [active] [level=1] [ref=e319]:
+                - generic [ref=e320]: OPERATIONS MANAGEMENT
+                - text: Vampires Inc
+          - generic [ref=e321]:
+            - generic [ref=e322]:
+              - generic [ref=e323]:
+                - generic [ref=e325]:
+                  - progressbar [ref=e326]
+                  - paragraph
+                - generic [ref=e328]:
+                  - generic:
+                    - generic: "| |"
+                  - status [ref=e331]:
+                    - strong [ref=e332]: "23"
+                    - text: of 23 questions remaining
+              - generic [ref=e336]:
+                - heading "Test Content" [level=2] [ref=e338]
+                - region [ref=e339]:
+                  - list [ref=e340]:
+                    - listitem [ref=e341]:
+                      - generic [ref=e344]:
+                        - generic [ref=e345]: Question <bdi></bdi>
+                        - generic [ref=e350]:
+                          - heading "Instructions" [level=3] [ref=e351]
+                          - paragraph [ref=e352]
+                          - paragraph [ref=e353]: Go to the Operations Management AI Tutor, on campus, and start a conversation about the case.
+                          - paragraph [ref=e354]: The tutor will guide you in continuing this conversation, with as many interactions as you wish.
+                          - paragraph [ref=e355]
+                          - paragraph [ref=e356]: Of those interactions, at least 3 of them must have a prompt longer than 20 words. Those prompts may be questions asked to the tutor, answers to its questions,..
+                          - paragraph [ref=e357]
+                          - paragraph [ref=e358]
+                          - paragraph [ref=e359]: Answer all questions and copy-paste your "long" prompts (that cannot be the case questions) and three personal takeaways (not AI generated) of the conversation, and a transcription of the complete conversation (copy-paste from ChatGPT, plus a link to the conversation that you'll be able to obtain from the list of conversations in ChatGPT, in the left side menu). No submission will be valid without a full copy-pasted discussion and the link to it.
+                          - paragraph [ref=e360]
+                          - paragraph [ref=e361]: Prompts will be checked and must be present in the conversation. If not, this exercise may be graded with 0.
+                          - paragraph [ref=e362]: Takeaways must be personal Dedicating 5 minutes to introspection has never harmed anybody, and it is a learning habit that I strongly recommend. Asking yourself what you have learnt, how you can apply your learnings or how this relates to other topics is a very powerful learning tool.
+                          - paragraph [ref=e363]
+                          - paragraph [ref=e364]: You may use the tutor to find your numerical solutions, but be sure there are no errors in them.
+                          - paragraph [ref=e365]
+                          - paragraph [ref=e366]: Only your last submission will be graded, so, it you open the test again, you must answer all questions again.
+                          - paragraph [ref=e367]
+                          - paragraph [ref=e368]: No late submissions will be admitted. This is an individual report that requires time. You must allocate time in advance.
+                          - paragraph [ref=e369]
+                          - paragraph [ref=e370]: I will be sharing with you a summary of all answers of your class.
+                    - listitem [ref=e371]:
+                      - generic [ref=e374]:
+                        - generic [ref=e375]: Question <bdi></bdi>
+                        - generic [ref=e380]:
+                          - 'heading "Case Study: Vampires Inc" [level=3] [ref=e381]'
+                          - paragraph [ref=e382]
+                          - paragraph [ref=e383]
+                          - paragraph [ref=e384]: Year 2030. The world has evolved. Vampires are now fully integrated into society and, thanks to regulatory reform and a surprisingly effective PR campaign, are no longer permitted to attack innocent people in dark alleyways. Instead, they operate licensed “blood clinics,” where small quantities of blood are obtained from willing volunteer donors. Donors are compensated based on the time they spend at the clinic — because nothing says modern compliance like hourly billing.
+                          - paragraph [ref=e385]: Vampires Inc. owns the largest clinic in New York, strategically located in Times Square — a place known for heavy foot traffic, bright lights, and, conveniently, an abundance of nightlife. It is widely acknowledged within vampire circles that blood containing a modest trace of alcohol is considered a delicacy. In fact, even the medically trained vampires responsible for drawing blood occasionally struggle to resist “quality control testing.”
+                          - paragraph [ref=e386]
+                          - paragraph [ref=e387]: Not surprisingly, alcohol levels in donors’ blood tend to rise after dinner, particularly late in the evening — a phenomenon that the operations team politely refers to as “peak flavor hours.”
+                          - paragraph [ref=e388]
+                          - paragraph [ref=e389]: Despite the clinic’s popularity, Vampires Inc. is committed to maintaining high donor satisfaction. After all, a well-treated donor is a repeat donor. To ensure service quality, management has implemented a Statistical Process Control (SPC) system to monitor waiting times.
+                          - paragraph [ref=e390]
+                          - paragraph [ref=e391]: On a typical day, the clinic records the waiting times of six randomly selected donors every hour.
+                          - paragraph [ref=e392]
+                          - paragraph [ref=e393]: The table below presents the data collected on the first day of monitoring — a day when operations appeared to be running as smoothly as a freshly sharpened fang.
+                          - paragraph [ref=e394]
+                          - paragraph [ref=e395]
+                          - table [ref=e396]:
+                            - row "Time D1 D2 D3 D4 D5 D6" [ref=e397]:
+                              - columnheader "Time" [ref=e398]:
+                                - paragraph [ref=e399]: Time
+                              - columnheader "D1" [ref=e400]:
+                                - paragraph [ref=e401]: D1
+                              - columnheader "D2" [ref=e402]:
+                                - paragraph [ref=e403]: D2
+                              - columnheader "D3" [ref=e404]:
+                                - paragraph [ref=e405]: D3
+                              - columnheader "D4" [ref=e406]:
+                                - paragraph [ref=e407]: D4
+                              - columnheader "D5" [ref=e408]:
+                                - paragraph [ref=e409]: D5
+                              - columnheader "D6" [ref=e410]:
+                                - paragraph [ref=e411]: D6
+                            - row "6:00 AM 32.5 27.3 31.7 29.8 31.5 34.0" [ref=e412]:
+                              - cell "6:00 AM" [ref=e413]:
+                                - paragraph [ref=e414]: 6:00 AM
+                              - cell "32.5" [ref=e415]:
+                                - paragraph [ref=e416]: "32.5"
+                              - cell "27.3" [ref=e417]:
+                                - paragraph [ref=e418]: "27.3"
+                              - cell "31.7" [ref=e419]:
+                                - paragraph [ref=e420]: "31.7"
+                              - cell "29.8" [ref=e421]:
+                                - paragraph [ref=e422]: "29.8"
+                              - cell "31.5" [ref=e423]:
+                                - paragraph [ref=e424]: "31.5"
+                              - cell "34.0" [ref=e425]:
+                                - paragraph [ref=e426]: "34.0"
+                            - row "7:00 AM 29.3 30.6 21.2 37.8 31.3 25.5" [ref=e427]:
+                              - cell "7:00 AM" [ref=e428]:
+                                - paragraph [ref=e429]: 7:00 AM
+                              - cell "29.3" [ref=e430]:
+                                - paragraph [ref=e431]: "29.3"
+                              - cell "30.6" [ref=e432]:
+                                - paragraph [ref=e433]: "30.6"
+                              - cell "21.2" [ref=e434]:
+                                - paragraph [ref=e435]: "21.2"
+                              - cell "37.8" [ref=e436]:
+                                - paragraph [ref=e437]: "37.8"
+                              - cell "31.3" [ref=e438]:
+                                - paragraph [ref=e439]: "31.3"
+                              - cell "25.5" [ref=e440]:
+                                - paragraph [ref=e441]: "25.5"
+                            - row "8:00 AM 33.2 24.2 31.6 16.9 30.0 37.0" [ref=e442]:
+                              - cell "8:00 AM" [ref=e443]:
+                                - paragraph [ref=e444]: 8:00 AM
+                              - cell "33.2" [ref=e445]:
+                                - paragraph [ref=e446]: "33.2"
+                              - cell "24.2" [ref=e447]:
+                                - paragraph [ref=e448]: "24.2"
+                              - cell "31.6" [ref=e449]:
+                                - paragraph [ref=e450]: "31.6"
+                              - cell "16.9" [ref=e451]:
+                                - paragraph [ref=e452]: "16.9"
+                              - cell "30.0" [ref=e453]:
+                                - paragraph [ref=e454]: "30.0"
+                              - cell "37.0" [ref=e455]:
+                                - paragraph [ref=e456]: "37.0"
+                            - row "9:00 AM 37.6 31.9 28.1 34.1 28.8 23.0" [ref=e457]:
+                              - cell "9:00 AM" [ref=e458]:
+                                - paragraph [ref=e459]: 9:00 AM
+                              - cell "37.6" [ref=e460]:
+                                - paragraph [ref=e461]: "37.6"
+                              - cell "31.9" [ref=e462]:
+                                - paragraph [ref=e463]: "31.9"
+                              - cell "28.1" [ref=e464]:
+                                - paragraph [ref=e465]: "28.1"
+                              - cell "34.1" [ref=e466]:
+                                - paragraph [ref=e467]: "34.1"
+                              - cell "28.8" [ref=e468]:
+                                - paragraph [ref=e469]: "28.8"
+                              - cell "23.0" [ref=e470]:
+                                - paragraph [ref=e471]: "23.0"
+                            - row "10:00 AM 28.8 27.0 26.6 30.4 22.9 32.9" [ref=e472]:
+                              - cell "10:00 AM" [ref=e473]:
+                                - paragraph [ref=e474]: 10:00 AM
+                              - cell "28.8" [ref=e475]:
+                                - paragraph [ref=e476]: "28.8"
+                              - cell "27.0" [ref=e477]:
+                                - paragraph [ref=e478]: "27.0"
+                              - cell "26.6" [ref=e479]:
+                                - paragraph [ref=e480]: "26.6"
+                              - cell "30.4" [ref=e481]:
+                                - paragraph [ref=e482]: "30.4"
+                              - cell "22.9" [ref=e483]:
+                                - paragraph [ref=e484]: "22.9"
+                              - cell "32.9" [ref=e485]:
+                                - paragraph [ref=e486]: "32.9"
+                            - row "11:00 AM 28.8 28.5 33.1 28.5 27.9 41.0" [ref=e487]:
+                              - cell "11:00 AM" [ref=e488]:
+                                - paragraph [ref=e489]: 11:00 AM
+                              - cell "28.8" [ref=e490]:
+                                - paragraph [ref=e491]: "28.8"
+                              - cell "28.5" [ref=e492]:
+                                - paragraph [ref=e493]: "28.5"
+                              - cell "33.1" [ref=e494]:
+                                - paragraph [ref=e495]: "33.1"
+                              - cell "28.5" [ref=e496]:
+                                - paragraph [ref=e497]: "28.5"
+                              - cell "27.9" [ref=e498]:
+                                - paragraph [ref=e499]: "27.9"
+                              - cell "41.0" [ref=e500]:
+                                - paragraph [ref=e501]: "41.0"
+                            - row "12:00 PM 37.9 27.0 35.2 30.5 28.3 25.0" [ref=e502]:
+                              - cell "12:00 PM" [ref=e503]:
+                                - paragraph [ref=e504]: 12:00 PM
+                              - cell "37.9" [ref=e505]:
+                                - paragraph [ref=e506]: "37.9"
+                              - cell "27.0" [ref=e507]:
+                                - paragraph [ref=e508]: "27.0"
+                              - cell "35.2" [ref=e509]:
+                                - paragraph [ref=e510]: "35.2"
+                              - cell "30.5" [ref=e511]:
+                                - paragraph [ref=e512]: "30.5"
+                              - cell "28.3" [ref=e513]:
+                                - paragraph [ref=e514]: "28.3"
+                              - cell "25.0" [ref=e515]:
+                                - paragraph [ref=e516]: "25.0"
+                            - row "1:00 PM 33.8 39.3 34.7 20.1 26.0 27.2" [ref=e517]:
+                              - cell "1:00 PM" [ref=e518]:
+                                - paragraph [ref=e519]: 1:00 PM
+                              - cell "33.8" [ref=e520]:
+                                - paragraph [ref=e521]: "33.8"
+                              - cell "39.3" [ref=e522]:
+                                - paragraph [ref=e523]: "39.3"
+                              - cell "34.7" [ref=e524]:
+                                - paragraph [ref=e525]: "34.7"
+                              - cell "20.1" [ref=e526]:
+                                - paragraph [ref=e527]: "20.1"
+                              - cell "26.0" [ref=e528]:
+                                - paragraph [ref=e529]: "26.0"
+                              - cell "27.2" [ref=e530]:
+                                - paragraph [ref=e531]: "27.2"
+                            - row "2:00 PM 27.7 29.9 25.8 28.9 29.2 30.5" [ref=e532]:
+                              - cell "2:00 PM" [ref=e533]:
+                                - paragraph [ref=e534]: 2:00 PM
+                              - cell "27.7" [ref=e535]:
+                                - paragraph [ref=e536]: "27.7"
+                              - cell "29.9" [ref=e537]:
+                                - paragraph [ref=e538]: "29.9"
+                              - cell "25.8" [ref=e539]:
+                                - paragraph [ref=e540]: "25.8"
+                              - cell "28.9" [ref=e541]:
+                                - paragraph [ref=e542]: "28.9"
+                              - cell "29.2" [ref=e543]:
+                                - paragraph [ref=e544]: "29.2"
+                              - cell "30.5" [ref=e545]:
+                                - paragraph [ref=e546]: "30.5"
+                            - row "3:00 PM 32.7 24.7 28.5 31.8 32.0 27.5" [ref=e547]:
+                              - cell "3:00 PM" [ref=e548]:
+                                - paragraph [ref=e549]: 3:00 PM
+                              - cell "32.7" [ref=e550]:
+                                - paragraph [ref=e551]: "32.7"
+                              - cell "24.7" [ref=e552]:
+                                - paragraph [ref=e553]: "24.7"
+                              - cell "28.5" [ref=e554]:
+                                - paragraph [ref=e555]: "28.5"
+                              - cell "31.8" [ref=e556]:
+                                - paragraph [ref=e557]: "31.8"
+                              - cell "32.0" [ref=e558]:
+                                - paragraph [ref=e559]: "32.0"
+                              - cell "27.5" [ref=e560]:
+                                - paragraph [ref=e561]: "27.5"
+                            - row "4:00 PM 27.7 34.1 31.7 37.4 39.4 22.2" [ref=e562]:
+                              - cell "4:00 PM" [ref=e563]:
+                                - paragraph [ref=e564]: 4:00 PM
+                              - cell "27.7" [ref=e565]:
+                                - paragraph [ref=e566]: "27.7"
+                              - cell "34.1" [ref=e567]:
+                                - paragraph [ref=e568]: "34.1"
+                              - cell "31.7" [ref=e569]:
+                                - paragraph [ref=e570]: "31.7"
+                              - cell "37.4" [ref=e571]:
+                                - paragraph [ref=e572]: "37.4"
+                              - cell "39.4" [ref=e573]:
+                                - paragraph [ref=e574]: "39.4"
+                              - cell "22.2" [ref=e575]:
+                                - paragraph [ref=e576]: "22.2"
+                            - row "5:00 PM 27.7 23.9 34.9 27.4 30.9 30.3" [ref=e577]:
+                              - cell "5:00 PM" [ref=e578]:
+                                - paragraph [ref=e579]: 5:00 PM
+                              - cell "27.7" [ref=e580]:
+                                - paragraph [ref=e581]: "27.7"
+                              - cell "23.9" [ref=e582]:
+                                - paragraph [ref=e583]: "23.9"
+                              - cell "34.9" [ref=e584]:
+                                - paragraph [ref=e585]: "34.9"
+                              - cell "27.4" [ref=e586]:
+                                - paragraph [ref=e587]: "27.4"
+                              - cell "30.9" [ref=e588]:
+                                - paragraph [ref=e589]: "30.9"
+                              - cell "30.3" [ref=e590]:
+                                - paragraph [ref=e591]: "30.3"
+                            - row "6:00 PM 31.2 31.0 27.6 26.0 31.3 24.7" [ref=e592]:
+                              - cell "6:00 PM" [ref=e593]:
+                                - paragraph [ref=e594]: 6:00 PM
+                              - cell "31.2" [ref=e595]:
+                                - paragraph [ref=e596]: "31.2"
+                              - cell "31.0" [ref=e597]:
+                                - paragraph [ref=e598]: "31.0"
+                              - cell "27.6" [ref=e599]:
+                                - paragraph [ref=e600]: "27.6"
+                              - cell "26.0" [ref=e601]:
+                                - paragraph [ref=e602]: "26.0"
+                              - cell "31.3" [ref=e603]:
+                                - paragraph [ref=e604]: "31.3"
+                              - cell "24.7" [ref=e605]:
+                                - paragraph [ref=e606]: "24.7"
+                            - row "7:00 PM 20.4 20.2 29.1 27.5 29.6 32.4" [ref=e607]:
+                              - cell "7:00 PM" [ref=e608]:
+                                - paragraph [ref=e609]: 7:00 PM
+                              - cell "20.4" [ref=e610]:
+                                - paragraph [ref=e611]: "20.4"
+                              - cell "20.2" [ref=e612]:
+                                - paragraph [ref=e613]: "20.2"
+                              - cell "29.1" [ref=e614]:
+                                - paragraph [ref=e615]: "29.1"
+                              - cell "27.5" [ref=e616]:
+                                - paragraph [ref=e617]: "27.5"
+                              - cell "29.6" [ref=e618]:
+                                - paragraph [ref=e619]: "29.6"
+                              - cell "32.4" [ref=e620]:
+                                - paragraph [ref=e621]: "32.4"
+                            - row "8:00 PM 21.4 23.4 24.5 34.6 20.4 25.4" [ref=e622]:
+                              - cell "8:00 PM" [ref=e623]:
+                                - paragraph [ref=e624]: 8:00 PM
+                              - cell "21.4" [ref=e625]:
+                                - paragraph [ref=e626]: "21.4"
+                              - cell "23.4" [ref=e627]:
+                                - paragraph [ref=e628]: "23.4"
+                              - cell "24.5" [ref=e629]:
+                                - paragraph [ref=e630]: "24.5"
+                              - cell "34.6" [ref=e631]:
+                                - paragraph [ref=e632]: "34.6"
+                              - cell "20.4" [ref=e633]:
+                                - paragraph [ref=e634]: "20.4"
+                              - cell "25.4" [ref=e635]:
+                                - paragraph [ref=e636]: "25.4"
+                            - row "9:00 PM 27.2 31.0 24.0 31.6 29.9 37.7" [ref=e637]:
+                              - cell "9:00 PM" [ref=e638]:
+                                - paragraph [ref=e639]: 9:00 PM
+                              - cell "27.2" [ref=e640]:
+                                - paragraph [ref=e641]: "27.2"
+                              - cell "31.0" [ref=e642]:
+                                - paragraph [ref=e643]: "31.0"
+                              - cell "24.0" [ref=e644]:
+                                - paragraph [ref=e645]: "24.0"
+                              - cell "31.6" [ref=e646]:
+                                - paragraph [ref=e647]: "31.6"
+                              - cell "29.9" [ref=e648]:
+                                - paragraph [ref=e649]: "29.9"
+                              - cell "37.7" [ref=e650]:
+                                - paragraph [ref=e651]: "37.7"
+                            - row "10:00 PM 24.9 33.7 34.1 27.4 30.3 26.1" [ref=e652]:
+                              - cell "10:00 PM" [ref=e653]:
+                                - paragraph [ref=e654]: 10:00 PM
+                              - cell "24.9" [ref=e655]:
+                                - paragraph [ref=e656]: "24.9"
+                              - cell "33.7" [ref=e657]:
+                                - paragraph [ref=e658]: "33.7"
+                              - cell "34.1" [ref=e659]:
+                                - paragraph [ref=e660]: "34.1"
+                              - cell "27.4" [ref=e661]:
+                                - paragraph [ref=e662]: "27.4"
+                              - cell "30.3" [ref=e663]:
+                                - paragraph [ref=e664]: "30.3"
+                              - cell "26.1" [ref=e665]:
+                                - paragraph [ref=e666]: "26.1"
+                            - row "11:00 PM 31.6 30.9 36.8 32.6 42.3 28.4" [ref=e667]:
+                              - cell "11:00 PM" [ref=e668]:
+                                - paragraph [ref=e669]: 11:00 PM
+                              - cell "31.6" [ref=e670]:
+                                - paragraph [ref=e671]: "31.6"
+                              - cell "30.9" [ref=e672]:
+                                - paragraph [ref=e673]: "30.9"
+                              - cell "36.8" [ref=e674]:
+                                - paragraph [ref=e675]: "36.8"
+                              - cell "32.6" [ref=e676]:
+                                - paragraph [ref=e677]: "32.6"
+                              - cell "42.3" [ref=e678]:
+                                - paragraph [ref=e679]: "42.3"
+                              - cell "28.4" [ref=e680]:
+                                - paragraph [ref=e681]: "28.4"
+                            - row "12:00 AM 25.5 29.4 29.6 30.5 29.0 34.1" [ref=e682]:
+                              - cell "12:00 AM" [ref=e683]:
+                                - paragraph [ref=e684]: 12:00 AM
+                              - cell "25.5" [ref=e685]:
+                                - paragraph [ref=e686]: "25.5"
+                              - cell "29.4" [ref=e687]:
+                                - paragraph [ref=e688]: "29.4"
+                              - cell "29.6" [ref=e689]:
+                                - paragraph [ref=e690]: "29.6"
+                              - cell "30.5" [ref=e691]:
+                                - paragraph [ref=e692]: "30.5"
+                              - cell "29.0" [ref=e693]:
+                                - paragraph [ref=e694]: "29.0"
+                              - cell "34.1" [ref=e695]:
+                                - paragraph [ref=e696]: "34.1"
+                            - row "1:00 AM 22.9 28.5 35.0 34.8 31.5 23.8" [ref=e697]:
+                              - cell "1:00 AM" [ref=e698]:
+                                - paragraph [ref=e699]: 1:00 AM
+                              - cell "22.9" [ref=e700]:
+                                - paragraph [ref=e701]: "22.9"
+                              - cell "28.5" [ref=e702]:
+                                - paragraph [ref=e703]: "28.5"
+                              - cell "35.0" [ref=e704]:
+                                - paragraph [ref=e705]: "35.0"
+                              - cell "34.8" [ref=e706]:
+                                - paragraph [ref=e707]: "34.8"
+                              - cell "31.5" [ref=e708]:
+                                - paragraph [ref=e709]: "31.5"
+                              - cell "23.8" [ref=e710]:
+                                - paragraph [ref=e711]: "23.8"
+                            - row "2:00 AM 37.3 22.6 31.8 26.5 29.8 31.1" [ref=e712]:
+                              - cell "2:00 AM" [ref=e713]:
+                                - paragraph [ref=e714]: 2:00 AM
+                              - cell "37.3" [ref=e715]:
+                                - paragraph [ref=e716]: "37.3"
+                              - cell "22.6" [ref=e717]:
+                                - paragraph [ref=e718]: "22.6"
+                              - cell "31.8" [ref=e719]:
+                                - paragraph [ref=e720]: "31.8"
+                              - cell "26.5" [ref=e721]:
+                                - paragraph [ref=e722]: "26.5"
+                              - cell "29.8" [ref=e723]:
+                                - paragraph [ref=e724]: "29.8"
+                              - cell "31.1" [ref=e725]:
+                                - paragraph [ref=e726]: "31.1"
+                            - row "3:00 AM 28.9 26.4 26.8 28.4 24.2 36.5" [ref=e727]:
+                              - cell "3:00 AM" [ref=e728]:
+                                - paragraph [ref=e729]: 3:00 AM
+                              - cell "28.9" [ref=e730]:
+                                - paragraph [ref=e731]: "28.9"
+                              - cell "26.4" [ref=e732]:
+                                - paragraph [ref=e733]: "26.4"
+                              - cell "26.8" [ref=e734]:
+                                - paragraph [ref=e735]: "26.8"
+                              - cell "28.4" [ref=e736]:
+                                - paragraph [ref=e737]: "28.4"
+                              - cell "24.2" [ref=e738]:
+                                - paragraph [ref=e739]: "24.2"
+                              - cell "36.5" [ref=e740]:
+                                - paragraph [ref=e741]: "36.5"
+                            - row "4:00 AM 30.3 27.7 31.8 28.0 35.7 22.0" [ref=e742]:
+                              - cell "4:00 AM" [ref=e743]:
+                                - paragraph [ref=e744]: 4:00 AM
+                              - cell "30.3" [ref=e745]:
+                                - paragraph [ref=e746]: "30.3"
+                              - cell "27.7" [ref=e747]:
+                                - paragraph [ref=e748]: "27.7"
+                              - cell "31.8" [ref=e749]:
+                                - paragraph [ref=e750]: "31.8"
+                              - cell "28.0" [ref=e751]:
+                                - paragraph [ref=e752]: "28.0"
+                              - cell "35.7" [ref=e753]:
+                                - paragraph [ref=e754]: "35.7"
+                              - cell "22.0" [ref=e755]:
+                                - paragraph [ref=e756]: "22.0"
+                            - row "5:00 AM 22.9 35.3 37.7 22.7 33.8 30.9" [ref=e757]:
+                              - cell "5:00 AM" [ref=e758]:
+                                - paragraph [ref=e759]: 5:00 AM
+                              - cell "22.9" [ref=e760]:
+                                - paragraph [ref=e761]: "22.9"
+                              - cell "35.3" [ref=e762]:
+                                - paragraph [ref=e763]: "35.3"
+                              - cell "37.7" [ref=e764]:
+                                - paragraph [ref=e765]: "37.7"
+                              - cell "22.7" [ref=e766]:
+                                - paragraph [ref=e767]: "22.7"
+                              - cell "33.8" [ref=e768]:
+                                - paragraph [ref=e769]: "33.8"
+                              - cell "30.9" [ref=e770]:
+                                - paragraph [ref=e771]: "30.9"
+                          - paragraph [ref=e772]
+                    - listitem [ref=e773]:
+                      - generic [ref=e776]:
+                        - generic [ref=e777]: Question 1
+                        - generic [ref=e778]:
+                          - heading "Question 1" [level=3] [ref=e779]
+                          - generic [ref=e780]:
+                            - generic [ref=e781]: "1"
+                            - text: Point
+                        - generic [ref=e785]:
+                          - paragraph [ref=e791]: What is the UCLx? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e792]:
+                            - textbox "Type question 1 text" [ref=e794]:
+                              - /placeholder: Add your answer
+                            - paragraph [ref=e795]:
+                              - generic [ref=e796]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e797]:
+                      - generic [ref=e800]:
+                        - generic [ref=e801]: Question 2
+                        - generic [ref=e802]:
+                          - heading "Question 2" [level=3] [ref=e803]
+                          - generic [ref=e804]:
+                            - generic [ref=e805]: "1"
+                            - text: Point
+                        - generic [ref=e809]:
+                          - paragraph [ref=e815]: What is the LCLx? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e816]:
+                            - textbox "Type question 2 text" [ref=e818]:
+                              - /placeholder: Add your answer
+                            - paragraph [ref=e819]:
+                              - generic [ref=e820]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e821]:
+                      - generic [ref=e824]:
+                        - generic [ref=e825]: Question 3
+                        - generic [ref=e826]:
+                          - heading "Question 3" [level=3] [ref=e827]
+                          - generic [ref=e828]:
+                            - generic [ref=e829]: "1"
+                            - text: Point
+                        - generic [ref=e833]:
+                          - paragraph [ref=e839]: What is the UCLR? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e840]:
+                            - textbox "Type question 3 text" [ref=e842]:
+                              - /placeholder: Add your answer
+                            - paragraph [ref=e843]:
+                              - generic [ref=e844]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e845]:
+                      - generic [ref=e848]:
+                        - generic [ref=e849]: Question 4
+                        - generic [ref=e850]:
+                          - heading "Question 4" [level=3] [ref=e851]
+                          - generic [ref=e852]:
+                            - generic [ref=e853]: "1"
+                            - text: Point
+                        - generic [ref=e857]:
+                          - paragraph [ref=e863]: What is the LCLR? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e864]:
+                            - textbox "Type question 4 text" [ref=e866]:
+                              - /placeholder: Add your answer
+                            - paragraph [ref=e867]:
+                              - generic [ref=e868]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e869]:
+                      - generic [ref=e872]:
+                        - generic [ref=e873]: Question 5
+                        - generic [ref=e874]:
+                          - heading "Question 5" [level=3] [ref=e875]
+                          - generic [ref=e876]:
+                            - generic [ref=e877]: "1"
+                            - text: Point
+                        - generic [ref=e881]:
+                          - paragraph [ref=e887]: What is the LCLR? (3 decimal positions, use "." as the decimal separator)
+                          - generic [ref=e888]:
+                            - textbox "Type question 5 text" [ref=e890]:
+                              - /placeholder: Add your answer
+                            - paragraph [ref=e891]:
+                              - generic [ref=e892]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e893]:
+                      - generic [ref=e896]:
+                        - generic [ref=e897]: Question 6
+                        - generic [ref=e898]:
+                          - heading "Question 6" [level=3] [ref=e899]
+                          - generic [ref=e900]:
+                            - generic [ref=e901]: "1"
+                            - text: Point
+                        - generic [ref=e904]:
+                          - generic [ref=e905]:
+                            - generic [ref=e906]: Question 6
+                            - paragraph [ref=e909]: Is the system in control?
+                          - radiogroup "Question 6 Is the system in control?" [ref=e910]:
+                            - list [ref=e911]:
+                              - listitem [ref=e912]:
+                                - generic [ref=e913] [cursor=pointer]:
+                                  - radio "Yes" [ref=e916]
+                                  - generic [ref=e918]:
+                                    - separator [ref=e919]
+                                    - paragraph [ref=e923]: "Yes"
+                              - listitem [ref=e924]:
+                                - generic [ref=e925] [cursor=pointer]:
+                                  - radio "No" [ref=e928]
+                                  - generic [ref=e930]:
+                                    - separator [ref=e931]
+                                    - paragraph [ref=e935]: "No"
+                              - listitem [ref=e936]:
+                                - generic [ref=e937] [cursor=pointer]:
+                                  - radio "Can't know from the data we have" [ref=e940]
+                                  - generic [ref=e942]:
+                                    - separator [ref=e943]
+                                    - paragraph [ref=e947]: Can't know from the data we have
+                          - button "Clear selection" [ref=e949] [cursor=pointer]
+                    - listitem [ref=e950]:
+                      - generic [ref=e953]:
+                        - generic [ref=e954]: Question 7
+                        - generic [ref=e955]:
+                          - heading "Question 7" [level=3] [ref=e956]
+                          - generic [ref=e957]:
+                            - generic [ref=e958]: "1"
+                            - text: Point
+                        - generic [ref=e959]:
+                          - paragraph [ref=e964]: Why?
+                          - generic [ref=e967]:
+                            - generic [ref=e968]: Text Editor
+                            - textbox "Question 7 Why? Text Editor" [ref=e970]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e971]
+                    - listitem [ref=e972]:
+                      - generic [ref=e975]:
+                        - generic [ref=e976]: Question <bdi></bdi>
+                        - generic [ref=e981]:
+                          - paragraph [ref=e982]: Vampires Inc. has also established clear service specifications to ensure that donors remain both satisfied and conscious.
+                          - list [ref=e983]:
+                            - listitem [ref=e984]: "• Upper Specification Limit (USL): 45 minutes"
+                            - listitem [ref=e985]: "• Lower Specification Limit (LSL): 15 minutes"
+                          - paragraph [ref=e986]
+                          - paragraph [ref=e987]: "Any donor who waits:"
+                          - list [ref=e988]:
+                            - listitem [ref=e989]: • More than 45 minutes is considered unacceptable. Even the most dedicated volunteer may begin to reconsider their life choices at that point.
+                            - listitem [ref=e990]: • Less than 15 minutes is considered operationally unrealistic and potentially unstable. If donors are moving through the clinic that quickly, something is probably being skipped — and in a vampire clinic, that is rarely reassuring.
+                          - paragraph [ref=e991]
+                          - paragraph [ref=e992]: In short, the clinic aims for waiting times that are efficient, controlled, and reassuringly professional — neither excessively slow nor suspiciously fast.
+                    - listitem [ref=e993]:
+                      - generic [ref=e996]:
+                        - generic [ref=e997]: Question 8
+                        - generic [ref=e998]:
+                          - heading "Question 8" [level=3] [ref=e999]
+                          - generic [ref=e1000]:
+                            - generic [ref=e1001]: "1"
+                            - text: Point
+                        - generic [ref=e1004]:
+                          - generic [ref=e1005]:
+                            - generic [ref=e1006]: Question 8
+                            - paragraph [ref=e1009]: Intuitevely, is the system capable?
+                          - radiogroup "Question 6 Is the system in control?" [ref=e1010]:
+                            - list [ref=e1011]:
+                              - listitem [ref=e1012]:
+                                - generic [ref=e1013] [cursor=pointer]:
+                                  - radio "Yes" [ref=e1016]
+                                  - generic [ref=e1018]:
+                                    - separator [ref=e1019]
+                                    - paragraph [ref=e1023]: "Yes"
+                              - listitem [ref=e1024]:
+                                - generic [ref=e1025] [cursor=pointer]:
+                                  - radio "No" [ref=e1028]
+                                  - generic [ref=e1030]:
+                                    - separator [ref=e1031]
+                                    - paragraph [ref=e1035]: "No"
+                              - listitem [ref=e1036]:
+                                - generic [ref=e1037] [cursor=pointer]:
+                                  - radio "Can't know from the data we have" [ref=e1040]
+                                  - generic [ref=e1042]:
+                                    - separator [ref=e1043]
+                                    - paragraph [ref=e1047]: Can't know from the data we have
+                          - button "Clear selection" [ref=e1049] [cursor=pointer]
+                    - listitem [ref=e1050]:
+                      - generic [ref=e1053]:
+                        - generic [ref=e1054]: Question 9
+                        - generic [ref=e1055]:
+                          - heading "Question 9" [level=3] [ref=e1056]
+                          - generic [ref=e1057]:
+                            - generic [ref=e1058]: "1"
+                            - text: Point
+                        - generic [ref=e1059]:
+                          - paragraph [ref=e1064]: Why?
+                          - generic [ref=e1067]:
+                            - generic [ref=e1068]: Text Editor
+                            - textbox "Question 9 Why? Text Editor" [ref=e1070]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1071]
+                    - listitem [ref=e1072]:
+                      - generic [ref=e1075]:
+                        - generic [ref=e1076]: Question 10
+                        - generic [ref=e1077]:
+                          - heading "Question 10" [level=3] [ref=e1078]
+                          - generic [ref=e1079]:
+                            - generic [ref=e1080]: "1"
+                            - text: Point
+                        - generic [ref=e1083]:
+                          - generic [ref=e1084]:
+                            - generic [ref=e1085]: Question 10
+                            - paragraph [ref=e1088]: Is the system centered?
+                          - radiogroup "Question 6 Is the system in control?" [ref=e1089]:
+                            - list [ref=e1090]:
+                              - listitem [ref=e1091]:
+                                - generic [ref=e1092] [cursor=pointer]:
+                                  - radio "Yes" [ref=e1095]
+                                  - generic [ref=e1097]:
+                                    - separator [ref=e1098]
+                                    - paragraph [ref=e1102]: "Yes"
+                              - listitem [ref=e1103]:
+                                - generic [ref=e1104] [cursor=pointer]:
+                                  - radio "No" [ref=e1107]
+                                  - generic [ref=e1109]:
+                                    - separator [ref=e1110]
+                                    - paragraph [ref=e1114]: "No"
+                              - listitem [ref=e1115]:
+                                - generic [ref=e1116] [cursor=pointer]:
+                                  - radio "Can't know from the data we have" [ref=e1119]
+                                  - generic [ref=e1121]:
+                                    - separator [ref=e1122]
+                                    - paragraph [ref=e1126]: Can't know from the data we have
+                          - button "Clear selection" [ref=e1128] [cursor=pointer]
+                    - listitem [ref=e1129]:
+                      - generic [ref=e1132]:
+                        - generic [ref=e1133]: Question 11
+                        - generic [ref=e1134]:
+                          - heading "Question 11" [level=3] [ref=e1135]
+                          - generic [ref=e1136]:
+                            - generic [ref=e1137]: "1"
+                            - text: Point
+                        - generic [ref=e1138]:
+                          - paragraph [ref=e1143]: Why?
+                          - generic [ref=e1146]:
+                            - generic [ref=e1147]: Text Editor
+                            - textbox "Question 11 Why? Text Editor" [ref=e1149]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1150]
+                    - listitem [ref=e1151]:
+                      - generic [ref=e1154]:
+                        - generic [ref=e1155]: Question 12
+                        - generic [ref=e1156]:
+                          - heading "Question 12" [level=3] [ref=e1157]
+                          - generic [ref=e1158]:
+                            - generic [ref=e1159]: "1"
+                            - text: Point
+                        - generic [ref=e1163]:
+                          - paragraph [ref=e1169]: What is the Capability Index? Use the index that fits with the previous answer.
+                          - generic [ref=e1170]:
+                            - textbox "Type question 12 text" [ref=e1172]:
+                              - /placeholder: Add your answer
+                            - paragraph [ref=e1173]:
+                              - generic [ref=e1174]: Integer, decimal, or E notation allowed
+                    - listitem [ref=e1175]:
+                      - generic [ref=e1178]:
+                        - generic [ref=e1179]: Question 13
+                        - generic [ref=e1180]:
+                          - heading "Question 13" [level=3] [ref=e1181]
+                          - generic [ref=e1182]:
+                            - generic [ref=e1183]: "1"
+                            - text: Point
+                        - generic [ref=e1184]:
+                          - paragraph [ref=e1189]: Explain your line of reasoning to find the capability index. You may guide the tutor to find the answer and copy here how you found it.
+                          - generic [ref=e1192]:
+                            - generic [ref=e1193]: Text Editor
+                            - textbox "Question 13 Explain your line of reasoning to find the capability index. You may guide the tutor to find the answer and copy here how you found it. Text Editor" [ref=e1195]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1196]
+                    - listitem [ref=e1197]:
+                      - generic [ref=e1200]:
+                        - generic [ref=e1201]: Question <bdi></bdi>
+                        - generic [ref=e1206]:
+                          - paragraph [ref=e1207]:
+                            - strong [ref=e1208]: The Fourth of July incident
+                          - paragraph [ref=e1209]
+                          - paragraph [ref=e1210]: The process was running smoothly, and donors appeared to be satisfied — waiting times were reasonable, operations were stable, and no one fainted for the wrong reasons.
+                          - paragraph [ref=e1211]
+                          - paragraph [ref=e1212]: However, everything changed on the 4th of July.
+                          - paragraph [ref=e1213]
+                          - paragraph [ref=e1214]: As New York celebrated with fireworks, rooftop parties, and enthusiastic overconsumption of beverages best described as “experimental,” the clinic experienced an unusually eventful evening. The data collected that night are presented in the following table.
+                          - paragraph [ref=e1215]
+                          - table [ref=e1216]:
+                            - row "Time D1 D2 D3 D4 D5 D6" [ref=e1217]:
+                              - columnheader "Time" [ref=e1218]:
+                                - paragraph [ref=e1219]: Time
+                              - columnheader "D1" [ref=e1220]:
+                                - paragraph [ref=e1221]: D1
+                              - columnheader "D2" [ref=e1222]:
+                                - paragraph [ref=e1223]: D2
+                              - columnheader "D3" [ref=e1224]:
+                                - paragraph [ref=e1225]: D3
+                              - columnheader "D4" [ref=e1226]:
+                                - paragraph [ref=e1227]: D4
+                              - columnheader "D5" [ref=e1228]:
+                                - paragraph [ref=e1229]: D5
+                              - columnheader "D6" [ref=e1230]:
+                                - paragraph [ref=e1231]: D6
+                            - row "6:00 AM 30.1 28.4 31.2 29.7 30.5 32.0" [ref=e1232]:
+                              - cell "6:00 AM" [ref=e1233]:
+                                - paragraph [ref=e1234]: 6:00 AM
+                              - cell "30.1" [ref=e1235]:
+                                - paragraph [ref=e1236]: "30.1"
+                              - cell "28.4" [ref=e1237]:
+                                - paragraph [ref=e1238]: "28.4"
+                              - cell "31.2" [ref=e1239]:
+                                - paragraph [ref=e1240]: "31.2"
+                              - cell "29.7" [ref=e1241]:
+                                - paragraph [ref=e1242]: "29.7"
+                              - cell "30.5" [ref=e1243]:
+                                - paragraph [ref=e1244]: "30.5"
+                              - cell "32.0" [ref=e1245]:
+                                - paragraph [ref=e1246]: "32.0"
+                            - row "7:00 AM 27.8 29.9 26.3 30.5 28.4 31.1" [ref=e1247]:
+                              - cell "7:00 AM" [ref=e1248]:
+                                - paragraph [ref=e1249]: 7:00 AM
+                              - cell "27.8" [ref=e1250]:
+                                - paragraph [ref=e1251]: "27.8"
+                              - cell "29.9" [ref=e1252]:
+                                - paragraph [ref=e1253]: "29.9"
+                              - cell "26.3" [ref=e1254]:
+                                - paragraph [ref=e1255]: "26.3"
+                              - cell "30.5" [ref=e1256]:
+                                - paragraph [ref=e1257]: "30.5"
+                              - cell "28.4" [ref=e1258]:
+                                - paragraph [ref=e1259]: "28.4"
+                              - cell "31.1" [ref=e1260]:
+                                - paragraph [ref=e1261]: "31.1"
+                            - row "8:00 AM 31.5 30.8 29.6 28.7 32.2 27.9" [ref=e1262]:
+                              - cell "8:00 AM" [ref=e1263]:
+                                - paragraph [ref=e1264]: 8:00 AM
+                              - cell "31.5" [ref=e1265]:
+                                - paragraph [ref=e1266]: "31.5"
+                              - cell "30.8" [ref=e1267]:
+                                - paragraph [ref=e1268]: "30.8"
+                              - cell "29.6" [ref=e1269]:
+                                - paragraph [ref=e1270]: "29.6"
+                              - cell "28.7" [ref=e1271]:
+                                - paragraph [ref=e1272]: "28.7"
+                              - cell "32.2" [ref=e1273]:
+                                - paragraph [ref=e1274]: "32.2"
+                              - cell "27.9" [ref=e1275]:
+                                - paragraph [ref=e1276]: "27.9"
+                            - row "9:00 AM 29.2 27.4 33.0 30.1 28.8 29.5" [ref=e1277]:
+                              - cell "9:00 AM" [ref=e1278]:
+                                - paragraph [ref=e1279]: 9:00 AM
+                              - cell "29.2" [ref=e1280]:
+                                - paragraph [ref=e1281]: "29.2"
+                              - cell "27.4" [ref=e1282]:
+                                - paragraph [ref=e1283]: "27.4"
+                              - cell "33.0" [ref=e1284]:
+                                - paragraph [ref=e1285]: "33.0"
+                              - cell "30.1" [ref=e1286]:
+                                - paragraph [ref=e1287]: "30.1"
+                              - cell "28.8" [ref=e1288]:
+                                - paragraph [ref=e1289]: "28.8"
+                              - cell "29.5" [ref=e1290]:
+                                - paragraph [ref=e1291]: "29.5"
+                            - row "10:00 AM 26.9 28.1 30.4 27.3 29.2 31.0" [ref=e1292]:
+                              - cell "10:00 AM" [ref=e1293]:
+                                - paragraph [ref=e1294]: 10:00 AM
+                              - cell "26.9" [ref=e1295]:
+                                - paragraph [ref=e1296]: "26.9"
+                              - cell "28.1" [ref=e1297]:
+                                - paragraph [ref=e1298]: "28.1"
+                              - cell "30.4" [ref=e1299]:
+                                - paragraph [ref=e1300]: "30.4"
+                              - cell "27.3" [ref=e1301]:
+                                - paragraph [ref=e1302]: "27.3"
+                              - cell "29.2" [ref=e1303]:
+                                - paragraph [ref=e1304]: "29.2"
+                              - cell "31.0" [ref=e1305]:
+                                - paragraph [ref=e1306]: "31.0"
+                            - row "11:00 AM 32.0 29.7 28.8 30.2 33.1 27.4" [ref=e1307]:
+                              - cell "11:00 AM" [ref=e1308]:
+                                - paragraph [ref=e1309]: 11:00 AM
+                              - cell "32.0" [ref=e1310]:
+                                - paragraph [ref=e1311]: "32.0"
+                              - cell "29.7" [ref=e1312]:
+                                - paragraph [ref=e1313]: "29.7"
+                              - cell "28.8" [ref=e1314]:
+                                - paragraph [ref=e1315]: "28.8"
+                              - cell "30.2" [ref=e1316]:
+                                - paragraph [ref=e1317]: "30.2"
+                              - cell "33.1" [ref=e1318]:
+                                - paragraph [ref=e1319]: "33.1"
+                              - cell "27.4" [ref=e1320]:
+                                - paragraph [ref=e1321]: "27.4"
+                            - row "12:00 PM 30.8 31.2 29.6 28.7 30.5 32.4" [ref=e1322]:
+                              - cell "12:00 PM" [ref=e1323]:
+                                - paragraph [ref=e1324]: 12:00 PM
+                              - cell "30.8" [ref=e1325]:
+                                - paragraph [ref=e1326]: "30.8"
+                              - cell "31.2" [ref=e1327]:
+                                - paragraph [ref=e1328]: "31.2"
+                              - cell "29.6" [ref=e1329]:
+                                - paragraph [ref=e1330]: "29.6"
+                              - cell "28.7" [ref=e1331]:
+                                - paragraph [ref=e1332]: "28.7"
+                              - cell "30.5" [ref=e1333]:
+                                - paragraph [ref=e1334]: "30.5"
+                              - cell "32.4" [ref=e1335]:
+                                - paragraph [ref=e1336]: "32.4"
+                            - row "1:00 PM 27.5 28.8 30.9 29.1 27.6 31.3" [ref=e1337]:
+                              - cell "1:00 PM" [ref=e1338]:
+                                - paragraph [ref=e1339]: 1:00 PM
+                              - cell "27.5" [ref=e1340]:
+                                - paragraph [ref=e1341]: "27.5"
+                              - cell "28.8" [ref=e1342]:
+                                - paragraph [ref=e1343]: "28.8"
+                              - cell "30.9" [ref=e1344]:
+                                - paragraph [ref=e1345]: "30.9"
+                              - cell "29.1" [ref=e1346]:
+                                - paragraph [ref=e1347]: "29.1"
+                              - cell "27.6" [ref=e1348]:
+                                - paragraph [ref=e1349]: "27.6"
+                              - cell "31.3" [ref=e1350]:
+                                - paragraph [ref=e1351]: "31.3"
+                            - row "2:00 PM 30.0 27.7 31.1 29.5 30.4 28.6" [ref=e1352]:
+                              - cell "2:00 PM" [ref=e1353]:
+                                - paragraph [ref=e1354]: 2:00 PM
+                              - cell "30.0" [ref=e1355]:
+                                - paragraph [ref=e1356]: "30.0"
+                              - cell "27.7" [ref=e1357]:
+                                - paragraph [ref=e1358]: "27.7"
+                              - cell "31.1" [ref=e1359]:
+                                - paragraph [ref=e1360]: "31.1"
+                              - cell "29.5" [ref=e1361]:
+                                - paragraph [ref=e1362]: "29.5"
+                              - cell "30.4" [ref=e1363]:
+                                - paragraph [ref=e1364]: "30.4"
+                              - cell "28.6" [ref=e1365]:
+                                - paragraph [ref=e1366]: "28.6"
+                            - row "3:00 PM 28.9 29.3 30.2 27.4 31.6 28.7" [ref=e1367]:
+                              - cell "3:00 PM" [ref=e1368]:
+                                - paragraph [ref=e1369]: 3:00 PM
+                              - cell "28.9" [ref=e1370]:
+                                - paragraph [ref=e1371]: "28.9"
+                              - cell "29.3" [ref=e1372]:
+                                - paragraph [ref=e1373]: "29.3"
+                              - cell "30.2" [ref=e1374]:
+                                - paragraph [ref=e1375]: "30.2"
+                              - cell "27.4" [ref=e1376]:
+                                - paragraph [ref=e1377]: "27.4"
+                              - cell "31.6" [ref=e1378]:
+                                - paragraph [ref=e1379]: "31.6"
+                              - cell "28.7" [ref=e1380]:
+                                - paragraph [ref=e1381]: "28.7"
+                            - row "4:00 PM 31.4 29.8 27.9 30.6 28.5 32.1" [ref=e1382]:
+                              - cell "4:00 PM" [ref=e1383]:
+                                - paragraph [ref=e1384]: 4:00 PM
+                              - cell "31.4" [ref=e1385]:
+                                - paragraph [ref=e1386]: "31.4"
+                              - cell "29.8" [ref=e1387]:
+                                - paragraph [ref=e1388]: "29.8"
+                              - cell "27.9" [ref=e1389]:
+                                - paragraph [ref=e1390]: "27.9"
+                              - cell "30.6" [ref=e1391]:
+                                - paragraph [ref=e1392]: "30.6"
+                              - cell "28.5" [ref=e1393]:
+                                - paragraph [ref=e1394]: "28.5"
+                              - cell "32.1" [ref=e1395]:
+                                - paragraph [ref=e1396]: "32.1"
+                            - row "5:00 PM 28.2 29.4 26.8 31.3 27.7 30.5" [ref=e1397]:
+                              - cell "5:00 PM" [ref=e1398]:
+                                - paragraph [ref=e1399]: 5:00 PM
+                              - cell "28.2" [ref=e1400]:
+                                - paragraph [ref=e1401]: "28.2"
+                              - cell "29.4" [ref=e1402]:
+                                - paragraph [ref=e1403]: "29.4"
+                              - cell "26.8" [ref=e1404]:
+                                - paragraph [ref=e1405]: "26.8"
+                              - cell "31.3" [ref=e1406]:
+                                - paragraph [ref=e1407]: "31.3"
+                              - cell "27.7" [ref=e1408]:
+                                - paragraph [ref=e1409]: "27.7"
+                              - cell "30.5" [ref=e1410]:
+                                - paragraph [ref=e1411]: "30.5"
+                            - row "6:00 PM 29.7 30.6 28.5 27.9 31.2 29.1" [ref=e1412]:
+                              - cell "6:00 PM" [ref=e1413]:
+                                - paragraph [ref=e1414]: 6:00 PM
+                              - cell "29.7" [ref=e1415]:
+                                - paragraph [ref=e1416]: "29.7"
+                              - cell "30.6" [ref=e1417]:
+                                - paragraph [ref=e1418]: "30.6"
+                              - cell "28.5" [ref=e1419]:
+                                - paragraph [ref=e1420]: "28.5"
+                              - cell "27.9" [ref=e1421]:
+                                - paragraph [ref=e1422]: "27.9"
+                              - cell "31.2" [ref=e1423]:
+                                - paragraph [ref=e1424]: "31.2"
+                              - cell "29.1" [ref=e1425]:
+                                - paragraph [ref=e1426]: "29.1"
+                            - row "7:00 PM 27.6 30.8 29.4 28.1 32.0 30.3" [ref=e1427]:
+                              - cell "7:00 PM" [ref=e1428]:
+                                - paragraph [ref=e1429]: 7:00 PM
+                              - cell "27.6" [ref=e1430]:
+                                - paragraph [ref=e1431]: "27.6"
+                              - cell "30.8" [ref=e1432]:
+                                - paragraph [ref=e1433]: "30.8"
+                              - cell "29.4" [ref=e1434]:
+                                - paragraph [ref=e1435]: "29.4"
+                              - cell "28.1" [ref=e1436]:
+                                - paragraph [ref=e1437]: "28.1"
+                              - cell "32.0" [ref=e1438]:
+                                - paragraph [ref=e1439]: "32.0"
+                              - cell "30.3" [ref=e1440]:
+                                - paragraph [ref=e1441]: "30.3"
+                            - row "8:00 PM 31.0 28.7 27.9 30.4 29.6 28.8" [ref=e1442]:
+                              - cell "8:00 PM" [ref=e1443]:
+                                - paragraph [ref=e1444]: 8:00 PM
+                              - cell "31.0" [ref=e1445]:
+                                - paragraph [ref=e1446]: "31.0"
+                              - cell "28.7" [ref=e1447]:
+                                - paragraph [ref=e1448]: "28.7"
+                              - cell "27.9" [ref=e1449]:
+                                - paragraph [ref=e1450]: "27.9"
+                              - cell "30.4" [ref=e1451]:
+                                - paragraph [ref=e1452]: "30.4"
+                              - cell "29.6" [ref=e1453]:
+                                - paragraph [ref=e1454]: "29.6"
+                              - cell "28.8" [ref=e1455]:
+                                - paragraph [ref=e1456]: "28.8"
+                            - row "9:00 PM 29.2 31.1 28.5 27.8 30.7 29.9" [ref=e1457]:
+                              - cell "9:00 PM" [ref=e1458]:
+                                - paragraph [ref=e1459]: 9:00 PM
+                              - cell "29.2" [ref=e1460]:
+                                - paragraph [ref=e1461]: "29.2"
+                              - cell "31.1" [ref=e1462]:
+                                - paragraph [ref=e1463]: "31.1"
+                              - cell "28.5" [ref=e1464]:
+                                - paragraph [ref=e1465]: "28.5"
+                              - cell "27.8" [ref=e1466]:
+                                - paragraph [ref=e1467]: "27.8"
+                              - cell "30.7" [ref=e1468]:
+                                - paragraph [ref=e1469]: "30.7"
+                              - cell "29.9" [ref=e1470]:
+                                - paragraph [ref=e1471]: "29.9"
+                            - row "10:00 PM 30.3 29.4 28.8 30.6 27.5 31.0" [ref=e1472]:
+                              - cell "10:00 PM" [ref=e1473]:
+                                - paragraph [ref=e1474]: 10:00 PM
+                              - cell "30.3" [ref=e1475]:
+                                - paragraph [ref=e1476]: "30.3"
+                              - cell "29.4" [ref=e1477]:
+                                - paragraph [ref=e1478]: "29.4"
+                              - cell "28.8" [ref=e1479]:
+                                - paragraph [ref=e1480]: "28.8"
+                              - cell "30.6" [ref=e1481]:
+                                - paragraph [ref=e1482]: "30.6"
+                              - cell "27.5" [ref=e1483]:
+                                - paragraph [ref=e1484]: "27.5"
+                              - cell "31.0" [ref=e1485]:
+                                - paragraph [ref=e1486]: "31.0"
+                            - row "11:00 PM 27.9 48.4 10.2 35.6 50.1 20.3" [ref=e1487]:
+                              - cell "11:00 PM" [ref=e1488]:
+                                - paragraph [ref=e1489]: 11:00 PM
+                              - cell "27.9" [ref=e1490]:
+                                - paragraph [ref=e1491]: "27.9"
+                              - cell "48.4" [ref=e1492]:
+                                - paragraph [ref=e1493]: "48.4"
+                              - cell "10.2" [ref=e1494]:
+                                - paragraph [ref=e1495]: "10.2"
+                              - cell "35.6" [ref=e1496]:
+                                - paragraph [ref=e1497]: "35.6"
+                              - cell "50.1" [ref=e1498]:
+                                - paragraph [ref=e1499]: "50.1"
+                              - cell "20.3" [ref=e1500]:
+                                - paragraph [ref=e1501]: "20.3"
+                            - row "12:00 AM 15.4 62.3 18.1 43.2 8.6 58.9" [ref=e1502]:
+                              - cell "12:00 AM" [ref=e1503]:
+                                - paragraph [ref=e1504]: 12:00 AM
+                              - cell "15.4" [ref=e1505]:
+                                - paragraph [ref=e1506]: "15.4"
+                              - cell "62.3" [ref=e1507]:
+                                - paragraph [ref=e1508]: "62.3"
+                              - cell "18.1" [ref=e1509]:
+                                - paragraph [ref=e1510]: "18.1"
+                              - cell "43.2" [ref=e1511]:
+                                - paragraph [ref=e1512]: "43.2"
+                              - cell "8.6" [ref=e1513]:
+                                - paragraph [ref=e1514]: "8.6"
+                              - cell "58.9" [ref=e1515]:
+                                - paragraph [ref=e1516]: "58.9"
+                            - row "1:00 AM 21.5 47.2 12.0 40.5 14.3 50.4" [ref=e1517]:
+                              - cell "1:00 AM" [ref=e1518]:
+                                - paragraph [ref=e1519]: 1:00 AM
+                              - cell "21.5" [ref=e1520]:
+                                - paragraph [ref=e1521]: "21.5"
+                              - cell "47.2" [ref=e1522]:
+                                - paragraph [ref=e1523]: "47.2"
+                              - cell "12.0" [ref=e1524]:
+                                - paragraph [ref=e1525]: "12.0"
+                              - cell "40.5" [ref=e1526]:
+                                - paragraph [ref=e1527]: "40.5"
+                              - cell "14.3" [ref=e1528]:
+                                - paragraph [ref=e1529]: "14.3"
+                              - cell "50.4" [ref=e1530]:
+                                - paragraph [ref=e1531]: "50.4"
+                            - row "2:00 AM 30.8 29.6 28.7 31.1 27.9 30.5" [ref=e1532]:
+                              - cell "2:00 AM" [ref=e1533]:
+                                - paragraph [ref=e1534]: 2:00 AM
+                              - cell "30.8" [ref=e1535]:
+                                - paragraph [ref=e1536]: "30.8"
+                              - cell "29.6" [ref=e1537]:
+                                - paragraph [ref=e1538]: "29.6"
+                              - cell "28.7" [ref=e1539]:
+                                - paragraph [ref=e1540]: "28.7"
+                              - cell "31.1" [ref=e1541]:
+                                - paragraph [ref=e1542]: "31.1"
+                              - cell "27.9" [ref=e1543]:
+                                - paragraph [ref=e1544]: "27.9"
+                              - cell "30.5" [ref=e1545]:
+                                - paragraph [ref=e1546]: "30.5"
+                            - row "3:00 AM 28.4 30.2 27.8 29.7 31.0 28.6" [ref=e1547]:
+                              - cell "3:00 AM" [ref=e1548]:
+                                - paragraph [ref=e1549]: 3:00 AM
+                              - cell "28.4" [ref=e1550]:
+                                - paragraph [ref=e1551]: "28.4"
+                              - cell "30.2" [ref=e1552]:
+                                - paragraph [ref=e1553]: "30.2"
+                              - cell "27.8" [ref=e1554]:
+                                - paragraph [ref=e1555]: "27.8"
+                              - cell "29.7" [ref=e1556]:
+                                - paragraph [ref=e1557]: "29.7"
+                              - cell "31.0" [ref=e1558]:
+                                - paragraph [ref=e1559]: "31.0"
+                              - cell "28.6" [ref=e1560]:
+                                - paragraph [ref=e1561]: "28.6"
+                            - row "4:00 AM 29.5 27.9 31.2 28.6 30.4 29.8" [ref=e1562]:
+                              - cell "4:00 AM" [ref=e1563]:
+                                - paragraph [ref=e1564]: 4:00 AM
+                              - cell "29.5" [ref=e1565]:
+                                - paragraph [ref=e1566]: "29.5"
+                              - cell "27.9" [ref=e1567]:
+                                - paragraph [ref=e1568]: "27.9"
+                              - cell "31.2" [ref=e1569]:
+                                - paragraph [ref=e1570]: "31.2"
+                              - cell "28.6" [ref=e1571]:
+                                - paragraph [ref=e1572]: "28.6"
+                              - cell "30.4" [ref=e1573]:
+                                - paragraph [ref=e1574]: "30.4"
+                              - cell "29.8" [ref=e1575]:
+                                - paragraph [ref=e1576]: "29.8"
+                            - row "5:00 AM 28.7 30.1 29.4 27.6 31.3 28.9" [ref=e1577]:
+                              - cell "5:00 AM" [ref=e1578]:
+                                - paragraph [ref=e1579]: 5:00 AM
+                              - cell "28.7" [ref=e1580]:
+                                - paragraph [ref=e1581]: "28.7"
+                              - cell "30.1" [ref=e1582]:
+                                - paragraph [ref=e1583]: "30.1"
+                              - cell "29.4" [ref=e1584]:
+                                - paragraph [ref=e1585]: "29.4"
+                              - cell "27.6" [ref=e1586]:
+                                - paragraph [ref=e1587]: "27.6"
+                              - cell "31.3" [ref=e1588]:
+                                - paragraph [ref=e1589]: "31.3"
+                              - cell "28.9" [ref=e1590]:
+                                - paragraph [ref=e1591]: "28.9"
+                          - paragraph [ref=e1592]
+                    - listitem [ref=e1593]:
+                      - generic [ref=e1596]:
+                        - generic [ref=e1597]: Question 14
+                        - generic [ref=e1598]:
+                          - heading "Question 14" [level=3] [ref=e1599]
+                          - generic [ref=e1600]:
+                            - generic [ref=e1601]: "1"
+                            - text: Point
+                        - generic [ref=e1602]:
+                          - paragraph [ref=e1607]: What in the value of the Capability index you calculated before could be used to forecast this situation?
+                          - generic [ref=e1610]:
+                            - generic [ref=e1611]: Text Editor
+                            - textbox "Question 14 What in the value of the Capability index you calculated before could be used to forecast this situation? Text Editor" [ref=e1613]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1614]
+                    - listitem [ref=e1615]:
+                      - generic [ref=e1618]:
+                        - generic [ref=e1619]: Question 15
+                        - generic [ref=e1620]:
+                          - heading "Question 15" [level=3] [ref=e1621]
+                          - generic [ref=e1622]:
+                            - generic [ref=e1623]: "1"
+                            - text: Point
+                        - generic [ref=e1624]:
+                          - paragraph [ref=e1629]: Can you find operational causes that explain the strange results obtained after dinner time?
+                          - generic [ref=e1632]:
+                            - generic [ref=e1633]: Text Editor
+                            - textbox "Question 15 Can you find operational causes that explain the strange results obtained after dinner time? Text Editor" [ref=e1635]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1636]
+                    - listitem [ref=e1637]:
+                      - generic [ref=e1640]:
+                        - generic [ref=e1641]: Question <bdi></bdi>
+                        - heading "Your prompts" [level=4] [ref=e1647]
+                    - listitem [ref=e1648]:
+                      - generic [ref=e1651]:
+                        - generic [ref=e1652]: Question 16
+                        - generic [ref=e1653]:
+                          - heading "Question 16" [level=3] [ref=e1654]
+                          - generic [ref=e1655]:
+                            - generic [ref=e1656]: "1"
+                            - text: Point
+                        - generic [ref=e1657]:
+                          - paragraph [ref=e1662]: Prompt 1
+                          - generic [ref=e1665]:
+                            - generic [ref=e1666]: Text Editor
+                            - textbox "Question 16 Prompt 1 Text Editor" [ref=e1668]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1669]
+                    - listitem [ref=e1670]:
+                      - generic [ref=e1673]:
+                        - generic [ref=e1674]: Question 17
+                        - generic [ref=e1675]:
+                          - heading "Question 17" [level=3] [ref=e1676]
+                          - generic [ref=e1677]:
+                            - generic [ref=e1678]: "1"
+                            - text: Point
+                        - generic [ref=e1679]:
+                          - paragraph [ref=e1684]: Prompt 2
+                          - generic [ref=e1687]:
+                            - generic [ref=e1688]: Text Editor
+                            - textbox "Question 17 Prompt 2 Text Editor" [ref=e1690]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1691]
+                    - listitem [ref=e1692]:
+                      - generic [ref=e1695]:
+                        - generic [ref=e1696]: Question 18
+                        - generic [ref=e1697]:
+                          - heading "Question 18" [level=3] [ref=e1698]
+                          - generic [ref=e1699]:
+                            - generic [ref=e1700]: "1"
+                            - text: Point
+                        - generic [ref=e1701]:
+                          - paragraph [ref=e1706]: Prompt 3
+                          - generic [ref=e1709]:
+                            - generic [ref=e1710]: Text Editor
+                            - textbox "Question 18 Prompt 3 Text Editor" [ref=e1712]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1713]
+                    - listitem [ref=e1714]:
+                      - generic [ref=e1717]:
+                        - generic [ref=e1718]: Question <bdi></bdi>
+                        - heading "Your personal takeaways" [level=4] [ref=e1724]
+                    - listitem [ref=e1725]:
+                      - generic [ref=e1728]:
+                        - generic [ref=e1729]: Question 19
+                        - generic [ref=e1730]:
+                          - heading "Question 19" [level=3] [ref=e1731]
+                          - generic [ref=e1732]:
+                            - generic [ref=e1733]: "1"
+                            - text: Point
+                        - generic [ref=e1734]:
+                          - paragraph [ref=e1739]: Takeaway 1
+                          - generic [ref=e1742]:
+                            - generic [ref=e1743]: Text Editor
+                            - textbox "Question 19 Takeaway 1 Text Editor" [ref=e1745]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1746]
+                    - listitem [ref=e1747]:
+                      - generic [ref=e1750]:
+                        - generic [ref=e1751]: Question 20
+                        - generic [ref=e1752]:
+                          - heading "Question 20" [level=3] [ref=e1753]
+                          - generic [ref=e1754]:
+                            - generic [ref=e1755]: "1"
+                            - text: Point
+                        - generic [ref=e1756]:
+                          - paragraph [ref=e1761]: Takeaway 2
+                          - generic [ref=e1764]:
+                            - generic [ref=e1765]: Text Editor
+                            - textbox "Question 20 Takeaway 2 Text Editor" [ref=e1767]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1768]
+                    - listitem [ref=e1769]:
+                      - generic [ref=e1772]:
+                        - generic [ref=e1773]: Question 21
+                        - generic [ref=e1774]:
+                          - heading "Question 21" [level=3] [ref=e1775]
+                          - generic [ref=e1776]:
+                            - generic [ref=e1777]: "1"
+                            - text: Point
+                        - generic [ref=e1778]:
+                          - paragraph [ref=e1783]: Takeaway 3
+                          - generic [ref=e1786]:
+                            - generic [ref=e1787]: Text Editor
+                            - textbox "Question 21 Takeaway 3 Text Editor" [ref=e1789]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1790]
+                    - listitem [ref=e1791]:
+                      - generic [ref=e1794]:
+                        - generic [ref=e1795]: Question <bdi></bdi>
+                        - heading "The discussion" [level=4] [ref=e1801]
+                    - listitem [ref=e1802]:
+                      - generic [ref=e1805]:
+                        - generic [ref=e1806]: Question 22
+                        - generic [ref=e1807]:
+                          - heading "Question 22" [level=3] [ref=e1808]
+                          - generic [ref=e1809]:
+                            - generic [ref=e1810]: "1"
+                            - text: Point
+                        - generic [ref=e1811]:
+                          - paragraph [ref=e1816]: Share here the link to your discussion. It must be a valid link to our tutor in ChatGPT.
+                          - generic [ref=e1819]:
+                            - generic [ref=e1820]: Text Editor
+                            - textbox "Question 22 Share here the link to your discussion. It must be a valid link to our tutor in ChatGPT. Text Editor" [ref=e1822]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1823]
+                    - listitem [ref=e1824]:
+                      - generic [ref=e1827]:
+                        - generic [ref=e1828]: Question 23
+                        - generic [ref=e1829]:
+                          - heading "Question 23" [level=3] [ref=e1830]
+                          - generic [ref=e1831]:
+                            - generic [ref=e1832]: "1"
+                            - text: Point
+                        - generic [ref=e1833]:
+                          - paragraph [ref=e1838]: Copy your discussion and paste it here (links to your discussion are not valid here)
+                          - generic [ref=e1841]:
+                            - generic [ref=e1842]: Text Editor
+                            - textbox "Question 23 Copy your discussion and paste it here (links to your discussion are not valid here) Text Editor" [ref=e1844]:
+                              - text: Use the editor to format your answer
+                              - paragraph [ref=e1845]
+            - generic [ref=e1847]:
+              - heading "Details & Information" [level=2] [ref=e1850]
+              - list [ref=e1851]:
+                - listitem [ref=e1852]:
+                  - img [ref=e1854]
+                  - generic [ref=e1859]:
+                    - generic [ref=e1860]: Assessment due date
+                    - generic [ref=e1861]: 3/16/26, 10:00 AM (UTC+1)
+                    - list [ref=e1862]:
+                      - listitem [ref=e1863]: You can't submit work after the due date.
+                      - listitem [ref=e1864]: You can't make a new submission attempt after due date.
+                - listitem [ref=e1865]:
+                  - img [ref=e1867]
+                  - generic [ref=e1869]:
+                    - generic [ref=e1870]: Attempts
+                    - generic [ref=e1871]: Unlimited
+                - listitem [ref=e1872]:
+                  - img [ref=e1874]
+                  - generic [ref=e1878]:
+                    - generic [ref=e1879]: Originality Report
+                    - button "SafeAssign enabled" [ref=e1881] [cursor=pointer]
+              - generic [ref=e1882]:
+                - generic [ref=e1883]: Grading
+                - generic [ref=e1884]:
+                  - img [ref=e1888]
+                  - generic [ref=e1891]: Maximum points
+                  - generic [ref=e1893]: 23 points
+              - generic [ref=e1894]:
+                - generic [ref=e1895]: Description
+                - text: Second individual submission
+          - text: 
+        - generic [ref=e1897]:
+          - generic [ref=e1901]:
+            - button "Filter questions" [ref=e1902] [cursor=pointer]:
+              - generic [ref=e1903]:
+                - generic: Questions Filter (23)
+                - img [ref=e1904]
+            - status [ref=e1906]: No filters applied. All questions are listed.
+          - generic [ref=e1909]:
+            - button "Save and Close" [disabled] [ref=e1910]
+            - button "Submit" [disabled] [ref=e1911]
+      - button "Close" [ref=e1912] [cursor=pointer]: ×
+  - alert [ref=e1913]
+  - alert [ref=e1914]
+  - alert [ref=e1915]
+  - status [ref=e1916]
+  - status [ref=e1917]
+  - alert [ref=e1918]
+  - alert [ref=e1919]
+  - log [ref=e1920]
