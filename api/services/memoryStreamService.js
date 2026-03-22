@@ -1110,11 +1110,24 @@ async function extractConversationFacts(userId, userMessage) {
 
     if (!Array.isArray(facts) || facts.length === 0) return [];
 
-    // Store each fact as a memory (max 3), with deduplication
+    // Store each fact as a memory (max 3), with deduplication + contamination blocklist
+    // Block known false claims that re-appear from LLM hallucination or stale data
+    const CONTAMINATION_BLOCKLIST = [
+      'classic jazz', 'miles davis', 'prefers jazz', 'jazz music', 'jazz, particularly',
+      'chet baker', 'john coltrane', 'thelonious monk',
+    ];
+
     const stored = [];
     for (const raw of facts.slice(0, 3)) {
       const factText = normalizeFact(raw);
       if (!factText || factText.length < 10) continue;
+
+      // Block contaminated claims
+      const lower = factText.toLowerCase();
+      if (CONTAMINATION_BLOCKLIST.some(term => lower.includes(term))) {
+        log.warn('Blocked contaminated fact', { userId, fact: factText.slice(0, 80) });
+        continue;
+      }
 
       const isDupe = await isDuplicateFact(userId, factText);
       if (isDupe) continue;
