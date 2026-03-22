@@ -86,9 +86,9 @@ export const ALPHA_CITATION_BASELINE = 0.85;
 // Max memories of each type to include in the twin's context window.
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
-  reflections:   7,
+  reflections:   5,
   platform_data: 4,
-  facts:         3,
+  facts:         5,
   conversations: 6,
 };
 
@@ -117,11 +117,11 @@ export const REFLECTION_CONFIG = {
 // Per-domain retrieval weight overrides for the 5 brain neuropils.
 // Format: [recency, importance, relevance]
 export const NEUROPIL_WEIGHTS = {
-  personality: [0.3, 0.8, 1.0],
-  lifestyle:   [1.0, 0.5, 0.8],
-  cultural:    [0.5, 0.7, 1.0],
-  social:      [0.7, 0.6, 1.0],
-  motivation:  [0.8, 0.7, 1.0],
+  personality: [0.0, 0.8, 1.0],
+  lifestyle:   [0.0, 0.5, 0.8],
+  cultural:    [0.0, 0.7, 1.0],
+  social:      [0.0, 0.6, 1.0],
+  motivation:  [0.0, 0.7, 1.0],
 };
 
 // ─── Neurotransmitter Modulation ──────────────────────────────────────────────
