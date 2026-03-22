@@ -6,6 +6,7 @@ import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { Download, Trash2, Info, Shield, ArrowRight, Sparkles, Send, ExternalLink, Check } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
+import UserRulesSettings from './components/settings/UserRulesSettings';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -493,6 +494,20 @@ const Settings = () => {
         }}
       >
         <AutonomySettings isDemoMode={isDemoMode} />
+      </div>
+
+      {/* ── SECTION 5B: USER RULES ── */}
+      <SectionLabel label="Twin Rules" />
+      <div
+        className="rounded-[20px] px-5 py-4 mb-10"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <UserRulesSettings isDemoMode={isDemoMode} />
       </div>
 
       {/* ── SECTION 6: MESSAGING CHANNELS ── */}

@@ -59,6 +59,16 @@ export const ChatEmptyState = ({
         </p>
       )}
 
+      {/* Agentic awareness hint */}
+      {connectedPlatforms.length > 0 && (
+        <p
+          className="text-center text-[11px] mb-6 max-w-xs"
+          style={{ color: 'rgba(255,255,255,0.25)' }}
+        >
+          I can set reminders, draft emails in your voice, suggest music, and more. Just ask.
+        </p>
+      )}
+
       {/* Suggestion pills — thin borders, no backgrounds */}
       {connectedPlatforms.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2.5">
