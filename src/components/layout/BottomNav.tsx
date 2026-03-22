@@ -48,11 +48,14 @@ export const BottomNav: React.FC = () => {
             aria-label={`Navigate to ${item.label}`}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-all duration-150 ease-out active:scale-95',
+              'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 mx-1 rounded-2xl transition-all duration-150 ease-out active:scale-95',
               active
                 ? 'opacity-100'
                 : 'opacity-50 hover:opacity-75'
             )}
+            style={{
+              backgroundColor: active ? 'rgba(255,132,0,0.12)' : 'transparent',
+            }}
           >
             <Icon
               className={cn('w-5 h-5 transition-transform duration-150 ease-out', active && 'scale-110')}
@@ -65,12 +68,6 @@ export const BottomNav: React.FC = () => {
             >
               {item.label}
             </span>
-            {active && (
-              <span
-                className="absolute bottom-0 h-[2px] w-8 rounded-t-full"
-                style={{ background: 'var(--accent-vibrant)' }}
-              />
-            )}
           </button>
         );
       })}

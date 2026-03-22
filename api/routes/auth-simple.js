@@ -427,7 +427,7 @@ router.get('/verify', async (req, res) => {
 router.post('/refresh', authLimiter, async (req, res) => {
   try {
     // Read refresh token from httpOnly cookie first, fall back to body for backward compat
-    const refreshToken = req.cookies?.refresh_token || req.body.refreshToken;
+    const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ error: 'Refresh token required' });

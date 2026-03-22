@@ -288,8 +288,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         return true;
       } else {
-        // Refresh token cookie is invalid or expired - force re-login
-        clearAuth();
+        // Refresh token cookie is invalid or expired — DON'T clear localStorage here.
+        // Let checkAuth() decide based on any remaining localStorage token (backward compat).
         return false;
       }
     } catch (error) {

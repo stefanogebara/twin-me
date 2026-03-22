@@ -113,9 +113,9 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium flex-shrink-0"
             style={{
-              background: 'rgba(16, 185, 129, 0.08)',
-              color: '#10b77f',
-              border: '1px solid rgba(16, 185, 129, 0.15)',
+              background: 'rgba(255, 132, 0, 0.08)',
+              color: '#ff8400',
+              border: '1px solid rgba(255, 132, 0, 0.15)',
             }}
           >
             <Trophy className="w-3 h-3" />
@@ -140,7 +140,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         >
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ backgroundColor: '#10b77f', width: `${progressPercent}%` }}
+            style={{ backgroundColor: '#ff8400', width: `${progressPercent}%` }}
           />
         </div>
         <div className="flex items-center justify-between">

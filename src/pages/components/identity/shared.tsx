@@ -1,8 +1,8 @@
 import React from 'react';
 
-export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#10b77f' }) => (
+export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#ff8400' }) => (
   <div className="flex items-center gap-2 mb-4">
-    {color !== '#10b77f' && (
+    {color !== '#ff8400' && (
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
     )}
     <h2
@@ -28,7 +28,7 @@ export const OceanBar: React.FC<{ trait: string; value: number }> = ({ trait, va
         className="h-full rounded-full transition-all"
         style={{
           width: `${value}%`,
-          backgroundColor: '#10b77f',
+          backgroundColor: '#ff8400',
           opacity: 0.6,
         }}
       />

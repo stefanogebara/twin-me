@@ -230,7 +230,7 @@ const GoalsPage: React.FC = () => {
             onClick={() => navigate('/get-started')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
             style={{
-              backgroundColor: '#10b77f',
+              backgroundColor: '#ff8400',
               color: '#0a0f0a',
               fontFamily: "'Inter', sans-serif",
             }}
@@ -260,7 +260,7 @@ const GoalsPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
               style={{ border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <Trophy className="w-3.5 h-3.5" style={{ color: '#10b77f' }} />
+              <Trophy className="w-3.5 h-3.5" style={{ color: '#ff8400' }} />
               <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
                 {summary.completed} completed
               </span>
@@ -285,7 +285,7 @@ const GoalsPage: React.FC = () => {
         <section className="mb-10">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: '#ff8400', fontFamily: 'Inter, sans-serif' }}
           >
             Your Twin Suggests
           </span>
@@ -310,7 +310,7 @@ const GoalsPage: React.FC = () => {
         <section className="mb-10">
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: '#ff8400', fontFamily: 'Inter, sans-serif' }}
           >
             Active Goals
           </span>
@@ -342,7 +342,7 @@ const GoalsPage: React.FC = () => {
             onClick={() => setShowCompleted((prev) => !prev)}
             className="flex items-center gap-2 w-full text-left transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.98] mb-4"
           >
-            <Trophy className="w-4 h-4" style={{ color: '#10b77f' }} />
+            <Trophy className="w-4 h-4" style={{ color: '#ff8400' }} />
             <span
               className="text-sm font-medium flex-1"
               style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}

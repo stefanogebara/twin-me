@@ -66,6 +66,7 @@ export function useWebPush(isAuthenticated: boolean) {
 
         // Get VAPID public key from backend
         const vapidRes = await fetch(`${API_URL}/web-push/vapid-key`);
+        if (!vapidRes.ok) return; // VAPID keys not configured — skip silently
         const { publicKey } = await vapidRes.json();
         if (!publicKey) return;
 
