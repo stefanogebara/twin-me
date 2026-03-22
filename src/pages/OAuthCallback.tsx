@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { setAccessToken } from '@/services/api/apiBase';
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -94,11 +95,8 @@ const OAuthCallback = () => {
           const claimData = await claimResponse.json();
           if (claimData.token) {
             localStorage.removeItem('demo_mode');
-            localStorage.setItem('auth_token', claimData.token);
+            setAccessToken(claimData.token);
             localStorage.setItem('auth_provider', claimData.provider || searchParams.get('provider') || 'google');
-            if (claimData.refreshToken) {
-              localStorage.setItem('refresh_token', claimData.refreshToken);
-            }
             setStatus('success');
             setMessage('Authentication successful! Redirecting...');
             toast.success('Welcome!', { description: 'Successfully signed in', duration: 3000 });
@@ -292,13 +290,10 @@ const OAuthCallback = () => {
             if (isAuthOAuth && data.token) {
               // Handle auth OAuth success
               localStorage.removeItem('demo_mode');
-              localStorage.setItem('auth_token', data.token);
+              setAccessToken(data.token);
               localStorage.setItem('auth_provider', 'google');
 
-              // Store refresh token if provided
-              if (data.refreshToken) {
-                localStorage.setItem('refresh_token', data.refreshToken);
-              }
+              // Refresh token is now set via httpOnly cookie by the backend
 
               // Store user data if provided
               if (data.user) {
@@ -391,13 +386,10 @@ const OAuthCallback = () => {
             } else if (data.token && !isAuthOAuth && !isConnectorOAuth) {
               // Generic OAuth success (might be auth without explicit isAuth flag)
               localStorage.removeItem('demo_mode');
-              localStorage.setItem('auth_token', data.token);
+              setAccessToken(data.token);
               localStorage.setItem('auth_provider', 'google');
 
-              // Store refresh token if provided
-              if (data.refreshToken) {
-                localStorage.setItem('refresh_token', data.refreshToken);
-              }
+              // Refresh token is now set via httpOnly cookie by the backend
 
               if (data.user) {
                 localStorage.setItem('auth_user', JSON.stringify(data.user));

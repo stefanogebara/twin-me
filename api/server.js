@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -281,6 +282,9 @@ app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain'
 
 // Parse JSON bodies
 app.use(express.json({ limit: '100kb' }));
+
+// Parse cookies (httpOnly refresh token cookie)
+app.use(cookieParser());
 
 // Content-Type validation (exclude auth routes and WhatsApp import which uses text/plain)
 app.use((req, res, next) => {

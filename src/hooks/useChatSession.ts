@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAccessToken } from '@/services/api/apiBase';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3004/api';
 
@@ -55,7 +56,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
   useEffect(() => {
     const checkInterview = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = getAccessToken() || localStorage.getItem('auth_token');
         if (!token) { setInterviewChecked(true); return; }
         const payload = JSON.parse(atob(token.split('.')[1]));
         const id = payload.id || payload.userId;
@@ -82,7 +83,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
   const fetchUsage = async () => {
     if (!userId) return;
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       const res = await fetch(`${API_BASE}/chat/usage`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -108,7 +109,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
       return;
     }
     setIntroFetched(true);
-    const token = localStorage.getItem('auth_token');
+    const token = getAccessToken() || localStorage.getItem('auth_token');
     fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -129,7 +130,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
     if (!userId) return;
     setIsLoadingContext(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       const headers = { 'Authorization': `Bearer ${token}` };
       const res = await fetch(`${API_BASE}/chat/context`, { headers }).catch(() => null);
       const items: ContextItem[] = [];

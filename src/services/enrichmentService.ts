@@ -4,6 +4,8 @@
  * Part of the enrichment-first onboarding flow - discovers public info about users
  */
 
+import { getAccessToken } from './api/apiBase';
+
 // VITE_API_URL already includes /api suffix (e.g., http://localhost:3001/api)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -13,7 +15,7 @@ interface AuthHeaders {
 }
 
 const getAuthHeaders = (): AuthHeaders => {
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
   const headers: AuthHeaders = {
     'Content-Type': 'application/json',
   };
@@ -522,7 +524,7 @@ export const enrichmentService = {
       formData.append('name', name);
     }
 
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
     const headers: Record<string, string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

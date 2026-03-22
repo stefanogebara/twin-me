@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { authFetch } from '@/services/api/apiBase';
+import { authFetch, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { toSecondPerson } from '@/lib/utils';
 import {
@@ -79,7 +79,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = getAccessToken() || localStorage.getItem('auth_token');
         const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/context`, {
           headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal,

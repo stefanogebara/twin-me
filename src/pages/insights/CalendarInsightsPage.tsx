@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { getAccessToken } from '@/services/api/apiBase';
 import { TwinReflection, PatternObservation, StatCard } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
@@ -211,7 +212,7 @@ const CalendarInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
     if (!authToken) {
       setError('Please sign in to see your time patterns');
       setLoading(false);
@@ -251,7 +252,7 @@ const CalendarInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
 
     try {
       await fetch(`${API_BASE}/insights/calendar/refresh`, {

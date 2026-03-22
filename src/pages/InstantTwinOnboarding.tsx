@@ -8,6 +8,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
@@ -200,7 +201,7 @@ const InstantTwinOnboarding = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
           },
           body: JSON.stringify({ integrationId: nangoIntegrationId })
         };
@@ -210,7 +211,7 @@ const InstantTwinOnboarding = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
           },
           body: JSON.stringify({ userId })
         };
@@ -261,7 +262,7 @@ const InstantTwinOnboarding = () => {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                  'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
                 },
                 body: JSON.stringify({ integrationId: nangoIntegrationId })
               });
@@ -326,7 +327,7 @@ const InstantTwinOnboarding = () => {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
         }
       };
 
@@ -396,7 +397,7 @@ const InstantTwinOnboarding = () => {
         knowledge_base_status: 'pending_extraction'
       };
 
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twins`, {
         method: 'POST',
         headers: {

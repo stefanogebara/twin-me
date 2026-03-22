@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, ArrowRight, Sparkles, Mic, MicOff, Keyboard } from 'lucide-react';
 import { useVoiceInterview, type OrbVoiceState } from '../../../hooks/useVoiceInterview';
 import SoulOrb from './SoulOrb';
+import { getAccessToken } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 const ELEVENLABS_AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || '';
@@ -61,7 +62,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   // Get userId from auth token
   const getUserId = useCallback(() => {
     try {
-      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
       if (!token) return null;
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.id || payload.userId || null;
@@ -220,7 +221,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     fetchNextQuestion([]);
   }, [mode]);
 
-  const getAuthToken = () => localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const getAuthToken = () => getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
 
   const fetchNextQuestion = async (
     conversationHistory: Message[],

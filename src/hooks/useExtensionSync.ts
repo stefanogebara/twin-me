@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { getAccessToken } from '@/services/api/apiBase';
 
 /**
  * Hook to automatically sync auth tokens from web app localStorage to browser extension
@@ -12,8 +13,8 @@ export const useExtensionSync = () => {
         return;
       }
 
-      // Get token from localStorage
-      const token = localStorage.getItem('auth_token');
+      // Get token from memory store, falling back to localStorage
+      const token = getAccessToken() || localStorage.getItem('auth_token');
 
       if (!token) {
         return;

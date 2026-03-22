@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUp, Sun, Music, Calendar, Mail, Heart } from 'lucide-react';
+import { getAccessToken } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -37,7 +38,7 @@ export function ChatPrompt() {
     setTriggering(action.skillName);
 
     try {
-      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
       await fetch(`${API_URL}/skills/trigger`, {
         method: 'POST',
         headers: {

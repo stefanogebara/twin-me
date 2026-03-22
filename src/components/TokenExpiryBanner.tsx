@@ -7,6 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { getAccessToken } from '@/services/api/apiBase';
 
 import { AlertTriangle, X, RefreshCw, Bell } from 'lucide-react';
 import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
@@ -57,7 +58,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     const fetchNotifications = async () => {
       setIsLoading(true);
       try {
-        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+        const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
         const response = await fetch(
           `${API_URL}/notifications/unread?userId=${encodeURIComponent(user.id)}`,
           {

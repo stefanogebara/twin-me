@@ -12,6 +12,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { getAccessToken } from '@/services/api/apiBase';
 
 interface CostBreakdownItem {
   tier: string;
@@ -158,7 +159,7 @@ const AdminLLMCosts: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const apiUrl = import.meta.env.VITE_API_URL || '';
 

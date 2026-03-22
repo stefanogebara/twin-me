@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { discoveryScan, QuickEnrichmentData } from '../services/enrichmentService';
 import { useDemo } from '../contexts/DemoContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import SoulOrb from './onboarding/components/SoulOrb';
 import DataRevealItem from './onboarding/components/DataRevealItem';
 
@@ -133,7 +134,7 @@ export default function DiscoverLanding() {
 
   // Redirect if already signed in
   useEffect(() => {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
     if (token) navigate('/dashboard', { replace: true });
   }, [navigate]);
 

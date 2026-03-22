@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion } from '@/services/enrichmentService';
 import SoulOrb from './components/SoulOrb';
 import ParticleField from './components/ParticleField';
@@ -426,7 +427,7 @@ const NewDiscoverFlow: React.FC = () => {
     setGeneratingSignature(true);
 
     try {
-      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
       const enrichment = enrichmentDataRef.current;
       const quick = quickDataRef.current;
 

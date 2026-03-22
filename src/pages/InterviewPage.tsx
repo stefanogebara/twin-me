@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
-import { authFetch } from '@/services/api/apiBase';
+import { authFetch, getAccessToken } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
 import DeepInterview from './onboarding/components/DeepInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -16,7 +16,7 @@ interface CalibrationData {
 
 function getUserIdFromToken(): string | null {
   try {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
     if (!token) return null;
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.id || payload.userId || null;
