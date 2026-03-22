@@ -66,14 +66,14 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.5;
+export const MMR_LAMBDA = 0.4;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.55;
+export const TYPE_DIVERSITY_WEIGHT = 0.65;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
@@ -86,8 +86,8 @@ export const ALPHA_CITATION_BASELINE = 0.85;
 // Max memories of each type to include in the twin's context window.
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
-  reflections:   5,
-  platform_data: 4,
+  reflections:   3,
+  platform_data: 6,
   facts:         5,
   conversations: 6,
 };
