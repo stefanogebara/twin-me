@@ -45,7 +45,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 1.0, relevance: 1.0 },
+  default: { recency: 0.0, importance: 1.2, relevance: 1.0 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
@@ -58,7 +58,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.8 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export const TYPE_DIVERSITY_WEIGHT = 0.65;
 // Formula: confidence * (importance/10) * min(1, CITATION_BASELINE + 0.05 * retrieval_count)
 // Higher baseline = first-retrieval memories get more weight in context.
 // Range: [0.5, 1.0]
-export const ALPHA_CITATION_BASELINE = 0.85;
+export const ALPHA_CITATION_BASELINE = 0.90;
 
 // ─── Memory Context Budgets ───────────────────────────────────────────────────
 // Max memories of each type to include in the twin's context window.
@@ -144,7 +144,7 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
 
   // Dedup threshold — insights with cosine similarity above this are skipped.
   // Range: [0.3, 0.8]
-  dedup_threshold: 0.50,
+  dedup_threshold: 0.40,
 };
 
 // ─── Sampling Parameter Overrides ─────────────────────────────────────────────
