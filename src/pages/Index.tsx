@@ -89,7 +89,7 @@ const Index = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#110f0f] text-[#F5F0EB] font-sans text-sm font-medium">
+    <div className="w-full min-h-screen bg-[#13121a] text-[#F5F0EB] font-sans text-sm font-medium">
 
       {/* ────────────── NAV ────────────── */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">

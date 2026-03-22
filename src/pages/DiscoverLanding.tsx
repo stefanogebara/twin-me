@@ -12,7 +12,7 @@ import DataRevealItem from './onboarding/components/DataRevealItem';
 
 // ── Design tokens (dark-only) ──────────────────────────────────────────
 const T = {
-  BG:       '#110f0f',
+  BG:       '#13121a',
   FG:       '#fdfcfb',
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',

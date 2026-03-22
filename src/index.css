@@ -17,13 +17,13 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Dark only */
-    --background: #110f0f;
+    /* Background Colors — Night sky */
+    --background: #13121a;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
     /* Claude Theme Variables */
-    --claude-bg: #110f0f;
+    --claude-bg: #13121a;
     --claude-surface: rgba(255, 255, 255, 0.06);
     --claude-surface-raised: rgba(255, 255, 255, 0.12);
     --claude-text: #F5F5F4;
@@ -205,13 +205,7 @@
   }
 
   body {
-    background-color: var(--background);
-    /* Sun-driven ambient gradients — orb positions/sizes/colors set by SunContext */
-    background-image:
-      radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
-      radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
-      radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
-      radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
+    background: linear-gradient(180deg, #13121a 0%, #0e0e14 50%, #0a0a10 100%);
     background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-body);
