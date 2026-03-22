@@ -18,12 +18,12 @@
 @layer base {
   :root {
     /* Background Colors — Night sky */
-    --background: #13121a;
+    --background: #110f0f;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
     /* Claude Theme Variables */
-    --claude-bg: #13121a;
+    --claude-bg: #110f0f;
     --claude-surface: rgba(255, 255, 255, 0.06);
     --claude-surface-raised: rgba(255, 255, 255, 0.12);
     --claude-text: #F5F5F4;

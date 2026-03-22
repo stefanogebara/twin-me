@@ -57,7 +57,7 @@ const OnboardingFlow: React.FC = () => {
   const currentIdx = STEPS.indexOf(step);
 
   return (
-    <div style={{ background: 'linear-gradient(180deg, #13121a 0%, #0e0e14 50%, #0a0a10 100%)', minHeight: '100vh' }}>
+    <div style={{ background: 'linear-gradient(180deg, #110f0f 0%, #0d0b0b 50%, #0a0909 100%)', minHeight: '100vh' }}>
     <Suspense fallback={<LoadingFallback />}>
       {/* Progress dots — hidden on welcome (intro) and awakening (finale) */}
       {step !== 'welcome' && step !== 'awakening' && (

@@ -169,22 +169,11 @@ For privacy concerns: privacy@twinme.ai`
   return (
     <div
       className="min-h-screen flex"
-      style={{ backgroundColor: '#13121a' }}
+      style={{ backgroundColor: '#110f0f' }}
     >
-      {/* Left panel — form (glass surface per Design Rule #1) */}
+      {/* Left panel — form (clean, no card) */}
       <div className="flex-1 flex items-center justify-center px-6">
-      <div
-        className="w-full max-w-[420px]"
-        style={{
-          background: 'var(--glass-surface-bg, rgba(72,65,65,0.6))',
-          backdropFilter: 'blur(51px)',
-          WebkitBackdropFilter: 'blur(51px)',
-          border: '1px solid var(--glass-surface-border, rgba(94,86,86,0.6))',
-          borderRadius: '24px',
-          padding: '40px 32px',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-        }}
-      >
+      <div className="w-full max-w-[420px]">
 
         {/* Logo */}
         <div className="flex items-center gap-2 mb-16">
@@ -327,7 +316,7 @@ For privacy concerns: privacy@twinme.ai`
           className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
-            color: '#13121a',
+            color: '#110f0f',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -459,7 +448,7 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
             style={{
-              backgroundColor: '#13121a',
+              backgroundColor: '#110f0f',
               border: '1px solid rgba(255,255,255,0.06)',
             }}
             onClick={e => e.stopPropagation()}
