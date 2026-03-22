@@ -49,7 +49,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 2.5, relevance: 1.2 },
+  identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
@@ -58,7 +58,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.8 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
