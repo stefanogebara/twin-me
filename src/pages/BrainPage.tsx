@@ -2,11 +2,11 @@
  * Memory Explorer
  *
  * A filterable, paginated view of the user's memory stream.
- * Smart filters by expert domain and memory type, rich glass cards,
- * composition bar, and collapsible data sources section.
+ * Dashboard-style layout: featured memory card, compact feed rows,
+ * smart filters, composition bar, and collapsible data sources section.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
@@ -19,7 +19,7 @@ import { DriftAlert } from '@/components/brain/DriftAlert';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 /* ------------------------------------------------------------------ */
-/*  Constants                                                          */
+/*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
 interface Memory {
@@ -49,6 +49,10 @@ interface BrainSnapshot {
   snapshot_type: string;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
+
 const EXPERT_FILTERS = [
   { key: null, label: 'All' },
   { key: 'personality_psychologist', label: 'Personality' },
@@ -60,10 +64,10 @@ const EXPERT_FILTERS = [
 
 const TYPE_FILTERS = [
   { key: null, label: 'All Types', color: 'rgba(255,255,255,0.5)' },
-  { key: 'reflection', label: 'Reflections', color: '#F59E0B' },
-  { key: 'platform_data', label: 'Platform Data', color: '#10B981' },
-  { key: 'fact', label: 'Facts', color: '#8B5CF6' },
-  { key: 'conversation', label: 'Conversations', color: '#3B82F6' },
+  { key: 'reflection', label: 'Reflections', color: '#c17e2c' },
+  { key: 'platform_data', label: 'Platform Data', color: '#2dd4bf' },
+  { key: 'fact', label: 'Facts', color: '#5d5cae' },
+  { key: 'conversation', label: 'Conversations', color: '#60a5fa' },
 ] as const;
 
 const SORT_OPTIONS = [
@@ -89,10 +93,10 @@ const EXPERT_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  reflection: '#F59E0B',
-  platform_data: '#10B981',
-  fact: '#8B5CF6',
-  conversation: '#3B82F6',
+  reflection: '#c17e2c',
+  platform_data: '#2dd4bf',
+  fact: '#5d5cae',
+  conversation: '#60a5fa',
   observation: '#6B7280',
 };
 
@@ -194,18 +198,6 @@ function relativeTime(dateStr: string): string {
   if (weeks < 5) return `${weeks}w ago`;
   const months = Math.floor(days / 30);
   return `${months}mo ago`;
-}
-
-function truncateContent(text: string, maxLen = 180): { preview: string; hasMore: boolean } {
-  if (text.length <= maxLen) return { preview: text, hasMore: false };
-  // Try to break at a sentence boundary
-  const dotIdx = text.indexOf('. ', 80);
-  if (dotIdx !== -1 && dotIdx <= maxLen) {
-    return { preview: text.slice(0, dotIdx + 1), hasMore: true };
-  }
-  // Break at word boundary
-  const breakAt = text.lastIndexOf(' ', maxLen);
-  return { preview: text.slice(0, breakAt > 80 ? breakAt : maxLen) + '...', hasMore: true };
 }
 
 function getPlatformLabel(metadata: Record<string, unknown> | null): string | null {
@@ -345,6 +337,22 @@ const BrainPage: React.FC = () => {
     ? Object.values(composition).reduce((a, b) => a + b, 0)
     : 0;
 
+  // Find the featured memory (highest importance >= 8)
+  const featuredMemory = useMemo(() => {
+    if (memories.length === 0) return null;
+    const candidates = memories.filter(m => m.importance_score >= 8);
+    if (candidates.length === 0) return null;
+    return candidates.reduce((best, m) =>
+      m.importance_score > best.importance_score ? m : best
+    , candidates[0]);
+  }, [memories]);
+
+  // Feed memories = all except the featured one
+  const feedMemories = useMemo(() => {
+    if (!featuredMemory) return memories;
+    return memories.filter(m => m.id !== featuredMemory.id);
+  }, [memories, featuredMemory]);
+
   /* ---------------------------------------------------------------- */
   /*  Render guards                                                    */
   /* ---------------------------------------------------------------- */
@@ -370,7 +378,7 @@ const BrainPage: React.FC = () => {
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
-            fontSize: '28px',
+            fontSize: '32px',
             fontWeight: 400,
             color: 'var(--foreground)',
             letterSpacing: '-0.02em',
@@ -378,7 +386,7 @@ const BrainPage: React.FC = () => {
         >
           Your Memories
         </h1>
-        <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-sm mb-8" style={{ color: '#86807b', fontFamily: "'Inter', sans-serif" }}>
           Sign in to explore the memories shaping your twin.
         </p>
         <button
@@ -398,68 +406,77 @@ const BrainPage: React.FC = () => {
 
   return (
     <div className="max-w-[720px] mx-auto px-6 py-16" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* Header */}
-      <h1
-        className="mb-1"
-        style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
-          fontStyle: 'italic',
-          fontSize: '28px',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        Your Memories
-      </h1>
-      <p className="text-[13px] mb-5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-        {compositionTotal > 0
-          ? `${compositionTotal.toLocaleString()} memories shaping your twin`
-          : 'Memories shaping your twin'}
-      </p>
 
-      {/* Composition Bar */}
-      {composition && compositionTotal > 0 && (
-        <div className="mb-8">
-          {/* Bar */}
-          <div className="flex w-full h-1 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-            {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const).map(type => {
-              const count = composition[type] || 0;
-              if (count === 0) return null;
-              const pct = (count / compositionTotal) * 100;
-              return (
-                <div
-                  key={type}
-                  style={{
-                    width: `${pct}%`,
-                    backgroundColor: TYPE_COLORS[type] || '#6B7280',
-                    minWidth: pct > 0 ? '2px' : 0,
-                  }}
-                />
-              );
-            })}
-          </div>
-          {/* Labels */}
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            {(['reflection', 'platform_data', 'fact', 'conversation'] as const)
-              .filter(type => (composition[type] || 0) > 0)
-              .map(type => {
-                const count = composition[type] || 0;
-                const pct = Math.round((count / compositionTotal) * 100);
-                return `${pct}% ${TYPE_LABELS[type]}`;
-              })
-              .join(' \u00B7 ')}
-          </p>
-        </div>
-      )}
-
-      {/* Drift Alert */}
+      {/* Drift Alert — always at top */}
       <DriftAlert />
 
-      {/* ===== Filter Chips ===== */}
-      <div className="mb-6 space-y-3">
+      {/* ===== Section 1: Page Header ===== */}
+      <div className="mb-6">
+        {/* Title row */}
+        <div className="flex items-baseline justify-between mb-3">
+          <h1
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontSize: '32px',
+              fontWeight: 400,
+              color: '#fdfcfb',
+              letterSpacing: '-0.02em',
+              margin: 0,
+              lineHeight: 1.2,
+            }}
+          >
+            Your Memories
+          </h1>
+          <span className="text-xs" style={{ color: '#86807b' }}>
+            {compositionTotal > 0
+              ? `${compositionTotal.toLocaleString()} memories`
+              : '\u00A0'}
+          </span>
+        </div>
+
+        {/* Composition bar */}
+        {composition && compositionTotal > 0 && (
+          <>
+            <div
+              className="flex w-full overflow-hidden mb-2"
+              style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.04)' }}
+            >
+              {(['reflection', 'platform_data', 'fact', 'conversation', 'observation'] as const).map(type => {
+                const count = composition[type] || 0;
+                if (count === 0) return null;
+                const pct = (count / compositionTotal) * 100;
+                return (
+                  <div
+                    key={type}
+                    style={{
+                      width: `${pct}%`,
+                      backgroundColor: TYPE_COLORS[type] || '#6B7280',
+                      minWidth: pct > 0 ? '2px' : 0,
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {/* Composition label text */}
+            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {(['reflection', 'platform_data', 'fact', 'conversation'] as const)
+                .filter(type => (composition[type] || 0) > 0)
+                .map(type => {
+                  const count = composition[type] || 0;
+                  const pct = Math.round((count / compositionTotal) * 100);
+                  return `${pct}% ${TYPE_LABELS[type]}`;
+                })
+                .join(' \u00B7 ')}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* ===== Section 2: Filter Chips ===== */}
+      <div className="mb-8 space-y-3">
         {/* Row 1: Expert domains */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {EXPERT_FILTERS.map(({ key, label }) => {
             const isActive = activeExpert === key;
             return (
@@ -468,9 +485,9 @@ const BrainPage: React.FC = () => {
                 onClick={() => setActiveExpert(key)}
                 className="rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-all"
                 style={{
-                  background: isActive ? 'rgba(255,132,0,0.12)' : 'rgba(255,255,255,0.04)',
-                  border: isActive ? '1px solid rgba(255,132,0,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                  color: isActive ? '#ff8400' : 'rgba(255,255,255,0.5)',
+                  background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
+                  color: isActive ? '#ff8400' : '#86807b',
+                  border: 'none',
                 }}
               >
                 {label}
@@ -479,55 +496,58 @@ const BrainPage: React.FC = () => {
           })}
         </div>
 
-        {/* Row 2: Memory types */}
-        <div className="flex flex-wrap gap-2">
-          {TYPE_FILTERS.map(({ key, label, color }) => {
-            const isActive = activeType === key;
-            return (
-              <button
-                key={label}
-                onClick={() => setActiveType(key)}
-                className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5"
-                style={{
-                  background: isActive ? 'rgba(255,132,0,0.12)' : 'rgba(255,255,255,0.04)',
-                  border: isActive ? '1px solid rgba(255,132,0,0.3)' : '1px solid rgba(255,255,255,0.08)',
-                  color: isActive ? '#ff8400' : 'rgba(255,255,255,0.5)',
-                }}
-              >
-                {key && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full inline-block flex-shrink-0"
-                    style={{ backgroundColor: color }}
-                  />
-                )}
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        {/* Row 2: Memory types + Sort (right-aligned) */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {TYPE_FILTERS.map(({ key, label, color }) => {
+              const isActive = activeType === key;
+              return (
+                <button
+                  key={label}
+                  onClick={() => setActiveType(key)}
+                  className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5"
+                  style={{
+                    background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
+                    color: isActive ? '#ff8400' : '#86807b',
+                    border: 'none',
+                  }}
+                >
+                  {key && (
+                    <span
+                      className="inline-block flex-shrink-0 rounded-full"
+                      style={{ width: '6px', height: '6px', backgroundColor: color }}
+                    />
+                  )}
+                  {label}
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Row 3: Sort */}
-        <div className="flex justify-end gap-1">
-          {SORT_OPTIONS.map(({ key, label }) => {
-            const isActive = sort === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setSort(key as typeof sort)}
-                className="px-2.5 py-1 text-[11px] font-medium transition-colors rounded"
-                style={{
-                  color: isActive ? 'var(--foreground)' : 'rgba(255,255,255,0.3)',
-                  background: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
+          {/* Sort buttons */}
+          <div className="flex gap-1">
+            {SORT_OPTIONS.map(({ key, label }) => {
+              const isActive = sort === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSort(key as typeof sort)}
+                  className="px-2 py-1 text-[11px] font-medium transition-colors"
+                  style={{
+                    color: isActive ? '#ff8400' : '#86807b',
+                    background: 'transparent',
+                    border: 'none',
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* ===== Memory Feed ===== */}
+      {/* ===== Loading / Empty ===== */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <div
@@ -556,124 +576,273 @@ const BrainPage: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {memories.map(memory => {
-            const expert = (memory.metadata?.expert as string) || null;
-            const expertColor = expert ? (EXPERT_COLORS[expert] || 'rgba(255,255,255,0.4)') : null;
-            const expertLabel = expert ? (EXPERT_LABELS[expert] || expert) : null;
-            const typeColor = TYPE_COLORS[memory.memory_type] || '#6B7280';
-            const platformLabel = getPlatformLabel(memory.metadata);
-            const displayContent = toSecondPerson(memory.content);
-            const isExpanded = expandedId === memory.id;
-            const { preview, hasMore: canExpand } = truncateContent(displayContent);
-
-            return (
-              <div
-                key={memory.id}
-                className="cursor-pointer transition-all"
+        <>
+          {/* ===== Section 3: Featured Memory ===== */}
+          {featuredMemory && (
+            <div className="mb-8">
+              <span
+                className="block mb-3"
                 style={{
-                  background: 'var(--glass-surface-bg)',
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.15em',
+                  color: '#86807b',
+                }}
+              >
+                Most Important
+              </span>
+              <div
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
                   backdropFilter: 'blur(42px)',
                   WebkitBackdropFilter: 'blur(42px)',
-                  border: '1px solid var(--glass-surface-border)',
+                  border: '1px solid rgba(255,255,255,0.08)',
                   borderRadius: '20px',
-                  padding: '16px 20px',
+                  padding: '20px',
                 }}
-                onClick={() => setExpandedId(prev => prev === memory.id ? null : memory.id)}
               >
-                {/* Top row: expert badge + type dot + importance */}
-                <div className="flex items-center justify-between mb-2">
+                {/* Top row: type/expert + importance */}
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    {expertLabel && (
-                      <span
-                        className="text-[11px] font-medium uppercase tracking-widest"
-                        style={{ color: expertColor || 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}
-                      >
-                        {expertLabel}
-                      </span>
-                    )}
-                    {!expertLabel && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          className="w-1.5 h-1.5 rounded-full inline-block"
-                          style={{ backgroundColor: typeColor }}
-                        />
-                        <span
-                          className="text-[11px] font-medium uppercase tracking-widest"
-                          style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}
-                        >
-                          {TYPE_LABELS[memory.memory_type] || memory.memory_type}
+                    {(() => {
+                      const expert = (featuredMemory.metadata?.expert as string) || null;
+                      const expertColor = expert ? (EXPERT_COLORS[expert] || '#86807b') : null;
+                      const expertLabel = expert ? (EXPERT_LABELS[expert] || expert) : null;
+                      const typeColor = TYPE_COLORS[featuredMemory.memory_type] || '#6B7280';
+
+                      if (expertLabel) {
+                        return (
+                          <span
+                            className="text-[11px] font-medium uppercase"
+                            style={{ color: expertColor || '#86807b', letterSpacing: '0.1em' }}
+                          >
+                            {expertLabel}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span
+                            className="rounded-full inline-block"
+                            style={{ width: '6px', height: '6px', backgroundColor: typeColor }}
+                          />
+                          <span
+                            className="text-[11px] font-medium uppercase"
+                            style={{ color: '#86807b', letterSpacing: '0.1em' }}
+                          >
+                            {TYPE_LABELS[featuredMemory.memory_type] || featuredMemory.memory_type}
+                          </span>
                         </span>
-                      </span>
-                    )}
+                      );
+                    })()}
                   </div>
-                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                    {memory.importance_score}/10
+                  <span
+                    className="text-[11px] font-medium"
+                    style={{ color: '#ff8400' }}
+                  >
+                    {featuredMemory.importance_score}/10
                   </span>
                 </div>
 
-                {/* Content */}
+                {/* Full content (not truncated) */}
                 <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: 'var(--foreground)' }}
+                  className="text-sm leading-relaxed mb-3"
+                  style={{ color: '#fdfcfb' }}
                 >
-                  {isExpanded ? displayContent : preview}
+                  {toSecondPerson(featuredMemory.content)}
                 </p>
-                {canExpand && (
-                  <ChevronDown
-                    className="w-3.5 h-3.5 mt-1 transition-transform duration-200"
-                    style={{
-                      color: 'rgba(255,255,255,0.2)',
-                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                    }}
-                  />
-                )}
 
-                {/* Bottom row: platform + time + retrieval count */}
-                <div className="flex items-center gap-3 mt-3">
-                  {platformLabel && (
-                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                      from {platformLabel}
+                {/* Bottom: source + time */}
+                <div className="flex items-center gap-3">
+                  {getPlatformLabel(featuredMemory.metadata) && (
+                    <span className="text-[11px]" style={{ color: '#86807b' }}>
+                      from {getPlatformLabel(featuredMemory.metadata)}
                     </span>
                   )}
                   <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                    {relativeTime(memory.created_at)}
+                    {relativeTime(featuredMemory.created_at)}
                   </span>
-                  {memory.retrieval_count > 0 && (
-                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                      accessed {memory.retrieval_count}x
-                    </span>
-                  )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Load More */}
-      {hasMore && !loading && (
-        <button
-          onClick={handleLoadMore}
-          disabled={loadingMore}
-          className="w-full py-3 rounded-full text-sm mt-4 transition-opacity hover:opacity-70 disabled:opacity-40"
-          style={{
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.5)',
-            background: 'transparent',
-          }}
-        >
-          {loadingMore ? (
-            <span className="inline-flex items-center gap-2">
-              <span
-                className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"
-              />
-              Loading...
-            </span>
-          ) : (
-            'Load more memories'
+            </div>
           )}
-        </button>
+
+          {/* ===== Section 4: Memory Feed ===== */}
+          <div className="mb-6">
+            <span
+              className="block mb-3"
+              style={{
+                fontSize: '11px',
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.15em',
+                color: '#86807b',
+              }}
+            >
+              {featuredMemory ? 'All Memories' : 'Memories'}
+            </span>
+
+            <div>
+              {feedMemories.map((memory, idx) => {
+                const expert = (memory.metadata?.expert as string) || null;
+                const expertColor = expert ? (EXPERT_COLORS[expert] || '#86807b') : null;
+                const expertLabel = expert ? (EXPERT_LABELS[expert] || expert) : null;
+                const typeColor = TYPE_COLORS[memory.memory_type] || '#6B7280';
+                const platformLabel = getPlatformLabel(memory.metadata);
+                const displayContent = toSecondPerson(memory.content);
+                const isExpanded = expandedId === memory.id;
+                const isLast = idx === feedMemories.length - 1;
+
+                return (
+                  <div
+                    key={memory.id}
+                    className="cursor-pointer transition-colors"
+                    style={{
+                      borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.05)',
+                      background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
+                    }}
+                    onClick={() => setExpandedId(prev => prev === memory.id ? null : memory.id)}
+                    onMouseEnter={(e) => {
+                      if (!isExpanded) {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isExpanded) {
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    {/* Collapsed row */}
+                    <div
+                      className="flex items-center gap-3"
+                      style={{ padding: '10px 4px', minHeight: '40px' }}
+                    >
+                      {/* Colored dot */}
+                      <span
+                        className="flex-shrink-0 rounded-full"
+                        style={{
+                          width: '5px',
+                          height: '5px',
+                          backgroundColor: typeColor,
+                          marginTop: '1px',
+                        }}
+                      />
+
+                      {/* Content (truncated to one line) */}
+                      <span
+                        className="flex-1 text-sm truncate"
+                        style={{
+                          color: '#fdfcfb',
+                          lineHeight: '20px',
+                        }}
+                      >
+                        {displayContent}
+                      </span>
+
+                      {/* Right side: importance + time */}
+                      <span
+                        className="flex-shrink-0 text-[11px]"
+                        style={{ color: 'rgba(255,255,255,0.25)' }}
+                      >
+                        {memory.importance_score}/10
+                      </span>
+                      <span
+                        className="flex-shrink-0 text-[11px]"
+                        style={{
+                          color: 'rgba(255,255,255,0.2)',
+                          minWidth: '48px',
+                          textAlign: 'right',
+                        }}
+                      >
+                        {relativeTime(memory.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Expanded content (accordion) */}
+                    {isExpanded && (
+                      <div
+                        style={{
+                          padding: '0 4px 14px 18px',
+                        }}
+                      >
+                        <p
+                          className="text-sm leading-relaxed mb-3"
+                          style={{ color: 'rgba(255,255,255,0.8)' }}
+                        >
+                          {displayContent}
+                        </p>
+
+                        {/* Metadata row */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          {expertLabel && (
+                            <span
+                              className="text-[11px] font-medium uppercase"
+                              style={{ color: expertColor || '#86807b', letterSpacing: '0.08em' }}
+                            >
+                              {expertLabel}
+                            </span>
+                          )}
+                          <span
+                            className="inline-flex items-center gap-1"
+                            style={{ color: '#86807b' }}
+                          >
+                            <span
+                              className="rounded-full inline-block"
+                              style={{ width: '5px', height: '5px', backgroundColor: typeColor }}
+                            />
+                            <span className="text-[11px]">
+                              {TYPE_LABELS[memory.memory_type] || memory.memory_type}
+                            </span>
+                          </span>
+                          {platformLabel && (
+                            <span className="text-[11px]" style={{ color: '#86807b' }}>
+                              from {platformLabel}
+                            </span>
+                          )}
+                          {memory.retrieval_count > 0 && (
+                            <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                              accessed {memory.retrieval_count}x
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="flex justify-center mb-8">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="px-6 py-2.5 text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#86807b',
+                  background: 'transparent',
+                  borderRadius: '100px',
+                }}
+              >
+                {loadingMore ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"
+                    />
+                    Loading...
+                  </span>
+                ) : (
+                  'Load more memories'
+                )}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* ===== Collapsible "More" section ===== */}
@@ -681,7 +850,7 @@ const BrainPage: React.FC = () => {
         <button
           onClick={() => setShowMore(prev => !prev)}
           className="w-full flex items-center justify-between py-4 transition-opacity hover:opacity-70"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          style={{ color: '#86807b', background: 'transparent', border: 'none' }}
         >
           <span className="text-xs font-medium">Show data sources & timeline</span>
           <ChevronDown
@@ -696,8 +865,14 @@ const BrainPage: React.FC = () => {
             {user?.id && (
               <section>
                 <span
-                  className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-                  style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}
+                  className="block mb-4"
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.15em',
+                    color: '#86807b',
+                  }}
                 >
                   Upload Your Data
                 </span>
@@ -710,8 +885,13 @@ const BrainPage: React.FC = () => {
               <section>
                 <div className="flex items-center justify-between mb-2">
                   <span
-                    className="text-[11px] font-medium tracking-widest uppercase"
-                    style={{ color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.15em',
+                      color: '#86807b',
+                    }}
                   >
                     Soul Signature Evolution
                   </span>
