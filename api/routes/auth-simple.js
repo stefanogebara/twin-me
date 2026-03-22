@@ -156,6 +156,23 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+/**
+ * Set refresh token as an httpOnly cookie.
+ * - httpOnly: JS cannot read it (XSS-safe)
+ * - secure: only sent over HTTPS in production
+ * - sameSite strict: prevents CSRF
+ * - path restricted to /api/auth: only sent to auth endpoints
+ */
+function setRefreshCookie(res, refreshToken) {
+  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api/auth',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  });
+}
+
 // Sign up
 router.post('/signup', authLimiter, async (req, res) => {
   try {
@@ -274,10 +291,11 @@ router.post('/signup', authLimiter, async (req, res) => {
       })
       .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
+    setRefreshCookie(res, refreshToken);
+
     res.json({
       success: true,
       token: accessToken,
-      refreshToken,
       user: {
         id: newUser.id,
         email: newUser.email,
@@ -348,10 +366,11 @@ router.post('/signin', authLimiter, async (req, res) => {
       log.error('Failed to store refresh token hash on signin', { error: signinHashErr });
     }
 
+    setRefreshCookie(res, refreshToken);
+
     res.json({
       success: true,
       token: accessToken,
-      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -407,7 +426,8 @@ router.get('/verify', async (req, res) => {
 // Refresh access token
 router.post('/refresh', authLimiter, async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    // Read refresh token from httpOnly cookie first, fall back to body for backward compat
+    const refreshToken = req.cookies?.refresh_token || req.body.refreshToken;
 
     if (!refreshToken) {
       return res.status(400).json({ error: 'Refresh token required' });
@@ -440,10 +460,11 @@ router.post('/refresh', authLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Internal server error' });
     }
 
+    setRefreshCookie(res, newRefreshToken);
+
     res.json({
       success: true,
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -480,6 +501,7 @@ router.post('/logout', async (req, res) => {
         // Token expired or invalid — still clear on best effort
       }
     }
+    res.clearCookie('refresh_token', { path: '/api/auth' });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -1136,11 +1158,12 @@ router.post('/oauth/callback', async (req, res) => {
 
       log.info('Returning auth success with token');
 
+      setRefreshCookie(res, refreshToken);
+
       // Build response data
       const responseData = {
         success: true,
         token: accessToken,
-        refreshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -1194,10 +1217,14 @@ router.get('/oauth/claim', async (req, res) => {
   // One-time use — delete immediately after claim
   await supabaseAdmin.from('pending_auth_codes').delete().eq('code', authCode);
 
+  // Set refresh token as httpOnly cookie instead of exposing in response body
+  if (session.refresh_token) {
+    setRefreshCookie(res, session.refresh_token);
+  }
+
   return res.json({
     success: true,
     token: session.access_token,
-    refreshToken: session.refresh_token,
     provider: session.provider,
     redirectAfterAuth: session.redirect_after_auth || null,
   });

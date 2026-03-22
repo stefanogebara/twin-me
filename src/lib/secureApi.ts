@@ -1,4 +1,5 @@
 import type { DigitalTwin, Message, StudentProfile } from '@/types/database';
+import { getAccessToken } from '@/services/api/apiBase';
 
 // Extend Window interface for Clerk
 declare global {
@@ -79,8 +80,8 @@ class SecureAPIClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    // Get auth token from Clerk or your auth system
-    const token = localStorage.getItem('auth_token') ||
+    // Get auth token from memory store, falling back to localStorage for migration
+    const token = getAccessToken() || localStorage.getItem('auth_token') ||
                  window.Clerk?.session?.getToken?.();
 
     const defaultOptions: RequestInit = {

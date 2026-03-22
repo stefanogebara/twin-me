@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { useSunPosition, type SunState } from '../hooks/useSunPosition';
 import { computeSkyGradients } from '../utils/skyGradients';
 import { useTheme } from './ThemeContext';
-import { authFetch } from '../services/api/apiBase';
+import { authFetch, getAccessToken } from '../services/api/apiBase';
 
 const SunContext = createContext<SunState | undefined>(undefined);
 
@@ -39,7 +39,7 @@ export function SunProvider({ children }: { children: React.ReactNode }) {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Only post location if user is authenticated (token exists)
-    const token = localStorage.getItem('token');
+    const token = getAccessToken() || localStorage.getItem('token');
     if (!token) return;
 
     authFetch('/location/current', {

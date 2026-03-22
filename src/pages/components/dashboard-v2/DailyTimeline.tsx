@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Coffee, Moon, Music2, Mail, Bell, Lightbulb, TrendingUp, Zap, Bot } from 'lucide-react';
+import { getAccessToken } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -36,7 +37,7 @@ export function DailyTimeline() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
     fetch(`${API_URL}/dashboard/context/timeline`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })

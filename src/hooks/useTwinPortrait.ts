@@ -9,11 +9,12 @@
 import { useQuery } from '@tanstack/react-query';
 import type { TwinPortraitData } from '../pages/components/soul-portrait/types';
 import { DEMO_TWIN_PORTRAIT } from '../services/demoDataService';
+import { getAccessToken } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 async function fetchPortrait(): Promise<TwinPortraitData> {
-  const token = localStorage.getItem('auth_token');
+  const token = getAccessToken() || localStorage.getItem('auth_token');
   if (!token) throw new Error('Not authenticated');
 
   const res = await fetch(`${API_URL}/twin/portrait`, {

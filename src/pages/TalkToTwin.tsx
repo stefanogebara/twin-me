@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useChatSession } from '../hooks/useChatSession';
 import {
@@ -166,7 +167,7 @@ const TalkToTwin = () => {
     const assistantMsgId = crypto.randomUUID();
 
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE}/chat/message?stream=1`, {
         method: 'POST',
         headers: {
@@ -293,7 +294,7 @@ const TalkToTwin = () => {
 
   const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       await fetch(`${API_BASE}/chat/feedback`, {
         method: 'POST',
         headers: {

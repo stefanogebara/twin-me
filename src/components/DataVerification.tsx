@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Loader2, RefreshCw, AlertTriangle, Clock } from 'lucide-react';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { getAccessToken } from '@/services/api/apiBase';
 
 // Platform SVG logos
 const SpotifyLogo = () => (
@@ -211,7 +212,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
         }
       });
 

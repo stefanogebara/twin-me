@@ -8,7 +8,7 @@
  *   3. POST /imports/process     → backend downloads, parses, and deletes the file
  */
 
-import { API_URL } from './apiBase';
+import { API_URL, getAccessToken } from './apiBase';
 
 export type ImportPlatform = 'spotify' | 'youtube' | 'discord' | 'reddit' | 'apple_health' | 'google_search' | 'whatsapp' | 'whoop';
 
@@ -33,7 +33,7 @@ export interface GdprImportResult {
 }
 
 function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token') || localStorage.getItem('token');
+  return getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
 }
 
 function authHeaders(): Record<string, string> {

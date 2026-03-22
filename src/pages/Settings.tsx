@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { Download, Trash2, Info, Shield, ArrowRight, Sparkles, Send, ExternalLink, Check } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
@@ -12,7 +13,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;

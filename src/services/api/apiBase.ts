@@ -4,13 +4,24 @@
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// In-memory access token store (not in localStorage — XSS protection)
+let currentAccessToken: string | null = null;
+
+export function setAccessToken(token: string | null) {
+  currentAccessToken = token;
+}
+
+export function getAccessToken(): string | null {
+  return currentAccessToken;
+}
+
 export interface AuthHeaders {
   'Content-Type': string;
   'Authorization'?: string;
 }
 
 export const getAuthHeaders = (): AuthHeaders => {
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = currentAccessToken || localStorage.getItem('auth_token') || localStorage.getItem('token');
   const headers: AuthHeaders = {
     'Content-Type': 'application/json',
   };

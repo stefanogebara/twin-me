@@ -12,6 +12,7 @@ import { ChatMessage } from './ChatMessage';
 import { ConversationControls } from './ConversationControls';
 import { Send, Loader, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAccessToken } from '@/services/api/apiBase';
 
 interface Message {
   id: string;
@@ -64,7 +65,7 @@ export function SoulChatInterface({
 
     try {
       // Call the twin chat API - POST /api/chat/message
-      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/message`, {
         method: 'POST',
         headers: {

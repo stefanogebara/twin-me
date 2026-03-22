@@ -8,6 +8,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getAccessToken } from '@/services/api/apiBase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { DEMO_USER, DEMO_PLATFORM_CONNECTIONS } from '@/services/demoDataService';
 
@@ -74,7 +75,7 @@ const fetchPlatformStatus = async (userId: string): Promise<PlatformStatusMap> =
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
   const url = `${baseUrl}/connectors/status/${encodeURIComponent(userId)}`;
 
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',

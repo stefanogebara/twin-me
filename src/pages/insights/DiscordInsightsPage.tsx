@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
@@ -109,7 +110,7 @@ const DiscordInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
     if (!authToken) {
       setError('Please sign in to see your community insights');
       setLoading(false);
@@ -149,7 +150,7 @@ const DiscordInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
 
     try {
       await fetch(`${API_BASE}/insights/discord/refresh`, {

@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getAccessToken } from '@/services/api/apiBase';
 import { FeedbackWidget } from './FeedbackWidget';
 import { DEMO_TODAY_INSIGHTS } from '../services/demoDataService';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
@@ -128,7 +129,7 @@ export const TodayInsights: React.FC = () => {
         };
       }
 
-      const token = localStorage.getItem('auth_token');
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/today-insights`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { DEMO_USER } from '../services/demoDataService';
+import { setAccessToken, getAccessToken } from '../services/api/apiBase';
 
 /**
  * AuthContext - Authentication Management
@@ -75,7 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const [user, setUser] = useState<User | null>(getCachedUser());
-  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [authToken, setAuthToken] = useState<string | null>(getAccessToken() || localStorage.getItem('auth_token'));
   const [isLoaded, setIsLoaded] = useState(false); // Don't set true until verification completes
   const [isLoading, setIsLoading] = useState(true); // Start true — we're verifying on mount
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -85,8 +86,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    // Check for existing session on mount
-    checkAuth();
+    // Page reload recovery: if no in-memory token, try cookie-based refresh first
+    const initAuth = async () => {
+      if (!getAccessToken() && !localStorage.getItem('auth_token')) {
+        // No in-memory or localStorage token — try cookie-based refresh for page reload recovery
+        await refreshAccessToken();
+      }
+      checkAuth();
+    };
+    initAuth();
 
     // Listen for demo mode changes (cross-tab via 'storage', same-tab via custom event)
     const handleDemoModeChange = () => {
@@ -124,7 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    const token = localStorage.getItem('auth_token');
+    const token = getAccessToken() || localStorage.getItem('auth_token');
 
     if (!token) {
       setUser(null);
@@ -166,6 +174,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         headers: {
           'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         signal: abortController.signal,
       });
 
@@ -186,6 +195,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .catch(() => {});
       } else {
         // Token is invalid - clear auth state
+        setAccessToken(null);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setUser(null);
@@ -200,6 +210,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // This prevents logout on temporary network issues
       if (!cachedUser) {
         // No cached user and network error - clear everything
+        setAccessToken(null);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
         setUser(null);
@@ -218,8 +229,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const signOut = async () => {
+    // Tell the server to invalidate the refresh token cookie
+    const token = getAccessToken() || localStorage.getItem('auth_token');
+    if (token) {
+      fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
+      }).catch(() => {});
+    }
+
+    setAccessToken(null);
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
     localStorage.removeItem('demo_mode'); // Also exit demo mode
     setUser(null);
@@ -228,50 +249,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const clearAuth = () => {
-    // Before clearing local storage, tell the server to invalidate the refresh token
-    const token = localStorage.getItem('auth_token');
+    // Before clearing, tell the server to invalidate the refresh token cookie
+    const token = getAccessToken() || localStorage.getItem('auth_token');
     if (token) {
       fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        credentials: 'include',
       }).catch(() => {});
     }
 
+    setAccessToken(null);
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
     localStorage.removeItem('auth_user');
     setUser(null);
     setAuthToken(null);
   };
 
-  // Refresh access token using refresh token
+  // Refresh access token using httpOnly refresh token cookie
   const refreshAccessToken = async (): Promise<boolean> => {
-    const refreshToken = localStorage.getItem('refresh_token');
-
-    if (!refreshToken) {
-      return false;
-    }
-
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ refreshToken })
+        credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Store new tokens
-        localStorage.setItem('auth_token', data.accessToken);
-        localStorage.setItem('refresh_token', data.refreshToken);
-        localStorage.setItem('auth_user', JSON.stringify(data.user));
-        setUser(data.user);
+        // Store access token in memory (not localStorage — XSS protection)
+        setAccessToken(data.accessToken);
         setAuthToken(data.accessToken);
+        if (data.user) {
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          setUser(data.user);
+        }
         return true;
       } else {
-        // Refresh token is invalid or expired - force re-login
+        // Refresh token cookie is invalid or expired - force re-login
         clearAuth();
         return false;
       }
