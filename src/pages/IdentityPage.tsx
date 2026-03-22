@@ -189,7 +189,7 @@ const IdentityPage: React.FC = () => {
           >
             Your Soul Signature
           </h1>
-          <div className="w-10 h-[2px] mt-2" style={{ backgroundColor: '#10b77f' }} />
+          <div className="w-10 h-[2px] mt-2" style={{ backgroundColor: '#ff8400' }} />
         </div>
         {!isDemoMode && user && (
           <button
@@ -392,7 +392,7 @@ const EmptyState: React.FC = () => {
         <button
           onClick={() => navigate('/get-started')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium"
-          style={{ border: '1px solid #10b77f', color: '#10b77f' }}
+          style={{ border: '1px solid #ff8400', color: '#ff8400' }}
         >
           Connect platforms
         </button>

@@ -15,7 +15,7 @@ const WhatsNextChapter: React.FC = () => {
         <button
           onClick={() => navigate('/get-started')}
           className="px-4 py-2 rounded-[100px] text-[13px] font-medium transition-opacity hover:opacity-80"
-          style={{ border: '1px solid #10b77f', color: '#10b77f' }}
+          style={{ border: '1px solid #ff8400', color: '#ff8400' }}
         >
           Connect Platforms
         </button>

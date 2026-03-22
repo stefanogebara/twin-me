@@ -338,7 +338,14 @@ const TalkToTwin = () => {
   }
 
   return (
-    <div className="flex" style={{ height: '100dvh', maxHeight: '100dvh' }}>
+    <div className="flex twin-chat-container" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
+      {/* Mobile: subtract pt-16 (64px) + pb-20 (80px) from SidebarLayout wrapper.
+          Desktop: use full viewport height (sidebar layout has no top/bottom padding on lg+). */}
+      <style>{`
+        @media (min-width: 1024px) {
+          .twin-chat-container { height: 100dvh !important; max-height: 100dvh !important; }
+        }
+      `}</style>
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         <ChatHeader
           hasMessages={messages.length > 0}

@@ -53,8 +53,15 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
   return (
     <div
       ref={ref}
-      className="py-5"
-      style={{ borderBottom: `1px solid ${BORDER_COLOR}` }}
+      className="p-5 mb-4"
+      style={{
+        borderRadius: '20px',
+        background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        border: '0.67px solid var(--glass-surface-border, #d9d1cb)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+      }}
     >
       <div className="flex items-start gap-3">
         {/* Category icon */}
@@ -143,7 +150,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
               disabled={isLoading}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.96] disabled:opacity-40"
               style={{
-                backgroundColor: '#10b77f',
+                backgroundColor: '#ff8400',
                 color: '#0a0f0a',
                 fontFamily: "'Inter', sans-serif",
               }}

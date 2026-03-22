@@ -41,7 +41,7 @@ const SoulChapter: React.FC<SoulChapterProps> = ({ summary, archetype, uniquenes
           <button
             onClick={() => setSummaryExpanded(!summaryExpanded)}
             className="mt-2 text-xs"
-            style={{ color: '#10b77f' }}
+            style={{ color: '#ff8400' }}
           >
             {summaryExpanded ? 'Show less' : 'Read more'}
           </button>
