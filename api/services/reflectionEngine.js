@@ -408,6 +408,10 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
       : '';
 
     // Run expert analysis
+    // Check if observations contain sensitive health/emotional data for privacy routing
+    const observationText = formattedObservations + evidence;
+    const hasSensitive = /\b(recovery|hrv|heart rate|sleep score|strain|medication|therapy|depression|anxiety)\b/i.test(observationText);
+
     const result = await complete({
       tier: TIER_ANALYSIS,
       messages: [{
@@ -419,6 +423,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
       maxTokens: 400,
       temperature: 0.4,
       serviceName: `reflection-${expert.id}`,
+      sensitiveContent: hasSensitive,
     });
 
     const responseText = (result.content || '').trim();

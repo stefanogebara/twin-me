@@ -352,7 +352,7 @@ export async function complete({
   // This minimizes data exposure for health/emotional/financial content
   const effectiveTier = (sensitiveContent && tier !== TIER_EXTRACTION) ? TIER_EXTRACTION : tier;
   const model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_ANALYSIS];
-  const ttl = CACHE_TTL_BY_TIER[tier] || 0;
+  const ttl = CACHE_TTL_BY_TIER[effectiveTier] || 0;
 
   // Circuit breaker check (4B)
   checkCircuitBreaker();

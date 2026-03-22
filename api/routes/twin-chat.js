@@ -750,6 +750,23 @@ Make it sound natural and curious, not like a survey question.`;
         );
       } else if (taskIntent.taskType === 'draft') {
         // Draft intent: inject stylometric fingerprint for voice-matched writing
+        // Also invoke the draft_email_reply tool for email-specific requests
+        const isEmailDraft = /\b(email|reply to|respond to|mail)\b/i.test(message);
+        if (isEmailDraft) {
+          (async () => {
+            try {
+              const { executeTool } = await import('../services/toolRegistry.js');
+              const toMatch = message.match(/(?:reply to|respond to|email|write to)\s+(\w+)/i);
+              const to = toMatch?.[1] || 'the recipient';
+              const result = await executeTool(userId, 'draft_email_reply', { to, context: message });
+              if (result?.draft) {
+                log.info('Email draft tool invoked', { userId, to });
+              }
+            } catch (err) {
+              log.debug('Email draft tool failed (non-fatal, using prompt injection)', { error: err.message });
+            }
+          })();
+        }
         let styleGuide = '';
         if (personalityProfile) {
           const sl = personalityProfile.avg_sentence_length;

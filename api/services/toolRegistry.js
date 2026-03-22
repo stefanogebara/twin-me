@@ -635,6 +635,9 @@ Write the email EXACTLY in their voice. Include Subject (if new), greeting, body
 // Auto-register on module load
 registerBuiltInTools();
 
+// Register MCP tools if configured (non-blocking, non-fatal)
+registerMCPTools().catch(() => {});
+
 /**
  * Bridge MCP servers into the twin's tool registry.
  * Each enabled MCP server becomes a callable tool for the agent.
