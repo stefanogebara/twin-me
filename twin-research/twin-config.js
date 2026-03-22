@@ -49,7 +49,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
+  identity: { recency: 0.0, importance: 2.5, relevance: 1.2 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
@@ -117,11 +117,11 @@ export const REFLECTION_CONFIG = {
 // Per-domain retrieval weight overrides for the 5 brain neuropils.
 // Format: [recency, importance, relevance]
 export const NEUROPIL_WEIGHTS = {
-  personality: [0.0, 0.8, 1.0],
-  lifestyle:   [0.0, 0.5, 0.8],
-  cultural:    [0.0, 0.7, 1.0],
-  social:      [0.0, 0.6, 1.0],
-  motivation:  [0.0, 0.7, 1.0],
+  personality: [0.3, 0.8, 1.0],
+  lifestyle:   [1.0, 0.5, 0.8],
+  cultural:    [0.5, 0.7, 1.0],
+  social:      [0.7, 0.6, 1.0],
+  motivation:  [0.8, 0.7, 1.0],
 };
 
 // ─── Neurotransmitter Modulation ──────────────────────────────────────────────
