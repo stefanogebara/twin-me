@@ -11,6 +11,7 @@
 import { sendInsight as sendTelegramInsight } from './telegramService.js';
 import { sendWhatsAppInsight } from './whatsappService.js';
 import { sendPushToUser } from './pushNotificationService.js';
+import { sendWebPush } from './webPushService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
@@ -95,7 +96,26 @@ export async function deliverInsight(userId, insight) {
     }
   }
 
-  // Push notification — universal channel, doesn't require messaging_channels entry
+  // Web push — browser notifications (Chrome, Firefox, Edge). No app needed.
+  try {
+    const webPushSent = await sendWebPush(userId, {
+      title: PUSH_TITLES[insight.category] || 'Your twin noticed something',
+      body: (insight.insight || '').substring(0, 120),
+      url: '/talk-to-twin',
+      tag: `insight-${insight.id}`,
+      insightId: insight.id,
+      category: insight.category,
+    });
+    if (webPushSent > 0) {
+      results.push({ channel: 'web_push', success: true, sent: webPushSent });
+    }
+  } catch (err) {
+    if (!err.message?.includes('not configured')) {
+      log.warn('Web push delivery failed', { userId, error: err.message });
+    }
+  }
+
+  // Mobile push notification — Expo (iOS/Android). Requires device token registration.
   // Tokens live in device_tokens table (registered by mobile app)
   try {
     const pushResult = await sendPushToUser(userId, {

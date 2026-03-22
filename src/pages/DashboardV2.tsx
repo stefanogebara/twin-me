@@ -10,11 +10,15 @@ import { NextUpEvents } from './components/dashboard-v2/NextUpEvents';
 import { PlatformsList } from './components/dashboard-v2/PlatformsList';
 import { ChatPrompt } from './components/dashboard-v2/ChatPrompt';
 import { DailyTimeline } from './components/dashboard-v2/DailyTimeline';
+import { useWebPush } from '@/hooks/useWebPush';
 
 export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const { data, isLoading, isError, refetch } = useDashboardContext();
   const { insights, markEngaged } = useProactiveInsights();
+
+  // Register web push on first dashboard load (after auth)
+  useWebPush(true);
 
   if (isLoading) {
     return (

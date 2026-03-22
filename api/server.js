@@ -413,6 +413,7 @@ import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
+import webPushRoutes from './routes/web-push.js';
 import telegramWebhookRoutes from './routes/telegram-webhook.js';
 import telegramLinkRoutes from './routes/telegram-link.js';
 import inngestRoutes from './routes/inngest.js';
@@ -530,6 +531,7 @@ app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily act
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (feature-flagged off until ops)
+app.use('/api/web-push', webPushRoutes); // Web push notification subscribe/unsubscribe
 app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
 app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
