@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { ChevronDown, Lightbulb } from 'lucide-react';
+import { ChevronDown, Lightbulb, ThumbsUp, ThumbsDown } from 'lucide-react';
 import type { ProactiveInsight } from '@/types/dashboard';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface InsightsBannerProps {
   insights: ProactiveInsight[];
@@ -10,12 +12,27 @@ interface InsightsBannerProps {
 
 export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBannerProps) {
   const [expanded, setExpanded] = useState(false);
+  const [ratedInsights, setRatedInsights] = useState<Record<string, number>>({});
 
   if (insights.length === 0) return null;
 
   const handleAsk = (insight: ProactiveInsight) => {
     onEngage(insight.id);
     onQuickAction(insight.insight);
+  };
+
+  const handleRate = async (insightId: string, rating: number) => {
+    setRatedInsights(prev => ({ ...prev, [insightId]: rating }));
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      await fetch(`${API_URL}/insights/${insightId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ rating }),
+      });
+    } catch {
+      // Silent — feedback is best-effort
+    }
   };
 
   return (
@@ -71,13 +88,37 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
               >
                 {insight.insight}
               </p>
-              <button
-                onClick={() => handleAsk(insight)}
-                className="shrink-0 text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0 whitespace-nowrap"
-                style={{ color: '#ff8400' }}
-              >
-                Ask about this
-              </button>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {ratedInsights[insight.id] ? (
+                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    {ratedInsights[insight.id] === 1 ? 'Liked' : 'Noted'}
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleRate(insight.id, 1)}
+                      className="p-1 rounded-md bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70"
+                      title="Helpful"
+                    >
+                      <ThumbsUp className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                    </button>
+                    <button
+                      onClick={() => handleRate(insight.id, -1)}
+                      className="p-1 rounded-md bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70"
+                      title="Not helpful"
+                    >
+                      <ThumbsDown className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => handleAsk(insight)}
+                  className="shrink-0 text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0 whitespace-nowrap"
+                  style={{ color: '#ff8400' }}
+                >
+                  Ask
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -522,7 +522,7 @@ async function updateBadge() {
 
   if (unsynced > 0) {
     chrome.action.setBadgeText({ text: String(unsynced) });
-    chrome.action.setBadgeBackgroundColor({ color: '#D97706' });
+    chrome.action.setBadgeBackgroundColor({ color: '#888888' });
   } else {
     chrome.action.setBadgeText({ text: '' });
   }

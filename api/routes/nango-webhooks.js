@@ -2,10 +2,19 @@
  * NANGO WEBHOOK HANDLER
  *
  * Receives webhooks from Nango for:
- * - New connection created
- * - Connection deleted
- * - Token refresh errors
- * - Sync completed events
+ * - New connection created (auth/creation)
+ * - Token refresh errors (auth/refresh)
+ * - Sync completed events (sync) → triggers observation ingestion
+ *
+ * On sync completion:
+ *   1. Update last_sync_at timestamp
+ *   2. Run platform-specific observation fetcher → memory stream
+ *   3. Check prospective memory condition triggers against new data
+ *   4. Log agent event for audit trail
+ *
+ * Setup: Configure webhook URL in Nango Dashboard → Settings → Webhooks
+ *   URL: https://twin-ai-learn.vercel.app/api/nango-webhooks
+ *   Secret: NANGO_WEBHOOK_SECRET env var
  */
 
 import express from 'express';
@@ -180,8 +189,29 @@ async function handleAuthWebhook(data) {
   }
 }
 
+// Map Nango providerConfigKey → our internal platform name
+const NANGO_TO_PLATFORM = {
+  'spotify': 'spotify',
+  'google-calendar': 'google_calendar',
+  'whoop': 'whoop',
+  'discord': 'discord',
+  'github-getting-started': 'github',
+  'linkedin': 'linkedin',
+  'youtube': 'youtube',
+  'reddit': 'reddit',
+  'google-mail': 'google_gmail',
+  'twitch': 'twitch',
+  'outlook': 'outlook',
+  'garmin': 'garmin',
+  'strava': 'strava',
+  'fitbit': 'fitbit',
+  'oura': 'oura',
+};
+
 /**
- * Handle sync webhooks (data sync completed)
+ * Handle sync webhooks (data sync completed).
+ * Triggers real-time observation ingestion into the memory stream
+ * instead of waiting for the 30-min polling cron.
  */
 async function handleSyncWebhook(data) {
   const { syncType, connectionId, providerConfigKey, success, modelsCount, endUser } = data;
@@ -191,17 +221,111 @@ async function handleSyncWebhook(data) {
 
   log.info(`Sync ${success ? 'completed' : 'failed'}: ${providerConfigKey} (${modelsCount} models)`);
 
-  if (success) {
-    // Update last sync timestamp
-    const { error: syncErr } = await supabaseAdmin
-      .from('platform_connections')
-      .update({
-        last_sync_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('platform', providerConfigKey);
-    if (syncErr) {
-      log.error(`Failed to update last_sync_at for ${providerConfigKey}:`, syncErr.message);
+  if (!success) return;
+
+  const now = new Date().toISOString();
+
+  // 1. Update last sync timestamp
+  await supabaseAdmin
+    .from('platform_connections')
+    .update({ last_sync_at: now })
+    .eq('user_id', userId)
+    .eq('platform', providerConfigKey)
+    .then(({ error }) => {
+      if (error) log.error(`Failed to update last_sync_at for ${providerConfigKey}:`, error.message);
+    });
+
+  // Also update nango_connection_mappings
+  const platform = NANGO_TO_PLATFORM[providerConfigKey] || providerConfigKey;
+  await supabaseAdmin
+    .from('nango_connection_mappings')
+    .update({ last_synced_at: now })
+    .eq('user_id', userId)
+    .eq('platform', platform)
+    .then(({ error }) => {
+      if (error) log.warn(`Failed to update nango mapping sync time`, { error: error.message });
+    });
+
+  // 2. Trigger real-time observation ingestion (fire-and-forget)
+  ingestPlatformObservations(userId, platform, providerConfigKey).catch(err => {
+    log.error('Sync-triggered ingestion failed', { userId, platform, error: err.message });
+  });
+
+  // 3. Log agent event
+  supabaseAdmin
+    .from('agent_events')
+    .insert({
+      user_id: userId,
+      event_type: 'nango_sync_completed',
+      event_data: { platform, providerConfigKey, modelsCount, syncType },
+    })
+    .catch(() => {});
+}
+
+/**
+ * Run observation ingestion for a single platform after sync webhook.
+ * Fetches fresh data, stores as observations in memory stream,
+ * and checks prospective memory condition triggers.
+ */
+async function ingestPlatformObservations(userId, platform, providerConfigKey) {
+  // Lazy imports to avoid circular dependencies
+  const { addPlatformObservation } = await import('../services/memoryStreamService.js');
+  const { checkConditionTriggered } = await import('../services/prospectiveMemoryService.js');
+
+  // Platform fetcher map — import only the one we need
+  const fetcherMap = {
+    spotify: () => import('../services/observationIngestion.js').then(m => m.fetchSpotifyObservations),
+    google_calendar: () => import('../services/observationIngestion.js').then(m => m.fetchCalendarObservations),
+    youtube: () => import('../services/observationIngestion.js').then(m => m.fetchYouTubeObservations),
+    whoop: () => import('../services/observationIngestion.js').then(m => m.fetchWhoopObservations),
+    discord: () => import('../services/observationIngestion.js').then(m => m.fetchDiscordObservations),
+    github: () => import('../services/observationIngestion.js').then(m => m.fetchGitHubObservations),
+    linkedin: () => import('../services/observationIngestion.js').then(m => m.fetchLinkedInObservations),
+    reddit: () => import('../services/observationIngestion.js').then(m => m.fetchRedditObservations),
+    google_gmail: () => import('../services/observationIngestion.js').then(m => m.fetchGmailObservations),
+    twitch: () => import('../services/observationIngestion.js').then(m => m.fetchTwitchObservations),
+    outlook: () => import('../services/observationIngestion.js').then(m => m.fetchOutlookObservations),
+    garmin: () => import('../services/observationIngestion.js').then(m => m.fetchGarminObservations),
+    strava: () => import('../services/observationIngestion.js').then(m => m.fetchStravaObservations),
+    fitbit: () => import('../services/observationIngestion.js').then(m => m.fetchFitbitObservations),
+    oura: () => import('../services/observationIngestion.js').then(m => m.fetchOuraObservations),
+  };
+
+  const fetcherFactory = fetcherMap[platform];
+  if (!fetcherFactory) {
+    log.warn(`No observation fetcher for platform: ${platform}`);
+    return;
+  }
+
+  const fetcher = await fetcherFactory();
+  const observations = await fetcher(userId);
+
+  if (!observations || observations.length === 0) {
+    log.info(`No new observations from ${platform} sync`, { userId });
+    return;
+  }
+
+  // Store observations in memory stream
+  let stored = 0;
+  for (const obs of observations) {
+    const content = typeof obs === 'string' ? obs : obs.content || JSON.stringify(obs);
+    const ok = await addPlatformObservation(userId, content, platform, {
+      ingestion_source: 'nango_sync_webhook',
+    });
+    if (ok) stored++;
+  }
+
+  log.info(`Sync-triggered ingestion complete`, { userId, platform, fetched: observations.length, stored });
+
+  // Check prospective memory condition triggers against new data
+  if (stored > 0) {
+    try {
+      const metrics = observations.slice(0, 5).map(o =>
+        typeof o === 'string' ? o : o.content || ''
+      );
+      await checkConditionTriggered(userId, { platform, metrics });
+    } catch (err) {
+      log.warn('Prospective memory check failed', { userId, error: err.message });
     }
   }
 }

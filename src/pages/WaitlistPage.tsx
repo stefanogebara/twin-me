@@ -47,7 +47,7 @@ const WaitlistPage = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6"
-      style={{ backgroundColor: '#110f0f' }}
+      style={{ backgroundColor: '#13121a' }}
     >
       <div className="w-full max-w-[420px] text-center">
         {/* Logo */}
@@ -147,7 +147,7 @@ const WaitlistPage = () => {
                 disabled={loading}
                 className="h-11 px-6 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{
-                  backgroundColor: '#ff8400',
+                  backgroundColor: 'rgba(255,255,255,0.85)',
                   color: '#fff',
                   fontFamily: "'Inter', sans-serif",
                 }}

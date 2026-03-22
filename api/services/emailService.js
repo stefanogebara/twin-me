@@ -100,8 +100,8 @@ export async function sendWelcomeEmail({ toEmail, firstName }) {
       html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
 .c{max-width:600px;margin:0 auto;padding:40px 24px}
-.logo{font-size:20px;font-weight:700;color:#ff8400;margin-bottom:32px}
-.cta{display:inline-block;background:#ff8400;color:#fff;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
+.logo{font-size:20px;font-weight:700;color:#ffffff;margin-bottom:32px}
+.cta{display:inline-block;background:#ffffff;color:#1b1818;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
 .footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
 </style></head><body><div class="c">
 <div class="logo">TwinMe</div>
@@ -111,7 +111,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <ul style="color:#9ca3af;font-size:14px;line-height:1.8;padding-left:20px">
   <li><strong style="color:#e5e5e5">Connect platforms</strong> &mdash; Spotify, YouTube, Gmail give your twin real context</li>
   <li><strong style="color:#e5e5e5">Chat with your twin</strong> &mdash; the more you talk, the better it knows you</li>
-  <li><strong style="color:#e5e5e5">Give feedback</strong> &mdash; use the orange Feedback button anytime</li>
+  <li><strong style="color:#e5e5e5">Give feedback</strong> &mdash; use the Feedback button anytime</li>
 </ul>
 <a href="${APP_URL}/dashboard" class="cta">Open your dashboard</a>
 <div class="footer">
@@ -147,11 +147,11 @@ export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
     html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
 .c{max-width:600px;margin:0 auto;padding:40px 24px}
-.logo{font-size:20px;font-weight:700;color:#ff8400;margin-bottom:32px}
+.logo{font-size:20px;font-weight:700;color:#ffffff;margin-bottom:32px}
 .card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:24px;margin:24px 0;text-align:center}
-.code{font-size:28px;font-weight:700;letter-spacing:4px;color:#ff8400;margin:12px 0}
+.code{font-size:28px;font-weight:700;letter-spacing:4px;color:#ffffff;margin:12px 0}
 .code-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#6b7280}
-.cta{display:inline-block;background:#ff8400;color:#fff;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
+.cta{display:inline-block;background:#ffffff;color:#1b1818;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
 .footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
 </style></head><body><div class="c">
 <div class="logo">TwinMe</div>

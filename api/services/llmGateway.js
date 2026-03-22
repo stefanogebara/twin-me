@@ -346,9 +346,13 @@ export async function complete({
   userId,
   serviceName,
   modelOverride,
+  sensitiveContent = false,
 }) {
-  const model = modelOverride || OPENROUTER_MODELS[tier] || OPENROUTER_MODELS[TIER_ANALYSIS];
-  const ttl = CACHE_TTL_BY_TIER[tier] || 0;
+  // Privacy routing: downgrade to cheapest tier for sensitive content (NemoClaw pattern)
+  // This minimizes data exposure for health/emotional/financial content
+  const effectiveTier = (sensitiveContent && tier !== TIER_EXTRACTION) ? TIER_EXTRACTION : tier;
+  const model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_ANALYSIS];
+  const ttl = CACHE_TTL_BY_TIER[effectiveTier] || 0;
 
   // Circuit breaker check (4B)
   checkCircuitBreaker();

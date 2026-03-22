@@ -9,7 +9,7 @@ export function generateDashboard(targetName, scores, changelog, baselinePrompt,
   const scoreChart = scores.map((s, i) => {
     const pct = Math.round(s.score * 100);
     const barH = Math.round(s.score * 200);
-    const color = s.kept === false ? '#ef4444' : s.score >= 0.9 ? '#10b981' : '#ff8400';
+    const color = s.kept === false ? '#ef4444' : s.score >= 0.9 ? '#10b981' : '#e5e5e5';
     const label = i === 0 ? 'Base' : `R${i}`;
     return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
       <span style="font-size:11px;color:#999">${pct}%</span>
@@ -64,7 +64,7 @@ th{text-align:left;padding:8px;border-bottom:2px solid #333;font-size:12px;color
 <p class="subtitle">Karpathy-style hill-climbing prompt optimization</p>
 
 <div class="stats">
-  <div class="stat"><div class="stat-value" style="color:#ff8400">${baselineScore}%</div><div class="stat-label">Baseline</div></div>
+  <div class="stat"><div class="stat-value" style="color:#e5e5e5">${baselineScore}%</div><div class="stat-label">Baseline</div></div>
   <div class="stat"><div class="stat-value" style="color:#10b981">${bestScore}%</div><div class="stat-label">Best</div></div>
   <div class="stat"><div class="stat-value" style="color:#e5e5e5">+${bestScore - baselineScore}%</div><div class="stat-label">Improvement</div></div>
   <div class="stat"><div class="stat-value" style="color:#666">${scores.length - 1}</div><div class="stat-label">Rounds</div></div>

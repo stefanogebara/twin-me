@@ -110,10 +110,16 @@ router.post('/scan', async (req, res) => {
           const knownFacts = [
             discovered?.discovered_name && `Name: ${discovered.discovered_name}`,
             discovered?.discovered_company && `Company: ${discovered.discovered_company}`,
+            discovered?.hunter_position && `Role: ${discovered.hunter_position}${discovered.hunter_seniority ? ` (${discovered.hunter_seniority})` : ''}`,
             discovered?.discovered_location && `Location: ${discovered.discovered_location}`,
             discovered?.discovered_bio && `Bio: ${discovered.discovered_bio}`,
             discovered?.github_repos && `GitHub repos: ${discovered.github_repos}`,
             discovered?.github_languages?.length && `Languages: ${discovered.github_languages.join(', ')}`,
+            discovered?.reddit_interests?.length && `Reddit communities: ${discovered.reddit_interests.join(', ')}`,
+            discovered?.hn_topics?.length && `Hacker News topics: ${discovered.hn_topics.join(', ')}`,
+            discovered?.hn_karma && `Hacker News karma: ${discovered.hn_karma}`,
+            discovered?.twitter_bio && `Twitter/X bio: ${discovered.twitter_bio}`,
+            discovered?.spotify_exists && `Has Spotify profile`,
             socialInfo && `Social profiles: ${socialInfo}`,
           ].filter(Boolean).join('\n');
 

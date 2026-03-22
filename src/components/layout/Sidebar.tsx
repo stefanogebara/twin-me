@@ -81,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg"
           style={{
-            background: 'var(--accent-vibrant, #ff8400)',
+            background: 'var(--accent-vibrant, rgba(255,255,255,0.85))',
             color: '#fdfcfb',
           }}
         >
@@ -113,8 +113,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
               aria-current={active ? 'page' : undefined}
               className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full transition-all duration-150 group"
               style={active ? {
-                background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
-                color: 'var(--accent-vibrant, #ff8400)',
+                background: 'var(--accent-vibrant-glow, rgba(255,255,255,0.06))',
+                color: 'var(--accent-vibrant, rgba(255,255,255,0.85))',
               } : {
                 color: 'var(--text-secondary, #4a4242)',
                 background: 'transparent',
@@ -162,8 +162,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
                     aria-current={active ? 'page' : undefined}
                     className="w-full flex items-center gap-3 px-4 py-2 rounded-full transition-all duration-150"
                     style={active ? {
-                      background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
-                      color: 'var(--accent-vibrant, #ff8400)',
+                      background: 'var(--accent-vibrant-glow, rgba(255,255,255,0.06))',
+                      color: 'var(--accent-vibrant, rgba(255,255,255,0.85))',
                     } : {
                       color: 'var(--text-secondary, #4a4242)',
                       background: 'transparent',

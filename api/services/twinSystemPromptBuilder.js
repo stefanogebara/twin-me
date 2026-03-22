@@ -195,8 +195,15 @@ Dry humor and light teasing are welcome when the context supports it. Specificit
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null) {
   let dynamicContext = '';
+
+  // === CORE IDENTITY (pinned blocks — highest attention weight) ===
+  // Injected FIRST in dynamic context for maximum attention (prevents personality drift).
+  // Based on Letta Memory Blocks + Identity Drift research (arXiv:2412.00804).
+  if (coreMemoryBlockText) {
+    dynamicContext += coreMemoryBlockText;
+  }
 
   // === TEMPORAL + GEOGRAPHIC AWARENESS ===
   const now = new Date();
@@ -212,7 +219,10 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
   const southSeasons = ['summer', 'fall', 'winter', 'spring'];
   const season = isNorthern ? northSeasons[seasonIndex] : southSeasons[seasonIndex];
 
-  let temporalLine = `Right now: ${dayOfWeek} ${timeOfDay} (${hour}:${String(now.getMinutes()).padStart(2, '0')}), ${season}`;
+  // Round minutes to 15-min intervals for KV-cache friendliness
+  // (exact minute busts the cache on every call; 15-min granularity is plenty for the twin)
+  const roundedMinute = Math.floor(now.getMinutes() / 15) * 15;
+  let temporalLine = `Right now: ${dayOfWeek} ${timeOfDay} (~${hour}:${String(roundedMinute).padStart(2, '0')}), ${season}`;
 
   if (userLocation) {
     if (userLocation.sun_phase) {

@@ -57,6 +57,9 @@ import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
 import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
 import { classifyMessageTier } from '../services/chatRouter.js';
+import { getBlocks, formatBlocksForPrompt, initializeBlocks } from '../services/coreMemoryService.js';
+import { classifyTaskIntent, parseAndCreateReminder } from '../services/taskIntentClassifier.js';
+import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -378,9 +381,27 @@ router.post('/message', authenticateUser, async (req, res) => {
     const contextBuildMs = Date.now() - chatStartTime;
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory } = twinContext;
 
+    // Fetch core memory blocks for identity anchoring (prevents personality drift)
+    let coreBlockText = null;
+    try {
+      const coreBlocks = await getBlocks(userId);
+      if (Object.keys(coreBlocks).length === 0) {
+        // First chat — initialize blocks (non-blocking, don't wait for content generation)
+        initializeBlocks(userId).catch(err => log.warn('Core memory init failed (non-fatal)', { error: err }));
+      } else {
+        coreBlockText = formatBlocksForPrompt(coreBlocks);
+        if (coreBlockText) {
+          log.debug('Core memory blocks loaded', { chars: coreBlockText.length, blocks: Object.keys(coreBlocks).filter(k => coreBlocks[k]?.content?.length > 0) });
+        }
+      }
+    } catch (coreErr) {
+      log.warn('Core memory block fetch failed (non-fatal)', { error: coreErr.message });
+    }
+
     // Build personalized system prompt with structured context layers
+    // Core memory blocks are passed through to be injected as FIRST dynamic element
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation, coreBlockText);
 
     // Inject persona block: translates personality data into prescriptive behavioral rules
     const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
@@ -702,6 +723,127 @@ Make it sound natural and curious, not like a survey question.`;
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
     log.info('System prompt built', { chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
 
+    // Task intent classification — detect "remind me to..." / "schedule..." / "draft..."
+    // Pure heuristic, <1ms, no LLM call. Routes task requests to agentic core.
+    const taskIntent = classifyTaskIntent(message);
+    if (taskIntent.isTask && taskIntent.confidence >= 0.7) {
+      log.info('Task intent detected — routing', {
+        userId,
+        taskType: taskIntent.taskType,
+        confidence: taskIntent.confidence,
+        message: message.slice(0, 60)
+      });
+
+      if (taskIntent.taskType === 'remind') {
+        // Reminder intent: inject agentic prompt + create prospective memory async
+        const reminderBlock = `\n\n[AGENTIC CAPABILITY: REMINDER]\nThe user is asking you to remember something for later. You HAVE the ability to set reminders and you are doing so right now. Confirm the reminder naturally — mention WHAT you'll remember and WHEN you'll bring it back up. Be specific about what you understood. Do NOT say "I can't set reminders" — you can and are.`;
+        const lastBlock = systemPrompt[systemPrompt.length - 1];
+        if (lastBlock && !lastBlock.cache_control) {
+          lastBlock.text += reminderBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: reminderBlock.trim() });
+        }
+
+        // Fire-and-forget: parse reminder details and create prospective memory
+        parseAndCreateReminder(userId, message).catch(err =>
+          log.warn('Reminder creation failed (non-fatal)', { userId, error: err.message })
+        );
+      } else if (taskIntent.taskType === 'draft') {
+        // Draft intent: inject stylometric fingerprint for voice-matched writing
+        // Also invoke the draft_email_reply tool for email-specific requests
+        const isEmailDraft = /\b(email|reply to|respond to|mail)\b/i.test(message);
+        if (isEmailDraft) {
+          (async () => {
+            try {
+              const { executeTool } = await import('../services/toolRegistry.js');
+              const toMatch = message.match(/(?:reply to|respond to|email|write to)\s+(\w+)/i);
+              const to = toMatch?.[1] || 'the recipient';
+              const result = await executeTool(userId, 'draft_email_reply', { to, context: message });
+              if (result?.draft) {
+                log.info('Email draft tool invoked', { userId, to });
+              }
+            } catch (err) {
+              log.debug('Email draft tool failed (non-fatal, using prompt injection)', { error: err.message });
+            }
+          })();
+        }
+        let styleGuide = '';
+        if (personalityProfile) {
+          const sl = personalityProfile.avg_sentence_length;
+          const f = personalityProfile.formality_score;
+          const ttr = personalityProfile.vocabulary_richness;
+          styleGuide = `\nUSER'S WRITING STYLE (match this exactly):
+- Sentence length: ${sl ? (sl < 12 ? 'short and punchy' : sl < 20 ? 'medium length' : 'long and detailed') : 'natural'}
+- Formality: ${f != null ? (f < 0.3 ? 'very casual/informal' : f < 0.6 ? 'balanced' : 'formal/professional') : 'natural'}
+- Vocabulary: ${ttr ? (ttr < 0.4 ? 'simple and direct' : ttr < 0.6 ? 'moderately varied' : 'rich and expressive') : 'natural'}
+- OCEAN: ${personalityProfile.openness ? `O=${(personalityProfile.openness*100).toFixed(0)} C=${(personalityProfile.conscientiousness*100).toFixed(0)} E=${(personalityProfile.extraversion*100).toFixed(0)} A=${(personalityProfile.agreeableness*100).toFixed(0)} N=${(personalityProfile.neuroticism*100).toFixed(0)}` : 'use personality from core memory'}`;
+        }
+
+        const draftBlock = `\n\n[AGENTIC CAPABILITY: SMART DRAFT]\nThe user is asking you to compose something (email, message, reply, text). You HAVE this capability. Write it EXACTLY in their voice — not generic AI text.${styleGuide}
+
+RULES:
+- Match their EXACT communication style, not a polished version of it
+- If they're casual, be casual. If they're formal, be formal.
+- Format the draft clearly (with Subject line if email, greeting, body, sign-off)
+- After the draft, briefly note what tone/approach you used and offer to adjust
+- Do NOT add disclaimers about being an AI`;
+
+        const lastBlock = systemPrompt[systemPrompt.length - 1];
+        if (lastBlock && !lastBlock.cache_control) {
+          lastBlock.text += draftBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: draftBlock.trim() });
+        }
+      } else if (taskIntent.taskType === 'user_rule') {
+        // User rule intent: extract the rule and save to user_rules core memory block
+        const ruleBlock = `\n\n[AGENTIC CAPABILITY: USER RULE]\nThe user is telling you to remember an explicit rule or preference. Confirm what you understood and that you'll always follow it. Be warm and specific about what you'll remember.`;
+        const lastBlockRule = systemPrompt[systemPrompt.length - 1];
+        if (lastBlockRule && !lastBlockRule.cache_control) {
+          lastBlockRule.text += ruleBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: ruleBlock.trim() });
+        }
+
+        // Fire-and-forget: extract and save the rule via LLM
+        (async () => {
+          try {
+            const { complete: llmComplete, TIER_EXTRACTION: tier } = await import('../services/llmGateway.js');
+            const { updateBlock: ub, getBlocks: gb } = await import('../services/coreMemoryService.js');
+            const resp = await llmComplete({
+              messages: [{ role: 'user', content: `Extract the core rule or preference from this message. Return ONLY the rule as a short statement (max 80 chars). No quotes, no explanation.\n\nMessage: "${message}"` }],
+              tier, maxTokens: 60, temperature: 0, userId, purpose: 'extract_user_rule'
+            });
+            const rule = (resp?.content || resp?.text || '').trim().slice(0, 120);
+            if (rule.length >= 3) {
+              const blocks = await gb(userId);
+              const existing = (blocks.user_rules?.content || '').split('\n').filter(l => l.trim());
+              if (existing.length < 20 && !existing.some(r => r.toLowerCase() === rule.toLowerCase())) {
+                existing.push(rule);
+                await ub(userId, 'user_rules', existing.join('\n'), 'twin');
+                log.info('User rule saved from chat', { userId, rule });
+              }
+            }
+          } catch (err) {
+            log.warn('Failed to extract user rule', { userId, error: err.message });
+          }
+        })();
+      } else {
+        // Other task types: inject awareness so twin acknowledges capability
+        const taskBlock = `\n\n[AGENTIC CAPABILITY: ${taskIntent.taskType.toUpperCase()}]\nThe user is requesting an action (${taskIntent.taskType}). You're developing agentic capabilities for this. Acknowledge their request naturally — explain what you understand they want and how you'd approach it. Be helpful and conversational, not robotic. If it's something you can discuss or advise on, do that now.`;
+        const lastBlock = systemPrompt[systemPrompt.length - 1];
+        if (lastBlock && !lastBlock.cache_control) {
+          lastBlock.text += taskBlock;
+        } else {
+          systemPrompt.push({ type: 'text', text: taskBlock.trim() });
+        }
+      }
+    } else if (taskIntent.isTask) {
+      // Low-confidence task intent — log for learning but don't route
+      log.debug('Task intent below routing threshold', {
+        userId, taskType: taskIntent.taskType, confidence: taskIntent.confidence
+      });
+    }
+
     // Smart routing: classify message complexity to select cheapest adequate model
     let routedModel = null;
     let routingTier = null;
@@ -715,7 +857,19 @@ Make it sound natural and curious, not like a survey question.`;
     // Send message via LLM Gateway
     let assistantMessage;
     const chatSource = 'direct';
-    const llmMessages = [...conversationHistory, { role: 'user', content: message }];
+    let llmMessages = [...conversationHistory, { role: 'user', content: message }];
+
+    // Context condensation — replace truncation with intelligent summarization
+    // Fires once when messages exceed threshold, preserving critical context
+    try {
+      llmMessages = await condenseIfNeeded(llmMessages, {
+        thresholdTokens: 12000,
+        recentTurnsToKeep: 8,
+        userId
+      });
+    } catch (condenseErr) {
+      log.warn('Context condensation failed (non-fatal)', { error: condenseErr.message });
+    }
 
     if (isStreaming) {
       try {
@@ -940,6 +1094,46 @@ Make it sound natural and curious, not like a survey question.`;
       markInsightsDelivered(insightIds).catch(err =>
         log.warn('Failed to mark insights delivered', { error: err })
       );
+    }
+
+    // Session tracking for post-conversation reflection (Inngest)
+    // Track last message time. When 15 min pass without a message,
+    // Inngest triggers a session reflection (facts, HUMAN block update, follow-ups).
+    // Uses Redis with in-memory Map fallback (same pattern as chatRateLimitMap).
+    if (!evalMode) {
+      try {
+        let prevTimestamp = null;
+        const sessionKey = `twin:lastMsg:${userId}`;
+        const nowStr = Date.now().toString();
+
+        // Try Redis first
+        const client = getRedisClient();
+        if (client && isRedisAvailable()) {
+          prevTimestamp = await client.get(sessionKey);
+          await client.set(sessionKey, nowStr, 'EX', 1800); // 30 min TTL
+        } else {
+          // In-memory fallback
+          if (!global._twinSessionTracker) global._twinSessionTracker = new Map();
+          prevTimestamp = global._twinSessionTracker.get(userId);
+          global._twinSessionTracker.set(userId, nowStr);
+        }
+
+        // If there was a previous message and it was >15 min ago, a new session started
+        // The OLD session ended — trigger reflection for it
+        if (prevTimestamp) {
+          const gap = Date.now() - parseInt(prevTimestamp);
+          if (gap > 15 * 60 * 1000) { // 15 minute silence = session ended
+            log.info('Session gap detected, triggering reflection', { userId, gapMinutes: Math.round(gap / 60000) });
+            // Fire Inngest event for session reflection (non-blocking)
+            import('../services/inngestClient.js').then(({ inngest, EVENTS }) => {
+              inngest.send({ name: EVENTS.SESSION_ENDED, data: { userId } })
+                .catch(err => log.warn('Inngest session reflection trigger failed', { error: err }));
+            });
+          }
+        }
+      } catch (sessionErr) {
+        log.debug('Session tracking failed (non-fatal)', { error: sessionErr.message });
+      }
     }
 
     // Return response

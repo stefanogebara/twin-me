@@ -12,6 +12,7 @@ import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 import { NextEventCard } from './components/dashboard/NextEventCard';
 import { TwinInsightsGrid } from './components/dashboard/TwinInsightsGrid';
+import AgentActivityFeed from './components/dashboard/AgentActivityFeed';
 import { TwinReadinessScore } from '@/components/twin/TwinReadinessScore';
 import { DailyCheckin } from '@/components/twin/DailyCheckin';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -645,6 +646,22 @@ export const Dashboard: React.FC = () => {
         insightLinks={insightLinks}
         onNavigate={navigate}
       />
+
+      {/* Agent Activity Feed */}
+      <div
+        className="rounded-[20px] px-5 py-4"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <h3 className="text-sm font-medium mb-3" style={{ color: 'var(--foreground)' }}>
+          Twin Activity
+        </h3>
+        <AgentActivityFeed />
+      </div>
     </div>
   );
 };

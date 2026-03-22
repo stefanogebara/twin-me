@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { Download, Trash2, Info, Shield, ArrowRight, Sparkles } from 'lucide-react';
+import { Download, Trash2, Info, Shield, ArrowRight, Sparkles, Send, ExternalLink, Check } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
+import AutonomySettings from './components/settings/AutonomySettings';
+import UserRulesSettings from './components/settings/UserRulesSettings';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -76,6 +78,97 @@ const ToggleSwitch: React.FC<{
     />
   </button>
 );
+
+const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
+  const [status, setStatus] = useState<{ linked: boolean; enabled: boolean } | null>(null);
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [botUsername, setBotUsername] = useState('TwinMeBot');
+
+  useEffect(() => {
+    fetch(`${API_URL}/telegram/status`, { headers: getAuthHeaders() })
+      .then(r => r.json())
+      .then(d => { if (d.success) setStatus({ linked: d.linked, enabled: d.enabled }); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const generateCode = async () => {
+    if (isDemoMode) return;
+    const res = await fetch(`${API_URL}/telegram/generate-code`, {
+      method: 'POST', headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setLinkCode(data.code);
+      if (data.botUsername) setBotUsername(data.botUsername);
+    }
+  };
+
+  const handleUnlink = async () => {
+    await fetch(`${API_URL}/telegram/unlink`, { method: 'DELETE', headers: getAuthHeaders() });
+    setStatus({ linked: false, enabled: false });
+    setLinkCode(null);
+  };
+
+  if (loading) return <div className="py-4 text-center text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Loading...</div>;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="flex items-center gap-3">
+          <Send className="w-4 h-4" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+          <div>
+            <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
+            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {status?.linked ? 'Connected — twin sends insights here' : 'Chat with your twin on Telegram'}
+            </p>
+          </div>
+        </div>
+        {status?.linked ? (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[11px]" style={{ color: 'rgba(16,183,127,0.8)' }}>
+              <Check className="w-3 h-3" /> Linked
+            </span>
+            <button
+              onClick={handleUnlink}
+              className="text-[11px] transition-opacity hover:opacity-60"
+              style={{ color: 'rgba(255,255,255,0.3)' }}
+            >
+              Unlink
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={generateCode}
+            disabled={isDemoMode || !!linkCode}
+            className="text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
+          >
+            Connect
+          </button>
+        )}
+      </div>
+
+      {linkCode && !status?.linked && (
+        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="text-2xl font-mono tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
+              {linkCode}
+            </span>
+          </div>
+          <div className="flex items-start gap-2">
+            <ExternalLink className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Open Telegram, search for <strong style={{ color: 'rgba(255,255,255,0.6)' }}>@{botUsername}</strong>, and send: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>/start {linkCode}</strong>
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ── Main page ────────────────────────────────────────────────────────────
 
@@ -389,7 +482,49 @@ const Settings = () => {
         </SettingsRow>
       </div>
 
-      {/* ── SECTION 5: DATA & PRIVACY ── */}
+      {/* ── SECTION 5: TWIN AUTONOMY ── */}
+      <SectionLabel label="Twin Autonomy" />
+      <div
+        className="rounded-[20px] px-5 py-4 mb-10"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <AutonomySettings isDemoMode={isDemoMode} />
+      </div>
+
+      {/* ── SECTION 5B: USER RULES ── */}
+      <SectionLabel label="Twin Rules" />
+      <div
+        className="rounded-[20px] px-5 py-4 mb-10"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <UserRulesSettings isDemoMode={isDemoMode} />
+      </div>
+
+      {/* ── SECTION 6: MESSAGING CHANNELS ── */}
+      <SectionLabel label="Messaging" />
+      <div
+        className="rounded-[20px] px-5 py-4 mb-10"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <TelegramConnect isDemoMode={isDemoMode} />
+      </div>
+
+      {/* ── SECTION 7: DATA & PRIVACY ── */}
       <SectionLabel label="Data & Privacy" />
       <div
         className="rounded-[20px] px-5 py-4 mb-10"

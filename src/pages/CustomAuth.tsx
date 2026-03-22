@@ -169,7 +169,7 @@ For privacy concerns: privacy@twinme.ai`
   return (
     <div
       className="min-h-screen flex"
-      style={{ backgroundColor: '#110f0f' }}
+      style={{ backgroundColor: '#13121a' }}
     >
       {/* Left panel — form (glass surface per Design Rule #1) */}
       <div className="flex-1 flex items-center justify-center px-6">
@@ -233,13 +233,13 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
             style={{
-              backgroundColor: 'rgba(255,132,0,0.08)',
-              border: '1px solid rgba(255,132,0,0.2)',
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#ff8400' }} />
+            <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }} />
             <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
-              Invite code: <strong style={{ color: '#ff8400', letterSpacing: '1px' }}>{inviteCode}</strong>
+              Invite code: <strong style={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '1px' }}>{inviteCode}</strong>
             </span>
           </div>
         ) : (
@@ -284,7 +284,7 @@ For privacy concerns: privacy@twinme.ai`
               <button
                 onClick={() => navigate('/waitlist')}
                 className="underline transition-opacity hover:opacity-70"
-                style={{ color: 'rgba(255,132,0,0.6)' }}
+                style={{ color: 'rgba(255,255,255,0.3)' }}
               >
                 Join the waitlist
               </button>
@@ -327,7 +327,7 @@ For privacy concerns: privacy@twinme.ai`
           className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
-            color: '#110f0f',
+            color: '#13121a',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -385,7 +385,7 @@ For privacy concerns: privacy@twinme.ai`
           <button
             onClick={() => navigate('/discover')}
             className="transition-opacity hover:opacity-70"
-            style={{ color: '#ff8400' }}
+            style={{ color: 'rgba(255,255,255,0.85)' }}
           >
             Learn more
           </button>
@@ -459,7 +459,7 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
             style={{
-              backgroundColor: '#110f0f',
+              backgroundColor: '#13121a',
               border: '1px solid rgba(255,255,255,0.06)',
             }}
             onClick={e => e.stopPropagation()}

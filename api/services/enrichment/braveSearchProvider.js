@@ -101,11 +101,20 @@ export async function searchWithBrave(name, email) {
   const nameQuery = domainName ? `"${name}" "${domainName}"` : `"${name}"`;
 
   const queries = [
+    // Core identity
     nameQuery,
-    `"${emailUsername}" site:github.com OR site:linkedin.com OR site:twitter.com OR site:instagram.com`,
     `"${name}" site:linkedin.com/in`,
-    `${nameQuery} (interview OR podcast OR TEDx OR personal OR profile OR biography)`,
-    `"${name}" site:twitter.com OR site:instagram.com OR site:facebook.com OR site:medium.com`,
+    // Social profiles (dev + mainstream)
+    `"${emailUsername}" site:github.com OR site:linkedin.com OR site:twitter.com OR site:instagram.com`,
+    `"${emailUsername}" site:pinterest.com OR site:goodreads.com OR site:strava.com OR site:tiktok.com`,
+    // Personal stories — works for anyone (student, professional, retiree)
+    `${nameQuery} (interview OR podcast OR "about me" OR profile OR biography OR "my story")`,
+    // Social media presence (mainstream platforms)
+    `"${name}" site:twitter.com OR site:instagram.com OR site:facebook.com OR site:medium.com OR site:youtube.com`,
+    // Education + community (great for students, alumni, volunteers)
+    `"${name}" (university OR graduated OR "class of" OR student OR alumni OR volunteer OR community)`,
+    // Hobbies, interests, lifestyle (normal people signal)
+    `"${name}" (blog OR writes OR photographer OR artist OR coach OR teacher OR runner OR musician OR chef)`,
   ];
 
   const results = await Promise.allSettled(
@@ -127,9 +136,27 @@ export async function searchWithBrave(name, email) {
   if (allSnippets.length < 10) return null;
 
   const blockedDomains = ['linkedin.com', 'facebook.com', 'instagram.com'];
-  const corporateBoilerplate = ['sec.gov', 'bloomberg.com', 'reuters.com', 'marketwatch.com', 'finance.yahoo.com', 'crunchbase.com', 'dnb.com', 'zoominfo.com', 'opencorporates.com'];
-  const personalGoldmine = ['medium.com', 'substack.com', 'wordpress.com', 'blogspot.com', 'ted.com', 'youtube.com', 'github.com', 'twitter.com', 'x.com', 'about.me', 'behance.net', 'dribbble.com'];
-  const interviewKeywords = ['interview', 'podcast', 'profile', 'meet', 'conversation', 'about', 'story', 'journey', 'speaker', 'bio', 'who is'];
+  const corporateBoilerplate = ['sec.gov', 'bloomberg.com', 'reuters.com', 'marketwatch.com', 'finance.yahoo.com', 'crunchbase.com', 'dnb.com', 'zoominfo.com', 'opencorporates.com', 'spokeo.com', 'whitepages.com', 'beenverified.com'];
+  const personalGoldmine = [
+    // Creator/writer platforms
+    'medium.com', 'substack.com', 'wordpress.com', 'blogspot.com', 'wix.com',
+    // Social/content
+    'youtube.com', 'twitter.com', 'x.com', 'tiktok.com',
+    // Professional/portfolio
+    'github.com', 'about.me', 'behance.net', 'dribbble.com',
+    // Community/lifestyle
+    'strava.com', 'goodreads.com', 'letterboxd.com', 'pinterest.com',
+    // Speaking/media
+    'ted.com', 'spotify.com',
+    // Education/alumni
+    'alumni.', '.edu',
+  ];
+  const interviewKeywords = [
+    // Traditional
+    'interview', 'podcast', 'profile', 'meet', 'conversation', 'about', 'story', 'journey', 'speaker', 'bio', 'who is',
+    // Normal people signals
+    'volunteer', 'community', 'passion', 'hobby', 'loves', 'enjoys', 'enthusiast', 'graduate', 'student', 'alumni', 'coach', 'mentor', 'teaches',
+  ];
 
   const scoredResults = uniqueResults
     .filter(r => !blockedDomains.some(d => r.url.includes(d)))
@@ -209,18 +236,20 @@ export async function extractPersonalLife(scrapedContent, name, email = null) {
   const prompt = `You are analyzing web content about "${name}" to understand them as a PERSON, not as an employee.${disambiguationNote}
 IGNORE job titles, companies, and career history — that's already captured separately.
 
-Focus ONLY on personal, human details. Look for ANY of these:
-- Hobbies, sports, personal interests
-- Causes they care about, philanthropy, volunteering
-- How they speak, their personality, communication style
-- Personal anecdotes or stories they've shared
-- Opinions they've expressed (not business strategy — personal views)
-- Family background, origin story, where they grew up
-- Books, music, travel, food preferences mentioned anywhere
-- Awards or recognition for non-work things
-- Social media behavior — what they post about beyond work
-- Languages they speak
-- Direct quotes from interviews that reveal personality
+Focus ONLY on personal, human details. This person could be ANYONE — a student, a retiree, a stay-at-home parent, a professional, an artist. Don't assume they have a career. Look for ANY of these:
+- Hobbies, sports, fitness, personal interests, creative pursuits
+- Causes they care about, volunteering, community involvement
+- How they speak, their personality, communication style, humor
+- Personal anecdotes or stories they've shared publicly
+- Opinions they've expressed — personal views, not business strategy
+- Background — where they grew up, cultural identity, languages
+- Taste — books, music, movies, TV, food, travel, fashion
+- Education — school, university, field of study, student activities
+- Social life — clubs, groups, teams, communities they belong to
+- Fitness/wellness — sports they do, races, gym, yoga, etc.
+- Creative output — photography, art, writing, music, cooking
+- Online personality — what they post about, their voice, their vibe
+- Direct quotes that reveal who they are as a person
 
 WEB CONTENT:
 ${scrapedContent.substring(0, 12000)}
@@ -263,7 +292,7 @@ Return ONLY a JSON object. Set fields to null if NO evidence found:
  */
 export async function extractStructuredProfile(snippets, name, email) {
   const prompt = `You are extracting a COMPLETE profile of "${name}" (${email}) to build their digital twin.
-A digital twin needs the WHOLE person — not just their job title. Look for personality, interests, values, opinions, life story.
+A digital twin needs the WHOLE person — not just their job title. This person could be a student, a retiree, an artist, a parent, or a professional. Look for personality, interests, values, hobbies, education, community involvement, creative pursuits, and life story.
 
 Return ONLY a JSON object. Only include fields where you found real evidence. Do not guess or invent.
 

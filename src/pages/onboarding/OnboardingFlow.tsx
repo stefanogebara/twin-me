@@ -57,6 +57,7 @@ const OnboardingFlow: React.FC = () => {
   const currentIdx = STEPS.indexOf(step);
 
   return (
+    <div style={{ background: 'linear-gradient(180deg, #13121a 0%, #0e0e14 50%, #0a0a10 100%)', minHeight: '100vh' }}>
     <Suspense fallback={<LoadingFallback />}>
       {/* Progress dots — hidden on welcome (intro) and awakening (finale) */}
       {step !== 'welcome' && step !== 'awakening' && (
@@ -66,7 +67,7 @@ const OnboardingFlow: React.FC = () => {
               key={s}
               className="w-2 h-2 rounded-full transition-all duration-300"
               style={{
-                backgroundColor: i <= currentIdx ? '#ff8400' : 'rgba(255,255,255,0.15)',
+                backgroundColor: i <= currentIdx ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.15)',
                 transform: i === currentIdx ? 'scale(1.3)' : 'scale(1)',
               }}
             />
@@ -93,6 +94,7 @@ const OnboardingFlow: React.FC = () => {
         <AwakeningScreen onEnter={handleComplete} />
       )}
     </Suspense>
+    </div>
   );
 };
 

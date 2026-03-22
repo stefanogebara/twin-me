@@ -8,6 +8,7 @@ import { encryptToken, encryptState, decryptState } from '../services/encryption
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import * as betaInviteService from '../services/betaInviteService.js';
 import { sendWelcomeEmail } from '../services/emailService.js';
+import { seedMemoriesFromEnrichment } from '../services/enrichmentMemoryBridge.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
@@ -23,8 +24,10 @@ function resolveAppUrl(req) {
   const host = req?.get('host') || '';
   // Production custom domain
   if (host.includes('twinme.me')) return 'https://twinme.me';
-  // Vercel deployment — always use canonical production domain
-  if (host.includes('vercel.app')) return 'https://twinme.me';
+  // Vercel deployment — use canonical production alias (registered in Google OAuth)
+  // NOT the deployment-specific URL (twin-ai-learn-abc123-xxx.vercel.app)
+  // NOT twinme.me (was causing redirect_uri mismatch when domain was down)
+  if (host.includes('vercel.app')) return 'https://twin-ai-learn.vercel.app';
 
   // Local development fallback
   return process.env.VITE_APP_URL || 'http://localhost:8086';
@@ -260,7 +263,15 @@ router.post('/signup', authLimiter, async (req, res) => {
           return profileEnrichmentService.saveEnrichment(newUser.id, normalizedEmail, data);
         }
       })
-      .then(() => log.info('Enrichment completed for email signup user', { userId: newUser.id }))
+      .then(() => {
+        log.info('Enrichment completed for email signup user', { userId: newUser.id });
+        return seedMemoriesFromEnrichment(newUser.id);
+      })
+      .then(seedResult => {
+        if (seedResult?.memoriesStored) {
+          log.info('Enrichment memories seeded (email signup)', { userId: newUser.id, count: seedResult.memoriesStored });
+        }
+      })
       .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
     res.json({
@@ -802,7 +813,16 @@ router.get('/oauth/callback', async (req, res) => {
             return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
           }
         })
-        .then(() => log.info('Enrichment completed for user', { userId: user.id }))
+        .then(() => {
+          log.info('Enrichment completed for user', { userId: user.id });
+          // Seed enrichment data into memory stream so twin knows from first conversation
+          return seedMemoriesFromEnrichment(user.id);
+        })
+        .then(seedResult => {
+          if (seedResult?.memoriesStored) {
+            log.info('Enrichment memories seeded', { userId: user.id, count: seedResult.memoriesStored });
+          }
+        })
         .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
       // Send welcome email (non-blocking)
@@ -1069,7 +1089,15 @@ router.post('/oauth/callback', async (req, res) => {
               return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
             }
           })
-          .then(() => log.info('Enrichment completed for user', { userId: user.id }))
+          .then(() => {
+            log.info('Enrichment completed for user (POST)', { userId: user.id });
+            return seedMemoriesFromEnrichment(user.id);
+          })
+          .then(seedResult => {
+            if (seedResult?.memoriesStored) {
+              log.info('Enrichment memories seeded (POST)', { userId: user.id, count: seedResult.memoriesStored });
+            }
+          })
           .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
         // Send welcome email (non-blocking)

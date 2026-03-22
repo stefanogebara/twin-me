@@ -1,0 +1,239 @@
+/**
+ * Autonomy Service — Per-Skill, Per-User Autonomy Controls
+ * ==========================================================
+ * Implements the 5-level Autonomy Spectrum for twin actions.
+ * Users control what the twin can do per skill category.
+ *
+ * Levels:
+ *   0 = OBSERVE    — Twin watches, learns, never acts
+ *   1 = SUGGEST    — Twin suggests actions in chat
+ *   2 = DRAFT      — Twin prepares actions, waits for approval
+ *   3 = ACT_NOTIFY — Twin acts, then notifies what it did
+ *   4 = AUTONOMOUS — Twin acts silently, surfaces outcomes only
+ *
+ * Research:
+ *   - Smashing Magazine Agentic AI UX Patterns (2026)
+ *   - Anthropic Measuring Agent Autonomy (2025)
+ *   - NemoClaw Policy-Based Guardrails
+ */
+
+import { supabaseAdmin } from './database.js';
+import { createLogger } from './logger.js';
+
+const log = createLogger('Autonomy');
+
+export const AUTONOMY_LEVELS = Object.freeze({
+  OBSERVE: 0,
+  SUGGEST: 1,
+  DRAFT_CONFIRM: 2,
+  ACT_NOTIFY: 3,
+  AUTONOMOUS: 4
+});
+
+export const AUTONOMY_LABELS = Object.freeze({
+  0: 'Observe Only',
+  1: 'Suggest',
+  2: 'Draft & Confirm',
+  3: 'Act & Notify',
+  4: 'Full Autonomy'
+});
+
+/**
+ * Get effective autonomy level for a user + skill combination.
+ * Priority: user override > skill default > global default (1 = SUGGEST)
+ */
+export async function getAutonomyLevel(userId, skillId) {
+  try {
+    // Check for user override
+    const { data: userSetting } = await supabaseAdmin
+      .from('user_skill_settings')
+      .select('autonomy_level, is_enabled')
+      .eq('user_id', userId)
+      .eq('skill_id', skillId)
+      .single();
+
+    if (userSetting) {
+      if (!userSetting.is_enabled) return -1; // Skill disabled
+      return userSetting.autonomy_level;
+    }
+
+    // Fall back to skill default
+    const { data: skill } = await supabaseAdmin
+      .from('skill_definitions')
+      .select('default_autonomy_level')
+      .eq('id', skillId)
+      .single();
+
+    return skill?.default_autonomy_level ?? AUTONOMY_LEVELS.SUGGEST;
+  } catch (err) {
+    log.warn('Failed to get autonomy level, defaulting to SUGGEST', { userId, skillId, error: err.message });
+    return AUTONOMY_LEVELS.SUGGEST;
+  }
+}
+
+/**
+ * Get autonomy level by skill name (convenience method).
+ */
+export async function getAutonomyBySkillName(userId, skillName) {
+  try {
+    const { data: skill } = await supabaseAdmin
+      .from('skill_definitions')
+      .select('id, default_autonomy_level')
+      .eq('name', skillName)
+      .single();
+
+    if (!skill) return AUTONOMY_LEVELS.SUGGEST;
+
+    return getAutonomyLevel(userId, skill.id);
+  } catch (err) {
+    log.warn('Failed to get autonomy by skill name', { userId, skillName, error: err.message });
+    return AUTONOMY_LEVELS.SUGGEST;
+  }
+}
+
+/**
+ * Set autonomy level for a user + skill combination.
+ */
+export async function setAutonomyLevel(userId, skillId, level) {
+  if (level < 0 || level > 4) {
+    throw new Error(`Invalid autonomy level: ${level}. Must be 0-4.`);
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('user_skill_settings')
+    .upsert({
+      user_id: userId,
+      skill_id: skillId,
+      autonomy_level: level,
+      is_enabled: true,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,skill_id' })
+    .select()
+    .single();
+
+  if (error) {
+    log.error('Failed to set autonomy level', { userId, skillId, level, error });
+    throw error;
+  }
+
+  log.info('Autonomy level set', { userId, skillId, level, label: AUTONOMY_LABELS[level] });
+  return data;
+}
+
+/**
+ * Check if the twin can take a specific action type at the current autonomy level.
+ *
+ * @returns {Object} { allowed, level, requiresConfirmation, label }
+ */
+export function canAct(autonomyLevel, actionType) {
+  // Map action types to minimum required autonomy level
+  const ACTION_THRESHOLDS = {
+    observe: 0,     // Just watching — always allowed
+    suggest: 1,     // Suggest in chat
+    draft: 2,       // Prepare draft for approval
+    execute: 3,     // Actually do something
+    silent: 4       // Do without notifying
+  };
+
+  const requiredLevel = ACTION_THRESHOLDS[actionType] ?? 1;
+
+  return {
+    allowed: autonomyLevel >= requiredLevel,
+    level: autonomyLevel,
+    requiredLevel,
+    requiresConfirmation: autonomyLevel === AUTONOMY_LEVELS.DRAFT_CONFIRM && actionType === 'execute',
+    label: AUTONOMY_LABELS[autonomyLevel]
+  };
+}
+
+/**
+ * Get all skill settings for a user (for the settings UI).
+ * Returns skills with their effective autonomy levels.
+ */
+export async function getUserSkillSettings(userId) {
+  try {
+    // Get all skills
+    const { data: skills } = await supabaseAdmin
+      .from('skill_definitions')
+      .select('id, name, display_name, description, category, default_autonomy_level, is_enabled, required_platforms')
+      .eq('is_enabled', true)
+      .order('category');
+
+    if (!skills) return [];
+
+    // Get user overrides
+    const { data: userSettings } = await supabaseAdmin
+      .from('user_skill_settings')
+      .select('skill_id, autonomy_level, is_enabled')
+      .eq('user_id', userId);
+
+    const overrideMap = {};
+    for (const s of (userSettings || [])) {
+      overrideMap[s.skill_id] = s;
+    }
+
+    // Merge
+    return skills.map(skill => {
+      const override = overrideMap[skill.id];
+      return {
+        ...skill,
+        effective_autonomy_level: override?.autonomy_level ?? skill.default_autonomy_level,
+        user_enabled: override?.is_enabled ?? true,
+        has_override: !!override,
+        autonomy_label: AUTONOMY_LABELS[override?.autonomy_level ?? skill.default_autonomy_level]
+      };
+    });
+  } catch (err) {
+    log.error('Failed to get user skill settings', { userId, error: err.message });
+    return [];
+  }
+}
+
+/**
+ * Log an agent action with autonomy context.
+ */
+export async function logAgentAction(userId, actionData) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('agent_actions')
+      .insert({
+        user_id: userId,
+        skill_name: actionData.skillName || null,
+        action_type: actionData.actionType,
+        action_content: actionData.content,
+        autonomy_level: actionData.autonomyLevel || 1,
+        personality_context: actionData.personalityContext || null,
+        platform_sources: actionData.platformSources || [],
+      })
+      .select()
+      .single();
+
+    if (error) {
+      log.error('Failed to log agent action', { userId, error });
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    log.error('Error logging agent action', { userId, error: err.message });
+    return null;
+  }
+}
+
+/**
+ * Record user response to an agent action.
+ */
+export async function recordActionResponse(actionId, response, outcomeData = null) {
+  const { error } = await supabaseAdmin
+    .from('agent_actions')
+    .update({
+      user_response: response,
+      outcome_data: outcomeData,
+      resolved_at: new Date().toISOString()
+    })
+    .eq('id', actionId);
+
+  if (error) {
+    log.error('Failed to record action response', { actionId, error });
+  }
+}

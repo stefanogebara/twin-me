@@ -180,8 +180,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 <span
                   className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
                   style={{
-                    backgroundColor: 'rgba(255,132,0,0.12)',
-                    color: '#ff8400',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    color: 'rgba(255,255,255,0.6)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >

@@ -104,6 +104,84 @@ export async function collectFromUserFeedback(userId, userMessage, rejectedRespo
 }
 
 /**
+ * Collect DPO preference pairs from agent action outcomes.
+ * When the twin has both accepted and rejected actions for the same skill,
+ * the accepted action's framing becomes `chosen` and the rejected becomes `rejected`.
+ *
+ * Quality score: 0.8 (high — direct user action, not just chat thumbs).
+ * Source: 'action_feedback'.
+ *
+ * @param {string} userId
+ * @param {string} skillName - The skill that generated these actions
+ * @param {Array<{content: string, response: string}>} actions - Actions with user_response
+ * @returns {{ created: number, skipped: number }}
+ */
+export async function collectFromActionFeedback(userId, skillName, actions) {
+  if (!userId || !skillName || !actions?.length) {
+    return { created: 0, skipped: 0 };
+  }
+
+  const accepted = actions.filter(a => a.response === 'accepted' || a.response === 'positive');
+  const rejected = actions.filter(a => a.response === 'rejected' || a.response === 'negative');
+
+  if (accepted.length === 0 || rejected.length === 0) {
+    return { created: 0, skipped: actions.length };
+  }
+
+  let created = 0;
+  let skipped = 0;
+
+  // Create pairs by pairing each rejected with a random accepted (up to 5 pairs per skill)
+  const maxPairs = Math.min(5, rejected.length);
+  for (let i = 0; i < maxPairs; i++) {
+    const chosenIdx = i % accepted.length;
+    const chosenContent = accepted[chosenIdx].content;
+    const rejectedContent = rejected[i].content;
+
+    // Skip if too similar
+    if (chosenContent.trim() === rejectedContent.trim()) {
+      skipped++;
+      continue;
+    }
+
+    try {
+      const promptMessages = [{
+        role: 'system',
+        content: `Twin skill "${skillName}" proactive action context`,
+      }];
+
+      const { data, error } = await supabaseAdmin
+        .from('preference_pairs')
+        .insert({
+          user_id: userId,
+          prompt_messages: promptMessages,
+          chosen_response: chosenContent,
+          rejected_response: rejectedContent,
+          source: 'action_feedback',
+          source_detail: `skill:${skillName}`,
+          quality_score: 0.8,
+          user_validated: true,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        log.warn('Failed to insert action preference pair', { error: error.message });
+        skipped++;
+      } else {
+        created++;
+        log.info('Collected action preference pair', { id: data.id, skill: skillName });
+      }
+    } catch (err) {
+      log.warn('Action preference collection error', { error: err.message });
+      skipped++;
+    }
+  }
+
+  return { created, skipped };
+}
+
+/**
  * Get preference pair stats for a user.
  */
 export async function getPreferenceStats(userId) {

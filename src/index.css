@@ -17,13 +17,13 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Dark only */
-    --background: #110f0f;
+    /* Background Colors — Night sky */
+    --background: #13121a;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
     /* Claude Theme Variables */
-    --claude-bg: #110f0f;
+    --claude-bg: #13121a;
     --claude-surface: rgba(255, 255, 255, 0.06);
     --claude-surface-raised: rgba(255, 255, 255, 0.12);
     --claude-text: #F5F5F4;
@@ -51,7 +51,7 @@
     /* Interactive Colors */
     --primary: #F5F5F4;
     --primary-foreground: #110f0f;
-    --ring: rgba(255, 255, 255, 0.15);
+    --ring: rgba(255, 132, 0, 0.25);
 
     /* Component Colors */
     --card: rgba(255, 255, 255, 0.06);
@@ -76,7 +76,7 @@
     --sidebar-accent: rgba(255, 255, 255, 0.08);
     --sidebar-accent-foreground: #F5F5F4;
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --sidebar-ring: rgba(255, 255, 255, 0.15);
+    --sidebar-ring: rgba(255, 132, 0, 0.25);
 
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
@@ -125,8 +125,8 @@
     --expert-personality-bg: rgba(139, 92, 246, 0.08);
     --expert-lifestyle: #10B981;
     --expert-lifestyle-bg: rgba(16, 185, 129, 0.08);
-    --expert-cultural: #F59E0B;
-    --expert-cultural-bg: rgba(245, 158, 11, 0.08);
+    --expert-cultural: rgba(255,255,255,0.5);
+    --expert-cultural-bg: rgba(255, 255, 255, 0.04);
     --expert-social: #3B82F6;
     --expert-social-bg: rgba(59, 130, 246, 0.08);
     --expert-motivation: #EF4444;

@@ -303,4 +303,69 @@ async function safeRun(fn) {
   }
 }
 
+/**
+ * GET /api/dashboard/context/timeline
+ * Today's twin activity: proactive insights + agent actions merged chronologically.
+ */
+router.get('/timeline', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Cache check
+    const cacheKey = `timeline:${userId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) return res.json(JSON.parse(cached));
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayISO = todayStart.toISOString();
+
+    const [{ data: insights }, { data: actions }] = await Promise.all([
+      supabaseAdmin
+        .from('proactive_insights')
+        .select('id, insight, category, urgency, delivered, created_at')
+        .eq('user_id', userId)
+        .gte('created_at', todayISO)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from('agent_actions')
+        .select('id, skill_name, action_type, action_content, user_response, created_at')
+        .eq('user_id', userId)
+        .gte('created_at', todayISO)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]);
+
+    const timeline = [
+      ...(insights || []).map(i => ({
+        id: i.id,
+        type: 'insight',
+        title: i.category?.replace(/_/g, ' ') || 'Insight',
+        body: (i.insight || '').slice(0, 200),
+        category: i.category,
+        timestamp: i.created_at,
+        metadata: { urgency: i.urgency, delivered: i.delivered },
+      })),
+      ...(actions || []).map(a => ({
+        id: a.id,
+        type: 'action',
+        title: a.skill_name?.replace(/_/g, ' ') || a.action_type || 'Action',
+        body: (a.action_content || '').slice(0, 200),
+        category: a.skill_name || a.action_type,
+        timestamp: a.created_at,
+        metadata: { response: a.user_response },
+      })),
+    ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const result = { timeline };
+    cacheSet(cacheKey, JSON.stringify(result), 60).catch(() => {});
+
+    return res.json(result);
+  } catch (err) {
+    log.error('Timeline fetch failed', { error: err.message });
+    return res.status(500).json({ error: 'Timeline unavailable' });
+  }
+});
+
 export default router;

@@ -29,6 +29,8 @@ import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveIns
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
+import { checkConditionTriggered } from './prospectiveMemoryService.js';
+import { tagSensitivity } from './sensitivityClassifier.js';
 
 import { createLogger } from './logger.js';
 
@@ -141,6 +143,139 @@ async function isDuplicate(userId, platform, content, contentType) {
     log.warn('De-dup check failed, proceeding', { error: err });
     return false;
   }
+}
+
+// ====================================================================
+// Prospective memory: extract metrics from observations for condition triggers
+// ====================================================================
+
+// Platform categories for skill triggers and metric extraction
+const HEALTH_PLATFORMS = ['whoop', 'oura', 'garmin', 'fitbit', 'strava'];
+const CALENDAR_PLATFORMS = ['google_calendar', 'outlook'];
+const MUSIC_PLATFORMS = ['spotify', 'apple_music'];
+
+// Registry of metric extractors per platform — add new platforms here
+const METRIC_EXTRACTORS = {
+  // Health platforms
+  whoop: [
+    [/Recovery score:\s*(\d+)%/i, 'recovery', parseInt],
+    [/HRV\s+(\d+)ms/i, 'hrv', parseInt],
+    [/resting heart rate\s+(\d+)bpm/i, 'resting_heart_rate', parseInt],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/sleep performance\s+(\d+)%/i, 'sleep_performance', parseInt],
+    [/strain[:\s]+(\d+\.?\d*)/i, 'strain', parseFloat],
+  ],
+  oura: [
+    [/Readiness(?:\s+score)?:\s*(\d+)/i, 'readiness', parseInt],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/Sleep score:\s*(\d+)/i, 'sleep_score', parseInt],
+    [/HRV\s+(\d+)/i, 'hrv', parseInt],
+    [/activity score:\s*(\d+)/i, 'activity_score', parseInt],
+  ],
+  garmin: [
+    [/Body Battery:\s*(\d+)/i, 'body_battery', parseInt],
+    [/Stress:\s*(\d+)/i, 'stress', parseInt],
+    [/(\d[\d,]*)\s*steps/i, 'steps', s => parseInt(s.replace(/,/g, ''), 10)],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/VO2\s*Max:\s*(\d+)/i, 'vo2_max', parseInt],
+  ],
+  fitbit: [
+    [/(\d[\d,]*)\s*steps/i, 'steps', s => parseInt(s.replace(/,/g, ''), 10)],
+    [/Slept\s+([\d.]+)\s+hours/i, 'sleep_hours', parseFloat],
+    [/Sleep score:\s*(\d+)/i, 'sleep_score', parseInt],
+    [/resting heart rate\s+(\d+)/i, 'resting_heart_rate', parseInt],
+    [/active minutes:\s*(\d+)/i, 'active_minutes', parseInt],
+  ],
+  strava: [
+    [/(\d+\.?\d*)\s*(?:km|miles)/i, 'distance', parseFloat],
+    [/(\d+)\s*min(?:utes)?\s+(?:run|ride|swim|activity)/i, 'activity_minutes', parseInt],
+    [/(?:average|avg)\s+(?:heart rate|HR):\s*(\d+)/i, 'avg_heart_rate', parseInt],
+  ],
+  // Music platforms
+  spotify: [
+    [/Currently listening/i, 'is_playing', () => 1],
+    [/(\d+)\s*minutes?\s+of\s+listening/i, 'listening_minutes', parseInt],
+  ],
+  apple_music: [
+    [/Currently listening/i, 'is_playing', () => 1],
+  ],
+  // Calendar/schedule platforms
+  google_calendar: [
+    [/(\d+)\s+events?\s+today/i, 'events_today', parseInt],
+    [/(\d+)\s+meetings?/i, 'meetings', parseInt],
+  ],
+  outlook: [
+    [/(\d+)\s+events?\s+today/i, 'events_today', parseInt],
+    [/(\d+)\s+meetings?/i, 'meetings', parseInt],
+  ],
+  // Activity platforms
+  github: [
+    [/(\d+)\s+commit/i, 'commits', parseInt],
+    [/(\d+)\s+pull request/i, 'pull_requests', parseInt],
+  ],
+  discord: [
+    [/(\d+)\s+messages?\s+sent/i, 'messages_sent', parseInt],
+  ],
+  youtube: [
+    [/watched\s+(\d+)/i, 'videos_watched', parseInt],
+    [/(\d+)\s*(?:min|minutes)\s+watched/i, 'watch_minutes', parseInt],
+  ],
+};
+
+/**
+ * Extract numeric metrics from observation strings for condition-triggered
+ * prospective memory matching. Platform-agnostic — uses METRIC_EXTRACTORS registry.
+ *
+ * @param {string} platform - Platform name
+ * @param {Array} observations - Array of observation strings or { content } objects
+ * @returns {Object} Extracted metrics (e.g., { recovery: 65, hrv: 45, sleep_hours: 7.2 })
+ */
+function extractPlatformMetrics(platform, observations) {
+  const extractors = METRIC_EXTRACTORS[platform];
+  if (!extractors) return {};
+
+  const metrics = {};
+  for (const obs of observations) {
+    const text = typeof obs === 'string' ? obs : obs.content;
+    if (!text) continue;
+
+    for (const [pattern, metricName, parser] of extractors) {
+      const match = text.match(pattern);
+      if (match) {
+        metrics[metricName] = parser(match[1] || match[0], 10);
+      }
+    }
+  }
+
+  return metrics;
+}
+
+/**
+ * Extract simple keywords from observation text for keyword-based condition matching.
+ * Platform-agnostic — works on any observation text.
+ */
+function extractObservationKeywords(observations) {
+  const keywords = new Set();
+  for (const obs of observations) {
+    const text = (typeof obs === 'string' ? obs : obs.content || '').toLowerCase();
+    // Health/energy keywords
+    if (/low recovery|under-slept|poor sleep|exhausted|low readiness|low body battery/i.test(text)) keywords.add('tired');
+    if (/high recovery|excellent|well-rested|high readiness|fully charged/i.test(text)) keywords.add('energized');
+    if (/workout|exercise|training|gym|run|ride|swim/i.test(text)) keywords.add('workout');
+    // Schedule keywords
+    if (/meeting|call|event|appointment/i.test(text)) keywords.add('meeting');
+    if (/free|no events|open/i.test(text)) keywords.add('free');
+    // Pattern keywords
+    if (/streak/i.test(text)) keywords.add('streak');
+    if (/overtraining|over.?exert/i.test(text)) keywords.add('overtraining');
+    if (/irregular|inconsistent/i.test(text)) keywords.add('irregular');
+    if (/consistent|routine/i.test(text)) keywords.add('consistent');
+    // Social/activity keywords
+    if (/commit|push|pull request|merge/i.test(text)) keywords.add('coding');
+    if (/message|chat|dm|replied/i.test(text)) keywords.add('social');
+    if (/watched|listening|played/i.test(text)) keywords.add('consuming');
+  }
+  return [...keywords];
 }
 
 // ====================================================================
@@ -3412,11 +3547,14 @@ async function runObservationIngestion() {
                 if (dup) continue;
               }
 
-              const result = await addPlatformObservation(userId, content, platform, {
+              const baseMeta = {
                 ingestion_source: 'background',
                 ingested_at: new Date().toISOString(),
                 ...(contentType ? { content_type: contentType } : {}),
-              });
+              };
+              const result = await addPlatformObservation(userId, content, platform,
+                tagSensitivity(content, { ...baseMeta, platform })
+              );
 
               if (result) {
                 userObsCount++;
@@ -3434,6 +3572,35 @@ async function runObservationIngestion() {
               runPlatformExpert(userId, platform).catch(err =>
                 log.warn('Platform expert failed', { platform, userId, error: err })
               );
+
+              // Check prospective memory condition triggers against new platform data.
+              // Non-blocking: fires for condition-triggered memories (e.g., "remind me when recovery < 50").
+              const platformMetrics = extractPlatformMetrics(platform, observations);
+              const platformKeywords = extractObservationKeywords(observations);
+              if (Object.keys(platformMetrics).length > 0 || platformKeywords.length > 0) {
+                checkConditionTriggered(userId, {
+                  platform,
+                  data: platformMetrics,
+                  keywords: platformKeywords,
+                }).catch(err =>
+                  log.warn('Prospective condition check failed (non-fatal)', { platform, userId, error: err })
+                );
+              }
+
+              // Fire Music Mood Match skill when ANY health platform data is ingested.
+              // Also triggers on calendar changes (schedule affects mood assessment).
+              import('./inngestClient.js').then(({ inngest, EVENTS }) => {
+                // Fire Music Mood Match on health/calendar data
+                if (HEALTH_PLATFORMS.includes(platform) || CALENDAR_PLATFORMS.includes(platform)) {
+                  inngest.send({ name: EVENTS.MUSIC_MOOD_MATCH, data: { userId, triggerPlatform: platform } })
+                    .catch(err => log.warn('Music mood match trigger failed', { userId, error: err }));
+                }
+                // Fire Email Triage on email platform data
+                if (platform === 'google_gmail' || platform === 'outlook') {
+                  inngest.send({ name: EVENTS.EMAIL_TRIAGE, data: { userId, triggerPlatform: platform } })
+                    .catch(err => log.warn('Email triage trigger failed', { userId, error: err }));
+                }
+              }).catch(() => {});
             }
 
             // Update last_sync_at in platform_connections for tracking (non-blocking)
@@ -3741,11 +3908,14 @@ async function runPostOnboardingIngestion(userId) {
           const dup = await isDuplicate(userId, platform, content, contentType);
           if (dup) continue;
 
-          const result = await addPlatformObservation(userId, content, platform, {
+          const onboardMeta = {
             ingestion_source: 'post_onboarding',
             ingested_at: new Date().toISOString(),
             ...(contentType ? { content_type: contentType } : {}),
-          });
+          };
+          const result = await addPlatformObservation(userId, content, platform,
+            tagSensitivity(content, { ...onboardMeta, platform })
+          );
           if (result) totalStored++;
         }
       } catch (err) {
