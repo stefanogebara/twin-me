@@ -58,7 +58,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.8 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export const TYPE_DIVERSITY_WEIGHT = 0.45;
 // Formula: confidence * (importance/10) * min(1, CITATION_BASELINE + 0.05 * retrieval_count)
 // Higher baseline = first-retrieval memories get more weight in context.
 // Range: [0.5, 1.0]
-export const ALPHA_CITATION_BASELINE = 0.85;
+export const ALPHA_CITATION_BASELINE = 0.90;
 
 // ─── Memory Context Budgets ───────────────────────────────────────────────────
 // Max memories of each type to include in the twin's context window.
