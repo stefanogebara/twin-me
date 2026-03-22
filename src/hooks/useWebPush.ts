@@ -21,6 +21,17 @@ export function useWebPush(isAuthenticated: boolean) {
   );
   const [subscribed, setSubscribed] = useState(false);
 
+  // Listen for notification click messages from service worker
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'NOTIFICATION_CLICK' && event.data.url) {
+        window.location.href = event.data.url;
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handler);
+    return () => navigator.serviceWorker?.removeEventListener('message', handler);
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;

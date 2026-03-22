@@ -31,19 +31,24 @@ self.addEventListener('notificationclick', (event) => {
 
   if (event.action === 'dismiss') return;
 
-  const url = event.notification.data?.url || '/dashboard';
+  const path = event.notification.data?.url || '/dashboard';
+  // Build full URL from service worker's origin
+  const fullUrl = new URL(path, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       // Focus existing tab if open
       for (const client of windowClients) {
-        if (client.url.includes('twin-ai-learn') || client.url.includes('twinme')) {
-          client.navigate(url);
-          return client.focus();
+        if (client.url.startsWith(self.location.origin)) {
+          return client.focus().then((focused) => {
+            // Navigate via postMessage since client.navigate() isn't universal
+            focused.postMessage({ type: 'NOTIFICATION_CLICK', url: path });
+            return focused;
+          });
         }
       }
-      // Open new tab
-      return clients.openWindow(url);
+      // No existing tab — open new one
+      return clients.openWindow(fullUrl);
     })
   );
 });

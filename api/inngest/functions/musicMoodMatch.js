@@ -18,6 +18,7 @@ import { assessMood } from '../../services/moodAssessmentService.js';
 import { getAutonomyBySkillName, canAct, logAgentAction } from '../../services/autonomyService.js';
 import { getValidAccessToken } from '../../services/tokenRefreshService.js';
 import { isInsightDuplicate } from '../../services/proactiveInsights.js';
+import { acquireCooldownLock } from '../../services/skillCooldownLock.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 import axios from 'axios';
@@ -44,33 +45,14 @@ export const musicMoodMatchFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId } = event.data;
 
-    // Step 1: Check cooldown — skip if triggered recently.
-    // Two-layer cooldown: check both agent_events AND proactive_insights directly.
-    // The proactive_insights check is the source of truth (agent_events can be stale/missing).
-    const shouldSkip = await step.run('check-cooldown', async () => {
-      const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-
-      // Primary cooldown: check proactive_insights for recent music_mood_match entries
-      const { count: insightCount } = await supabaseAdmin
-        .from('proactive_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('category', 'music_mood_match')
-        .gte('created_at', cutoff);
-      if ((insightCount || 0) > 0) return true;
-
-      // Secondary cooldown: check agent_events (legacy, kept for backward compat)
-      const { count: eventCount } = await supabaseAdmin
-        .from('agent_events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('event_type', 'music_mood_match_triggered')
-        .gte('created_at', cutoff);
-      return (eventCount || 0) > 0;
+    // Step 1: Atomic cooldown lock — prevents race conditions where multiple
+    // concurrent Inngest events all pass the check before any writes their result.
+    const lock = await step.run('acquire-cooldown-lock', async () => {
+      return acquireCooldownLock(userId, 'music_mood_match', COOLDOWN_HOURS);
     });
 
-    if (shouldSkip) {
-      return { success: false, reason: 'cooldown', message: `Triggered within last ${COOLDOWN_HOURS}h` };
+    if (!lock.acquired) {
+      return { success: false, reason: 'cooldown', message: lock.reason };
     }
 
     // Step 2: Check prerequisites — autonomy + Spotify connection

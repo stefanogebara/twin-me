@@ -25,6 +25,7 @@ import { normalizeHealthScore } from '../../services/moodAssessmentService.js';
 import { deliverInsight } from '../../services/messageRouter.js';
 import { logAgentAction } from '../../services/autonomyService.js';
 import { isInsightDuplicate } from '../../services/proactiveInsights.js';
+import { acquireCooldownLock } from '../../services/skillCooldownLock.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -38,19 +39,12 @@ export const intelligentTriggersFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId } = event.data;
 
-    // Cooldown
-    const shouldSkip = await step.run('check-cooldown', async () => {
-      const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-      const { count } = await supabaseAdmin
-        .from('agent_events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('event_type', 'intelligent_triggers_checked')
-        .gte('created_at', cutoff);
-      return (count || 0) > 0;
+    // Atomic cooldown lock
+    const lock = await step.run('acquire-cooldown-lock', async () => {
+      return acquireCooldownLock(userId, 'intelligent_triggers', COOLDOWN_HOURS);
     });
 
-    if (shouldSkip) return { success: false, reason: 'cooldown' };
+    if (!lock.acquired) return { success: false, reason: 'cooldown', message: lock.reason };
 
     // Gather all data in parallel
     const data = await step.run('gather-data', async () => {

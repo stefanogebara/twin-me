@@ -17,6 +17,7 @@ import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { getAutonomyBySkillName, logAgentAction } from '../../services/autonomyService.js';
 import { isInsightDuplicate } from '../../services/proactiveInsights.js';
+import { acquireCooldownLock } from '../../services/skillCooldownLock.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -34,20 +35,13 @@ export const eveningRecapFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId } = event.data;
 
-    // Step 1: Cooldown check
-    const shouldSkip = await step.run('check-cooldown', async () => {
-      const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
-      const { count } = await supabaseAdmin
-        .from('agent_events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('event_type', 'evening_recap_generated')
-        .gte('created_at', cutoff);
-      return (count || 0) > 0;
+    // Step 1: Atomic cooldown lock
+    const lock = await step.run('acquire-cooldown-lock', async () => {
+      return acquireCooldownLock(userId, 'evening_recap', COOLDOWN_HOURS);
     });
 
-    if (shouldSkip) {
-      return { success: false, reason: 'cooldown' };
+    if (!lock.acquired) {
+      return { success: false, reason: 'cooldown', message: lock.reason };
     }
 
     // Step 2: Check skill is enabled
