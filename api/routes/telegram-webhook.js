@@ -381,6 +381,16 @@ function isRateLimited(chatId) {
 let webhookHandler = null;
 
 router.post('/', (req, res, next) => {
+  // Verify Telegram secret token if configured (defense-in-depth)
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (secret) {
+    const headerToken = req.headers['x-telegram-bot-api-secret-token'];
+    if (headerToken !== secret) {
+      log.warn('Telegram webhook secret mismatch');
+      return res.sendStatus(403);
+    }
+  }
+
   if (!webhookHandler) {
     const bot = setupBotHandlers();
     if (!bot) {
