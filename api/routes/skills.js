@@ -8,8 +8,18 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { getAvailableSkills, executeSkill, loadSkill } from '../services/skillEngine.js';
 import { parseSkillMarkdown, serializeToMarkdown } from '../services/skillMarkdownParser.js';
+import { inngest, EVENTS } from '../services/inngestClient.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+
+// Map skill names → Inngest events for direct triggering from frontend
+const SKILL_EVENT_MAP = {
+  morning_briefing: EVENTS.GENERATE_BRIEFING,
+  music_mood_match: EVENTS.MUSIC_MOOD_MATCH,
+  evening_recap: EVENTS.EVENING_RECAP,
+  email_triage: EVENTS.EMAIL_TRIAGE,
+  intelligent_triggers: EVENTS.INTELLIGENT_TRIGGERS,
+};
 
 const log = createLogger('SkillsRoutes');
 const router = express.Router();
@@ -54,6 +64,35 @@ router.post('/:skillId/execute', authenticateUser, async (req, res) => {
   } catch (err) {
     log.error('Skill execution failed', { userId: req.user.id, error: err.message });
     return res.status(500).json({ success: false, error: 'Skill execution failed' });
+  }
+});
+
+/**
+ * POST /api/skills/trigger
+ * Trigger an Inngest-based skill directly from the frontend.
+ * Returns immediately — skill executes in background.
+ */
+router.post('/trigger', authenticateUser, async (req, res) => {
+  try {
+    const { skillName } = req.body;
+    const userId = req.user.id;
+
+    if (!skillName || typeof skillName !== 'string') {
+      return res.status(400).json({ error: 'skillName required' });
+    }
+
+    const eventName = SKILL_EVENT_MAP[skillName];
+    if (!eventName) {
+      return res.status(400).json({ error: `Unknown skill: ${skillName}. Available: ${Object.keys(SKILL_EVENT_MAP).join(', ')}` });
+    }
+
+    await inngest.send({ name: eventName, data: { userId } });
+    log.info('Skill triggered from frontend', { userId, skillName, event: eventName });
+
+    return res.json({ success: true, triggered: skillName });
+  } catch (err) {
+    log.error('Skill trigger failed', { error: err.message });
+    return res.status(500).json({ error: 'Failed to trigger skill' });
   }
 });
 

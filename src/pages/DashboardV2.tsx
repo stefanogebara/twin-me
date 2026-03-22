@@ -9,6 +9,7 @@ import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { NextUpEvents } from './components/dashboard-v2/NextUpEvents';
 import { PlatformsList } from './components/dashboard-v2/PlatformsList';
 import { ChatPrompt } from './components/dashboard-v2/ChatPrompt';
+import { DailyTimeline } from './components/dashboard-v2/DailyTimeline';
 
 export function DashboardV2() {
   useDocumentTitle('Dashboard');
@@ -69,6 +70,8 @@ export function DashboardV2() {
         heroInsightId={data.heroInsight?.insightId}
         onEngage={markEngaged}
       />
+
+      <DailyTimeline />
 
       <TwinStats
         readiness={data.twinStats.readiness}

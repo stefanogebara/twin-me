@@ -10,8 +10,26 @@
 
 import { sendInsight as sendTelegramInsight } from './telegramService.js';
 import { sendWhatsAppInsight } from './whatsappService.js';
+import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+
+// Map insight category → friendly push notification title
+const PUSH_TITLES = {
+  briefing: 'Your morning briefing',
+  evening_recap: 'Evening recap',
+  music_mood_match: 'Music suggestion',
+  email_triage: 'Email update',
+  nudge: 'A little nudge',
+  trend: 'Something I noticed',
+  anomaly: 'Heads up',
+  celebration: 'Worth celebrating',
+  concern: 'Checking in',
+  goal_progress: 'Goal update',
+  goal_suggestion: 'New goal idea',
+  suggestion: 'Your twin has a thought',
+  reminder: 'Reminder',
+};
 
 const log = createLogger('MessageRouter');
 
@@ -77,6 +95,25 @@ export async function deliverInsight(userId, insight) {
     }
   }
 
+  // Push notification — universal channel, doesn't require messaging_channels entry
+  // Tokens live in device_tokens table (registered by mobile app)
+  try {
+    const pushResult = await sendPushToUser(userId, {
+      title: PUSH_TITLES[insight.category] || 'Your twin noticed something',
+      body: (insight.insight || '').substring(0, 120),
+      data: { type: 'proactive_insight', category: insight.category, insightId: insight.id },
+      notificationType: 'insight',
+    });
+    if (pushResult?.length > 0) {
+      results.push({ channel: 'push', success: true, tickets: pushResult.length });
+    }
+  } catch (err) {
+    // Non-fatal — user may not have mobile app installed
+    if (!err.message?.includes('No device tokens')) {
+      log.warn('Push delivery failed', { userId, error: err.message });
+    }
+  }
+
   const delivered = results.filter(r => r.success).length;
   if (delivered > 0) {
     log.info('Insight delivered to channels', { userId, delivered, total: channels.length });
@@ -90,15 +127,16 @@ export async function deliverInsight(userId, insight) {
  * Called by cron every 5 minutes.
  */
 export async function deliverPendingInsights() {
-  // Get all users with enabled messaging channels
-  const { data: channelUsers } = await supabaseAdmin
-    .from('messaging_channels')
-    .select('user_id')
-    .eq('is_enabled', true);
+  // Get all users with enabled messaging channels OR registered push tokens
+  const [{ data: channelUsers }, { data: pushUsers }] = await Promise.all([
+    supabaseAdmin.from('messaging_channels').select('user_id').eq('is_enabled', true),
+    supabaseAdmin.from('device_tokens').select('user_id'),
+  ]);
 
-  if (!channelUsers?.length) return { processed: 0, delivered: 0 };
+  const allUsers = [...(channelUsers || []), ...(pushUsers || [])];
+  if (allUsers.length === 0) return { processed: 0, delivered: 0 };
 
-  const uniqueUserIds = [...new Set(channelUsers.map(c => c.user_id))];
+  const uniqueUserIds = [...new Set(allUsers.map(c => c.user_id))];
 
   let totalProcessed = 0;
   let totalDelivered = 0;
