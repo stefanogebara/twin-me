@@ -66,7 +66,7 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.4;
+export const MMR_LAMBDA = 0.5;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
@@ -86,10 +86,10 @@ export const ALPHA_CITATION_BASELINE = 0.85;
 // Max memories of each type to include in the twin's context window.
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
-  reflections:   5,
+  reflections:   7,
   platform_data: 4,
-  facts:         5,    // was 6 — free 1 slot for conversations
-  conversations: 6,    // was 4 — conversation boost (Feature A3)
+  facts:         3,
+  conversations: 6,
 };
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────
