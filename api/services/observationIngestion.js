@@ -3587,20 +3587,13 @@ async function runObservationIngestion() {
                 );
               }
 
-              // Fire Music Mood Match skill when ANY health platform data is ingested.
-              // Also triggers on calendar changes (schedule affects mood assessment).
-              import('./inngestClient.js').then(({ inngest, EVENTS }) => {
-                // Fire Music Mood Match on health/calendar data
-                if (HEALTH_PLATFORMS.includes(platform) || CALENDAR_PLATFORMS.includes(platform)) {
-                  inngest.send({ name: EVENTS.MUSIC_MOOD_MATCH, data: { userId, triggerPlatform: platform } })
-                    .catch(err => log.warn('Music mood match trigger failed', { userId, error: err }));
-                }
-                // Fire Email Triage on email platform data
-                if (platform === 'google_gmail' || platform === 'outlook') {
-                  inngest.send({ name: EVENTS.EMAIL_TRIAGE, data: { userId, triggerPlatform: platform } })
-                    .catch(err => log.warn('Email triage trigger failed', { userId, error: err }));
-                }
-              }).catch(() => {});
+              // Skills are triggered by their own crons + manual button, NOT by every data sync.
+              // Previous approach (firing on every health/calendar ingestion) caused race conditions
+              // where 30+ concurrent events all passed cooldown before any wrote their result.
+              //
+              // Music Mood Match: cron-intelligent-triggers (daily 10am UTC) handles this.
+              // Email Triage: cron-intelligent-triggers (daily 10am UTC) handles this.
+              // Manual trigger: POST /api/skills/trigger from dashboard buttons.
             }
 
             // Update last_sync_at in platform_connections for tracking (non-blocking)
