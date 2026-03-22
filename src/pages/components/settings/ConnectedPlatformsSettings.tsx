@@ -123,11 +123,11 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     </>
                   ) : isExpired ? (
                     <>
-                      <AlertCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
+                      <AlertCircle className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
-                        style={{ color: 'rgba(255,255,255,0.5)' }}
+                        style={{ color: '#f59e0b' }}
                       >
                         Reconnect
                       </button>

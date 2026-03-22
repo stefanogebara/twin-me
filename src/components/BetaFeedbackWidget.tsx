@@ -63,9 +63,9 @@ const BetaFeedbackWidget: React.FC = () => {
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.06)',
-            color: 'rgba(255,255,255,0.85)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            backgroundColor: 'rgba(255,132,0,0.12)',
+            color: '#ff8400',
+            border: '1px solid rgba(255,132,0,0.2)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -103,7 +103,7 @@ const BetaFeedbackWidget: React.FC = () => {
 
           <div className="px-4 py-3">
             {sent ? (
-              <p className="text-sm text-center py-6" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}>
+              <p className="text-sm text-center py-6" style={{ color: '#ff8400', fontFamily: "'Inter', sans-serif" }}>
                 Thank you! Your feedback helps us improve.
               </p>
             ) : (
@@ -116,9 +116,9 @@ const BetaFeedbackWidget: React.FC = () => {
                       onClick={() => setCategory(cat)}
                       className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
                       style={{
-                        backgroundColor: category === cat ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
-                        color: category === cat ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)',
-                        border: `1px solid ${category === cat ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'}`,
+                        backgroundColor: category === cat ? 'rgba(255,132,0,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: category === cat ? '#ff8400' : 'rgba(255,255,255,0.4)',
+                        border: `1px solid ${category === cat ? 'rgba(255,132,0,0.3)' : 'rgba(255,255,255,0.06)'}`,
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >
@@ -148,7 +148,7 @@ const BetaFeedbackWidget: React.FC = () => {
                   disabled={loading || message.trim().length < 3}
                   className="w-full mt-2 h-9 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.85)',
+                    backgroundColor: '#ff8400',
                     color: '#fff',
                     fontFamily: "'Inter', sans-serif",
                   }}

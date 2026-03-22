@@ -53,7 +53,7 @@ export const EXPERT_SECTIONS: Array<{
   label: string;
   dotColor: string;
 }> = [
-  { key: 'personality_psychologist', label: 'Personality', dotColor: 'rgba(255,255,255,0.6)' },
+  { key: 'personality_psychologist', label: 'Personality', dotColor: '#c17e2c' },
   { key: 'lifestyle_analyst', label: 'Lifestyle', dotColor: '#5d5cae' },
   { key: 'cultural_identity', label: 'Cultural Taste', dotColor: '#c1452c' },
   { key: 'social_dynamics', label: 'Social Dynamics', dotColor: '#2cc1a0' },

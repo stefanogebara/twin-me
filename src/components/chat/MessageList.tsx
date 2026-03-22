@@ -61,8 +61,8 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 <div
                   className={cn("max-w-[90%] sm:max-w-[85%] lg:max-w-[75%]", isUser ? "text-right" : "text-left")}
                   style={isUser ? {
-                    background: 'var(--accent-vibrant-glow, rgba(255,255,255,0.06))',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                    border: '1px solid rgba(255,132,0,0.2)',
                     borderRadius: '20px',
                     padding: '12px 16px',
                   } : {
@@ -207,15 +207,15 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               <div className="flex gap-1">
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.85)', animationDelay: '0ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.85)', animationDelay: '150ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.85)', animationDelay: '300ms' }}
+                  style={{ backgroundColor: '#ff8400', animationDelay: '300ms' }}
                 />
               </div>
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>thinking...</span>

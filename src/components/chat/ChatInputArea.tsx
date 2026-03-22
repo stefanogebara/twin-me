@@ -66,7 +66,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               color: 'var(--foreground)',
               minHeight: '24px',
               maxHeight: '120px',
-              caretColor: 'rgba(255,255,255,0.85)',
+              caretColor: '#ff8400',
               fontFamily: 'Inter, sans-serif',
             }}
           />

@@ -179,9 +179,9 @@ export function getCategoryColor(category: 'personal' | 'professional' | 'creati
       };
     case 'creative':
       return {
-        light: 'rgba(255,255,255,0.5)',
-        medium: 'rgba(255,255,255,0.6)',
-        dark: 'rgba(255,255,255,0.7)'
+        light: '#F59E0B',
+        medium: '#D97706',
+        dark: '#B45309'
       };
   }
 }

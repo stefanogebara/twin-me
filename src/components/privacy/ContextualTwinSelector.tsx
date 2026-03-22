@@ -41,7 +41,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 85,
       creative: 45,
     },
-    color: 'rgba(255,255,255,0.6)', // Monochrome accent
+    color: '#D97706', // Claude accent
     isActive: false,
     isDefault: true,
   },
@@ -196,7 +196,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
               onMouseEnter={() => setHoveredId(twin.id)}
               onMouseLeave={() => setHoveredId(null)}
               onClick={() => !isActive && onSelectTwin(twin.id)}
-              className={`rounded-lg relative p-5 cursor-pointer transition-all duration-200 ${isActive ? '!border-2 !border-white/30' : ''}`}
+              className={`rounded-lg relative p-5 cursor-pointer transition-all duration-200 ${isActive ? '!border-2 !border-amber-600' : ''}`}
               style={{
                 border: isActive ? undefined : '1px solid rgba(255,255,255,0.06)',
                 backgroundColor: 'rgba(255,255,255,0.02)',

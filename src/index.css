@@ -38,7 +38,7 @@
     --text-secondary: #A8A29E;
     --text-muted: #9C9590;
     --text-placeholder: #57534E;
-    --accent-streak: rgba(255, 255, 255, 0.85);
+    --accent-streak: #ff8400;
 
     /* Glass Surface (dark mode) */
     --glass-surface-bg: rgba(255, 255, 255, 0.06);
@@ -51,7 +51,7 @@
     /* Interactive Colors */
     --primary: #F5F5F4;
     --primary-foreground: #110f0f;
-    --ring: rgba(255, 255, 255, 0.15);
+    --ring: rgba(255, 132, 0, 0.25);
 
     /* Component Colors */
     --card: rgba(255, 255, 255, 0.06);
@@ -76,7 +76,7 @@
     --sidebar-accent: rgba(255, 255, 255, 0.08);
     --sidebar-accent-foreground: #F5F5F4;
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --sidebar-ring: rgba(255, 255, 255, 0.15);
+    --sidebar-ring: rgba(255, 132, 0, 0.25);
 
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
@@ -132,11 +132,11 @@
     --expert-motivation: #EF4444;
     --expert-motivation-bg: rgba(239, 68, 68, 0.08);
 
-    /* Vibrant Accent for CTAs — monochromatic white */
-    --accent-vibrant: rgba(255, 255, 255, 0.85);
-    --accent-vibrant-hover: rgba(255, 255, 255, 0.95);
-    --accent-vibrant-glow: rgba(255, 255, 255, 0.06);
-    --accent-amber: rgba(255, 255, 255, 0.6);
+    /* Vibrant Accent for CTAs */
+    --accent-vibrant: #ff8400;
+    --accent-vibrant-hover: #e67700;
+    --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
+    --accent-amber: #c17e2c;
     --accent-purple: #5d5cae;
 
     /* Narrative Text — Sesame-inspired 60% opacity hierarchy */
@@ -578,12 +578,12 @@ html {
 
 /* ===== TEXT SELECTION ===== */
 ::selection {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 132, 0, 0.25);
   color: var(--foreground);
 }
 
 ::-moz-selection {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 132, 0, 0.25);
   color: var(--foreground);
 }
 
@@ -608,7 +608,7 @@ html {
 
 /* ===== FOCUS VISIBLE ===== */
 *:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline: 2px solid rgba(255, 132, 0, 0.5);
   outline-offset: 2px;
   border-radius: 4px;
 }

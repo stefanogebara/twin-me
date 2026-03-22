@@ -52,7 +52,7 @@ interface MemoryHealthData {
 
 const TYPE_COLORS: Record<string, string> = {
   fact: '#8B5CF6',
-  reflection: 'rgba(255,255,255,0.5)',
+  reflection: '#F59E0B',
   conversation: '#3B82F6',
   platform_data: '#10B981',
 };
@@ -182,7 +182,7 @@ export default function MemoryHealth() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { icon: Eye, color: '#3B82F6', label: 'Retrieval Coverage', value: `${(data.retrievalCoverage * 100).toFixed(1)}%`, sub: 'memories accessed ≥1×' },
-                { icon: Clock, color: 'rgba(255,255,255,0.5)', label: 'Stale Memories', value: `${(data.stalePct * 100).toFixed(1)}%`, sub: `${data.staleCount.toLocaleString('en-US')} older than 90 days` },
+                { icon: Clock, color: '#F59E0B', label: 'Stale Memories', value: `${(data.stalePct * 100).toFixed(1)}%`, sub: `${data.staleCount.toLocaleString('en-US')} older than 90 days` },
                 { icon: Star, color: '#FBBF24', label: 'Avg Importance', value: importanceData.length > 0 ? (importanceData.reduce((s, d) => s + d.avg, 0) / importanceData.length).toFixed(1) : '—', sub: 'across all types (1–10)' },
                 { icon: Brain, color: '#8B5CF6', label: 'Expert Types', value: String(Object.keys(data.expertBreakdown).length), sub: 'reflection experts active' },
               ].map(({ icon: Icon, color, label, value, sub }) => (
@@ -280,29 +280,29 @@ export default function MemoryHealth() {
           {/* Forgetting Preview */}
           <div
             className="p-5 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(245,158,11,0.12)' }}
           >
             <div className="flex items-center gap-2 mb-3">
-              <Archive className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} />
-              <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              <Archive className="w-4 h-4" style={{ color: '#f59e0b' }} />
+              <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#f59e0b' }}>
                 Next Weekly Forgetting Run Preview
               </span>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>{data.forgettingPreview.wouldArchiveConversation}</div>
-                <div className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>conversations would archive<br />(&gt;30d, importance ≤3)</div>
+                <div className="text-2xl font-bold" style={{ color: '#f59e0b' }}>{data.forgettingPreview.wouldArchiveConversation}</div>
+                <div className="text-[11px] mt-1" style={{ color: 'rgba(245,158,11,0.6)' }}>conversations would archive<br />(&gt;30d, importance ≤3)</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>{data.forgettingPreview.wouldArchivePlatformData}</div>
-                <div className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>platform data would archive<br />(&gt;14d, never retrieved)</div>
+                <div className="text-2xl font-bold" style={{ color: '#f59e0b' }}>{data.forgettingPreview.wouldArchivePlatformData}</div>
+                <div className="text-[11px] mt-1" style={{ color: 'rgba(245,158,11,0.6)' }}>platform data would archive<br />(&gt;14d, never retrieved)</div>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1">
-                  <TrendingDown className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} />
-                  <div className="text-2xl font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>{data.forgettingPreview.wouldDecayFact}</div>
+                  <TrendingDown className="w-4 h-4" style={{ color: '#f59e0b' }} />
+                  <div className="text-2xl font-bold" style={{ color: '#f59e0b' }}>{data.forgettingPreview.wouldDecayFact}</div>
                 </div>
-                <div className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>facts would decay 20%<br />(&gt;90d, importance ≤5)</div>
+                <div className="text-[11px] mt-1" style={{ color: 'rgba(245,158,11,0.6)' }}>facts would decay 20%<br />(&gt;90d, importance ≤5)</div>
               </div>
             </div>
           </div>

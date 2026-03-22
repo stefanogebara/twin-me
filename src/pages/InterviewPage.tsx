@@ -120,7 +120,7 @@ export default function InterviewPage() {
               <>
                 <span
                   className="text-[11px] font-medium tracking-widest uppercase block mb-3"
-                  style={{ color: 'var(--accent-vibrant, rgba(255,255,255,0.85))', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--accent-vibrant, #ff8400)', fontFamily: 'Inter, sans-serif' }}
                 >
                   Your Archetype
                 </span>

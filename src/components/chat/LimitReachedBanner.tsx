@@ -26,7 +26,7 @@ export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsag
     >
       <div
         className="flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,132,0,0.12)' }}
       >
         <Clock className="w-5 h-5" style={{ color: 'var(--accent-vibrant)' }} />
       </div>

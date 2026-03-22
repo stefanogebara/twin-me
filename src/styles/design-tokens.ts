@@ -7,8 +7,8 @@
 export const colors = {
   // Primary Brand Colors
   primary: {
-    orange: 'rgba(255,255,255,0.6)',        // Monochrome accent
-    orangeHover: 'rgba(255,255,255,0.7)',   // Lighter for hover states
+    orange: '#D97706',        // Claude accent orange
+    orangeHover: '#B45309',   // Darker orange for hover states
     ivory: '#FAF9F5',         // Main background
     white: '#FFFFFF',         // Surface/cards
   },
@@ -25,7 +25,7 @@ export const colors = {
   semantic: {
     success: '#10B981',       // Green for success states
     error: '#EF4444',         // Red for errors
-    warning: 'rgba(255,255,255,0.5)',  // Monochrome warning
+    warning: '#F59E0B',       // Amber for warnings
     info: '#3B82F6',          // Blue for information
   },
 
@@ -33,7 +33,7 @@ export const colors = {
   border: {
     default: 'rgba(20, 20, 19, 0.1)',  // Subtle slate border
     strong: 'rgba(20, 20, 19, 0.2)',   // Stronger border
-    accent: 'rgba(255,255,255,0.6)',     // Monochrome accent border
+    accent: '#D97706',                  // Orange accent border
   },
 
   // Background Colors

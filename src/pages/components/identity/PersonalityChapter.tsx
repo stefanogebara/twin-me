@@ -16,7 +16,7 @@ const PersonalityChapter: React.FC<PersonalityChapterProps> = ({
   confidence,
 }) => (
   <>
-    <SectionLabel label="OCEAN Profile" color="rgba(255,255,255,0.6)" />
+    <SectionLabel label="OCEAN Profile" color="#c17e2c" />
     <div className="space-y-3">
       {oceanCards.map((oc) => (
         <OceanBar key={oc.trait} trait={oc.trait} value={oc.value} />

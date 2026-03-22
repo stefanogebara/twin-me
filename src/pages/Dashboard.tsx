@@ -359,14 +359,14 @@ export const Dashboard: React.FC = () => {
           className="mb-10 p-7 rounded-lg flex items-center justify-between"
           style={{
             border: `1px solid ${error.type === 'auth'
-              ? 'rgba(255, 255, 255, 0.15)'
+              ? 'rgba(245, 158, 11, 0.3)'
               : 'rgba(239, 68, 68, 0.3)'}`,
             backgroundColor: 'rgba(255,255,255,0.02)',
           }}
         >
           <div className="flex items-center gap-3">
-            <AlertCircle className={`w-5 h-5 ${error.type === 'auth' ? 'text-white/60' : 'text-red-500'}`} />
-            <span style={{ color: error.type === 'auth' ? 'rgba(255,255,255,0.6)' : '#dc2626' }}>
+            <AlertCircle className={`w-5 h-5 ${error.type === 'auth' ? 'text-amber-500' : 'text-red-500'}`} />
+            <span style={{ color: error.type === 'auth' ? '#d97706' : '#dc2626' }}>
               {error.message}
             </span>
           </div>
@@ -374,7 +374,7 @@ export const Dashboard: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="px-4 py-2 rounded-full text-sm font-medium transition-colors"
-              style={{ backgroundColor: 'rgba(255, 255, 255, 0.08)', color: 'rgba(255,255,255,0.6)' }}
+              style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }}
             >
               Reconnect
             </button>
@@ -430,8 +430,8 @@ export const Dashboard: React.FC = () => {
             borderColor: 'var(--accent-vibrant-glow)',
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(255, 255, 255, 0.08)';
+            e.currentTarget.style.borderColor = 'rgba(255, 132, 0, 0.4)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 2px rgba(255, 132, 0, 0.15)';
           }}
           onBlur={(e) => {
             e.currentTarget.style.borderColor = 'var(--accent-vibrant-glow)';
@@ -484,7 +484,7 @@ export const Dashboard: React.FC = () => {
                   border: '1px solid rgba(255,255,255,0.06)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 132, 0, 0.4)';
                   e.currentTarget.style.color = 'var(--text-primary)';
                   e.currentTarget.style.background = 'var(--accent-vibrant-glow)';
                 }}
@@ -613,13 +613,13 @@ export const Dashboard: React.FC = () => {
               )}
               {goalSummary.bestStreak > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <Flame className="w-3.5 h-3.5 text-white/60" />
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
                   <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{goalSummary.bestStreak}d best streak</span>
                 </div>
               )}
               {goalSummary.completed > 0 && (
                 <div className="flex items-center gap-1.5">
-                  <Trophy className="w-3.5 h-3.5 text-white/60" />
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
                   <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>{goalSummary.completed} completed</span>
                 </div>
               )}

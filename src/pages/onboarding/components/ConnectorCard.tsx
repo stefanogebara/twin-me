@@ -180,7 +180,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               <span
                 className="text-sm"
                 style={{
-                  color: 'rgba(255,255,255,0.5)',
+                  color: '#f59e0b',
                   fontFamily: "'Inter', sans-serif"
                 }}
               >

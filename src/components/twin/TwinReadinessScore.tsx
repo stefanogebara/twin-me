@@ -15,9 +15,9 @@ export function TwinReadinessScore({
   compact = false,
 }: TwinReadinessScoreProps) {
   const scoreColor =
-    score < 30 ? 'text-white/50 dark:text-white/60' : score < 60 ? 'text-blue-700 dark:text-blue-400' : 'text-emerald-700 dark:text-emerald-400';
+    score < 30 ? 'text-amber-700 dark:text-amber-400' : score < 60 ? 'text-blue-700 dark:text-blue-400' : 'text-emerald-700 dark:text-emerald-400';
   const barColor =
-    score < 30 ? 'bg-white/40 dark:bg-white/50' : score < 60 ? 'bg-blue-500 dark:bg-blue-400' : 'bg-emerald-500 dark:bg-emerald-400';
+    score < 30 ? 'bg-amber-500 dark:bg-amber-400' : score < 60 ? 'bg-blue-500 dark:bg-blue-400' : 'bg-emerald-500 dark:bg-emerald-400';
 
   if (compact) {
     return (

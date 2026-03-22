@@ -26,7 +26,7 @@ const traitConfig = {
   },
   Extraversion: {
     icon: Zap,
-    color: 'rgba(255,255,255,0.5)',
+    color: '#F59E0B',
     gradient: 'from-stone-500/20 to-stone-600/20',
     description: 'Your social energy'
   },
@@ -55,7 +55,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
     >
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-6 h-6 text-white/60" />
+          <Sparkles className="w-6 h-6 text-[#D97706]" />
           <h3 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
             Your Personality Profile
           </h3>
@@ -128,14 +128,14 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
       </div>
 
       {/* Bottom Insight */}
-      <div className="mt-6 p-4 bg-gradient-to-r from-white/5 to-white/5 rounded-xl border border-white/10">
+      <div className="mt-6 p-4 bg-gradient-to-r from-amber-900/15 to-orange-900/10 rounded-xl border border-amber-800/20">
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-white/60 mt-0.5 flex-shrink-0" />
+          <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
           <div>
-            <h5 className="text-sm font-semibold text-white/70 mb-1">
+            <h5 className="text-sm font-semibold text-amber-300 mb-1">
               What This Means for You
             </h5>
-            <p className="text-xs text-white/40 leading-relaxed">
+            <p className="text-xs text-amber-200/70 leading-relaxed">
               These traits combine to create your unique personality profile. Understanding them helps your AI twin
               communicate and act more like you—capturing your authentic style and preferences.
             </p>
