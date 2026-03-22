@@ -98,7 +98,7 @@ export const REFLECTION_CONFIG = {
   // Lower = more frequent reflections (more insights, more cost).
   // Higher = deeper accumulation before insight (coarser but richer).
   // Range: [20, 80]
-  importance_threshold: 30,
+  importance_threshold: 40,
 
   // Max recursive reflection depth (reflections generating reflections).
   // Range: [1, 5]
