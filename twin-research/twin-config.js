@@ -45,7 +45,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 1.0, importance: 1.0, relevance: 1.0 },
+  default: { recency: 0.0, importance: 1.0, relevance: 1.0 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
@@ -80,7 +80,7 @@ export const TYPE_DIVERSITY_WEIGHT = 0.45;
 // Formula: confidence * (importance/10) * min(1, CITATION_BASELINE + 0.05 * retrieval_count)
 // Higher baseline = first-retrieval memories get more weight in context.
 // Range: [0.5, 1.0]
-export const ALPHA_CITATION_BASELINE = 0.90;
+export const ALPHA_CITATION_BASELINE = 0.85;
 
 // ─── Memory Context Budgets ───────────────────────────────────────────────────
 // Max memories of each type to include in the twin's context window.
