@@ -6,13 +6,13 @@
  * persist. Different tiers use different time windows and actions.
  *
  * Tier 1 — Aggressive (conversation): >30 days + importance ≤3 → archive
- * Tier 2 — Moderate (platform_data):  >14 days + importance ≤4 + retrieval_count=0 → archive
+ * Tier 2 — Moderate (platform_data):  >30 days + importance ≤4 + retrieval_count=0 → archive
  * Tier 3 — Gentle (fact):             >90 days + importance ≤5 → decay importance by 20%
+ * Tier 6 — Stale reflections:         >90 days + importance <8 + retrieval_count=0 → archive
  *
  * Protected (NEVER touched):
  *   - importance ≥ 8 (explicitly high-value)
  *   - retrieval_count ≥ 3 (frequently accessed)
- *   - memory_type = 'reflection' (generated insights are never auto-purged)
  *
  * This complements the existing daily cron-memory-archive.js (which archives
  * any type >6 months + importance ≤5 for users with >5K memories).
@@ -84,9 +84,9 @@ router.post('/', async (req, res) => {
       stats.errors.push(`tier1: ${t1Err.message}`);
     }
 
-    // ── Tier 2: Platform data > 14 days + importance ≤ 4 + retrieval_count=0 → archive ──
+    // ── Tier 2: Platform data > 30 days + importance ≤ 4 + retrieval_count=0 → archive ──
     try {
-      const tier2Cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+      const tier2Cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
       const { data: tier2Rows } = await supabaseAdmin
         .from('user_memories')
@@ -271,8 +271,38 @@ router.post('/', async (req, res) => {
       stats.errors.push(`tier5: ${t5Err.message}`);
     }
 
+    // ── Tier 6: Stale reflection archival ──
+    // Reflections >90 days old, never retrieved, importance <8 → archive
+    // This prevents immortal low-value reflections from dominating the memory stream
+    stats.tier6ReflectionsArchived = 0;
+    try {
+      const tier6Cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: tier6Rows } = await supabaseAdmin
+        .from('user_memories')
+        .select('id')
+        .eq('memory_type', 'reflection')
+        .lt('created_at', tier6Cutoff)
+        .lt('importance_score', 8)
+        .eq('retrieval_count', 0)
+        .eq('is_archived', false)
+        .limit(BATCH_SIZE);
+
+      if (tier6Rows?.length > 0) {
+        const ids = tier6Rows.map(r => r.id);
+        await supabaseAdmin
+          .from('user_memories')
+          .update({ is_archived: true, archive_reason: 'tier6_reflection_stale', updated_at: new Date().toISOString() })
+          .in('id', ids);
+        stats.tier6ReflectionsArchived = ids.length;
+        log.info('Tier 6 archived stale reflections', { count: ids.length });
+      }
+    } catch (t6Err) {
+      log.warn('Tier 6 error', { error: t6Err.message });
+      stats.errors.push(`tier6: ${t6Err.message}`);
+    }
+
     const durationMs = Date.now() - startTime;
-    log.info('Weekly pass complete', { durationMs, t1: stats.tier1Archived, t2: stats.tier2Archived, t3: stats.tier3Decayed, t4Decayed: stats.tier4LinksDecayed, t4Deleted: stats.tier4LinksDeleted, t5: stats.tier5Shifted, t5Users: stats.tier5UsersProcessed });
+    log.info('Weekly pass complete', { durationMs, t1: stats.tier1Archived, t2: stats.tier2Archived, t3: stats.tier3Decayed, t4Decayed: stats.tier4LinksDecayed, t4Deleted: stats.tier4LinksDeleted, t5: stats.tier5Shifted, t5Users: stats.tier5UsersProcessed, t6: stats.tier6ReflectionsArchived });
 
     res.json({
       success: true,

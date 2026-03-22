@@ -314,10 +314,15 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
 
   try {
     // Generate embedding and importance score in parallel
-    const [embedding, importanceScore] = await Promise.all([
+    let [embedding, importanceScore] = await Promise.all([
       options.skipEmbedding ? null : generateEmbedding(content),
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
     ]);
+
+    // Floor: platform_data never drops below importance 4 (protects from early archival)
+    if (memoryType === 'platform_data' && importanceScore < 4) {
+      importanceScore = 4;
+    }
 
     // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
     // when a very similar memory (cosine > 0.90) already exists
