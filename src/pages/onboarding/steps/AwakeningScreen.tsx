@@ -104,7 +104,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
     <div
       className="h-screen w-full flex flex-col items-center justify-center relative overflow-hidden"
       style={{
-        background: 'linear-gradient(180deg, #13121a 0%, #0e0e14 50%, #0a0a10 100%)',
+        background: 'linear-gradient(180deg, #110f0f 0%, #0d0b0b 50%, #0a0909 100%)',
       }}
     >
       <Stars />
@@ -194,7 +194,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
           style={{
             fontFamily: "'Inter', sans-serif",
             backgroundColor: 'rgba(255,255,255,0.92)',
-            color: '#0e0e14',
+            color: '#0d0b0b',
             borderRadius: '100px',
             padding: '14px 36px',
             fontSize: '14px',

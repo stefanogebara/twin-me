@@ -116,7 +116,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
   return (
     <motion.div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-      style={{ background: '#0a0a10' }}
+      style={{ background: '#0a0909' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
@@ -177,7 +177,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         className="relative z-10 mt-10 px-6 py-2.5 rounded-[100px] text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
         style={{
           backgroundColor: '#ff8400',
-          color: '#0a0a10',
+          color: '#0a0909',
           fontFamily: "'Inter', sans-serif",
         }}
         initial={{ opacity: 0, y: 10 }}
