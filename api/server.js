@@ -233,6 +233,7 @@ app.use((req, res, next) => {
   const timeout = req.path.includes('/chat/message') ? 300000
     : req.path.includes('/cron/') ? 115000
     : req.path.includes('/soul-signature/layers') ? 90000
+    : req.path.includes('/onboarding/calibration') ? 90000
     : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
   res.setTimeout(timeout, () => {
