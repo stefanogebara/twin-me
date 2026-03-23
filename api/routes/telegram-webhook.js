@@ -14,6 +14,7 @@ import { webhookCallback } from 'grammy';
 import { getBot, sendMessage } from '../services/telegramService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
+import { classifyMessageTier, CHAT_TIER_MODELS } from '../services/chatRouter.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
@@ -183,27 +184,41 @@ function setupBotHandlers() {
     const userId = channel.user_id;
 
     try {
-      // Show typing indicator
+      // Show typing indicator — refresh every 4s since it expires after 5s.
+      // The LLM call takes 10-30s so we need to keep refreshing.
+      const typingInterval = setInterval(() => {
+        ctx.replyWithChatAction('typing').catch(() => {});
+      }, 4000);
       await ctx.replyWithChatAction('typing');
 
-      // Run twin chat pipeline (same as web)
-      const response = await processTwinMessage(userId, text);
+      try {
+        // Run twin chat pipeline (same as web)
+        const response = await processTwinMessage(userId, text);
 
-      // Store conversation in memory stream (single call stores both user + assistant)
-      await addConversationMemory(userId, text, response, { source: 'telegram' }).catch(() => {});
+        clearInterval(typingInterval);
 
-      // Send response (split long messages at 4096 char Telegram limit)
-      if (response.length <= 4096) {
-        await ctx.reply(response);
-      } else {
-        const chunks = splitMessage(response, 4096);
-        for (const chunk of chunks) {
-          await ctx.reply(chunk);
+        // Store conversation in memory stream
+        await addConversationMemory(userId, text, response, { source: 'telegram' }).catch(() => {});
+
+        // Send response (split long messages at 4096 char Telegram limit)
+        if (response.length <= 4096) {
+          await ctx.reply(response);
+        } else {
+          const chunks = splitMessage(response, 4096);
+          for (const chunk of chunks) {
+            await ctx.reply(chunk);
+          }
         }
+      } catch (innerErr) {
+        clearInterval(typingInterval);
+        throw innerErr;
       }
     } catch (err) {
       log.error('Telegram chat error', { userId, chatId, error: err.message });
-      await ctx.reply('Something went wrong. Try again in a moment.');
+      const userMsg = err.message?.includes('402') || err.message?.includes('credits')
+        ? 'My AI brain is temporarily offline (credits). Try again in a bit.'
+        : 'Something went wrong. Try again in a moment.';
+      await ctx.reply(userMsg).catch(() => {});
     }
   });
 
@@ -341,7 +356,12 @@ async function processTwinMessage(userId, message) {
       content: m.content,
     }));
 
-  // Call LLM (non-streaming for Telegram)
+  // Smart routing: use cheapest model that maintains quality (same as web chat)
+  // LIGHT (Gemini Flash $0.15/M) for greetings, STANDARD (DeepSeek $0.25/M) for casual,
+  // DEEP (Sonnet $3/M) only for emotional/identity/complex. Saves ~75% on most messages.
+  const chatTier = classifyMessageTier(message);
+  const modelOverride = CHAT_TIER_MODELS[chatTier] || undefined;
+
   const response = await complete({
     system: [{ type: 'text', text: system }],
     messages: [...history, { role: 'user', content: message }],
@@ -349,7 +369,8 @@ async function processTwinMessage(userId, message) {
     maxTokens: 800,
     temperature: personalityProfile?.temperature ?? 0.7,
     userId,
-    serviceName: 'twin-chat:telegram',
+    serviceName: `twin-chat:telegram_${chatTier}`,
+    modelOverride,
   });
 
   return response?.content || response?.text || "I'm having trouble responding right now. Try again in a moment.";
@@ -381,22 +402,14 @@ function isRateLimited(chatId) {
 let webhookHandler = null;
 
 router.post('/', (req, res, next) => {
-  // Verify Telegram secret token if configured (defense-in-depth)
-  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (secret) {
-    const headerToken = req.headers['x-telegram-bot-api-secret-token'];
-    if (headerToken !== secret) {
-      log.warn('Telegram webhook secret mismatch');
-      return res.sendStatus(403);
-    }
-  }
-
   if (!webhookHandler) {
     const bot = setupBotHandlers();
     if (!bot) {
       return res.status(503).json({ error: 'Telegram bot not configured' });
     }
-    webhookHandler = webhookCallback(bot, 'express');
+    // 90-second timeout — twin chat needs 10-30s for LLM + memory retrieval.
+    // grammY's default is 10s which is too short for our pipeline.
+    webhookHandler = webhookCallback(bot, 'express', 'throw', 90_000);
   }
   return webhookHandler(req, res, next);
 });

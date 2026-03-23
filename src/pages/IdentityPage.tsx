@@ -1,30 +1,74 @@
 /**
  * IdentityPage — "Your Soul Signature"
  * ======================================
- * Modern, visual, interactive soul signature page.
- * Archetype hero → OCEAN radar → trait badges → expert accordion → drift → ask twin → footer.
+ * 5-Layer Soul Signature: Values, Rhythms, Taste, Connections, Growth Edges.
+ * Archetype hero (from OCEAN) + trait badges + layered soul portrait + ask twin + footer.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ResponsiveContainer,
-} from 'recharts';
-import { ChevronDown, ChevronUp, Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle } from 'lucide-react';
+import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { IdentityData, PersonalityProfile, EXPERT_SECTIONS, ExpertKey } from './components/identity/types';
-import { determineArchetype, generateTraitBadges, extractOneLiner } from '@/utils/archetypeEngine';
+import { IdentityData, PersonalityProfile } from './components/identity/types';
+import { determineArchetype, generateTraitBadges } from '@/utils/archetypeEngine';
+
+// ── Types for 5-Layer Soul Signature ────────────────────────────────────
+
+interface SoulValue {
+  name: string;
+  evidence: string;
+  strength: number;
+}
+
+interface SoulRhythms {
+  chronotype: string;
+  peakHours: string;
+  summary: string;
+  distribution: {
+    morning: number;
+    afternoon: number;
+    evening: number;
+    night: number;
+  };
+}
+
+interface SoulTaste {
+  statement: string;
+  topSignals: string[];
+  diversity: number;
+}
+
+interface SoulConnections {
+  style: string;
+  summary: string;
+  patterns: string[];
+}
+
+interface GrowthShift {
+  domain: string;
+  description: string;
+  type: 'exploration' | 'growth' | 'stress_response';
+}
+
+interface SoulGrowthEdges {
+  shifts: GrowthShift[];
+  isStable: boolean;
+}
+
+interface SoulSignatureLayers {
+  values: { values: SoulValue[] };
+  rhythms: SoulRhythms;
+  taste: SoulTaste;
+  connections: SoulConnections;
+  growth_edges: SoulGrowthEdges;
+  generated_at: string;
+}
 
 // ── Demo fallback ────────────────────────────────────────────────────────
 
@@ -47,26 +91,9 @@ const DEMO_IDENTITY_DATA: IdentityData = {
       listening_patterns: 'Uses music as a cognitive tool — high-energy for morning focus, ambient for deep work, lo-fi for transitions.',
     },
     core_values: ['Curiosity', 'Authenticity', 'Deep Work', 'Creative Freedom'],
-    personality_summary: 'Highly open to new experiences with strong conscientiousness. Thrives in environments that blend structure with creative freedom.',
+    personality_summary: 'Highly open to new experiences with strong conscientiousness.',
   },
-  expertInsights: {
-    personality_psychologist: [
-      'Your music selection follows a clear emotional regulation strategy — high-energy tracks during morning focus, ambient during deep work.',
-      'You demonstrate high openness (0.85) paired with moderate conscientiousness (0.78).',
-    ],
-    lifestyle_analyst: [
-      'Calendar data reveals meeting clustering — bunching meetings into Tuesday/Thursday afternoons, preserving mornings for uninterrupted work.',
-    ],
-    cultural_identity: [
-      'Your aesthetic preferences lean toward immersive, textured experiences — electronic, ambient, and lo-fi traditions.',
-    ],
-    social_dynamics: [
-      'Your social energy is concentrated in 3 niche communities centered on shared intellectual interests.',
-    ],
-    motivation_analyst: [
-      'Driven by mastery and novelty simultaneously — you set ambitious goals but pace them with intentional recovery cycles.',
-    ],
-  },
+  expertInsights: {},
   summary: 'You are a creative synthesizer who finds meaning at the intersection of music, technology, and human connection.',
   summaryUpdatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
 };
@@ -84,6 +111,40 @@ const DEMO_PERSONALITY: PersonalityProfile = {
   last_built_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
 };
 
+const DEMO_SOUL_LAYERS: SoulSignatureLayers = {
+  values: {
+    values: [
+      { name: 'Curiosity & Growth', evidence: 'You consistently make time for learning new skills and exploring unfamiliar territory.', strength: 0.9 },
+      { name: 'Deep Connection', evidence: 'Your calendar shows heavy investment in meaningful 1:1 time over large group events.', strength: 0.85 },
+      { name: 'Creative Freedom', evidence: 'You gravitate toward open-ended projects and resist rigid structures.', strength: 0.8 },
+    ],
+  },
+  rhythms: {
+    chronotype: 'night_owl',
+    peakHours: '10pm - 2am',
+    summary: 'Your best work happens late at night when the world goes quiet. Morning is for recovery, not creation.',
+    distribution: { morning: 0.1, afternoon: 0.25, evening: 0.35, night: 0.3 },
+  },
+  taste: {
+    statement: 'You go deep on artists you love, not broad. Loyalty over novelty.',
+    topSignals: ['Brazilian pagode after Drake', 'Jazz at midnight', 'Lo-fi for deep work'],
+    diversity: 0.7,
+  },
+  connections: {
+    style: 'deep_connector',
+    summary: 'Small circle, deep investment. You remember details others forget.',
+    patterns: ['Recovery after social density', '1:1 over groups', 'Late-night conversations'],
+  },
+  growth_edges: {
+    shifts: [
+      { domain: 'music', description: 'New genres appearing in your rotation', type: 'exploration' },
+      { domain: 'social', description: 'More group activities than usual', type: 'growth' },
+    ],
+    isStable: false,
+  },
+  generated_at: new Date().toISOString(),
+};
+
 // ── Suggestion pills ─────────────────────────────────────────────────────
 
 const SUGGESTION_PILLS = [
@@ -93,14 +154,69 @@ const SUGGESTION_PILLS = [
   'Compare me to last month',
 ] as const;
 
-// ── Drift status types ───────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────
 
-interface DriftData {
-  similarity: number;
-  recent_centroid_size: number;
-  baseline_centroid_size: number;
-  should_rebuild: boolean;
+function formatChronotype(raw: string): string {
+  const labels: Record<string, string> = {
+    night_owl: 'Night Owl',
+    early_bird: 'Early Bird',
+    afternoon_peak: 'Afternoon Peak',
+    even_keel: 'Even Keel',
+  };
+  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
+
+function formatConnectionStyle(raw: string): string {
+  const labels: Record<string, string> = {
+    deep_connector: 'Deep Connector',
+    social_butterfly: 'Social Butterfly',
+    selective_engager: 'Selective Engager',
+    bridge_builder: 'Bridge Builder',
+  };
+  return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function growthTypeBadgeStyle(type: string): React.CSSProperties {
+  switch (type) {
+    case 'exploration':
+      return { background: 'rgba(93,92,174,0.15)', color: 'rgba(162,161,220,0.85)' };
+    case 'growth':
+      return { background: 'rgba(74,222,128,0.12)', color: 'rgba(74,222,128,0.85)' };
+    case 'stress_response':
+      return { background: 'rgba(251,191,36,0.12)', color: 'rgba(251,191,36,0.85)' };
+    default:
+      return { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' };
+  }
+}
+
+// ── Section label ────────────────────────────────────────────────────────
+
+const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <p
+    className="text-[11px] font-medium tracking-[0.12em] uppercase mb-4"
+    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+  >
+    {children}
+  </p>
+);
+
+// ── Fade-in wrapper ─────────────────────────────────────────────────────
+
+const FadeInSection: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
+  children,
+  delay = 0,
+  className = '',
+}) => (
+  <motion.section
+    className={className}
+    initial={{ opacity: 0, y: 16 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: '-40px' }}
+    transition={{ duration: 0.5, delay, ease: 'easeOut' }}
+  >
+    {children}
+  </motion.section>
+);
 
 // ── First-time reveal overlay ────────────────────────────────────────────
 
@@ -121,7 +237,6 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: 'easeInOut' }}
     >
-      {/* Breathing orb background */}
       <div
         className="absolute inset-0 flex items-center justify-center pointer-events-none"
         aria-hidden="true"
@@ -135,7 +250,6 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         />
       </div>
 
-      {/* Archetype name — word by word */}
       <motion.h1
         className="relative z-10 text-center"
         style={{
@@ -161,7 +275,6 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         ))}
       </motion.h1>
 
-      {/* Tagline */}
       <motion.p
         className="relative z-10 text-center mt-4 text-sm"
         style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
@@ -172,7 +285,6 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         {tagline}
       </motion.p>
 
-      {/* Explore button */}
       <motion.button
         className="relative z-10 mt-10 px-6 py-2.5 rounded-[100px] text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
         style={{
@@ -203,7 +315,6 @@ const IdentityPage: React.FC = () => {
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
   const [showReveal, setShowReveal] = useState(false);
-  const [expandedDomain, setExpandedDomain] = useState<ExpertKey | null>(null);
 
   useEffect(() => {
     if (!user && !isDemoMode) navigate('/auth');
@@ -223,7 +334,7 @@ const IdentityPage: React.FC = () => {
     initialData: isDemoMode ? { success: true, profile: DEMO_PERSONALITY } : undefined,
   });
 
-  const { data, isLoading, error, refetch } = useQuery<{ success: boolean; data: IdentityData }>({
+  const { data, isLoading: identityLoading, error: identityError, refetch: refetchIdentity } = useQuery<{ success: boolean; data: IdentityData }>({
     queryKey: ['twin-identity'],
     queryFn: async () => {
       const res = await authFetch('/twin/identity');
@@ -235,16 +346,19 @@ const IdentityPage: React.FC = () => {
     initialData: isDemoMode ? { success: true, data: DEMO_IDENTITY_DATA } : undefined,
   });
 
-  const { data: driftData } = useQuery<{ success: boolean; drift: DriftData }>({
-    queryKey: ['personality-drift'],
+  const { data: soulData, isLoading: soulLoading, error: soulError } = useQuery<{ success: boolean; data: SoulSignatureLayers }>({
+    queryKey: ['soul-signature-layers'],
     queryFn: async () => {
-      const res = await authFetch('/personality-profile/drift');
-      if (!res.ok) return null;
+      const res = await authFetch('/soul-signature/layers');
+      if (!res.ok) throw new Error('Failed to load soul signature');
       return res.json();
     },
-    staleTime: 30 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     enabled: !!user && !isDemoMode,
+    initialData: isDemoMode ? { success: true, data: DEMO_SOUL_LAYERS } : undefined,
   });
+
+  const isLoading = identityLoading || soulLoading;
 
   // ── First-time reveal check ────────────────────────────────────────────
 
@@ -267,7 +381,8 @@ const IdentityPage: React.FC = () => {
   if (!user && !isDemoMode) return null;
   if (isLoading) return <LoadingSkeleton />;
 
-  if (error && !isDemoMode) {
+  if ((identityError || soulError) && !isDemoMode) {
+    const errorMsg = (identityError as Error)?.message || (soulError as Error)?.message || 'Could not load your soul signature.';
     return (
       <div className="max-w-2xl mx-auto px-6 py-16">
         <div
@@ -277,11 +392,11 @@ const IdentityPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#EF4444' }} />
             <span className="text-sm font-medium" style={{ color: '#EF4444' }}>
-              {(error as Error).message || 'Could not load identity data.'}
+              {errorMsg}
             </span>
           </div>
           <button
-            onClick={() => refetch()}
+            onClick={() => refetchIdentity()}
             className="text-sm font-medium px-4 py-2 rounded-[100px] transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
             style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--background, #fdfcfb)' }}
           >
@@ -292,16 +407,16 @@ const IdentityPage: React.FC = () => {
     );
   }
 
-  const expertInsights = data?.data?.expertInsights ?? {};
   const summary = data?.data?.summary ?? null;
+  const layers = soulData?.data?.layers ?? soulData?.data ?? null;
+  const hasLayers = !!(layers?.values?.values?.length || layers?.rhythms || layers?.taste || layers?.connections);
 
-  const hasAnyData = !!(
-    summary ||
-    hasOcean ||
-    EXPERT_SECTIONS.some((s) => (expertInsights[s.key]?.length ?? 0) > 0)
-  );
+  const hasAnyData = !!(summary || hasOcean || hasLayers);
 
   if (!hasAnyData) return <EmptyState />;
+
+  // If we have OCEAN but no soul layers yet, show a "still learning" state for the layers
+  const showStillLearning = !hasLayers;
 
   // ── Archetype computation ──────────────────────────────────────────────
 
@@ -312,25 +427,6 @@ const IdentityPage: React.FC = () => {
   const traitBadges = hasOcean
     ? generateTraitBadges(pp!.openness, pp!.conscientiousness, pp!.extraversion, pp!.agreeableness, pp!.neuroticism)
     : [];
-
-  // ── OCEAN radar data ───────────────────────────────────────────────────
-
-  const oceanData = hasOcean
-    ? [
-        { trait: 'Openness', value: Math.round(pp!.openness * 100), fullMark: 100 },
-        { trait: 'Conscientiousness', value: Math.round(pp!.conscientiousness * 100), fullMark: 100 },
-        { trait: 'Extraversion', value: Math.round(pp!.extraversion * 100), fullMark: 100 },
-        { trait: 'Agreeableness', value: Math.round(pp!.agreeableness * 100), fullMark: 100 },
-        { trait: 'Neuroticism', value: Math.round(pp!.neuroticism * 100), fullMark: 100 },
-      ]
-    : null;
-
-  const memoryCount = pp?.memory_count_at_build ?? 0;
-  const confidencePct = pp?.confidence != null ? Math.round(pp.confidence * 100) : 0;
-
-  // ── Drift interpretation ───────────────────────────────────────────────
-
-  const drift = driftData?.drift ?? null;
 
   // ── Share handler ──────────────────────────────────────────────────────
 
@@ -347,12 +443,6 @@ const IdentityPage: React.FC = () => {
 
   const handleSuggestion = (message: string) => {
     navigate('/talk-to-twin', { state: { prefill: message } });
-  };
-
-  // ── Toggle accordion ──────────────────────────────────────────────────
-
-  const toggleDomain = (key: ExpertKey) => {
-    setExpandedDomain((prev) => (prev === key ? null : key));
   };
 
   return (
@@ -373,7 +463,6 @@ const IdentityPage: React.FC = () => {
         {/* ── 1. Archetype Hero Section ─────────────────────────────────── */}
         {archetypeResult && (
           <section className="relative mb-16 text-center">
-            {/* Breathing orb behind text */}
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
               aria-hidden="true"
@@ -410,50 +499,9 @@ const IdentityPage: React.FC = () => {
           </section>
         )}
 
-        {/* ── 2. OCEAN Radar Chart ──────────────────────────────────────── */}
-        {oceanData && (
-          <section className="mb-14">
-            <ResponsiveContainer width="100%" height={280}>
-              <RadarChart data={oceanData} cx="50%" cy="50%" outerRadius="75%">
-                <PolarGrid stroke="var(--border)" />
-                <PolarAngleAxis
-                  dataKey="trait"
-                  tick={{
-                    fill: 'rgba(255,255,255,0.4)',
-                    fontSize: 11,
-                    fontFamily: "'Inter', sans-serif",
-                  }}
-                />
-                <PolarRadiusAxis
-                  angle={90}
-                  domain={[0, 100]}
-                  tick={false}
-                  axisLine={false}
-                />
-                <Radar
-                  name="OCEAN"
-                  dataKey="value"
-                  stroke="rgba(255,255,255,0.4)"
-                  fill="rgba(255,255,255,0.1)"
-                  fillOpacity={1}
-                  strokeWidth={1.5}
-                  animationBegin={200}
-                  animationDuration={800}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-            <p
-              className="text-center text-xs mt-2"
-              style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Based on {memoryCount.toLocaleString()} memories, {confidencePct}% confidence
-            </p>
-          </section>
-        )}
-
-        {/* ── 3. Trait Badges ───────────────────────────────────────────── */}
+        {/* ── Trait Badges ───────────────────────────────────────────────── */}
         {traitBadges.length > 0 && (
-          <section className="mb-14 flex flex-wrap justify-center gap-2">
+          <FadeInSection className="mb-14 flex flex-wrap justify-center gap-2" delay={0.1}>
             {traitBadges.map((badge) => (
               <span
                 key={badge}
@@ -469,111 +517,284 @@ const IdentityPage: React.FC = () => {
                 {badge}
               </span>
             ))}
-          </section>
+          </FadeInSection>
         )}
 
-        {/* ── 4. Expert Insights Accordion ──────────────────────────────── */}
-        <section className="mb-14">
-          {EXPERT_SECTIONS.map((section) => {
-            const insights = expertInsights[section.key] ?? [];
-            if (insights.length === 0) return null;
+        {/* ── Still Learning State ──────────────────────────────────────── */}
+        {showStillLearning && (
+          <FadeInSection className="mb-14" delay={0.2}>
+            <div
+              className="rounded-[20px] px-5 py-6 text-center"
+              style={{
+                background: 'var(--glass-surface-bg)',
+                backdropFilter: 'blur(42px)',
+                WebkitBackdropFilter: 'blur(42px)',
+                border: '1px solid var(--glass-surface-border)',
+              }}
+            >
+              <p
+                className="text-sm mb-3"
+                style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
+              </p>
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
+                style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Connect platforms
+              </button>
+            </div>
+          </FadeInSection>
+        )}
 
-            const oneLiner = extractOneLiner(insights);
-            const isExpanded = expandedDomain === section.key;
-
-            return (
-              <div key={section.key} style={{ borderBottom: '1px solid var(--border-glass)' }}>
-                <button
-                  onClick={() => toggleDomain(section.key)}
-                  className="w-full flex items-center gap-3 py-4 text-left transition-opacity hover:opacity-80"
-                  style={{ fontFamily: "'Inter', sans-serif" }}
-                  aria-expanded={isExpanded}
-                  aria-label={`${section.label} insights: ${oneLiner}`}
+        {/* ── 2. YOUR VALUES ────────────────────────────────────────────── */}
+        {layers?.values?.values && layers.values.values.length > 0 && (
+          <FadeInSection className="mb-14" delay={0.15}>
+            <SectionLabel>Your Values</SectionLabel>
+            <div
+              className="rounded-[20px] overflow-hidden"
+              style={{
+                background: 'var(--glass-surface-bg)',
+                backdropFilter: 'blur(42px)',
+                WebkitBackdropFilter: 'blur(42px)',
+                border: '1px solid var(--glass-surface-border)',
+              }}
+            >
+              {layers.values.values.map((value, idx) => (
+                <div
+                  key={value.name}
+                  className="px-5 py-4"
+                  style={{
+                    borderBottom: idx < layers.values.values.length - 1
+                      ? '1px solid rgba(255,255,255,0.06)'
+                      : 'none',
+                  }}
                 >
-                  {/* Colored dot */}
+                  <h3
+                    className="text-sm font-medium mb-1.5"
+                    style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    {value.name}
+                  </h3>
+                  <p
+                    className="text-sm leading-relaxed"
+                    style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    {value.evidence}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </FadeInSection>
+        )}
+
+        {/* ── 3. YOUR RHYTHMS ───────────────────────────────────────────── */}
+        {layers?.rhythms && (
+          <FadeInSection className="mb-14" delay={0.2}>
+            <SectionLabel>Your Rhythms</SectionLabel>
+
+            {/* Chronotype badge */}
+            <span
+              className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
+              style={{
+                background: 'var(--glass-surface-bg)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                color: '#E8E0D4',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {formatChronotype(layers.rhythms.chronotype)}
+            </span>
+
+            {/* Peak hours */}
+            {layers.rhythms.peakHours && (
+              <p
+                className="text-xs mb-3"
+                style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Peak hours: {layers.rhythms.peakHours}
+              </p>
+            )}
+
+            {/* Summary */}
+            <p
+              className="text-sm leading-relaxed mb-5"
+              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+            >
+              {layers.rhythms.summary}
+            </p>
+
+            {/* Activity distribution bar */}
+            {layers.rhythms.distribution && (
+              <div>
+                <div className="flex rounded-full overflow-hidden h-2 mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: section.dotColor }}
+                    style={{
+                      width: `${layers.rhythms.distribution.morning * 100}%`,
+                      backgroundColor: 'rgba(232,224,212,0.20)',
+                    }}
                   />
-
-                  {/* Domain label */}
-                  <span
-                    className="text-[11px] font-medium tracking-[0.08em] uppercase flex-shrink-0 w-[100px]"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
-                  >
-                    {section.label}
-                  </span>
-
-                  {/* One-liner */}
-                  <span
-                    className="flex-1 text-sm truncate"
-                    style={{ color: 'rgba(255,255,255,0.7)' }}
-                  >
-                    {oneLiner}
-                  </span>
-
-                  {/* Chevron */}
-                  {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }} />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }} />
-                  )}
-                </button>
-
-                {/* Expanded content */}
-                {isExpanded && (
-                  <div className="pb-4 pl-[calc(8px+12px+100px+12px)]">
-                    {insights.map((paragraph, idx) => (
-                      <p
-                        key={idx}
-                        className="text-sm mb-2 last:mb-0"
-                        style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 1.65 }}
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
-
-        {/* ── 5. This Week (Drift) ─────────────────────────────────────── */}
-        {drift && (
-          <section className="mb-14">
-            {drift.similarity > 0.90 ? (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.8)' }} />
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  Stable this week
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(251,191,36,0.8)' }} />
-                <span
-                  className="text-xs font-medium"
-                  style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  Shifting — personality drift detected ({Math.round(drift.similarity * 100)}% similarity)
-                </span>
+                  <div
+                    style={{
+                      width: `${layers.rhythms.distribution.afternoon * 100}%`,
+                      backgroundColor: 'rgba(232,224,212,0.30)',
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: `${layers.rhythms.distribution.evening * 100}%`,
+                      backgroundColor: 'rgba(232,224,212,0.50)',
+                    }}
+                  />
+                  <div
+                    style={{
+                      width: `${layers.rhythms.distribution.night * 100}%`,
+                      backgroundColor: 'rgba(232,224,212,0.40)',
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+                  <span>Morning</span>
+                  <span>Afternoon</span>
+                  <span>Evening</span>
+                  <span>Night</span>
+                </div>
               </div>
             )}
-          </section>
+          </FadeInSection>
         )}
 
-        {/* ── 6. Ask Your Twin About You ────────────────────────────────── */}
-        <section className="mb-14">
-          <p
-            className="text-[11px] font-medium tracking-[0.08em] uppercase mb-4"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Ask your twin about you
-          </p>
+        {/* ── 4. YOUR TASTE ─────────────────────────────────────────────── */}
+        {layers?.taste && (
+          <FadeInSection className="mb-14" delay={0.25}>
+            <SectionLabel>Your Taste</SectionLabel>
+
+            {/* Pull-quote statement */}
+            <p
+              className="mb-5 leading-relaxed"
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontStyle: 'italic',
+                fontSize: '17px',
+                color: 'rgba(255,255,255,0.8)',
+                lineHeight: 1.6,
+              }}
+            >
+              {layers.taste.statement}
+            </p>
+
+            {/* Top signals as glass pills */}
+            {layers.taste.topSignals && layers.taste.topSignals.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {layers.taste.topSignals.map((signal) => (
+                  <span
+                    key={signal}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium"
+                    style={{
+                      background: 'var(--glass-surface-bg)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      color: 'rgba(255,255,255,0.55)',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {signal}
+                  </span>
+                ))}
+              </div>
+            )}
+          </FadeInSection>
+        )}
+
+        {/* ── 5. HOW YOU CONNECT ────────────────────────────────────────── */}
+        {layers?.connections && (
+          <FadeInSection className="mb-14" delay={0.3}>
+            <SectionLabel>How You Connect</SectionLabel>
+
+            {/* Connection style badge */}
+            <span
+              className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
+              style={{
+                background: 'var(--glass-surface-bg)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                color: '#E8E0D4',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {formatConnectionStyle(layers.connections.style)}
+            </span>
+
+            {/* Summary */}
+            <p
+              className="text-sm leading-relaxed mb-4"
+              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+            >
+              {layers.connections.summary}
+            </p>
+
+            {/* Pattern bullets */}
+            {layers.connections.patterns && layers.connections.patterns.length > 0 && (
+              <ul className="space-y-1.5">
+                {layers.connections.patterns.map((pattern) => (
+                  <li
+                    key={pattern}
+                    className="flex items-start gap-2 text-sm"
+                    style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
+                    {pattern}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </FadeInSection>
+        )}
+
+        {/* ── 6. WHAT'S CHANGING ────────────────────────────────────────── */}
+        {layers?.growth_edges && (
+          <FadeInSection className="mb-14" delay={0.35}>
+            <SectionLabel>What's Changing</SectionLabel>
+
+            {layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0 ? (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
+                <p
+                  className="text-sm"
+                  style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  Your patterns have been consistent — you're in a steady state
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {layers.growth_edges.shifts.map((shift) => (
+                  <div key={shift.domain} className="flex items-start gap-3">
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5"
+                      style={growthTypeBadgeStyle(shift.type)}
+                    >
+                      {shift.domain}
+                    </span>
+                    <p
+                      className="text-sm"
+                      style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {shift.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </FadeInSection>
+        )}
+
+        {/* ── 7. Ask Your Twin About You ──────────────────────────────────── */}
+        <FadeInSection className="mb-14" delay={0.4}>
+          <SectionLabel>Ask your twin about you</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {SUGGESTION_PILLS.map((pill) => (
               <button
@@ -593,9 +814,9 @@ const IdentityPage: React.FC = () => {
               </button>
             ))}
           </div>
-        </section>
+        </FadeInSection>
 
-        {/* ── 7. Footer ────────────────────────────────────────────────── */}
+        {/* ── 8. Footer ──────────────────────────────────────────────────── */}
         <footer className="flex items-center justify-between pt-6" style={{ borderTop: '1px solid var(--border-glass)' }}>
           {!isDemoMode && user && (
             <button
@@ -638,27 +859,51 @@ const LoadingSkeleton: React.FC = () => (
       <div className="h-12 w-64 rounded mx-auto mb-3" style={{ background: 'var(--glass-surface-bg)' }} />
       <div className="h-4 w-48 rounded mx-auto" style={{ background: 'rgba(255,255,255,0.04)' }} />
     </div>
-    {/* Radar skeleton */}
-    <div className="animate-pulse mb-14">
-      <div className="h-[280px] w-full rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }} />
-      <div className="h-3 w-40 rounded mx-auto mt-2" style={{ background: 'rgba(255,255,255,0.04)' }} />
-    </div>
-    {/* Badges skeleton */}
+    {/* Trait badges skeleton */}
     <div className="animate-pulse flex flex-wrap justify-center gap-2 mb-14">
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="h-7 w-24 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
       ))}
     </div>
-    {/* Expert accordion skeleton */}
+    {/* Values section skeleton */}
     <div className="animate-pulse mb-14">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex items-center gap-3 py-4" style={{ borderBottom: '1px solid var(--border-glass)' }}>
-          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--glass-surface-border)' }} />
-          <div className="h-3 w-20 rounded" style={{ background: 'var(--glass-surface-bg)' }} />
-          <div className="flex-1 h-3 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
-          <div className="w-4 h-4 rounded" style={{ background: 'rgba(255,255,255,0.04)' }} />
-        </div>
-      ))}
+      <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="rounded-[20px] overflow-hidden" style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="px-5 py-4" style={{ borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+            <div className="h-4 w-36 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <div className="h-3 w-full rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+          </div>
+        ))}
+      </div>
+    </div>
+    {/* Rhythms section skeleton */}
+    <div className="animate-pulse mb-14">
+      <div className="h-3 w-28 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-7 w-24 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="h-4 w-full rounded mb-2" style={{ background: 'rgba(255,255,255,0.03)' }} />
+      <div className="h-2 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
+    </div>
+    {/* Taste section skeleton */}
+    <div className="animate-pulse mb-14">
+      <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-5 w-3/4 rounded mb-3" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="flex gap-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-7 w-32 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        ))}
+      </div>
+    </div>
+    {/* Connections section skeleton */}
+    <div className="animate-pulse mb-14">
+      <div className="h-3 w-32 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-7 w-28 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="h-4 w-full rounded mb-2" style={{ background: 'rgba(255,255,255,0.03)' }} />
+    </div>
+    {/* Growth edges skeleton */}
+    <div className="animate-pulse mb-14">
+      <div className="h-3 w-28 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-4 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
     </div>
   </div>
 );

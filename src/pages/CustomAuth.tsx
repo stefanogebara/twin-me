@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { Loader2, X } from 'lucide-react';
+import { Loader2, X, Check, Ticket } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -14,10 +16,61 @@ const CustomAuth = () => {
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState<'terms' | 'privacy' | null>(null);
 
+  // Beta invite state
+  const [inviteCode, setInviteCode] = useState('');
+  const [inviteValid, setInviteValid] = useState(false);
+  const [validating, setValidating] = useState(false);
+
+  // On mount: check URL param or sessionStorage for invite code
+  useEffect(() => {
+    trackFunnel('auth_page_viewed', {});
+    const urlCode = searchParams.get('invite');
+    const storedCode = sessionStorage.getItem('beta_invite_code');
+    // URL param always wins over stale sessionStorage
+    const code = urlCode || storedCode || '';
+
+    if (code) {
+      setInviteCode(code);
+      // Only persist if from URL (fresh) — sessionStorage already has stale one
+      if (urlCode) sessionStorage.setItem('beta_invite_code', code);
+      validateCode(code);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const validateCode = useCallback(async (code: string) => {
+    if (!code || code.trim().length < 4) {
+      setInviteValid(false);
+      if (code && code.trim().length > 0) setError('Code must be at least 4 characters');
+      return;
+    }
+    setValidating(true);
+    setError('');
+    try {
+      const res = await fetch(`${API_URL}/beta/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      setInviteValid(data.valid === true);
+      if (data.valid) {
+        sessionStorage.setItem('beta_invite_code', code.trim());
+        trackFunnel('beta_invite_validated', { code: code.trim() });
+      } else {
+        setError(data.error || 'Invalid invite code');
+        sessionStorage.removeItem('beta_invite_code');
+      }
+    } catch {
+      setInviteValid(false);
+    } finally {
+      setValidating(false);
+    }
+  }, [trackFunnel]);
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError('');
-    trackFunnel('auth_initiated', { provider: 'google' });
+    trackFunnel('auth_initiated', { provider: 'google', has_invite: inviteValid });
     try {
       const redirectAfterAuth = searchParams.get('redirect');
       await signInWithOAuth('google', redirectAfterAuth || undefined);
@@ -116,11 +169,11 @@ For privacy concerns: privacy@twinme.ai`
   return (
     <div
       className="min-h-screen flex"
-      style={{ backgroundColor: '#0a0f0a' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
-      {/* Left panel — form */}
+      {/* Left panel — form (clean, no card) */}
       <div className="flex-1 flex items-center justify-center px-6">
-      <div className="w-full max-w-[380px]">
+      <div className="w-full max-w-[420px]">
 
         {/* Logo */}
         <div className="flex items-center gap-2 mb-16">
@@ -164,13 +217,77 @@ For privacy concerns: privacy@twinme.ai`
           Sign in to discover your soul signature
         </p>
 
+        {/* Beta invite code section */}
+        {inviteValid ? (
+          <div
+            className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.04)',
+              border: '1px solid var(--glass-surface-border)',
+            }}
+          >
+            <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }} />
+            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+              Invite code: <strong style={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '1px' }}>{inviteCode}</strong>
+            </span>
+          </div>
+        ) : (
+          <div className="mb-6">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.25)' }} />
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => {
+                    setInviteCode(e.target.value);
+                    setError('');
+                    setInviteValid(false);
+                  }}
+                  placeholder="Enter invite code"
+                  className="w-full h-10 pl-9 pr-3 rounded-lg text-sm outline-none"
+                  style={{
+                    backgroundColor: 'rgba(218,217,215,0.08)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--foreground)',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && validateCode(inviteCode)}
+                />
+              </div>
+              <button
+                onClick={() => validateCode(inviteCode)}
+                disabled={validating || inviteCode.length < 4}
+                className="h-10 px-4 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
+                style={{
+                  backgroundColor: '#252222',
+                  color: 'var(--foreground)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
+              </button>
+            </div>
+            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+              No code?{' '}
+              <button
+                onClick={() => navigate('/waitlist')}
+                className="underline transition-opacity hover:opacity-70"
+                style={{ color: 'rgba(255,255,255,0.3)' }}
+              >
+                Join the waitlist
+              </button>
+            </p>
+          </div>
+        )}
+
         {/* Email hint */}
         {searchParams.get('email') && (
           <div
             className="text-sm mb-6 py-3 px-4 rounded-lg"
             style={{
               backgroundColor: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid var(--border-glass)',
               color: 'rgba(255,255,255,0.6)',
             }}
           >
@@ -195,11 +312,11 @@ For privacy concerns: privacy@twinme.ai`
         {/* Google sign-in */}
         <button
           onClick={handleGoogleSignIn}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2.5 h-11 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          disabled={loading || !inviteValid}
+          className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
-            color: '#0a0f0a',
+            color: 'var(--primary-foreground)',
             fontFamily: "'Inter', sans-serif",
             cursor: loading ? 'not-allowed' : 'pointer',
           }}
@@ -223,18 +340,18 @@ For privacy concerns: privacy@twinme.ai`
         </button>
 
         {/* Divider */}
-        <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+        <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 
         {/* Terms */}
         <p
           className="text-center text-[12px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
         >
           By continuing, you agree to our{' '}
           <button
             onClick={() => setActiveModal('terms')}
             className="underline transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'rgba(255,255,255,0.65)' }}
           >
             Terms of Service
           </button>
@@ -242,7 +359,7 @@ For privacy concerns: privacy@twinme.ai`
           <button
             onClick={() => setActiveModal('privacy')}
             className="underline transition-opacity hover:opacity-70"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            style={{ color: 'rgba(255,255,255,0.65)' }}
           >
             Privacy Policy
           </button>
@@ -257,7 +374,7 @@ For privacy concerns: privacy@twinme.ai`
           <button
             onClick={() => navigate('/discover')}
             className="transition-opacity hover:opacity-70"
-            style={{ color: '#10b77f' }}
+            style={{ color: 'rgba(255,255,255,0.85)' }}
           >
             Learn more
           </button>
@@ -265,23 +382,61 @@ For privacy concerns: privacy@twinme.ai`
 
         {/* Footer */}
         <div className="mt-20 text-center">
-          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.12)' }}>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
         </div>
       </div>
       </div>
 
-      {/* Right panel — Figma gradient */}
+      {/* Right panel — Figma Sundust gradient */}
       <div
-        className="hidden lg:block flex-1 m-4 ml-0"
+        className="hidden lg:flex flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
         style={{
           background: `linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
             linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
               rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%)`,
-          borderRadius: '16px',
+          borderRadius: '24px',
         }}
-      />
+      >
+        {/* Decorative ring */}
+        <div
+          className="w-20 h-20 rounded-full mb-10 flex-shrink-0"
+          style={{
+            border: '1.5px solid rgba(255,255,255,0.15)',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+          }}
+        />
+
+        <h2
+          className="text-center mb-4"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '36px',
+            fontWeight: 400,
+            letterSpacing: '-0.72px',
+            lineHeight: 1.15,
+            color: 'rgba(255,255,255,0.9)',
+          }}
+        >
+          Your soul signature
+          <br />
+          awaits
+        </h2>
+
+        <p
+          className="text-center max-w-[320px]"
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '14px',
+            lineHeight: 1.6,
+            color: 'rgba(255,255,255,0.45)',
+          }}
+        >
+          Connect your platforms, discover your patterns, meet your digital twin.
+        </p>
+      </div>
 
       {/* Modal */}
       {activeModal && (
@@ -293,14 +448,14 @@ For privacy concerns: privacy@twinme.ai`
           <div
             className="relative w-full max-w-[600px] max-h-[80vh] overflow-hidden rounded-xl"
             style={{
-              backgroundColor: '#111511',
-              border: '1px solid rgba(255,255,255,0.06)',
+              backgroundColor: 'var(--background)',
+              border: '1px solid var(--border-glass)',
             }}
             onClick={e => e.stopPropagation()}
           >
             <div
               className="flex items-center justify-between px-6 py-4"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ borderBottom: '1px solid var(--border-glass)' }}
             >
               <h2
                 style={{

@@ -232,6 +232,7 @@ app.use((req, res, next) => {
   // Chat and cron endpoints need extra time; default 30s for all others
   const timeout = req.path.includes('/chat/message') ? 300000
     : req.path.includes('/cron/') ? 115000
+    : req.path.includes('/soul-signature/layers') ? 90000
     : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
   res.setTimeout(timeout, () => {
