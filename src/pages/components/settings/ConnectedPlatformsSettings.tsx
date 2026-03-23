@@ -57,9 +57,10 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
           onClick={() => refetch()}
           className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
           style={{ color: 'rgba(255,255,255,0.25)' }}
+          aria-label="Refresh platform connection status"
           title="Refresh status"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </div>
 

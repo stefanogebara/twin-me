@@ -22,12 +22,12 @@ const getAuthHeaders = () => {
 // ── Sub-components ───────────────────────────────────────────────────────
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
-  <span
+  <h2
     className="text-[11px] font-medium tracking-widest uppercase block mb-5"
-    style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif' }}
+    style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
   >
     {label}
-  </span>
+  </h2>
 );
 
 const Divider: React.FC = () => (
@@ -595,6 +595,7 @@ const Settings = () => {
                 placeholder='Type "DELETE"'
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
+                aria-label="Type DELETE to confirm account deletion"
                 className="text-sm px-2 py-1 rounded w-28 bg-transparent focus:outline-none"
                 style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
               />

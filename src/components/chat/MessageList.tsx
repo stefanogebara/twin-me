@@ -165,9 +165,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                             }}
                             className="p-1 rounded-md transition-all hover:scale-110"
                             style={{ color: 'rgba(255,255,255,0.35)' }}
+                            aria-label="Rate as helpful"
                             title="Helpful"
                           >
-                            <ThumbsUp className="w-3.5 h-3.5" />
+                            <ThumbsUp className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => {
@@ -180,9 +181,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                             }}
                             className="p-1 rounded-md transition-all hover:scale-110"
                             style={{ color: 'rgba(255,255,255,0.35)' }}
+                            aria-label="Rate as not helpful"
                             title="Not helpful"
                           >
-                            <ThumbsDown className="w-3.5 h-3.5" />
+                            <ThumbsDown className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </>
                       )}
@@ -202,9 +204,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
         })}
 
         {isTyping && (
-          <div className="flex flex-col items-start">
+          <div className="flex flex-col items-start" role="status" aria-label="Twin is thinking">
             <div className="flex items-center gap-2">
-              <div className="flex gap-1">
+              <div className="flex gap-1" aria-hidden="true">
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
                   style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '0ms' }}

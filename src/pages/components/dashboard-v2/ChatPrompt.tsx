@@ -112,7 +112,11 @@ export function ChatPrompt() {
           onSubmit={(e) => { e.preventDefault(); submit(text); }}
           className="flex items-center gap-2"
         >
+          <label htmlFor="dashboard-chat-input" className="sr-only">
+            Ask your twin anything
+          </label>
           <input
+            id="dashboard-chat-input"
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}

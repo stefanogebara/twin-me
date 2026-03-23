@@ -90,12 +90,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
             <CategoryIcon className="w-3.5 h-3.5" style={{ color: PILL_STYLE.text }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h4
+            <h3
               className="text-sm font-medium leading-snug truncate"
               style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
             >
               {goal.title}
-            </h4>
+            </h3>
             <span
               className="inline-block px-2.5 py-0.5 rounded-full text-[11px] mt-1.5"
               style={{
@@ -199,6 +199,8 @@ const GoalCard: React.FC<GoalCardProps> = ({
         onClick={() => setExpanded((prev) => !prev)}
         className="flex items-center gap-1 w-full pt-1 transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97]"
         style={{ color: TEXT_SECONDARY }}
+        aria-expanded={expanded}
+        aria-label={expanded ? `Collapse details for ${goal.title}` : `Expand details for ${goal.title}`}
       >
         {expanded ? (
           <ChevronUp className="w-3.5 h-3.5" />

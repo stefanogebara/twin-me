@@ -33,11 +33,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           border: '1px solid var(--surface-solid)',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.30)',
         }}
-        aria-label="Toggle menu"
+        aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-expanded={sidebarOpen}
       >
         <Menu
           className="w-5 h-5"
           style={{ color: 'var(--foreground)' }}
+          aria-hidden="true"
         />
       </button>
 
@@ -49,6 +51,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Main Content Area - margin adjusts based on sidebar collapsed state */}
       <main
+        id="main-content"
         className="relative flex-1 overflow-y-auto transition-all duration-200 ease-out"
         style={{
           zIndex: 0,

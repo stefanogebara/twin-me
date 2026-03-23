@@ -77,12 +77,12 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
 
         <div className="flex-1 min-w-0 space-y-2">
           {/* Title */}
-          <h4
+          <h3
             className="text-sm font-medium leading-snug"
             style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
           >
             {goal.title}
-          </h4>
+          </h3>
 
           {/* Description */}
           {goal.description && (

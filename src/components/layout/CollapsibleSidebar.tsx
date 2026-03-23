@@ -155,6 +155,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               "hover:opacity-80 transition-all duration-200 flex items-center gap-2.5",
               isExpanded ? "" : "justify-center"
             )}
+            aria-label="Go to dashboard"
             title="Twin Me"
           >
             <img
@@ -237,6 +238,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-150 ease-out active:scale-[0.97]",
               isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center"
             )}
+            aria-label="Sign out"
             title="Sign Out"
           >
             <LogOut className="w-5 h-5" aria-hidden="true" />
@@ -250,6 +252,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               "w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors",
               isExpanded ? "px-4 py-3" : "px-2 py-3 justify-center"
             )}
+            aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
             title={user?.firstName || user?.email || 'Settings'}
           >
             <div className="w-8 h-8 bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold">

@@ -96,8 +96,9 @@ const BetaFeedbackWidget: React.FC = () => {
               onClick={() => setOpen(false)}
               className="p-1 transition-opacity hover:opacity-60"
               style={{ color: 'rgba(255,255,255,0.3)' }}
+              aria-label="Close feedback panel"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 

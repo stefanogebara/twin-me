@@ -283,12 +283,12 @@ const GoalsPage: React.FC = () => {
       {/* Suggestions Section */}
       {!isLoading && suggestions.length > 0 && (
         <section className="mb-10">
-          <span
+          <h2
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
           >
             Your Twin Suggests
-          </span>
+          </h2>
           <div>
             {suggestions.map((goal, i) => (
               <GoalSuggestionCard
@@ -308,12 +308,12 @@ const GoalsPage: React.FC = () => {
       {/* Active Goals Section */}
       {!isLoading && activeGoals.length > 0 && (
         <section className="mb-10">
-          <span
+          <h2
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
           >
             Active Goals
-          </span>
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {activeGoals.map((goal, i) => (
               <div
@@ -341,6 +341,7 @@ const GoalsPage: React.FC = () => {
           <button
             onClick={() => setShowCompleted((prev) => !prev)}
             className="flex items-center gap-2 w-full text-left transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.98] mb-4"
+            aria-expanded={showCompleted}
           >
             <Trophy className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
             <span

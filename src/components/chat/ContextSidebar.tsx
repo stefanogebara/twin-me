@@ -42,6 +42,7 @@ export const ContextSidebar = ({
 
   return (
     <aside
+      aria-label="Chat context"
       className={cn(
         "w-64 hidden md:block overflow-y-auto",
         !showContext && "md:hidden"
@@ -66,19 +67,20 @@ export const ContextSidebar = ({
             onClick={onClose}
             className="p-1 rounded hover:opacity-70 transition-opacity"
             style={{ color: 'rgba(255,255,255,0.25)' }}
+            aria-label="Close context panel"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Data Sources */}
         <div className="mb-6">
-          <h4
+          <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-3"
             style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             Sources
-          </h4>
+          </h3>
           <div className="space-y-2">
             {platforms.map((platform) => (
               <div
@@ -119,12 +121,12 @@ export const ContextSidebar = ({
 
         {/* Active Context */}
         <div className="mb-6">
-          <h4
+          <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-3"
             style={{ color: 'rgba(255,255,255,0.3)' }}
           >
             Active Context
-          </h4>
+          </h3>
           {isLoadingContext ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#10b77f' }} />

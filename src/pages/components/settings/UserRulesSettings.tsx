@@ -119,9 +119,10 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
                 <button
                   onClick={() => handleDelete(i)}
                   className="p-1 rounded-md bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={`Remove rule: ${rule}`}
                   title="Remove rule"
                 >
-                  <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -142,6 +143,7 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder="e.g. I'm allergic to shellfish"
           disabled={isDemoMode || rules.length >= maxRules}
+          aria-label="New rule for your twin"
           className="flex-1 text-[13px] px-3 py-2 rounded-lg border-none outline-none"
           style={{
             background: 'var(--sidebar)',

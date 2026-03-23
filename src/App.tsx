@@ -105,6 +105,17 @@ const App = () => {
                     <Sonner />
                     <ErrorNotification />
                     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                      {/* Skip to main content — WCAG 2.1 AA */}
+                      <a
+                        href="#main-content"
+                        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-medium"
+                        style={{
+                          backgroundColor: 'var(--accent-vibrant)',
+                          color: '#0a0909',
+                        }}
+                      >
+                        Skip to main content
+                      </a>
                       <PostHogPageTracker />
                       <SidebarProvider>
                       <NavigationProvider>

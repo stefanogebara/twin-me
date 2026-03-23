@@ -267,6 +267,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
                   : '1px solid var(--glass-surface-border)',
                 boxShadow: i === level ? '0 0 6px rgba(232,224,212,0.3)' : 'none',
               }}
+              aria-label={`Set autonomy to ${AUTONOMY_LEVELS[i].label}`}
               title={AUTONOMY_LEVELS[i].label}
             />
           ))}
@@ -278,13 +279,22 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
         {AUTONOMY_LEVELS.map((lvl, i) => (
           <span
             key={i}
+            role="button"
+            tabIndex={isDemoMode || isUpdating ? -1 : 0}
             className="text-[9px] cursor-pointer transition-colors"
             style={{
               color: i === level ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
               width: i === 0 ? 'auto' : i === 4 ? 'auto' : '20%',
               textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
             }}
+            aria-label={`Set autonomy to ${lvl.label}`}
             onClick={() => !isDemoMode && !isUpdating && onLevelChange(skill.id, i)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ' ') && !isDemoMode && !isUpdating) {
+                e.preventDefault();
+                onLevelChange(skill.id, i);
+              }
+            }}
           >
             {lvl.short}
           </span>

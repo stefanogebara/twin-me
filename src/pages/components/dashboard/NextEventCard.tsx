@@ -45,11 +45,13 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                     onClick={onSync}
                     disabled={syncing}
                     className="p-1 rounded hover:bg-black/5 transition-colors"
+                    aria-label="Sync calendar"
                     title="Sync calendar"
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
                       style={{ color: 'rgba(255,255,255,0.4)' }}
+                      aria-hidden="true"
                     />
                   </button>
                 )}

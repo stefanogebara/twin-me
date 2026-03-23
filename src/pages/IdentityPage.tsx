@@ -487,6 +487,8 @@ const IdentityPage: React.FC = () => {
                   onClick={() => toggleDomain(section.key)}
                   className="w-full flex items-center gap-3 py-4 text-left transition-opacity hover:opacity-80"
                   style={{ fontFamily: "'Inter', sans-serif" }}
+                  aria-expanded={isExpanded}
+                  aria-label={`${section.label} insights: ${oneLiner}`}
                 >
                   {/* Colored dot */}
                   <div
