@@ -171,7 +171,7 @@ Rules:
       maxTokens: 800,
       temperature: 0.3,
       userId,
-      purpose: 'task_planning'
+      serviceName: 'agentic-task-planning',
     });
 
     const text = response?.content || response?.text || '';
@@ -254,7 +254,7 @@ Respond with VALID JSON:
       maxTokens: 300,
       temperature: 0.2,
       userId,
-      purpose: 'task_review'
+      serviceName: 'agentic-task-review',
     });
 
     const text = response?.content || response?.text || '';

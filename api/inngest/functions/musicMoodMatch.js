@@ -219,7 +219,7 @@ Write a brief, casual suggestion. No bullet points. No "I suggest" — just say 
         maxTokens: 80,
         temperature: 0.7,
         userId,
-        purpose: 'music_mood_match'
+        serviceName: 'inngest-music-mood-match',
       });
 
       return response?.content || response?.text || `"${playlist.name}" feels right for where you're at.`;

@@ -674,6 +674,7 @@ async function generateHypotheticalMemory(query) {
       }],
       max_tokens: 150,
       temperature: 0.3,
+      serviceName: 'memoryStream-hyde',
     });
 
     const hydeText = result?.content?.trim();

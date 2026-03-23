@@ -168,6 +168,7 @@ export function BigFiveQuestions({
                 backgroundColor: colors.accentBg,
                 color: colors.text
               }}
+              aria-label="Previous question"
             >
               <ChevronLeft className="w-4 h-4" />
               Previous

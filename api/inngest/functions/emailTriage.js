@@ -167,7 +167,7 @@ Keep the overall tone casual and friend-like. This is their twin helping with em
         maxTokens: 700,
         temperature: 0.7,
         userId,
-        purpose: 'email_triage'
+        serviceName: 'inngest-email-triage',
       });
 
       return response?.content || response?.text || null;

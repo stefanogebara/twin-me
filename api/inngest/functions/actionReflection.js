@@ -167,7 +167,7 @@ Procedure:`
             maxTokens: 200,
             temperature: 0.3,
             userId,
-            purpose: 'action_reflection_procedure'
+            serviceName: 'inngest-action-reflection-procedure',
           });
 
           const procedureText = (response?.content || response?.text || '').trim();
@@ -274,7 +274,7 @@ Write a brief reflection as if the twin is thinking about what it learned. Start
           maxTokens: 200,
           temperature: 0.4,
           userId,
-          purpose: 'action_reflection_summary'
+          serviceName: 'inngest-action-reflection-summary',
         });
 
         return (response?.content || response?.text || '').trim();

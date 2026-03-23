@@ -76,6 +76,7 @@ start_server.bat
 
 # One-off test scripts (keep tests/ dir for real tests)
 api/test-*.js
+test-*.js
 test-*.mjs
 playwright-*-test.js
 

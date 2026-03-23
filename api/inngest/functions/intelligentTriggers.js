@@ -307,7 +307,7 @@ export const intelligentTriggersFunction = inngest.createFunction(
           maxTokens: 150,
           temperature: 0.7,
           userId,
-          purpose: `trigger_${trigger.type}`,
+          serviceName: `inngest-trigger-${trigger.type}`,
         });
 
         const suggestion = response?.content || response?.text || '';

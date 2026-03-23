@@ -199,7 +199,7 @@ Write it like texting a close friend at the end of the day.`;
         maxTokens: 700,
         temperature: 0.7,
         userId,
-        purpose: 'evening_recap'
+        serviceName: 'inngest-evening-recap',
       });
 
       return response?.content || response?.text || null;

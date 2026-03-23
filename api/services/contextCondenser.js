@@ -137,7 +137,7 @@ ${conversationText}`;
       maxTokens: 500,
       temperature: 0.2,
       userId,
-      purpose: 'context_condensation'
+      serviceName: 'context-condensation',
     });
 
     return response?.content || response?.text || 'Earlier conversation context unavailable.';

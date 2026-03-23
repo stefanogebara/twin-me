@@ -91,7 +91,7 @@ Rules:
       maxTokens: 1000,
       temperature: 0.3,
       userId,
-      purpose: 'session_reflection'
+      serviceName: 'session-reflection',
     });
 
     const text = response?.content || response?.text || '';

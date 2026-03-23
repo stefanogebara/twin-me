@@ -70,7 +70,7 @@ export const authenticateUser = async (req, res, next) => {
       log.warn('No token provided', { path: req.path });
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'No token provided'
+        message: 'Missing or invalid authorization header'
       });
     }
 
@@ -132,7 +132,7 @@ export const authenticateUser = async (req, res, next) => {
       return res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid or expired token',
-        tokenExpired: verifyError.name === 'TokenExpiredError',
+        tokenExpired: process.env.NODE_ENV === 'development' ? verifyError.name === 'TokenExpiredError' : undefined,
         details: process.env.NODE_ENV === 'development' ? verifyError.message : undefined
       });
     }

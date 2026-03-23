@@ -333,6 +333,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
             backgroundColor: 'var(--glass-surface-bg)',
             color: 'var(--foreground)'
           }}
+          aria-label="Refresh"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>

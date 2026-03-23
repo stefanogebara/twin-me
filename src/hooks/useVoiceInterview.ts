@@ -124,7 +124,6 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
     if (sessionRef.current) {
       sessionRef.current.setMicMuted(muted);
       updateOrbState(muted ? 'idle' : 'listening');
-      // console.log('[VoiceInterview] Mic muted:', muted);
     }
   }, [updateOrbState]);
 
@@ -137,7 +136,6 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
       setIsActive(false);
       updateOrbState('idle');
       stopVolumePolling();
-      // console.log('[VoiceInterview] Paused voice (mic muted, audio silenced)');
       return;
     }
 
@@ -148,7 +146,6 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
       setIsActive(true);
       updateOrbState('listening');
       startVolumePolling();
-      // console.log('[VoiceInterview] Resumed voice (mic + audio restored)');
       return;
     }
 
@@ -158,7 +155,6 @@ export function useVoiceInterview(config: VoiceInterviewConfig): VoiceInterviewR
       setConnectionStatus('connecting');
       messagesRef.current = [];
       setQuestionCount(0);
-      // console.log('[VoiceInterview] Starting new VoiceConversation with agentId:', agentId);
 
       // Sanitize enrichment context — only pass clean, short fields (no raw web scraping)
       const safeContext: Record<string, string> = {};
@@ -220,14 +216,12 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
             similarityBoost: 0.85,
           },
         },
-        onConnect: ({ conversationId }) => {
-          // console.log('[VoiceInterview] Connected, conversationId:', conversationId);
+        onConnect: () => {
           setIsActive(true);
           updateOrbState('listening');
           setConnectionStatus('connected');
         },
         onDisconnect: (details) => {
-          // console.log('[VoiceInterview] Disconnected:', details.reason);
           setIsActive(false);
           updateOrbState('idle');
           setConnectionStatus('disconnected');
@@ -241,7 +235,6 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
           }
         },
         onMessage: (payload) => {
-          // console.log('[VoiceInterview] Message:', payload.role, payload.message?.slice(0, 80));
           if (payload.message) {
             const role = payload.role === 'user' ? 'user' as const : 'assistant' as const;
             // Accumulate messages for completion pipeline
@@ -253,7 +246,6 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
           }
         },
         onModeChange: ({ mode }) => {
-          // console.log('[VoiceInterview] Mode:', mode);
           if (mode === 'speaking') {
             updateOrbState('speaking');
           } else {
@@ -261,7 +253,6 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
           }
         },
         onStatusChange: ({ status }) => {
-          // console.log('[VoiceInterview] Status:', status);
           setConnectionStatus(status);
         },
         onError: (message, context) => {
@@ -271,19 +262,11 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
             setIsAvailable(false);
           }
         },
-        onVadScore: ({ vadScore }) => {
-          // Log periodically to verify mic is picking up audio
-          if (vadScore > 0.3) {
-            // console.log('[VoiceInterview] VAD speech detected:', vadScore.toFixed(2));
-          }
-        },
-        onDebug: (info) => {
-          // console.log('[VoiceInterview] Debug:', info);
-        },
+        onVadScore: () => {},
+        onDebug: () => {},
       });
 
       sessionRef.current = session;
-      // console.log('[VoiceInterview] Session started:', session.getId());
       startVolumePolling();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start voice session';
@@ -311,7 +294,6 @@ After ~10 questions, wrap up warmly: summarize 2-3 things you learned and thank 
       updateOrbState('idle');
       setConnectionStatus('disconnected');
       stopVolumePolling();
-      // console.log('[VoiceInterview] Session ended fully');
     }
   }, [updateOrbState, stopVolumePolling]);
 

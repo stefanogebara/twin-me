@@ -35,7 +35,7 @@ interface Message {
   };
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3004/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const CHAT_HISTORY_KEY = 'twin_chat_history';
 const CHAT_HISTORY_MAX = 20;

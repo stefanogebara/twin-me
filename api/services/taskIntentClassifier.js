@@ -174,7 +174,7 @@ Rules:
       maxTokens: 200,
       temperature: 0.1,
       userId,
-      purpose: 'reminder_parsing'
+      serviceName: 'task-intent-reminder',
     });
 
     const text = response?.content || response?.text || '';

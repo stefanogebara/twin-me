@@ -192,12 +192,12 @@ function growthTypeBadgeStyle(type: string): React.CSSProperties {
 // ── Section label ────────────────────────────────────────────────────────
 
 const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <p
+  <h2
     className="text-[11px] font-medium tracking-[0.12em] uppercase mb-4"
     style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
   >
     {children}
-  </p>
+  </h2>
 );
 
 // ── Fade-in wrapper ─────────────────────────────────────────────────────
@@ -821,6 +821,7 @@ const IdentityPage: React.FC = () => {
           {!isDemoMode && user && (
             <button
               onClick={handleShare}
+              aria-label="Share your soul signature"
               className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
               style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
             >

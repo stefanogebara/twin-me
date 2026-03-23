@@ -135,7 +135,7 @@ Do NOT start with "Good morning" if it's not morning — match the actual time o
         maxTokens: 600,
         temperature: 0.7,
         userId,
-        purpose: 'morning_briefing'
+        serviceName: 'inngest-morning-briefing',
       });
 
       return response?.content || response?.text || null;
