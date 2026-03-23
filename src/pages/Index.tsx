@@ -183,7 +183,7 @@ const Index = () => {
                 </button>
                 <button
                   onClick={() => { enterDemoMode(); navigate('/dashboard'); }}
-                  className="text-xs bg-none border-none cursor-pointer text-[#706B63] transition-colors hover:text-[var(--text-secondary)]"
+                  className="text-xs bg-none border-none cursor-pointer text-[#9A9590] transition-colors hover:text-[var(--text-secondary)]"
                 >
                   or try the demo
                 </button>
@@ -203,7 +203,7 @@ const Index = () => {
       {/* ────────────── PLATFORMS STRIP (Act 2 opens) ────────────── */}
       <section className="px-6 lg:px-16 py-12 border-t border-b border-white/[0.06]">
         <div className="max-w-[1200px] mx-auto">
-          <p className="text-center mb-7 font-sans text-[11px] font-normal tracking-[0.12em] uppercase text-[#706B63]">
+          <p className="text-center mb-7 font-sans text-[11px] font-normal tracking-[0.12em] uppercase text-[#9A9590]">
             Your data, your insights — powered by
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 lg:gap-14">
@@ -251,7 +251,7 @@ const Index = () => {
                   {stat.value}
                 </div>
                 <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] m-0">{stat.label}</p>
-                <p className="font-sans text-[11px] text-[#706B63] mt-1">{stat.sub}</p>
+                <p className="font-sans text-[11px] text-[#9A9590] mt-1">{stat.sub}</p>
               </div>
             ))}
           </div>
@@ -290,7 +290,7 @@ const Index = () => {
                     {svc.title}
                   </h3>
                   <span className={`font-sans text-sm font-medium leading-[1.65] transition-colors duration-200 ${
-                    idx === activeService ? 'text-[var(--text-secondary)]' : 'text-[#706B63] opacity-40'
+                    idx === activeService ? 'text-[var(--text-secondary)]' : 'text-[#9A9590] opacity-40'
                   }`}>
                     {svc.num}
                   </span>
@@ -512,7 +512,7 @@ const Index = () => {
 
             {/* Product links */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#706B63]">
+              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#9A9590]">
                 Product
               </p>
               <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">
@@ -525,7 +525,7 @@ const Index = () => {
 
             {/* Community */}
             <div>
-              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#706B63]">
+              <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#9A9590]">
                 Community
               </p>
               <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">

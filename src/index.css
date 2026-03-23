@@ -18,12 +18,12 @@
 @layer base {
   :root {
     /* Background Colors — Night sky */
-    --background: #110f0f;
+    --background: #13121a;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
     /* Claude Theme Variables */
-    --claude-bg: #110f0f;
+    --claude-bg: #13121a;
     --claude-surface: rgba(255, 255, 255, 0.06);
     --claude-surface-raised: rgba(255, 255, 255, 0.12);
     --claude-text: #F5F5F4;
@@ -51,7 +51,7 @@
     /* Interactive Colors */
     --primary: #F5F5F4;
     --primary-foreground: #110f0f;
-    --ring: rgba(232, 224, 212, 0.25);
+    --ring: rgba(232, 224, 212, 0.50);
 
     /* Component Colors */
     --card: rgba(255, 255, 255, 0.06);
@@ -60,7 +60,7 @@
     --popover-foreground: #F5F5F4;
     --secondary: rgba(255, 255, 255, 0.08);
     --secondary-foreground: #F5F5F4;
-    --muted: rgba(17, 15, 15, 0.8);
+    --muted: rgba(19, 18, 26, 0.8);
     --muted-foreground: #A8A29E;
     --accent: rgba(255, 255, 255, 0.06);
     --accent-foreground: #F5F5F4;
@@ -76,7 +76,7 @@
     --sidebar-accent: rgba(255, 255, 255, 0.08);
     --sidebar-accent-foreground: #F5F5F4;
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --sidebar-ring: rgba(232, 224, 212, 0.25);
+    --sidebar-ring: rgba(232, 224, 212, 0.50);
 
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */

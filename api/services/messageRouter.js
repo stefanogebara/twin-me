@@ -145,7 +145,10 @@ export async function deliverInsight(userId, insight) {
 /**
  * Deliver all undelivered insights for all users with messaging channels.
  * Called by cron every 5 minutes.
+ * Global cap of 50 deliveries per run to avoid Vercel 120s timeout.
  */
+const MAX_DELIVERIES_PER_RUN = 50;
+
 export async function deliverPendingInsights() {
   // Get all users with enabled messaging channels OR registered push tokens
   const [{ data: channelUsers }, { data: pushUsers }] = await Promise.all([
@@ -162,6 +165,12 @@ export async function deliverPendingInsights() {
   let totalDelivered = 0;
 
   for (const userId of uniqueUserIds) {
+    // Stop if we've hit the global delivery cap
+    if (totalDelivered >= MAX_DELIVERIES_PER_RUN) {
+      log.info('Global delivery cap reached', { cap: MAX_DELIVERIES_PER_RUN, totalDelivered, totalProcessed });
+      break;
+    }
+
     // Get undelivered insights (max 5 per user per run to avoid spam)
     const { data: insights } = await supabaseAdmin
       .from('proactive_insights')
@@ -174,19 +183,48 @@ export async function deliverPendingInsights() {
     if (!insights?.length) continue;
 
     for (const insight of insights) {
-      const result = await deliverInsight(userId, insight);
-      totalProcessed++;
+      // Stop if we've hit the global delivery cap
+      if (totalDelivered >= MAX_DELIVERIES_PER_RUN) break;
+
+      // Optimistically claim the insight BEFORE sending to prevent
+      // double delivery from concurrent cron runs (H1 fix)
+      const { error: claimError } = await supabaseAdmin
+        .from('proactive_insights')
+        .update({ delivered: true, delivered_at: new Date().toISOString() })
+        .eq('id', insight.id)
+        .eq('delivered', false); // Only claim if still unclaimed
+
+      if (claimError) {
+        log.warn('Failed to claim insight', { insightId: insight.id, error: claimError.message });
+        continue; // Skip — another run may have claimed it
+      }
+
+      let result;
+      try {
+        result = await deliverInsight(userId, insight);
+        totalProcessed++;
+      } catch (err) {
+        // Delivery failed — unclaim so it can be retried next run
+        await supabaseAdmin
+          .from('proactive_insights')
+          .update({ delivered: false, delivered_at: null })
+          .eq('id', insight.id);
+        log.warn('Insight delivery failed, unclaimed for retry', { insightId: insight.id, error: err.message });
+        continue;
+      }
 
       if (result.delivered > 0) {
         totalDelivered++;
-        // Mark as delivered (Telegram delivery counts — web will also show it)
+        // Already marked delivered above (optimistic claim)
+      } else {
+        // No channels succeeded — unclaim so it can be retried
         await supabaseAdmin
           .from('proactive_insights')
-          .update({ delivered: true, delivered_at: new Date().toISOString() })
+          .update({ delivered: false, delivered_at: null })
           .eq('id', insight.id);
       }
     }
   }
 
-  return { processed: totalProcessed, delivered: totalDelivered, users: uniqueUserIds.length };
+  return { processed: totalProcessed, delivered: totalDelivered, users: uniqueUserIds.length, capped: totalDelivered >= MAX_DELIVERIES_PER_RUN };
 }

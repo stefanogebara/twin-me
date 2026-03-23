@@ -18,8 +18,14 @@ const waitlistLimiter = rateLimit({
   message: { success: false, error: 'Too many requests. Please try again later.' },
 });
 
+const validateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute per IP
+  message: { success: false, valid: false, error: 'Too many validation attempts. Please try again later.' },
+});
+
 // POST /api/beta/validate — check code validity (no auth)
-router.post('/validate', async (req, res) => {
+router.post('/validate', validateLimiter, async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) {

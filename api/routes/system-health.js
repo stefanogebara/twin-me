@@ -2,6 +2,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { getCircuitBreakerStatus, resetCircuitBreaker } from '../services/llmGateway.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -97,8 +98,8 @@ router.get('/', async (req, res) => {
   res.status(200).json(checks);
 });
 
-// LLM Circuit Breaker status (no auth — for uptime monitors)
-router.get('/circuit-breaker', (req, res) => {
+// LLM Circuit Breaker status (auth required — internal diagnostics, not for uptime monitors)
+router.get('/circuit-breaker', authenticateUser, (req, res) => {
   res.json(getCircuitBreakerStatus());
 });
 

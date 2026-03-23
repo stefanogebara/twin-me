@@ -11,6 +11,7 @@
  */
 
 import express from 'express';
+import crypto from 'crypto';
 import { complete, TIER_ANALYSIS, TIER_EXTRACTION, TIER_CHAT } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
@@ -232,10 +233,23 @@ router.post('/v1/chat/completions', async (req, res) => {
       return res.status(400).json({ error: 'messages array required' });
     }
 
-    // Validate the ElevenLabs webhook secret
+    // Validate the ElevenLabs webhook secret (timing-safe comparison)
     const secret = req.headers['x-elevenlabs-secret'] || req.headers['authorization']?.replace('Bearer ', '');
     const expectedSecret = process.env.ELEVENLABS_WEBHOOK_SECRET;
-    if (!expectedSecret || secret !== expectedSecret) {
+    if (!expectedSecret || !secret) {
+      log.warn('Missing ElevenLabs webhook secret');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    let isSecretValid = false;
+    try {
+      isSecretValid = crypto.timingSafeEqual(
+        Buffer.from(secret, 'utf8'),
+        Buffer.from(expectedSecret, 'utf8')
+      );
+    } catch {
+      isSecretValid = false; // length mismatch
+    }
+    if (!isSecretValid) {
       log.warn('Invalid ElevenLabs webhook secret');
       return res.status(401).json({ error: 'Unauthorized' });
     }

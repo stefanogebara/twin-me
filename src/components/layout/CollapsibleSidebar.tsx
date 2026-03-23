@@ -211,7 +211,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
-                  background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
+                  background: 'var(--accent-vibrant-glow, rgba(232,224,212,0.12))',
                   color: 'var(--accent-vibrant)',
                 } : {
                   color: 'rgba(255, 255, 255, 0.45)',

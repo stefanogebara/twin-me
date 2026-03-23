@@ -6,7 +6,7 @@ export type SunPhase = 'night' | 'dawn' | 'sunrise' | 'morning' | 'noon' | 'afte
 interface Location {
   latitude: number;
   longitude: number;
-  source: 'gps' | 'ip' | 'timezone' | 'default';
+  source: 'gps' | 'timezone' | 'default';
 }
 
 export interface SunState {
@@ -55,21 +55,6 @@ function getTimezoneLocation(): [number, number] {
     if (tz && TZ_COORDS[tz]) return TZ_COORDS[tz];
   } catch { /* ignore */ }
   return [40.71, -74.01]; // NYC default
-}
-
-async function fetchIPLocation(): Promise<[number, number] | null> {
-  try {
-    // Use ipwho.is (free, HTTPS, no CORS issues, no API key)
-    const res = await fetch('https://ipwho.is/', {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.success !== false && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
-      return [data.latitude, data.longitude];
-    }
-  } catch { /* ignore */ }
-  return null;
 }
 
 function safeDateOrNoon(date: Date, now: Date): Date {
@@ -141,7 +126,7 @@ export function useSunPosition(): SunState {
   const locationRef = useRef(location);
   locationRef.current = location;
 
-  // Attempt better geolocation on mount: GPS → IP → keep timezone
+  // Attempt better geolocation on mount: GPS → timezone fallback (already set as initial state)
   useEffect(() => {
     let cancelled = false;
 
@@ -161,15 +146,8 @@ export function useSunPosition(): SunState {
               longitude: pos.coords.longitude,
               source: 'gps',
             });
-            return;
           }
-        } catch { /* GPS unavailable */ }
-      }
-
-      // Try IP
-      const ipLoc = await fetchIPLocation();
-      if (!cancelled && ipLoc) {
-        setLocation({ latitude: ipLoc[0], longitude: ipLoc[1], source: 'ip' });
+        } catch { /* GPS unavailable — timezone fallback already active */ }
       }
     })();
 

@@ -63,12 +63,23 @@ export async function removeSubscription(userId, endpoint) {
     .eq('endpoint', endpoint);
 }
 
+/** Returns true if the current UTC hour is within quiet hours (23:00-08:00). */
+function isQuietHours() {
+  const hour = new Date().getUTCHours();
+  return hour >= 23 || hour < 8;
+}
+
 /**
  * Send a web push notification to all of a user's subscribed browsers.
  * Returns count of successful sends.
  */
-export async function sendWebPush(userId, { title, body, url, tag, insightId, category }) {
+export async function sendWebPush(userId, { title, body, url, tag, insightId, category, force = false }) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return 0;
+
+  if (!force && isQuietHours()) {
+    log.info('Quiet hours — skipping web push', { userId });
+    return 0;
+  }
 
   const { data: subs } = await supabaseAdmin
     .from('web_push_subscriptions')

@@ -105,9 +105,53 @@ function setupBotHandlers() {
     if (data.startsWith('quick_reply_')) {
       const replyText = data.replace('quick_reply_', '');
       await ctx.answerCallbackQuery({ text: `Sending: "${replyText}"` });
-      // Re-emit as a regular text message for the twin chat pipeline
-      ctx.message = { ...ctx.callbackQuery.message, text: replyText, message_id: Date.now() };
-      // Let it fall through to the message:text handler below
+
+      // Look up user by chat_id to get userId
+      const { data: quickReplyChannel } = await supabaseAdmin
+        .from('messaging_channels')
+        .select('user_id')
+        .eq('channel', 'telegram')
+        .eq('channel_id', chatId)
+        .single();
+
+      if (!quickReplyChannel) {
+        await sendMessage(chatId, 'Your Telegram isn\'t linked to TwinMe yet. Send /start to get started.');
+        return;
+      }
+
+      // Process through the twin chat pipeline directly (grammY does not re-dispatch)
+      try {
+        const typingInterval = setInterval(() => {
+          ctx.replyWithChatAction('typing').catch(() => {});
+        }, 4000);
+        await ctx.replyWithChatAction('typing');
+
+        try {
+          let response = await processTwinMessage(quickReplyChannel.user_id, replyText);
+          response = response.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
+          clearInterval(typingInterval);
+
+          await addConversationMemory(quickReplyChannel.user_id, replyText, response, { source: 'telegram' }).catch(() => {});
+
+          if (response.length <= 4096) {
+            await ctx.reply(response);
+          } else {
+            const chunks = splitMessage(response, 4096);
+            for (const chunk of chunks) {
+              await ctx.reply(chunk);
+            }
+          }
+        } catch (innerErr) {
+          clearInterval(typingInterval);
+          throw innerErr;
+        }
+      } catch (err) {
+        log.error('Telegram quick-reply error', { userId: quickReplyChannel.user_id, chatId, error: err.message });
+        const userMsg = err.message?.includes('402') || err.message?.includes('credits')
+          ? 'My AI brain is temporarily offline (credits). Try again in a bit.'
+          : 'Something went wrong. Try again in a moment.';
+        await ctx.reply(userMsg).catch(() => {});
+      }
       return;
     }
 

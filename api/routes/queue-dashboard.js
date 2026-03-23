@@ -72,7 +72,7 @@ if (bullBoard) {
  * GET /api/queues/stats
  * Get queue statistics (JSON API alternative to Bull Board UI)
  */
-router.get('/stats', authenticateUser, async (req, res) => {
+router.get('/stats', authenticateUser, requireProfessor, async (req, res) => {
   try {
     if (!areQueuesAvailable()) {
       return res.json({
@@ -101,7 +101,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
  * GET /api/queues/health
  * Health check for queue system
  */
-router.get('/health', authenticateUser, async (req, res) => {
+router.get('/health', authenticateUser, requireProfessor, async (req, res) => {
   try {
     const available = areQueuesAvailable();
 

@@ -272,7 +272,7 @@ For privacy concerns: privacy@twinme.ai`
               No code?{' '}
               <button
                 onClick={() => navigate('/waitlist')}
-                className="underline transition-opacity hover:opacity-70"
+                className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
                 style={{ color: 'rgba(255,255,255,0.3)' }}
               >
                 Join the waitlist
@@ -350,7 +350,7 @@ For privacy concerns: privacy@twinme.ai`
           By continuing, you agree to our{' '}
           <button
             onClick={() => setActiveModal('terms')}
-            className="underline transition-opacity hover:opacity-70"
+            className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
             style={{ color: 'rgba(255,255,255,0.65)' }}
           >
             Terms of Service
@@ -358,7 +358,7 @@ For privacy concerns: privacy@twinme.ai`
           {' '}and{' '}
           <button
             onClick={() => setActiveModal('privacy')}
-            className="underline transition-opacity hover:opacity-70"
+            className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
             style={{ color: 'rgba(255,255,255,0.65)' }}
           >
             Privacy Policy
