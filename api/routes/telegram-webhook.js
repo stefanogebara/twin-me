@@ -193,11 +193,15 @@ function setupBotHandlers() {
 
       try {
         // Run twin chat pipeline (same as web)
-        const response = await processTwinMessage(userId, text);
+        let response = await processTwinMessage(userId, text);
+
+        // Strip "Twin said:" prefix — the memory format leaks into responses
+        // when conversation history contains "Twin said: ..." entries
+        response = response.replace(/^(?:Twin said:\s*"?)+/i, '').replace(/"?\s*$/, '');
 
         clearInterval(typingInterval);
 
-        // Store conversation in memory stream
+        // Store conversation in memory stream (clean response, no "Twin said:" prefix)
         await addConversationMemory(userId, text, response, { source: 'telegram' }).catch(() => {});
 
         // Send response (split long messages at 4096 char Telegram limit)

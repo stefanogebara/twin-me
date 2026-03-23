@@ -313,6 +313,22 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
   }
 
   try {
+    // M2: Exact-content dedup — skip insert if identical content exists for this user within 24h
+    if (!options.skipDedup) {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: existing } = await supabaseAdmin
+        .from('user_memories')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('content', content.substring(0, 2000))
+        .gte('created_at', twentyFourHoursAgo)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        log.info('Skipped duplicate memory', { memoryType, userId, existingId: existing[0].id });
+        return existing[0];
+      }
+    }
+
     // Generate embedding and importance score in parallel
     let [embedding, importanceScore] = await Promise.all([
       options.skipEmbedding ? null : generateEmbedding(content),
@@ -439,7 +455,7 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
       source: 'twin_chat',
       ...taggedMeta,
     }),
-    addMemory(userId, `Twin said: "${assistantResponse.substring(0, 500)}"`, 'conversation', {
+    addMemory(userId, assistantResponse.substring(0, 500), 'conversation', {
       role: 'assistant',
       source: 'twin_chat',
       ...taggedMeta,
