@@ -247,6 +247,16 @@ async function pollAllUsers() {
             continue;
           }
 
+          // Skip platforms not in POLLING_CONFIGS — these are handled by the
+          // observation-ingestion cron (e.g. linkedin, reddit, whoop, oura, slack).
+          // Without this check, pollPlatform() returns {success:false} for unknown
+          // platforms and overwrites last_sync_status with 'failed' / 'Poll failed',
+          // clobbering the correct status written by observation-ingestion.
+          if (!POLLING_CONFIGS[connection.platform]) {
+            log.info('Skipping platform without polling config (handled by observation-ingestion)', { platform: connection.platform });
+            continue;
+          }
+
           // Decrypt access token (legacy flow)
           const accessToken = decryptToken(connection.access_token);
 

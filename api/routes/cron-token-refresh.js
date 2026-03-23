@@ -69,6 +69,23 @@ const PLATFORM_REFRESH_CONFIGS = {
     clientId: process.env.OURA_CLIENT_ID,
     clientSecret: process.env.OURA_CLIENT_SECRET,
   },
+  reddit: {
+    tokenUrl: 'https://www.reddit.com/api/v1/access_token',
+    clientId: process.env.REDDIT_CLIENT_ID,
+    clientSecret: process.env.REDDIT_CLIENT_SECRET,
+    useBasicAuth: true,
+    omitCredentialsFromBody: true,
+  },
+  twitch: {
+    tokenUrl: 'https://id.twitch.tv/oauth2/token',
+    clientId: process.env.TWITCH_CLIENT_ID,
+    clientSecret: process.env.TWITCH_CLIENT_SECRET,
+  },
+  slack: {
+    tokenUrl: 'https://slack.com/api/oauth.v2.access',
+    clientId: process.env.SLACK_CLIENT_ID,
+    clientSecret: process.env.SLACK_CLIENT_SECRET,
+  },
 };
 
 /**
@@ -96,12 +113,16 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       'Content-Type': 'application/x-www-form-urlencoded',
     };
 
-    // Spotify requires HTTP Basic Auth for client credentials
-    if (platform === 'spotify') {
+    // Spotify and Reddit use HTTP Basic Auth for client credentials
+    if (platform === 'spotify' || config.useBasicAuth) {
       const basicAuth = Buffer.from(
         `${config.clientId}:${config.clientSecret}`
       ).toString('base64');
       headers['Authorization'] = `Basic ${basicAuth}`;
+      // Some platforms (Reddit) don't include credentials in body when using Basic Auth
+      if (!config.omitCredentialsFromBody) {
+        paramsObj.client_id = config.clientId;
+      }
     } else {
       // Whoop and other platforms use client_secret_post (credentials in body)
       paramsObj.client_id = config.clientId;
