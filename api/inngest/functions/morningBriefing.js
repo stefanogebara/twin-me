@@ -74,7 +74,18 @@ export const morningBriefingFunction = inngest.createFunction(
       const humanBlock = coreBlocks.human?.content || '';
       const goalsBlock = coreBlocks.goals?.content || '';
 
-      const prompt = `You are composing a morning briefing for someone as their digital twin — a close friend who knows them deeply.
+      // Compute time-of-day context for appropriate greeting
+      // Cron fires at 10am UTC = 7am São Paulo (primary market)
+      const nowUtc = new Date();
+      const utcHour = nowUtc.getUTCHours();
+      const saoPauloHour = (utcHour - 3 + 24) % 24; // UTC-3
+      const timeContext = getTimeOfDayContext(saoPauloHour);
+      const dayOfWeek = nowUtc.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Sao_Paulo' });
+
+      const prompt = `You are composing a ${timeContext.label} briefing for someone as their digital twin — a close friend who knows them deeply.
+
+CURRENT TIME CONTEXT:
+It's ${dayOfWeek}, ~${saoPauloHour}:00 in their timezone (São Paulo). ${timeContext.hint}
 
 WHO THEY ARE:
 ${soulSignature}
@@ -91,15 +102,16 @@ ${calendarData ? JSON.stringify(calendarData).slice(0, 1500) : 'No calendar data
 HEALTH/RECOVERY:
 ${healthData ? JSON.stringify(healthData).slice(0, 800) : 'No health data available'}
 
-Write a warm, personal morning briefing (3-5 short paragraphs). Include:
-1. A personality-appropriate greeting (match their communication style)
+Write a warm, personal ${timeContext.label} briefing (3-5 short paragraphs). Include:
+1. A time-appropriate, personality-matched greeting (${timeContext.greetingHint})
 2. Health/recovery context if available (frame as a friend would, not clinical)
 3. Today's agenda highlights (meetings, blocks, priorities)
 4. One insight connecting their data (e.g., "packed day + moderate recovery = pace yourself")
 5. A small positive note or encouragement
 
 Keep it casual, warm, and USEFUL. No corporate speak. No bullet lists.
-Write it like a text from their smartest, most perceptive friend.`;
+Write it like a text from their smartest, most perceptive friend.
+Do NOT start with "Good morning" if it's not morning — match the actual time of day.`;
 
       const response = await complete({
         messages: [{ role: 'user', content: prompt }],
@@ -172,3 +184,34 @@ Write it like a text from their smartest, most perceptive friend.`;
     };
   }
 );
+
+// ── Time-of-day context for appropriate greeting ──────────────────────
+
+function getTimeOfDayContext(localHour) {
+  if (localHour >= 5 && localHour < 12) {
+    return {
+      label: 'morning',
+      hint: 'They are starting their day.',
+      greetingHint: 'use a morning greeting — "hey", "morning", "bom dia" etc.',
+    };
+  }
+  if (localHour >= 12 && localHour < 17) {
+    return {
+      label: 'afternoon',
+      hint: 'They are in the middle of their day.',
+      greetingHint: 'use an afternoon greeting — acknowledge they are mid-day',
+    };
+  }
+  if (localHour >= 17 && localHour < 21) {
+    return {
+      label: 'evening',
+      hint: 'They are winding down their day.',
+      greetingHint: 'use an evening greeting — acknowledge the day is wrapping up',
+    };
+  }
+  return {
+    label: 'late-night',
+    hint: 'It is late at night for them.',
+    greetingHint: 'acknowledge it is late — keep it brief and gentle',
+  };
+}

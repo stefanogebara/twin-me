@@ -60,7 +60,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         border: '0.67px solid var(--glass-surface-border, #d9d1cb)',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
       }}
     >
       <div className="flex items-start gap-3">
@@ -77,12 +77,12 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
 
         <div className="flex-1 min-w-0 space-y-2">
           {/* Title */}
-          <h4
+          <h3
             className="text-sm font-medium leading-snug"
             style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
           >
             {goal.title}
-          </h4>
+          </h3>
 
           {/* Description */}
           {goal.description && (
@@ -150,7 +150,7 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
               disabled={isLoading}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.96] disabled:opacity-40"
               style={{
-                backgroundColor: '#ff8400',
+                backgroundColor: 'var(--accent-vibrant)',
                 color: '#0a0f0a',
                 fontFamily: "'Inter', sans-serif",
               }}

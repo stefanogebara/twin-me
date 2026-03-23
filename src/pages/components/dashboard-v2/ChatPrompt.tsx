@@ -72,14 +72,14 @@ export function ChatPrompt() {
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
           border: '1px solid var(--glass-surface-border)',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
         }}
       >
         {/* Toast for triggered skills */}
         {triggering && (
           <div
             className="text-[12px] text-center py-1.5 mb-3 rounded-lg"
-            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}
+            style={{ background: 'var(--sidebar)', color: 'rgba(255,255,255,0.5)' }}
           >
             {ACTIONS.find(a => a.skillName === triggering)?.toast || 'Working on it...'}
           </div>
@@ -112,7 +112,11 @@ export function ChatPrompt() {
           onSubmit={(e) => { e.preventDefault(); submit(text); }}
           className="flex items-center gap-2"
         >
+          <label htmlFor="dashboard-chat-input" className="sr-only">
+            Ask your twin anything
+          </label>
           <input
+            id="dashboard-chat-input"
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}

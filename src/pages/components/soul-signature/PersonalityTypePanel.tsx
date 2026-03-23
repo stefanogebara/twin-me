@@ -62,7 +62,7 @@ const MBTIDimensionBar: React.FC<{
           </Tooltip>
           <div className="flex-1 relative h-2 rounded-full overflow-hidden" style={{ backgroundColor: subtleBg }}>
             <div className="absolute top-0 bottom-0 left-1/2 w-px" style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.10)'
+              backgroundColor: 'var(--glass-surface-border)'
             }} />
             <div
               className="absolute h-full rounded-full transition-all duration-500"
@@ -104,7 +104,7 @@ export const PersonalityTypePanel: React.FC<PersonalityTypePanelProps> = ({
   return (
     <div
       className="!p-5 md:!p-6 mb-6 rounded-lg"
-      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
     >
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'rgba(45, 39, 34, 0.08)' }}>

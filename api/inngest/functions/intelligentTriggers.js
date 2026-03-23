@@ -1,18 +1,19 @@
 /**
- * Inngest Function: Intelligent Triggers — Twin Anticipates
- * ============================================================
- * Evaluates 6 proactive trigger conditions across all platforms.
- * Each trigger is a pure heuristic (no LLM). When conditions fire,
- * composes a personality-filtered suggestion and delivers via
- * message router (web + Telegram).
+ * Inngest Function: Intelligent Triggers — Data-Driven Twin Anticipation
+ * ======================================================================
+ * Evaluates proactive trigger conditions across all platforms.
+ * Each trigger ONLY fires when backed by ACTUAL user data with
+ * specific numbers. No template guesses, no generic alerts.
  *
- * Triggers:
- *   1. Recovery + Calendar Clash — suggest rescheduling
- *   2. Unusual Listening Pattern — emotional check-in
- *   3. Birthday/Special Event — suggest celebration
- *   4. Goal Milestone — celebrate + next step
- *   5. Pattern Break — alert to behavioral drift
- *   6. Weekend Empty — suggest activities
+ * Triggers (data-gated — skip if no evidence):
+ *   1. Recovery + Calendar Clash — actual health score + event count
+ *   2. Listening Anomaly — actual Spotify observations with content
+ *   3. Birthday/Special Event — actual calendar event data
+ *   4. Goal Milestone — actual streak/progress numbers
+ *   5. Pattern Break — actual platform activity comparison
+ *
+ * Quality gate: LLM output must contain specific data references.
+ * Generic advice without data citations is rejected.
  *
  * Cost: ~$0.0001 per fired trigger (TIER_EXTRACTION LLM for suggestion)
  * Cron: daily 10am UTC (7am São Paulo)
@@ -51,13 +52,22 @@ export const intelligentTriggersFunction = inngest.createFunction(
       const HEALTH_PROVIDERS = ['whoop', 'oura', 'garmin', 'fitbit', 'strava'];
       const CALENDAR_PROVIDERS = ['google_calendar', 'outlook'];
 
-      // Health data
+      // Health data — today + yesterday for comparison
       let healthRaw = null;
+      let healthProvider = null;
+      let previousHealthRaw = null;
       for (const p of HEALTH_PROVIDERS) {
         try {
-          const { data: d } = await supabaseAdmin.from('platform_data').select('raw_data')
-            .eq('user_id', userId).eq('provider', p).order('created_at', { ascending: false }).limit(1).single();
-          if (d?.raw_data) { healthRaw = d.raw_data; break; }
+          const { data: rows } = await supabaseAdmin.from('platform_data').select('raw_data, created_at')
+            .eq('user_id', userId).eq('provider', p).order('created_at', { ascending: false }).limit(2);
+          if (rows?.length > 0 && rows[0].raw_data) {
+            healthRaw = rows[0].raw_data;
+            healthProvider = p;
+            if (rows.length > 1 && rows[1].raw_data) {
+              previousHealthRaw = rows[1].raw_data;
+            }
+            break;
+          }
         } catch {}
       }
 
@@ -102,159 +112,183 @@ export const intelligentTriggersFunction = inngest.createFunction(
         .eq('status', 'active')
         .limit(10);
 
-      return { healthRaw, calendarRaw, recentObs: recentObs || [], baselineObs: baselineObs || [], goals: goals || [] };
+      return {
+        healthRaw,
+        healthProvider,
+        previousHealthRaw,
+        calendarRaw,
+        recentObs: recentObs || [],
+        baselineObs: baselineObs || [],
+        goals: goals || [],
+      };
     });
 
-    // Evaluate all 6 triggers
+    // Evaluate triggers — ONLY fire with actual data evidence
     const firedTriggers = await step.run('evaluate-triggers', async () => {
       const fired = [];
 
-      // Health signals
-      const healthSignals = {};
-      if (data.healthRaw) {
-        if (data.healthRaw.recovery_score != null) healthSignals.recovery = data.healthRaw.recovery_score;
-        else if (data.healthRaw.score?.recovery_score != null) healthSignals.recovery = data.healthRaw.score.recovery_score;
-        if (data.healthRaw.readiness != null) healthSignals.readiness = data.healthRaw.readiness;
-        if (data.healthRaw.body_battery != null) healthSignals.body_battery = data.healthRaw.body_battery;
-        if (data.healthRaw.sleep_hours != null) healthSignals.sleep_hours = data.healthRaw.sleep_hours;
-        if (data.healthRaw.hrv != null) healthSignals.hrv = data.healthRaw.hrv;
-        if (data.healthRaw.score?.hrv_rmssd_milli != null) healthSignals.hrv = Math.round(data.healthRaw.score.hrv_rmssd_milli);
-      }
+      // ── Extract health signals ────────────────────────────────
+      const healthSignals = extractHealthSignals(data.healthRaw);
       const health = normalizeHealthScore(healthSignals);
+      const previousHealthSignals = extractHealthSignals(data.previousHealthRaw);
+      const previousHealth = normalizeHealthScore(previousHealthSignals);
 
-      // Calendar events
-      let eventCount = 0;
+      // ── Extract calendar events ───────────────────────────────
       let calendarEvents = [];
       if (data.calendarRaw) {
         calendarEvents = data.calendarRaw.items || data.calendarRaw.events || (Array.isArray(data.calendarRaw) ? data.calendarRaw : []);
-        eventCount = calendarEvents.length;
       }
+      const eventCount = calendarEvents.length;
 
-      // 1. Recovery + Calendar Clash
+      // 1. Recovery + Calendar Clash — REQUIRES both health score AND calendar data
       if (health.score != null && health.score < 50 && eventCount >= 4) {
+        const parts = [`${data.healthProvider} ${health.label} (score: ${health.score})`];
+        if (previousHealth.score != null) {
+          parts.push(`was ${previousHealth.score} yesterday`);
+        }
+        parts.push(`${eventCount} events scheduled today`);
+        const eventNames = calendarEvents.slice(0, 3).map(e => e.summary || e.title || 'untitled').join(', ');
+        if (eventNames) parts.push(`including: ${eventNames}`);
+
         fired.push({
           type: 'recovery_clash',
           severity: 'high',
-          context: `${health.label} but ${eventCount} events today`,
+          context: parts.join('. '),
+          dataPoints: { healthScore: health.score, previousScore: previousHealth.score, eventCount, provider: data.healthProvider },
         });
       }
 
-      // 2. Unusual Listening Pattern
+      // 2. Listening Anomaly — REQUIRES actual Spotify observations with content
       const spotifyObs = data.recentObs.filter(o => o.metadata?.platform === 'spotify');
-      const currentHour = new Date().getHours();
-      const lateNightListening = spotifyObs.some(o => {
-        const obsHour = new Date(o.created_at).getHours();
-        return obsHour >= 23 || obsHour < 4;
-      });
-      const moodShift = spotifyObs.some(o =>
-        /sad|melancholy|introspective|low valence|anxious/i.test(o.content)
-      );
-      if (lateNightListening || moodShift) {
-        fired.push({
-          type: 'listening_anomaly',
-          severity: 'medium',
-          context: lateNightListening ? 'late-night listening detected' : 'mood shift in music',
+      if (spotifyObs.length > 0) {
+        const lateNightObs = spotifyObs.filter(o => {
+          const obsHour = new Date(o.created_at).getUTCHours();
+          return obsHour >= 23 || obsHour < 4;
         });
+        const moodObs = spotifyObs.filter(o =>
+          /sad|melancholy|introspective|low valence|anxious|lonely|heartbreak/i.test(o.content)
+        );
+
+        if (lateNightObs.length > 0) {
+          const sampleContent = lateNightObs[0].content.slice(0, 150);
+          const time = new Date(lateNightObs[0].created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
+          fired.push({
+            type: 'listening_anomaly',
+            severity: 'medium',
+            context: `Late-night Spotify activity at ${time} UTC: "${sampleContent}"`,
+            dataPoints: { obsCount: lateNightObs.length, sampleContent, time },
+          });
+        } else if (moodObs.length > 0) {
+          const sampleContent = moodObs[0].content.slice(0, 150);
+          fired.push({
+            type: 'listening_anomaly',
+            severity: 'medium',
+            context: `Mood shift detected in recent Spotify data: "${sampleContent}" (${moodObs.length} observation${moodObs.length > 1 ? 's' : ''} in 48h)`,
+            dataPoints: { obsCount: moodObs.length, sampleContent },
+          });
+        }
+        // If Spotify observations exist but no anomaly detected, skip entirely
       }
 
-      // 3. Birthday/Special Event Approaching
-      const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
-      for (const evt of calendarEvents) {
-        const title = (evt.summary || evt.title || evt.name || '').toLowerCase();
-        if (/birthday|anniversary|celebration|bday|aniversario/i.test(title)) {
-          const evtDate = new Date(evt.start?.dateTime || evt.start?.date || evt.start || evt.date);
-          if (evtDate <= threeDaysFromNow && evtDate >= new Date()) {
-            fired.push({
-              type: 'birthday',
-              severity: 'low',
-              context: `"${evt.summary || evt.title}" on ${evtDate.toLocaleDateString()}`,
-            });
-            break;
+      // 3. Birthday/Special Event — REQUIRES actual calendar event match
+      if (calendarEvents.length > 0) {
+        const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+        for (const evt of calendarEvents) {
+          const title = (evt.summary || evt.title || evt.name || '').toLowerCase();
+          if (/birthday|anniversary|celebration|bday|aniversario/i.test(title)) {
+            const evtDate = new Date(evt.start?.dateTime || evt.start?.date || evt.start || evt.date);
+            if (evtDate <= threeDaysFromNow && evtDate >= new Date()) {
+              const eventName = evt.summary || evt.title || evt.name;
+              const dateStr = evtDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+              fired.push({
+                type: 'birthday',
+                severity: 'low',
+                context: `"${eventName}" is on ${dateStr} (from your calendar)`,
+                dataPoints: { eventName, date: dateStr },
+              });
+              break;
+            }
           }
         }
       }
 
-      // 4. Goal Milestone
+      // 4. Goal Milestone — REQUIRES actual goal data with real numbers
       for (const goal of data.goals) {
         const streak = goal.current_streak || 0;
         if ([7, 14, 21, 30, 60, 90].includes(streak)) {
           fired.push({
             type: 'goal_milestone',
             severity: 'medium',
-            context: `${streak}-day streak on "${goal.title}"`,
+            context: `${streak}-day streak on "${goal.title}" (target: ${goal.target_streak || 'ongoing'})`,
+            dataPoints: { streak, goalTitle: goal.title, targetStreak: goal.target_streak },
           });
         }
-        if (goal.target_value && goal.current_value >= goal.target_value) {
+        if (goal.target_value && goal.current_value != null && goal.current_value >= goal.target_value) {
           fired.push({
             type: 'goal_milestone',
             severity: 'medium',
-            context: `Goal "${goal.title}" reached target!`,
+            context: `Goal "${goal.title}" reached target! Current: ${goal.current_value}, target was ${goal.target_value}`,
+            dataPoints: { goalTitle: goal.title, currentValue: goal.current_value, targetValue: goal.target_value },
           });
         }
       }
 
-      // 5. Pattern Break (Behavioral Drift)
-      const recentByPlatform = {};
-      for (const o of data.recentObs) {
-        const p = o.metadata?.platform || 'unknown';
-        recentByPlatform[p] = (recentByPlatform[p] || 0) + 1;
-      }
-      const baselineByPlatform = {};
-      for (const o of data.baselineObs) {
-        const p = o.metadata?.platform || 'unknown';
-        baselineByPlatform[p] = (baselineByPlatform[p] || 0) + 1;
-      }
-      // Normalize baseline to 2-day equivalent (baseline is 23 days, recent is 2 days)
-      for (const [platform, count] of Object.entries(baselineByPlatform)) {
-        const baselineDaily = count / 23;
-        const recentDaily = (recentByPlatform[platform] || 0) / 2;
-        if (baselineDaily > 1 && recentDaily < baselineDaily * 0.3) {
-          fired.push({
-            type: 'pattern_break',
-            severity: 'high',
-            context: `${platform} activity dropped significantly (was ~${baselineDaily.toFixed(1)}/day, now ~${recentDaily.toFixed(1)}/day)`,
-          });
+      // 5. Pattern Break — REQUIRES both recent AND baseline data with measurable drop
+      if (data.recentObs.length > 0 && data.baselineObs.length > 0) {
+        const recentByPlatform = {};
+        for (const o of data.recentObs) {
+          const p = o.metadata?.platform || 'unknown';
+          if (p === 'unknown') continue;
+          recentByPlatform[p] = (recentByPlatform[p] || 0) + 1;
+        }
+        const baselineByPlatform = {};
+        for (const o of data.baselineObs) {
+          const p = o.metadata?.platform || 'unknown';
+          if (p === 'unknown') continue;
+          baselineByPlatform[p] = (baselineByPlatform[p] || 0) + 1;
+        }
+
+        // Normalize baseline to 2-day equivalent (baseline is 23 days, recent is 2 days)
+        for (const [platform, count] of Object.entries(baselineByPlatform)) {
+          const baselineDaily = count / 23;
+          const recentDaily = (recentByPlatform[platform] || 0) / 2;
+          // Require minimum baseline AND significant drop (70%+)
+          if (baselineDaily > 1 && recentDaily < baselineDaily * 0.3) {
+            // Include actual content sample from baseline for context
+            const baselineSample = data.baselineObs
+              .filter(o => o.metadata?.platform === platform)
+              .slice(0, 1)
+              .map(o => o.content?.slice(0, 80))
+              .filter(Boolean);
+            fired.push({
+              type: 'pattern_break',
+              severity: 'high',
+              context: `${platform} activity dropped from ~${baselineDaily.toFixed(1)}/day (30-day avg) to ~${recentDaily.toFixed(1)}/day (last 48h)${baselineSample.length > 0 ? `. Recent baseline: "${baselineSample[0]}"` : ''}`,
+              dataPoints: { platform, baselineDaily: baselineDaily.toFixed(1), recentDaily: recentDaily.toFixed(1) },
+            });
+          }
         }
       }
 
-      // 6. Weekend Empty (only check Thu/Fri)
-      const dayOfWeek = new Date().getDay();
-      if (dayOfWeek === 4 || dayOfWeek === 5) {
-        // Look for weekend events in calendar
-        const saturday = new Date();
-        saturday.setDate(saturday.getDate() + (6 - dayOfWeek));
-        saturday.setHours(0, 0, 0, 0);
-        const monday = new Date(saturday);
-        monday.setDate(monday.getDate() + 2);
-
-        const weekendEvents = calendarEvents.filter(evt => {
-          const d = new Date(evt.start?.dateTime || evt.start?.date || evt.start || evt.date);
-          return d >= saturday && d < monday;
-        });
-
-        if (weekendEvents.length <= 1) {
-          fired.push({
-            type: 'weekend_empty',
-            severity: 'low',
-            context: `Weekend looks open (${weekendEvents.length} event${weekendEvents.length === 1 ? '' : 's'})`,
-          });
-        }
-      }
+      // NOTE: "Weekend Empty" trigger removed — it was template-based
+      // (fired with no data evidence beyond "calendar has few events")
+      // and generated generic activity suggestions unrelated to user data.
 
       return fired;
     });
 
+    const triggersEvaluated = countEvaluatedTriggers(data);
+
     if (firedTriggers.length === 0) {
-      // Log the check even if nothing fired
       await step.run('log-no-triggers', async () => {
         await supabaseAdmin.from('agent_events').insert({
           user_id: userId,
           event_type: 'intelligent_triggers_checked',
-          event_data: { triggersEvaluated: 6, fired: 0 },
+          event_data: { triggersEvaluated, fired: 0, dataAvailable: summarizeDataAvailability(data) },
           source: 'intelligent_triggers',
         });
       });
-      return { success: true, fired: 0 };
+      return { success: true, fired: 0, evaluated: triggersEvaluated };
     }
 
     // Compose and deliver suggestions for each fired trigger
@@ -262,6 +296,7 @@ export const intelligentTriggersFunction = inngest.createFunction(
       const coreBlocks = await getBlocks(userId);
       const soul = (coreBlocks.soul_signature?.content || '').slice(0, 400);
       const delivered = [];
+      const rejected = [];
 
       for (const trigger of firedTriggers) {
         const prompt = buildTriggerPrompt(trigger, soul);
@@ -269,13 +304,24 @@ export const intelligentTriggersFunction = inngest.createFunction(
         const response = await complete({
           messages: [{ role: 'user', content: prompt }],
           tier: TIER_EXTRACTION,
-          maxTokens: 120,
+          maxTokens: 150,
           temperature: 0.7,
           userId,
           purpose: `trigger_${trigger.type}`,
         });
 
-        const suggestion = response?.content || response?.text || trigger.context;
+        const suggestion = response?.content || response?.text || '';
+
+        // ── QUALITY GATE: reject generic suggestions without data ──
+        if (!passesQualityGate(suggestion, trigger)) {
+          log.info('Trigger suggestion rejected by quality gate (no specific data)', {
+            userId,
+            type: trigger.type,
+            suggestion: suggestion.slice(0, 100),
+          });
+          rejected.push(trigger.type);
+          continue;
+        }
 
         // Dedup check before inserting
         const triggerCategory = trigger.type;
@@ -304,7 +350,7 @@ export const intelligentTriggersFunction = inngest.createFunction(
           actionType: 'suggestion',
           content: `[${trigger.type}] ${suggestion.slice(0, 200)}`,
           autonomyLevel: 1,
-          platformSources: [],
+          platformSources: trigger.dataPoints?.provider ? [trigger.dataPoints.provider] : [],
         });
 
         delivered.push(trigger.type);
@@ -315,9 +361,11 @@ export const intelligentTriggersFunction = inngest.createFunction(
         user_id: userId,
         event_type: 'intelligent_triggers_checked',
         event_data: {
-          triggersEvaluated: 6,
+          triggersEvaluated,
           fired: firedTriggers.length,
-          types: delivered,
+          delivered: delivered,
+          rejected: rejected,
+          dataAvailable: summarizeDataAvailability(data),
         },
         source: 'intelligent_triggers',
       });
@@ -331,36 +379,138 @@ export const intelligentTriggersFunction = inngest.createFunction(
   }
 );
 
+// ── Helper: Extract health signals from raw platform data ─────────────
+
+function extractHealthSignals(raw) {
+  const signals = {};
+  if (!raw) return signals;
+
+  if (raw.recovery_score != null) signals.recovery = raw.recovery_score;
+  else if (raw.score?.recovery_score != null) signals.recovery = raw.score.recovery_score;
+  if (raw.readiness != null) signals.readiness = raw.readiness;
+  if (raw.body_battery != null) signals.body_battery = raw.body_battery;
+  if (raw.sleep_hours != null) signals.sleep_hours = raw.sleep_hours;
+  if (raw.hrv != null) signals.hrv = raw.hrv;
+  if (raw.score?.hrv_rmssd_milli != null) signals.hrv = Math.round(raw.score.hrv_rmssd_milli);
+  return signals;
+}
+
+// ── Quality gate: reject generic LLM output ───────────────────────────
+
+/**
+ * Checks whether the LLM-generated suggestion contains specific data
+ * references rather than being generic advice. Returns true if it passes.
+ *
+ * Rules:
+ * 1. Must contain at least one number (score, count, streak, percentage, time)
+ * 2. For health triggers: must reference recovery/score/sleep/HRV
+ * 3. For pattern_break: must reference a platform name
+ * 4. Must not be empty or too short
+ */
+function passesQualityGate(suggestion, trigger) {
+  if (!suggestion || suggestion.length < 20) return false;
+
+  const hasNumber = /\d+/.test(suggestion);
+  const lower = suggestion.toLowerCase();
+
+  switch (trigger.type) {
+    case 'recovery_clash':
+      // Must mention recovery/score/sleep AND a number
+      return hasNumber && /recovery|score|sleep|hrv|strain|energy|battery/i.test(suggestion);
+
+    case 'listening_anomaly':
+      // Must reference music/listening context (not just "take care of yourself")
+      return /music|listen|song|playlist|spotify|track|album|late.night|mood/i.test(suggestion);
+
+    case 'birthday':
+      // Must mention the event or person
+      return trigger.dataPoints?.eventName
+        ? lower.includes(trigger.dataPoints.eventName.toLowerCase().split(' ')[0])
+        : true;
+
+    case 'goal_milestone':
+      // Must reference the streak/goal with a number
+      return hasNumber && /streak|goal|day|target|progress|reached/i.test(suggestion);
+
+    case 'pattern_break':
+      // Must mention the specific platform
+      return trigger.dataPoints?.platform
+        ? lower.includes(trigger.dataPoints.platform.toLowerCase())
+        : hasNumber;
+
+    default:
+      return hasNumber;
+  }
+}
+
 // ── Prompt builders per trigger type ────────────────────────────────────
 
 function buildTriggerPrompt(trigger, soulSignature) {
   const personality = soulSignature || 'A thoughtful person.';
 
+  // All prompts include ACTUAL DATA and instruct the LLM to cite specifics
+  const dataInstruction = `\nIMPORTANT: Your response MUST reference the specific data points provided. Include actual numbers, names, or metrics. Do NOT write generic wellness advice. If you can't cite the data, say nothing.`;
+
   const prompts = {
-    recovery_clash: `You're a digital twin noticing your human is pushing too hard. ${trigger.context}.
+    recovery_clash: `You're a digital twin noticing your human is pushing too hard today.
+ACTUAL DATA: ${trigger.context}
 PERSONALITY: ${personality}
-Write 1-2 sentences suggesting they protect their energy today. Be caring but not preachy. Sound like a friend, not a doctor.`,
+${dataInstruction}
+Write 1-2 sentences referencing their actual recovery score and event count. Be caring but not preachy. Sound like a friend, not a doctor.`,
 
-    listening_anomaly: `You're a digital twin who noticed something in your human's music. ${trigger.context}.
+    listening_anomaly: `You're a digital twin who noticed something specific in your human's music.
+ACTUAL DATA: ${trigger.context}
 PERSONALITY: ${personality}
-Write 1-2 casual sentences checking in. Don't be clinical — just notice, like a friend who pays attention. Don't say "I noticed your Spotify" — be natural.`,
+${dataInstruction}
+Write 1-2 casual sentences that reference what they were actually listening to. Don't say "I noticed your Spotify" — be natural. Reference the actual content or timing.`,
 
-    birthday: `You're a digital twin who spotted a special event coming up. ${trigger.context}.
+    birthday: `You're a digital twin who spotted a specific event in your human's calendar.
+ACTUAL DATA: ${trigger.context}
 PERSONALITY: ${personality}
-Write 1-2 sentences mentioning it and suggesting they plan something. Match their style — casual or thoughtful based on personality.`,
+${dataInstruction}
+Write 1-2 sentences mentioning the specific event by name and date. Suggest they plan something. Match their style.`,
 
-    goal_milestone: `You're a digital twin celebrating your human's progress. ${trigger.context}.
+    goal_milestone: `You're a digital twin celebrating your human's actual achievement.
+ACTUAL DATA: ${trigger.context}
 PERSONALITY: ${personality}
-Write 1-2 sentences of genuine celebration + a nudge for what's next. Not cheesy — match their personality. If they're understated, be understated.`,
+${dataInstruction}
+Write 1-2 sentences citing the specific streak or metric. Not cheesy — match their personality. Include the actual number.`,
 
-    pattern_break: `You're a digital twin who noticed a shift in your human's behavior. ${trigger.context}.
+    pattern_break: `You're a digital twin who noticed a measurable shift in your human's behavior.
+ACTUAL DATA: ${trigger.context}
 PERSONALITY: ${personality}
-Write 1-2 gentle sentences noting the change. Don't alarm — just observe, like a perceptive friend. Ask what's up without being intrusive.`,
-
-    weekend_empty: `You're a digital twin noticing your human has a free weekend. ${trigger.context}.
-PERSONALITY: ${personality}
-Write 1-2 sentences suggesting how to spend it — match their interests and energy. Be specific to their personality, not generic.`,
+${dataInstruction}
+Write 1-2 gentle sentences citing the specific platform and the drop in activity. Don't alarm — just observe with actual data.`,
   };
 
-  return prompts[trigger.type] || `Trigger: ${trigger.type}. Context: ${trigger.context}. Personality: ${personality}. Write a brief, natural suggestion.`;
+  return prompts[trigger.type] || `Trigger: ${trigger.type}. Data: ${trigger.context}. Personality: ${personality}.${dataInstruction} Write a brief, natural suggestion citing the data.`;
+}
+
+// ── Data availability summary for logging ────────────────────────────
+
+function summarizeDataAvailability(data) {
+  return {
+    hasHealth: !!data.healthRaw,
+    hasPreviousHealth: !!data.previousHealthRaw,
+    healthProvider: data.healthProvider || null,
+    hasCalendar: !!data.calendarRaw,
+    recentObsCount: data.recentObs.length,
+    baselineObsCount: data.baselineObs.length,
+    activeGoals: data.goals.length,
+    platforms: [...new Set(data.recentObs.map(o => o.metadata?.platform).filter(Boolean))],
+  };
+}
+
+/**
+ * Count how many triggers could actually be evaluated
+ * (had the required data to check the condition)
+ */
+function countEvaluatedTriggers(data) {
+  let count = 0;
+  if (data.healthRaw && data.calendarRaw) count++; // recovery_clash needs both
+  if (data.recentObs.some(o => o.metadata?.platform === 'spotify')) count++; // listening_anomaly
+  if (data.calendarRaw) count++; // birthday
+  if (data.goals.length > 0) count++; // goal_milestone
+  if (data.recentObs.length > 0 && data.baselineObs.length > 0) count++; // pattern_break
+  return count;
 }

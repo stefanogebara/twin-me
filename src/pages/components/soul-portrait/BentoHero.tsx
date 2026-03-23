@@ -32,7 +32,7 @@ export const BentoHero: React.FC<Props> = ({ data }) => {
       className="relative overflow-hidden rounded-lg p-6 md:p-8 h-full"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
       }}
     >
       {/* Left accent bar */}

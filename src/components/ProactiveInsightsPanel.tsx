@@ -49,7 +49,7 @@ function formatRelativeTime(dateStr: string): string {
 
 const panelStyle: React.CSSProperties = {
   background: 'rgba(255, 255, 255, 0.02)',
-  border: '1px solid rgba(255, 255, 255, 0.06)',
+  border: '1px solid var(--border-glass)',
   borderRadius: '12px',
   padding: '16px',
 };
@@ -101,7 +101,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
     return (
       <div className="rounded-2xl p-6" style={{
         background: 'rgba(255, 255, 255, 0.02)',
-        border: '1px solid rgba(255, 255, 255, 0.06)',
+        border: '1px solid var(--border-glass)',
       }}>
         <div className="flex items-center justify-center py-4">
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -131,7 +131,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
         <button
           onClick={() => navigate('/settings?tab=platforms')}
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors"
-          style={{ backgroundColor: 'rgba(255,255,255,0.02)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.02)', color: 'var(--foreground)', border: '1px solid var(--border-glass)' }}
         >
           Connect a platform →
         </button>
@@ -159,7 +159,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
         <span
           className="text-xs px-2 py-0.5 rounded-full"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.06)',
+            backgroundColor: 'var(--glass-surface-bg)',
             color: 'rgba(255,255,255,0.4)',
           }}
         >
@@ -204,9 +204,9 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   }}
                   className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                    backgroundColor: 'var(--glass-surface-bg)',
                     color: 'var(--foreground)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    border: '1px solid var(--border)',
                   }}
                 >
                   <MessageCircle className="w-3.5 h-3.5" />

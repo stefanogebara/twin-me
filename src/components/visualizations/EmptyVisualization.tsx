@@ -24,7 +24,7 @@ export function EmptyVisualization({
     <div
       className={`rounded-lg p-12 ${className}`}
       style={{
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
         backgroundColor: 'rgba(255,255,255,0.02)',
       }}
     >
@@ -60,7 +60,7 @@ export function EmptyVisualization({
           {[0, 1, 2].map((index) => (
             <div
               key={index}
-              className="w-2 h-2 bg-orange-300 rounded-full animate-pulse"
+              className="w-2 h-2 bg-[#E8E0D4] rounded-full animate-pulse"
             />
           ))}
         </div>

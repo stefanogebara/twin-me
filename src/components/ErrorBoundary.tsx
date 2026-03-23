@@ -75,10 +75,10 @@ class ErrorBoundary extends Component<Props, State> {
           <div
             className="max-w-md w-full text-center p-8"
             style={{
-              background: 'rgba(255, 255, 255, 0.06)',
+              background: 'var(--glass-surface-bg)',
               borderRadius: '2rem',
-              border: '1px solid rgba(255, 255, 255, 0.10)',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+              border: '1px solid var(--glass-surface-border)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 var(--border)',
             }}
           >
             <div
@@ -112,7 +112,7 @@ class ErrorBoundary extends Component<Props, State> {
                 </summary>
                 <div
                   className="p-3 rounded-lg text-xs overflow-auto max-h-32"
-                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
+                  style={{ backgroundColor: 'var(--sidebar)' }}
                 >
                   <div className="font-mono text-red-400 mb-2">
                     {this.state.error.name}: {this.state.error.message}
@@ -141,7 +141,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <button
                   onClick={this.handleReload}
                   className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)', fontWeight: 500 }}
+                  style={{ backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)', fontWeight: 500 }}
                 >
                   <RefreshCw className="w-4 h-4" />
                   Reload Page
@@ -152,7 +152,7 @@ class ErrorBoundary extends Component<Props, State> {
                 <button
                   onClick={this.handleGoHome}
                   className="flex-1 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)', fontWeight: 500 }}
+                  style={{ backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)', fontWeight: 500 }}
                 >
                   <Home className="w-4 h-4" />
                   Go Home

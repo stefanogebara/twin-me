@@ -89,13 +89,13 @@ const iconMap = {
 
 const priorityColors = {
   high: { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.3)', text: '#ef4444' },
-  medium: { bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.3)', text: '#f59e0b' },
+  medium: { bg: 'rgba(201, 185, 154, 0.1)', border: 'rgba(201, 185, 154, 0.3)', text: '#C9B99A' },
   low: { bg: 'rgba(34, 197, 94, 0.1)', border: 'rgba(34, 197, 94, 0.3)', text: '#22c55e' }
 };
 
 const darkCardStyle: React.CSSProperties = {
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
-  border: '1px solid rgba(255, 255, 255, 0.06)',
+  border: '1px solid var(--border-glass)',
 };
 
 export const TodayInsights: React.FC = () => {
@@ -182,7 +182,7 @@ export const TodayInsights: React.FC = () => {
           className="rounded-xl p-7 space-y-4"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--border-glass)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
@@ -194,7 +194,7 @@ export const TodayInsights: React.FC = () => {
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  backgroundColor: 'var(--glass-surface-bg)',
                   color: 'var(--foreground)',
                 }}
               >
@@ -247,7 +247,7 @@ export const TodayInsights: React.FC = () => {
           className="rounded-xl p-7 flex items-center gap-3"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
+            border: '1px solid var(--border-glass)',
           }}
         >
           <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
@@ -299,7 +299,7 @@ export const TodayInsights: React.FC = () => {
                 ) : platformStatus['google_calendar']?.tokenExpired ? (
                   <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
                 ) : (
-                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                  <AlertCircle className="w-3 h-3 text-[#D4CBBE]" />
                 )}
               </span>
               <span className="flex items-center gap-1">
@@ -309,7 +309,7 @@ export const TodayInsights: React.FC = () => {
                 ) : platformStatus['spotify']?.tokenExpired ? (
                   <AlertCircle className="w-3 h-3 text-amber-500" title="Token expired" />
                 ) : (
-                  <AlertCircle className="w-3 h-3 text-orange-500" />
+                  <AlertCircle className="w-3 h-3 text-[#D4CBBE]" />
                 )}
               </span>
             </>
@@ -330,7 +330,7 @@ export const TodayInsights: React.FC = () => {
               className="rounded-xl overflow-hidden transition-all duration-200 cursor-pointer"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                border: '1px solid var(--border-glass)',
                 boxShadow: isExpanded
                   ? '0 8px 32px rgba(0, 0, 0, 0.18)'
                   : '0 2px 8px rgba(0, 0, 0, 0.06)'
@@ -377,7 +377,7 @@ export const TodayInsights: React.FC = () => {
               {isExpanded && insight.detail && (
                 <div
                   className="px-4 pb-4 pt-0"
-                  style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}
+                  style={{ borderTop: '1px solid var(--border-glass)' }}
                 >
                   <p className="text-sm mb-3 pt-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {insight.detail}
@@ -439,14 +439,14 @@ export const TodayInsights: React.FC = () => {
                         <div>
                           <div className="flex justify-between text-xs mb-1">
                             <span style={{ color: 'rgba(255,255,255,0.3)' }}>Tempo</span>
-                            <span style={{ color: '#F59E0B' }}>{Math.round(insight.audioFeatures.tempo)} BPM</span>
+                            <span style={{ color: '#C9B99A' }}>{Math.round(insight.audioFeatures.tempo)} BPM</span>
                           </div>
                           <div className="h-1.5 rounded-full overflow-hidden" style={{
-                            backgroundColor: 'rgba(245, 158, 11, 0.1)'
+                            backgroundColor: 'rgba(201, 185, 154, 0.1)'
                           }}>
                             <div
                               className="h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min((insight.audioFeatures.tempo / 180) * 100, 100)}%`, backgroundColor: '#F59E0B' }}
+                              style={{ width: `${Math.min((insight.audioFeatures.tempo / 180) * 100, 100)}%`, backgroundColor: '#C9B99A' }}
                             />
                           </div>
                         </div>
@@ -498,7 +498,7 @@ export const TodayInsights: React.FC = () => {
           className="rounded-xl p-6 space-y-4"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--sidebar)',
           }}
         >
           {disconnectedPlatforms.map(({ platform, desc }) => (
@@ -510,7 +510,7 @@ export const TodayInsights: React.FC = () => {
                 onClick={() => navigate('/get-started')}
                 className="flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: 'rgba(255,255,255,0.06)',
+                  backgroundColor: 'var(--glass-surface-bg)',
                   color: 'var(--foreground)',
                 }}
               >
@@ -529,7 +529,7 @@ export const TodayInsights: React.FC = () => {
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
             color: 'rgba(255,255,255,0.4)',
-            border: '1px solid rgba(255, 255, 255, 0.06)'
+            border: '1px solid var(--border-glass)'
           }}
         >
           Explore who you are

@@ -89,7 +89,7 @@ export function ConversationControls({
               className="absolute right-0 mt-2 w-48 rounded-2xl overflow-hidden z-10"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.02)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--border-glass)',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)'
               }}
             >

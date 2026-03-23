@@ -17,7 +17,7 @@ interface PlatformCardProps {
 const PlatformCard: React.FC<PlatformCardProps> = ({
   name, description, color, icon, connected, connecting, onConnect
 }) => (
-  <div className="flex items-center gap-4 p-4 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+  <div className="flex items-center gap-4 p-4 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
     <div
       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
       style={{ backgroundColor: color }}
@@ -249,7 +249,7 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
               {MORE_PLATFORMS.map(p => (
                 <div
                   key={p.name}
-                  className="flex items-center gap-2.5 p-3 opacity-45 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  className="flex items-center gap-2.5 p-3 opacity-45 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white"

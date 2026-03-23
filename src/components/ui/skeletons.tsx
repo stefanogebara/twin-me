@@ -7,7 +7,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 const darkCardStyle: React.CSSProperties = {
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid var(--border-glass)',
   backgroundColor: 'rgba(255,255,255,0.02)',
 };
 
@@ -201,7 +201,7 @@ export const DashboardSkeleton = () => {
 export const SectionSkeleton = ({ lines = 3 }: { lines?: number }) => {
   return (
     <div className="space-y-4 animate-pulse">
-      <Skeleton className="h-3 w-20" style={{ background: 'rgba(255,255,255,0.08)' }} />
+      <Skeleton className="h-3 w-20" style={{ background: 'var(--input)' }} />
       <Skeleton className="h-5 w-48" />
       <div className="space-y-2">
         {[...Array(lines)].map((_, i) => (

@@ -16,7 +16,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="text-center py-10 rounded-lg" style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+      <div className="text-center py-10 rounded-lg" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
         <Music className="w-12 h-12 mx-auto mb-4" style={{ color: colors.textSecondary }} />
         <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif", fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.02em' }}>
           Your twin is listening
@@ -50,7 +50,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
           Preview of your insights
         </p>
         {/* Placeholder: Top Artists */}
-        <div className="p-4 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.1)' }}>
+        <div className="p-4 rounded-lg" style={{ border: '1px dashed var(--glass-surface-border)' }}>
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-4 h-4" style={{ color: colors.textSecondary }} />
             <span className="text-sm" style={{ color: colors.textSecondary }}>Top Artists</span>
@@ -59,7 +59,7 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
             {[80, 60, 40].map((width, i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-20 h-3 rounded animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
-                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+                <div className="flex-1 h-4 rounded-lg overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
                   <div className="h-full rounded-lg" style={{ width: `${width}%`, backgroundColor: `${colors.spotifyGreen}40` }} />
                 </div>
               </div>
@@ -68,14 +68,14 @@ export const SpotifyEmptyState: React.FC<SpotifyEmptyStateProps> = ({
         </div>
         {/* Placeholder: Genre + Listening Hours */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.1)' }}>
+          <div className="p-4 rounded-lg" style={{ border: '1px dashed var(--glass-surface-border)' }}>
             <div className="flex items-center gap-2 mb-3">
               <PieChart className="w-4 h-4" style={{ color: colors.textSecondary }} />
               <span className="text-sm" style={{ color: colors.textSecondary }}>Genres</span>
             </div>
-            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: '3px dashed rgba(255,255,255,0.06)' }} />
+            <div className="w-16 h-16 mx-auto rounded-full" style={{ border: '3px dashed var(--border-glass)' }} />
           </div>
-          <div className="p-4 rounded-lg" style={{ border: '1px dashed rgba(255,255,255,0.1)' }}>
+          <div className="p-4 rounded-lg" style={{ border: '1px dashed var(--glass-surface-border)' }}>
             <div className="flex items-center gap-2 mb-3">
               <BarChart3 className="w-4 h-4" style={{ color: colors.textSecondary }} />
               <span className="text-sm" style={{ color: colors.textSecondary }}>Peak Hours</span>

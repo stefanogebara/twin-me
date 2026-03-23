@@ -32,7 +32,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
   return (
     <div
       className="relative transition-all rounded-lg p-4"
-      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
     >
 
       <div className="relative flex items-center gap-4 mb-3">
@@ -82,7 +82,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               key={idx}
               className="text-xs px-2 py-1 rounded-full"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                backgroundColor: 'var(--glass-surface-bg)',
                 color: 'rgba(255,255,255,0.4)',
                 fontFamily: "'Inter', sans-serif"
               }}
@@ -94,7 +94,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             <span
               className="text-xs px-2 py-1 rounded-full"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                backgroundColor: 'var(--glass-surface-bg)',
                 color: 'rgba(255,255,255,0.4)',
                 fontFamily: "'Inter', sans-serif"
               }}
@@ -127,7 +127,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               onClick={(e) => e.stopPropagation()}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all"
               style={{
-                backgroundColor: connector.color || 'rgba(255, 255, 255, 0.06)',
+                backgroundColor: connector.color || 'var(--glass-surface-bg)',
                 color: '#fff',
                 fontFamily: "'Inter', sans-serif",
                 fontWeight: 500,
@@ -148,7 +148,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               disabled={connectingProvider === connector.provider}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                backgroundColor: 'var(--glass-surface-bg)',
                 color: 'var(--foreground)',
                 fontFamily: "'Inter', sans-serif",
                 fontWeight: 500
@@ -180,7 +180,7 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
               <span
                 className="text-sm"
                 style={{
-                  color: '#f59e0b',
+                  color: '#C9B99A',
                   fontFamily: "'Inter', sans-serif"
                 }}
               >
@@ -196,9 +196,9 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
             disabled={connectingProvider === connector.provider}
             className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              backgroundColor: 'var(--glass-surface-bg)',
               color: 'var(--foreground)',
-              border: '1px solid rgba(255, 255, 255, 0.10)',
+              border: '1px solid var(--glass-surface-border)',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500
             }}

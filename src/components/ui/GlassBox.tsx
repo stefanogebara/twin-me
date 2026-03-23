@@ -19,10 +19,10 @@ export const GlassBox: React.FC<GlassBoxProps> = ({
   const baseClasses = 'relative overflow-hidden rounded-lg transition-all duration-300';
 
   const variantStyles: Record<string, React.CSSProperties> = {
-    card: { border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' },
-    strong: { border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.04)' },
+    card: { border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' },
+    strong: { border: '1px solid var(--border)', backgroundColor: 'rgba(255,255,255,0.04)' },
     subtle: { border: '1px solid rgba(255,255,255,0.04)', backgroundColor: 'rgba(255,255,255,0.01)' },
-    button: { border: '1px solid rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.02)' },
+    button: { border: '1px solid var(--border)', backgroundColor: 'rgba(255,255,255,0.02)' },
     'button-primary': { backgroundColor: '#10b77f', color: '#0a0f0a' },
   };
 
@@ -51,7 +51,7 @@ export const GlassFeatureCard: React.FC<{
     <GlassBox variant="card" hover={true} onClick={onClick} className="p-6 group">
       <div
         className="w-16 h-16 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300"
-        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.03)' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.03)' }}
       >
         {icon}
       </div>

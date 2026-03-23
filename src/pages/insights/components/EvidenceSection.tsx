@@ -49,10 +49,10 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
     text: 'var(--foreground)',
     textMuted: 'rgba(255,255,255,0.3)',
     textSecondary: 'rgba(255,255,255,0.4)',
-    border: 'rgba(255,255,255,0.06)',
+    border: 'var(--border-glass)',
     bgSubtle: 'rgba(255,255,255,0.04)',
     confidenceHigh: '#22c55e',
-    confidenceMedium: '#f59e0b',
+    confidenceMedium: '#C9B99A',
     confidenceLow: '#64748b'
   };
 
@@ -103,8 +103,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                    color: '#d97706'
+                    backgroundColor: 'rgba(201, 185, 154, 0.1)',
+                    color: '#C9B99A'
                   }}
                 >
                   <Plane className="h-3 w-3" />

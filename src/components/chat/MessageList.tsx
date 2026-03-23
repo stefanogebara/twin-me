@@ -52,7 +52,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               {showDivider && (
                 <div
                   className="my-6"
-                  style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{ borderTop: '1px solid var(--border)' }}
                 />
               )}
 
@@ -61,8 +61,8 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 <div
                   className={cn("max-w-[90%] sm:max-w-[85%] lg:max-w-[75%]", isUser ? "text-right" : "text-left")}
                   style={isUser ? {
-                    background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
-                    border: '1px solid rgba(255,132,0,0.2)',
+                    background: 'var(--accent-vibrant-glow, rgba(232,224,212,0.12))',
+                    border: '1px solid rgba(232,224,212,0.2)',
                     borderRadius: '20px',
                     padding: '12px 16px',
                   } : {
@@ -72,7 +72,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     border: '1px solid var(--glass-surface-border, rgba(94,86,86,0.6))',
                     borderRadius: '20px',
                     padding: '12px 16px',
-                    boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+                    boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
                   }}
                 >
                   {message.role === 'assistant' ? (
@@ -126,7 +126,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       {message.contextUsed.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                         <span
                           className="text-[11px] px-2 py-0.5 rounded-full"
-                          style={{ color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.1)' }}
+                          style={{ color: 'rgba(255,255,255,0.45)', border: '1px solid var(--glass-surface-border)' }}
                         >
                           {message.contextUsed.memoryStream.total} memories
                         </span>
@@ -148,7 +148,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       {rated[message.id] != null ? (
                         <span
                           className="text-[11px] px-2 py-0.5 rounded-full"
-                          style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+                          style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid var(--border-glass)' }}
                         >
                           {rated[message.id] === 1 ? 'Thanks!' : 'Noted'}
                         </span>
@@ -165,9 +165,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                             }}
                             className="p-1 rounded-md transition-all hover:scale-110"
                             style={{ color: 'rgba(255,255,255,0.35)' }}
+                            aria-label="Rate as helpful"
                             title="Helpful"
                           >
-                            <ThumbsUp className="w-3.5 h-3.5" />
+                            <ThumbsUp className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                           <button
                             onClick={() => {
@@ -180,9 +181,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                             }}
                             className="p-1 rounded-md transition-all hover:scale-110"
                             style={{ color: 'rgba(255,255,255,0.35)' }}
+                            aria-label="Rate as not helpful"
                             title="Not helpful"
                           >
-                            <ThumbsDown className="w-3.5 h-3.5" />
+                            <ThumbsDown className="w-3.5 h-3.5" aria-hidden="true" />
                           </button>
                         </>
                       )}
@@ -202,20 +204,20 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
         })}
 
         {isTyping && (
-          <div className="flex flex-col items-start">
+          <div className="flex flex-col items-start" role="status" aria-label="Twin is thinking">
             <div className="flex items-center gap-2">
-              <div className="flex gap-1">
+              <div className="flex gap-1" aria-hidden="true">
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#ff8400', animationDelay: '0ms' }}
+                  style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '0ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#ff8400', animationDelay: '150ms' }}
+                  style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '150ms' }}
                 />
                 <div
                   className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: '#ff8400', animationDelay: '300ms' }}
+                  style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '300ms' }}
                 />
               </div>
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>thinking...</span>

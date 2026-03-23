@@ -82,7 +82,7 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
                 <div
                   key={index}
                   className="p-3 rounded-lg"
-                  style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
                 >
                   <div className="flex items-center gap-3">
                     <div

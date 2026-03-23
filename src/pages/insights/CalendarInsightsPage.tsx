@@ -330,7 +330,7 @@ const CalendarInsightsPage: React.FC = () => {
       {insights?.eventTypeDistribution && insights.eventTypeDistribution.length > 0 && (
         <div
           className="p-4 rounded-lg mb-6"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h3
             className="text-[11px] font-medium tracking-widest uppercase mb-4"
@@ -346,7 +346,7 @@ const CalendarInsightsPage: React.FC = () => {
                 </span>
                 <div
                   className="flex-1 h-5 rounded-lg overflow-hidden"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                  style={{ backgroundColor: 'var(--glass-surface-bg)' }}
                 >
                   <div
                     className="h-full rounded-lg transition-all"
@@ -417,7 +417,7 @@ const CalendarInsightsPage: React.FC = () => {
       ) : (insights?.todayEvents || insights?.upcomingEvents) ? (
         <div
           className="mb-8 p-4 rounded-lg"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <p
             className="text-[11px] font-medium tracking-widest uppercase mb-2"
@@ -466,7 +466,7 @@ const CalendarInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="p-4 rounded-lg"
-                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <p
                   className="text-sm leading-relaxed"

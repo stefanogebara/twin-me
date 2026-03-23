@@ -26,7 +26,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
   const getConfidenceColor = (confidence: number): string => {
     if (confidence >= 90) return 'text-green-400 bg-green-900/20 border-green-800/30';
     if (confidence >= 70) return 'text-blue-400 bg-blue-900/20 border-blue-800/30';
-    if (confidence >= 50) return 'text-orange-400 bg-orange-900/20 border-orange-800/30';
+    if (confidence >= 50) return 'text-[#E8E0D4] bg-[#E8E0D4]/10 border-[#E8E0D4]/15';
     return 'text-muted-foreground bg-white/8 border-white/10';
   };
 
@@ -82,8 +82,8 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
           <div className="mb-4">
             <div className="p-4 bg-white/8 rounded-lg border border-white/10">
               <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-orange-900/20 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-orange-400" />
+                <div className="w-8 h-8 rounded-full bg-[#E8E0D4]/10 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-[#E8E0D4]" />
                 </div>
                 <div>
                   <h5 className="text-sm font-semibold text-foreground mb-2">AI Insight</h5>
@@ -100,7 +100,7 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center space-x-2 text-sm text-orange-400 hover:text-muted-foreground font-medium transition-colors"
+            className="flex items-center space-x-2 text-sm text-[#E8E0D4] hover:text-muted-foreground font-medium transition-colors"
           >
             <span>{isExpanded ? 'Show less' : 'Read full insight'}</span>
             {isExpanded ? (

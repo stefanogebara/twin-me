@@ -28,7 +28,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
     return (
       <div
         className="mb-14 relative overflow-hidden rounded-lg"
-        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem' }}
       >
         <div>
           <div className="flex items-start justify-between mb-6">
@@ -45,11 +45,13 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                     onClick={onSync}
                     disabled={syncing}
                     className="p-1 rounded hover:bg-black/5 transition-colors"
+                    aria-label="Sync calendar"
                     title="Sync calendar"
                   >
                     <RefreshCw
                       className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`}
                       style={{ color: 'rgba(255,255,255,0.4)' }}
+                      aria-hidden="true"
                     />
                   </button>
                 )}
@@ -81,7 +83,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
                 <span
                   className="px-2 py-0.5 rounded-full text-xs"
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                    backgroundColor: 'var(--glass-surface-bg)',
                     color: 'rgba(255,255,255,0.4)'
                   }}
                 >
@@ -93,7 +95,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
             <div
               className="w-12 h-12 rounded-xl flex items-center justify-center"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.06)'
+                backgroundColor: 'var(--glass-surface-bg)'
               }}
             >
               <Target className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -123,7 +125,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
       className="mb-14 px-5 py-4 rounded-xl flex items-center gap-3"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)'
+        border: '1px solid var(--border-glass)'
       }}
     >
       <Clock
@@ -140,7 +142,7 @@ export const NextEventCard: React.FC<NextEventCardProps> = ({
         onClick={() => onNavigate(isCalendarConnected ? '/insights/calendar' : '/settings?tab=platforms')}
         className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:opacity-80 flex-shrink-0"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+          backgroundColor: 'var(--glass-surface-bg)',
           color: 'var(--foreground)'
         }}
       >

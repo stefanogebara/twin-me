@@ -15,7 +15,7 @@ const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.15em] font-medium mb-4';
 function dotColor(status: string, lastSync: string | null): string {
   if (status === 'active' && lastSync) {
     const hours = (Date.now() - new Date(lastSync).getTime()) / 3600000;
-    return hours < 2 ? '#10B981' : '#F59E0B';
+    return hours < 2 ? '#10B981' : '#C9B99A';
   }
   return '#333';
 }

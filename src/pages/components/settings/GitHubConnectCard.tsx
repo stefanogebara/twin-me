@@ -28,7 +28,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'p-5 rounded-lg';
-  const sectionStyle = cardStyle ? {} : { border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' };
+  const sectionStyle = cardStyle ? {} : { border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' };
 
   const { data: status, isLoading } = useQuery<GitHubStatus>({
     queryKey: ['github-status'],
@@ -150,7 +150,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
               className="w-full px-3 py-2 pr-10 text-sm rounded-lg font-mono"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 color: 'var(--foreground)',
                 outline: 'none',
               }}

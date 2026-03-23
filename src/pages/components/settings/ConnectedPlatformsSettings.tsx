@@ -57,9 +57,10 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
           onClick={() => refetch()}
           className="p-1.5 rounded-lg transition-opacity hover:opacity-60"
           style={{ color: 'rgba(255,255,255,0.25)' }}
+          aria-label="Refresh platform connection status"
           title="Refresh status"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       </div>
 
@@ -123,11 +124,11 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                     </>
                   ) : isExpired ? (
                     <>
-                      <AlertCircle className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
+                      <AlertCircle className="w-3.5 h-3.5" style={{ color: '#C9B99A' }} />
                       <button
                         onClick={() => navigate('/get-started')}
                         className="text-[11px]"
-                        style={{ color: '#f59e0b' }}
+                        style={{ color: '#C9B99A' }}
                       >
                         Reconnect
                       </button>

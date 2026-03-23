@@ -63,7 +63,7 @@ const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
 );
 
 const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-10" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );
 
 // ====================================================================
@@ -86,7 +86,7 @@ const InstantTwinOnboarding = () => {
     categorySocial: '#a855f7',
     categoryProfessional: '#78716c',
     categoryHealth: '#00A7E1',
-    categoryBrowsing: '#ff8400',
+    categoryBrowsing: 'var(--accent-vibrant)',
     connected: 'var(--text-secondary)',
   };
 
@@ -526,14 +526,14 @@ const InstantTwinOnboarding = () => {
         >
           <CheckCircle2
             className="w-4 h-4 flex-shrink-0"
-            style={{ color: expiredConnections.length > 0 ? '#f59e0b' : '#10b77f' }}
+            style={{ color: expiredConnections.length > 0 ? '#C9B99A' : '#10b77f' }}
           />
           <div>
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>
               {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
             </span>
             {expiredConnections.length > 0 && (
-              <span className="text-sm ml-2" style={{ color: '#f59e0b' }}>
+              <span className="text-sm ml-2" style={{ color: '#C9B99A' }}>
                 ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
               </span>
             )}
@@ -601,7 +601,7 @@ const InstantTwinOnboarding = () => {
                         key={i}
                         className="px-3 py-1 rounded-full text-xs"
                         style={{
-                          border: '1px solid rgba(255,255,255,0.08)',
+                          border: '1px solid var(--border)',
                           color: 'rgba(255,255,255,0.5)',
                         }}
                       >
@@ -621,7 +621,7 @@ const InstantTwinOnboarding = () => {
                 </p>
               )}
 
-              <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+              <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />
 
               <button
                 onClick={() => navigate('/soul-signature')}
@@ -726,7 +726,7 @@ const InstantTwinOnboarding = () => {
                   <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
                     {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
                     {expiredConnections.length > 0 && (
-                      <span className="ml-1" style={{ color: '#f59e0b' }}>
+                      <span className="ml-1" style={{ color: '#C9B99A' }}>
                         ({expiredConnections.length} expired)
                       </span>
                     )}

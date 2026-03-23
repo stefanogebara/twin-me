@@ -74,7 +74,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         border: `1px solid var(--glass-surface-border, #d9d1cb)`,
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
       }}
     >
       {/* Header: Category badge + title */}
@@ -90,12 +90,12 @@ const GoalCard: React.FC<GoalCardProps> = ({
             <CategoryIcon className="w-3.5 h-3.5" style={{ color: PILL_STYLE.text }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h4
+            <h3
               className="text-sm font-medium leading-snug truncate"
               style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
             >
               {goal.title}
-            </h4>
+            </h3>
             <span
               className="inline-block px-2.5 py-0.5 rounded-full text-[11px] mt-1.5"
               style={{
@@ -113,9 +113,9 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium flex-shrink-0"
             style={{
-              background: 'rgba(255, 132, 0, 0.08)',
-              color: '#ff8400',
-              border: '1px solid rgba(255, 132, 0, 0.15)',
+              background: 'rgba(232, 224, 212, 0.08)',
+              color: 'var(--accent-vibrant)',
+              border: '1px solid rgba(232, 224, 212, 0.15)',
             }}
           >
             <Trophy className="w-3 h-3" />
@@ -140,7 +140,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
         >
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ backgroundColor: '#ff8400', width: `${progressPercent}%` }}
+            style={{ backgroundColor: 'var(--accent-vibrant)', width: `${progressPercent}%` }}
           />
         </div>
         <div className="flex items-center justify-between">
@@ -161,11 +161,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
           <div className="flex items-center gap-1">
             <Flame
               className="w-3.5 h-3.5"
-              style={{ color: goal.current_streak >= 3 ? '#f97316' : TEXT_SECONDARY }}
+              style={{ color: goal.current_streak >= 3 ? '#D4CBBE' : TEXT_SECONDARY }}
             />
             <span
               className="text-xs font-medium"
-              style={{ color: goal.current_streak >= 3 ? '#f97316' : TEXT_PRIMARY }}
+              style={{ color: goal.current_streak >= 3 ? '#D4CBBE' : TEXT_PRIMARY }}
             >
               {goal.current_streak}d streak
             </span>
@@ -186,7 +186,7 @@ const GoalCard: React.FC<GoalCardProps> = ({
             <Clock className="w-3 h-3" style={{ color: TEXT_SECONDARY }} />
             <span
               className="text-[10px]"
-              style={{ color: daysRemaining <= 3 ? '#f97316' : TEXT_SECONDARY }}
+              style={{ color: daysRemaining <= 3 ? '#D4CBBE' : TEXT_SECONDARY }}
             >
               {daysRemaining}d left
             </span>
@@ -199,6 +199,8 @@ const GoalCard: React.FC<GoalCardProps> = ({
         onClick={() => setExpanded((prev) => !prev)}
         className="flex items-center gap-1 w-full pt-1 transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97]"
         style={{ color: TEXT_SECONDARY }}
+        aria-expanded={expanded}
+        aria-label={expanded ? `Collapse details for ${goal.title}` : `Expand details for ${goal.title}`}
       >
         {expanded ? (
           <ChevronUp className="w-3.5 h-3.5" />

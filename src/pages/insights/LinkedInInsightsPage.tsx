@@ -154,9 +154,9 @@ const LinkedInInsightsPage: React.FC = () => {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
-          <div className="h-16 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <div className="h-32 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <div className="h-48 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-16 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
+          <div className="h-32 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
+          <div className="h-48 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
         </div>
       </div>
     );
@@ -199,7 +199,7 @@ const LinkedInInsightsPage: React.FC = () => {
       {(insights?.linkedinHeadline || insights?.linkedinIndustry) && (
         <div
           className="rounded-2xl p-5 mb-6"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           {insights.linkedinHeadline && (
             <p
@@ -236,7 +236,7 @@ const LinkedInInsightsPage: React.FC = () => {
       {insights?.linkedinSkills && insights.linkedinSkills.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h3
             className="text-xs font-medium uppercase tracking-wider mb-3"
@@ -278,7 +278,7 @@ const LinkedInInsightsPage: React.FC = () => {
       ) : insights?.linkedinHeadline ? (
         <div
           className="rounded-2xl p-4 mb-8"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h3
             className="text-xs font-medium uppercase tracking-wider mb-2"
@@ -327,7 +327,7 @@ const LinkedInInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="rounded-2xl p-4"
-                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                   {past.text}
@@ -346,7 +346,7 @@ const LinkedInInsightsPage: React.FC = () => {
         <div className="space-y-4">
           <div
             className="rounded-2xl text-center py-12 px-6"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
@@ -388,14 +388,14 @@ const LinkedInInsightsPage: React.FC = () => {
             </p>
             <div
               className="rounded-2xl p-4"
-              style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <Briefcase className="w-4 h-4" style={{ color: colors.textSecondary }} />
                 <span className="text-sm" style={{ color: colors.textSecondary }}>Career Profile</span>
               </div>
               <div className="space-y-3">
-                <div className="h-4 rounded animate-pulse" style={{ width: '70%', background: 'rgba(255,255,255,0.06)' }} />
+                <div className="h-4 rounded animate-pulse" style={{ width: '70%', background: 'var(--glass-surface-bg)' }} />
                 <div className="h-3 rounded animate-pulse" style={{ width: '50%', background: 'rgba(255,255,255,0.04)' }} />
                 <div className="flex gap-2 mt-2">
                   {[1, 2, 3].map(i => (

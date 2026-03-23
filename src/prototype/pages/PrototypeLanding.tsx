@@ -276,7 +276,7 @@ export default function PrototypeLanding() {
       </div>
 
       {/* ── Platform Marquee ── */}
-      <div style={{ position: 'relative', zIndex: 2, padding: '22px 0', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', zIndex: 2, padding: '22px 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 40, animation: 'sd-marquee 22s linear infinite', width: 'max-content' }}>
           {[...PLATFORMS, ...PLATFORMS, ...PLATFORMS].map((p, i) => {
             const PIcon = 'Icon' in p ? p.Icon : null;
@@ -321,7 +321,7 @@ export default function PrototypeLanding() {
                       <span style={{ fontSize: 12, color: 'var(--sd-text-secondary)', fontFamily: 'Inter, sans-serif' }}>{trait.trait}</span>
                       <span style={{ fontSize: 12, color: trait.color, fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>{trait.score}%</span>
                     </div>
-                    <div style={{ height: 5, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ height: 5, background: 'var(--glass-surface-bg)', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ height: '100%', borderRadius: 3, background: trait.color, opacity: 0.85, width: oceansVisible ? `${trait.score}%` : '0%', transition: `width 1.1s cubic-bezier(0.4,0,0.2,1) ${0.3 + i * 0.13}s` }} />
                     </div>
                   </div>
@@ -334,7 +334,7 @@ export default function PrototypeLanding() {
                 {MEM_CARDS.map((card, i) => {
                   const CIcon = card.Icon;
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 7, opacity: oceansVisible ? 1 : 0, transform: oceansVisible ? 'none' : 'translateY(8px)', transition: `opacity 0.5s ease ${0.9 + i * 0.16}s, transform 0.5s ease ${0.9 + i * 0.16}s` }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--sidebar)', marginBottom: 7, opacity: oceansVisible ? 1 : 0, transform: oceansVisible ? 'none' : 'translateY(8px)', transition: `opacity 0.5s ease ${0.9 + i * 0.16}s, transform 0.5s ease ${0.9 + i * 0.16}s` }}>
                       <div style={{ width: 28, height: 28, borderRadius: 8, background: `${card.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <CIcon size={14} color={card.color} />
                       </div>

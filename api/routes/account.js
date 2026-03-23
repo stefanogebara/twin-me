@@ -122,7 +122,7 @@ router.get('/export', authenticateUser, async (req, res) => {
       // Platform connections (exclude tokens)
       supabaseAdmin.from('platform_connections').select('platform, status, connected_at, last_sync_at').eq('user_id', userId),
       // Platform data summaries
-      supabaseAdmin.from('user_platform_data').select('platform, data_type, data, extracted_at').eq('user_id', userId).order('extracted_at', { ascending: false }).limit(500),
+      supabaseAdmin.from('user_platform_data').select('platform, data_type, data, extracted_at').eq('user_id', userId).order('extracted_at', { ascending: false }).limit(50000),
       // Soul signature
       supabaseAdmin.from('soul_signatures').select('archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, is_public, reveal_level, created_at, updated_at').eq('user_id', userId),
       // Personality scores
@@ -134,7 +134,7 @@ router.get('/export', authenticateUser, async (req, res) => {
       // Onboarding calibration
       supabaseAdmin.from('onboarding_calibration').select('conversation_history, insights, archetype_hint, personality_summary, completed_at').eq('user_id', userId),
       // Memories
-      supabaseAdmin.from('user_memories').select('memory_type, content, source, importance, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
+      supabaseAdmin.from('user_memories').select('memory_type, content, source, importance, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50000),
       // Big Five
       supabaseAdmin.from('big_five_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, assessment_type, created_at').eq('user_id', userId),
       // Behavioral patterns
@@ -155,7 +155,7 @@ router.get('/export', authenticateUser, async (req, res) => {
         .select('conversation_id, role, content, created_at')
         .in('conversation_id', conversationIds)
         .order('created_at', { ascending: false })
-        .limit(1000);
+        .limit(50000);
       messages = msgData || [];
     }
 

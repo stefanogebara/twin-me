@@ -61,12 +61,13 @@ export function MessageActions({ message, onRegenerate, onRate, messageContent }
         onClick={handleCopy}
         className="p-1.5 rounded-md transition-all hover:scale-105"
         style={btnStyle}
+        aria-label={copied ? "Copied!" : "Copy message"}
         title={copied ? "Copied!" : "Copy"}
       >
         {copied ? (
-          <Check className="w-3.5 h-3.5" style={{ color: '#10b981' }} />
+          <Check className="w-3.5 h-3.5" style={{ color: '#10b981' }} aria-hidden="true" />
         ) : (
-          <Copy className="w-3.5 h-3.5" />
+          <Copy className="w-3.5 h-3.5" aria-hidden="true" />
         )}
       </button>
 
@@ -75,9 +76,10 @@ export function MessageActions({ message, onRegenerate, onRate, messageContent }
         onClick={handleShare}
         className="p-1.5 rounded-md transition-all hover:scale-105"
         style={btnStyle}
+        aria-label="Share message"
         title="Share"
       >
-        <Share2 className="w-3.5 h-3.5" />
+        <Share2 className="w-3.5 h-3.5" aria-hidden="true" />
       </button>
 
       {/* Regenerate Button (Assistant messages only) */}
@@ -86,33 +88,36 @@ export function MessageActions({ message, onRegenerate, onRate, messageContent }
           onClick={onRegenerate}
           className="p-1.5 rounded-md transition-all hover:scale-105"
           style={btnStyle}
+          aria-label="Regenerate response"
           title="Regenerate"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
       )}
 
       {/* Rating Buttons (Assistant messages only) */}
       {role === 'assistant' && onRate && (
         <>
-          <div className="w-px h-4 mx-1" style={{ backgroundColor: 'rgba(12, 10, 9, 0.08)' }} />
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: 'rgba(12, 10, 9, 0.08)' }} aria-hidden="true" />
 
           <button
             onClick={() => onRate(1)}
             className="p-1.5 rounded-md transition-all hover:scale-105"
             style={btnStyle}
+            aria-label="Rate as helpful"
             title="Helpful"
           >
-            <ThumbsUp className="w-3.5 h-3.5" />
+            <ThumbsUp className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
 
           <button
             onClick={() => onRate(-1)}
             className="p-1.5 rounded-md transition-all hover:scale-105"
             style={btnStyle}
+            aria-label="Rate as not helpful"
             title="Not helpful"
           >
-            <ThumbsDown className="w-3.5 h-3.5" />
+            <ThumbsDown className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
         </>
       )}

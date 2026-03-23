@@ -31,7 +31,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
   const [myName, setMyName] = useState('');
 
   const sectionClass = cardStyle ? `p-5 ${cardStyle}` : 'p-5 rounded-lg';
-  const sectionStyle = cardStyle ? {} : { border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' };
+  const sectionStyle = cardStyle ? {} : { border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' };
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith('.txt')) {
@@ -119,7 +119,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
               className="w-full px-3 py-2 text-sm rounded-lg"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
                 color: 'var(--foreground)',
                 outline: 'none',
               }}
@@ -128,7 +128,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
 
           <div
             className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors"
-            style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+            style={{ borderColor: 'var(--border)' }}
             onClick={() => fileRef.current?.click()}
             onDrop={onDrop}
             onDragOver={e => e.preventDefault()}

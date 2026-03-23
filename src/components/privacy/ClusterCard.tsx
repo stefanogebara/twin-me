@@ -27,7 +27,7 @@ const getIntensityColor = (level: number) => {
   if (level === 0) return '#d6d3d1';
   if (level <= 33) return '#a8a29e';
   if (level <= 66) return '#78716c';
-  return '#D97706'; // Claude accent color
+  return '#C9B99A'; // Claude accent color
 };
 
 const getIntensityLabel = (level: number) => {
@@ -55,7 +55,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
     <div
       className="rounded-lg relative overflow-hidden transition-all duration-200"
       style={{
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
         backgroundColor: 'rgba(255,255,255,0.02)',
       }}
     >
@@ -66,7 +66,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <div
               className="p-2.5 rounded-lg"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                backgroundColor: 'var(--input)',
               }}
             >
               <Icon className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -138,7 +138,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <Slider.Track
               className="relative grow rounded-full h-2"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.10)',
+                backgroundColor: 'var(--glass-surface-border)',
               }}
             >
               <Slider.Range
@@ -151,7 +151,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <Slider.Thumb
               className="block w-6 h-6 bg-white rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
               style={{
-                borderColor: isDragging ? '#D97706' : '#d6d3d1',
+                borderColor: isDragging ? '#C9B99A' : '#d6d3d1',
               }}
             />
           </Slider.Root>

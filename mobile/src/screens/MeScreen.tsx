@@ -22,8 +22,8 @@ import { NotificationListenerModule } from '../native/NotificationListenerModule
 const CATEGORY_COLORS: Record<string, string> = {
   personality: '#8B5CF6',
   lifestyle: '#10B981',
-  culturalidentity: '#F59E0B',
-  cultural_identity: '#F59E0B',
+  culturalidentity: '#C9B99A',
+  cultural_identity: '#C9B99A',
   social: '#3B82F6',
   socialdynamics: '#3B82F6',
   motivation: '#EF4444',

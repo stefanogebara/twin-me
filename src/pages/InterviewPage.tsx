@@ -111,7 +111,7 @@ export default function InterviewPage() {
           {completedDate ? `Completed ${completedDate}` : 'Your twin has your story'}
         </p>
 
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+        <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-10" />
 
         {/* Archetype */}
         {(archetype || summary) && (
@@ -120,7 +120,7 @@ export default function InterviewPage() {
               <>
                 <span
                   className="text-[11px] font-medium tracking-widest uppercase block mb-3"
-                  style={{ color: 'var(--accent-vibrant, #ff8400)', fontFamily: 'Inter, sans-serif' }}
+                  style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif' }}
                 >
                   Your Archetype
                 </span>
@@ -148,7 +148,7 @@ export default function InterviewPage() {
           </div>
         )}
 
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-10" />
+        <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-10" />
 
         {/* Actions */}
         <div className="space-y-3">

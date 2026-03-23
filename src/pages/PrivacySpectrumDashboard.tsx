@@ -31,7 +31,7 @@ import OverviewSection from './components/privacy/OverviewSection';
 // --- Design tokens ---
 const TEXT_PRIMARY = 'var(--foreground)';
 const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
-const BORDER_COLOR = 'rgba(255,255,255,0.06)';
+const BORDER_COLOR = 'var(--border-glass)';
 const CARD_BG = 'rgba(255,255,255,0.02)';
 
 const CATEGORY_COLORS = {

@@ -43,7 +43,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             backdropFilter: 'blur(42px)',
             WebkitBackdropFilter: 'blur(42px)',
             border: '1px solid var(--glass-surface-border)',
-            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
             opacity: limitReached ? 0.4 : 1,
             pointerEvents: limitReached ? 'none' : 'auto',
           }}
@@ -66,7 +66,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               color: 'var(--foreground)',
               minHeight: '24px',
               maxHeight: '120px',
-              caretColor: '#ff8400',
+              caretColor: 'var(--accent-vibrant)',
               fontFamily: 'Inter, sans-serif',
             }}
           />
@@ -99,7 +99,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 padding: '8px',
                 background: hasText && !isDisabled && !limitReached
                   ? '#252222'
-                  : 'rgba(255,255,255,0.06)',
+                  : 'var(--border-glass)',
                 color: hasText && !isDisabled && !limitReached
                   ? 'var(--foreground)'
                   : 'rgba(255,255,255,0.2)',

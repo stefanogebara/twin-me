@@ -73,7 +73,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
           className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
             backgroundColor: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--sidebar)',
             color: 'var(--foreground)',
             fontFamily: "'Inter', sans-serif",
           }}
@@ -157,7 +157,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
                 className="flex-1 px-4 py-2 rounded-lg text-sm"
                 style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                  backgroundColor: 'var(--glass-surface-bg)',
                   color: 'var(--foreground)',
                   fontFamily: "'Inter', sans-serif",
                 }}

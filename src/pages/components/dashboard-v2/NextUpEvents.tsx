@@ -46,7 +46,7 @@ export function NextUpEvents({ events }: NextUpEventsProps) {
             key={`${evt.title}-${i}`}
             className="flex items-center justify-between py-3"
             style={{
-              borderBottom: i < visible.length - 1 ? '1px solid rgba(255,255,255,0.06)' : undefined,
+              borderBottom: i < visible.length - 1 ? '1px solid var(--border-glass)' : undefined,
             }}
           >
             <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>

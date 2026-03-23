@@ -23,7 +23,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
     <div className="space-y-4">
       <div
         className="text-center py-10 p-4 rounded-lg"
-        style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+        style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
       >
         <Calendar className="w-12 h-12 mx-auto mb-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
         <h3 style={{ color: colors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}>
@@ -61,7 +61,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
         </span>
         <div
           className="p-4 rounded-lg"
-          style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-3">
             <Clock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -70,7 +70,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
           <div className="flex justify-between text-[10px] mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
             {['9AM', '12PM', '3PM', '6PM'].map(t => <span key={t}>{t}</span>)}
           </div>
-          <div className="h-8 rounded-lg flex gap-1 overflow-hidden animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="h-8 rounded-lg flex gap-1 overflow-hidden animate-pulse" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
             <div className="h-full rounded" style={{ width: '20%', marginLeft: '10%', backgroundColor: `${colors.calendarBlue}30` }} />
             <div className="h-full rounded" style={{ width: '15%', marginLeft: '5%', backgroundColor: 'rgba(52,168,83,0.3)' }} />
             <div className="h-full rounded" style={{ width: '10%', marginLeft: '8%', backgroundColor: 'rgba(251,188,5,0.3)' }} />
@@ -79,7 +79,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
         <div className="grid grid-cols-2 gap-3">
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="flex items-center gap-2 mb-3">
               <CalendarDays className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -101,7 +101,7 @@ export const CalendarEmptyState: React.FC<CalendarEmptyStateProps> = ({ colors, 
           </div>
           <div
             className="p-4 rounded-lg"
-            style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />

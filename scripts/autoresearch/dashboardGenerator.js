@@ -33,7 +33,7 @@ export function generateDashboard(targetName, scores, changelog, baselinePrompt,
   const heatmapRows = criteriaIds.map(cId => {
     const cells = scores.map(s => {
       const rate = s.criterionPassRates?.[cId] ?? 0;
-      const bg = rate >= 1 ? '#10b981' : rate >= 0.5 ? '#f59e0b' : '#ef4444';
+      const bg = rate >= 1 ? '#10b981' : rate >= 0.5 ? '#C9B99A' : '#ef4444';
       return `<td style="width:30px;height:24px;background:${bg};border:1px solid #111;text-align:center;font-size:10px;color:#fff">${Math.round(rate * 100)}</td>`;
     }).join('');
     return `<tr><td style="padding:4px 8px;font-size:11px;color:#999;white-space:nowrap">C${cId}</td>${cells}</tr>`;

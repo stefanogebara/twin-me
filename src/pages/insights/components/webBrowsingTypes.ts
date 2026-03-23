@@ -73,8 +73,8 @@ export interface InsightsResponse {
 
 export const CATEGORY_COLORS: Record<string, string> = {
   Learning: '#60a5fa',
-  News: '#f59e0b',
-  Shopping: '#f97316',
+  News: '#C9B99A',
+  Shopping: '#D4CBBE',
   Social: '#a78bfa',
   Entertainment: '#ec4899',
   Productivity: '#22c55e',

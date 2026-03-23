@@ -69,7 +69,7 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
               key={insight.id}
               className={`cursor-pointer rounded-lg ${insight.hasData ? 'gradient-accent-bar' : ''}`}
               style={{
-                border: '1px solid rgba(255,255,255,0.06)',
+                border: '1px solid var(--border-glass)',
                 backgroundColor: 'rgba(255,255,255,0.02)',
                 padding: '1.25rem',
               }}
@@ -106,7 +106,7 @@ export const TwinInsightsGrid: React.FC<TwinInsightsGridProps> = ({
                   <span
                     className="text-xs px-3 py-1 rounded-full inline-block font-medium"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                      backgroundColor: 'var(--glass-surface-bg)',
                       color: 'rgba(255,255,255,0.4)'
                     }}
                   >

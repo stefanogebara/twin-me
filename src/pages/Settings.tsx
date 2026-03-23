@@ -22,16 +22,16 @@ const getAuthHeaders = () => {
 // ── Sub-components ───────────────────────────────────────────────────────
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
-  <span
+  <h2
     className="text-[11px] font-medium tracking-widest uppercase block mb-5"
-    style={{ color: 'var(--accent-vibrant, #ff8400)', fontFamily: 'Inter, sans-serif' }}
+    style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
   >
     {label}
-  </span>
+  </h2>
 );
 
 const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+  <div className="my-10" style={{ borderTop: '1px solid var(--border-glass)' }} />
 );
 
 const SettingsRow: React.FC<{
@@ -68,7 +68,7 @@ const ToggleSwitch: React.FC<{
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'var(--accent-vibrant, #ff8400)' : 'rgba(255,255,255,0.1)',
+      backgroundColor: enabled ? 'var(--accent-vibrant)' : 'var(--glass-surface-border)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
@@ -118,7 +118,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
     <div>
       <div className="flex items-center justify-between py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="flex items-center gap-3">
-          <Send className="w-4 h-4" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+          <Send className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
           <div>
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
             <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -154,7 +154,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
       {linkCode && !status?.linked && (
         <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
           <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
             <span className="text-2xl font-mono tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
               {linkCode}
             </span>
@@ -389,7 +389,7 @@ const Settings = () => {
                 onClick={handleManageBilling}
                 disabled={managingBilling || isDemoMode}
                 className="text-[12px] px-3 py-1.5 rounded-lg transition-opacity hover:opacity-60 disabled:opacity-30"
-                style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
               >
                 {managingBilling ? '...' : 'Manage'}
               </button>
@@ -542,16 +542,16 @@ const Settings = () => {
           className="w-full flex items-center gap-4 p-4 mb-4 rounded-xl transition-colors"
           style={{
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid var(--border)',
           }}
           onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
         >
           <div
             className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
             style={{ background: 'rgba(16,183,127,0.1)', border: '1px solid rgba(16,183,127,0.2)' }}
           >
-            <Shield className="w-5 h-5" style={{ color: 'var(--accent-vibrant, #ff8400)' }} />
+            <Shield className="w-5 h-5" style={{ color: 'var(--accent-vibrant)' }} />
           </div>
           <div className="flex-1 text-left">
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
@@ -595,6 +595,7 @@ const Settings = () => {
                 placeholder='Type "DELETE"'
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
+                aria-label="Type DELETE to confirm account deletion"
                 className="text-sm px-2 py-1 rounded w-28 bg-transparent focus:outline-none"
                 style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
               />

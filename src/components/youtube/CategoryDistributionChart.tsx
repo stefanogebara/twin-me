@@ -51,7 +51,7 @@ export const CategoryDistributionChart: React.FC<CategoryDistributionChartProps>
           className="rounded-lg p-3"
           style={{
             backgroundColor: 'rgba(10,15,10,0.9)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--glass-surface-border)',
             borderRadius: '8px',
             color: 'rgba(255,255,255,0.8)'
           }}

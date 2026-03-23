@@ -172,9 +172,9 @@ const DiscordInsightsPage: React.FC = () => {
     return (
       <div className="max-w-[680px] mx-auto px-6 py-16">
         <div className="animate-pulse space-y-4">
-          <div className="h-16 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <div className="h-32 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <div className="h-48 rounded-xl" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <div className="h-16 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
+          <div className="h-32 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
+          <div className="h-48 rounded-xl" style={{ backgroundColor: 'var(--glass-surface-bg)' }} />
         </div>
       </div>
     );
@@ -217,7 +217,7 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.discordServers && insights.discordServers.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-3 flex items-center gap-2"
@@ -248,7 +248,7 @@ const DiscordInsightsPage: React.FC = () => {
       {insights?.discordCategoryBreakdown && insights.discordCategoryBreakdown.length > 0 && (
         <div
           className="rounded-2xl p-4 mb-6"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <h3
             className="text-[11px] font-medium uppercase tracking-[0.08em] mb-4 flex items-center gap-2"
@@ -265,7 +265,7 @@ const DiscordInsightsPage: React.FC = () => {
                 </span>
                 <div
                   className="flex-1 h-5 rounded-lg overflow-hidden"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                  style={{ backgroundColor: 'var(--glass-surface-bg)' }}
                 >
                   <div
                     className="h-full rounded-lg transition-all"
@@ -303,7 +303,7 @@ const DiscordInsightsPage: React.FC = () => {
       ) : insights?.discordServers?.length ? (
         <div
           className="mb-8 rounded-2xl p-4"
-          style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+          style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
         >
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare className="w-4 h-4" style={{ color: colors.discordPurple }} />
@@ -355,7 +355,7 @@ const DiscordInsightsPage: React.FC = () => {
               <div
                 key={past.id}
                 className="rounded-2xl p-4"
-                style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               >
                 <p className="text-sm leading-relaxed" style={{ color: colors.textSecondary }}>
                   {past.text}
@@ -374,7 +374,7 @@ const DiscordInsightsPage: React.FC = () => {
         <div className="space-y-4">
           <div
             className="text-center py-12 rounded-2xl"
-            style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+            style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
           >
             <div
               className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
@@ -416,7 +416,7 @@ const DiscordInsightsPage: React.FC = () => {
             </p>
             <div
               className="rounded-2xl p-4"
-              style={{ border: '1px dashed rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+              style={{ border: '1px dashed var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
             >
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="w-4 h-4" style={{ color: colors.textSecondary }} />
@@ -426,7 +426,7 @@ const DiscordInsightsPage: React.FC = () => {
                 {[75, 55, 35].map((w, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: colors.discordBg }} />
-                    <div className="flex-1 h-3 rounded animate-pulse" style={{ width: `${w}%`, background: 'rgba(255,255,255,0.06)' }} />
+                    <div className="flex-1 h-3 rounded animate-pulse" style={{ width: `${w}%`, background: 'var(--glass-surface-bg)' }} />
                   </div>
                 ))}
               </div>

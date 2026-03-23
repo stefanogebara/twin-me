@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion } from '@/services/enrichmentService';
-import SoulOrb from './components/SoulOrb';
 import ParticleField from './components/ParticleField';
-import DataRevealItem from './components/DataRevealItem';
-import PersonalizedQuestions from './components/PersonalizedQuestion';
-import CompactPlatformConnect from './components/CompactPlatformConnect';
 import PlatformConnectStep from './components/PlatformConnectStep';
-import CorrectionForm from './components/CorrectionForm';
 import DeepInterview from './components/DeepInterview';
+import RevealPhase from './components/RevealPhase';
+import DeepeningPhase from './components/DeepeningPhase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
-// Infer name from email (copied from DiscoveryStep)
+// Infer name from email
 const inferNameFromEmail = (email: string): string => {
   const [local, domain] = email.split('@');
   const genericPrefixes = new Set([
@@ -69,7 +66,6 @@ const NewDiscoverFlow: React.FC = () => {
   const { user, isLoaded: authLoaded } = useAuth();
   const { trackFunnel } = useAnalytics();
 
-  // Tracked phase setter — fires PostHog event on every transition
   const setPhaseTracked = (next: FlowPhase, extra?: Record<string, unknown>) => {
     trackFunnel(`discover_${next}_entered`, { phase: next, ...extra });
     setPhase(next);
@@ -101,11 +97,9 @@ const NewDiscoverFlow: React.FC = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
-
-  // Identity confirmation gate — user must explicitly confirm scraped data is theirs
   const [identityConfirmed, setIdentityConfirmed] = useState(false);
 
-  // Refs to prevent double-fire
+  // Refs
   const hasStartedRef = useRef(false);
   const enrichmentDataRef = useRef<EnrichmentData | null>(null);
   const quickDataRef = useRef<QuickEnrichmentData | null>(null);
@@ -131,30 +125,24 @@ const NewDiscoverFlow: React.FC = () => {
     checkStatus();
   }, [authLoaded, user, navigate]);
 
-  // Start enrichment flow on mount
   useEffect(() => {
     if (loading || !user || hasStartedRef.current) return;
     hasStartedRef.current = true;
     startReveal();
   }, [loading, user]);
 
-  // Show continue button only after full enrichment completes (orbPhase === 'alive')
-  // with a safety fallback of 30s in case enrichment hangs
   useEffect(() => {
     if (phase !== 'reveal') return;
     if (orbPhase === 'alive') {
-      // Small delay so data points animate in first
       const timer = setTimeout(() => setShowContinue(true), 1500);
       return () => clearTimeout(timer);
     }
-    // Safety fallback — don't leave user stuck if enrichment takes too long
     const fallback = setTimeout(() => setShowContinue(true), 30000);
     return () => clearTimeout(fallback);
   }, [phase, orbPhase]);
 
   const isLLMJunk = (text: string): boolean => {
     const lower = text.toLowerCase().trim();
-    // LLM planning/preamble patterns
     if (/^(okay|sure|alright|let me|i will|i'll|here's (the|my) plan)/i.test(lower)) return true;
     if (/^this report (compiles|summarizes|presents|covers|contains)/i.test(lower)) return true;
     if (/^(below is|here is|the following) (a |the )?(compiled|detailed|comprehensive)/i.test(lower)) return true;
@@ -170,7 +158,6 @@ const NewDiscoverFlow: React.FC = () => {
     setDataPoints(prev => {
       const idx = prev.findIndex(p => p.label === dp.label);
       if (idx >= 0) {
-        // Update existing entry with newer (likely richer) value
         if (prev[idx].value === dp.value) return prev;
         return prev.map((p, i) => i === idx ? dp : p);
       }
@@ -178,13 +165,39 @@ const NewDiscoverFlow: React.FC = () => {
     });
   }, []);
 
+  const extractFirstLine = (text: string, maxLen = 60): string => {
+    if (isLLMJunk(text)) return '';
+    const line = text.split(/[\n•-]/).map(s => s.trim()).find(s => s.length > 5) || text;
+    return line.length > maxLen ? line.slice(0, maxLen).replace(/\s+\S*$/, '') + '...' : line;
+  };
+
+  const addFullEnrichmentPoints = (data: EnrichmentData) => {
+    if (data.discovered_name) addDataPoint({ icon: 'name', label: 'Name', value: data.discovered_name });
+    if (data.discovered_company) addDataPoint({ icon: 'company', label: 'Company', value: data.discovered_company });
+    if (data.discovered_title) addDataPoint({ icon: 'title', label: 'Title', value: data.discovered_title });
+    if (data.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: data.discovered_location });
+    if (data.discovered_bio && !data.discovered_summary) {
+      const bioValue = extractFirstLine(data.discovered_bio, 120);
+      if (bioValue) addDataPoint({ icon: 'bio', label: 'Bio', value: bioValue });
+    }
+    if (data.career_timeline && data.career_timeline.length > 20 && !data.discovered_company && !data.discovered_title) {
+      const careerValue = extractFirstLine(data.career_timeline);
+      if (careerValue) addDataPoint({ icon: 'career', label: 'Career', value: careerValue });
+    }
+    if (data.education && data.education.length > 10) {
+      const eduValue = extractFirstLine(data.education);
+      if (eduValue) addDataPoint({ icon: 'education', label: 'Education', value: eduValue });
+    }
+    if (data.discovered_github_url) addDataPoint({ icon: 'github', label: 'GitHub', value: 'Profile found' });
+    if (data.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
+  };
+
   const startReveal = async () => {
     if (!user) return;
     setPhaseTracked('reveal');
     setOrbPhase('awakening');
 
     try {
-      // Check sessionStorage for cached discovery data from /discover page
       const cachedRaw = sessionStorage.getItem('twinme_discovery_data');
       let cachedDiscovery: QuickEnrichmentData | null = null;
       if (cachedRaw) {
@@ -197,9 +210,6 @@ const NewDiscoverFlow: React.FC = () => {
         }
       }
 
-      // Phase 1: Quick enrichment (< 1 second)
-      // Use cached discovery data if available, otherwise call API
-      // Pass Google OAuth name so backend can use it for better results
       const oauthName = user.fullName || undefined;
       const quickResult = cachedDiscovery
         ? { success: true, data: cachedDiscovery, elapsed: 0 }
@@ -216,7 +226,6 @@ const NewDiscoverFlow: React.FC = () => {
         if (q.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
       }
 
-      // Phase 2: Check existing full enrichment (skip if only gravatar/shallow data)
       const statusResult = await enrichmentService.getStatus(user.id);
       if (statusResult.hasEnrichment) {
         const resultsResult = await enrichmentService.getResults(user.id);
@@ -232,8 +241,6 @@ const NewDiscoverFlow: React.FC = () => {
         }
       }
 
-      // Phase 3: Full enrichment search
-      // Prefer Google OAuth name (ground truth) over Gravatar/GitHub discovered name
       const name = user.fullName || q?.discovered_name || inferNameFromEmail(user.email);
       const searchResult = await enrichmentService.search(user.id, user.email, name);
 
@@ -254,38 +261,7 @@ const NewDiscoverFlow: React.FC = () => {
     }
   };
 
-  const extractFirstLine = (text: string, maxLen = 60): string => {
-    if (isLLMJunk(text)) return '';
-    // Get first meaningful line/sentence from a block of text
-    const line = text.split(/[\n•-]/).map(s => s.trim()).find(s => s.length > 5) || text;
-    return line.length > maxLen ? line.slice(0, maxLen).replace(/\s+\S*$/, '') + '...' : line;
-  };
-
-  const addFullEnrichmentPoints = (data: EnrichmentData) => {
-    if (data.discovered_name) addDataPoint({ icon: 'name', label: 'Name', value: data.discovered_name });
-    if (data.discovered_company) addDataPoint({ icon: 'company', label: 'Company', value: data.discovered_company });
-    if (data.discovered_title) addDataPoint({ icon: 'title', label: 'Title', value: data.discovered_title });
-    if (data.discovered_location) addDataPoint({ icon: 'location', label: 'Location', value: data.discovered_location });
-    // Only show bio data point if there's no narrative summary (avoids redundancy)
-    if (data.discovered_bio && !data.discovered_summary) {
-      const bioValue = extractFirstLine(data.discovered_bio, 120);
-      if (bioValue) addDataPoint({ icon: 'bio', label: 'Bio', value: bioValue });
-    }
-    // Only show Career row if we don't already have Company/Title and the data is clean
-    if (data.career_timeline && data.career_timeline.length > 20 && !data.discovered_company && !data.discovered_title) {
-      const careerValue = extractFirstLine(data.career_timeline);
-      if (careerValue) addDataPoint({ icon: 'career', label: 'Career', value: careerValue });
-    }
-    if (data.education && data.education.length > 10) {
-      const eduValue = extractFirstLine(data.education);
-      if (eduValue) addDataPoint({ icon: 'education', label: 'Education', value: eduValue });
-    }
-    if (data.discovered_github_url) addDataPoint({ icon: 'github', label: 'GitHub', value: 'Profile found' });
-    if (data.discovered_twitter_url) addDataPoint({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
-  };
-
   const handleAdvanceToDeepening = async () => {
-    // Confirm enrichment data if we have it
     if (user && enrichmentDataRef.current) {
       const data = enrichmentDataRef.current;
       enrichmentService.confirm(user.id, {
@@ -300,7 +276,6 @@ const NewDiscoverFlow: React.FC = () => {
 
     setPhase('platforms');
 
-    // Pre-fetch personalized questions in background while user is on platforms screen
     setLoadingQuestions(true);
     try {
       const enrichment = enrichmentDataRef.current;
@@ -318,7 +293,7 @@ const NewDiscoverFlow: React.FC = () => {
         setPersonalizedQuestions(result.questions);
       }
     } catch {
-      // Fallback handled by component — empty array means show nothing until loaded
+      // empty
     } finally {
       setLoadingQuestions(false);
     }
@@ -337,8 +312,6 @@ const NewDiscoverFlow: React.FC = () => {
 
   const handleSearchAgain = async () => {
     if (!user) return;
-
-    // Auto-skip after 2 failed retries
     if (retryCount >= 2) {
       handleSkipEnrichment();
       return;
@@ -397,7 +370,7 @@ const NewDiscoverFlow: React.FC = () => {
     try {
       await enrichmentService.skip(user.id);
     } catch {
-      // Skip enrichment failed silently
+      // skip
     }
     enrichmentDataRef.current = null;
     setPhaseTracked('platforms');
@@ -416,7 +389,6 @@ const NewDiscoverFlow: React.FC = () => {
     setAllQAnswered(true);
   };
 
-  // Generate soul signature when all questions are answered
   useEffect(() => {
     if (!allQAnswered || generatingSignature || signature) return;
     generateSignature();
@@ -439,7 +411,6 @@ const NewDiscoverFlow: React.FC = () => {
         bio: enrichment?.discovered_bio || enrichment?.discovered_summary || quick?.discovered_bio || undefined,
       };
 
-      // Convert question answers to calibration insights with domain tags
       const calibrationInsights = Object.entries(answers).map(([qId, answer]) => {
         const question = personalizedQuestions.find(q => q.id === qId);
         const domain = questionDomains[qId] || 'personality';
@@ -498,13 +469,11 @@ const NewDiscoverFlow: React.FC = () => {
 
   return (
     <div className={`bg-[#0C0C0C] relative ${phase === 'deep-interview' ? 'h-dvh flex flex-col overflow-hidden' : 'min-h-screen overflow-hidden'}`}>
-      {/* Scrollbar utility (fonts loaded via index.html) */}
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Particle background */}
       <ParticleField />
 
       {/* Header */}
@@ -530,171 +499,27 @@ const NewDiscoverFlow: React.FC = () => {
       <div className={`relative z-10 flex flex-col items-center px-6 md:px-8 ${phase === 'deep-interview' ? 'flex-1 min-h-0' : ''}`}>
         {/* ===== PHASE: ENTRY / REVEAL ===== */}
         {(phase === 'entry' || phase === 'reveal') && (
-          <div
-            className="flex flex-col items-center w-full max-w-lg transition-all duration-500"
-          >
-            {/* Status text */}
-            <p
-              className="text-sm uppercase tracking-widest mb-8 text-center transition-all duration-300"
-              style={{
-                color: 'rgba(232, 213, 183, 0.5)',
-                fontFamily: 'var(--font-body)',
-                letterSpacing: '0.15em',
-              }}
-            >
-              {orbPhase === 'dormant' && 'Discovering you...'}
-              {orbPhase === 'awakening' && 'Piecing together your story...'}
-              {orbPhase === 'alive' && (
-                dataPoints.length === 0
-                  ? `Hello, ${userName.split(' ')[0]}`
-                  : `We found some info about ${userName.split(' ')[0]}`
-              )}
-            </p>
-
-            {/* Soul Orb */}
-            <div className="mb-8">
-              <SoulOrb phase={orbPhase} dataPointCount={dataPoints.length} />
-            </div>
-
-            {/* Data points reveal (hidden during correction) */}
-            {revealSubView === 'data' && dataPoints.length > 0 && (
-              <div className="w-full max-w-sm mt-4 transition-all duration-300">
-                {dataPoints.map((dp, i) => (
-                  <DataRevealItem
-                    key={dp.label}
-                    icon={dp.icon}
-                    label={dp.label}
-                    value={dp.value}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Narrative (hidden during correction) */}
-            {revealSubView === 'data' && narrative && (
-              <p
-                className="text-base leading-relaxed mt-6 text-center max-w-md transition-all duration-500"
-                style={{
-                  color: 'rgba(232, 213, 183, 0.7)',
-                  fontFamily: 'var(--font-heading)',
-                  fontStyle: 'italic',
-                }}
-              >
-                {narrative.length > 500
-                  ? (() => {
-                      const chunk = narrative.slice(0, 500);
-                      const lastPeriod = chunk.lastIndexOf('.');
-                      return lastPeriod > 200 ? chunk.slice(0, lastPeriod + 1) : chunk.replace(/\s+\S*$/, '') + '...';
-                    })()
-                  : narrative}
-              </p>
-            )}
-
-            {/* Error message */}
-            {revealSubView === 'data' && enrichError && dataPoints.length === 0 && (
-              <p
-                className="text-sm text-center mt-6 max-w-sm transition-all duration-300"
-                style={{
-                  color: 'rgba(232, 213, 183, 0.5)',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                {enrichError}
-              </p>
-            )}
-
-            {/* Empty state — enrichment found nothing */}
-            {revealSubView === 'data' && orbPhase === 'alive' && dataPoints.length === 0 && !enrichError && (
-              <p
-                className="text-sm text-center mt-6 max-w-sm transition-all duration-300"
-                style={{
-                  color: 'rgba(232, 213, 183, 0.5)',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                We couldn't find much yet — no worries, let's build your profile together.
-              </p>
-            )}
-
-            {/* Identity confirmation gate — must confirm before proceeding */}
-            {revealSubView === 'data' && showContinue && dataPoints.length > 0 && !identityConfirmed && (
-              <div className="w-full max-w-sm mt-8 transition-all duration-300">
-                <div
-                  className="rounded-xl p-5 text-center"
-                  style={{
-                    background: 'rgba(232, 213, 183, 0.06)',
-                    border: '1px solid rgba(232, 213, 183, 0.15)',
-                  }}
-                >
-                  <p
-                    className="text-sm mb-4"
-                    style={{ color: 'rgba(232, 213, 183, 0.8)', fontFamily: 'var(--font-body)' }}
-                  >
-                    Is this information about you?
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setIdentityConfirmed(true)}
-                      className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
-                      style={{
-                        background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                        color: '#0C0C0C',
-                        fontFamily: 'var(--font-body)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Yes, that's me
-                    </button>
-                    <button
-                      onClick={handleNotMe}
-                      className="flex-1 py-2.5 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-80"
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid rgba(232, 213, 183, 0.3)',
-                        color: 'rgba(232, 213, 183, 0.7)',
-                        fontFamily: 'var(--font-body)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Not me
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Continue button — only shown after identity is confirmed (or no data found) */}
-            {revealSubView === 'data' && showContinue && (identityConfirmed || dataPoints.length === 0) && (
-              <div className="flex flex-col items-center mt-8 transition-all duration-300">
-                <button
-                  onClick={handleAdvanceToDeepening}
-                  className="px-8 py-3 rounded-full text-base flex items-center gap-2 transition-all duration-200 hover:scale-[1.03]"
-                  style={{
-                    background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                    color: '#0C0C0C',
-                    fontFamily: 'var(--font-body)',
-                    fontWeight: 500,
-                  }}
-                >
-                  Continue
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            {revealSubView === 'correction' && (
-              <CorrectionForm
-                name={correctionName}
-                linkedIn={correctionLinkedIn}
-                onNameChange={setCorrectionName}
-                onLinkedInChange={setCorrectionLinkedIn}
-                onSearchAgain={handleSearchAgain}
-                onSkip={handleSkipEnrichment}
-                isRetrying={isRetrying}
-                retryCount={retryCount}
-              />
-            )}
-          </div>
+          <RevealPhase
+            orbPhase={orbPhase}
+            userName={userName}
+            dataPoints={dataPoints}
+            narrative={narrative}
+            showContinue={showContinue}
+            enrichError={enrichError}
+            identityConfirmed={identityConfirmed}
+            revealSubView={revealSubView}
+            correctionName={correctionName}
+            correctionLinkedIn={correctionLinkedIn}
+            isRetrying={isRetrying}
+            retryCount={retryCount}
+            onConfirmIdentity={() => setIdentityConfirmed(true)}
+            onNotMe={handleNotMe}
+            onAdvance={handleAdvanceToDeepening}
+            onCorrectionNameChange={setCorrectionName}
+            onCorrectionLinkedInChange={setCorrectionLinkedIn}
+            onSearchAgain={handleSearchAgain}
+            onSkipEnrichment={handleSkipEnrichment}
+          />
         )}
 
         {/* ===== PHASE: PLATFORMS ===== */}
@@ -707,167 +532,22 @@ const NewDiscoverFlow: React.FC = () => {
 
         {/* ===== PHASE: DEEPENING ===== */}
         {phase === 'deepening' && (
-          <div
-            className="w-full max-w-lg transition-all duration-500"
-          >
-            {/* Heading */}
-            <div className="text-center mb-8">
-              <h2
-                className="text-2xl md:text-3xl mb-2"
-                style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
-              >
-                {signature ? 'Your Soul Signature' : 'A few quick taps'}
-              </h2>
-              {!signature && (
-                <p
-                  className="text-sm opacity-50"
-                  style={{ fontFamily: 'var(--font-body)', color: '#E8D5B7' }}
-                >
-                  Help your twin understand who you are
-                </p>
-              )}
-            </div>
-
-            {/* Personalized Questions — show while not yet all answered */}
-            {!allQAnswered && (
-              <>
-                {loadingQuestions ? (
-                  <div className="flex items-center justify-center gap-3 py-12">
-                    <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
-                    <span
-                      className="text-sm"
-                      style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
-                    >
-                      Preparing your questions...
-                    </span>
-                  </div>
-                ) : personalizedQuestions.length > 0 ? (
-                  <PersonalizedQuestions
-                    questions={personalizedQuestions}
-                    onAnswer={handleQuestionAnswer}
-                    onAllAnswered={handleAllQuestionsAnswered}
-                  />
-                ) : null}
-              </>
-            )}
-
-            {/* Soul Signature Card (shows after all questions answered) */}
-            {generatingSignature && (
-              <div className="flex items-center justify-center gap-3 py-6">
-                <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#E8D5B7' }} />
-                <span
-                  className="text-sm"
-                  style={{ color: 'rgba(232, 213, 183, 0.6)', fontFamily: 'var(--font-body)' }}
-                >
-                  Crafting your soul signature...
-                </span>
-              </div>
-            )}
-
-            {signature && (
-              <div
-                className="rounded-2xl p-6 mb-6 transition-all duration-500"
-                style={{
-                  backgroundColor: 'rgba(232, 213, 183, 0.06)',
-                  border: '1px solid rgba(232, 213, 183, 0.15)',
-                }}
-              >
-                <p
-                  className="text-xs uppercase tracking-widest mb-3"
-                  style={{
-                    color: 'rgba(232, 213, 183, 0.4)',
-                    fontFamily: 'var(--font-body)',
-                    letterSpacing: '0.15em',
-                  }}
-                >
-                  Your Soul Signature
-                </p>
-                <h3
-                  className="text-xl mb-2"
-                  style={{ fontFamily: 'var(--font-heading)', color: '#E8D5B7' }}
-                >
-                  {signature.archetype_name}
-                </h3>
-                <p
-                  className="text-sm mb-3"
-                  style={{
-                    color: 'rgba(232, 213, 183, 0.7)',
-                    fontFamily: 'var(--font-heading)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  "{signature.signature_quote.replace(/^["'"]+|["'"]+$/g, '')}"
-                </p>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{
-                    color: 'rgba(232, 213, 183, 0.6)',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  {signature.first_impression}
-                </p>
-              </div>
-            )}
-
-            {/* Post-signature: Go Deeper or Enter World */}
-            {signature && (
-              <div className="flex flex-col gap-3 mb-8 transition-all duration-300">
-                {/* Primary CTA — Enter My World */}
-                <button
-                  onClick={handleComplete}
-                  className="w-full px-6 py-4 rounded-xl text-base font-medium transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-                  style={{
-                    background: 'linear-gradient(135deg, #E8D5B7 0%, #D4C4A8 100%)',
-                    color: '#0C0C0C',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  Enter My World
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                {/* Secondary CTA — Go Deeper */}
-                <button
-                  onClick={() => setPhaseTracked('deep-interview')}
-                  className="w-full px-6 py-3 rounded-xl text-sm transition-all duration-200 hover:scale-[1.01] flex items-center justify-center gap-2"
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(232, 213, 183, 0.2)',
-                    color: 'rgba(232, 213, 183, 0.7)',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Go Deeper — Let your twin really know you
-                </button>
-              </div>
-            )}
-
-            {/* Pre-signature CTA (questions not done yet) */}
-            {!signature && !generatingSignature && allQAnswered && (
-              <button
-                onClick={handleComplete}
-                disabled
-                className="w-full px-6 py-4 rounded-xl text-base font-medium flex items-center justify-center gap-2 mb-8 opacity-40"
-                style={{
-                  background: 'transparent',
-                  color: '#E8D5B7',
-                  border: '1px solid rgba(232, 213, 183, 0.2)',
-                  fontFamily: 'var(--font-body)',
-                }}
-              >
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </button>
-            )}
-          </div>
+          <DeepeningPhase
+            signature={signature}
+            generatingSignature={generatingSignature}
+            allQAnswered={allQAnswered}
+            loadingQuestions={loadingQuestions}
+            personalizedQuestions={personalizedQuestions}
+            onQuestionAnswer={handleQuestionAnswer}
+            onAllQuestionsAnswered={handleAllQuestionsAnswered}
+            onComplete={handleComplete}
+            onGoDeeper={() => setPhaseTracked('deep-interview')}
+          />
         )}
 
         {/* ===== PHASE: DEEP INTERVIEW ===== */}
         {phase === 'deep-interview' && (
-          <div
-            className="w-full flex-1 flex flex-col min-h-0 transition-all duration-500"
-          >
+          <div className="w-full flex-1 flex flex-col min-h-0 transition-all duration-500">
             <DeepInterview
               enrichmentContext={identityConfirmed ? {
                 name: enrichmentDataRef.current?.discovered_name || quickDataRef.current?.discovered_name || user.fullName || inferNameFromEmail(user.email),

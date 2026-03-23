@@ -41,7 +41,7 @@ const SoulChapter: React.FC<SoulChapterProps> = ({ summary, archetype, uniquenes
           <button
             onClick={() => setSummaryExpanded(!summaryExpanded)}
             className="mt-2 text-xs"
-            style={{ color: '#ff8400' }}
+            style={{ color: 'var(--accent-vibrant)' }}
           >
             {summaryExpanded ? 'Show less' : 'Read more'}
           </button>
@@ -55,7 +55,7 @@ const SoulChapter: React.FC<SoulChapterProps> = ({ summary, archetype, uniquenes
               className="text-[12px] px-3 py-2 rounded-[46px]"
               style={{
                 color: 'rgba(255,255,255,0.6)',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '1px solid var(--border)',
               }}
             >
               {marker}

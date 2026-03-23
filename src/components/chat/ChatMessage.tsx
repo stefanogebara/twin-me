@@ -39,7 +39,7 @@ export function ChatMessage({
       className="group flex gap-4 px-6 py-4 rounded-xl"
       style={{
         backgroundColor: isAssistant ? 'rgba(255,255,255,0.02)' : 'transparent',
-        border: isAssistant ? '1px solid rgba(255,255,255,0.06)' : undefined,
+        border: isAssistant ? '1px solid var(--border-glass)' : undefined,
       }}
     >
       {/* Avatar */}

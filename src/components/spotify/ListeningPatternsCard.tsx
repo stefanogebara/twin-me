@@ -99,7 +99,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex-1 h-8 bg-white/8 rounded-lg overflow-hidden relative">
                 <div
-                  className="h-full bg-gradient-to-r from-[#D97706] to-[#F59E0B] flex items-center justify-center transition-all duration-800"
+                  className="h-full bg-gradient-to-r from-[#A89A7E] to-[#C9B99A] flex items-center justify-center transition-all duration-800"
                   style={{ width: `${weekendPercentage}%` }}
                 >
                   {weekendPercentage > 20 && (
@@ -120,7 +120,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
         <div className="grid grid-cols-2 gap-3 pt-2">
           <div
             className="rounded-lg p-3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
           >
             <div className="flex items-center gap-2 mb-1">
               <Headphones className="w-3.5 h-3.5 text-[#1DB954]" />
@@ -135,7 +135,7 @@ export const ListeningPatternsCard: React.FC<ListeningPatternsCardProps> = ({
 
           <div
             className="rounded-lg p-3"
-            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
           >
             <div className="flex items-center gap-2 mb-1">
               <Clock className="w-3.5 h-3.5 text-[#1DB954]" />

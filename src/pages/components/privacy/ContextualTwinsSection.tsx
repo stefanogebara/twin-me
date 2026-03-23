@@ -17,7 +17,7 @@ import {
 // --- Design tokens (shared with parent) ---
 const TEXT_PRIMARY = 'var(--foreground)';
 const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
-const BORDER_COLOR = 'rgba(255,255,255,0.06)';
+const BORDER_COLOR = 'var(--border-glass)';
 const CARD_BG = 'rgba(255,255,255,0.02)';
 
 const TWIN_ICONS: Record<string, React.ComponentType<{ size?: number; style?: React.CSSProperties }>> = {

@@ -253,11 +253,11 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
         key={platform}
         className="p-4 rounded-xl transition-all hover:scale-[1.01]"
         style={{
-          background: 'rgba(255, 255, 255, 0.06)',
+          background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(10px) saturate(140%)',
           WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+          border: '1px solid var(--glass-surface-border)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18), inset 0 1px 0 var(--border)',
         }}
       >
         <div className="flex items-center justify-between">
@@ -330,7 +330,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
           disabled={loading}
           className="p-2 rounded-lg transition-all hover:opacity-80 disabled:opacity-50"
           style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.06)',
+            backgroundColor: 'var(--glass-surface-bg)',
             color: 'var(--foreground)'
           }}
         >

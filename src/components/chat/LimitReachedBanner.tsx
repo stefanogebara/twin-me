@@ -12,7 +12,7 @@ interface LimitReachedBannerProps {
 }
 
 export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsage }) => (
-  <div className="flex justify-center px-6 py-6">
+  <div className="flex justify-center px-6 py-6" role="alert">
     <div
       className="flex flex-col items-center text-center gap-3 px-8 py-6 max-w-sm w-full"
       style={{
@@ -21,12 +21,12 @@ export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsag
         WebkitBackdropFilter: 'blur(42px)',
         border: '1px solid var(--glass-surface-border)',
         borderRadius: '20px',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
       }}
     >
       <div
         className="flex items-center justify-center w-10 h-10 rounded-full"
-        style={{ background: 'rgba(255,132,0,0.12)' }}
+        style={{ background: 'var(--accent-vibrant-glow)' }}
       >
         <Clock className="w-5 h-5" style={{ color: 'var(--accent-vibrant)' }} />
       </div>

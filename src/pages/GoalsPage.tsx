@@ -207,7 +207,7 @@ const GoalsPage: React.FC = () => {
         Twin-driven goals based on your real patterns
       </p>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-8" />
+      <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
 
       {/* Loading */}
       {isLoading && (
@@ -230,7 +230,7 @@ const GoalsPage: React.FC = () => {
             onClick={() => navigate('/get-started')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
             style={{
-              backgroundColor: '#ff8400',
+              backgroundColor: 'var(--accent-vibrant)',
               color: '#0a0f0a',
               fontFamily: "'Inter', sans-serif",
             }}
@@ -247,7 +247,7 @@ const GoalsPage: React.FC = () => {
           {summary.active > 0 && (
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ border: '1px solid var(--border)' }}
             >
               <Target className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.4)' }} />
               <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
@@ -258,9 +258,9 @@ const GoalsPage: React.FC = () => {
           {summary.completed > 0 && (
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ border: '1px solid var(--border)' }}
             >
-              <Trophy className="w-3.5 h-3.5" style={{ color: '#ff8400' }} />
+              <Trophy className="w-3.5 h-3.5" style={{ color: 'var(--accent-vibrant)' }} />
               <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
                 {summary.completed} completed
               </span>
@@ -269,9 +269,9 @@ const GoalsPage: React.FC = () => {
           {summary.bestStreak > 0 && (
             <div
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+              style={{ border: '1px solid var(--border)' }}
             >
-              <Flame className="w-3.5 h-3.5" style={{ color: '#f97316' }} />
+              <Flame className="w-3.5 h-3.5" style={{ color: '#D4CBBE' }} />
               <span className="text-xs font-medium" style={{ color: 'var(--foreground)' }}>
                 {summary.bestStreak}d best streak
               </span>
@@ -283,12 +283,12 @@ const GoalsPage: React.FC = () => {
       {/* Suggestions Section */}
       {!isLoading && suggestions.length > 0 && (
         <section className="mb-10">
-          <span
+          <h2
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#ff8400', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
           >
             Your Twin Suggests
-          </span>
+          </h2>
           <div>
             {suggestions.map((goal, i) => (
               <GoalSuggestionCard
@@ -308,12 +308,12 @@ const GoalsPage: React.FC = () => {
       {/* Active Goals Section */}
       {!isLoading && activeGoals.length > 0 && (
         <section className="mb-10">
-          <span
+          <h2
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: '#ff8400', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
           >
             Active Goals
-          </span>
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {activeGoals.map((goal, i) => (
               <div
@@ -337,12 +337,13 @@ const GoalsPage: React.FC = () => {
       {/* Completed Goals Section */}
       {!isLoading && !hasNoData && (summary?.completed ?? 0) > 0 && (
         <section>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="mb-6" />
+          <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-6" />
           <button
             onClick={() => setShowCompleted((prev) => !prev)}
             className="flex items-center gap-2 w-full text-left transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.98] mb-4"
+            aria-expanded={showCompleted}
           >
-            <Trophy className="w-4 h-4" style={{ color: '#ff8400' }} />
+            <Trophy className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
             <span
               className="text-sm font-medium flex-1"
               style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}

@@ -89,7 +89,7 @@ const Index = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#110f0f] text-[#F5F0EB] font-sans text-sm font-medium">
+    <div className="w-full min-h-screen bg-[var(--background)] text-[#F5F0EB] font-sans text-sm font-medium">
 
       {/* ────────────── NAV ────────────── */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
@@ -107,21 +107,21 @@ const Index = () => {
           <div className="hidden md:flex items-center gap-8">
             <a
               href="#services"
-              className="font-sans text-[13px] font-medium text-[#A8A29E] transition-colors duration-150 cursor-pointer hover:text-[#F5F0EB]"
+              className="font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors duration-150 cursor-pointer hover:text-[#F5F0EB]"
               onClick={(e) => { e.preventDefault(); document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               Services
             </a>
             <a
               href="#features"
-              className="font-sans text-[13px] font-medium text-[#A8A29E] transition-colors duration-150 cursor-pointer hover:text-[#F5F0EB]"
+              className="font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors duration-150 cursor-pointer hover:text-[#F5F0EB]"
               onClick={(e) => { e.preventDefault(); document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               Features
             </a>
             <a
               href="#how-it-works"
-              className="font-sans text-[13px] font-medium text-[#A8A29E] transition-colors duration-150 cursor-pointer hover:text-[#F5F0EB]"
+              className="font-sans text-[13px] font-medium text-[var(--text-secondary)] transition-colors duration-150 cursor-pointer hover:text-[#F5F0EB]"
               onClick={(e) => { e.preventDefault(); document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }}
             >
               How it works
@@ -131,18 +131,18 @@ const Index = () => {
           {/* Right: Auth */}
           <div className="flex items-center gap-2">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Dashboard
               </button>
             ) : (
               <>
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans text-[13px] font-medium text-[#A8A29E] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
+                  <button className="font-sans text-[13px] font-medium text-[var(--text-secondary)] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
                     Sign in
                   </button>
                 </SignInButton>
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                  <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                     Start Free
                   </button>
                 </SignInButton>
@@ -173,17 +173,17 @@ const Index = () => {
           {/* Single earned CTA — not loud, not multiple */}
           <div className="flex flex-col items-center gap-3">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/discover')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                <button onClick={() => navigate('/discover')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Discover yourself <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => { enterDemoMode(); navigate('/dashboard'); }}
-                  className="text-xs bg-none border-none cursor-pointer text-[#706B63] transition-colors hover:text-[#A8A29E]"
+                  className="text-xs bg-none border-none cursor-pointer text-[#706B63] transition-colors hover:text-[var(--text-secondary)]"
                 >
                   or try the demo
                 </button>
@@ -210,7 +210,7 @@ const Index = () => {
             {PLATFORMS.map(({ id, name, Icon, color }) => (
               <div key={id} className="flex items-center gap-2.5 transition-opacity duration-150 opacity-50 hover:opacity-90">
                 <Icon className="w-5 h-5" style={{ color }} />
-                <span className="font-sans text-[13px] font-medium text-[#A8A29E]">{name}</span>
+                <span className="font-sans text-[13px] font-medium text-[var(--text-secondary)]">{name}</span>
               </div>
             ))}
           </div>
@@ -223,13 +223,13 @@ const Index = () => {
           {/* Header row */}
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-14">
             <div className="lg:w-1/2">
-              <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">Who we are</span>
+              <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Who we are</span>
               <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
                 The soul signature built for <span className="font-heading font-normal italic">you.</span>
               </h2>
             </div>
             <div className="lg:w-1/2 flex items-end">
-              <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[520px]">
+              <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
                 We built Twin Me to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
               </p>
             </div>
@@ -250,7 +250,7 @@ const Index = () => {
                 >
                   {stat.value}
                 </div>
-                <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] m-0">{stat.label}</p>
+                <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] m-0">{stat.label}</p>
                 <p className="font-sans text-[11px] text-[#706B63] mt-1">{stat.sub}</p>
               </div>
             ))}
@@ -263,12 +263,12 @@ const Index = () => {
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
           <div className="mb-14">
-            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">Services</span>
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Services</span>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
               <h2 className="text-[36px] md:text-[56px] font-heading font-normal lg:max-w-[520px]">
                 We handle everything so you don't have to.
               </h2>
-              <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[480px] lg:pt-2">
+              <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[480px] lg:pt-2">
                 From connecting your platforms to generating insights and building your AI twin -- we manage the entire process while you discover yourself.
               </p>
             </div>
@@ -285,12 +285,12 @@ const Index = () => {
                   onClick={() => setActiveService(idx)}
                 >
                   <h3 className={`text-[24px] md:text-[32px] font-heading font-normal transition-colors duration-200 ${
-                    idx === activeService ? 'text-[#F5F0EB]' : 'text-[#A8A29E] opacity-40'
+                    idx === activeService ? 'text-[#F5F0EB]' : 'text-[var(--text-secondary)] opacity-40'
                   }`}>
                     {svc.title}
                   </h3>
                   <span className={`font-sans text-sm font-medium leading-[1.65] transition-colors duration-200 ${
-                    idx === activeService ? 'text-[#A8A29E]' : 'text-[#706B63] opacity-40'
+                    idx === activeService ? 'text-[var(--text-secondary)]' : 'text-[#706B63] opacity-40'
                   }`}>
                     {svc.num}
                   </span>
@@ -315,7 +315,7 @@ const Index = () => {
                   <h4 className="font-sans text-sm font-semibold text-[#F5F0EB] leading-[1.65] mb-2">
                     {SERVICES[activeService].heading}
                   </h4>
-                  <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[480px]">
+                  <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[480px]">
                     {SERVICES[activeService].desc}
                   </p>
               </div>
@@ -328,7 +328,7 @@ const Index = () => {
       <section id="features" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto relative z-10">
           <div className="mb-14">
-            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">Features</span>
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Features</span>
             <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
               Everything your twin needs to <span className="font-heading font-normal italic">know you.</span>
             </h2>
@@ -398,7 +398,7 @@ const Index = () => {
                   <h4 className="font-sans text-base font-semibold text-[#F5F0EB] leading-[1.65] mb-2">
                     {feature.title}
                   </h4>
-                  <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">{feature.desc}</p>
+                  <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">{feature.desc}</p>
                   <InlineEvidence {...feature.evidence} />
                 </div>
               );
@@ -412,21 +412,21 @@ const Index = () => {
         <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20 relative z-10">
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
-            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[#A8A29E] inline-block mb-5">How we work</span>
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">How we work</span>
             <h2 className="text-[36px] md:text-[56px] font-heading font-normal mb-5">
               Getting you results <span className="font-heading font-normal italic">without</span> the complexity.
             </h2>
-            <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] mb-8 max-w-[440px]">
+            <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] mb-8 max-w-[440px]">
               Our three-step process takes you from connecting platforms to discovering your soul signature, with clear progress and insights at every stage.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               {isLoaded && isSignedIn ? (
-                <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Go to Dashboard <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                  <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                     Start Free <ArrowRight className="w-4 h-4" />
                   </button>
                 </SignInButton>
@@ -445,13 +445,13 @@ const Index = () => {
                 key={step.num}
                 className="flex gap-5"
               >
-                <div className="w-12 h-12 rounded-full border-[1.5px] border-[rgba(232,160,80,0.25)] flex items-center justify-center font-sans text-xs font-normal text-[#A8A29E] shrink-0">{step.num}</div>
+                <div className="w-12 h-12 rounded-full border-[1.5px] border-[rgba(232,160,80,0.25)] flex items-center justify-center font-sans text-xs font-normal text-[var(--text-secondary)] shrink-0">{step.num}</div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <h4 className="font-sans text-sm font-semibold text-[#F5F0EB] leading-[1.65]">{step.title}</h4>
-                    <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-md py-[3px] px-2.5 text-xs font-normal text-[#A8A29E]">{step.badge}</span>
+                    <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-md py-[3px] px-2.5 text-xs font-normal text-[var(--text-secondary)]">{step.badge}</span>
                   </div>
-                  <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[420px]">
+                  <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[420px]">
                     {step.desc}
                   </p>
                 </div>
@@ -479,18 +479,18 @@ const Index = () => {
             />
           </div>
 
-          <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65] max-w-[520px]">
+          <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
             Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
             {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                <button className="font-sans bg-[#F5F0EB] text-[#110f0f] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
+                <button className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
                   Start Free <ArrowRight className="w-4 h-4" />
                 </button>
               </SignInButton>
@@ -507,7 +507,7 @@ const Index = () => {
             {/* Brand */}
             <div className="lg:max-w-[220px]">
               <h3 className="text-[22px] font-heading font-normal mb-2">Twin Me</h3>
-              <p className="font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">Discover what makes you authentically you.</p>
+              <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">Discover what makes you authentically you.</p>
             </div>
 
             {/* Product links */}
@@ -515,11 +515,11 @@ const Index = () => {
               <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#706B63]">
                 Product
               </p>
-              <ul className="space-y-2.5 font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">
-                <li><a href="/#features" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Features</a></li>
-                <li><a href="/#how-it-works" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">How it works</a></li>
-                <li><a href="/get-started" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Connect your data</a></li>
-                <li><a href="/soul-signature" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Soul Signature</a></li>
+              <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">
+                <li><a href="/#features" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Features</a></li>
+                <li><a href="/#how-it-works" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">How it works</a></li>
+                <li><a href="/get-started" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Connect your data</a></li>
+                <li><a href="/soul-signature" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Soul Signature</a></li>
               </ul>
             </div>
 
@@ -528,16 +528,16 @@ const Index = () => {
               <p className="text-[11px] uppercase tracking-widest font-semibold mb-4 text-[#706B63]">
                 Community
               </p>
-              <ul className="space-y-2.5 font-sans text-sm font-medium text-[#A8A29E] leading-[1.65]">
-                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">GitHub</a></li>
-                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Twitter / X</a></li>
-                <li><a href="mailto:hello@twinme.ai" className="text-[#A8A29E] hover:text-[#F5F0EB] transition-colors">Contact us</a></li>
+              <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">
+                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">GitHub</a></li>
+                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Twitter / X</a></li>
+                <li><a href="mailto:hello@twinme.ai" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Contact us</a></li>
               </ul>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="flex flex-col sm:flex-row justify-between gap-4 font-sans text-xs font-medium text-[#A8A29E] leading-[1.65] pt-6 border-t border-white/[0.06]">
+          <div className="flex flex-col sm:flex-row justify-between gap-4 font-sans text-xs font-medium text-[var(--text-secondary)] leading-[1.65] pt-6 border-t border-white/[0.06]">
             <p>&copy; 2026 Twin Me. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="/privacy-policy" className="hover:text-[#F5F0EB] transition-colors">Privacy Policy</a>

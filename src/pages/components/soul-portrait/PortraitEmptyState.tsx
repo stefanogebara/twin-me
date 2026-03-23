@@ -10,7 +10,7 @@ export const PortraitEmptyState: React.FC = () => {
       className="text-center py-16 rounded-lg"
       style={{
         backgroundColor: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        border: '1px solid var(--border-glass)',
       }}
     >
       <Sparkles
@@ -51,7 +51,7 @@ export const PortraitEmptyState: React.FC = () => {
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
           style={{
             backgroundColor: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-glass)',
             color: 'var(--foreground)',
           }}
         >
@@ -63,7 +63,7 @@ export const PortraitEmptyState: React.FC = () => {
           className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm"
           style={{
             backgroundColor: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--border-glass)',
             color: 'var(--foreground)',
           }}
         >

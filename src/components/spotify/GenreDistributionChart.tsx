@@ -12,11 +12,11 @@ interface GenreDistributionChartProps {
 // Color palette for genres
 const GENRE_COLORS = [
   '#1DB954', // Spotify Green
-  '#D97706', // Orange
+  '#C9B99A', // Warm cream
   '#8B5CF6', // Purple
   '#EF4444', // Red
   '#3B82F6', // Blue
-  '#F59E0B', // Amber
+  '#E8E0D4', // Cream
   '#10B981', // Emerald
   '#EC4899', // Pink
 ];
@@ -41,7 +41,7 @@ export const GenreDistributionChart: React.FC<GenreDistributionChartProps> = ({
           className="rounded-lg p-3"
           style={{
             backgroundColor: 'rgba(10,15,10,0.9)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--glass-surface-border)',
             borderRadius: '8px',
             color: 'rgba(255,255,255,0.8)'
           }}

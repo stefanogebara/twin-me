@@ -39,16 +39,18 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
   return (
     <div
       className="mx-6 mb-2"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ borderBottom: '1px solid var(--border-glass)' }}
     >
       {/* Collapsed summary */}
       <button
         onClick={() => setExpanded(prev => !prev)}
         className="w-full flex items-center gap-2 py-2.5 text-left bg-transparent border-none cursor-pointer"
+        aria-expanded={expanded}
+        aria-label={expanded ? "Collapse twin insights" : "Expand twin insights"}
       >
         <div
           className="w-2 h-2 rounded-full shrink-0"
-          style={{ backgroundColor: '#f59e0b' }}
+          style={{ backgroundColor: '#C9B99A' }}
         />
         <Lightbulb className="w-3.5 h-3.5 shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
         <span
@@ -99,23 +101,25 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
                     <button
                       onClick={() => handleRate(insight.id, 1)}
                       className="p-1 rounded-md bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70"
+                      aria-label="Rate insight as helpful"
                       title="Helpful"
                     >
-                      <ThumbsUp className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                      <ThumbsUp className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => handleRate(insight.id, -1)}
                       className="p-1 rounded-md bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70"
+                      aria-label="Rate insight as not helpful"
                       title="Not helpful"
                     >
-                      <ThumbsDown className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
+                      <ThumbsDown className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} aria-hidden="true" />
                     </button>
                   </>
                 )}
                 <button
                   onClick={() => handleAsk(insight)}
                   className="shrink-0 text-[11px] bg-transparent border-none cursor-pointer transition-opacity hover:opacity-70 p-0 whitespace-nowrap"
-                  style={{ color: '#ff8400' }}
+                  style={{ color: 'var(--accent-vibrant)' }}
                 >
                   Ask
                 </button>

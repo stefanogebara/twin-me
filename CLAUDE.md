@@ -392,98 +392,94 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 
 ---
 
-## Design System (Figma → Code)
-> Deep extraction from Figma Sundust UI Kit (fileKey: sm0EoOjSqFSL85choKFBwF) — 2026-03-09
-> Frames extracted: LandingPage (47:736), LogIn (9910:5553), SignUp (9926:23644), Settings (100:3743), GradientBackground (47:3228), Home (95:1125)
+## Design System (Dark Mode — Claura)
+> Dark-only design system. ThemeContext is hard-locked to dark mode (no light mode exists).
+> CSS tokens in `src/index.css`, opacity scale in `src/styles/tokens.ts`.
 
-### Color Tokens
+### Color Tokens (`:root` — single dark theme)
 
-**Light mode** (`:root` — Figma confirmed values):
-- `--background: #fdfcfb` — warm off-white
-- `--foreground: #1b1818` — warm near-black (text, labels)
-- `--glass-surface-bg: rgba(244,241,236,0.7)` — warm beige glass (`card/background`)
-- `--glass-surface-bg-subtle: rgba(218,217,215,0.2)` — input/subtle fill (`card/background-subtle`)
-- `--glass-surface-border: #d9d1cb` — warm stone border (`card/border`)
-- `--card-separator: rgba(50,47,47,0.05)` — row dividers in settings
-- `--text-secondary: #4a4242` — body secondary (`text/secondary`)
-- `--text-muted: #86807b` — placeholders, inactive (`text/placeholder`)
-- `--button-bg-dark: #252222` — dark buttons (NOT `#1b1818`)
-- `--avatar-bg: rgba(255,115,0,0.6)` — user avatar circle
+**Backgrounds:**
+- `--background: #13121a` — night sky base
+- `--surface: rgba(255,255,255,0.06)` — elevated surface
+- `--surface-solid: rgba(255,255,255,0.12)` — raised surface (hover, active)
 
-**Dark mode** (`.dark` class):
-- `--background: #110f0f` — very dark warm black
-- `--foreground: #fdfcfb` — warm white
-- `--glass-surface-bg: rgba(72,65,65,0.6)`
-- `--glass-surface-border: rgba(94,86,86,0.6)`
-- `--text-secondary: #d9d1cb`
-- `--text-muted: #86807b`
-- `--button-bg-dark: #252222`
+**Text:**
+- `--foreground: #F5F5F4` — primary text (warm stone-50)
+- `--text-primary: #F5F5F4`
+- `--text-secondary: #A8A29E` — body secondary (stone-400)
+- `--text-muted: #9C9590` — labels, captions
+- `--text-placeholder: #57534E` — input placeholders (stone-600)
 
-**Accent** (both modes):
+**Glass Surface (dark glassmorphism):**
+- `--glass-surface-bg: rgba(255,255,255,0.06)` — card/panel fill
+- `--glass-surface-border: rgba(255,255,255,0.10)` — card border
+
+**Borders:**
+- `--border: rgba(255,255,255,0.08)` — default border
+- `--border-glass: rgba(255,255,255,0.06)` — subtle glass border
+
+**Interactive:**
+- `--primary: #F5F5F4` — primary button bg (light on dark)
+- `--primary-foreground: #110f0f` — primary button text (dark)
+- `--ring: rgba(255,132,0,0.25)` — focus ring
+- `--input: rgba(255,255,255,0.08)` — input field bg
+
+**Component colors:**
+- `--card: rgba(255,255,255,0.06)` / `--card-foreground: #F5F5F4`
+- `--popover: rgba(40,37,36,0.95)` / `--popover-foreground: #F5F5F4`
+- `--secondary: rgba(255,255,255,0.08)` / `--secondary-foreground: #F5F5F4`
+- `--muted: rgba(17,15,15,0.8)` / `--muted-foreground: #A8A29E`
+- `--accent: rgba(255,255,255,0.06)` / `--accent-foreground: #F5F5F4`
+- `--destructive: #dc2626`
+
+**Sidebar:**
+- `--sidebar: rgba(255,255,255,0.05)` / `--sidebar-foreground: #D6D3D1`
+- `--sidebar-accent: rgba(255,255,255,0.08)` / `--sidebar-border: rgba(255,255,255,0.08)`
+
+**Accent (vibrant):**
 - `--accent-vibrant: #ff8400` — orange CTA highlight
 - `--accent-vibrant-glow: rgba(255,132,0,0.12)` — active nav pill fill
 - `--accent-amber: #c17e2c` — warm copper (gradient core)
 - `--accent-purple: #5d5cae` — cool purple (gradient corner only)
 
-**Ghost button hover:**
-- `rgba(17,15,15,0.05)` — `button/ghost/hover:background`
+**Narrative text (Sesame-inspired opacity hierarchy):**
+- `--text-narrative: rgba(245,245,244,0.9)` — primary narrative
+- `--text-narrative-secondary: rgba(245,245,244,0.6)` — body narrative
+- `--text-narrative-muted: rgba(245,245,244,0.4)` — captions, timestamps
 
-### Background Gradient System (Figma Exact — 3 Layered SVG Radials)
+### Background Gradient System (Sun-Driven Ambient Orbs)
 
-The page bg uses THREE overlapping radial gradients stacked at the bottom of the page:
+The page bg uses FOUR overlapping radial gradients with positions/sizes driven by `SunContext` (time-of-day animation). Default values in `:root`:
 
-**Layer 1 — Amber center burst (vertical):**
-```
-rgba(195,45,112,0) 0% → rgba(194,85,78,0.5) 9.4% → rgba(193,126,44,1) 18.75%
-→ rgba(224,129,22,0.8) 32.5% → rgba(255,132,0,0.6) 46.2% → rgba(218,128,26,0.525) 53.2%
-→ rgba(181,124,52,0.45) 60.3% → rgba(108,117,103,0.3) 74.5% → rgba(108,117,103,0) 96.6%
-```
-
-**Layer 2 — Orange diagonal (tilted left):**
-```
-rgba(195,45,112,0) 0% → rgba(225,88,56,0.3) 10.6% → rgba(240,110,28,0.45) 15.9%
-→ rgba(255,132,0,0.6) 21.2% → rgba(224,129,22,0.8) 29.1% → rgba(193,126,44,1) 37%
-→ rgba(185,101,74,0.65) 55.8% → rgba(177,76,105,0.3) 74.5% → rgba(73,56,57,0) 96.6%
-```
-
-**Layer 3 — Purple bottom-left corner:**
-```
-rgba(195,45,112,0) 0% → rgba(146,34,67,0.3) 10.6% → rgba(97,22,22,0.6) 21.2%
-→ rgba(157,49,11,0.55) 29.1% → rgba(217,76,0,0.5) 37% → rgba(202,78,22,0.475) 41.7%
-→ rgba(186,80,44,0.45) 46.4% → rgba(155,84,87,0.4) 55.8% → rgba(93,92,174,0.3) 74.5%
-→ rgba(73,56,57,0) 96.6%
-```
-
-Simplified CSS approximation (use full SVG radials for production):
 ```css
 body {
-  background-color: var(--background);
+  background-color: var(--background);  /* #13121a */
   background-image:
-    radial-gradient(ellipse 80% 50% at 51% 100%, rgba(193,126,44,0.5) 0%, rgba(255,132,0,0.35) 30%, transparent 65%),
-    radial-gradient(ellipse 70% 50% at 30% 100%, rgba(193,126,44,0.45) 0%, rgba(185,101,74,0.3) 40%, transparent 70%),
-    radial-gradient(ellipse 60% 45% at 15% 100%, rgba(217,76,0,0.3) 0%, rgba(93,92,174,0.2) 60%, transparent 97%);
+    radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
+    radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
+    radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
+    radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
+  background-attachment: fixed;
 }
 ```
 
-**Auth page right panel gradient (exact):**
-```css
-background: linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
-            linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
-              rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%);
-border-radius: 16px;
-```
+**Default gradient colors (amber/copper on charcoal):**
+- Orb 1: `rgba(210,145,55,0.38)` — warm amber, top-left
+- Orb 2: `rgba(180,110,65,0.30)` — copper, top-right
+- Orb 3: `rgba(160,95,55,0.34)` — deep amber, bottom-center
+- Orb 4: `rgba(55,45,140,0.28)` — purple accent, center-right
 
 ### Glass Surface (REQUIRED for all cards/panels)
 ```css
-background: var(--glass-surface-bg);           /* rgba(244,241,236,0.7) light */
+background: var(--glass-surface-bg);           /* rgba(255,255,255,0.06) */
 backdrop-filter: blur(42px);
 -webkit-backdrop-filter: blur(42px);
-border: 1px solid var(--glass-surface-border); /* #d9d1cb */
+border: 1px solid var(--glass-surface-border); /* rgba(255,255,255,0.10) */
 border-radius: 20px;
 box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 ```
 
-### Blur + Radius Reference (Figma exact)
+### Blur + Radius Reference
 | Element                 | backdrop-filter  | border-radius  | padding              |
 |-------------------------|------------------|----------------|----------------------|
 | Floating navbar         | blur(19.65px)    | 32px           | pl-5 pr-3 py-2.5     |
@@ -494,95 +490,52 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 | Top navbar (app)        | blur(16px)       | 0 (full-width) | p-3                  |
 | Share button (ghost)    | blur(16px)       | 6px            | px-2 py-0.5          |
 
-### Typography (Figma confirmed)
-- **`Instrument Serif`** — hero headings, auth titles, brand name. Weight 400, tracking -0.02em
+### Typography
+- **`Instrument Serif`** — hero headings, auth titles, brand name, narrative voice (`.text-heading`, `.narrative-voice`). Weight 400, tracking -0.02em to -0.05em
   - Auth title: `text-[36px] tracking-[-0.72px]` / Hero: `text-[48px] tracking-[-0.96px]` / Large: `text-[56px] tracking-[-1.12px]`
-- **`Inter`** — ALL UI text: labels, body, inputs, buttons, nav items, descriptions
-  - Regular (400): body, descriptions, placeholder, nav items
-  - Medium (500): labels, button text, active states
-  - Semi Bold (600): breadcrumb username
-- **`Geist`** — some pill/badge text (used interchangeably with Inter Medium)
-- **`Poppins`** — section headings within content (18-20px), nav link items (14px)
-- Scale: `text-xs 12px` / `text-sm 14px` / `text-base 16px` / `text-lg 18px` / `text-xl 20px` / `text-4xl 36px` / `text-5xl 48px`
+- **`Geist` / `Inter`** — ALL UI text (body, labels, inputs, buttons, nav). Font stack: `'Geist', 'Inter', system-ui, sans-serif`
+  - Regular (400): labels, descriptions, placeholders. Weight 500 is the base body weight.
+  - Medium (500): body text, button text, active states
+  - Semi Bold (600): headings h4-h6, breadcrumbs
+- Scale: `text-xs 12px` / `text-sm 14px` / `14.5px base` / `text-base 16px` / `text-lg 18px` / `text-xl 20px`
 
-### Component Specs (Figma Exact)
+### Component Specs
 
-**Floating Navbar** (`backdrop-blur(19.65px)` pill):
-- `bg-[rgba(244,241,236,0.7)] border border-[#d9d1cb] rounded-[32px]`
-- `pl-[20px] pr-[12px] py-[10px]` / logo+nav gap: `36px`
-- Logo: Instrument Serif ~25px, flower icon `32px` circle
-- Nav links: Poppins Regular 14px, `gap-[56px]`
-- Divider line between nav and buttons
+**Glass Card** (standard):
+- `bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] px-5 py-4 backdrop-blur-[42px]`
 
 **AI Chatbox** (`backdrop-blur(42px)` card):
-- `bg-[rgba(244,241,236,0.7)] border border-[#d9d1cb] rounded-[20px] px-[20px] py-[16px]`
-- Placeholder: Inter Regular 14px `#86807b`
-- Height: `87px` content area
+- `bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] rounded-[20px] px-5 py-4`
+- Placeholder: Geist/Inter 14px `#57534E`
 
-**Send Button** (dark pill):
-- `bg-[#252222] rounded-[100px] p-[4px]` — total `28×28px` with `20×20` arrow icon
+**Send Button** (light pill on dark):
+- `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] p-[4px]` — total `28x28px` with `20x20` arrow icon
 - `opacity-50` when disabled
 
-**Attach Button** (ghost):
-- No background, `rounded-[200px] px-[8px] py-[2px]`
-- Paperclip icon 16px + "Attach" text, Inter Medium 12px
-
-**Online/AI Badge** (ghost with bg):
-- `bg-[rgba(17,15,15,0.05)] rounded-[6px] px-[8px] py-[2px]`
-- Globe icon 16px + label, Inter Medium 12px
-
-**Suggestion Pills** (glass chips):
-- `backdrop-blur(42px) bg-[rgba(244,241,236,0.7)] border border-[#d9d1cb]`
-- `rounded-[46px] px-[12px] py-[10px] gap-[4px]`
-- Icon 16px + Geist/Inter Medium 12px
-
 **Primary CTA Button** (filled pill):
-- `bg-[#1b1818] text-[#fdfcfb] rounded-[100px] px-[12px] py-[8px] min-w-[80px]`
+- `bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-3 py-2 min-w-[80px]`
 - Geist/Inter Medium 14px
 
-**Dark Action Button** (filled rounded):
-- `bg-[#252222] text-[#fdfcfb] rounded-[6px] px-[12px] py-[6px] h-[36px] min-w-[80px]`
-- Inter Medium 14px (used in auth forms, sidebar "New chat" button)
-
-**Secondary/Ghost Button** (transparent):
-- No background, `rounded-[6px] px-[8px] py-[2px]`
-- Inter Medium 12px, `text-[#1b1818]`
+**Secondary/Ghost Button** (transparent on dark):
+- No background, `rounded-[6px] px-2 py-0.5`
+- Geist/Inter Medium 12px, `text-[#F5F5F4]`
 
 **Input Field**:
-- `bg-[rgba(218,217,215,0.2)] border border-[#d9d1cb] rounded-[6px]`
-- `pl-[12px] pr-[12px] py-[10px]`
-- Label above: Inter Medium 14px `#1b1818` / Placeholder: Inter Regular 14px `#86807b`
-- Disabled: `opacity-50`
+- `bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] rounded-[6px]`
+- `px-3 py-2.5`
+- Label above: 12px `#9C9590` / Placeholder: 14px `#57534E`
 
-**Settings Tab (active)**:
-- `border-b-2 border-[#1b1818] h-[34px] px-[10px] py-[8px]`
-- Inter Regular 14px `#1b1818`
-
-**Settings Tab (inactive)**:
-- No border, Inter Regular 14px `#4a4242`
-
-**Settings Row**:
-- `border-b border-t border-[rgba(50,47,47,0.05)] py-[20px]`
-- Left col: label Inter Medium 14px + description Inter Regular 12px `#4a4242`
-- Right col: input field
-
-**Settings Sidebar** (left panel):
-- `backdrop-blur(42px) rounded-[8px] w-[296px]`
-- Menu items: `h-[38px] rounded-[8px]`
-- Active item: `bg-[rgba(244,241,236,0.7)]`
-- Item inner: `rounded-[12px] px-[12px] py-[10px]` + icon 16px + Inter Regular 14px
-- Section header: Inter Medium 12px `#4a4242`
+**Suggestion Pills** (glass chips):
+- `backdrop-blur-[42px] bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)]`
+- `rounded-[46px] px-3 py-2.5 gap-1`
+- Icon 16px + Geist/Inter Medium 12px
 
 **Sidebar Nav (app sidebar)**:
 - Floating pill `rounded-[32px]` (NOT full-width bar)
-- Active item: `bg-[var(--accent-vibrant-glow)] rounded-full px-[16px] py-[10px]`
+- Active item: `bg-[var(--accent-vibrant-glow)] rounded-full px-4 py-2.5`
 - Icon: `color: var(--accent-vibrant)` when active
 - Inactive: transparent + hover `bg-sidebar-accent`
-- Font: Inter Medium 14px
-
-**Checkbox**:
-- Selected: `bg-[#1b1818] border-[#1b1818] rounded-[4px] 16×16px` with white checkmark
-- Unselected: `border border-[#1b1818] rounded-[4px] 16×16px`
+- Font: Geist/Inter Medium 14px
 
 **Shadow tokens**:
 - `translucent`: `blur(84px)` + `drop-shadow(0 4px 4px rgba(0,0,0,0.12))`
@@ -590,15 +543,15 @@ box-shadow: 0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
 
 ### 12 Rules for AI Code Generation
 
-1. Every card/panel → glass surface (`backdrop-blur(42px)`, `glass-surface-bg`, `glass-surface-border`)
-2. Never flat white/black on app surfaces — always glass
-3. Page wrapper → `--background` + 3-layer ambient gradient at bottom (see above)
-4. Primary CTA → `rounded-[100px]` pill. Dark action buttons (forms) → `rounded-[6px]` h-[36px]
+1. Every card/panel → glass surface (`backdrop-blur(42px)`, `rgba(255,255,255,0.06)` bg, `rgba(255,255,255,0.10)` border)
+2. Never flat white or solid colors on app surfaces — always dark glass with white-alpha values
+3. Page wrapper → `--background` (#13121a) + 4-orb sun-driven ambient gradient (see SunContext)
+4. Primary CTA → `rounded-[100px]` pill, light-on-dark (`#F5F5F4` bg, `#110f0f` text)
 5. Suggestion chips → `rounded-[46px]`, NOT `rounded-full`
 6. Floating navbar → `rounded-[32px]` pill with `blur(19.65px)`, NOT full-width bar
-7. Font → Inter for ALL UI; Instrument Serif for hero/display/auth titles only
+7. Font → Geist/Inter for ALL UI; Instrument Serif for hero/display/auth titles and narrative voice only
 8. Headings → always negative letter-spacing (`tracking-tight` or explicit negative value)
 9. Active sidebar nav → full pill fill (`accent-vibrant-glow`), icon in `accent-vibrant`, NEVER underline or left border
-10. Gradients → amber-copper center, orange diagonal secondary, purple bottom-corner — never neon
-11. Input fields → `rgba(218,217,215,0.2)` bg (NOT glass-surface-bg) — subtler fill
-12. Dark button bg = `#252222`, NOT `#000` or `#1b1818` (foreground)
+10. Gradients → amber/copper orbs on #13121a charcoal, purple accent orb — never neon, never flat
+11. Input fields → `rgba(255,255,255,0.08)` bg (NOT glass-surface-bg) — subtler fill
+12. ThemeContext is hard-locked to dark. No `.dark` class toggling — all tokens are dark-only in `:root`

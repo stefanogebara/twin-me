@@ -32,7 +32,7 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) 
   return (
     <div
       className="p-4 rounded-lg mb-6"
-      style={{ border: '1px solid rgba(255,255,255,0.06)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
     >
       <span
         className="text-[11px] font-medium tracking-widest uppercase block mb-4"
@@ -49,7 +49,7 @@ export const TodayTimeline: React.FC<TodayTimelineProps> = ({ events, colors }) 
         </div>
         <div
           className="h-12 rounded-lg relative overflow-hidden"
-          style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+          style={{ backgroundColor: 'var(--glass-surface-bg)' }}
         >
           {events.map((event) => {
             const startHour = parseInt(event.startTime.split(':')[0]);

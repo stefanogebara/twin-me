@@ -517,7 +517,7 @@ const OAuthCallback = () => {
     <div className="min-h-screen flex items-center justify-center" >
       <div
         className="max-w-md w-full mx-4 p-8 text-center"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glass)' }}
       >
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
@@ -564,7 +564,7 @@ const OAuthCallback = () => {
         {/* Progress indicator for loading state */}
         {(status === 'loading' || (status === 'error' && !showError)) && (
           <div className="mt-6">
-            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
+            <div className="w-full rounded-full h-1.5" style={{ backgroundColor: 'var(--glass-surface-bg)' }}>
               <div className="h-1.5 rounded-full w-3/5 transition-all duration-300" style={{ backgroundColor: '#000000' }} />
             </div>
           </div>

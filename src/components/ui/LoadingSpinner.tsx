@@ -78,8 +78,8 @@ export const LoadingButton: React.FC<LoadingButtonProps> = ({
 
   const variantStyles: Record<string, React.CSSProperties> = {
     primary: { backgroundColor: '#10b77f', color: '#0a0f0a', fontWeight: 600 },
-    secondary: { backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)' },
-    outline: { backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--foreground)', border: '1px solid rgba(255,255,255,0.1)' }
+    secondary: { backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' },
+    outline: { backgroundColor: 'var(--sidebar)', color: 'var(--foreground)', border: '1px solid var(--glass-surface-border)' }
   };
 
   const sizeClasses = {
@@ -129,10 +129,10 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       <div
         className="rounded-2xl p-6 flex flex-col items-center gap-4 max-w-sm mx-4"
         style={{
-          background: 'rgba(255, 255, 255, 0.06)',
+          background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(10px) saturate(140%)',
           WebkitBackdropFilter: 'blur(10px) saturate(140%)',
-          border: '1px solid rgba(255, 255, 255, 0.10)',
+          border: '1px solid var(--glass-surface-border)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.18)',
         }}
       >
@@ -159,7 +159,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       {avatar && (
         <div
           className="w-10 h-10 rounded-full mb-2"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: 'var(--sidebar)' }}
         />
       )}
       {Array.from({ length: lines }, (_, i) => (
@@ -168,7 +168,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
           className={`rounded h-4 ${
             i === lines - 1 ? 'w-3/4' : 'w-full'
           } ${i > 0 ? 'mt-2' : ''}`}
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+          style={{ backgroundColor: 'var(--sidebar)' }}
         />
       ))}
     </div>
