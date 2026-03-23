@@ -408,7 +408,7 @@ const IdentityPage: React.FC = () => {
   }
 
   const summary = data?.data?.summary ?? null;
-  const layers = soulData?.data ?? null;
+  const layers = soulData?.data?.layers ?? soulData?.data ?? null;
   const hasLayers = !!(layers?.values?.values?.length || layers?.rhythms || layers?.taste || layers?.connections);
 
   const hasAnyData = !!(summary || hasOcean || hasLayers);
