@@ -143,7 +143,7 @@
       "id": "q18",
       "query": "What patterns emerge from this person's calendar and time management?",
       "retrieval_mode": "recent",
-      "expected_types": ["reflection", "platform_data", "reflection"],
+      "expected_types": ["reflection", "platform_data"],
       "expected_keywords": ["calendar", "schedule", "time", "meeting"],
       "weight": 0.9
     },
