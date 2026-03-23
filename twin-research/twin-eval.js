@@ -42,6 +42,7 @@ import {
   MMR_LAMBDA,
   ALPHA_CITATION_BASELINE,
   TYPE_DIVERSITY_WEIGHT,
+  SEMANTIC_DIVERSITY_WEIGHT,
 } from './twin-config.js';
 
 // ─── Fixed constants (never modified by agent) ────────────────────────────────
@@ -115,8 +116,22 @@ function mmrRerank(candidates, k) {
         typePenalty = TYPE_DIVERSITY_WEIGHT * (sameTypeCount / selected.length);
       }
 
-      // MMR_LAMBDA + TYPE_DIVERSITY_WEIGHT from twin-config.js
-      const mmrScore = MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * maxSim - typePenalty;
+      // Semantic diversity penalty: high cosine sim to same-type selected memories
+      let semanticPenalty = 0;
+      if (selected.length > 0 && SEMANTIC_DIVERSITY_WEIGHT > 0 && cand.memory_type && candVec) {
+        const sameType = selected.filter(s => s.memory_type === cand.memory_type);
+        if (sameType.length > 0) {
+          let simSum = 0, simN = 0;
+          for (const s of sameType) {
+            const sv = parseVec(s.embedding);
+            if (sv) { simSum += cosine(candVec, sv); simN++; }
+          }
+          if (simN > 0) semanticPenalty = SEMANTIC_DIVERSITY_WEIGHT * (simSum / simN);
+        }
+      }
+
+      // MMR_LAMBDA + TYPE_DIVERSITY_WEIGHT + SEMANTIC_DIVERSITY_WEIGHT from twin-config.js
+      const mmrScore = MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * maxSim - typePenalty - semanticPenalty;
       if (mmrScore > bestScore) {
         bestScore = mmrScore;
         bestIdx = i;

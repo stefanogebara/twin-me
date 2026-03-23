@@ -496,7 +496,7 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  */
 // Retrieval weights, MMR params, and memory budgets are imported from twin-config.js
 // so the research agent can tune them without touching this file.
-import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS } from '../../twin-research/twin-config.js';
+import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED } from '../../twin-research/twin-config.js';
 
 // ====================================================================
 // MMR Reranking (Maximum Marginal Relevance)
@@ -578,7 +578,25 @@ function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
         typePenalty = TYPE_DIVERSITY_WEIGHT * (sameTypeCount / selected.length);
       }
 
-      const mmrScore = lambda * relevance - (1 - lambda) * maxSim - typePenalty;
+      // Semantic diversity penalty: penalize high cosine similarity within same type
+      let semanticPenalty = 0;
+      if (selected.length > 0 && SEMANTIC_DIVERSITY_WEIGHT > 0 && cand.memory_type) {
+        const sameTypeSelected = selected.filter(s => s.memory_type === cand.memory_type);
+        if (sameTypeSelected.length > 0) {
+          const candVecSem = parseVec(cand.embedding);
+          if (candVecSem) {
+            let simSum = 0;
+            let simCount = 0;
+            for (const s of sameTypeSelected) {
+              const sVec = parseVec(s.embedding);
+              if (sVec) { simSum += cosineSim(candVecSem, sVec); simCount++; }
+            }
+            if (simCount > 0) semanticPenalty = SEMANTIC_DIVERSITY_WEIGHT * (simSum / simCount);
+          }
+        }
+      }
+
+      const mmrScore = lambda * relevance - (1 - lambda) * maxSim - typePenalty - semanticPenalty;
       if (mmrScore > bestScore) {
         bestScore = mmrScore;
         bestIdx = i;
@@ -594,6 +612,52 @@ function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
 
 /** Remove embedding from memory object before returning to callers. */
 function stripEmbedding({ embedding: _emb, _idx, ...rest }) { return rest; }
+
+// ====================================================================
+// HyDE (Hypothetical Document Embedding)
+// ====================================================================
+
+// Simple LRU cache for HyDE results (avoids duplicate LLM calls for same query)
+const hydeCache = new Map();
+const HYDE_CACHE_MAX = 100;
+
+/**
+ * Generate a hypothetical memory that would answer the query.
+ * The embedding of this hypothetical memory is semantically closer
+ * to real memories than a bare question embedding (HyDE technique).
+ * Cost: ~$0.0001 per call (TIER_EXTRACTION).
+ */
+async function generateHypotheticalMemory(query) {
+  // Check cache first
+  if (hydeCache.has(query)) return hydeCache.get(query);
+
+  try {
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{
+        role: 'user',
+        content: `You are a memory stream for a person. Given this query, write a realistic 80-word memory/observation that would answer it. Write ONLY the memory text, nothing else.\n\nQuery: "${query}"\n\nMemory:`,
+      }],
+      max_tokens: 150,
+      temperature: 0.3,
+    });
+
+    const hydeText = result?.content?.trim();
+    if (!hydeText) return null;
+
+    // Cache with eviction
+    if (hydeCache.size >= HYDE_CACHE_MAX) {
+      const firstKey = hydeCache.keys().next().value;
+      hydeCache.delete(firstKey);
+    }
+    hydeCache.set(query, hydeText);
+
+    return hydeText;
+  } catch (err) {
+    log.warn('HyDE generation failed (non-fatal)', { error: err.message });
+    return null;
+  }
+}
 
 // ====================================================================
 // Read Path
@@ -632,27 +696,71 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
   }
 
   try {
-    const queryEmbedding = await generateEmbedding(query);
+    // Generate query embedding + optional HyDE embedding in parallel
+    const hydeText = HYDE_ENABLED ? await generateHypotheticalMemory(query) : null;
+    const embeddingPromises = [generateEmbedding(query)];
+    if (hydeText) embeddingPromises.push(generateEmbedding(hydeText));
+    const [queryEmbedding, hydeEmbedding] = await Promise.all(embeddingPromises);
 
     if (!queryEmbedding) {
       log.warn('Could not generate query embedding, falling back to keyword search');
       return fallbackKeywordSearch(userId, query, limit);
     }
 
-    // Over-fetch 3× candidates for MMR to have enough diversity pool
-    const { data, error } = await supabaseAdmin.rpc('search_memory_stream', {
+    const rpcParams = {
       p_user_id: userId,
-      p_query_embedding: vectorToString(queryEmbedding),
       p_limit: limit * 3,
-      p_decay_factor: 0.995, // kept for API compat, no longer used in formula
+      p_decay_factor: 0.995,
       p_weight_recency: w.recency,
       p_weight_importance: w.importance,
       p_weight_relevance: w.relevance,
-    });
+    };
 
-    if (error) {
-      log.error('Vector search failed', { error });
+    // Run vector search with query embedding (+ HyDE embedding if available)
+    const searchPromises = [
+      supabaseAdmin.rpc('search_memory_stream', {
+        ...rpcParams,
+        p_query_embedding: vectorToString(queryEmbedding),
+      }),
+    ];
+    if (hydeEmbedding) {
+      searchPromises.push(
+        supabaseAdmin.rpc('search_memory_stream', {
+          ...rpcParams,
+          p_query_embedding: vectorToString(hydeEmbedding),
+        }),
+      );
+    }
+    const searchResults = await Promise.all(searchPromises);
+
+    // Check for errors
+    if (searchResults[0].error) {
+      log.error('Vector search failed', { error: searchResults[0].error });
       return fallbackKeywordSearch(userId, query, limit);
+    }
+
+    // Merge results: interleave query + HyDE results, dedup by ID
+    let data;
+    if (searchResults.length > 1 && searchResults[1].data?.length > 0) {
+      const seen = new Set();
+      const merged = [];
+      const qData = searchResults[0].data || [];
+      const hData = searchResults[1].data || [];
+      const maxLen = Math.max(qData.length, hData.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (i < qData.length && !seen.has(qData[i].id)) {
+          seen.add(qData[i].id);
+          merged.push(qData[i]);
+        }
+        if (i < hData.length && !seen.has(hData[i].id)) {
+          seen.add(hData[i].id);
+          merged.push(hData[i]);
+        }
+      }
+      data = merged.slice(0, limit * 3);
+      log.info('HyDE merge', { queryResults: qData.length, hydeResults: hData.length, merged: data.length });
+    } else {
+      data = searchResults[0].data;
     }
 
     if (!data || data.length === 0) return [];
