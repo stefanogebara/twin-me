@@ -132,6 +132,9 @@ async function exchangeCodeForTokens(provider, code) {
     case 'tiktok':
       return await exchangeTikTokCode(code, redirectUri);
 
+    case 'strava':
+      return await exchangeStravaCode(code, redirectUri);
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -357,6 +360,45 @@ async function exchangeSlackCode(code, redirectUri) {
     expires_in: data.authed_user?.expires_in || data.expires_in,
     scope: data.scope,
     team: data.team
+  };
+}
+
+/**
+ * Strava token exchange
+ * Strava uses client_id/client_secret in POST body (not Basic Auth)
+ */
+async function exchangeStravaCode(code, redirectUri) {
+  const clientId = process.env.STRAVA_CLIENT_ID;
+  const clientSecret = process.env.STRAVA_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Strava credentials not configured');
+  }
+
+  const response = await fetch('https://www.strava.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      grant_type: 'authorization_code'
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Strava token exchange failed: ${error}`);
+  }
+
+  const data = await response.json();
+
+  // Strava returns athlete object alongside tokens
+  return {
+    access_token: data.access_token,
+    refresh_token: data.refresh_token,
+    expires_in: data.expires_in,
+    athlete: data.athlete
   };
 }
 

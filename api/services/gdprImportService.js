@@ -1070,11 +1070,14 @@ function parseAppleHealth(buffer) {
 
   const MAX_INDIVIDUAL_OBS = 100;
 
-  const dailySteps    = {};  // 'YYYY-MM-DD' -> cumulative step count
-  const hrSamples     = [];  // { value: number, date: Date }
-  const sleepSessions = [];  // { minutes: number, date: Date }
-  const workouts      = [];  // { type: string, durationMin: number, date: Date }
-  const weightSamples = [];  // { kg: number, date: Date }
+  const dailySteps      = {};  // 'YYYY-MM-DD' -> cumulative step count
+  const hrSamples       = [];  // { value: number, date: Date }
+  const restingHrSamples = []; // { value: number, date: Date }
+  const hrvSamples      = [];  // { value: number (ms), date: Date }
+  const dailyActiveEnergy = {}; // 'YYYY-MM-DD' -> cumulative kcal
+  const sleepSessions   = [];  // { minutes: number, date: Date }
+  const workouts        = [];  // { type: string, durationMin: number, date: Date }
+  const weightSamples   = [];  // { kg: number, date: Date }
 
   // Match all self-closing <Record .../> tags
   const recordMatches = xmlStr.matchAll(/<Record\b([^>]*?)\/>/gs);
@@ -1097,6 +1100,25 @@ function parseAppleHealth(buffer) {
       const hr = parseFloat(valueStr);
       if (!isNaN(hr) && hr > 20 && hr < 300 && date) {
         hrSamples.push({ value: hr, date });
+      }
+
+    } else if (type === 'HKQuantityTypeIdentifierRestingHeartRate') {
+      const rhr = parseFloat(valueStr);
+      if (!isNaN(rhr) && rhr > 20 && rhr < 200 && date) {
+        restingHrSamples.push({ value: rhr, date });
+      }
+
+    } else if (type === 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN') {
+      const hrv = parseFloat(valueStr);
+      if (!isNaN(hrv) && hrv > 0 && hrv < 300 && date) {
+        hrvSamples.push({ value: hrv, date });
+      }
+
+    } else if (type === 'HKQuantityTypeIdentifierActiveEnergyBurned') {
+      const kcal = parseFloat(valueStr);
+      if (!isNaN(kcal) && kcal > 0 && date) {
+        const dayKey = date.toISOString().substring(0, 10);
+        dailyActiveEnergy[dayKey] = (dailyActiveEnergy[dayKey] || 0) + kcal;
       }
 
     } else if (type === 'HKCategoryTypeIdentifierSleepAnalysis') {
@@ -1219,6 +1241,91 @@ function parseAppleHealth(buffer) {
             ? 'average resting heart rate'
             : 'elevated resting heart rate';
     summaryObs.push(`Cardiovascular fitness signal from Apple Health: ${fitnessLabel} (~${restingHr} bpm resting)`);
+  }
+
+  // Resting Heart Rate (Apple Watch native metric — more accurate than estimation from HR samples)
+  if (restingHrSamples.length >= 5) {
+    const rhrValues = restingHrSamples.map(s => s.value);
+    const avgRhr = Math.round(rhrValues.reduce((a, b) => a + b, 0) / rhrValues.length);
+    const sorted = [...rhrValues].sort((a, b) => a - b);
+    const recentRhr = restingHrSamples
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 7)
+      .map(s => s.value);
+    const recentAvg = recentRhr.length > 0
+      ? Math.round(recentRhr.reduce((a, b) => a + b, 0) / recentRhr.length)
+      : avgRhr;
+
+    summaryObs.push(
+      `Apple Health resting heart rate: ${avgRhr} bpm average across ${restingHrSamples.length} readings, ` +
+      `recent 7-day avg ${recentAvg} bpm, range ${Math.round(sorted[0])}–${Math.round(sorted[sorted.length - 1])} bpm`
+    );
+
+    // Trend detection: compare first vs last third
+    if (restingHrSamples.length >= 15) {
+      const chronological = [...restingHrSamples].sort((a, b) => a.date.getTime() - b.date.getTime());
+      const thirdLen = Math.floor(chronological.length / 3);
+      const earlyAvg = Math.round(chronological.slice(0, thirdLen).reduce((a, s) => a + s.value, 0) / thirdLen);
+      const lateAvg = Math.round(chronological.slice(-thirdLen).reduce((a, s) => a + s.value, 0) / thirdLen);
+      const diff = lateAvg - earlyAvg;
+      if (Math.abs(diff) >= 3) {
+        const trend = diff < 0 ? 'trending down (improving)' : 'trending up';
+        summaryObs.push(`Resting heart rate trend from Apple Health: ${trend} (${earlyAvg} → ${lateAvg} bpm)`);
+      }
+    }
+  }
+
+  // HRV (Heart Rate Variability SDNN)
+  if (hrvSamples.length >= 5) {
+    const hrvValues = hrvSamples.map(s => s.value);
+    const avgHrv = Math.round(hrvValues.reduce((a, b) => a + b, 0) / hrvValues.length);
+    const sorted = [...hrvValues].sort((a, b) => a - b);
+    const recentHrv = hrvSamples
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 7)
+      .map(s => s.value);
+    const recentAvg = recentHrv.length > 0
+      ? Math.round(recentHrv.reduce((a, b) => a + b, 0) / recentHrv.length)
+      : avgHrv;
+
+    summaryObs.push(
+      `Apple Health HRV (SDNN): ${avgHrv}ms average across ${hrvSamples.length} readings, ` +
+      `recent 7-day avg ${recentAvg}ms, range ${Math.round(sorted[0])}–${Math.round(sorted[sorted.length - 1])}ms`
+    );
+
+    // HRV quality label
+    const hrvLabel = avgHrv >= 100
+      ? 'excellent HRV (strong autonomic resilience)'
+      : avgHrv >= 60
+        ? 'good HRV (healthy stress recovery)'
+        : avgHrv >= 40
+          ? 'moderate HRV (adequate recovery capacity)'
+          : 'low HRV (may indicate elevated stress or low fitness)';
+    summaryObs.push(`Autonomic nervous system signal from Apple Health: ${hrvLabel} (avg ${avgHrv}ms)`);
+  }
+
+  // Active Energy Burned
+  const energyDays = Object.keys(dailyActiveEnergy);
+  if (energyDays.length >= 3) {
+    const energyValues = energyDays.map(d => dailyActiveEnergy[d]);
+    const totalKcal = Math.round(energyValues.reduce((a, b) => a + b, 0));
+    const avgKcal = Math.round(totalKcal / energyDays.length);
+    const bestDay = energyDays.reduce((best, d) => dailyActiveEnergy[d] > dailyActiveEnergy[best] ? d : best, energyDays[0]);
+    const bestKcal = Math.round(dailyActiveEnergy[bestDay]);
+
+    summaryObs.push(
+      `Apple Health active energy: avg ${avgKcal.toLocaleString()} kcal/day across ${energyDays.length} days, ` +
+      `${totalKcal.toLocaleString()} kcal total. Most active day: ${bestKcal.toLocaleString()} kcal (${bestDay})`
+    );
+
+    const energyLabel = avgKcal >= 800
+      ? 'very high daily energy expenditure (intense training or very active lifestyle)'
+      : avgKcal >= 500
+        ? 'high daily energy expenditure (regularly active)'
+        : avgKcal >= 300
+          ? 'moderate daily energy expenditure'
+          : 'low daily active energy (mostly sedentary)';
+    summaryObs.push(`Energy expenditure pattern from Apple Health: ${energyLabel}`);
   }
 
   // Sleep

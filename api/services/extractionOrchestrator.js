@@ -358,6 +358,31 @@ class ExtractionOrchestrator {
           }
           break;
 
+        case 'oura':
+          try {
+            const { fetchOuraObservations } = await import('./observationIngestion.js');
+            const ouraObs = await fetchOuraObservations(userId);
+            const ouraStored = await storeObservationsToMemory(userId, 'oura', ouraObs);
+            itemsExtracted = ouraStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Oura observations', { fetched: ouraObs.length, stored: ouraStored });
+            // Extract behavioral features for personality
+            try {
+              const ouraExtractor = await import('./featureExtractors/ouraExtractor.js');
+              const features = await ouraExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await ouraExtractor.default.saveFeatures(features);
+                log.info('Extracted Oura behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Oura feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (ouraError) {
+            log.error('Oura extraction error', { error: ouraError });
+            result = { success: false, error: ouraError.message };
+          }
+          break;
+
         case 'twitch':
           try {
             const { fetchTwitchObservations } = await import('./observationIngestion.js');
@@ -405,6 +430,31 @@ class ExtractionOrchestrator {
           } catch (redditError) {
             log.error('Reddit extraction error', { error: redditError });
             result = { success: false, error: redditError.message };
+          }
+          break;
+
+        case 'strava':
+          try {
+            const { fetchStravaObservations } = await import('./observationIngestion.js');
+            const stravaObs = await fetchStravaObservations(userId);
+            const stravaStored = await storeObservationsToMemory(userId, 'strava', stravaObs);
+            itemsExtracted = stravaStored;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Strava observations', { fetched: stravaObs.length, stored: stravaStored });
+            // Extract behavioral features for personality
+            try {
+              const stravaExtractor = await import('./featureExtractors/stravaExtractor.js');
+              const features = await stravaExtractor.default.extractFeatures(userId);
+              if (features && features.length > 0) {
+                await stravaExtractor.default.saveFeatures(features);
+                log.info('Extracted Strava behavioral features', { count: features.length });
+              }
+            } catch (featureError) {
+              log.warn('Strava feature extraction error (non-blocking)', { error: featureError.message });
+            }
+          } catch (stravaError) {
+            log.error('Strava extraction error', { error: stravaError });
+            result = { success: false, error: stravaError.message };
           }
           break;
 

@@ -96,6 +96,15 @@ const POLLING_CONFIGS = {
       },
     ],
   },
+  strava: {
+    endpoints: [
+      {
+        name: 'activities',
+        url: 'https://www.strava.com/api/v3/athlete/activities',
+        params: { per_page: 30 },
+      },
+    ],
+  },
 };
 
 /**

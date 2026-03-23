@@ -65,7 +65,7 @@ const PLATFORM_REFRESH_CONFIGS = {
     clientSecret: process.env.WHOOP_CLIENT_SECRET,
   },
   oura: {
-    tokenUrl: 'https://api.ouraring.com/oauth/token',
+    tokenUrl: 'https://cloud.ouraring.com/oauth/token',
     clientId: process.env.OURA_CLIENT_ID,
     clientSecret: process.env.OURA_CLIENT_SECRET,
   },
@@ -85,6 +85,11 @@ const PLATFORM_REFRESH_CONFIGS = {
     tokenUrl: 'https://slack.com/api/oauth.v2.access',
     clientId: process.env.SLACK_CLIENT_ID,
     clientSecret: process.env.SLACK_CLIENT_SECRET,
+  },
+  strava: {
+    tokenUrl: 'https://www.strava.com/oauth/token',
+    clientId: process.env.STRAVA_CLIENT_ID,
+    clientSecret: process.env.STRAVA_CLIENT_SECRET,
   },
 };
 

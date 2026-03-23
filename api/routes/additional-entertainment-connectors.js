@@ -313,7 +313,7 @@ router.post('/connect/strava', authenticateUser, async (req, res) => {
     const authUrl = `https://www.strava.com/oauth/authorize?` +
       `client_id=${clientId}&response_type=code&` +
       `redirect_uri=${redirectUri}&approval_prompt=force&` +
-      `scope=read,activity:read&state=${state}`;
+      `scope=read,activity:read_all&state=${state}`;
 
     res.json({
       success: true,

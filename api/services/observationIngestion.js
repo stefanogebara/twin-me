@@ -1600,11 +1600,12 @@ async function fetchOutlookObservations(userId) {
 }
 
 // ====================================================================
-// Strava (Nango-managed)
+// Strava (Nango-managed OR direct OAuth)
 // ====================================================================
 
 /**
  * Fetch Strava athlete and activity data as natural-language observations.
+ * Supports both Nango-managed connections and direct OAuth tokens.
  *
  * Signals emitted:
  *  1. Athlete sport type and follower/following counts
@@ -1618,56 +1619,122 @@ async function fetchStravaObservations(userId) {
   const supabase = await getSupabase();
   if (!supabase) return observations;
 
-  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'strava');
-  if (!isNangoManaged) {
-    log.warn('Strava: no Nango connection', { userId });
-    return observations;
+  // Check for Nango-managed connection first
+  const { data: stravaConn } = await supabase
+    .from('platform_connections')
+    .select('access_token')
+    .eq('user_id', userId)
+    .eq('platform', 'strava')
+    .single();
+
+  const isNangoManaged = stravaConn?.access_token === 'NANGO_MANAGED'
+    || (!stravaConn && await _hasNangoMapping(supabase, userId, 'strava'));
+
+  let athleteData = null;
+  let activities = [];
+  let zonesData = null;
+  let directHeaders = null;
+
+  if (isNangoManaged) {
+    // ── Nango path ──────────────────────────────────────────────────────────
+    let nangoService;
+    try {
+      nangoService = await import('./nangoService.js');
+    } catch (e) {
+      log.warn('Strava: nangoService import failed', { error: e });
+      return observations;
+    }
+
+    try {
+      const athleteResult = await nangoService.strava.getAthlete(userId);
+      if (athleteResult.success && athleteResult.data) {
+        athleteData = athleteResult.data;
+      }
+    } catch (e) {
+      log.warn('Strava athlete profile error (Nango)', { error: e });
+    }
+
+    try {
+      const activitiesResult = await nangoService.strava.getActivities(userId, 1);
+      if (activitiesResult.success && Array.isArray(activitiesResult.data)) {
+        activities = activitiesResult.data;
+      }
+    } catch (e) {
+      log.warn('Strava activities error (Nango)', { error: e });
+    }
+
+    try {
+      const zonesResult = await nangoService.strava.getZones(userId);
+      if (zonesResult.success && zonesResult.data) {
+        zonesData = zonesResult.data;
+      }
+    } catch (e) {
+      log.warn('Strava zones error (Nango)', { error: e });
+    }
+  } else {
+    // ── Direct OAuth path ───────────────────────────────────────────────────
+    const tokenResult = await getValidAccessToken(userId, 'strava');
+    if (!tokenResult.success || !tokenResult.accessToken) {
+      log.warn('Strava: no valid token', { userId });
+      return observations;
+    }
+    directHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };
+
+    try {
+      const [athleteRes, activitiesRes] = await Promise.all([
+        axios.get('https://www.strava.com/api/v3/athlete', { headers: directHeaders, timeout: 10000 }),
+        axios.get('https://www.strava.com/api/v3/athlete/activities', {
+          headers: directHeaders,
+          params: { per_page: 50 },
+          timeout: 10000,
+        }),
+      ]);
+      athleteData = athleteRes.data || null;
+      activities = Array.isArray(activitiesRes.data) ? activitiesRes.data : [];
+    } catch (e) {
+      log.warn('Strava direct API error', { error: e?.response?.data || e.message });
+      return observations;
+    }
+
+    try {
+      const zonesRes = await axios.get('https://www.strava.com/api/v3/athlete/zones', {
+        headers: directHeaders,
+        timeout: 10000,
+      });
+      zonesData = zonesRes.data || null;
+    } catch (e) {
+      log.warn('Strava zones direct API error', { error: e?.response?.data || e.message });
+    }
   }
 
-  let nangoService;
+  // ── Store raw Strava data in user_platform_data (fire-and-forget) ─────────
   try {
-    nangoService = await import('./nangoService.js');
-  } catch (e) {
-    log.warn('Strava: nangoService import failed', { error: e });
-    return observations;
-  }
+    supabase.from('user_platform_data').insert({
+      user_id: userId,
+      platform: 'strava',
+      data_type: 'activities',
+      raw_data: { athlete: athleteData, activities: activities.slice(0, 30) },
+      extracted_at: new Date().toISOString(),
+    }).then(() => {}).catch(() => {});
+  } catch (_e) { /* non-blocking */ }
 
   // ── 1. Athlete profile ────────────────────────────────────────────────────
-  let athleteId = null;
-  try {
-    const athleteResult = await nangoService.strava.getAthlete(userId);
-    if (athleteResult.success && athleteResult.data) {
-      const athlete = athleteResult.data;
-      athleteId = athlete.id || null;
-      const country = sanitizeExternal(athlete.country || '', 50);
-      const followers = athlete.follower_count ?? null;
-      const following = athlete.friend_count ?? null;
+  if (athleteData) {
+    const country = sanitizeExternal(athleteData.country || '', 50);
+    const followers = athleteData.follower_count ?? null;
+    const following = athleteData.friend_count ?? null;
 
-      const parts = [];
-      if (country) parts.push(`based in ${country}`);
-      if (followers !== null) parts.push(`${followers} follower${followers !== 1 ? 's' : ''}`);
-      if (following !== null) parts.push(`following ${following} athlete${following !== 1 ? 's' : ''}`);
+    const parts = [];
+    if (country) parts.push(`based in ${country}`);
+    if (followers !== null) parts.push(`${followers} follower${followers !== 1 ? 's' : ''}`);
+    if (following !== null) parts.push(`following ${following} athlete${following !== 1 ? 's' : ''}`);
 
-      if (parts.length > 0) {
-        observations.push({
-          content: `Strava athlete: ${parts.join(', ')}`,
-          contentType: 'weekly_summary',
-        });
-      }
+    if (parts.length > 0) {
+      observations.push({
+        content: `Strava athlete: ${parts.join(', ')}`,
+        contentType: 'weekly_summary',
+      });
     }
-  } catch (e) {
-    log.warn('Strava athlete profile error', { error: e });
-  }
-
-  // ── 2. Recent activities (last 50, analyze last 10 + weekly window) ───────
-  let activities = [];
-  try {
-    const activitiesResult = await nangoService.strava.getActivities(userId, 1);
-    if (activitiesResult.success && Array.isArray(activitiesResult.data)) {
-      activities = activitiesResult.data;
-    }
-  } catch (e) {
-    log.warn('Strava activities error', { error: e });
   }
 
   if (activities.length > 0) {
@@ -1836,9 +1903,8 @@ async function fetchStravaObservations(userId) {
 
   // ── 3. Heart rate zones if available ────────────────────────────────────
   try {
-    const zonesResult = await nangoService.strava.getZones(userId);
-    if (zonesResult.success && zonesResult.data?.heart_rate?.zones) {
-      const zones = zonesResult.data.heart_rate.zones;
+    if (zonesData?.heart_rate?.zones) {
+      const zones = zonesData.heart_rate.zones;
       // Find the zone with the most time spent
       const topZone = zones.reduce((best, z) => (z.time > (best?.time || 0) ? z : best), null);
       if (topZone && topZone.time > 0 && topZone.max !== -1) {
@@ -2276,23 +2342,31 @@ async function fetchOuraObservations(userId) {
   const supabase = await getSupabase();
   if (!supabase) return observations;
 
-  const hasConnection = await _hasNangoMapping(supabase, userId, 'oura');
-  if (!hasConnection) {
-    log.warn('Oura: no Nango connection', { userId });
-    return observations;
-  }
-
-  let nangoService;
-  try {
-    nangoService = await import('./nangoService.js');
-  } catch (e) {
-    log.warn('Oura: failed to load nangoService', { error: e });
-    return observations;
-  }
-
-  // Date range: last 14 days
+  // Date range: last 7 days
   const endDate = new Date().toISOString().split('T')[0];
-  const startDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const queryParams = `start_date=${startDate}&end_date=${endDate}`;
+
+  // Check for direct OAuth connection first
+  const { data: ouraConn } = await supabase
+    .from('platform_connections')
+    .select('access_token')
+    .eq('user_id', userId)
+    .eq('platform', 'oura')
+    .single();
+
+  const isNangoManaged = ouraConn?.access_token === 'NANGO_MANAGED'
+    || (!ouraConn && await _hasNangoMapping(supabase, userId, 'oura'));
+
+  if (isNangoManaged) {
+    // ── Nango path (legacy) ───────────────────────────────────────────────
+    let nangoService;
+    try {
+      nangoService = await import('./nangoService.js');
+    } catch (e) {
+      log.warn('Oura: failed to load nangoService', { error: e });
+      return observations;
+    }
 
   // ── 1. Daily readiness → readiness score trend ───────────────────────────
   try {
@@ -2412,22 +2486,287 @@ async function fetchOuraObservations(userId) {
   try {
     const tagsResult = await nangoService.oura.getEnhancedTags(userId, startDate, endDate);
     const tags = tagsResult.success ? (tagsResult.data?.data || []) : [];
-    if (tags.length > 0) {
-      const tagNames = tags
-        .map(t => sanitizeExternal(t.tag_type_code || t.custom_name || '', 40))
-        .filter(Boolean);
-      const counts = tagNames.reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {});
-      const topTags = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t]) => t);
-      observations.push({
-        content: `Oura self-tagged events recently: ${topTags.join(', ')} — reflects intentional lifestyle tracking`,
-        contentType: 'weekly_summary',
-      });
-    }
+    _buildOuraTagObservations(observations, tags);
   } catch (e) {
     log.warn('Oura enhanced tags error', { error: e });
   }
 
+    return observations;
+  }
+
+  // ── Direct OAuth path ───────────────────────────────────────────────────
+  const tokenResult = await getValidAccessToken(userId, 'oura');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    log.warn('Oura: no valid token', { userId });
+    return observations;
+  }
+
+  const ouraHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };
+  const OURA_API = 'https://api.ouraring.com/v2/usercollection';
+
+  let sleepData = [];
+  let readinessData = [];
+  let activityData = [];
+
+  // ── 1. Daily Sleep ────────────────────────────────────────────────────────
+  try {
+    const sleepRes = await axios.get(
+      `${OURA_API}/daily_sleep?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    sleepData = sleepRes.data?.data || [];
+
+    if (sleepData.length > 0) {
+      const latest = sleepData[0];
+      const score = latest.score;
+      const totalSeconds = latest.contributors?.total_sleep || 0;
+      const deepSeconds = latest.contributors?.deep_sleep || 0;
+      const remSeconds = latest.contributors?.rem_sleep || 0;
+
+      const parts = [];
+      if (score) parts.push(`Sleep score ${score}/100 last night`);
+      if (totalSeconds > 0) {
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.round((totalSeconds % 3600) / 60);
+        parts.push(`${h}h ${m}m total`);
+      }
+      if (deepSeconds > 0) {
+        const h = Math.floor(deepSeconds / 3600);
+        const m = Math.round((deepSeconds % 3600) / 60);
+        parts.push(`${h}h ${m}m deep sleep`);
+      }
+      if (remSeconds > 0) {
+        const h = Math.floor(remSeconds / 3600);
+        const m = Math.round((remSeconds % 3600) / 60);
+        parts.push(`${h}h ${m}m REM`);
+      }
+
+      if (parts.length > 0) {
+        observations.push({ content: parts.join(' — '), contentType: 'daily_summary' });
+      }
+
+      // Sleep consistency across the week
+      if (sleepData.length >= 3) {
+        const scores = sleepData.map(s => s.score).filter(s => typeof s === 'number');
+        if (scores.length >= 3) {
+          const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+          const stdDev = Math.sqrt(scores.reduce((sum, s) => sum + Math.pow(s - avg, 2), 0) / scores.length);
+          const consistency = stdDev < 5 ? 'very consistent' : stdDev < 10 ? 'moderately consistent' : 'variable';
+          observations.push({
+            content: `Oura sleep score averages ${avg}/100 over the past week (${consistency})`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    log.warn('Oura daily_sleep error', { error: e?.response?.status || e.message });
+  }
+
+  // ── 2. Daily Readiness ────────────────────────────────────────────────────
+  try {
+    const readinessRes = await axios.get(
+      `${OURA_API}/daily_readiness?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    readinessData = readinessRes.data?.data || [];
+
+    if (readinessData.length > 0) {
+      const latest = readinessData[0];
+      const score = latest.score;
+      const tempDev = latest.contributors?.body_temperature;
+      const hrvBalance = latest.contributors?.hrv_balance;
+
+      if (score) {
+        const parts = [`Readiness score ${score}`];
+        if (hrvBalance) parts.push(`HRV balance ${hrvBalance}`);
+        if (typeof tempDev === 'number') parts.push(`temp deviation ${tempDev > 0 ? '+' : ''}${tempDev.toFixed(1)}`);
+        observations.push({ content: parts.join(' — '), contentType: 'daily_summary' });
+      }
+
+      // Weekly readiness trend
+      if (readinessData.length >= 3) {
+        const scores = readinessData.map(r => r.score).filter(s => typeof s === 'number');
+        if (scores.length >= 3) {
+          const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+          const trend = scores.length >= 5
+            ? (scores.slice(-3).reduce((a, b) => a + b, 0) / 3 > scores.slice(0, 3).reduce((a, b) => a + b, 0) / 3 ? 'improving' : 'declining')
+            : 'stable';
+          observations.push({
+            content: `Oura readiness score averages ${avg}/100 over the past week (${trend} trend)`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    log.warn('Oura daily_readiness error', { error: e?.response?.status || e.message });
+  }
+
+  // ── 3. Daily Activity ─────────────────────────────────────────────────────
+  try {
+    const activityRes = await axios.get(
+      `${OURA_API}/daily_activity?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    activityData = activityRes.data?.data || [];
+
+    if (activityData.length > 0) {
+      const latest = activityData[0];
+      const steps = latest.steps;
+      const calories = latest.total_calories;
+      const activityScore = latest.score;
+
+      const parts = [];
+      if (steps) parts.push(`${steps.toLocaleString()} steps`);
+      if (calories) parts.push(`${calories.toLocaleString()} cal burned`);
+      if (activityScore) parts.push(`activity score ${activityScore}`);
+
+      if (parts.length > 0) {
+        observations.push({ content: `Active day: ${parts.join(', ')}`, contentType: 'daily_summary' });
+      }
+
+      // Weekly activity trend
+      if (activityData.length >= 3) {
+        const allSteps = activityData.map(a => a.steps).filter(s => typeof s === 'number');
+        if (allSteps.length >= 3) {
+          const avgSteps = Math.round(allSteps.reduce((a, b) => a + b, 0) / allSteps.length);
+          const activeLevel = avgSteps >= 10000 ? 'highly active' : avgSteps >= 7000 ? 'moderately active' : avgSteps >= 4000 ? 'lightly active' : 'sedentary';
+          observations.push({
+            content: `Oura weekly step average: ${avgSteps.toLocaleString()} (${activeLevel})`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    log.warn('Oura daily_activity error', { error: e?.response?.status || e.message });
+  }
+
+  // ── 4. Heart Rate ─────────────────────────────────────────────────────────
+  try {
+    const hrRes = await axios.get(
+      `${OURA_API}/heartrate?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    const heartrateData = hrRes.data?.data || [];
+
+    if (heartrateData.length > 0) {
+      const bpmValues = heartrateData
+        .filter(h => h.source === 'rest' || h.source === 'sleep')
+        .map(h => h.bpm)
+        .filter(b => typeof b === 'number');
+
+      if (bpmValues.length > 0) {
+        const restingHR = Math.round(bpmValues.reduce((a, b) => a + b, 0) / bpmValues.length);
+        const hrLabel = restingHR < 60 ? 'excellent cardiovascular fitness' : restingHR < 70 ? 'good resting HR' : 'elevated resting HR';
+        observations.push({
+          content: `Resting heart rate ${restingHR}bpm (${hrLabel})`,
+          contentType: 'daily_summary',
+        });
+      }
+    }
+  } catch (e) {
+    log.warn('Oura heartrate error', { error: e?.response?.status || e.message });
+  }
+
+  // ── Store raw Oura data in user_platform_data (fire-and-forget) ─────────
+  try {
+    _storeOuraPlatformData(userId, supabase, { sleepData, readinessData, activityData });
+  } catch (e) {
+    log.warn('Oura platform data store error', { error: e });
+  }
+
   return observations;
+}
+
+/**
+ * Build Oura tag observations from enhanced tag data.
+ */
+function _buildOuraTagObservations(observations, tags) {
+  if (!tags || tags.length === 0) return;
+  const tagNames = tags
+    .map(t => sanitizeExternal(t.tag_type_code || t.custom_name || '', 40))
+    .filter(Boolean);
+  const counts = tagNames.reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {});
+  const topTags = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t]) => t);
+  if (topTags.length > 0) {
+    observations.push({
+      content: `Oura self-tagged events recently: ${topTags.join(', ')} — reflects intentional lifestyle tracking`,
+      contentType: 'weekly_summary',
+    });
+  }
+}
+
+/**
+ * Store raw Oura API data into user_platform_data for structured access.
+ */
+async function _storeOuraPlatformData(userId, supabase, { sleepData, readinessData, activityData }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = [];
+
+  if (sleepData && sleepData.length > 0) {
+    const s = sleepData[0];
+    rows.push({
+      user_id: userId,
+      platform: 'oura',
+      data_type: 'sleep',
+      source_url: `oura:sleep:${today}`,
+      raw_data: {
+        score: s.score,
+        contributors: s.contributors || {},
+        day: s.day,
+      },
+      processed: true,
+    });
+  }
+
+  if (readinessData && readinessData.length > 0) {
+    const r = readinessData[0];
+    rows.push({
+      user_id: userId,
+      platform: 'oura',
+      data_type: 'readiness',
+      source_url: `oura:readiness:${today}`,
+      raw_data: {
+        score: r.score,
+        contributors: r.contributors || {},
+        temperature_deviation: r.contributors?.body_temperature,
+        day: r.day,
+      },
+      processed: true,
+    });
+  }
+
+  if (activityData && activityData.length > 0) {
+    const a = activityData[0];
+    rows.push({
+      user_id: userId,
+      platform: 'oura',
+      data_type: 'activity',
+      source_url: `oura:activity:${today}`,
+      raw_data: {
+        score: a.score,
+        steps: a.steps,
+        total_calories: a.total_calories,
+        active_calories: a.active_calories,
+        day: a.day,
+      },
+      processed: true,
+    });
+  }
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from('user_platform_data')
+    .upsert(rows, { onConflict: 'user_id,platform,data_type,source_url' });
+
+  if (error) {
+    log.warn('Oura user_platform_data upsert error', { error });
+  } else {
+    log.info('Oura: stored platform data rows', { count: rows.length, userId });
+  }
 }
 
 /**

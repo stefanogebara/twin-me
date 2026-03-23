@@ -172,6 +172,24 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://api.prod.whoop.com/oauth/oauth2/token'
   },
 
+  // Strava
+  strava: {
+    clientId: process.env.STRAVA_CLIENT_ID,
+    clientSecret: process.env.STRAVA_CLIENT_SECRET,
+    scopes: ['read', 'activity:read_all'],
+    authUrl: 'https://www.strava.com/oauth/authorize',
+    tokenUrl: 'https://www.strava.com/oauth/token'
+  },
+
+  // Oura Ring
+  oura: {
+    clientId: process.env.OURA_CLIENT_ID,
+    clientSecret: process.env.OURA_CLIENT_SECRET,
+    scopes: ['daily', 'session', 'heartrate', 'workout', 'tag', 'personal', 'email', 'spo2', 'ring_configuration'],
+    authUrl: 'https://cloud.ouraring.com/oauth/authorize',
+    tokenUrl: 'https://cloud.ouraring.com/oauth/token'
+  },
+
 };
 
 // Debug: Check LinkedIn config on load
@@ -195,49 +213,6 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
     const { provider } = req.params;
     // Always use the authenticated user's ID — never trust userId from query params
     const userId = req.user.id;
-
-    // Health platforms handled by health-connectors (use platform-specific redirect URIs)
-    const healthPlatforms = ['oura'];
-    if (healthPlatforms.includes(provider)) {
-      // Forward to health connectors endpoint (uses WHOOP_REDIRECT_URI etc.)
-      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
-      const healthUrl = `${baseUrl}/api/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
-
-      log.info('Proxying GET reconnect to health connector', { healthUrl });
-
-      try {
-        const response = await fetch(healthUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          return res.status(response.status).json(data);
-        }
-
-        // Transform health-connector response format to match what frontend expects
-        // Health-connectors returns { success: true, authUrl }
-        // Frontend expects { success: true, data: { authUrl } }
-        if (data.authUrl) {
-          return res.json({
-            success: true,
-            data: { authUrl: data.authUrl }
-          });
-        }
-
-        return res.json(data);
-      } catch (healthError) {
-        log.error("Health connector error", { provider, error: healthError });
-        return res.status(500).json({
-          success: false,
-          error: `Failed to initiate ${provider} reconnection`,
-        });
-      }
-    }
 
     const config = OAUTH_CONFIGS[provider];
     if (!config) {
@@ -283,7 +258,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Failed to store CSRF state for connect", { error: stateInsertErr1 });
       }
 
-      const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
+      const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
+      const scope = config.scopes.join(scopeSeparator);
       const authParams = new URLSearchParams({
         client_id: config.clientId,
         response_type: 'code',
@@ -304,6 +280,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         authParams.set('force_verify', 'true');
       } else if (provider === 'discord') {
         authParams.set('prompt', 'consent');
+      } else if (provider === 'strava') {
+        authParams.set('approval_prompt', 'force');
       }
 
       const authUrl = `${config.authUrl}?${authParams.toString()}`;
@@ -422,7 +400,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           log.error("Failed to store CSRF state for reconnect", { error: stateInsertErr2 });
         }
 
-        const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
+        const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
+      const scope = config.scopes.join(scopeSeparator);
         const reAuthParams = new URLSearchParams({
           client_id: config.clientId,
           response_type: 'code',
@@ -442,6 +421,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
           reAuthParams.set('force_verify', 'true');
         } else if (provider === 'discord') {
           reAuthParams.set('prompt', 'consent');
+        } else if (provider === 'strava') {
+          reAuthParams.set('approval_prompt', 'force');
         }
 
         const authUrl = `${config.authUrl}?${reAuthParams.toString()}`;
@@ -477,7 +458,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Failed to store CSRF state for /auth/:provider", { error: stateInsertErr3 });
       }
 
-      const scope = config.scopes.join(provider === 'slack' ? ',' : ' ');
+      const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
+      const scope = config.scopes.join(scopeSeparator);
       const noRefreshParams = new URLSearchParams({
         client_id: config.clientId,
         response_type: 'code',
@@ -497,6 +479,8 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         noRefreshParams.set('force_verify', 'true');
       } else if (provider === 'discord') {
         noRefreshParams.set('prompt', 'consent');
+      } else if (provider === 'strava') {
+        noRefreshParams.set('approval_prompt', 'force');
       }
 
       const authUrl = `${config.authUrl}?${noRefreshParams.toString()}`;
@@ -582,7 +566,7 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
     // Slack also uses comma-separated scopes, while most others use space-separated
     const scopeParam = provider === 'slack' ? 'user_scope' : 'scope';
-    const scopeSeparator = provider === 'slack' ? ',' : ' ';
+    const scopeSeparator = (provider === 'slack' || provider === 'strava') ? ',' : ' ';
 
     const params = new URLSearchParams({
       client_id: config.clientId,
@@ -604,6 +588,8 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
       params.set('prompt', 'consent');
     } else if (provider === 'whoop') {
       params.set('scope', [...config.scopes, 'offline'].join(' '));
+    } else if (provider === 'strava') {
+      params.set('approval_prompt', 'force');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -670,39 +656,6 @@ router.post('/callback', async (req, res) => {
     log.debug("Callback config key", { configKey });
     log.debug("Callback userId", { userId });
     log.debug("Available configs", { configs: Object.keys(OAUTH_CONFIGS) });
-
-    // Route health platforms to health connectors
-    const healthPlatforms = ['oura'];
-    if (healthPlatforms.includes(configKey)) {
-      log.debug("Routing to health connectors", { configKey });
-      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
-      const healthUrl = `${baseUrl}/api/health/oauth/callback/${configKey}`;
-
-      try {
-        const healthResponse = await fetch(healthUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state })
-        });
-
-        const healthData = await healthResponse.json();
-
-        if (!healthResponse.ok) {
-          log.error("Health callback failed", { healthData });
-          return res.status(healthResponse.status).json(healthData);
-        }
-
-        log.debug("Health callback successful", { configKey });
-        return res.json(healthData);
-      } catch (healthError) {
-        log.error("Health callback error", { error: healthError });
-        return res.status(500).json({
-          success: false,
-          error: `Failed to process ${configKey} callback`,
-          details: healthError.message
-        });
-      }
-    }
 
     const config = OAUTH_CONFIGS[configKey];
 
@@ -1386,51 +1339,6 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     // Platforms handled by entertainment-connectors
     const entertainmentPlatforms = ['spotify', 'youtube', 'netflix', 'tiktok'];
 
-    // Health platforms handled by health-connectors (use platform-specific redirect URIs)
-    const healthPlatforms = ['oura'];
-
-    if (healthPlatforms.includes(platform)) {
-      // Forward to health connectors endpoint (uses WHOOP_REDIRECT_URI etc.)
-      const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
-      const healthUrl = `${baseUrl}/api/health/connect/${platform}?userId=${encodeURIComponent(userId)}`;
-
-      log.info("Proxying to health connector", { healthUrl });
-
-      try {
-        const response = await fetch(healthUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          return res.status(response.status).json(data);
-        }
-
-        // Transform health-connector response format to match what frontend expects
-        // Health-connectors returns { success: true, authUrl }
-        // Frontend expects { success: true, data: { authUrl } }
-        if (data.authUrl) {
-          return res.json({
-            success: true,
-            data: { authUrl: data.authUrl }
-          });
-        }
-
-        return res.json(data);
-      } catch (healthError) {
-        log.error("Health connector error", { platform, error: healthError });
-        return res.status(500).json({
-          success: false,
-          error: `Failed to initiate ${platform} connection`,
-          details: healthError.message
-        });
-      }
-    }
-
     if (entertainmentPlatforms.includes(platform)) {
       // Forward to entertainment connectors endpoint
       const baseUrl = process.env.API_URL || `http://localhost:${process.env.PORT || 3001}`;
@@ -1480,7 +1388,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     const redirectUri = `${appUrl}/oauth/callback`;
 
     const scopeParam = platform === 'slack' ? 'user_scope' : 'scope';
-    const scopeSeparator = platform === 'slack' ? ',' : ' ';
+    const scopeSeparator = (platform === 'slack' || platform === 'strava') ? ',' : ' ';
 
     const params = new URLSearchParams({
       client_id: config.clientId,
@@ -1500,6 +1408,8 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
       params.set('force_verify', 'true');
     } else if (platform === 'discord') {
       params.set('prompt', 'consent');
+    } else if (platform === 'strava') {
+      params.set('approval_prompt', 'force');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
