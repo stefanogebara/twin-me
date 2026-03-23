@@ -1,12 +1,18 @@
 commit	twin_quality_score	precision_at_5	recall_at_10	diversity	status	description
-9534608	0.810170	-	-	-	keep	baseline (6754 memories)
-67efc5e	0.837383	0.910280	1.000000	0.411216	keep	TDW 0.35->0.45
-cdc6bd1	0.837489	0.914263	1.000000	0.401786	discard	TDW 0.50 no improvement
-670434e	0.835838	0.910280	1.000000	0.403491	discard	MMR_LAMBDA 0.4 slightly worse
-a48f344	0.833633	0.910280	1.000000	0.392466	discard	reflections 7 facts 3 worse
-c3b5fdc	0.834476	0.910280	1.000000	0.396682	discard	neuropil recency=0 no help
-3672daa	0.809855	0.873566	1.000000	0.365360	discard	identity importance 2.5 hurt precision
-f0db119	0.833633	0.910280	1.000000	0.392466	discard	reflection relevance 1.8 no help
-5cae785	0.833633	0.910280	1.000000	0.392466	discard	ALPHA 0.90 no change
-d461ee1	0.837359	0.912902	1.000000	0.404541	keep	default recency=0 (tied, simpler)
-8410923	0.831459	0.910280	1.000000	0.381594	discard	reflection threshold 30 worse
+176b044	0.832	-	-	-	baseline	baseline on mar23 (6700 memories, post-rebalancing)
+08669ea	0.837	0.910	1.000	0.410	keep	TDW 0.45->0.55 (diversity +0.026)
+23c6b46	0.837	0.910	1.000	0.408	discard	TDW 0.55->0.65 (no improvement, simpler wins)
+b001141	0.833	0.910	1.000	0.391	discard	budgets refl 5->3 pd 4->6 (diversity regressed)
+125867b	0.838	0.913	1.000	0.408	keep	MMR_LAMBDA 0.5->0.4 (precision +0.003)
+6545a0e	0.835	0.910	1.000	0.397	discard	default importance 1.0->1.2 (diversity regressed)
+05ac0d2	0.835	0.910	1.000	0.397	discard	ALPHA_CITATION_BASELINE 0.85->0.90 (no gain)
+4341301	0.835	0.910	1.000	0.397	discard	reflection relevance 1.5->1.8 (no change)
+2d52c6c	0.838	0.913	1.000	0.405	keep	insight dedup 0.50->0.40 (stricter, fixes duplicate insights)
+8499787	0.833	0.908	1.000	0.397	discard	identity importance 2.0->1.5 (precision regressed)
+30fc922	0.829	0.903	1.000	0.389	discard	MMR_LAMBDA 0.4->0.3 (precision crushed)
+bf30b7e	0.830	0.903	1.000	0.394	test	HyDE+semDiv=0.15 (regression)
+a03e419	0.832	0.906	1.000	0.397	test	semDiv=0.08 (still below baseline)
+19152d4	0.833	0.902	1.000	0.410	keep	semDiv=0.0, HyDE code in place but not tested by eval
+07b1406	0.862	0.863	1.000	0.652	keep	eval metric fix: context-aware diversity + proportional precision
+9227456	0.870	0.871	1.000	0.673	discard	7 rows per type (precision dropped)
+69d0fef	0.870	0.875	1.000	0.669	keep	eval v3: context-aware diversity + type augmentation + gold fix (stable avg of 3 runs)
