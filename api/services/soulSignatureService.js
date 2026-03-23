@@ -745,10 +745,9 @@ async function getCachedSignature(userId) {
       .from('soul_signature_layers')
       .select('layers, generated_at')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // No row found
       // Table might not exist yet — log and return null
       if (error.code === '42P01') {
         log.warn('soul_signature_layers table does not exist yet');
