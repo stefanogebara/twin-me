@@ -45,11 +45,11 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 1.0, relevance: 1.0 },
+  default: { recency: 0.0, importance: 1.2, relevance: 1.0 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 2.0, relevance: 1.2 },
+  identity: { recency: 0.0, importance: 1.5, relevance: 1.2 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
@@ -58,7 +58,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.5, relevance: 1.8 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -66,28 +66,46 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.5;
+export const MMR_LAMBDA = 0.3;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.45;
+export const TYPE_DIVERSITY_WEIGHT = 0.65;
+
+// ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
+// Generate a hypothetical memory that answers the query, embed THAT alongside
+// the raw query. Dual-embedding retrieval surfaces diverse memory types.
+// Cost: ~$0.0001 per query (1 EXTRACTION_TIER LLM call).
+export const HYDE_ENABLED = true;
+
+// ─── Semantic Diversity ───────────────────────────────────────────────────────
+// Penalize selecting memories with high cosine similarity to already-selected
+// memories of the SAME TYPE. Breaks intra-type clustering in MMR.
+// 0.0 = disabled. Range: [0.0, 0.5]
+export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
+
+// ─── Temporal Diversity ──────────────────────────────────────────────────────
+// Bonus for selecting memories from underrepresented time buckets in MMR.
+// Buckets: recent (0-7d), medium (7-30d), archive (30+d).
+// 0.0 = disabled. Range: [0.0, 0.3]
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
 // Formula: confidence * (importance/10) * min(1, CITATION_BASELINE + 0.05 * retrieval_count)
 // Higher baseline = first-retrieval memories get more weight in context.
 // Range: [0.5, 1.0]
-export const ALPHA_CITATION_BASELINE = 0.85;
+export const ALPHA_CITATION_BASELINE = 0.90;
 
 // ─── Memory Context Budgets ───────────────────────────────────────────────────
 // Max memories of each type to include in the twin's context window.
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
-  reflections:   5,
-  platform_data: 4,
+  reflections:   3,
+  platform_data: 6,
   facts:         5,
   conversations: 6,
 };
@@ -144,7 +162,7 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
 
   // Dedup threshold — insights with cosine similarity above this are skipped.
   // Range: [0.3, 0.8]
-  dedup_threshold: 0.50,
+  dedup_threshold: 0.40,
 };
 
 // ─── Sampling Parameter Overrides ─────────────────────────────────────────────
