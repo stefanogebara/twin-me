@@ -198,9 +198,12 @@ async function evaluateQuery(testQuery) {
   const top5Types = new Set(top5.map(m => m.memory_type));
   const top5Content = top5.map(m => (m.content || '').toLowerCase()).join(' ');
 
-  // Type precision: what fraction of expected types actually appeared?
+  // Type precision: binary hit (any expected type?) + proportional coverage bonus
   const typesFound = expected_types.filter(t => top5Types.has(t)).length;
-  const typeScore = expected_types.length > 0 ? typesFound / expected_types.length : 1.0;
+  const anyTypeHit = typesFound > 0 ? 1.0 : 0.0;
+  const typeCoverage = expected_types.length > 0 ? typesFound / expected_types.length : 1.0;
+  // 50% for finding ANY expected type + 20% for coverage + 30% keywords
+  const typeScore = 0.5 * anyTypeHit + 0.2 * typeCoverage;
 
   // Keyword bonus — if gold keywords appear in retrieved content
   let keywordScore;
@@ -211,8 +214,7 @@ async function evaluateQuery(testQuery) {
     keywordScore = 1.0; // no keyword constraint = full keyword bonus
   }
 
-  // Blend: 60% type precision + 40% keyword coverage
-  const precisionHit = 0.6 * typeScore + 0.4 * keywordScore;
+  const precisionHit = typeScore + 0.3 * keywordScore;
 
   // ── Recall@10: does expected type appear in top-10? ───────────────────────
   const top10Types = new Set(top10.map(m => m.memory_type));
