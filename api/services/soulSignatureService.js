@@ -488,15 +488,17 @@ Rules:
 - For taste: describe sensibility, not just list genres
 - For connections: focus on structure (small circle vs broad, 1:1 vs groups, recovery patterns)
 - For growth: only flag genuinely meaningful changes. If stable, say so.
-- Keep each section concise. Total response under 1500 tokens.`;
+- Keep each section very concise. 1-2 sentences per field. Total response under 800 tokens.`;
 
 /**
  * Generate all 4 LLM-dependent layers in a single call.
  * ~10x faster than 4 parallel calls, fits within Vercel 60s timeout.
  */
 async function generateAllLlmLayers(memories, userId) {
-  const memoryText = memories
-    .slice(0, 120)
+  // Use top 40 most important memories to keep context small and fast (~15s on DeepSeek)
+  const sorted = [...memories].sort((a, b) => (b.importance_score || 0) - (a.importance_score || 0));
+  const memoryText = sorted
+    .slice(0, 40)
     .map(m => `- [${m.memory_type}] ${m.content}`)
     .join('\n');
 
@@ -505,7 +507,7 @@ async function generateAllLlmLayers(memories, userId) {
       tier: TIER_ANALYSIS,
       system: 'You are an expert personality analyst. Respond ONLY in valid JSON. No markdown, no explanation.',
       messages: [{ role: 'user', content: UNIFIED_PROMPT.replace('{memories}', memoryText) }],
-      maxTokens: 2000,
+      maxTokens: 1200,
       temperature: 0.5,
       userId,
       serviceName: `${SERVICE_NAME}:unified`,
