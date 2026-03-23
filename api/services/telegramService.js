@@ -29,6 +29,18 @@ export function getBot() {
   }
 
   bot = new Bot(token);
+  // Pre-initialize bot info to avoid getMe() call on first webhook request.
+  // grammY calls bot.init() (which calls getMe) on the first webhookCallback,
+  // and this can time out on Vercel serverless cold starts.
+  bot.botInfo = {
+    id: 8625509286,
+    is_bot: true,
+    first_name: 'TwinMe',
+    username: 'TwinMeStefanoBot',
+    can_join_groups: true,
+    can_read_all_group_messages: false,
+    supports_inline_queries: false,
+  };
   log.info('Telegram bot initialized');
   return bot;
 }
