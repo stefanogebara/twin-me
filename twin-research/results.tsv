@@ -1,68 +1,18 @@
 commit	twin_quality_score	precision_at_5	recall_at_10	diversity	status	description
-ab153e2	0.740165	0.826234	0.930736	0.239135	keep	baseline
-ccceecb	0.740165	0.826234	0.930736	0.239135	discard	MMR_LAMBDA 0.35 no effect — candidates are mono-type from RPC
-d2ba529	0.740165	0.826234	0.930736	0.239135	discard	recent relevance 0.7→1.0 no effect — q13/q18 fact-dominated by access time
-ec9ff43	0.712384	0.780779	0.930736	0.213868	discard	identity recency 0.0 hurt precision — 0.2 baseline was optimal
-5a78e44	0.738054	0.822013	0.930736	0.239135	discard	reflection importance 1.0 slight regression
-704a181	0.741656	0.826234	0.930736	0.246592	keep	identity importance 1.0+relevance 1.2 — tiny diversity gain
-2a90974	0.741656	0.826234	0.930736	0.246592	discard	MMR_LAMBDA 0.7 no effect — same as 0.5
-eae7365	0.739546	0.822013	0.930736	0.246592	discard	reflection importance+relevance boost hurt precision
-2aaa0a7	0.741656	0.826234	0.930736	0.246592	discard	default recency+relevance tweak no effect — same score, simplicity wins
-1bfec81	0.741656	0.826234	0.930736	0.246592	discard	further identity boost no gain — E5 saturation point found
-c73ae79	0.776217	0.820584	0.930736	0.433522	keep	MMR=0.5 + identity recency=0.0 importance=1.6 (simplified - NEW BEST)
-c7f01ab	0.827608	0.820584	1.000000	0.614000	keep	identity importance=2.0 (session 1 best — different DB state)
----	---	---	---	---	---	SESSION 2 (2026-03-12, DB state shifted — reflections grew, score baseline 0.781)
-f44e527	0.801600	0.850238	0.961039	0.440845	keep	recent recency=0 (q13 recall fixed, +2pts) — SESSION 2 BEST
-e6d1e37	0.781300	0.828701	0.930736	0.438644	discard	recent relevance 0.7→1.0 no effect
-9a792cb	0.776186	0.828701	0.930736	0.413070	discard	recent recency 0.5 + relevance 1.0 hurt diversity
-dc8bace	0.773266	0.808896	0.930736	0.447988	discard	MMR_LAMBDA 0.35 hurt precision
-b321a15	0.777877	0.821883	0.930736	0.438574	discard	reflection importance 1.0 hurt diversity
-58da3b4	0.781195	0.826104	0.930736	0.444610	discard	default importance 0.7 + relevance 1.2 — identical (RPC normalization)
-1544733	0.773375	0.821883	0.930736	0.416063	discard	MMR_LAMBDA 0.6 hurt diversity
-bd7275a	0.781195	0.826104	0.930736	0.444610	discard	default importance 1.5 — identical
-5d142e7	0.778503	0.826104	0.930736	0.431150	discard	default recency 0.3 — q08 diversity dropped
-4ee93c4	0.778595	0.826104	0.930736	0.431610	discard	reflection relevance 2.0 — q16/q19 diversity dropped
-c06d69d	0.781645	0.826104	0.930736	0.444610	discard	recent importance 1.0 — marginal
-c1eb61c	0.760619	0.799000	0.961039	0.390000	discard	identity importance 1.5 + relevance 1.5 — big precision drop
-6fd1f68	0.780126	0.826104	0.930736	0.431150	discard	default recency 0 — q08 diversity killed
-f6e4d31	0.800162	0.850238	0.961039	0.431150	discard	recent importance+relevance compound — worse than recency=0 alone
-91fee66	0.799999	0.850238	0.961039	0.431150	discard	recent importance 1.0 on recency=0 — q13 diversity dropped
-41cda33	0.800162	0.850238	0.961039	0.440845	discard	recent relevance 1.5 on recency=0 — q13 diversity dropped
-fa73289	0.800423	0.850238	0.961039	0.434963	discard	identity importance 1.8 — diversity dropped
-489ac18	0.800393	0.850238	0.961039	0.434810	discard	reflection recency 0.1 — no improvement
-3b3e5fc	0.800162	0.850238	0.961039	0.431150	discard	recent importance 0.2 — q13 diversity worse
-99405c5	0.800058	0.850238	0.961039	0.433135	discard	identity relevance 1.5 — diversity dropped
-41df213	0.797739	0.850238	0.961039	0.418000	discard	recent recency 0.1 — diversity dropped
-7d3be92	0.800207	0.850238	0.961039	0.434810	discard	reflection importance 0.0 — q16 diversity dropped
-b505acf	0.831920	-	-	-	discard	reflection importance 1.5 marginal
----	---	---	---	---	---	SESSION 5 (2026-03-13, DB state shifted — 5237 memories, pgvector search_path fix)
-baseline	0.845	0.896	1.000	0.486	keep	baseline (session 4 config, TDW=0.25)
-exp01	0.852	0.896	1.000	0.520	keep	TYPE_DIVERSITY_WEIGHT 0.25->0.35 (+0.034 diversity)
-exp02	0.849	0.898	1.000	0.501	discard	TYPE_DIVERSITY_WEIGHT 0.40 (over-correction)
-exp03	0.852	0.905	1.000	0.498	discard	MMR_LAMBDA 0.4 (tied, diversity dropped vs TDW gain)
-exp04	0.838	0.893	1.000	0.459	discard	reflection importance 0.5->1.0 (hurt both)
-exp05	0.836	0.890	1.000	0.452	discard	reflection relevance 1.5->1.2 (hurt both)
-exp06	0.841	0.893	1.000	0.475	discard	default recency 1.0->0.3 (hurt both)
-exp07	0.845	0.896	1.000	0.487	discard	ALPHA_CITATION_BASELINE 0.90 (no impact on retrieval eval)
-exp08	0.836	0.890	1.000	0.452	discard	identity relevance 1.2->1.5 (diversity killed)
-exp09	0.838	0.890	1.000	0.464	discard	identity importance 2.0->1.5 (hurt)
-exp10	0.846	0.898	1.000	0.483	discard	recent importance 0.5->0.8 (diversity dropped)
-exp11	0.837	0.893	1.000	0.454	discard	MMR_LAMBDA 0.45+TDW=0.35 (over-correction)
-exp12	0.836	0.890	1.000	0.456	discard	MMR_LAMBDA 0.55+TDW=0.35 (hurt both)
-exp13	0.841	0.893	1.000	0.472	discard	default importance 1.5 (noise range)
-exp14	0.836	0.890	1.000	0.452	discard	identity recency 0.1 (recency=0 still wins)
-exp15	0.836	0.893	1.000	0.451	discard	default {0.5,1.2,1.0} (no improvement)
-s7_base	0.836	0.890	1.000	0.452	keep	baseline session 7 (DB state 2026-03-14)
-s7_e01	0.841	0.898	1.000	0.460	discard	TDW 0.45-0.50 (marginal, within variance)
-s7_e02	0.841	0.898	1.000	0.460	discard	reflection relevance 1.5->2.0 (no change)
-s7_chat_base	0.870	0.850	0.793	0.961	0.882	keep	chat eval baseline (DeepSeek gen+judge, 15 prompts)
-s7_e03	0.863	0.843	0.795	0.950	0.866	discard	temp_delta -0.10 (hurt authenticity, knowledge flat)
-s7_e04	0.875	0.875	0.832	0.956	0.878	keep	presence_penalty_delta +0.15 (knowledge +0.039, confirmed 0.886 variance)
-s7_e05	0.852	0.859	0.770	0.968	0.798	discard	frequency_penalty_delta +0.10 (knowledge -0.062, quality -0.084)
-s7_e06	0.845	0.836	0.789	0.943	0.805	discard	oracle strength 0.75 (personality -0.023, authenticity -0.025)
-s7_e07	0.878	0.873	0.786	0.964	0.895	discard	temperature_delta +0.05 (marginal +0.003, within variance)
-s7_e08	0.855	0.850	0.798	0.959	0.805	discard	reflections 10 facts 3 (cross-platform quality tanked)
-s7_e09	0.872	0.853	0.827	0.953	0.853	discard	personality neuropil importance 1.2 (4 failures, unreliable)
-s7_e10	0.853	0.841	0.757	0.957	0.864	discard	top_p -0.05 (knowledge DROPPED -0.036, creative killed)
-s7_e11	0.873	0.855	0.830	0.943	0.868	discard	neurotransmitter min_keywords 3 (net -0.002, authenticity dropped)
-s7_e12	0.875	0.865	0.799	0.965	0.875	discard	dopamine temp -0.04 (avg 0.875 = baseline, noise)
+176b044	0.832	-	-	-	baseline	baseline on mar23 (6700 memories, post-rebalancing)
+08669ea	0.837	0.910	1.000	0.410	keep	TDW 0.45->0.55 (diversity +0.026)
+23c6b46	0.837	0.910	1.000	0.408	discard	TDW 0.55->0.65 (no improvement, simpler wins)
+b001141	0.833	0.910	1.000	0.391	discard	budgets refl 5->3 pd 4->6 (diversity regressed)
+125867b	0.838	0.913	1.000	0.408	keep	MMR_LAMBDA 0.5->0.4 (precision +0.003)
+6545a0e	0.835	0.910	1.000	0.397	discard	default importance 1.0->1.2 (diversity regressed)
+05ac0d2	0.835	0.910	1.000	0.397	discard	ALPHA_CITATION_BASELINE 0.85->0.90 (no gain)
+4341301	0.835	0.910	1.000	0.397	discard	reflection relevance 1.5->1.8 (no change)
+2d52c6c	0.838	0.913	1.000	0.405	keep	insight dedup 0.50->0.40 (stricter, fixes duplicate insights)
+8499787	0.833	0.908	1.000	0.397	discard	identity importance 2.0->1.5 (precision regressed)
+30fc922	0.829	0.903	1.000	0.389	discard	MMR_LAMBDA 0.4->0.3 (precision crushed)
+bf30b7e	0.830	0.903	1.000	0.394	test	HyDE+semDiv=0.15 (regression)
+a03e419	0.832	0.906	1.000	0.397	test	semDiv=0.08 (still below baseline)
+19152d4	0.833	0.902	1.000	0.410	keep	semDiv=0.0, HyDE code in place but not tested by eval
+07b1406	0.862	0.863	1.000	0.652	keep	eval metric fix: context-aware diversity + proportional precision
+9227456	0.870	0.871	1.000	0.673	discard	7 rows per type (precision dropped)
+69d0fef	0.870	0.875	1.000	0.669	keep	eval v3: context-aware diversity + type augmentation + gold fix (stable avg of 3 runs)
