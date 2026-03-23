@@ -214,12 +214,12 @@ async function evaluateQuery(testQuery) {
         for (const row of typeRows) {
           if (!existingIds.has(row.id)) {
             existingIds.add(row.id);
-            // Score proportional to importance, capped below top vector result
+            // Score high enough to compete with vector results
             const topScore = rawResults[0]?.score ?? 1.0;
             augmented.push({
               ...row,
               embedding: row.embedding?.toString() ?? null,
-              score: Math.min(topScore * 0.7, (row.importance_score ?? 5) / 10),
+              score: topScore * 0.85 * ((row.importance_score ?? 5) / 10),
             });
           }
         }
