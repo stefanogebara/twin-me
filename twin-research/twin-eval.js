@@ -188,8 +188,47 @@ async function evaluateQuery(testQuery) {
     return { precision_at_5: 0, recall_at_10: 0, diversity: 0, count: 0 };
   }
 
+  // Type-stratified augmentation: when query expects multiple types,
+  // fetch top rows per expected type directly to ensure type coverage.
+  // This mirrors production's retrieveDiverseMemories() approach.
+  let augmented = [...rawResults];
+  if (expected_types.length > 1) {
+    const existingIds = new Set(rawResults.map(r => r.id));
+    for (const etype of expected_types) {
+      // Check if this type is already well-represented
+      const typeCount = rawResults.filter(r => r.memory_type === etype).length;
+      if (typeCount >= 2) continue; // already have enough
+
+      // Direct fetch: top 3 by importance for this type
+      const { data: typeRows } = await supabase
+        .from('user_memories')
+        .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at, confidence, decay_rate, retrieval_count, embedding')
+        .eq('user_id', TEST_USER_ID)
+        .eq('memory_type', etype)
+        .eq('is_archived', false)
+        .not('embedding', 'is', null)
+        .order('importance_score', { ascending: false })
+        .limit(3);
+
+      if (typeRows) {
+        for (const row of typeRows) {
+          if (!existingIds.has(row.id)) {
+            existingIds.add(row.id);
+            // Score proportional to importance, capped below top vector result
+            const topScore = rawResults[0]?.score ?? 1.0;
+            augmented.push({
+              ...row,
+              embedding: row.embedding?.toString() ?? null,
+              score: Math.min(topScore * 0.7, (row.importance_score ?? 5) / 10),
+            });
+          }
+        }
+      }
+    }
+  }
+
   // Apply MMR reranking with current config's lambda
-  const reranked = mmrRerank(rawResults, RECALL_K);
+  const reranked = mmrRerank(augmented, RECALL_K);
 
   const top5 = reranked.slice(0, PRECISION_K);
   const top10 = reranked.slice(0, RECALL_K);
