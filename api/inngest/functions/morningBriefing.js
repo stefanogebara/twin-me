@@ -29,6 +29,22 @@ export const morningBriefingFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId } = event.data;
 
+    // Step 0: Hard cooldown — max 1 briefing per 20 hours
+    const shouldSkip = await step.run('hard-cooldown-check', async () => {
+      const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('category', 'briefing')
+        .gte('created_at', cutoff);
+      return (count || 0) > 0;
+    });
+
+    if (shouldSkip) {
+      return { success: false, reason: 'cooldown', message: 'Briefing exists within last 20h' };
+    }
+
     // Step 1: Gather calendar data
     const calendarData = await step.run('gather-calendar', async () => {
       try {
