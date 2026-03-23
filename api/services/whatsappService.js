@@ -1,10 +1,15 @@
 /**
- * WhatsApp Service — Meta Cloud API for TwinMe Messaging
- * ========================================================
- * Separate WABA from Seatable. Handles outbound messaging,
- * template sending, and webhook signature verification.
+ * WhatsApp Service — Kapso.ai SDK with Meta Cloud API Fallback
+ * ==============================================================
+ * Uses kapso.ai WhatsApp API (cheaper, better DX, WhatsApp Flows)
+ * with automatic fallback to direct Meta Cloud API if Kapso is
+ * not configured.
  *
- * Env vars (feature-flagged off until ops complete):
+ * Kapso env vars:
+ *   KAPSO_API_KEY — kapso.ai API key
+ *   KAPSO_PHONE_NUMBER_ID — WhatsApp phone number ID on Kapso
+ *
+ * Fallback env vars (direct Meta Cloud API):
  *   TWINME_WHATSAPP_PHONE_NUMBER_ID
  *   TWINME_WHATSAPP_ACCESS_TOKEN
  *   TWINME_WHATSAPP_VERIFY_TOKEN
@@ -18,16 +23,56 @@ import { createLogger } from './logger.js';
 const log = createLogger('WhatsApp');
 
 const GRAPH_API_VERSION = 'v21.0';
+const USE_KAPSO = !!process.env.KAPSO_API_KEY;
+
+// Lazy-initialize Kapso client (only when needed)
+let kapsoClient = null;
+
+function getKapsoClient() {
+  if (kapsoClient) return kapsoClient;
+  try {
+    // Dynamic import to avoid breaking if SDK not installed
+    const { WhatsAppClient } = require('@kapso/whatsapp-cloud-api');
+    kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY });
+    log.info('Kapso WhatsApp client initialized');
+    return kapsoClient;
+  } catch (err) {
+    log.error('Failed to initialize Kapso client', { error: err.message });
+    return null;
+  }
+}
 
 /**
- * Send a text message via WhatsApp Cloud API.
+ * Send a text message via WhatsApp (Kapso or Meta Cloud API fallback).
  */
 export async function sendWhatsAppMessage(recipientPhone, text) {
+  // Try Kapso first
+  if (USE_KAPSO) {
+    const client = getKapsoClient();
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+
+    if (client && phoneNumberId) {
+      try {
+        const result = await client.messages.sendText({
+          phoneNumberId,
+          to: recipientPhone,
+          text,
+        });
+        log.info('WhatsApp message sent via Kapso', { recipientPhone, messageId: result?.messages?.[0]?.id });
+        return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
+      } catch (err) {
+        log.warn('Kapso send failed, falling back to Meta Cloud API', { error: err.message });
+        // Fall through to Meta Cloud API
+      }
+    }
+  }
+
+  // Fallback: direct Meta Cloud API
   const phoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.TWINME_WHATSAPP_ACCESS_TOKEN;
 
   if (!phoneNumberId || !accessToken) {
-    log.warn('WhatsApp not configured — missing env vars');
+    log.warn('WhatsApp not configured — no Kapso API key and no Meta Cloud API env vars');
     return { success: false, error: 'whatsapp_not_configured' };
   }
 
@@ -42,7 +87,7 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     });
 
-    return { success: true, messageId: data.messages?.[0]?.id };
+    return { success: true, messageId: data.messages?.[0]?.id, provider: 'meta' };
   } catch (err) {
     const errMsg = err.response?.data?.error?.message || err.message;
     log.error('Failed to send WhatsApp message', { recipientPhone, error: errMsg });

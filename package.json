@@ -24,6 +24,7 @@
     "@fontsource/inter": "^5.2.8",
     "@google/genai": "^1.41.0",
     "@google/generative-ai": "^0.24.1",
+    "@kapso/whatsapp-cloud-api": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@nangohq/frontend": "^0.69.30",
     "@nangohq/node": "^0.69.30",

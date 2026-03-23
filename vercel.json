@@ -96,6 +96,10 @@
     {
       "path": "/api/cron/personality-validation",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/calendar-optimization",
+      "schedule": "0 8 * * 1-5"
     }
   ]
 }

@@ -40,8 +40,10 @@ export const EVENTS = {
   MUSIC_MOOD_MATCH: 'twin/skill.music_mood_match',
   EVENING_RECAP: 'twin/skill.evening_recap',
   EMAIL_TRIAGE: 'twin/skill.email_triage',
+  EMAIL_DRAFT: 'twin/skill.email_draft',
   INTELLIGENT_TRIGGERS: 'twin/skill.intelligent_triggers',
   ACTION_REFLECTION: 'twin/skill.action_reflection',
+  CALENDAR_OPTIMIZATION: 'twin/skill.calendar_optimization',
 
   // Maintenance
   PERSONALITY_VALIDATION: 'twin/maintenance.personality_validation',

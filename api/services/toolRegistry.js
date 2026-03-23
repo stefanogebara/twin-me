@@ -345,6 +345,31 @@ function registerBuiltInTools() {
     }
   });
 
+  registerTool({
+    name: 'calendar_suggest_reschedule',
+    platform: 'google_calendar',
+    description: 'Suggest rescheduling a calendar event based on energy optimization',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        eventTitle: { type: 'string', description: 'Title of the event to reschedule' },
+        reason: { type: 'string', description: 'Reason for rescheduling suggestion' },
+      },
+    },
+    requiresConnection: false,
+    executor: async (userId, params) => {
+      // Suggestion tool — does not modify the calendar.
+      // Returns a formatted suggestion for the twin to present.
+      return {
+        success: true,
+        data: {
+          suggestion: `Consider rescheduling "${params.eventTitle}": ${params.reason}`,
+        },
+      };
+    },
+  });
+
   // ---- WHOOP ----
   registerTool({
     name: 'whoop_recovery',

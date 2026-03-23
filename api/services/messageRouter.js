@@ -21,6 +21,7 @@ const PUSH_TITLES = {
   evening_recap: 'Evening recap',
   music_mood_match: 'Music suggestion',
   email_triage: 'Email update',
+  email_draft: 'Email draft ready',
   nudge: 'A little nudge',
   trend: 'Something I noticed',
   anomaly: 'Heads up',

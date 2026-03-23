@@ -16,6 +16,8 @@ import { emailTriageFunction } from '../inngest/functions/emailTriage.js';
 import { intelligentTriggersFunction } from '../inngest/functions/intelligentTriggers.js';
 import { actionReflectionFunction } from '../inngest/functions/actionReflection.js';
 import { personalityValidationFunction } from '../inngest/functions/personalityValidation.js';
+import { smartEmailDraftFunction } from '../inngest/functions/smartEmailDraft.js';
+import { calendarOptimizationFunction } from '../inngest/functions/calendarOptimization.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('InngestRoute');
@@ -37,6 +39,8 @@ function getHandler() {
           intelligentTriggersFunction,
           actionReflectionFunction,
           personalityValidationFunction,
+          smartEmailDraftFunction,
+          calendarOptimizationFunction,
         ],
       });
       log.info('Inngest handler initialized');

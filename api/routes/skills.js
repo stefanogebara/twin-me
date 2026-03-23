@@ -18,7 +18,9 @@ const SKILL_EVENT_MAP = {
   music_mood_match: EVENTS.MUSIC_MOOD_MATCH,
   evening_recap: EVENTS.EVENING_RECAP,
   email_triage: EVENTS.EMAIL_TRIAGE,
+  email_draft: EVENTS.EMAIL_DRAFT,
   intelligent_triggers: EVENTS.INTELLIGENT_TRIGGERS,
+  calendar_optimization: EVENTS.CALENDAR_OPTIMIZATION,
 };
 
 const log = createLogger('SkillsRoutes');
