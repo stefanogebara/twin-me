@@ -31,32 +31,19 @@ export default function DiscoverNav({
             WebkitBackdropFilter: 'blur(19.65px)',
           }}
         >
-          {/* Logo — flower circle overlaps wordmark by 21px (Figma exact) */}
-          <div className="flex items-center shrink-0" style={{ width: '108px', paddingRight: '21px' }}>
-            <div
-              className="flex items-center justify-center shrink-0 rounded-full overflow-hidden"
-              style={{
-                width: '32px', height: '32px',
-                marginRight: '-21px',
-                zIndex: 1,
-                flexShrink: 0,
-              }}
-            >
-              <img
-                src="/images/backgrounds/flower.png"
-                alt="TwinMe"
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-              />
-            </div>
+          {/* Logo — flower + TwinMe (matches landing page) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <img
+              src="/images/backgrounds/flower.png"
+              alt=""
+              className="w-7 h-7 rounded-full object-cover"
+            />
             <span style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: '25.36px',
               letterSpacing: '-0.507px',
               color: T.FG,
-              marginRight: '-21px',
               whiteSpace: 'nowrap',
-              position: 'relative',
-              zIndex: 2,
             }}>
               TwinMe
             </span>
@@ -154,26 +141,18 @@ export default function DiscoverNav({
             }}
           >
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center" style={{ width: '108px', paddingRight: '21px' }}>
-                <div
-                  className="flex items-center justify-center shrink-0 rounded-full overflow-hidden"
-                  style={{ width: '32px', height: '32px', marginRight: '-21px', zIndex: 1, flexShrink: 0 }}
-                >
-                  <img
-                    src="/images/backgrounds/flower.png"
-                    alt="TwinMe"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-                  />
-                </div>
+              <div className="flex items-center gap-1.5">
+                <img
+                  src="/images/backgrounds/flower.png"
+                  alt=""
+                  className="w-7 h-7 rounded-full object-cover"
+                />
                 <span style={{
                   fontFamily: "'Instrument Serif', Georgia, serif",
                   fontSize: '25.36px',
                   letterSpacing: '-0.507px',
                   color: T.FG,
-                  marginRight: '-21px',
                   whiteSpace: 'nowrap',
-                  position: 'relative',
-                  zIndex: 2,
                 }}>
                   TwinMe
                 </span>
