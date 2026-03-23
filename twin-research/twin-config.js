@@ -85,7 +85,7 @@ export const HYDE_ENABLED = true;
 // Penalize selecting memories with high cosine similarity to already-selected
 // memories of the SAME TYPE. Breaks intra-type clustering in MMR.
 // 0.0 = disabled. Range: [0.0, 0.5]
-export const SEMANTIC_DIVERSITY_WEIGHT = 0.08;
+export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
