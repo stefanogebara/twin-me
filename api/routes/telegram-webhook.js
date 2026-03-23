@@ -393,7 +393,9 @@ router.post('/', (req, res, next) => {
     if (!bot) {
       return res.status(503).json({ error: 'Telegram bot not configured' });
     }
-    webhookHandler = webhookCallback(bot, 'express');
+    // 90-second timeout — twin chat needs 10-30s for LLM + memory retrieval.
+    // grammY's default is 10s which is too short for our pipeline.
+    webhookHandler = webhookCallback(bot, 'express', 'throw', 90_000);
   }
   return webhookHandler(req, res, next);
 });
