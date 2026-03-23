@@ -182,11 +182,11 @@ const InstantTwinOnboarding = () => {
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
-      const healthPlatforms = ['oura'];
-      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin', 'github'];
+      const healthPlatforms: string[] = [];
+      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin', 'github', 'strava', 'oura'];
       const googlePlatforms = ['google_calendar', 'google_gmail'];
       const arcticPlatforms: string[] = [];
-      const nangoPlatforms = ['strava', 'fitbit', 'garmin', 'microsoft_outlook'];
+      const nangoPlatforms = ['fitbit', 'garmin', 'microsoft_outlook'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
