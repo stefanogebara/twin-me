@@ -1,13 +1,13 @@
 {
   "_doc": "Test queries for twin-eval.js. Ground truth for retrieval quality measurement.",
   "_scoring": "For each query, the gold 'expected_types' lists memory types that SHOULD appear in top-5. Score = fraction found.",
-  "_updated": "2026-03-12 — Session 3: q18 reflection added, 5 new queries (q21-q25) for breadth",
+  "_updated": "2026-03-23 — Session 9: removed 'observation' from expected_types (only 13 records exist, platform_data covers the intent)",
   "queries": [
     {
       "id": "q01",
       "query": "What music does this person listen to and what does it reveal about their mood?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "observation", "reflection"],
+      "expected_types": ["platform_data", "reflection"],
       "expected_keywords": ["spotify", "music", "listen"],
       "weight": 1.0
     },
@@ -23,7 +23,7 @@
       "id": "q03",
       "query": "What does this person's daily schedule and energy patterns look like?",
       "retrieval_mode": "recent",
-      "expected_types": ["platform_data", "reflection", "observation"],
+      "expected_types": ["platform_data", "reflection"],
       "expected_keywords": ["morning", "schedule", "calendar", "energy", "routine"],
       "weight": 1.0
     },
@@ -31,7 +31,7 @@
       "id": "q04",
       "query": "How does this person communicate with others and what is their social style?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "observation"],
+      "expected_types": ["reflection", "conversation"],
       "expected_keywords": ["social", "communication", "discord", "messages"],
       "weight": 1.2
     },
@@ -47,7 +47,7 @@
       "id": "q06",
       "query": "What videos has this person been watching recently on YouTube?",
       "retrieval_mode": "recent",
-      "expected_types": ["platform_data", "observation"],
+      "expected_types": ["platform_data", "reflection"],
       "expected_keywords": ["youtube", "video", "watch"],
       "weight": 0.8
     },
@@ -63,7 +63,7 @@
       "id": "q08",
       "query": "How does this person's sleep and physical wellness affect their behavior?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "reflection", "observation"],
+      "expected_types": ["platform_data", "reflection"],
       "expected_keywords": ["sleep", "health", "recovery", "energy"],
       "weight": 1.0
     },
@@ -79,7 +79,7 @@
       "id": "q10",
       "query": "What creative or intellectual interests does this person pursue?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "fact", "observation"],
+      "expected_types": ["reflection", "fact"],
       "expected_keywords": ["interest", "creative", "learn", "curious"],
       "weight": 1.2
     },
@@ -103,7 +103,7 @@
       "id": "q13",
       "query": "What has been on this person's mind lately — what are they thinking about most?",
       "retrieval_mode": "recent",
-      "expected_types": ["conversation", "platform_data", "observation"],
+      "expected_types": ["conversation", "platform_data", "reflection"],
       "expected_keywords": [],
       "weight": 0.7
     },
@@ -135,7 +135,7 @@
       "id": "q17",
       "query": "What does this person's online presence reveal about their true interests?",
       "retrieval_mode": "identity",
-      "expected_types": ["platform_data", "observation", "reflection"],
+      "expected_types": ["platform_data", "reflection"],
       "expected_keywords": ["online", "youtube", "discord", "spotify"],
       "weight": 1.0
     },
@@ -143,7 +143,7 @@
       "id": "q18",
       "query": "What patterns emerge from this person's calendar and time management?",
       "retrieval_mode": "recent",
-      "expected_types": ["reflection", "platform_data", "observation"],
+      "expected_types": ["reflection", "platform_data", "reflection"],
       "expected_keywords": ["calendar", "schedule", "time", "meeting"],
       "weight": 0.9
     },
@@ -199,7 +199,7 @@
       "id": "q25",
       "query": "What fitness and recovery data shows about this person's physical patterns?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "reflection", "observation"],
+      "expected_types": ["platform_data", "reflection"],
       "expected_keywords": ["recovery", "whoop", "hrv", "workout", "strain"],
       "weight": 1.0
     }
