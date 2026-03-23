@@ -199,7 +199,7 @@ async function evaluateQuery(testQuery) {
       const typeCount = rawResults.filter(r => r.memory_type === etype).length;
       if (typeCount >= 2) continue; // already have enough
 
-      // Direct fetch: top 3 by importance for this type
+      // Direct fetch: top 5 by importance for this type
       const { data: typeRows } = await supabase
         .from('user_memories')
         .select('id, content, memory_type, importance_score, metadata, created_at, last_accessed_at, confidence, decay_rate, retrieval_count, embedding')
@@ -208,7 +208,7 @@ async function evaluateQuery(testQuery) {
         .eq('is_archived', false)
         .not('embedding', 'is', null)
         .order('importance_score', { ascending: false })
-        .limit(3);
+        .limit(5);
 
       if (typeRows) {
         for (const row of typeRows) {
