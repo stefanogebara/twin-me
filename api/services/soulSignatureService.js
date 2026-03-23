@@ -495,19 +495,19 @@ Rules:
  * ~10x faster than 4 parallel calls, fits within Vercel 60s timeout.
  */
 async function generateAllLlmLayers(memories, userId) {
-  // Use top 40 most important memories to keep context small and fast (~15s on DeepSeek)
+  // Use top 25 most important memories — keep input small so output has room
   const sorted = [...memories].sort((a, b) => (b.importance_score || 0) - (a.importance_score || 0));
   const memoryText = sorted
-    .slice(0, 40)
-    .map(m => `- [${m.memory_type}] ${m.content}`)
+    .slice(0, 25)
+    .map(m => `- ${m.content.substring(0, 150)}`)
     .join('\n');
 
   try {
     const result = await complete({
       tier: TIER_ANALYSIS,
-      system: 'You are an expert personality analyst. Respond ONLY in valid JSON. No markdown, no explanation.',
+      system: 'You are an expert personality analyst. Respond ONLY in valid JSON. No markdown code fences. No explanation text.',
       messages: [{ role: 'user', content: UNIFIED_PROMPT.replace('{memories}', memoryText) }],
-      maxTokens: 1200,
+      maxTokens: 1500,
       temperature: 0.5,
       userId,
       serviceName: `${SERVICE_NAME}:unified`,
@@ -622,11 +622,11 @@ async function doGenerate(userId) {
   log.info('Soul signature generated', {
     userId,
     latencyMs,
-    valuesCount: valuesLayer.values?.length || 0,
-    chronotype: rhythmsLayer.chronotype,
-    tasteSignals: tasteLayer.topSignals?.length || 0,
-    connectionStyle: connectionsLayer.style,
-    growthShifts: growthLayer.shifts?.length || 0,
+    valuesCount: layers.values?.values?.length || 0,
+    chronotype: layers.rhythms?.chronotype,
+    tasteLen: layers.taste?.statement?.length || 0,
+    connectionStyle: layers.connections?.style,
+    growthShifts: layers.growthEdges?.shifts?.length || 0,
     anyPartial: hasPartialLayers(layers),
   });
 
