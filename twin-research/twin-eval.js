@@ -194,39 +194,62 @@ async function evaluateQuery(testQuery) {
   const top5 = reranked.slice(0, PRECISION_K);
   const top10 = reranked.slice(0, RECALL_K);
 
-  // ── Precision@5: does any expected type appear in top-5? ──────────────────
+  // ── Precision@5: proportional type + keyword match ──────────────────────
   const top5Types = new Set(top5.map(m => m.memory_type));
   const top5Content = top5.map(m => (m.content || '').toLowerCase()).join(' ');
 
-  let precisionHit = 0;
-  if (expected_types.some(t => top5Types.has(t))) precisionHit += 0.7;
+  // Type precision: what fraction of expected types actually appeared?
+  const typesFound = expected_types.filter(t => top5Types.has(t)).length;
+  const typeScore = expected_types.length > 0 ? typesFound / expected_types.length : 1.0;
 
   // Keyword bonus — if gold keywords appear in retrieved content
+  let keywordScore;
   if (expected_keywords.length > 0) {
     const kwHits = expected_keywords.filter(kw => top5Content.includes(kw.toLowerCase()));
-    precisionHit += 0.3 * (kwHits.length / expected_keywords.length);
+    keywordScore = kwHits.length / expected_keywords.length;
   } else {
-    precisionHit += 0.3; // no keyword constraint = full keyword bonus
+    keywordScore = 1.0; // no keyword constraint = full keyword bonus
   }
+
+  // Blend: 60% type precision + 40% keyword coverage
+  const precisionHit = 0.6 * typeScore + 0.4 * keywordScore;
 
   // ── Recall@10: does expected type appear in top-10? ───────────────────────
   const top10Types = new Set(top10.map(m => m.memory_type));
   const recallHit = expected_types.some(t => top10Types.has(t)) ? 1 : 0;
 
-  // ── Diversity: entropy of type distribution in top-5 ─────────────────────
+  // ── Diversity: context-aware type entropy in top-5 ──────────────────────
+  // If the query expects only 1 type, returning that type IS correct diversity.
+  // Only penalize diversity when the query expects MULTIPLE types.
   const typeCounts = {};
   for (const m of top5) {
     typeCounts[m.memory_type] = (typeCounts[m.memory_type] || 0) + 1;
   }
-  let entropy = 0;
-  const total = top5.length;
-  for (const count of Object.values(typeCounts)) {
-    const p = count / total;
-    entropy -= p * Math.log2(p);
+
+  let diversity;
+  if (expected_types.length <= 1) {
+    // Single-type query: diversity = 1.0 if the expected type dominates, else penalize
+    const expectedType = expected_types[0];
+    const expectedCount = typeCounts[expectedType] || 0;
+    diversity = expectedCount >= 3 ? 1.0 : expectedCount / 3; // 3+ of expected type = perfect
+  } else {
+    // Multi-type query: measure how many expected types appear + entropy
+    const expectedTypesFound = expected_types.filter(t => top5Types.has(t)).length;
+    const typeCoverage = expectedTypesFound / expected_types.length; // 0-1
+
+    // Entropy of actual distribution
+    let entropy = 0;
+    const total = top5.length;
+    for (const count of Object.values(typeCounts)) {
+      const p = count / total;
+      entropy -= p * Math.log2(p);
+    }
+    const maxEntropy = Math.log2(Math.min(total, MAX_ENTROPY_TYPES));
+    const normalizedEntropy = maxEntropy > 0 ? entropy / maxEntropy : 0;
+
+    // Blend: 60% type coverage (did we find the expected types?) + 40% entropy (distribution quality)
+    diversity = 0.6 * typeCoverage + 0.4 * normalizedEntropy;
   }
-  // Normalize by max possible entropy (log2 of unique types observed)
-  const maxEntropy = Math.log2(Math.min(total, MAX_ENTROPY_TYPES));
-  const diversity = maxEntropy > 0 ? entropy / maxEntropy : 0;
 
   return {
     precision_at_5: Math.min(1, precisionHit),
