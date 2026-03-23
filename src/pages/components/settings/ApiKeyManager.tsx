@@ -144,7 +144,7 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
   return (
     <section className={`p-5 ${cardStyle}`}>
       <div className="flex items-center gap-3 mb-2">
-        <Key className="w-5 h-5" style={{ color: '#F59E0B' }} />
+        <Key className="w-5 h-5" style={{ color: '#C9B99A' }} />
         <h2
           className="text-[11px] font-medium tracking-widest uppercase"
           style={{ color: '#10b77f' }}
@@ -173,16 +173,16 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
       {newKeyValue && (
         <div
           className="p-4 rounded-xl mb-4"
-          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}
+          style={{ background: 'rgba(201,185,154,0.08)', border: '1px solid rgba(201,185,154,0.25)' }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold" style={{ color: '#F59E0B' }}>
+            <span className="text-xs font-semibold" style={{ color: '#C9B99A' }}>
               Your API Key — copy now, won't be shown again
             </span>
             <button
               onClick={copyKey}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors"
-              style={{ color: copiedKey ? '#10B981' : '#F59E0B' }}
+              style={{ color: copiedKey ? '#10B981' : '#C9B99A' }}
             >
               {copiedKey ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
               {copiedKey ? 'Copied!' : 'Copy'}
@@ -302,9 +302,9 @@ const ApiKeyManager: React.FC<ApiKeyManagerProps> = ({ cardStyle }) => {
             disabled={creating}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all"
             style={{
-              background: 'rgba(245,158,11,0.1)',
-              border: '1px solid rgba(245,158,11,0.3)',
-              color: '#F59E0B',
+              background: 'rgba(201,185,154,0.1)',
+              border: '1px solid rgba(201,185,154,0.3)',
+              color: '#C9B99A',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500,
               opacity: creating ? 0.7 : 1,

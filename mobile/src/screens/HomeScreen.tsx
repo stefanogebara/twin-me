@@ -56,9 +56,9 @@ function InsightCard({ insight }: { insight: TwinInsight }) {
 const EXPERT_COLORS: Record<string, string> = {
   personality: '#8b5cf6',
   lifestyle: '#10b981',
-  cultural: '#f59e0b',
+  cultural: '#C9B99A',
   social: '#3b82f6',
-  motivation: '#f97316',
+  motivation: '#D4CBBE',
 };
 
 interface Props {

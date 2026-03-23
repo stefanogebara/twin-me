@@ -21,8 +21,8 @@ async function fetchDrift(): Promise<DriftResult> {
 function driftLabel(similarity: number): { text: string; color: string } {
   if (similarity >= 0.95) return { text: 'Very stable', color: 'rgba(255,255,255,0.3)' };
   if (similarity >= 0.90) return { text: 'Stable', color: 'rgba(255,255,255,0.3)' };
-  if (similarity >= 0.85) return { text: 'Slight shift', color: '#f59e0b' };
-  if (similarity >= 0.75) return { text: 'Notable shift', color: '#f97316' };
+  if (similarity >= 0.85) return { text: 'Slight shift', color: '#C9B99A' };
+  if (similarity >= 0.75) return { text: 'Notable shift', color: '#D4CBBE' };
   return { text: 'Significant shift', color: '#ef4444' };
 }
 

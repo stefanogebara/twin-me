@@ -23,7 +23,7 @@ const CATEGORY_ICON: Record<InsightCategory, React.ReactNode> = {
 
 const URGENCY_COLOR: Record<string, string> = {
   high:   '#ef4444',
-  medium: '#f59e0b',
+  medium: '#C9B99A',
   low:    'var(--text-muted, #86807b)',
 };
 
@@ -111,7 +111,7 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
                   <button
                     onClick={() => handleDiscuss(insight)}
                     className="text-[11px] bg-transparent border-none cursor-pointer transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97] p-0"
-                    style={{ color: 'var(--text-narrative-secondary, #ff8400)' }}
+                    style={{ color: 'var(--text-narrative-secondary, #E8E0D4)' }}
                   >
                     Discuss with twin &rarr;
                   </button>

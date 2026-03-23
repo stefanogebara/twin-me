@@ -360,13 +360,13 @@ class SpotifyInsightGenerator {
         label: 'Intense',
         emoji: '🔥',
         description: 'energetic but processing emotions',
-        color: '#f59e0b'
+        color: '#C9B99A'
       },
       'stressed-anxious': {
         label: 'Processing',
         emoji: '💭',
         description: 'working through something',
-        color: '#f59e0b'
+        color: '#C9B99A'
       },
       'melancholic-reflective': {
         label: 'Reflective',

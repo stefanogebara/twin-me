@@ -278,12 +278,12 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
                   className="w-5 h-5 transition-colors"
                   fill={
                     (hoverStar !== null ? star <= hoverStar : star <= (starRating || 0))
-                      ? '#F59E0B'
+                      ? '#C9B99A'
                       : 'transparent'
                   }
                   stroke={
                     (hoverStar !== null ? star <= hoverStar : star <= (starRating || 0))
-                      ? '#F59E0B'
+                      ? '#C9B99A'
                       : 'rgba(255,255,255,0.3)'
                   }
                 />

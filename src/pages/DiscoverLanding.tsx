@@ -31,7 +31,7 @@ const T = {
 // Ellipse 3: blur(42px) soft layer | Ellipse 1: sharp grain layer
 const HERO_GLOW_GRADIENT = `radial-gradient(ellipse at 50% 50%,
   rgba(193,126,44,1)     0%,
-  rgba(255,132,0,0.85)   12%,
+  rgba(232,224,212,0.85)   12%,
   rgba(224,129,22,0.6)   28%,
   rgba(194,85,78,0.35)   50%,
   rgba(195,45,112,0.1)   72%,
@@ -42,7 +42,7 @@ const HERO_GLOW_GRADIENT = `radial-gradient(ellipse at 50% 50%,
 const AMBER_GLOW_CSS = `radial-gradient(ellipse at 51.1% 127.3%,
   rgba(195,45,112,0)     0%,  rgba(194,85,78,0.5)    9.375%,
   rgba(193,126,44,1)     18.75%, rgba(224,129,22,0.8) 32.452%,
-  rgba(255,132,0,0.6)    46.154%, rgba(218,128,26,0.525) 53.245%,
+  rgba(232,224,212,0.6)    46.154%, rgba(218,128,26,0.525) 53.245%,
   rgba(181,124,52,0.45)  60.337%, rgba(108,117,103,0.3) 74.519%,
   rgba(108,117,103,0)    96.635%
 )`;
@@ -51,13 +51,13 @@ const AMBER_GLOW_CSS = `radial-gradient(ellipse at 51.1% 127.3%,
 const FOOTER_GLOW_1 = `radial-gradient(ellipse at 51.1% 127.3%,
   rgba(195,45,112,0) 0%, rgba(194,85,78,0.5) 9.375%,
   rgba(193,126,44,1) 18.75%, rgba(224,129,22,0.8) 32.452%,
-  rgba(255,132,0,0.6) 46.154%, rgba(218,128,26,0.525) 53.245%,
+  rgba(232,224,212,0.6) 46.154%, rgba(218,128,26,0.525) 53.245%,
   rgba(181,124,52,0.45) 60.337%, rgba(108,117,103,0.3) 74.519%,
   rgba(108,117,103,0) 96.635%
 )`;
 const FOOTER_GLOW_2 = `radial-gradient(ellipse at 56.8% 130%,
   rgba(195,45,112,0) 0%, rgba(225,88,56,0.3) 10.577%,
-  rgba(240,110,28,0.45) 15.865%, rgba(255,132,0,0.6) 21.154%,
+  rgba(240,110,28,0.45) 15.865%, rgba(232,224,212,0.6) 21.154%,
   rgba(224,129,22,0.8) 29.087%, rgba(193,126,44,1) 37.019%,
   rgba(185,101,74,0.65) 55.769%, rgba(177,76,105,0.3) 74.519%,
   rgba(73,56,57,0) 96.635%
@@ -668,7 +668,7 @@ export default function DiscoverLanding() {
                 width: '513px', height: '97px',
                 top: '9px', left: '50%',
                 transform: 'translateX(-50%)',
-                background: 'radial-gradient(ellipse at 50% 50%, rgba(255,132,0,0.45) 0%, rgba(224,129,22,0.3) 40%, transparent 75%)',
+                background: 'radial-gradient(ellipse at 50% 50%, rgba(232,224,212,0.45) 0%, rgba(224,129,22,0.3) 40%, transparent 75%)',
                 filter: 'blur(24px)',
                 opacity: 1,
               }}
@@ -912,7 +912,7 @@ export default function DiscoverLanding() {
                 style={{
                   width: '280px', height: '48px',
                   top: '16px', left: '60px',
-                  background: 'radial-gradient(ellipse at 40% 50%, rgba(255,132,0,0.35) 0%, transparent 70%)',
+                  background: 'radial-gradient(ellipse at 40% 50%, rgba(232,224,212,0.35) 0%, transparent 70%)',
                   filter: 'blur(20px)',
                   opacity: 1,
                 }}
@@ -1017,7 +1017,7 @@ export default function DiscoverLanding() {
             <div className="flex items-center gap-1">
               <div
                 className="w-8 h-8 rounded-full opacity-80"
-                style={{ background: 'radial-gradient(circle at 35% 35%, #f97316, #7c2d12)' }}
+                style={{ background: 'radial-gradient(circle at 35% 35%, #D4CBBE, #7c2d12)' }}
               />
               <span style={{
                 fontFamily: "'Instrument Serif', Georgia, serif",

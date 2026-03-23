@@ -28,6 +28,6 @@ export const COLORS = {
   inputBorder: '#E8E3DC',           // Input field border
   inputBg: 'rgba(255,255,255,0.6)', // Input background
   success: '#10b981',
-  warning: '#f59e0b',
+  warning: '#C9B99A',
   error: '#ef4444',
 } as const;

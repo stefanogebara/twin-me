@@ -147,10 +147,10 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
       style={{
         backgroundColor: isExpired
           ? 'rgba(239, 68, 68, 0.08)'
-          : 'rgba(245, 158, 11, 0.08)',
+          : 'rgba(201, 185, 154, 0.08)',
         borderBottom: isExpired
           ? '1px solid rgba(239, 68, 68, 0.2)'
-          : '1px solid rgba(245, 158, 11, 0.2)',
+          : '1px solid rgba(201, 185, 154, 0.2)',
       }}
     >
       <div className="flex items-center gap-3">
@@ -159,7 +159,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           style={{
             backgroundColor: isExpired
               ? 'rgba(239, 68, 68, 0.12)'
-              : 'rgba(245, 158, 11, 0.12)',
+              : 'rgba(201, 185, 154, 0.12)',
           }}
         >
           {isExpired ? (
@@ -172,7 +172,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
         <div>
           <p
             className="font-medium text-sm"
-            style={{ color: isExpired ? '#dc2626' : '#d97706' }}
+            style={{ color: isExpired ? '#dc2626' : '#C9B99A' }}
           >
             {isExpired
               ? `${platformName} connection expired`
@@ -189,7 +189,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
           onClick={() => handleReconnect(urgentNotification.platform)}
           className="h-8 px-3 text-xs rounded-lg flex items-center gap-1.5 font-medium transition-opacity hover:opacity-90"
           style={{
-            backgroundColor: isExpired ? '#dc2626' : '#d97706',
+            backgroundColor: isExpired ? '#dc2626' : '#C9B99A',
             color: 'var(--foreground)',
           }}
         >

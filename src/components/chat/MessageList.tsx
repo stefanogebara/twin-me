@@ -61,8 +61,8 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                 <div
                   className={cn("max-w-[90%] sm:max-w-[85%] lg:max-w-[75%]", isUser ? "text-right" : "text-left")}
                   style={isUser ? {
-                    background: 'var(--accent-vibrant-glow, rgba(255,132,0,0.12))',
-                    border: '1px solid rgba(255,132,0,0.2)',
+                    background: 'var(--accent-vibrant-glow, rgba(232,224,212,0.12))',
+                    border: '1px solid rgba(232,224,212,0.2)',
                     borderRadius: '20px',
                     padding: '12px 16px',
                   } : {

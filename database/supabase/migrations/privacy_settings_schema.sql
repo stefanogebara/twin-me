@@ -249,7 +249,7 @@ INSERT INTO privacy_templates (name, description, settings, icon, color, is_defa
         'Moderate visibility across all areas',
         '{"globalPrivacy": 50, "clusterSettings": {"personal": 50, "professional": 50, "creative": 50}}'::jsonb,
         'Shield',
-        '#F59E0B',
+        '#C9B99A',
         TRUE,
         FALSE,
         NULL

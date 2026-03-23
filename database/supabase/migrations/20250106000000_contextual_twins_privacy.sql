@@ -250,7 +250,7 @@ CREATE INDEX IF NOT EXISTS idx_privacy_settings_active_twin ON privacy_settings(
 INSERT INTO cluster_definitions (id, name, category, description, default_sensitivity, icon, color, sort_order) VALUES
     -- Personal Clusters
     ('hobbies', 'Hobbies & Interests', 'personal', 'Your recreational activities and personal interests', 60, 'Heart', '#EC4899', 1),
-    ('sports', 'Sports & Fitness', 'personal', 'Your physical activities and fitness routines', 55, 'Dumbbell', '#F59E0B', 2),
+    ('sports', 'Sports & Fitness', 'personal', 'Your physical activities and fitness routines', 55, 'Dumbbell', '#C9B99A', 2),
     ('spirituality', 'Spirituality & Religion', 'personal', 'Your spiritual beliefs and religious practices', 70, 'Sparkles', '#8B5CF6', 3),
     ('entertainment', 'Entertainment Choices', 'personal', 'Your movies, shows, music, and media preferences', 50, 'Film', '#3B82F6', 4),
     ('social', 'Social Connections', 'personal', 'Your friendships and social network', 65, 'Users', '#10B981', 5),
@@ -260,7 +260,7 @@ INSERT INTO cluster_definitions (id, name, category, description, default_sensit
     -- Professional Clusters
     ('education', 'Studies & Education', 'professional', 'Your academic background and certifications', 40, 'GraduationCap', '#3B82F6', 10),
     ('career', 'Career & Jobs', 'professional', 'Your work history and current employment', 45, 'Briefcase', '#1F2937', 11),
-    ('skills', 'Skills & Expertise', 'professional', 'Your technical and professional competencies', 35, 'Award', '#F59E0B', 12),
+    ('skills', 'Skills & Expertise', 'professional', 'Your technical and professional competencies', 35, 'Award', '#C9B99A', 12),
     ('achievements', 'Achievements & Recognition', 'professional', 'Your awards, publications, and accomplishments', 40, 'Trophy', '#FBBF24', 13),
     ('networking', 'Professional Network', 'professional', 'Your professional connections and associations', 50, 'Network', '#6B7280', 14),
 
@@ -332,7 +332,7 @@ INSERT INTO audience_presets (name, description, preset_key, default_cluster_lev
         '{"hobbies": 90, "sports": 85, "spirituality": 60, "entertainment": 95, "social": 70, "travel": 90, "food": 85, "education": 65, "career": 50, "skills": 45, "achievements": 55, "networking": 25, "artistic": 90, "content": 75, "music": 95, "writing": 80}'::jsonb,
         75,
         'Sparkles',
-        '#F59E0B',
+        '#C9B99A',
         TRUE,
         FALSE,
         NULL

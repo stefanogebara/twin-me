@@ -41,7 +41,7 @@ const defaultTwins: ContextualTwin[] = [
       professional: 85,
       creative: 45,
     },
-    color: '#D97706', // Claude accent
+    color: '#C9B99A', // Claude accent
     isActive: false,
     isDefault: true,
   },

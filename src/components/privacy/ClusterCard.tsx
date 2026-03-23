@@ -27,7 +27,7 @@ const getIntensityColor = (level: number) => {
   if (level === 0) return '#d6d3d1';
   if (level <= 33) return '#a8a29e';
   if (level <= 66) return '#78716c';
-  return '#D97706'; // Claude accent color
+  return '#C9B99A'; // Claude accent color
 };
 
 const getIntensityLabel = (level: number) => {
@@ -151,7 +151,7 @@ export const ClusterCard: React.FC<ClusterCardProps> = ({
             <Slider.Thumb
               className="block w-6 h-6 bg-white rounded-full shadow-md border-2 transition-all duration-200 cursor-grab active:cursor-grabbing focus:outline-none"
               style={{
-                borderColor: isDragging ? '#D97706' : '#d6d3d1',
+                borderColor: isDragging ? '#C9B99A' : '#d6d3d1',
               }}
             />
           </Slider.Root>

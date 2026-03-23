@@ -1,8 +1,8 @@
 import React from 'react';
 
-export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#ff8400' }) => (
+export const SectionLabel: React.FC<{ label: string; color?: string }> = ({ label, color = '#E8E0D4' }) => (
   <div className="flex items-center gap-2 mb-4">
-    {color !== '#ff8400' && (
+    {color !== '#E8E0D4' && (
       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
     )}
     <h2

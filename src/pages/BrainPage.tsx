@@ -64,7 +64,7 @@ const EXPERT_FILTERS = [
 
 const TYPE_FILTERS = [
   { key: null, label: 'All Types', color: 'rgba(255,255,255,0.5)' },
-  { key: 'reflection', label: 'Reflections', color: '#c17e2c' },
+  { key: 'reflection', label: 'Reflections', color: '#C9B99A' },
   { key: 'platform_data', label: 'Platform Data', color: '#2dd4bf' },
   { key: 'fact', label: 'Facts', color: '#5d5cae' },
   { key: 'conversation', label: 'Conversations', color: '#60a5fa' },
@@ -93,7 +93,7 @@ const EXPERT_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  reflection: '#c17e2c',
+  reflection: '#C9B99A',
   platform_data: '#2dd4bf',
   fact: '#5d5cae',
   conversation: '#60a5fa',
@@ -485,7 +485,7 @@ const BrainPage: React.FC = () => {
                 onClick={() => setActiveExpert(key)}
                 className="rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-all"
                 style={{
-                  background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
+                  background: isActive ? 'rgba(232,224,212,0.12)' : 'transparent',
                   color: isActive ? 'var(--accent-vibrant)' : '#86807b',
                   border: 'none',
                 }}
@@ -507,7 +507,7 @@ const BrainPage: React.FC = () => {
                   onClick={() => setActiveType(key)}
                   className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5"
                   style={{
-                    background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
+                    background: isActive ? 'rgba(232,224,212,0.12)' : 'transparent',
                     color: isActive ? 'var(--accent-vibrant)' : '#86807b',
                     border: 'none',
                   }}

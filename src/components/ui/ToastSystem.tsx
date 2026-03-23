@@ -276,7 +276,7 @@ export function ToastExamples() {
             },
           })
         }
-        className="px-4 py-2 bg-orange-600 text-white rounded"
+        className="px-4 py-2 bg-[#C9B99A] text-white rounded"
       >
         Show with Action
       </button>

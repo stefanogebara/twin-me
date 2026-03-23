@@ -129,7 +129,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         <div
           className="w-[400px] h-[400px] rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(255,132,0,0.15) 0%, rgba(255,132,0,0.05) 40%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(232,224,212,0.15) 0%, rgba(232,224,212,0.05) 40%, transparent 70%)',
             animation: 'soulBreathe 4s ease-in-out infinite',
           }}
         />
@@ -381,7 +381,7 @@ const IdentityPage: React.FC = () => {
               <div
                 className="w-[280px] h-[280px] rounded-full"
                 style={{
-                  background: 'radial-gradient(circle, rgba(255,132,0,0.1) 0%, rgba(255,132,0,0.03) 50%, transparent 70%)',
+                  background: 'radial-gradient(circle, rgba(232,224,212,0.1) 0%, rgba(232,224,212,0.03) 50%, transparent 70%)',
                   animation: 'soulBreathe 5s ease-in-out infinite',
                 }}
               />

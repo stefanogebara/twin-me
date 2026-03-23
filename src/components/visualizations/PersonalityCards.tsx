@@ -26,7 +26,7 @@ const traitConfig = {
   },
   Extraversion: {
     icon: Zap,
-    color: '#F59E0B',
+    color: '#C9B99A',
     gradient: 'from-stone-500/20 to-stone-600/20',
     description: 'Your social energy'
   },
@@ -55,7 +55,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
     >
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-6 h-6 text-[#D97706]" />
+          <Sparkles className="w-6 h-6 text-[#C9B99A]" />
           <h3 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
             Your Personality Profile
           </h3>

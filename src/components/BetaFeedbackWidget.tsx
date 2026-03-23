@@ -65,7 +65,7 @@ const BetaFeedbackWidget: React.FC = () => {
           style={{
             backgroundColor: 'var(--accent-vibrant-glow)',
             color: 'var(--accent-vibrant)',
-            border: '1px solid rgba(255,132,0,0.2)',
+            border: '1px solid rgba(232,224,212,0.2)',
             fontFamily: "'Inter', sans-serif",
           }}
         >
@@ -116,9 +116,9 @@ const BetaFeedbackWidget: React.FC = () => {
                       onClick={() => setCategory(cat)}
                       className="px-2.5 py-1 rounded-full text-[11px] font-medium transition-all"
                       style={{
-                        backgroundColor: category === cat ? 'rgba(255,132,0,0.15)' : 'rgba(255,255,255,0.04)',
+                        backgroundColor: category === cat ? 'rgba(232,224,212,0.15)' : 'rgba(255,255,255,0.04)',
                         color: category === cat ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.4)',
-                        border: `1px solid ${category === cat ? 'rgba(255,132,0,0.3)' : 'var(--border-glass)'}`,
+                        border: `1px solid ${category === cat ? 'rgba(232,224,212,0.3)' : 'var(--border-glass)'}`,
                         fontFamily: "'Inter', sans-serif",
                       }}
                     >

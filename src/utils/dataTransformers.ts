@@ -179,9 +179,9 @@ export function getCategoryColor(category: 'personal' | 'professional' | 'creati
       };
     case 'creative':
       return {
-        light: '#F59E0B',
-        medium: '#D97706',
-        dark: '#B45309'
+        light: '#C9B99A',
+        medium: '#C9B99A',
+        dark: '#A89A7E'
       };
   }
 }
