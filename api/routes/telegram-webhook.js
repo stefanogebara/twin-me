@@ -386,19 +386,28 @@ router.post('/', (req, res, next) => {
   if (secret) {
     const headerToken = req.headers['x-telegram-bot-api-secret-token'];
     if (headerToken !== secret) {
-      log.warn('Telegram webhook secret mismatch');
+      log.warn('Telegram webhook secret mismatch', {
+        hasHeader: !!headerToken,
+        headerLen: headerToken?.length,
+        secretLen: secret?.length,
+      });
       return res.sendStatus(403);
     }
   }
 
-  if (!webhookHandler) {
-    const bot = setupBotHandlers();
-    if (!bot) {
-      return res.status(503).json({ error: 'Telegram bot not configured' });
+  try {
+    if (!webhookHandler) {
+      const bot = setupBotHandlers();
+      if (!bot) {
+        return res.status(503).json({ error: 'Telegram bot not configured' });
+      }
+      webhookHandler = webhookCallback(bot, 'express');
     }
-    webhookHandler = webhookCallback(bot, 'express');
+    return webhookHandler(req, res, next);
+  } catch (err) {
+    log.error('Telegram webhook handler crash', { error: err.message, stack: err.stack?.slice(0, 300) });
+    return res.status(500).json({ error: 'Webhook handler error' });
   }
-  return webhookHandler(req, res, next);
 });
 
 export default router;
