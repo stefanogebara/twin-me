@@ -381,22 +381,14 @@ function isRateLimited(chatId) {
 let webhookHandler = null;
 
 router.post('/', (req, res, next) => {
-  try {
-    if (!webhookHandler) {
-      const bot = setupBotHandlers();
-      if (!bot) {
-        return res.status(503).json({ error: 'Telegram bot not configured' });
-      }
-      // Pass secretToken to grammY's webhookCallback — it handles verification internally.
-      // This replaces our manual X-Telegram-Bot-Api-Secret-Token check.
-      const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-      webhookHandler = webhookCallback(bot, 'express', undefined, undefined, secret || undefined);
+  if (!webhookHandler) {
+    const bot = setupBotHandlers();
+    if (!bot) {
+      return res.status(503).json({ error: 'Telegram bot not configured' });
     }
-    return webhookHandler(req, res, next);
-  } catch (err) {
-    log.error('Telegram webhook handler crash', { error: err.message, stack: err.stack?.slice(0, 300) });
-    return res.status(500).json({ error: 'Webhook handler error' });
+    webhookHandler = webhookCallback(bot, 'express');
   }
+  return webhookHandler(req, res, next);
 });
 
 export default router;
