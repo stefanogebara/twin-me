@@ -496,7 +496,7 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  */
 // Retrieval weights, MMR params, and memory budgets are imported from twin-config.js
 // so the research agent can tune them without touching this file.
-import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED } from '../../twin-research/twin-config.js';
+import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED } from '../../twin-research/twin-config.js';
 
 // ====================================================================
 // MMR Reranking (Maximum Marginal Relevance)
@@ -578,6 +578,24 @@ function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
         typePenalty = TYPE_DIVERSITY_WEIGHT * (sameTypeCount / selected.length);
       }
 
+      // Temporal diversity bonus: boost memories from underrepresented time buckets
+      let temporalBonus = 0;
+      if (selected.length > 0 && TEMPORAL_DIVERSITY_WEIGHT > 0 && cand.created_at) {
+        const now = Date.now();
+        const candAge = now - new Date(cand.created_at).getTime();
+        const WEEK = 7 * 24 * 3600_000;
+        const MONTH = 30 * 24 * 3600_000;
+        const candBucket = candAge < WEEK ? 'recent' : candAge < MONTH ? 'medium' : 'archive';
+        const bucketCounts = { recent: 0, medium: 0, archive: 0 };
+        for (const s of selected) {
+          const sAge = now - new Date(s.created_at).getTime();
+          const sBucket = sAge < WEEK ? 'recent' : sAge < MONTH ? 'medium' : 'archive';
+          bucketCounts[sBucket]++;
+        }
+        const bucketShare = bucketCounts[candBucket] / selected.length;
+        temporalBonus = TEMPORAL_DIVERSITY_WEIGHT * Math.max(0, 0.5 - bucketShare);
+      }
+
       // Semantic diversity penalty: penalize high cosine similarity within same type
       let semanticPenalty = 0;
       if (selected.length > 0 && SEMANTIC_DIVERSITY_WEIGHT > 0 && cand.memory_type) {
@@ -596,7 +614,7 @@ function mmrRerank(candidates, finalLimit, lambda = MMR_LAMBDA) {
         }
       }
 
-      const mmrScore = lambda * relevance - (1 - lambda) * maxSim - typePenalty - semanticPenalty;
+      const mmrScore = lambda * relevance - (1 - lambda) * maxSim - typePenalty - semanticPenalty + temporalBonus;
       if (mmrScore > bestScore) {
         bestScore = mmrScore;
         bestIdx = i;

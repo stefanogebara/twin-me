@@ -43,6 +43,7 @@ import {
   ALPHA_CITATION_BASELINE,
   TYPE_DIVERSITY_WEIGHT,
   SEMANTIC_DIVERSITY_WEIGHT,
+  TEMPORAL_DIVERSITY_WEIGHT,
 } from './twin-config.js';
 
 // ─── Fixed constants (never modified by agent) ────────────────────────────────
@@ -130,8 +131,24 @@ function mmrRerank(candidates, k) {
         }
       }
 
-      // MMR_LAMBDA + TYPE_DIVERSITY_WEIGHT + SEMANTIC_DIVERSITY_WEIGHT from twin-config.js
-      const mmrScore = MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * maxSim - typePenalty - semanticPenalty;
+      // Temporal diversity bonus: boost underrepresented time buckets
+      let temporalBonus = 0;
+      if (selected.length > 0 && TEMPORAL_DIVERSITY_WEIGHT > 0 && cand.created_at) {
+        const now = Date.now();
+        const candAge = now - new Date(cand.created_at).getTime();
+        const WEEK = 7 * 24 * 3600_000;
+        const MONTH = 30 * 24 * 3600_000;
+        const candBucket = candAge < WEEK ? 'recent' : candAge < MONTH ? 'medium' : 'archive';
+        const bc = { recent: 0, medium: 0, archive: 0 };
+        for (const s of selected) {
+          const sa = now - new Date(s.created_at).getTime();
+          bc[sa < WEEK ? 'recent' : sa < MONTH ? 'medium' : 'archive']++;
+        }
+        temporalBonus = TEMPORAL_DIVERSITY_WEIGHT * Math.max(0, 0.5 - bc[candBucket] / selected.length);
+      }
+
+      // MMR with type + semantic + temporal diversity
+      const mmrScore = MMR_LAMBDA * relevance - (1 - MMR_LAMBDA) * maxSim - typePenalty - semanticPenalty + temporalBonus;
       if (mmrScore > bestScore) {
         bestScore = mmrScore;
         bestIdx = i;

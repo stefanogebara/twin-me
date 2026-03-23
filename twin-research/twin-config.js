@@ -87,6 +87,12 @@ export const HYDE_ENABLED = true;
 // 0.0 = disabled. Range: [0.0, 0.5]
 export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 
+// ─── Temporal Diversity ──────────────────────────────────────────────────────
+// Bonus for selecting memories from underrepresented time buckets in MMR.
+// Buckets: recent (0-7d), medium (7-30d), archive (30+d).
+// 0.0 = disabled. Range: [0.0, 0.3]
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
+
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
 // Formula: confidence * (importance/10) * min(1, CITATION_BASELINE + 0.05 * retrieval_count)
