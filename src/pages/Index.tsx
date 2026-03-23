@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ArrowRight, Music, Brain, Database, Bell, Shield } from 'lucide-react';
+import { ArrowRight, Music, Brain, Database, Bell, Shield, Menu, X } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 
@@ -75,6 +75,7 @@ const Index = () => {
   const { isSignedIn, isLoaded } = useAuth();
   const { enterDemoMode } = useDemo();
   const [activeService, setActiveService] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   /* Auto-cycle services every 4s */
   useEffect(() => {
     const timer = setInterval(() => {
@@ -95,15 +96,20 @@ const Index = () => {
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
       <nav className="flex items-center justify-between pl-5 pr-3 py-[10px] rounded-[32px] bg-[rgba(20,20,20,0.7)] backdrop-blur-[19.65px] border border-white/[0.08]">
         <div className="flex items-center justify-between w-full">
-          {/* Left: Logo */}
-          <span
-            className="text-[22px] cursor-pointer font-heading font-normal"
+          {/* Left: Logo — flower + TwinMe (matches auth & discover) */}
+          <div
+            className="flex items-center gap-1.5 cursor-pointer"
             onClick={() => navigate('/')}
           >
-            Twin Me
-          </span>
+            <img
+              src="/images/backgrounds/flower.png"
+              alt=""
+              className="w-7 h-7 rounded-full object-cover"
+            />
+            <span className="text-[22px] font-heading font-normal">TwinMe</span>
+          </div>
 
-          {/* Center: Nav links */}
+          {/* Center: Nav links (desktop) */}
           <div className="hidden md:flex items-center gap-8">
             <a
               href="#services"
@@ -128,7 +134,7 @@ const Index = () => {
             </a>
           </div>
 
-          {/* Right: Auth */}
+          {/* Right: Auth (desktop) + hamburger (mobile) */}
           <div className="flex items-center gap-2">
             {isLoaded && isSignedIn ? (
               <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
@@ -137,7 +143,7 @@ const Index = () => {
             ) : (
               <>
                 <SignInButton mode="modal" fallbackRedirectUrl="/discover" forceRedirectUrl="/discover">
-                  <button className="font-sans text-[13px] font-medium text-[var(--text-secondary)] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
+                  <button className="hidden md:inline-flex font-sans text-[13px] font-medium text-[var(--text-secondary)] bg-none border-none cursor-pointer transition-colors duration-150 py-2 px-4 hover:text-[#F5F0EB]">
                     Sign in
                   </button>
                 </SignInButton>
@@ -148,9 +154,36 @@ const Index = () => {
                 </SignInButton>
               </>
             )}
+            {/* Hamburger menu (mobile only) */}
+            <button
+              className="md:hidden p-2 text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
       </nav>
+      {/* Mobile menu dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden mt-2 rounded-2xl bg-[rgba(20,20,20,0.95)] backdrop-blur-[19.65px] border border-white/[0.08] py-3 px-5 flex flex-col gap-3">
+          {['services', 'features', 'how-it-works'].map((section) => (
+            <a
+              key={section}
+              href={`#${section}`}
+              className="font-sans text-[14px] font-medium text-[var(--text-secondary)] py-2 transition-colors hover:text-[#F5F0EB]"
+              onClick={(e) => {
+                e.preventDefault();
+                setMobileMenuOpen(false);
+                document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              {section === 'how-it-works' ? 'How it works' : section.charAt(0).toUpperCase() + section.slice(1)}
+            </a>
+          ))}
+        </div>
+      )}
       </div>
 
       {/* ────────────── ACT 1: EMOTIONAL HOOK ────────────── */}
