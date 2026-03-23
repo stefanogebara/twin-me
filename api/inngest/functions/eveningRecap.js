@@ -30,12 +30,29 @@ export const eveningRecapFunction = inngest.createFunction(
     id: 'evening-recap',
     name: 'Daily Evening Recap',
     retries: 1,
+    concurrency: { limit: 1, key: 'event.data.userId' },
   },
   { event: EVENTS.EVENING_RECAP },
   async ({ event, step }) => {
     const { userId } = event.data;
 
-    // Step 1: Atomic cooldown lock
+    // Step 1: HARD cooldown — check proactive_insights directly.
+    const shouldSkip = await step.run('hard-cooldown-check', async () => {
+      const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
+      const { count } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('category', 'evening_recap')
+        .gte('created_at', cutoff);
+      return (count || 0) > 0;
+    });
+
+    if (shouldSkip) {
+      return { success: false, reason: 'cooldown', message: `Insight exists within last ${COOLDOWN_HOURS}h` };
+    }
+
+    // Step 2: Atomic cooldown lock
     const lock = await step.run('acquire-cooldown-lock', async () => {
       return acquireCooldownLock(userId, 'evening_recap', COOLDOWN_HOURS);
     });

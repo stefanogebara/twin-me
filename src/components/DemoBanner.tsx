@@ -47,7 +47,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
     return (
       <div
         id="demo-banner"
-        className="sticky top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[var(--accent-vibrant)] to-[var(--accent-vibrant-hover)] text-white shadow-lg"
+        className="sticky top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[var(--accent-vibrant)] to-[var(--accent-vibrant-hover)] text-[var(--primary-foreground)] shadow-lg"
       >
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -66,7 +66,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
               <button
                 onClick={handleSignUp}
                 aria-label="Sign up for an account to save your data"
-                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 bg-white/15 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/25 transition-all duration-150 ease-out active:scale-[0.97] shadow-md"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 bg-black/10 text-[var(--primary-foreground)] rounded-lg text-xs sm:text-sm font-medium hover:bg-black/20 transition-all duration-150 ease-out active:scale-[0.97] shadow-md"
               >
                 <span className="hidden sm:inline">Sign up to save your data</span>
                 <span className="sm:hidden">Sign up</span>
@@ -76,7 +76,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={handleExitDemo}
               aria-label="Exit demo mode and return to home"
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-all duration-150 ease-out active:scale-[0.97]"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-black/10 text-[var(--primary-foreground)] rounded-lg text-xs sm:text-sm font-medium hover:bg-black/20 transition-all duration-150 ease-out active:scale-[0.97]"
             >
               <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" aria-hidden="true" />
               <span className="hidden sm:inline">Exit Demo</span>
@@ -111,7 +111,7 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({
             <button
               onClick={handleSignUp}
               aria-label="Create your real soul signature by signing up"
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-vibrant)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent-vibrant-hover)] transition-all duration-150 ease-out active:scale-[0.97] shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent-vibrant)] text-[var(--primary-foreground)] rounded-lg text-sm font-medium hover:bg-[var(--accent-vibrant-hover)] transition-all duration-150 ease-out active:scale-[0.97] shadow-sm"
             >
               Create Your Real Soul Signature
               <ArrowRight className="w-4 h-4" aria-hidden="true" />

@@ -37,7 +37,7 @@ const LOOKBACK_DAYS = 7;
 const AUTONOMY_LOOKBACK_DAYS = 14;
 
 export const actionReflectionFunction = inngest.createFunction(
-  { id: 'action-reflection', name: 'Action Reflection Engine', retries: 1 },
+  { id: 'action-reflection', name: 'Action Reflection Engine', retries: 1, concurrency: { limit: 1, key: 'event.data.userId' } },
   { event: EVENTS.ACTION_REFLECTION },
   async ({ event, step }) => {
     const { userId } = event.data;

@@ -24,6 +24,7 @@ export const morningBriefingFunction = inngest.createFunction(
     id: 'morning-briefing',
     name: 'Daily Morning Briefing',
     retries: 2,
+    concurrency: { limit: 1, key: 'event.data.userId' },
   },
   { event: EVENTS.GENERATE_BRIEFING },
   async ({ event, step }) => {

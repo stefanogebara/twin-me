@@ -35,7 +35,7 @@ const log = createLogger('IntelligentTriggers');
 const COOLDOWN_HOURS = 20;
 
 export const intelligentTriggersFunction = inngest.createFunction(
-  { id: 'intelligent-triggers', name: 'Intelligent Triggers Check', retries: 1 },
+  { id: 'intelligent-triggers', name: 'Intelligent Triggers Check', retries: 1, concurrency: { limit: 1, key: 'event.data.userId' } },
   { event: EVENTS.INTELLIGENT_TRIGGERS },
   async ({ event, step }) => {
     const { userId } = event.data;

@@ -22,6 +22,7 @@ export const sessionReflectionFunction = inngest.createFunction(
     id: 'session-reflection',
     name: 'Post-Session Twin Reflection',
     retries: 2,
+    concurrency: { limit: 1, key: 'event.data.userId' },
   },
   { event: EVENTS.SESSION_ENDED },
   async ({ event, step }) => {

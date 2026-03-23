@@ -10,6 +10,7 @@
  */
 
 import express from 'express';
+import crypto from 'crypto';
 import { webhookCallback } from 'grammy';
 import { getBot, sendMessage } from '../services/telegramService.js';
 import { supabaseAdmin } from '../services/database.js';
@@ -25,6 +26,28 @@ import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TelegramWebhook');
 const router = express.Router();
+
+// Telegram webhook secret verification — prevents unauthorized POST injections.
+// The secret is set via setWebhook API and sent in X-Telegram-Bot-Api-Secret-Token header.
+const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+function verifyTelegramSecret(req) {
+  if (!WEBHOOK_SECRET) {
+    // Fail CLOSED: if secret not configured, reject all requests
+    log.error('TELEGRAM_WEBHOOK_SECRET not set — rejecting webhook');
+    return false;
+  }
+  const headerSecret = req.headers['x-telegram-bot-api-secret-token'];
+  if (!headerSecret || typeof headerSecret !== 'string') return false;
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(WEBHOOK_SECRET, 'utf8'),
+      Buffer.from(headerSecret, 'utf8')
+    );
+  } catch {
+    return false; // length mismatch
+  }
+}
 
 // Rate limit: track messages per user (in-memory, simple)
 const rateLimitMap = new Map();
@@ -406,6 +429,11 @@ function isRateLimited(chatId) {
 let webhookHandler = null;
 
 router.post('/', (req, res, next) => {
+  // Verify Telegram webhook secret — reject unauthorized requests
+  if (!verifyTelegramSecret(req)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   if (!webhookHandler) {
     const bot = setupBotHandlers();
     if (!bot) {
