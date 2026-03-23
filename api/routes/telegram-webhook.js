@@ -184,27 +184,41 @@ function setupBotHandlers() {
     const userId = channel.user_id;
 
     try {
-      // Show typing indicator
+      // Show typing indicator — refresh every 4s since it expires after 5s.
+      // The LLM call takes 10-30s so we need to keep refreshing.
+      const typingInterval = setInterval(() => {
+        ctx.replyWithChatAction('typing').catch(() => {});
+      }, 4000);
       await ctx.replyWithChatAction('typing');
 
-      // Run twin chat pipeline (same as web)
-      const response = await processTwinMessage(userId, text);
+      try {
+        // Run twin chat pipeline (same as web)
+        const response = await processTwinMessage(userId, text);
 
-      // Store conversation in memory stream (single call stores both user + assistant)
-      await addConversationMemory(userId, text, response, { source: 'telegram' }).catch(() => {});
+        clearInterval(typingInterval);
 
-      // Send response (split long messages at 4096 char Telegram limit)
-      if (response.length <= 4096) {
-        await ctx.reply(response);
-      } else {
-        const chunks = splitMessage(response, 4096);
-        for (const chunk of chunks) {
-          await ctx.reply(chunk);
+        // Store conversation in memory stream
+        await addConversationMemory(userId, text, response, { source: 'telegram' }).catch(() => {});
+
+        // Send response (split long messages at 4096 char Telegram limit)
+        if (response.length <= 4096) {
+          await ctx.reply(response);
+        } else {
+          const chunks = splitMessage(response, 4096);
+          for (const chunk of chunks) {
+            await ctx.reply(chunk);
+          }
         }
+      } catch (innerErr) {
+        clearInterval(typingInterval);
+        throw innerErr;
       }
     } catch (err) {
       log.error('Telegram chat error', { userId, chatId, error: err.message });
-      await ctx.reply('Something went wrong. Try again in a moment.');
+      const userMsg = err.message?.includes('402') || err.message?.includes('credits')
+        ? 'My AI brain is temporarily offline (credits). Try again in a bit.'
+        : 'Something went wrong. Try again in a moment.';
+      await ctx.reply(userMsg).catch(() => {});
     }
   });
 
