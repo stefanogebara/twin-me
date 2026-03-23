@@ -112,6 +112,20 @@ async function redeemManual(code, userId) {
     .update({ invite_code_id: invite.id })
     .eq('id', userId);
 
+  // Auto-upgrade beta users to Plus plan (no Stripe needed for beta)
+  await supabaseAdmin
+    .from('user_subscriptions')
+    .upsert({
+      user_id: userId,
+      plan: 'pro',   // DB "pro" = user-facing "Plus" ($20/mo)
+      status: 'active',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+    .then(({ error: subErr }) => {
+      if (subErr) log.warn('Failed to upgrade beta user to Plus', { userId, error: subErr.message });
+      else log.info('Beta user auto-upgraded to Plus', { userId });
+    });
+
   log.info('Invite redeemed', { code, userId });
   return { success: true };
 }

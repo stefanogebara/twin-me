@@ -24,8 +24,19 @@ const ACTION_ALLOWLIST = Object.freeze({
   1: ['observe', 'suggest'],
   2: ['observe', 'suggest', 'draft'],
   3: ['observe', 'suggest', 'draft', 'execute', 'send_message', 'nudge', 'reminder'],
+  // Level 4 has same actions as level 3 — full autonomy still requires
+  // user confirmation for all actions during beta. The twin suggests and
+  // drafts but never executes without the user reviewing first.
   4: ['observe', 'suggest', 'draft', 'execute', 'send_message', 'nudge', 'reminder', 'modify_memory', 'call_api'],
 });
+
+// Actions that ALWAYS require user confirmation regardless of autonomy level.
+// Even at level 4 (Autonomous), these actions are downgraded to Draft & Confirm.
+const CONFIRMATION_REQUIRED = Object.freeze(new Set([
+  'send_message',    // Never auto-send emails/messages on behalf of user
+  'call_api',        // Never auto-call external APIs without review
+  'execute',         // All executions need user review during beta
+]));
 
 // Actions that are NEVER allowed regardless of autonomy level
 const BLOCKED_ACTIONS = Object.freeze(new Set([
@@ -75,7 +86,17 @@ export async function checkPolicy(userId, autonomyLevel, actionType, skillName =
     };
   }
 
-  // 3. Rate limiting
+  // 3. Confirmation-required actions (always downgrade to suggest mode)
+  if (CONFIRMATION_REQUIRED.has(actionType)) {
+    return {
+      allowed: true,
+      reason: null,
+      requiresConfirmation: true,
+      message: `Action "${actionType}" requires user confirmation before execution`,
+    };
+  }
+
+  // 4. Rate limiting
   const limit = RATE_LIMITS[actionType];
   if (limit) {
     const isOverLimit = await checkRateLimit(userId, actionType, limit);
