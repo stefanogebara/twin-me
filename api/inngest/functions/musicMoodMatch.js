@@ -45,14 +45,24 @@ export const musicMoodMatchFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId } = event.data;
 
-    // Step 1: Atomic cooldown lock — prevents race conditions where multiple
-    // concurrent Inngest events all pass the check before any writes their result.
-    const lock = await step.run('acquire-cooldown-lock', async () => {
-      return acquireCooldownLock(userId, 'music_mood_match', COOLDOWN_HOURS);
+    // Step 1: HARD cooldown — check proactive_insights directly.
+    // The atomic lock wasn't sufficient because agent_events has no unique constraint.
+    // This is the simplest, most reliable check: if ANY music insight exists in the
+    // last COOLDOWN_HOURS, bail immediately. No race condition possible because
+    // we check AFTER previous executions have already inserted their insight.
+    const shouldSkip = await step.run('hard-cooldown-check', async () => {
+      const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
+      const { count } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('category', 'music_mood_match')
+        .gte('created_at', cutoff);
+      return (count || 0) > 0;
     });
 
-    if (!lock.acquired) {
-      return { success: false, reason: 'cooldown', message: lock.reason };
+    if (shouldSkip) {
+      return { success: false, reason: 'cooldown', message: `Music insight exists within last ${COOLDOWN_HOURS}h` };
     }
 
     // Step 2: Check prerequisites — autonomy + Spotify connection

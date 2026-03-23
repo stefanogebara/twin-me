@@ -18,6 +18,7 @@ import personalityAnalyzerService from '../services/personalityAnalyzerService.j
 import soulSignatureGenerator from '../services/soulSignatureGenerator.js';
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
 import { ARCHETYPES } from '../services/personalityAssessmentService.js';
+import { generateSoulSignature } from '../services/soulSignatureService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('SoulSignature');
@@ -734,6 +735,47 @@ router.get('/extraction-progress', authenticateToken, async (req, res) => {
       success: false,
       error: 'Failed to check extraction progress',
       message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred'
+    });
+  }
+});
+
+// ====================================================================
+// GET /api/soul-signature/layers
+// Get 5-layer soul signature portrait (Values, Rhythms, Taste,
+// Connections, Growth Edges). Returns cached version if fresh (12h TTL),
+// regenerates if stale.
+// ====================================================================
+router.get('/layers', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    log.info('Fetching 5-layer soul signature', { userId });
+
+    const result = await generateSoulSignature(userId);
+
+    if (result.insufficient) {
+      return res.json({
+        success: true,
+        data: null,
+        message: `Need more data to generate your soul signature (${result.memoryCount} memories found, minimum ${10} required).`,
+        memoryCount: result.memoryCount,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        layers: result.layers,
+        generatedAt: result.generatedAt,
+        cached: result.cached,
+      },
+    });
+  } catch (error) {
+    log.error('Error fetching 5-layer soul signature:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate soul signature',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
     });
   }
 });
