@@ -15,6 +15,7 @@ import { eveningRecapFunction } from '../inngest/functions/eveningRecap.js';
 import { emailTriageFunction } from '../inngest/functions/emailTriage.js';
 import { intelligentTriggersFunction } from '../inngest/functions/intelligentTriggers.js';
 import { actionReflectionFunction } from '../inngest/functions/actionReflection.js';
+import { personalityValidationFunction } from '../inngest/functions/personalityValidation.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('InngestRoute');
@@ -35,6 +36,7 @@ function getHandler() {
           emailTriageFunction,
           intelligentTriggersFunction,
           actionReflectionFunction,
+          personalityValidationFunction,
         ],
       });
       log.info('Inngest handler initialized');

@@ -19,10 +19,12 @@ import { getAvailableTools, executeTool, getToolSchemas } from './toolRegistry.j
 import { getBlocks } from './coreMemoryService.js';
 import { canAct, logAgentAction, getAutonomyBySkillName } from './autonomyService.js';
 import { checkPolicy } from './policyEngine.js';
+import { buildProcedureBlock, predictOutcome } from './proceduralMemoryService.js';
 import { getRedisClient, isRedisAvailable } from './redisClient.js';
 import { reportProgress } from './taskProgressService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { buildToolPreferenceBlock, recordToolOutcome } from './toolPreferenceService.js';
 
 const log = createLogger('AgenticCore');
 
@@ -110,23 +112,36 @@ export async function planTask(userId, taskDescription, context = {}) {
     log.warn('Failed to fetch error history', { userId, error: err.message });
   }
 
-  // Fetch procedure memories — learned patterns from past action outcomes
+  // Fetch procedural memories — Hebbian-weighted learned action patterns
   let procedureBlock = '';
   try {
-    const { data: procedures } = await supabaseAdmin
-      .from('user_memories')
-      .select('content')
-      .eq('user_id', userId)
-      .eq('memory_type', 'fact')
-      .like('content', '[PROCEDURE:%')
-      .order('importance_score', { ascending: false })
-      .limit(5);
-
-    if (procedures?.length > 0) {
-      procedureBlock = `\nLEARNED PATTERNS (from past outcomes):\n${procedures.map(p => `- ${p.content.replace(/^\[PROCEDURE:\w+\]\s*/, '')}`).join('\n')}\n`;
-    }
+    const skillForProcs = context.skillName || null;
+    procedureBlock = await buildProcedureBlock(userId, skillForProcs);
   } catch (err) {
     log.warn('Failed to fetch procedures', { userId, error: err.message });
+  }
+
+  // Outcome prediction — Reflexion-style pre-check (warn if low success rate)
+  let predictionBlock = '';
+  try {
+    const skillForPred = context.skillName || null;
+    if (skillForPred) {
+      const prediction = await predictOutcome(userId, skillForPred);
+      if (prediction.warning) {
+        predictionBlock = `\nWARNING: ${prediction.warning}\nConsider a different approach or ask the user before proceeding.\n`;
+      }
+    }
+  } catch (err) {
+    log.warn('Failed to predict outcome', { userId, error: err.message });
+  }
+
+  // Fetch tool preferences — learned per-user per-skill tool success rates
+  let toolPreferenceBlock = '';
+  try {
+    const skillForPrefs = context.skillName || 'general_task';
+    toolPreferenceBlock = await buildToolPreferenceBlock(userId, skillForPrefs);
+  } catch (err) {
+    log.warn('Failed to fetch tool preferences', { userId, error: err.message });
   }
 
   const prompt = `You are a task planner for a personal digital twin. Break this task into concrete steps.
@@ -137,7 +152,7 @@ ${coreBlocks.soul_signature?.content || 'Unknown'}
 USER'S CONTEXT:
 ${coreBlocks.human?.content || 'Unknown'}
 ${coreBlocks.goals?.content || ''}
-${procedureBlock}${errorBlock}
+${procedureBlock}${toolPreferenceBlock}${predictionBlock}${errorBlock}
 AVAILABLE TOOLS:
 ${toolNames}
 
@@ -303,7 +318,7 @@ export async function runAgentLoop(userId, taskDescription, options = {}) {
   }
 
   // Phase 1: Plan
-  const plan = await planTask(userId, taskDescription);
+  const plan = await planTask(userId, taskDescription, { skillName: effectiveSkillName });
   if (!plan?.steps?.length) {
     return { success: false, reason: 'planning_failed' };
   }
@@ -327,6 +342,17 @@ export async function runAgentLoop(userId, taskDescription, options = {}) {
       detail: step.action?.slice(0, 80),
       summary: plan.summary,
     }).catch(() => {});
+
+    // Record tool outcome for preference learning (fire-and-forget)
+    if (step.tool) {
+      recordToolOutcome(
+        userId,
+        effectiveSkillName,
+        step.tool,
+        !!result.success,
+        result.elapsedMs || 0
+      ).catch(() => {});
+    }
 
     // Track errors for future avoidance
     if (!result.success && step.tool) {

@@ -22,6 +22,7 @@
 import { inngest, EVENTS } from '../../services/inngestClient.js';
 import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { addMemory } from '../../services/memoryStreamService.js';
+import { storeProcedure } from '../../services/proceduralMemoryService.js';
 import { getBlocks, updateBlock } from '../../services/coreMemoryService.js';
 import { collectFromActionFeedback } from '../../services/finetuning/preferenceCollector.js';
 import { supabaseAdmin } from '../../services/database.js';
@@ -172,17 +173,17 @@ Procedure:`
 
           const procedureText = (response?.content || response?.text || '').trim();
           if (procedureText && procedureText.length > 20) {
-            // Store as procedure memory
-            const mem = await addMemory(
+            // Store as first-class procedure memory (Hebbian-tracked)
+            const procId = await storeProcedure(
               userId,
-              `[PROCEDURE:${skill}] ${procedureText}`,
-              'fact',
-              { source: 'action_reflection', skill_name: skill, procedure: true },
-              { importanceScore: 8 }
+              procedureText,
+              skill,
+              'action_reflection',
+              { importance: 8, personalityAlignment: stats.acceptanceRate }
             );
 
-            if (mem?.id) {
-              created.push({ skill, procedureId: mem.id, text: procedureText.slice(0, 100) });
+            if (procId) {
+              created.push({ skill, procedureId: procId, text: procedureText.slice(0, 100) });
             }
           }
         } catch (err) {
@@ -346,6 +347,21 @@ Write a brief reflection as if the twin is thinking about what it learned. Start
       return stored;
     });
 
+    // Step 8: Auto-retrain DPO if enough new preference pairs accumulated
+    const retrainResult = await step.run('check-auto-retrain', async () => {
+      try {
+        const { checkBatchRetrain } = await import('../../services/finetuning/autoRetrain.js');
+        const result = await checkBatchRetrain([userId]);
+        if (result.triggered > 0) {
+          log.info('Auto-retrain triggered from action reflection', { userId });
+        }
+        return { checked: true, triggered: result.triggered || 0 };
+      } catch (err) {
+        log.warn('Auto-retrain check failed', { userId, error: err.message });
+        return { checked: false, triggered: 0 };
+      }
+    });
+
     log.info('Action reflection complete', {
       userId,
       outcomes: outcomes.length,
@@ -353,6 +369,7 @@ Write a brief reflection as if the twin is thinking about what it learned. Start
       procedures: procedures.length,
       autonomySuggestions: autonomySuggestions.length,
       reflectionStored: results.reflection,
+      retrainTriggered: retrainResult.triggered,
     });
 
     return {
@@ -362,6 +379,7 @@ Write a brief reflection as if the twin is thinking about what it learned. Start
       procedures: procedures.length,
       autonomySuggestions: autonomySuggestions.length,
       reflectionStored: results.reflection,
+      retrainTriggered: retrainResult.triggered,
     };
   }
 );

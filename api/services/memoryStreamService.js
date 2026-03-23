@@ -81,7 +81,7 @@ async function rateImportance(content) {
  * @param {object} options - { skipEmbedding, skipImportance, importanceScore }
  * @returns {object} { id, importance_score } or null on failure
  */
-const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'observation', 'reflection']);
+const VALID_MEMORY_TYPES = new Set(['conversation', 'fact', 'platform_data', 'observation', 'reflection', 'procedure']);
 
 // Ebbinghaus-inspired decay stability (in days) per memory type.
 // Higher = decays slower. Used by the weekly forgetting cron.

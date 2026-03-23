@@ -224,6 +224,13 @@ export async function logAgentAction(userId, actionData) {
  * Record user response to an agent action.
  */
 export async function recordActionResponse(actionId, response, outcomeData = null) {
+  // First, get the action to know the skill_name and user_id
+  const { data: action } = await supabaseAdmin
+    .from('agent_actions')
+    .select('user_id, skill_name')
+    .eq('id', actionId)
+    .single();
+
   const { error } = await supabaseAdmin
     .from('agent_actions')
     .update({
@@ -235,5 +242,20 @@ export async function recordActionResponse(actionId, response, outcomeData = nul
 
   if (error) {
     log.error('Failed to record action response', { actionId, error });
+    return;
+  }
+
+  // Hebbian update: strengthen/weaken procedural memory based on feedback
+  if (action?.user_id && action?.skill_name) {
+    try {
+      const { strengthenProcedure, weakenProcedure } = await import('./proceduralMemoryService.js');
+      if (response === 'accepted' || response === 'positive') {
+        await strengthenProcedure(action.user_id, action.skill_name);
+      } else if (response === 'rejected' || response === 'negative') {
+        await weakenProcedure(action.user_id, action.skill_name);
+      }
+    } catch (err) {
+      log.warn('Hebbian update failed', { actionId, error: err.message });
+    }
   }
 }

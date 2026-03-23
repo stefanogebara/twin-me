@@ -42,4 +42,7 @@ export const EVENTS = {
   EMAIL_TRIAGE: 'twin/skill.email_triage',
   INTELLIGENT_TRIGGERS: 'twin/skill.intelligent_triggers',
   ACTION_REFLECTION: 'twin/skill.action_reflection',
+
+  // Maintenance
+  PERSONALITY_VALIDATION: 'twin/maintenance.personality_validation',
 };

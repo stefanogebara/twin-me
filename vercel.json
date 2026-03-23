@@ -92,6 +92,10 @@
     {
       "path": "/api/cron/action-reflection",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/personality-validation",
+      "schedule": "0 3 * * 0"
     }
   ]
 }
