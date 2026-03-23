@@ -14,6 +14,7 @@ import { webhookCallback } from 'grammy';
 import { getBot, sendMessage } from '../services/telegramService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
+import { classifyMessageTier, CHAT_TIER_MODELS } from '../services/chatRouter.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
@@ -341,7 +342,12 @@ async function processTwinMessage(userId, message) {
       content: m.content,
     }));
 
-  // Call LLM (non-streaming for Telegram)
+  // Smart routing: use cheapest model that maintains quality (same as web chat)
+  // LIGHT (Gemini Flash $0.15/M) for greetings, STANDARD (DeepSeek $0.25/M) for casual,
+  // DEEP (Sonnet $3/M) only for emotional/identity/complex. Saves ~75% on most messages.
+  const chatTier = classifyMessageTier(message);
+  const modelOverride = CHAT_TIER_MODELS[chatTier] || undefined;
+
   const response = await complete({
     system: [{ type: 'text', text: system }],
     messages: [...history, { role: 'user', content: message }],
@@ -349,7 +355,8 @@ async function processTwinMessage(userId, message) {
     maxTokens: 800,
     temperature: personalityProfile?.temperature ?? 0.7,
     userId,
-    serviceName: 'twin-chat:telegram',
+    serviceName: `twin-chat:telegram_${chatTier}`,
+    modelOverride,
   });
 
   return response?.content || response?.text || "I'm having trouble responding right now. Try again in a moment.";
