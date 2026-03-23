@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Bot, Zap, Brain, Heart, Music, AlertTriangle } from 'lucide-react';
 import { getAccessToken } from '@/services/api/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const getAuthHeaders = () => {
   const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');

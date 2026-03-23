@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 interface PlatformCardProps {
   name: string;

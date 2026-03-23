@@ -2,7 +2,7 @@
  * API Base - Shared utilities for all API modules
  */
 
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004';
 
 // In-memory access token store (not in localStorage — XSS protection)
 let currentAccessToken: string | null = null;

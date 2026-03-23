@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import { decryptToken } from '../services/encryption.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronPlatformPolling');
@@ -339,6 +340,7 @@ async function pollAllUsers() {
  * Called every 30 minutes by Vercel Cron
  */
 export default async function handler(req, res) {
+  const startTime = Date.now();
   log.info('Platform polling endpoint called');
 
   // Security: Verify cron secret (timing-safe)
@@ -351,17 +353,38 @@ export default async function handler(req, res) {
     });
   }
 
-  // Execute platform polling
-  const result = await pollAllUsers();
+  try {
+    // Execute platform polling
+    const result = await pollAllUsers();
+    const durationMs = Date.now() - startTime;
 
-  // Return results
-  const status = result.success ? 200 : 500;
+    await logCronExecution(
+      'platform-polling',
+      result.success ? 'success' : 'error',
+      durationMs,
+      result,
+      result.error || null
+    );
 
-  log.info('Platform polling completed', { result });
+    // Return results
+    const status = result.success ? 200 : 500;
 
-  return res.status(status).json({
-    ...result,
-    timestamp: new Date().toISOString(),
-    cronType: 'platform-polling',
-  });
+    log.info('Platform polling completed', { result });
+
+    return res.status(status).json({
+      ...result,
+      timestamp: new Date().toISOString(),
+      cronType: 'platform-polling',
+    });
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    await logCronExecution('platform-polling', 'error', durationMs, null, error.message);
+    log.error('Platform polling failed', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error',
+      timestamp: new Date().toISOString(),
+      cronType: 'platform-polling',
+    });
+  }
 }

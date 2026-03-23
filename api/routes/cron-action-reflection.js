@@ -11,19 +11,19 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
 import { supabaseAdmin } from '../services/database.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronActionReflection');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     const authResult = verifyCronSecret(req);
     if (!authResult.authorized) {
       return res.status(authResult.status).json({ error: authResult.error });
     }
-
-    const startTime = Date.now();
 
     // Get users with resolved agent_actions in the last 7 days
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -48,8 +48,12 @@ router.post('/', async (req, res) => {
     const elapsed = Date.now() - startTime;
     log.info('Action reflection cron complete', { users: uniqueUserIds.length, triggered, elapsedMs: elapsed });
 
+    await logCronExecution('action-reflection', 'success', elapsed, { users: uniqueUserIds.length, triggered });
+
     return res.json({ success: true, users: uniqueUserIds.length, triggered, elapsedMs: elapsed });
   } catch (err) {
+    const elapsed = Date.now() - startTime;
+    await logCronExecution('action-reflection', 'error', elapsed, null, err.message);
     log.error('Cron failed', { error: err.message });
     return res.status(500).json({ success: false, error: err.message });
   }

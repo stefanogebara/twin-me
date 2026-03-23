@@ -4,6 +4,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { sendWeeklyDigest } from '../services/emailService.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronEmailDigest');
@@ -11,6 +12,8 @@ const log = createLogger('CronEmailDigest');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
+
   // Verify cron secret (timing-safe)
   const authResult = verifyCronSecret(req);
   if (!authResult.authorized) {
@@ -93,7 +96,9 @@ router.post('/', async (req, res) => {
     }
   }
 
+  const elapsed = Date.now() - startTime;
   log.info('Digest run complete', { sent, skipped });
+  await logCronExecution('email-digest', 'success', elapsed, { sent, skipped });
   res.json({ sent, skipped });
 });
 

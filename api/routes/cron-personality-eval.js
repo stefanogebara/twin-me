@@ -11,6 +11,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { evaluatePersonality } from '../services/personalityEvaluationService.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronPersonalityEval');
@@ -76,8 +77,12 @@ router.post('/', async (req, res) => {
     const durationMs = Date.now() - startTime;
     log.info('Evaluation complete', { evaluated: stats.evaluated, skipped: stats.skipped, durationMs });
 
+    await logCronExecution('personality-eval', 'success', durationMs, stats);
+
     res.json({ success: true, ...stats, durationMs });
   } catch (err) {
+    const durationMs = Date.now() - startTime;
+    await logCronExecution('personality-eval', 'error', durationMs, null, err.message);
     log.error('Personality eval error', { error: err.message });
     res.status(500).json({ error: err.message });
   }

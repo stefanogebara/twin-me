@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUp, Sun, Music, Calendar, Mail, Heart } from 'lucide-react';
 import { getAccessToken } from '@/services/api/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 interface QuickAction {
   label: string;

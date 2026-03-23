@@ -12,19 +12,19 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
 import { supabaseAdmin } from '../services/database.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronEveningRecap');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     const authResult = verifyCronSecret(req);
     if (!authResult.authorized) {
       return res.status(authResult.status).json({ error: authResult.error });
     }
-
-    const startTime = Date.now();
 
     // Get all active users (users who have sent a message in the last 7 days)
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -55,6 +55,8 @@ router.post('/', async (req, res) => {
     const elapsed = Date.now() - startTime;
     log.info('Evening recap cron complete', { activeUsers: uniqueUserIds.length, triggered, elapsedMs: elapsed });
 
+    await logCronExecution('evening-recap', 'success', elapsed, { activeUsers: uniqueUserIds.length, triggered });
+
     return res.json({
       success: true,
       activeUsers: uniqueUserIds.length,
@@ -62,6 +64,8 @@ router.post('/', async (req, res) => {
       elapsedMs: elapsed,
     });
   } catch (err) {
+    const elapsed = Date.now() - startTime;
+    await logCronExecution('evening-recap', 'error', elapsed, null, err.message);
     log.error('Evening recap cron failed', { error: err.message });
     return res.status(500).json({ success: false, error: err.message });
   }

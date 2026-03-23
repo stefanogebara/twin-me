@@ -12,20 +12,20 @@
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { checkTimeTriggered } from '../services/prospectiveMemoryService.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronProspective');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)
     const authResult = verifyCronSecret(req);
     if (!authResult.authorized) {
       return res.status(authResult.status).json({ error: authResult.error });
     }
-
-    const startTime = Date.now();
     const triggered = await checkTimeTriggered();
 
     const elapsed = Date.now() - startTime;
@@ -33,6 +33,8 @@ router.post('/', async (req, res) => {
       triggered: triggered.length,
       elapsedMs: elapsed
     });
+
+    await logCronExecution('prospective-check', 'success', elapsed, { triggered: triggered.length });
 
     return res.json({
       success: true,
@@ -46,6 +48,7 @@ router.post('/', async (req, res) => {
     });
   } catch (err) {
     log.error('Prospective memory cron failed', { error: err.message });
+    await logCronExecution('prospective-check', 'error', Date.now() - startTime, null, err.message);
     return res.status(500).json({
       success: false,
       error: err.message

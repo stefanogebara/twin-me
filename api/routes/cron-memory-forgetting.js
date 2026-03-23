@@ -23,6 +23,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronMemoryForgetting');
@@ -33,6 +34,7 @@ const router = express.Router();
 const BATCH_SIZE = 500;
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)
     const authResult = verifyCronSecret(req);
@@ -41,7 +43,6 @@ router.post('/', async (req, res) => {
     }
 
     log.info('Starting weekly pass');
-    const startTime = Date.now();
 
     const stats = {
       tier1Archived: 0,
@@ -307,12 +308,16 @@ router.post('/', async (req, res) => {
     const durationMs = Date.now() - startTime;
     log.info('Weekly pass complete', { durationMs, t1: stats.tier1Archived, t2: stats.tier2Archived, t3: stats.tier3Decayed, t4Decayed: stats.tier4LinksDecayed, t4Deleted: stats.tier4LinksDeleted, t5: stats.tier5Shifted, t5Users: stats.tier5UsersProcessed, t6: stats.tier6ReflectionsArchived });
 
+    await logCronExecution('memory-forgetting', 'success', durationMs, stats);
+
     res.json({
       success: true,
       ...stats,
       durationMs,
     });
   } catch (err) {
+    const durationMs = Date.now() - startTime;
+    await logCronExecution('memory-forgetting', 'error', durationMs, null, err.message);
     log.error('Unexpected error', { error: err.message });
     res.status(500).json({ error: err.message });
   }

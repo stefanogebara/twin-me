@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { supabaseAdmin } from '../services/database.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronClaudeSync');
@@ -336,6 +337,7 @@ async function runSyncForUser(userId) {
  * Vercel cron job endpoint - runs daily at 4 AM
  */
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)
     const authResult = verifyCronSecret(req);
@@ -355,6 +357,8 @@ router.post('/', async (req, res) => {
 
     if (usersError || !users || users.length === 0) {
       log.info('No users with Claude Desktop sync enabled');
+      const elapsed = Date.now() - startTime;
+      await logCronExecution('claude-sync', 'success', elapsed, { usersProcessed: 0 });
       return res.json({
         success: true,
         message: 'No users with Claude Desktop sync enabled',
@@ -370,8 +374,11 @@ router.post('/', async (req, res) => {
     }
 
     const successCount = results.filter(r => r.success).length;
+    const elapsed = Date.now() - startTime;
 
     log.info('Sync completed', { successCount, totalUsers: results.length });
+
+    await logCronExecution('claude-sync', 'success', elapsed, { usersProcessed: results.length, successfulSyncs: successCount });
 
     return res.json({
       success: true,
@@ -381,6 +388,8 @@ router.post('/', async (req, res) => {
     });
 
   } catch (error) {
+    const elapsed = Date.now() - startTime;
+    await logCronExecution('claude-sync', 'error', elapsed, null, error.message);
     log.error('Cron error', { error });
     return res.status(500).json({
       success: false,

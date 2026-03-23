@@ -11,7 +11,7 @@ import DeepInterview from './components/DeepInterview';
 import RevealPhase from './components/RevealPhase';
 import DeepeningPhase from './components/DeepeningPhase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 // Infer name from email
 const inferNameFromEmail = (email: string): string => {

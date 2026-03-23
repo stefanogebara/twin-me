@@ -17,6 +17,7 @@ import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { runSaliencyReplay } from '../services/saliencyReplayService.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
 import { supabaseAdmin } from '../services/database.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronSaliencyReplay');
@@ -24,6 +25,7 @@ const log = createLogger('CronSaliencyReplay');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     const authResult = verifyCronSecret(req);
     if (!authResult.authorized) {
@@ -31,7 +33,6 @@ router.post('/', async (req, res) => {
     }
 
     log.info('Starting daily pass');
-    const startTime = Date.now();
 
     const stats = await runSaliencyReplay();
 
@@ -64,12 +65,16 @@ router.post('/', async (req, res) => {
     const durationMs = Date.now() - startTime;
     log.info('Daily pass complete', { durationMs });
 
+    await logCronExecution('memory-saliency-replay', 'success', durationMs, { ...stats, reflectionsTriggered });
+
     res.json({
       success: true,
       ...stats,
       durationMs,
     });
   } catch (err) {
+    const durationMs = Date.now() - startTime;
+    await logCronExecution('memory-saliency-replay', 'error', durationMs, null, err.message);
     log.error('Unexpected error', { error: err.message });
     res.status(500).json({ error: err.message });
   }

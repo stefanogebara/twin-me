@@ -62,7 +62,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
   const { toast } = useToast();
   const { getToken } = useAuth();
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!twinId || twinId === 'placeholder') {

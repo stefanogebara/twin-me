@@ -55,7 +55,7 @@ const GmailCallback: React.FC = () => {
       }
 
       // Send callback data to backend
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
       const token = localStorage.getItem('authToken');
 
       if (!token) {

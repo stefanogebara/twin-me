@@ -15,6 +15,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronMemoryArchive');
@@ -22,6 +23,7 @@ const log = createLogger('CronMemoryArchive');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)
     const authResult = verifyCronSecret(req);
@@ -30,7 +32,6 @@ router.post('/', async (req, res) => {
     }
 
     log.info('Starting run');
-    const startTime = Date.now();
 
     // Find users with more than 5,000 memories (archive candidates)
     const { data: candidates, error: candidatesErr } = await supabaseAdmin.rpc(
@@ -86,8 +87,12 @@ router.post('/', async (req, res) => {
     const durationMs = Date.now() - startTime;
     log.info('Archive run complete', { usersProcessed, totalArchived, durationMs });
 
+    await logCronExecution('memory-archive', 'success', durationMs, { usersProcessed, totalArchived });
+
     res.json({ success: true, usersProcessed, totalArchived, durationMs });
   } catch (err) {
+    const durationMs = Date.now() - startTime;
+    await logCronExecution('memory-archive', 'error', durationMs, null, err.message);
     log.error('Unexpected error', { error: err.message });
     res.status(500).json({ error: err.message });
   }

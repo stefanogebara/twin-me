@@ -3,7 +3,7 @@ import { ChevronDown, Lightbulb, ThumbsUp, ThumbsDown } from 'lucide-react';
 import type { ProactiveInsight } from '@/types/dashboard';
 import { getAccessToken } from '@/services/api/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 interface InsightsBannerProps {
   insights: ProactiveInsight[];

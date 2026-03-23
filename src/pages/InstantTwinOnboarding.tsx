@@ -180,7 +180,7 @@ const InstantTwinOnboarding = () => {
         description: `Redirecting to ${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name}`,
       });
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
       const healthPlatforms = ['oura'];
       const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin', 'github'];
@@ -321,7 +321,7 @@ const InstantTwinOnboarding = () => {
     optimisticDisconnect(provider);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
       const fetchOptions: RequestInit = {
         method: 'DELETE',

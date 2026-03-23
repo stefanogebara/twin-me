@@ -8,7 +8,7 @@ import PortfolioNarrative from '../components/portfolio/PortfolioNarrative';
 import PortfolioPlatforms from '../components/portfolio/PortfolioPlatforms';
 import PortfolioFooter from '../components/portfolio/PortfolioFooter';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const DEFAULT_COLOR_SCHEME = {
   primary: '#E8D5B7',

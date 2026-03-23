@@ -9,6 +9,7 @@
 
 import { runObservationIngestion } from '../services/observationIngestion.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronObservation');
@@ -18,6 +19,7 @@ const log = createLogger('CronObservation');
  * Called every 30 minutes by Vercel Cron
  */
 export default async function handler(req, res) {
+  const startTime = Date.now();
   log.info('Observation ingestion endpoint called');
 
   // Security: Verify cron secret (timing-safe)
@@ -72,6 +74,15 @@ export default async function handler(req, res) {
     }
 
     const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;
+    const durationMs = Date.now() - startTime;
+
+    await logCronExecution(
+      'observation-ingestion',
+      status === 200 ? 'success' : 'error',
+      durationMs,
+      result,
+      result.errors?.length > 0 ? result.errors.join('; ') : null
+    );
 
     log.info('Observation ingestion completed', { result });
 
@@ -82,6 +93,8 @@ export default async function handler(req, res) {
       cronType: 'observation-ingestion',
     });
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+    await logCronExecution('observation-ingestion', 'error', durationMs, null, error.message);
     log.error('Observation ingestion failed', { error: error.message });
     return res.status(500).json({
       success: false,

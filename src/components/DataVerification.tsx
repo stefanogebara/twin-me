@@ -207,7 +207,7 @@ export const DataVerification: React.FC<DataVerificationProps> = ({ userId, conn
   const handleReconnect = async (platform: string) => {
     setRefreshingPlatform(platform);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
       const response = await fetch(`${baseUrl}/connectors/connect/${platform}?userId=${userId}`, {
         method: 'GET',
         headers: {

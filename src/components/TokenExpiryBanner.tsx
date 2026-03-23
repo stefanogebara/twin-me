@@ -44,7 +44,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
   const { data: platformStatus } = usePlatformStatus(user?.id);
 

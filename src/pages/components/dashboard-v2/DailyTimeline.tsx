@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Coffee, Moon, Music2, Mail, Bell, Lightbulb, TrendingUp, Zap, Bot } from 'lucide-react';
 import { getAccessToken } from '@/services/api/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 interface TimelineItem {
   id: string;

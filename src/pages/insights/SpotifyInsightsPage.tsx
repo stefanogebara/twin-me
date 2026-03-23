@@ -35,7 +35,7 @@ const SpotifyInsightsPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004';
 
   const colors = {
     text: 'var(--foreground)',

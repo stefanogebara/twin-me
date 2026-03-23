@@ -359,8 +359,8 @@ async function processTwinMessage(userId, message) {
   // Smart routing: use cheapest model that maintains quality (same as web chat)
   // LIGHT (Gemini Flash $0.15/M) for greetings, STANDARD (DeepSeek $0.25/M) for casual,
   // DEEP (Sonnet $3/M) only for emotional/identity/complex. Saves ~75% on most messages.
-  const chatTier = classifyMessageTier(message);
-  const modelOverride = CHAT_TIER_MODELS[chatTier] || undefined;
+  const routing = classifyMessageTier(message);
+  const modelOverride = CHAT_TIER_MODELS[routing.tier] || undefined;
 
   const response = await complete({
     system: [{ type: 'text', text: system }],
@@ -369,7 +369,7 @@ async function processTwinMessage(userId, message) {
     maxTokens: 800,
     temperature: personalityProfile?.temperature ?? 0.7,
     userId,
-    serviceName: `twin-chat:telegram_${chatTier}`,
+    serviceName: `twin-chat:telegram_${routing.tier}`,
     modelOverride,
   });
 

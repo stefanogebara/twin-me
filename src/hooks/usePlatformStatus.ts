@@ -72,7 +72,7 @@ const fetchPlatformStatus = async (userId: string): Promise<PlatformStatusMap> =
     return getDemoPlatformStatus();
   }
 
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
   const url = `${baseUrl}/connectors/status/${encodeURIComponent(userId)}`;
 
   const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
