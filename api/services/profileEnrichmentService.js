@@ -39,6 +39,9 @@ import {
   probeSocialProfiles,
 } from './enrichment/quickEnrichment.js';
 
+// Deep enrichment — extract content from discovered social profile URLs
+import { deepEnrichFromProfiles } from './enrichment/socialProfileScraper.js';
+
 // Provider-specific enrichment
 import {
   comprehensivePersonSearch,
@@ -155,6 +158,10 @@ class ProfileEnrichmentService {
 
   async probeSocialProfiles(username) {
     return probeSocialProfiles(username);
+  }
+
+  async deepEnrichFromProfiles(socialLinks, existingData = {}) {
+    return deepEnrichFromProfiles(socialLinks, existingData);
   }
 
   // ============================================================
@@ -435,7 +442,24 @@ class ProfileEnrichmentService {
     }
 
     // =================================================================
-    // STEP 0.5: Domain enrichment (FREE, instant)
+    // STEP 0.5a: Deep enrichment from discovered social profile URLs
+    // =================================================================
+    if (enrichedData.social_links?.length > 0) {
+      log.info('Step 0.5a: Deep enrichment from social profile URLs...');
+      const deepData = await deepEnrichFromProfiles(enrichedData.social_links, enrichedData);
+      if (deepData && Object.keys(deepData).length > 0) {
+        // Merge deep enrichment data, but don't overwrite existing values
+        for (const [key, value] of Object.entries(deepData)) {
+          if (value != null && !enrichedData[key]) {
+            enrichedData[key] = value;
+          }
+        }
+        log.info('Deep enrichment added fields:', { count: Object.keys(deepData).length });
+      }
+    }
+
+    // =================================================================
+    // STEP 0.5b: Domain enrichment (FREE, instant)
     // =================================================================
     const domainData = enrichFromDomain(email);
     if (domainData) {
