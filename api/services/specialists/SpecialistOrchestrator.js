@@ -17,6 +17,7 @@
 import MusicPsychologistAgent from './MusicPsychologistAgent.js';
 import BiometricsSpecialistAgent from './BiometricsSpecialistAgent.js';
 import CalendarBehaviorAgent from './CalendarBehaviorAgent.js';
+import EmailSpecialistAgent from './EmailSpecialistAgent.js';
 import { RESEARCH_SOURCES } from './SpecialistAgentBase.js';
 import { createLogger } from '../logger.js';
 
@@ -27,11 +28,13 @@ class SpecialistOrchestrator {
     this.musicAgent = new MusicPsychologistAgent();
     this.biometricsAgent = new BiometricsSpecialistAgent();
     this.calendarAgent = new CalendarBehaviorAgent();
+    this.emailAgent = new EmailSpecialistAgent();
 
     this.agents = {
       spotify: this.musicAgent,
       whoop: this.biometricsAgent,
-      calendar: this.calendarAgent
+      calendar: this.calendarAgent,
+      email: this.emailAgent
     };
 
     this.researchSources = RESEARCH_SOURCES;
@@ -76,7 +79,8 @@ class SpecialistOrchestrator {
       const availableData = {
         spotify: platformData.spotify,
         whoop: platformData.whoop,
-        calendar: platformData.calendar
+        calendar: platformData.calendar,
+        email: platformData.email
       };
 
       const activeDomains = Object.entries(availableData)
@@ -362,6 +366,11 @@ class SpecialistOrchestrator {
         name: this.calendarAgent.name,
         domain: this.calendarAgent.domain,
         model: this.calendarAgent.model
+      },
+      emailAgent: {
+        name: this.emailAgent.name,
+        domain: this.emailAgent.domain,
+        model: this.emailAgent.model
       }
     };
   }

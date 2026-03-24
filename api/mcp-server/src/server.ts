@@ -28,6 +28,7 @@ import {
   getUserWritingProfile,
   getRecentConversations,
 } from './utils/service-adapters.js';
+import { registerBridgeHandlers } from './tools/twin-tools-bridge.js';
 
 // Single tool schema
 const ChatWithTwinSchema = z.object({
@@ -57,13 +58,12 @@ export class TwinMeMcpServer {
   }
 
   private setupHandlers(): void {
-    // List tools - just ONE
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: 'chat_with_twin',
-            description: `Talk to your digital twin. Your twin knows you through your connected platforms:
+    // Define the native tools handler (chat_with_twin)
+    const nativeListTools = async () => ({
+      tools: [
+        {
+          name: 'chat_with_twin',
+          description: `Talk to your digital twin. Your twin knows you through your connected platforms:
 
 - **Spotify**: What you're listening to, recent tracks, favorite artists & genres
 - **Google Calendar**: Today's events, upcoming schedule
@@ -77,23 +77,22 @@ Just chat naturally. Ask things like:
 - "What does my music say about my mood?"
 - "What's on my schedule?"
 - "Tell me something interesting about myself"`,
-            inputSchema: {
-              type: 'object',
-              properties: {
-                message: {
-                  type: 'string',
-                  description: 'Your message to your digital twin',
-                },
+          inputSchema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                description: 'Your message to your digital twin',
               },
-              required: ['message'],
             },
+            required: ['message'],
           },
-        ],
-      };
+        },
+      ],
     });
 
-    // Handle the ONE tool
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    // Define the native call handler (chat_with_twin)
+    const nativeCallTool = async (request: { params: { name: string; arguments?: Record<string, unknown> } }) => {
       const { name, arguments: args } = request.params;
 
       if (name !== 'chat_with_twin') {
@@ -116,7 +115,10 @@ Just chat naturally. Ask things like:
           isError: true,
         };
       }
-    });
+    };
+
+    // Register the bridge: merges toolRegistry.js tools with native tools
+    registerBridgeHandlers(this.server, nativeListTools, nativeCallTool);
   }
 
   private setupErrorHandler(): void {

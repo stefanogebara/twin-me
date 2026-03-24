@@ -25,6 +25,7 @@ import { reportProgress } from './taskProgressService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { buildToolPreferenceBlock, recordToolOutcome } from './toolPreferenceService.js';
+import { canDelegate, delegateToSpecialist } from './agentDelegationService.js';
 
 const log = createLogger('AgenticCore');
 
@@ -222,6 +223,34 @@ export async function executeStep(userId, step, taskContext = '') {
   if (!step.tool) {
     // No tool needed — this is a reasoning/output step
     return { success: true, data: step.action, source: 'reasoning' };
+  }
+
+  // Check if a specialist agent can handle this step (richer domain-specific results)
+  try {
+    const delegation = canDelegate(step);
+    if (delegation.canDelegate && delegation.confidence >= 0.7) {
+      log.info('Delegating step to specialist', {
+        userId,
+        specialist: delegation.specialistName,
+        confidence: delegation.confidence,
+        action: step.action?.slice(0, 60)
+      });
+      const specialistResult = await delegateToSpecialist(userId, delegation.specialistKey, {
+        action: step.action,
+        tool: step.tool,
+        tool_params: step.tool_params || {},
+        taskContext
+      });
+      if (specialistResult.success) {
+        return specialistResult;
+      }
+      // Specialist failed — fall through to generic tool execution
+      log.warn('Specialist delegation failed, falling back to tool execution', {
+        userId, specialist: delegation.specialistName, error: specialistResult.error
+      });
+    }
+  } catch (err) {
+    log.warn('Delegation check failed, using generic tool execution', { error: err.message });
   }
 
   try {

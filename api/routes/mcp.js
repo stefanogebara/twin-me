@@ -7,12 +7,74 @@ import express from 'express';
 import mcpClient from '../services/mcp-client.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
+import { registry, getAvailableTools } from '../services/toolRegistry.js';
 
 const log = createLogger('MCPRoute');
 
 const router = express.Router();
 
-// All MCP routes require authentication
+/**
+ * GET /api/mcp/tools
+ * List all tools available via MCP (from toolRegistry).
+ * No auth required — for debugging/documentation only.
+ */
+router.get('/tools', (req, res) => {
+  try {
+    const tools = [];
+    for (const [, tool] of registry) {
+      tools.push({
+        name: tool.name,
+        platform: tool.platform,
+        description: tool.description,
+        category: tool.category,
+        parameters: tool.parameters,
+        requiresConnection: tool.requiresConnection,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        tools,
+        count: tools.length,
+        note: 'These tools are available via the MCP server bridge. Use an MCP client with a valid API key to execute them.',
+      },
+    });
+  } catch (error) {
+    log.error('Error listing MCP tools:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list MCP tools',
+    });
+  }
+});
+
+/**
+ * GET /api/mcp/tools/available
+ * List tools available for the authenticated user (filtered by connected platforms).
+ */
+router.get('/tools/available', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const tools = await getAvailableTools(userId);
+
+    res.json({
+      success: true,
+      data: {
+        tools,
+        count: tools.length,
+      },
+    });
+  } catch (error) {
+    log.error('Error listing available tools:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list available tools',
+    });
+  }
+});
+
+// All remaining MCP routes require authentication
 router.use(authenticateUser);
 
 /**
