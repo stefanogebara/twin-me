@@ -26,6 +26,7 @@ import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { buildToolPreferenceBlock, recordToolOutcome } from './toolPreferenceService.js';
 import { canDelegate, delegateToSpecialist } from './agentDelegationService.js';
+import { routeContext } from './contextRouter.js';
 
 const log = createLogger('AgenticCore');
 
@@ -98,8 +99,28 @@ async function saveErrorHistory(userId, errors) {
  * Uses DeepSeek (cheap) for planning.
  */
 export async function planTask(userId, taskDescription, context = {}) {
+  // Pre-execution context filtering (Dimension.dev-inspired three-parallel-analysis)
+  // Routes tools, memory domains, and procedures BEFORE building the planner prompt.
+  // Reduces 37+ tools to the 5-8 most relevant, cutting token waste and improving plan quality.
+  let routedContext = null;
+  try {
+    routedContext = await routeContext(userId, taskDescription, { skillName: context.skillName });
+    log.info('Context routing applied', {
+      userId,
+      tools: routedContext.tools.length,
+      domain: routedContext.memoryDomains.domain,
+      confidence: routedContext.confidence.toFixed(2),
+    });
+  } catch (err) {
+    log.warn('Context routing failed, falling back to all tools', { userId, error: err.message });
+  }
+
   const coreBlocks = await getBlocks(userId);
-  const availableTools = await getAvailableTools(userId);
+
+  // Use filtered tools from context router, or fall back to all tools
+  const availableTools = routedContext?.tools?.length > 0
+    ? routedContext.tools
+    : await getAvailableTools(userId);
   const toolNames = availableTools.map(t => `${t.name}: ${t.description}`).join('\n');
 
   // Fetch past errors so the agent avoids repeating mistakes
@@ -113,11 +134,20 @@ export async function planTask(userId, taskDescription, context = {}) {
     log.warn('Failed to fetch error history', { userId, error: err.message });
   }
 
-  // Fetch procedural memories — Hebbian-weighted learned action patterns
+  // Use procedures from context router if available, else fetch directly
   let procedureBlock = '';
   try {
-    const skillForProcs = context.skillName || null;
-    procedureBlock = await buildProcedureBlock(userId, skillForProcs);
+    if (routedContext?.procedures?.length > 0) {
+      const lines = routedContext.procedures.map(p => {
+        const meta = p.metadata || {};
+        const rate = Math.round(((meta.success_count || 0) / Math.max(1, meta.attempt_count || 1)) * 100);
+        return `- [${meta.skill || 'general'}] ${p.content} (${rate}% success, ${meta.attempt_count || 0} uses)`;
+      });
+      procedureBlock = `\nLEARNED PROCEDURES (from past outcomes):\n${lines.join('\n')}\n`;
+    } else {
+      const skillForProcs = context.skillName || null;
+      procedureBlock = await buildProcedureBlock(userId, skillForProcs);
+    }
   } catch (err) {
     log.warn('Failed to fetch procedures', { userId, error: err.message });
   }
@@ -198,11 +228,23 @@ Rules:
     }
 
     const plan = JSON.parse(jsonMatch[0]);
+
+    // Attach routing metadata so callers can use memory domain weights
+    if (routedContext) {
+      plan._routedContext = {
+        memoryDomains: routedContext.memoryDomains,
+        specialists: routedContext.specialists,
+        confidence: routedContext.confidence,
+      };
+    }
+
     log.info('Task planned', {
       userId,
       task: taskDescription.slice(0, 60),
       steps: plan.steps?.length,
-      summary: plan.summary
+      summary: plan.summary,
+      routedTools: availableTools.length,
+      routedDomain: routedContext?.memoryDomains?.domain,
     });
 
     return plan;

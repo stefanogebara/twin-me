@@ -800,4 +800,56 @@ async function _fetchCalibrationContext(userId) {
   return `[YOUR STORY — told in ${data.questions_asked || '?'} questions]\n${lines.join('\n')}`;
 }
 
-export { fetchTwinContext, buildContextSourcesMeta };
+/**
+ * Route memory context using pre-computed memory domain weights.
+ * Converts context router weights into budget overrides for fetchTwinContext.
+ *
+ * This allows the agenticCore planner to request context that's weighted
+ * toward the relevant memory types for the current task (e.g., heavy on
+ * platform_data for schedule queries, heavy on reflections for identity queries).
+ *
+ * @param {string} userId - User ID
+ * @param {string} userMessage - The user's message
+ * @param {{ weights: object, domain: string }} memoryDomains - From contextRouter.routeContext()
+ * @returns {Promise<TwinContext>}
+ */
+async function routeMemoryContext(userId, userMessage, memoryDomains = null) {
+  if (!memoryDomains || !memoryDomains.weights) {
+    // No routing info — use default fetchTwinContext behavior
+    return fetchTwinContext(userId, userMessage);
+  }
+
+  const { weights } = memoryDomains;
+
+  // Convert 0-1 weights into memory budgets
+  const baseBudgets = { reflections: 15, facts: 6, platformData: 4, conversations: 4 };
+  const memoryBudgets = {
+    reflections: Math.max(1, Math.round(baseBudgets.reflections * (weights.reflections || 0.6))),
+    facts: Math.max(1, Math.round(baseBudgets.facts * (weights.facts || 0.6))),
+    platformData: Math.max(1, Math.round(baseBudgets.platformData * (weights.platform_data || 0.5))),
+    conversations: Math.max(1, Math.round(baseBudgets.conversations * (weights.conversations || 0.5))),
+  };
+
+  // Choose retrieval weight preset based on domain
+  const DOMAIN_TO_WEIGHTS = {
+    identity: 'identity',
+    recent_activity: 'recent',
+    recall: 'default',
+    goals: 'identity',
+  };
+  const memoryWeights = DOMAIN_TO_WEIGHTS[memoryDomains.domain] || 'default';
+
+  log.info('Routing memory context', {
+    userId,
+    domain: memoryDomains.domain,
+    budgets: memoryBudgets,
+    weights: memoryWeights,
+  });
+
+  return fetchTwinContext(userId, userMessage, {
+    memoryBudgets,
+    memoryWeights,
+  });
+}
+
+export { fetchTwinContext, buildContextSourcesMeta, routeMemoryContext };
