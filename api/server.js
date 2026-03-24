@@ -423,6 +423,7 @@ import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
+import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
 import webPushRoutes from './routes/web-push.js';
 import telegramWebhookRoutes from './routes/telegram-webhook.js';
 import telegramLinkRoutes from './routes/telegram-link.js';
@@ -522,6 +523,7 @@ app.use('/api/nango', nangoRoutes); // Nango unified API for 10 platform connect
 app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
 app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
 app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
+app.use('/api/whatsapp', whatsappKapsoWebhookRoutes); // WhatsApp Kapso inbound webhook
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
 app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
