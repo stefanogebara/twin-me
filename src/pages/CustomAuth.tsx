@@ -212,7 +212,7 @@ For privacy concerns: privacy@twinme.ai`
         </h1>
         <p
           className="text-sm mb-10"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
         >
           Sign in to discover your soul signature
         </p>
@@ -268,12 +268,12 @@ For privacy concerns: privacy@twinme.ai`
                 {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
               </button>
             </div>
-            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}>
               No code?{' '}
               <button
                 onClick={() => navigate('/waitlist')}
                 className="underline transition-opacity hover:opacity-70 min-h-[44px] inline-flex items-center"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
+                style={{ color: 'rgba(255,255,255,0.5)' }}
               >
                 Join the waitlist
               </button>
@@ -313,7 +313,7 @@ For privacy concerns: privacy@twinme.ai`
         <button
           onClick={handleGoogleSignIn}
           disabled={loading || !inviteValid}
-          className="w-full flex items-center justify-center gap-2.5 h-11 rounded-[6px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="w-full flex items-center justify-center gap-2.5 h-12 rounded-full text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
             color: 'var(--primary-foreground)',
@@ -393,9 +393,8 @@ For privacy concerns: privacy@twinme.ai`
       <div
         className="hidden lg:flex flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
         style={{
-          background: `linear-gradient(90deg, rgba(236,13,13,0.2) 0%, rgba(236,13,13,0.2) 100%),
-            linear-gradient(180deg, rgb(51,52,160) 0%, rgb(131,156,174) 30.3%, rgb(114,149,179) 38.9%,
-              rgb(90,90,107) 65.4%, rgb(97,74,74) 86.5%, rgb(95,76,139) 100%)`,
+          background: `linear-gradient(180deg, rgb(30,22,15) 0%, rgb(60,40,25) 25%, rgb(90,60,35) 50%,
+              rgb(65,45,30) 75%, rgb(25,18,12) 100%)`,
           borderRadius: '24px',
         }}
       >

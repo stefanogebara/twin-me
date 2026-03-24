@@ -421,7 +421,7 @@ const Index = () => {
               return (
                 <div
                   key={feature.title}
-                  className="glass-feature-card bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 relative overflow-hidden transition-all duration-150 hover:border-[rgba(232,160,80,0.25)] hover:bg-white/[0.05]"
+                  className="glass-feature-card bg-white/[0.06] backdrop-blur-[42px] border border-white/[0.10] rounded-[20px] py-8 px-7 relative overflow-hidden transition-all duration-150 hover:border-[rgba(232,160,80,0.25)] hover:bg-white/[0.08]"
                 >
                   <div
                     className="mb-4 flex items-center justify-center w-12 h-12 rounded-[14px] bg-[rgba(232,160,80,0.08)] border border-[rgba(232,160,80,0.18)]"
