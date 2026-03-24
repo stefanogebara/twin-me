@@ -546,14 +546,8 @@ router.post('/skip', authenticateUser, async (req, res) => {
 
     log.info(`User ${userId} skipped enrichment`);
 
-    // Fire-and-forget: seed whatever was already discovered before skipping
-    seedMemoriesFromEnrichment(userId).then(seedResult => {
-      if (seedResult.memoriesStored > 0) {
-        log.info(`Seeded ${seedResult.memoriesStored} memories (skip path) for user ${userId}`);
-      }
-    }).catch(err => {
-      log.warn('Memory seeding on skip failed (non-blocking):', err.message);
-    });
+    // User explicitly skipped — do NOT seed memories without consent.
+    // Memory seeding only happens via POST /api/enrichment/confirm.
 
     // Save a record indicating the user skipped
     const skipResult = await profileEnrichmentService.saveEnrichment(userId, 'skipped@user.action', {

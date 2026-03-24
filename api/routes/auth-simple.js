@@ -8,7 +8,6 @@ import { encryptToken, encryptState, decryptState } from '../services/encryption
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import * as betaInviteService from '../services/betaInviteService.js';
 import { sendWelcomeEmail } from '../services/emailService.js';
-import { seedMemoriesFromEnrichment } from '../services/enrichmentMemoryBridge.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
@@ -302,21 +301,12 @@ router.post('/signup', authLimiter, async (req, res) => {
     }
 
     // Trigger background enrichment for email signup users
+    // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
+    // Memory seeding happens only after user confirms via POST /api/enrichment/confirm.
     const fullName = `${(firstName || '').trim()} ${(lastName || '').trim()}`.trim();
     profileEnrichmentService.enrichFromEmail(normalizedEmail, fullName)
       .then(data => {
-        if (data) {
-          return profileEnrichmentService.saveEnrichment(newUser.id, normalizedEmail, data);
-        }
-      })
-      .then(() => {
-        log.info('Enrichment completed for email signup user', { userId: newUser.id });
-        return seedMemoriesFromEnrichment(newUser.id);
-      })
-      .then(seedResult => {
-        if (seedResult?.memoriesStored) {
-          log.info('Enrichment memories seeded (email signup)', { userId: newUser.id, count: seedResult.memoriesStored });
-        }
+        if (data) return profileEnrichmentService.saveEnrichment(newUser.id, normalizedEmail, data);
       })
       .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
@@ -858,23 +848,13 @@ router.get('/oauth/callback', async (req, res) => {
       }
 
       // Trigger background enrichment for new users
+      // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
+      // Memory seeding happens only after user confirms via POST /api/enrichment/confirm.
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
       log.info('Triggering background enrichment for new user', { userId: user.id });
       profileEnrichmentService.enrichFromEmail(userData.email, fullName)
         .then(data => {
-          if (data) {
-            return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
-          }
-        })
-        .then(() => {
-          log.info('Enrichment completed for user', { userId: user.id });
-          // Seed enrichment data into memory stream so twin knows from first conversation
-          return seedMemoriesFromEnrichment(user.id);
-        })
-        .then(seedResult => {
-          if (seedResult?.memoriesStored) {
-            log.info('Enrichment memories seeded', { userId: user.id, count: seedResult.memoriesStored });
-          }
+          if (data) return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
         })
         .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
@@ -1136,22 +1116,13 @@ router.post('/oauth/callback', async (req, res) => {
         }
 
         // Trigger background enrichment for new users
+        // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
+        // Memory seeding happens only after user confirms via POST /api/enrichment/confirm.
         const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
         log.info('Triggering background enrichment for new user', { userId: user.id });
         profileEnrichmentService.enrichFromEmail(userData.email, fullName)
           .then(data => {
-            if (data) {
-              return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
-            }
-          })
-          .then(() => {
-            log.info('Enrichment completed for user (POST)', { userId: user.id });
-            return seedMemoriesFromEnrichment(user.id);
-          })
-          .then(seedResult => {
-            if (seedResult?.memoriesStored) {
-              log.info('Enrichment memories seeded (POST)', { userId: user.id, count: seedResult.memoriesStored });
-            }
+            if (data) return profileEnrichmentService.saveEnrichment(user.id, userData.email, data);
           })
           .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 

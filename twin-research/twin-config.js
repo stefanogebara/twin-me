@@ -170,7 +170,7 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
 // Lets the research agent fine-tune the twin's voice without retraining OCEAN.
 // Range: [-0.2, +0.2] for each
 export const SAMPLING_OVERRIDES = {
-  temperature_delta: 0.0,
+  temperature_delta: -0.05,
   top_p_delta: 0.0,
   frequency_penalty_delta: 0.0,
   presence_penalty_delta: 0.15,

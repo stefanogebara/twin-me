@@ -3,6 +3,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDashboardContext } from '@/hooks/useDashboardContext';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
+import { WelcomeGuide } from './components/dashboard-v2/WelcomeGuide';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { TwinStats } from './components/dashboard-v2/TwinStats';
@@ -61,6 +62,8 @@ export function DashboardV2() {
         insightCount={data.greeting.insightCount}
         streak={data.greeting.streak}
       />
+
+      <WelcomeGuide firstName={data.greeting.firstName} />
 
       {data.heroInsight && (
         <HeroInsight
