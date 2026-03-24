@@ -34,7 +34,11 @@
  *   Only win: presence_penalty_delta +0.15 → 0.875 (knowledge +0.039, confirmed).
  *   10 experiments: sampling params, oracle, budgets, neuropils, neurotransmitters — all near-optimal.
  *   Eval variance ~+-0.014. Config parameter space exhausted for single-param changes.
- * SESSION 8: System prompt engineering — targeting knowledge accuracy (weakest at 0.793).
+ * SESSION 8: Sampling parameter tuning — targeting chat quality (knowledge accuracy weakest at 0.766).
+ *   Best win: temp_delta -0.05 + freq_penalty_delta +0.10 → chat=0.912 (baseline 0.865, +0.047).
+ *   Knowledge accuracy 0.766→0.845, authenticity 0.959→1.000, personality fidelity 0.852→0.900.
+ *   8 experiments: temp, freq_pen, oracle strength, budgets (2x), neurotransmitter, temp/freq extremes.
+ *   Discarded: oracle 0.8 (needs full strength), budget shifts (reflections>facts), extreme sampling.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -105,9 +109,9 @@ export const ALPHA_CITATION_BASELINE = 0.90;
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
   reflections:   3,
-  platform_data: 4,
+  platform_data: 6,
   facts:         5,
-  conversations: 8,
+  conversations: 6,
 };
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────
