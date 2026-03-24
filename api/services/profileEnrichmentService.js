@@ -228,8 +228,8 @@ class ProfileEnrichmentService {
     return buildSearchQuery(email, name, emailDomain);
   }
 
-  async searchWithBrave(name, email) {
-    return searchWithBrave(name, email);
+  async searchWithBrave(name, email, context = {}) {
+    return searchWithBrave(name, email, context);
   }
 
   async searchWithSonar(name, email, prompt, apiKey) {

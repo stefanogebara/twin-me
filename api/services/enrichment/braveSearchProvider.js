@@ -89,7 +89,7 @@ export async function fetchPageText(url, maxChars = 5000) {
  * Run 3-5 targeted Brave queries in parallel and collect all snippets.
  * Deep scrapes top results, prioritizing personal/interview content.
  */
-export async function searchWithBrave(name, email) {
+export async function searchWithBrave(name, email, context = {}) {
   const apiKey = process.env.BRAVE_SEARCH_API_KEY;
   if (!apiKey) return null;
 
@@ -98,23 +98,37 @@ export async function searchWithBrave(name, email) {
   const isGenericEmail = ['gmail.com', 'hotmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com'].includes(emailDomain.toLowerCase());
 
   const domainName = !isGenericEmail ? emailDomain.split('.')[0] : null;
-  const nameQuery = domainName ? `"${name}" "${domainName}"` : `"${name}"`;
+
+  // Build context-aware disambiguators from quickEnrich data
+  const disambiguators = [];
+  if (context.github_location) disambiguators.push(context.github_location);
+  if (context.github_company) disambiguators.push(context.github_company);
+  if (context.github_top_repos?.length) disambiguators.push(context.github_top_repos[0]?.split(' ')[0]);
+  if (context.hn_top_stories?.length) disambiguators.push('Hacker News');
+  if (context.github_languages?.length) disambiguators.push(context.github_languages.slice(0, 2).join(' '));
+  if (context.discovered_location) disambiguators.push(context.discovered_location);
+
+  // Use disambiguators to find the RIGHT person
+  const contextClue = disambiguators.length > 0 ? ` ${disambiguators[0]}` : '';
+  const nameQuery = domainName ? `"${name}" "${domainName}"` : `"${name}"${contextClue}`;
 
   const queries = [
-    // Core identity
-    nameQuery,
-    `"${name}" site:linkedin.com/in`,
-    // Social profiles (dev + mainstream)
+    // Core identity with context (most important — finds the RIGHT Stefano Gebara)
+    `"${name}"${contextClue} (engineer OR developer OR founder OR student OR professional)`,
+    // LinkedIn with disambiguator
+    `"${name}" site:linkedin.com/in${contextClue}`,
+    // Social profiles by username (high precision)
     `"${emailUsername}" site:github.com OR site:linkedin.com OR site:twitter.com OR site:instagram.com`,
-    `"${emailUsername}" site:pinterest.com OR site:goodreads.com OR site:strava.com OR site:tiktok.com`,
-    // Personal stories — works for anyone (student, professional, retiree)
-    `${nameQuery} (interview OR podcast OR "about me" OR profile OR biography OR "my story")`,
-    // Social media presence (mainstream platforms)
-    `"${name}" site:twitter.com OR site:instagram.com OR site:facebook.com OR site:medium.com OR site:youtube.com`,
-    // Education + community (great for students, alumni, volunteers)
-    `"${name}" (university OR graduated OR "class of" OR student OR alumni OR volunteer OR community)`,
-    // Hobbies, interests, lifestyle (normal people signal)
-    `"${name}" (blog OR writes OR photographer OR artist OR coach OR teacher OR runner OR musician OR chef)`,
+    // Personal stories with context
+    `"${name}"${contextClue} (interview OR podcast OR "about me" OR profile OR biography)`,
+    // Education + career
+    `"${name}" (university OR graduated OR "class of" OR student OR alumni OR school OR degree)${contextClue}`,
+    // Work history + location
+    `"${name}" (CEO OR founder OR engineer OR manager OR works at OR employed)${contextClue}`,
+    // Location + life context
+    `"${name}" (lives in OR based in OR from OR moved to OR born in OR grew up)${contextClue}`,
+    // Hobbies, interests, lifestyle
+    `"${name}" (blog OR writes OR photographer OR artist OR runner OR musician OR hobby)${contextClue}`,
   ];
 
   const results = await Promise.allSettled(
