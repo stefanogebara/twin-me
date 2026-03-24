@@ -19,6 +19,169 @@ function escapeHtml(str) {
 if (!resend) log.warn('RESEND_API_KEY not set — email sending disabled');
 const FROM = process.env.RESEND_FROM_EMAIL || 'twin@twinme.me';
 const APP_URL = process.env.VITE_APP_URL || 'https://twin-ai-learn.vercel.app';
+const LOGO_URL = `${APP_URL}/images/backgrounds/flower.png`;
+
+// ============================================================================
+// Shared email shell — black/white, Instrument Serif + Inter, matching hero page
+// ============================================================================
+
+function emailShell(bodyContent) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body {
+    margin: 0; padding: 0;
+    background-color: #0C0C0C;
+    color: #F5F5F4;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 48px 28px 40px;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 40px;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .logo-text {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: #F5F5F4;
+  }
+  .heading {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    color: #F5F5F4;
+    margin: 0 0 8px;
+    line-height: 1.3;
+  }
+  .subheading {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+    color: #F5F5F4;
+    margin: 32px 0 16px;
+    line-height: 1.3;
+  }
+  .body-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: rgba(245, 245, 244, 0.6);
+    margin: 0 0 16px;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .card p {
+    font-size: 15px;
+    line-height: 1.65;
+    color: rgba(245, 245, 244, 0.75);
+    margin: 0;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(245, 245, 244, 0.3);
+    margin-bottom: 14px;
+  }
+  .code-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 16px;
+    padding: 28px;
+    margin: 24px 0;
+    text-align: center;
+  }
+  .code-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(245, 245, 244, 0.3);
+  }
+  .code-value {
+    font-family: 'Inter', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #F5F5F4;
+    margin: 14px 0 0;
+  }
+  .cta {
+    display: inline-block;
+    background: #F5F5F4;
+    color: #0C0C0C;
+    text-decoration: none;
+    padding: 14px 36px;
+    border-radius: 100px;
+    font-weight: 600;
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
+    margin-top: 28px;
+  }
+  .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    margin: 36px 0;
+    border: none;
+  }
+  .footer {
+    margin-top: 40px;
+    font-size: 12px;
+    color: rgba(245, 245, 244, 0.25);
+    line-height: 1.7;
+  }
+  .footer a {
+    color: rgba(245, 245, 244, 0.25);
+    text-decoration: underline;
+  }
+  .list-item {
+    font-size: 14px;
+    line-height: 1.8;
+    color: rgba(245, 245, 244, 0.55);
+    margin-bottom: 4px;
+  }
+  .list-item strong {
+    color: #F5F5F4;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo-row">
+    <img src="${LOGO_URL}" alt="" class="logo-icon" />
+    <span class="logo-text">TwinMe</span>
+  </div>
+  ${bodyContent}
+</div>
+</body>
+</html>`;
+}
+
 
 /**
  * Generate a signed unsubscribe token for a user.
@@ -35,103 +198,85 @@ export function verifyUnsubscribeToken(userId, token) {
 
 /**
  * Weekly digest email.
- * @param {object} opts
- * @param {string}   opts.toEmail
- * @param {string}   opts.firstName
- * @param {string[]} opts.reflections  — top 3 reflection strings
- * @param {number}   opts.newMemories  — count of new memories this week
- * @param {string}   opts.userId       — for opt-out link
  */
 export async function sendWeeklyDigest({ toEmail, firstName, reflections, newMemories, userId }) {
   if (!resend) throw new Error('Email service not configured');
 
   const unsubToken = generateUnsubscribeToken(userId);
   const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
+  const safeName = escapeHtml(firstName);
 
   const reflectionCards = reflections
     .slice(0, 3)
-    .map(text => `<div class="card"><p style="font-size:16px;line-height:1.6;margin:0">${escapeHtml(text.slice(0, 300))}</p></div>`)
+    .map(text => `<div class="card"><p>${escapeHtml(text.slice(0, 300))}</p></div>`)
     .join('');
+
+  const body = `
+  <p class="heading">Your twin noticed something, ${safeName}</p>
+  <p class="body-text">Here's what stood out this week.</p>
+
+  <hr class="divider" />
+
+  <div class="section-label">This week's reflections</div>
+  ${reflectionCards}
+  ${newMemories > 0 ? `<p style="font-size:13px;color:rgba(245,245,244,0.3);margin-top:8px">+${newMemories} new memories this week</p>` : ''}
+
+  <a href="${APP_URL}/talk-to-twin" class="cta">Talk to your twin</a>
+
+  <div class="footer">
+    <p>You're receiving this because you use TwinMe.</p>
+    <p><a href="${unsubUrl}">Unsubscribe from weekly emails</a></p>
+  </div>`;
 
   return resend.emails.send({
     from: FROM,
     to: toEmail,
-    subject: `Your twin noticed something this week, ${escapeHtml(firstName)}`,
-    html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
-.c{max-width:600px;margin:0 auto;padding:40px 24px}
-.logo{font-size:20px;font-weight:700;color:#818cf8;margin-bottom:32px}
-.card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:20px 24px;margin-bottom:12px}
-.section-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-bottom:16px}
-.cta{display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;margin-top:24px}
-.footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
-</style></head><body><div class="c">
-<div class="logo">TwinMe</div>
-<p style="color:#9ca3af;margin-bottom:28px;font-size:15px">Hey ${escapeHtml(firstName)} — here's what your twin noticed this week.</p>
-<div class="section-lbl">This week's reflections</div>
-${reflectionCards}
-${newMemories > 0 ? `<p style="color:#6b7280;font-size:13px;margin-top:8px">+${newMemories} new memories added this week.</p>` : ''}
-<br>
-<a href="${APP_URL}/talk-to-twin" class="cta">Talk to your twin →</a>
-<div class="footer">
-  <p>You're receiving this because you use TwinMe.</p>
-  <p><a href="${unsubUrl}" style="color:#4b5563">Unsubscribe from weekly emails</a></p>
-</div>
-</div></body></html>`,
+    subject: `Your twin noticed something this week, ${safeName}`,
+    html: emailShell(body),
   });
 }
 
 /**
  * Welcome email for new beta users.
- * @param {object} opts
- * @param {string} opts.toEmail
- * @param {string} opts.firstName
  */
 export async function sendWelcomeEmail({ toEmail, firstName }) {
-  if (!resend) return; // Silently skip if no Resend key
+  if (!resend) return;
 
   const safeName = escapeHtml(firstName || 'there');
+
+  const body = `
+  <p class="heading">Welcome, ${safeName}</p>
+  <p class="body-text">You're one of the first people to try TwinMe. Your digital twin is now live and learning about you.</p>
+
+  <hr class="divider" />
+
+  <p class="subheading">Get the most out of it</p>
+
+  <p class="list-item"><strong>Connect platforms</strong> &mdash; Spotify, YouTube, Gmail give your twin real context</p>
+  <p class="list-item"><strong>Chat with your twin</strong> &mdash; the more you talk, the better it knows you</p>
+  <p class="list-item"><strong>Give feedback</strong> &mdash; use the feedback button anytime</p>
+
+  <a href="${APP_URL}/dashboard" class="cta">Open your dashboard</a>
+
+  <div class="footer">
+    <p>You're part of a small group shaping what TwinMe becomes. We read every piece of feedback.</p>
+    <p style="color:rgba(245,245,244,0.15)">TwinMe &mdash; discover what makes you, you.</p>
+  </div>`;
 
   try {
     await resend.emails.send({
       from: FROM,
       to: toEmail,
       subject: `Welcome to TwinMe, ${safeName}`,
-      html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
-.c{max-width:600px;margin:0 auto;padding:40px 24px}
-.logo{font-size:20px;font-weight:700;color:#ffffff;margin-bottom:32px}
-.cta{display:inline-block;background:#ffffff;color:#1b1818;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
-.footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
-</style></head><body><div class="c">
-<div class="logo">TwinMe</div>
-<p style="font-size:18px;line-height:1.6;margin-bottom:8px">Hey ${safeName},</p>
-<p style="color:#9ca3af;font-size:15px;line-height:1.6">Welcome to TwinMe &mdash; you're one of the first people to try this. Your digital twin is now live and learning about you.</p>
-<p style="color:#9ca3af;font-size:15px;line-height:1.6">Here's how to get the most out of it:</p>
-<ul style="color:#9ca3af;font-size:14px;line-height:1.8;padding-left:20px">
-  <li><strong style="color:#e5e5e5">Connect platforms</strong> &mdash; Spotify, YouTube, Gmail give your twin real context</li>
-  <li><strong style="color:#e5e5e5">Chat with your twin</strong> &mdash; the more you talk, the better it knows you</li>
-  <li><strong style="color:#e5e5e5">Give feedback</strong> &mdash; use the Feedback button anytime</li>
-</ul>
-<a href="${APP_URL}/dashboard" class="cta">Open your dashboard</a>
-<div class="footer">
-  <p>You're part of a small group shaping what TwinMe becomes. We read every piece of feedback.</p>
-  <p style="color:#374151">TwinMe &mdash; discover what makes you, you.</p>
-</div>
-</div></body></html>`,
+      html: emailShell(body),
     });
   } catch (err) {
-    // Non-blocking — don't fail signup if email fails
     log.error('Welcome email failed', { error: err.message, email: toEmail });
   }
 }
 
 /**
  * Beta invite email.
- * @param {object} opts
- * @param {string} opts.toEmail
- * @param {string} opts.firstName
- * @param {string} opts.inviteCode
  */
 export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
   if (!resend) { log.warn('Skipping beta invite email (Resend not configured)'); return; }
@@ -140,33 +285,28 @@ export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
   const safeCode = escapeHtml(inviteCode);
   const inviteUrl = `${APP_URL}/auth?invite=${encodeURIComponent(inviteCode)}`;
 
+  const body = `
+  <p class="heading">${safeName}, you're invited</p>
+  <p class="body-text">You've been selected for early access to TwinMe &mdash; an AI twin that actually knows you. We're starting small, just a handful of people, so we can get this right.</p>
+
+  <div class="code-card">
+    <div class="code-label">Your invite code</div>
+    <div class="code-value">${safeCode}</div>
+  </div>
+
+  <p class="body-text">Click below to get started. Your code will be applied automatically.</p>
+
+  <a href="${inviteUrl}" class="cta">Start your twin journey</a>
+
+  <div class="footer">
+    <p>This invite is personal &mdash; it can only be used once.</p>
+    <p style="color:rgba(245,245,244,0.15)">TwinMe &mdash; discover what makes you, you.</p>
+  </div>`;
+
   return resend.emails.send({
     from: FROM,
     to: toEmail,
     subject: `${safeName}, you're invited to TwinMe`,
-    html: `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0}
-.c{max-width:600px;margin:0 auto;padding:40px 24px}
-.logo{font-size:20px;font-weight:700;color:#ffffff;margin-bottom:32px}
-.card{background:#1a1a1a;border:1px solid #2a2a2a;border-radius:16px;padding:24px;margin:24px 0;text-align:center}
-.code{font-size:28px;font-weight:700;letter-spacing:4px;color:#ffffff;margin:12px 0}
-.code-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#6b7280}
-.cta{display:inline-block;background:#ffffff;color:#1b1818;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;margin-top:24px;font-size:16px}
-.footer{margin-top:40px;font-size:12px;color:#4b5563;line-height:1.6}
-</style></head><body><div class="c">
-<div class="logo">TwinMe</div>
-<p style="font-size:18px;line-height:1.6;margin-bottom:8px">Hey ${safeName},</p>
-<p style="color:#9ca3af;font-size:15px;line-height:1.6;margin-bottom:0">You've been selected for early access to TwinMe — an AI twin that actually knows you. We're starting small (just a handful of people) so we can get this right.</p>
-<div class="card">
-  <div class="code-label">Your invite code</div>
-  <div class="code">${safeCode}</div>
-</div>
-<p style="color:#9ca3af;font-size:14px">Click below to get started. Your code will be applied automatically.</p>
-<a href="${inviteUrl}" class="cta">Start your twin journey</a>
-<div class="footer">
-  <p>This invite is personal — it can only be used once.</p>
-  <p style="color:#374151">TwinMe — discover what makes you, you.</p>
-</div>
-</div></body></html>`,
+    html: emailShell(body),
   });
 }
