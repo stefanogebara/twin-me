@@ -83,7 +83,7 @@ function containsNormalized(haystack, needle) {
  * @param {string} params.searchName - Name used for search
  * @returns {{ score: number, signals: Object, flags: string[] }}
  */
-export function computeIdentityConfidence({ quickData, braveData, email, searchName }) {
+export function computeIdentityConfidence({ quickData, braveData, email, searchName, userProvidedLinkedInUrl = null }) {
   const signals = {};
   const flags = [];
 
@@ -181,8 +181,44 @@ export function computeIdentityConfidence({ quickData, braveData, email, searchN
   signals.social_url_overlap = socialOverlap;
   const socialScore = socialOverlap ? 0.05 : 0;
 
+  // --- Signal 7: User-provided LinkedIn URL match (weight 0.30) ---
+  let linkedInScore = 0;
+  if (userProvidedLinkedInUrl) {
+    // Extract username from user-provided URL
+    const userLiMatch = userProvidedLinkedInUrl.match(/linkedin\.com\/in\/([\w-]+)/i);
+    const userLiUsername = userLiMatch ? userLiMatch[1].toLowerCase() : null;
+
+    // Extract username from discovered LinkedIn URL
+    const discoveredLiUrl = braveData.discovered_linkedin_url || '';
+    const discoveredLiMatch = discoveredLiUrl.match(/linkedin\.com\/in\/([\w-]+)/i);
+    const discoveredLiUsername = discoveredLiMatch ? discoveredLiMatch[1].toLowerCase() : null;
+
+    if (userLiUsername && discoveredLiUsername) {
+      if (userLiUsername === discoveredLiUsername) {
+        // Strong match: user's LinkedIn matches what Brave found
+        linkedInScore = 0.30;
+        signals.linkedin_url_match = true;
+      } else {
+        // Mismatch: Brave found a DIFFERENT LinkedIn profile — likely wrong person
+        linkedInScore = 0;
+        signals.linkedin_url_match = false;
+        flags.push('linkedin_url_mismatch');
+      }
+    } else if (userLiUsername && rawContent.includes(userLiUsername)) {
+      // LinkedIn username appears somewhere in results (weaker signal)
+      linkedInScore = 0.15;
+      signals.linkedin_url_match = 'partial';
+    } else if (userLiUsername) {
+      // User provided LinkedIn but it doesn't appear anywhere in results
+      signals.linkedin_url_match = false;
+      flags.push('linkedin_url_not_found');
+    }
+  } else {
+    signals.linkedin_url_match = null; // N/A — not provided
+  }
+
   // --- Compute raw score ---
-  let score = emailScore + nameScore + githubScore + companyScore + locationScore + socialScore;
+  let score = emailScore + nameScore + githubScore + companyScore + locationScore + socialScore + linkedInScore;
 
   // --- Apply penalties ---
   if (flags.includes('no_email_signal')) {
@@ -190,6 +226,9 @@ export function computeIdentityConfidence({ quickData, braveData, email, searchN
   }
   if (flags.includes('name_mismatch')) {
     score = Math.max(0, score - 0.30);
+  }
+  if (flags.includes('linkedin_url_mismatch')) {
+    score = Math.max(0, score - 0.25);
   }
 
   // Clamp to [0, 1]

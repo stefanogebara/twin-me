@@ -108,15 +108,26 @@ export async function searchWithBrave(name, email, context = {}) {
   if (context.github_languages?.length) disambiguators.push(context.github_languages.slice(0, 2).join(' '));
   if (context.discovered_location) disambiguators.push(context.discovered_location);
 
-  // Use disambiguators to find the RIGHT person
-  const contextClue = disambiguators.length > 0 ? ` ${disambiguators[0]}` : '';
+  // Extract LinkedIn username for disambiguation (strongest signal)
+  let linkedInUsername = null;
+  if (context.linkedinUrl) {
+    const liMatch = context.linkedinUrl.match(/linkedin\.com\/in\/([\w-]+)/i);
+    if (liMatch) linkedInUsername = liMatch[1];
+  }
+
+  // Use LinkedIn username as primary disambiguator if available, else fall back to other signals
+  const contextClue = linkedInUsername
+    ? ` "${linkedInUsername}"`
+    : (disambiguators.length > 0 ? ` ${disambiguators[0]}` : '');
   const nameQuery = domainName ? `"${name}" "${domainName}"` : `"${name}"${contextClue}`;
 
   const queries = [
-    // Core identity with context (most important — finds the RIGHT Stefano Gebara)
+    // Core identity with context (most important — finds the RIGHT person)
     `"${name}"${contextClue} (engineer OR developer OR founder OR student OR professional)`,
-    // LinkedIn with disambiguator
-    `"${name}" site:linkedin.com/in${contextClue}`,
+    // LinkedIn — use exact profile URL if user provided it
+    linkedInUsername
+      ? `site:linkedin.com/in/${linkedInUsername}`
+      : `"${name}" site:linkedin.com/in${contextClue}`,
     // Social profiles by username (high precision)
     `"${emailUsername}" site:github.com OR site:linkedin.com OR site:twitter.com OR site:instagram.com`,
     // Personal stories with context
@@ -130,6 +141,10 @@ export async function searchWithBrave(name, email, context = {}) {
     // Hobbies, interests, lifestyle
     `"${name}" (blog OR writes OR photographer OR artist OR runner OR musician OR hobby)${contextClue}`,
   ];
+
+  if (linkedInUsername) {
+    log.info(`LinkedIn-anchored search: using "${linkedInUsername}" as primary disambiguator`);
+  }
 
   const results = await Promise.allSettled(
     queries.map(q => braveWebSearch(q, apiKey))
@@ -239,13 +254,17 @@ export async function searchWithBrave(name, email, context = {}) {
 /**
  * Second-pass extraction: focus ONLY on personal life details from scraped content.
  */
-export async function extractPersonalLife(scrapedContent, name, email = null) {
+export async function extractPersonalLife(scrapedContent, name, email = null, linkedinUrl = null) {
   if (!scrapedContent || scrapedContent.length < 50) return null;
 
   const emailUsername = email ? email.split('@')[0] : null;
-  const disambiguationNote = emailUsername
-    ? `\nCRITICAL: The name "${name}" may match multiple people. Only extract details about the "${name}" associated with email username "${emailUsername}". If the content describes a different person with the same name, return all fields as null.\n`
-    : '';
+  let disambiguationNote = '';
+  if (linkedinUrl) {
+    // Strongest signal: user confirmed their LinkedIn
+    disambiguationNote = `\nCRITICAL DISAMBIGUATION: The user confirmed their LinkedIn profile is ${linkedinUrl}. Extract ONLY details about the person at this LinkedIn profile. If the content describes a different person with the same name, return all fields as null.\n`;
+  } else if (emailUsername) {
+    disambiguationNote = `\nCRITICAL: The name "${name}" may match multiple people. Only extract details about the "${name}" associated with email username "${emailUsername}". If the content describes a different person with the same name, return all fields as null.\n`;
+  }
 
   const prompt = `You are analyzing web content about "${name}" to understand them as a PERSON, not as an employee.${disambiguationNote}
 IGNORE job titles, companies, and career history — that's already captured separately.
@@ -304,8 +323,13 @@ Return ONLY a JSON object. Set fields to null if NO evidence found:
  * Use ANALYSIS tier (DeepSeek) to extract structured profile JSON from
  * Brave Search snippets + scraped page content.
  */
-export async function extractStructuredProfile(snippets, name, email) {
-  const prompt = `You are extracting a COMPLETE profile of "${name}" (${email}) to build their digital twin.
+export async function extractStructuredProfile(snippets, name, email, linkedinUrl = null) {
+  // When user provided their LinkedIn URL, add a strong disambiguation instruction
+  const linkedInNote = linkedinUrl
+    ? `\nCRITICAL DISAMBIGUATION: The user confirmed their LinkedIn profile is ${linkedinUrl}. Extract ONLY information about the person at this LinkedIn profile. If the source material contains details about other people with similar names, IGNORE those details entirely.\n`
+    : '';
+
+  const prompt = `You are extracting a COMPLETE profile of "${name}" (${email}) to build their digital twin.${linkedInNote}
 A digital twin needs the WHOLE person — not just their job title. This person could be a student, a retiree, an artist, a parent, or a professional. Look for personality, interests, values, hobbies, education, community involvement, creative pursuits, and life story.
 
 Return ONLY a JSON object. Only include fields where you found real evidence. Do not guess or invent.
@@ -388,16 +412,16 @@ export async function comprehensivePersonSearch(name, email, existingData = {}) 
 
   // Tier 0: Brave Search API
   if (process.env.BRAVE_SEARCH_API_KEY) {
-    log.info('Trying Brave Search API for:', { name, hasEmail: !!email });
+    log.info('Trying Brave Search API for:', { name, hasEmail: !!email, hasLinkedIn: !!existingData.linkedinUrl });
     try {
-      const braveResult = await searchWithBrave(name, email);
+      const braveResult = await searchWithBrave(name, email, { linkedinUrl: existingData.linkedinUrl });
       if (braveResult) {
         const hasScrapedContent = braveResult.scrapedOnly && braveResult.scrapedOnly.length > 100;
         log.info(`Running extraction: Pass 1 (career) + ${hasScrapedContent ? 'Pass 2 (personal)' : 'no Pass 2 (no scraped content)'}`);
 
         const [pass1Result, pass2Result] = await Promise.allSettled([
-          extractStructuredProfile(braveResult.snippetsOnly, name, email),
-          hasScrapedContent ? extractPersonalLife(braveResult.scrapedOnly, name, email) : Promise.resolve(null),
+          extractStructuredProfile(braveResult.snippetsOnly, name, email, existingData.linkedinUrl),
+          hasScrapedContent ? extractPersonalLife(braveResult.scrapedOnly, name, email, existingData.linkedinUrl) : Promise.resolve(null),
         ]);
 
         const extracted = pass1Result.status === 'fulfilled' ? pass1Result.value : null;

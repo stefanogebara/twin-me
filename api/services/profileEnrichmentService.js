@@ -94,6 +94,9 @@ import {
   buildFactualSummary,
 } from './enrichment/narrativeGenerator.js';
 
+// Onboarding briefing generation
+import { generateOnboardingBriefing } from './enrichment/briefingGenerator.js';
+
 // Database operations
 import {
   saveEnrichment,
@@ -349,6 +352,14 @@ class ProfileEnrichmentService {
   }
 
   // ============================================================
+  // Briefing delegates
+  // ============================================================
+
+  async generateOnboardingBriefing(enrichmentData, options = {}) {
+    return generateOnboardingBriefing(enrichmentData, options);
+  }
+
+  // ============================================================
   // Database delegates
   // ============================================================
 
@@ -381,9 +392,10 @@ class ProfileEnrichmentService {
    * This is the main entry point for full enrichment.
    * @param {string} email - User's email address
    * @param {string} name - User's full name (optional)
+   * @param {string} linkedinUrl - User-provided LinkedIn URL for disambiguation (optional)
    * @returns {Promise<Object>} Enrichment data with discovered fields
    */
-  async enrichFromEmail(email, name = null) {
+  async enrichFromEmail(email, name = null, linkedinUrl = null) {
     // If no name provided, or name looks like a raw email prefix, infer from email
     if (!name || !name.includes(' ')) {
       const inferred = inferNameFromEmail(email);
@@ -470,7 +482,7 @@ class ProfileEnrichmentService {
     // STEP 1: Brave Search -> Gemini/Sonar fallback
     // =================================================================
     log.info('Step 1: Running comprehensive search (Brave -> Gemini fallback)...');
-    const comprehensiveData = await comprehensivePersonSearch(name, email, {});
+    const comprehensiveData = await comprehensivePersonSearch(name, email, { linkedinUrl });
     if (comprehensiveData) {
       const isBraveResult = comprehensiveData._source === 'brave';
       log.info(`${isBraveResult ? 'Brave Search' : 'Gemini'} found comprehensive data!`);
@@ -576,8 +588,45 @@ class ProfileEnrichmentService {
       braveData: comprehensiveData?._source === 'brave' ? comprehensiveData : null,
       email,
       searchName: name,
+      userProvidedLinkedInUrl: linkedinUrl,
     });
     log.info(`Identity confidence: ${confidenceResult.score} | signals: ${JSON.stringify(confidenceResult.signals)} | flags: [${confidenceResult.flags.join(', ')}]`);
+
+    // =================================================================
+    // STEP 6: Generate onboarding briefing (parallel-safe, non-blocking)
+    // =================================================================
+    let onboardingBriefing = null;
+    try {
+      log.info('Step 6: Generating onboarding briefing...');
+      const allEnrichmentData = {
+        ...combinedData,
+        // Include quick enrichment data that may not be in combinedData
+        github_languages: enrichedData.github_languages || combinedData.github_languages,
+        github_top_repos: enrichedData.github_top_repos || combinedData.github_top_repos,
+        twitter_handle: enrichedData.twitter_handle || combinedData.twitter_handle,
+        twitter_bio: enrichedData.twitter_bio || combinedData.twitter_bio,
+        hn_topics: enrichedData.hn_topics || combinedData.hn_topics,
+        hn_karma: enrichedData.hn_karma || combinedData.hn_karma,
+        hn_bio: enrichedData.hn_bio || combinedData.hn_bio,
+        reddit_interests: enrichedData.reddit_interests || combinedData.reddit_interests,
+        reddit_karma: enrichedData.reddit_karma || combinedData.reddit_karma,
+        reddit_bio: enrichedData.reddit_bio || combinedData.reddit_bio,
+        spotify_exists: enrichedData.spotify_exists || combinedData.spotify_exists,
+        hunter_company: enrichedData.hunter_company || combinedData.hunter_company,
+        hunter_position: enrichedData.hunter_position || combinedData.hunter_position,
+        pdl_headline: enrichedData.pdl_headline || combinedData.pdl_headline,
+        pdl_industry: enrichedData.pdl_industry || combinedData.pdl_industry,
+        pdl_experience: enrichedData.pdl_experience || combinedData.pdl_experience,
+        pdl_education: enrichedData.pdl_education || combinedData.pdl_education,
+        pdl_skills: enrichedData.pdl_skills || combinedData.pdl_skills,
+        pdl_interests: enrichedData.pdl_interests || combinedData.pdl_interests,
+        discovered_platforms: enrichedData.discovered_platforms || combinedData.discovered_platforms,
+      };
+      onboardingBriefing = await generateOnboardingBriefing(allEnrichmentData, { userId: null });
+      log.info('Onboarding briefing generated:', onboardingBriefing?.headline?.slice(0, 60));
+    } catch (briefingErr) {
+      log.warn('Onboarding briefing generation failed (non-blocking):', briefingErr.message);
+    }
 
     return {
       success: true,
@@ -587,6 +636,8 @@ class ProfileEnrichmentService {
         source: enrichmentSource !== 'none' ? enrichmentSource : 'gemini',
         raw_search_response: webSearchResult?.rawContent || null,
         identity_confidence: confidenceResult.score,
+        onboarding_briefing: onboardingBriefing,
+        user_provided_linkedin_url: linkedinUrl || null,
       }
     };
   }

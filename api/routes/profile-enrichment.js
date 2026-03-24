@@ -64,7 +64,7 @@ router.post('/quick', authenticateUser, async (req, res) => {
 // ============================================================================
 router.post('/search', authenticateUser, async (req, res) => {
   try {
-    const { email, name } = req.body;
+    const { email, name, linkedinUrl } = req.body;
     const userId = req.user.id;
 
     if (!userId || !email) {
@@ -74,10 +74,21 @@ router.post('/search', authenticateUser, async (req, res) => {
       });
     }
 
-    log.info(`Starting search for user ${userId}`);
+    // Validate LinkedIn URL if provided
+    let validatedLinkedIn = null;
+    if (linkedinUrl && typeof linkedinUrl === 'string') {
+      const linkedInRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i;
+      if (linkedInRegex.test(linkedinUrl.trim())) {
+        validatedLinkedIn = linkedinUrl.trim();
+      } else {
+        log.warn('Invalid LinkedIn URL provided, ignoring:', linkedinUrl);
+      }
+    }
+
+    log.info(`Starting search for user ${userId}`, { hasLinkedIn: !!validatedLinkedIn });
 
     // Perform enrichment
-    const enrichmentResult = await profileEnrichmentService.enrichFromEmail(email, name);
+    const enrichmentResult = await profileEnrichmentService.enrichFromEmail(email, name, validatedLinkedIn);
 
     if (!enrichmentResult.success) {
       log.warn(`Enrichment failed for user ${userId}:`, enrichmentResult.error);
@@ -151,7 +162,9 @@ router.post('/search', authenticateUser, async (req, res) => {
         life_story: enrichmentResult.data.life_story || null,
         social_media_presence: enrichmentResult.data.social_media_presence || null,
         discovered_instagram_url: enrichmentResult.data.discovered_instagram_url || null,
-        discovered_personal_website: enrichmentResult.data.discovered_personal_website || null
+        discovered_personal_website: enrichmentResult.data.discovered_personal_website || null,
+        // Onboarding briefing
+        onboarding_briefing: enrichmentResult.data.onboarding_briefing || null,
       }
     });
   } catch (error) {
@@ -244,6 +257,8 @@ router.get('/results/:userId', authenticateUser, async (req, res) => {
         discovered_instagram_url: result.data.discovered_instagram_url || null,
         discovered_personal_website: result.data.discovered_personal_website || null,
         identity_confidence: result.data.identity_confidence ?? null,
+        // Onboarding briefing
+        onboarding_briefing: result.data.onboarding_briefing || null,
       },
       hasResults: !!(
         result.data.discovered_company ||

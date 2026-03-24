@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { getAccessToken } from '@/services/api/apiBase';
-import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion } from '@/services/enrichmentService';
+import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion, OnboardingBriefing } from '@/services/enrichmentService';
 import ParticleField from './components/ParticleField';
 import PlatformConnectStep from './components/PlatformConnectStep';
 import DeepInterview from './components/DeepInterview';
@@ -94,10 +94,12 @@ const NewDiscoverFlow: React.FC = () => {
   const [revealSubView, setRevealSubView] = useState<RevealSubView>('data');
   const [correctionName, setCorrectionName] = useState('');
   const [correctionLinkedIn, setCorrectionLinkedIn] = useState('');
+  const [userLinkedInUrl, setUserLinkedInUrl] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
   const [identityConfirmed, setIdentityConfirmed] = useState(false);
+  const [briefing, setBriefing] = useState<OnboardingBriefing | null>(null);
 
   // Refs
   const hasStartedRef = useRef(false);
@@ -233,6 +235,9 @@ const NewDiscoverFlow: React.FC = () => {
           enrichmentDataRef.current = resultsResult.data;
           confidenceRef.current = resultsResult.data.identity_confidence ?? null;
           addFullEnrichmentPoints(resultsResult.data);
+          if (resultsResult.data.onboarding_briefing) {
+            setBriefing(resultsResult.data.onboarding_briefing);
+          }
           if (resultsResult.data.discovered_summary && !isLLMJunk(resultsResult.data.discovered_summary)) {
             setNarrative(resultsResult.data.discovered_summary);
           }
@@ -248,6 +253,9 @@ const NewDiscoverFlow: React.FC = () => {
         enrichmentDataRef.current = searchResult.data;
         confidenceRef.current = searchResult.data.identity_confidence ?? null;
         addFullEnrichmentPoints(searchResult.data);
+        if (searchResult.data.onboarding_briefing) {
+          setBriefing(searchResult.data.onboarding_briefing);
+        }
         if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
           setNarrative(searchResult.data.discovered_summary);
         }
@@ -299,6 +307,55 @@ const NewDiscoverFlow: React.FC = () => {
     }
   };
 
+  const [isLinkedInSearching, setIsLinkedInSearching] = useState(false);
+
+  const handleLinkedInSubmit = async () => {
+    if (!user || !userLinkedInUrl.trim()) return;
+    const linkedIn = userLinkedInUrl.trim();
+    if (!/^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i.test(linkedIn)) return;
+
+    setIsLinkedInSearching(true);
+    setOrbPhase('awakening');
+    setDataPoints([]);
+    setNarrative('');
+    setBriefing(null);
+    setShowContinue(false);
+    setEnrichError(null);
+    setIdentityConfirmed(false);
+    quickDataRef.current = null;
+
+    try {
+      await enrichmentService.clear(user.id);
+
+      // Use enrichFromLinkedIn which does a LinkedIn-anchored search
+      const searchResult = await enrichmentService.enrichFromLinkedIn(
+        user.id,
+        linkedIn,
+        user.fullName || undefined,
+      );
+
+      if (searchResult.data) {
+        enrichmentDataRef.current = searchResult.data;
+        confidenceRef.current = searchResult.data.identity_confidence ?? null;
+        addFullEnrichmentPoints(searchResult.data);
+        if (searchResult.data.onboarding_briefing) {
+          setBriefing(searchResult.data.onboarding_briefing);
+        }
+        if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
+          setNarrative(searchResult.data.discovered_summary);
+        }
+      }
+
+      setOrbPhase('alive');
+    } catch (error) {
+      console.error('LinkedIn search error:', error);
+      setEnrichError('Could not find your LinkedIn profile — try again or skip this step.');
+      setOrbPhase('alive');
+    } finally {
+      setIsLinkedInSearching(false);
+    }
+  };
+
   const handleNotMe = () => {
     const currentName = enrichmentDataRef.current?.discovered_name
       || quickDataRef.current?.discovered_name
@@ -322,6 +379,7 @@ const NewDiscoverFlow: React.FC = () => {
     setOrbPhase('awakening');
     setDataPoints([]);
     setNarrative('');
+    setBriefing(null);
     setShowContinue(false);
     setEnrichError(null);
     setIdentityConfirmed(false);
@@ -331,10 +389,12 @@ const NewDiscoverFlow: React.FC = () => {
       await enrichmentService.clear(user.id);
 
       let searchResult;
-      if (correctionLinkedIn.trim()) {
+      // Use the LinkedIn URL from correction form, or the one typed during awakening
+      const linkedIn = correctionLinkedIn.trim() || userLinkedInUrl.trim();
+      if (linkedIn && /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w-]+\/?$/i.test(linkedIn)) {
         searchResult = await enrichmentService.enrichFromLinkedIn(
           user.id,
-          correctionLinkedIn.trim(),
+          linkedIn,
           correctionName.trim() || undefined,
         );
       } else {
@@ -342,6 +402,7 @@ const NewDiscoverFlow: React.FC = () => {
           user.id,
           user.email,
           correctionName.trim() || undefined,
+          linkedIn || undefined,
         );
       }
 
@@ -349,6 +410,9 @@ const NewDiscoverFlow: React.FC = () => {
         enrichmentDataRef.current = searchResult.data;
         confidenceRef.current = searchResult.data.identity_confidence ?? null;
         addFullEnrichmentPoints(searchResult.data);
+        if (searchResult.data.onboarding_briefing) {
+          setBriefing(searchResult.data.onboarding_briefing);
+        }
         if (searchResult.data.discovered_summary && !isLLMJunk(searchResult.data.discovered_summary)) {
           setNarrative(searchResult.data.discovered_summary);
         }
@@ -504,6 +568,7 @@ const NewDiscoverFlow: React.FC = () => {
             userName={userName}
             dataPoints={dataPoints}
             narrative={narrative}
+            briefing={briefing}
             showContinue={showContinue}
             enrichError={enrichError}
             identityConfirmed={identityConfirmed}
@@ -512,11 +577,15 @@ const NewDiscoverFlow: React.FC = () => {
             correctionLinkedIn={correctionLinkedIn}
             isRetrying={isRetrying}
             retryCount={retryCount}
+            userLinkedInUrl={userLinkedInUrl}
+            isLinkedInSearching={isLinkedInSearching}
             onConfirmIdentity={() => setIdentityConfirmed(true)}
             onNotMe={handleNotMe}
             onAdvance={handleAdvanceToDeepening}
             onCorrectionNameChange={setCorrectionName}
             onCorrectionLinkedInChange={setCorrectionLinkedIn}
+            onUserLinkedInChange={setUserLinkedInUrl}
+            onLinkedInSubmit={handleLinkedInSubmit}
             onSearchAgain={handleSearchAgain}
             onSkipEnrichment={handleSkipEnrichment}
           />

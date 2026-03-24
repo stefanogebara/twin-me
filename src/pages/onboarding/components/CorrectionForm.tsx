@@ -28,8 +28,8 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
   retryCount,
 }) => {
   const message = retryCount === 0
-    ? 'No problem. Help us find the right you.'
-    : 'Still not right? Try adding your LinkedIn.';
+    ? 'No problem. Your LinkedIn URL is the fastest way to find the right you.'
+    : 'Still not right? Make sure the LinkedIn URL is correct.';
 
   const linkedInValid = isValidLinkedInUrl(linkedIn);
   const canSubmit = !isRetrying && name.trim().length > 0 && linkedInValid;
@@ -54,8 +54,50 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
         {message}
       </p>
 
-      {/* Full Name */}
+      {/* LinkedIn URL (primary — strongest disambiguation signal) */}
       <div className="mb-4">
+        <label
+          className="block text-xs uppercase tracking-widest mb-2"
+          style={{
+            color: 'rgba(232, 213, 183, 0.4)',
+            fontFamily: "'Inter', sans-serif",
+            letterSpacing: '0.1em',
+          }}
+        >
+          LinkedIn URL
+        </label>
+        <input
+          type="url"
+          value={linkedIn}
+          onChange={(e) => onLinkedInChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
+          style={{
+            backgroundColor: 'rgba(232, 213, 183, 0.06)',
+            border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(232, 213, 183, 0.15)'}`,
+            color: '#E8D5B7',
+            fontFamily: "'Inter', sans-serif",
+          }}
+          placeholder="https://linkedin.com/in/yourprofile"
+        />
+        {linkedIn && !linkedInValid && (
+          <p
+            className="text-xs mt-1.5"
+            style={{ color: 'rgba(239, 68, 68, 0.7)', fontFamily: "'Inter', sans-serif" }}
+          >
+            Enter a valid LinkedIn profile URL
+          </p>
+        )}
+        <p
+          className="text-xs mt-1.5"
+          style={{ color: 'rgba(232, 213, 183, 0.3)', fontFamily: "'Inter', sans-serif" }}
+        >
+          Paste your full LinkedIn profile URL
+        </p>
+      </div>
+
+      {/* Full Name */}
+      <div className="mb-6">
         <label
           className="block text-xs uppercase tracking-widest mb-2"
           style={{
@@ -80,42 +122,6 @@ const CorrectionForm: React.FC<CorrectionFormProps> = ({
           }}
           placeholder="Your full name"
         />
-      </div>
-
-      {/* LinkedIn URL */}
-      <div className="mb-6">
-        <label
-          className="block text-xs uppercase tracking-widest mb-2"
-          style={{
-            color: 'rgba(232, 213, 183, 0.4)',
-            fontFamily: "'Inter', sans-serif",
-            letterSpacing: '0.1em',
-          }}
-        >
-          LinkedIn URL <span style={{ opacity: 0.5 }}>(optional)</span>
-        </label>
-        <input
-          type="url"
-          value={linkedIn}
-          onChange={(e) => onLinkedInChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-colors"
-          style={{
-            backgroundColor: 'rgba(232, 213, 183, 0.06)',
-            border: `1px solid ${linkedIn && !linkedInValid ? 'rgba(239, 68, 68, 0.5)' : 'rgba(232, 213, 183, 0.15)'}`,
-            color: '#E8D5B7',
-            fontFamily: "'Inter', sans-serif",
-          }}
-          placeholder="https://linkedin.com/in/yourprofile"
-        />
-        {linkedIn && !linkedInValid && (
-          <p
-            className="text-xs mt-1.5"
-            style={{ color: 'rgba(239, 68, 68, 0.7)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Enter a valid LinkedIn profile URL
-          </p>
-        )}
       </div>
 
       {/* Buttons */}

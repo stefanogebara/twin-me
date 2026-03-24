@@ -59,6 +59,8 @@ export async function saveEnrichment(userId, email, enrichmentData) {
       raw_search_response: enrichmentData.raw || enrichmentData.raw_search_response || null,
       search_query: enrichmentData.search_query || null,
       identity_confidence: enrichmentData.identity_confidence ?? null,
+      onboarding_briefing: enrichmentData.onboarding_briefing || null,
+      user_provided_linkedin_url: enrichmentData.user_provided_linkedin_url || null,
       enriched_at: new Date().toISOString()
     };
 

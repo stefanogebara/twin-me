@@ -47,6 +47,13 @@ export interface QuickEnrichmentData {
   web_sources?: Array<{ title: string; url: string; scraped?: boolean }>;
 }
 
+export interface OnboardingBriefing {
+  headline: string;
+  observations: string[];
+  gaps: string[];
+  cta: string;
+}
+
 export interface EnrichmentData {
   id?: string;
   email: string;
@@ -74,6 +81,8 @@ export interface EnrichmentData {
   confirmed_at?: string;
   // Resume data
   resume_data?: ResumeData | null;
+  // Onboarding briefing
+  onboarding_briefing?: OnboardingBriefing | null;
 }
 
 export interface ResumeData {
@@ -381,7 +390,7 @@ export const enrichmentService = {
    * Trigger enrichment search for a user
    * This calls Perplexity Sonar API to find public information
    */
-  search: async (userId: string, email: string, name?: string): Promise<SearchResponse> => {
+  search: async (userId: string, email: string, name?: string, linkedinUrl?: string): Promise<SearchResponse> => {
     const response = await fetch(`${API_URL}/enrichment/search`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -389,6 +398,7 @@ export const enrichmentService = {
         userId,
         email,
         name,
+        ...(linkedinUrl ? { linkedinUrl } : {}),
       }),
     });
 
