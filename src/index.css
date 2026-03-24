@@ -17,13 +17,13 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Night sky */
-    --background: #13121a;
+    /* Background Colors — Pure black */
+    --background: #0A0A0A;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
     /* Claude Theme Variables */
-    --claude-bg: #13121a;
+    --claude-bg: #0A0A0A;
     --claude-surface: rgba(255, 255, 255, 0.06);
     --claude-surface-raised: rgba(255, 255, 255, 0.12);
     --claude-text: #F5F5F4;
