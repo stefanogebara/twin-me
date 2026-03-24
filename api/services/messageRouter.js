@@ -31,6 +31,7 @@ const PUSH_TITLES = {
   goal_suggestion: 'New goal idea',
   suggestion: 'Your twin has a thought',
   reminder: 'Reminder',
+  meeting_prep: 'Meeting briefing ready',
 };
 
 const log = createLogger('MessageRouter');

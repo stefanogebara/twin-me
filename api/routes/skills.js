@@ -21,6 +21,7 @@ const SKILL_EVENT_MAP = {
   email_draft: EVENTS.EMAIL_DRAFT,
   intelligent_triggers: EVENTS.INTELLIGENT_TRIGGERS,
   calendar_optimization: EVENTS.CALENDAR_OPTIMIZATION,
+  meeting_prep: EVENTS.MEETING_PREP,
 };
 
 const log = createLogger('SkillsRoutes');

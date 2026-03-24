@@ -44,6 +44,7 @@ export const EVENTS = {
   INTELLIGENT_TRIGGERS: 'twin/skill.intelligent_triggers',
   ACTION_REFLECTION: 'twin/skill.action_reflection',
   CALENDAR_OPTIMIZATION: 'twin/skill.calendar_optimization',
+  MEETING_PREP: 'twin/skill.meeting_prep',
 
   // Maintenance
   PERSONALITY_VALIDATION: 'twin/maintenance.personality_validation',

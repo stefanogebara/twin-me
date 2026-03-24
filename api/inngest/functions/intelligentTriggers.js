@@ -277,6 +277,46 @@ export const intelligentTriggersFunction = inngest.createFunction(
       return fired;
     });
 
+    // ── Meeting Prep: fire MEETING_PREP event for events starting in 30-45 min ──
+    await step.run('check-meeting-prep', async () => {
+      if (!data.calendarRaw) return;
+
+      const calEvents = data.calendarRaw.items || data.calendarRaw.events || (Array.isArray(data.calendarRaw) ? data.calendarRaw : []);
+      const now = new Date();
+      const min30 = new Date(now.getTime() + 30 * 60 * 1000);
+      const min45 = new Date(now.getTime() + 45 * 60 * 1000);
+
+      for (const evt of calEvents) {
+        const start = new Date(evt.start?.dateTime || evt.start?.date || evt.start);
+        if (start >= min30 && start <= min45) {
+          const eventAttendees = (evt.attendees || [])
+            .map(a => ({
+              name: a.displayName || a.email?.split('@')[0] || 'Unknown',
+              email: a.email || null,
+            }))
+            .filter(a => a.email);
+
+          await inngest.send({
+            name: EVENTS.MEETING_PREP,
+            data: {
+              userId,
+              eventId: evt.id || `${evt.summary || 'event'}-${start.toISOString()}`,
+              eventTitle: evt.summary || evt.title || 'Untitled Meeting',
+              eventStart: evt.start?.dateTime || evt.start?.date || evt.start,
+              attendees: eventAttendees,
+            },
+          });
+
+          log.info('Meeting prep triggered for upcoming event', {
+            userId,
+            event: evt.summary || evt.title,
+            start: start.toISOString(),
+          });
+          break; // Only one meeting prep per trigger run
+        }
+      }
+    });
+
     const triggersEvaluated = countEvaluatedTriggers(data);
 
     if (firedTriggers.length === 0) {
