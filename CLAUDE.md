@@ -1,5 +1,13 @@
 # TwinMe - Soul Signature Platform
 
+## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
+
+- **Crons**: NEVER more than */15. Removed token-refresh cron (on-demand only). deliver-insights and prospective-check at */15.
+- **maxDuration**: 60s (was 120s — halves GB-hour cost)
+- **Deploys**: ONE per push (disabled GitHub Action duplicate). Batch commits before pushing.
+- **New crons**: Must justify frequency. Default to hourly or daily, not every-N-minutes.
+- **LLM in crons**: Always check cooldowns/conditions BEFORE calling LLM. Early return = free.
+
 ## Workflow Orchestration
 
 ### 1. Plan Node Default
