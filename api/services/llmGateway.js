@@ -350,9 +350,10 @@ export async function complete({
 }) {
   // Privacy routing: downgrade to cheapest tier for sensitive content (NemoClaw pattern)
   // This minimizes data exposure for health/emotional/financial content
-  const effectiveTier = (sensitiveContent && tier !== TIER_EXTRACTION) ? TIER_EXTRACTION : tier;
-  const model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_ANALYSIS];
-  const ttl = CACHE_TTL_BY_TIER[effectiveTier] || 0;
+  let effectiveTier = (sensitiveContent && tier !== TIER_EXTRACTION) ? TIER_EXTRACTION : tier;
+  // Model and TTL resolved after budget check (may be downgraded)
+  let model;
+  let ttl;
 
   // Circuit breaker check (4B)
   checkCircuitBreaker();
@@ -360,14 +361,26 @@ export async function complete({
     throw new Error(`[LLM Gateway] Circuit breaker is OPEN - LLM calls temporarily disabled. Resets in ${Math.ceil(getResetTimeout() / 1000)}s`);
   }
 
-  // Budget guard (4D) - ALL tiers are budget-checked
+  // Budget guard (4D) - downgrade to cheapest tier when budget exceeded (don't reject)
+  let budgetDowngraded = false;
   {
     const dailyCost = await getDailyCost();
     const budget = parseFloat(process.env.LLM_DAILY_BUDGET_USD) || 10;
     if (dailyCost >= budget) {
-      throw new Error(`[LLM Gateway] Daily LLM budget exceeded: $${dailyCost.toFixed(2)} >= $${budget.toFixed(2)} limit. Resets at midnight UTC.`);
+      // Soft cap: downgrade to cheapest tier instead of rejecting the request
+      if (effectiveTier !== TIER_EXTRACTION) {
+        log.warn('Budget exceeded — downgrading to TIER_EXTRACTION', {
+          dailyCost: dailyCost.toFixed(2), budget: budget.toFixed(2), originalTier: effectiveTier,
+        });
+        budgetDowngraded = true;
+        effectiveTier = TIER_EXTRACTION;
+      }
     }
   }
+
+  // Resolve model and cache TTL (after potential budget downgrade)
+  model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_ANALYSIS];
+  ttl = CACHE_TTL_BY_TIER[effectiveTier] || 0;
 
   // Check cache (skip for chat)
   if (ttl > 0) {

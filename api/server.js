@@ -491,6 +491,7 @@ app.use('/api/portfolio', portfolioPublicRoutes); // Public portfolio page aggre
 if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
 app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
+app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // AI cost dashboard
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
