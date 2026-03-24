@@ -4,6 +4,8 @@ import { lookupHackerNews } from './hackerNewsProvider.js';
 import { lookupHunter } from './hunterProvider.js';
 import { probeSpotify } from './spotifyProbeProvider.js';
 import { lookupTwitterViaBrave } from './twitterBraveProvider.js';
+import { enrichFromPDL } from './pdlProvider.js';
+import { discoverPlatforms } from './holeheProvider.js';
 
 const log = createLogger('Quickenrichment');
 
@@ -25,10 +27,11 @@ export async function quickEnrich(email, name = null) {
   const startTime = Date.now();
   const username = email.split('@')[0];
 
-  // Run all providers in parallel (9 lookups, each with own timeout)
+  // Run all providers in parallel (11 lookups, each with own timeout)
   const [
     gravatarResult, githubEmailResult, githubUsernameResult, socialResult,
     redditResult, hnResult, hunterResult, spotifyResult, twitterResult,
+    pdlResult, holeheResult,
   ] = await Promise.allSettled([
     lookupGravatar(email),
     lookupGitHub(email),
@@ -39,6 +42,8 @@ export async function quickEnrich(email, name = null) {
     lookupHunter(email),
     probeSpotify(username),
     lookupTwitterViaBrave(username, name),
+    enrichFromPDL(email),
+    discoverPlatforms(email),
   ]);
 
   const gravatar = gravatarResult.status === 'fulfilled' ? gravatarResult.value : null;
@@ -50,6 +55,8 @@ export async function quickEnrich(email, name = null) {
   const hunter = hunterResult.status === 'fulfilled' ? hunterResult.value : null;
   const spotify = spotifyResult.status === 'fulfilled' ? spotifyResult.value : null;
   const twitterBrave = twitterResult.status === 'fulfilled' ? twitterResult.value : null;
+  const pdl = pdlResult.status === 'fulfilled' ? pdlResult.value : null;
+  const discoveredPlatforms = holeheResult.status === 'fulfilled' ? holeheResult.value : [];
 
   // Use email-matched GitHub if found, otherwise username-matched
   const github = githubByEmail || githubByUsername;
@@ -64,6 +71,10 @@ export async function quickEnrich(email, name = null) {
     spotify?.profileUrl ? { platform: 'spotify', url: spotify.profileUrl } : null,
     twitterBrave?.profileUrl ? { platform: 'twitter', url: twitterBrave.profileUrl } : null,
     hunter?.linkedInUrl ? { platform: 'linkedin', url: hunter.linkedInUrl } : null,
+    pdl?.linkedin_url ? { platform: 'linkedin', url: pdl.linkedin_url } : null,
+    pdl?.github_url ? { platform: 'github', url: pdl.github_url } : null,
+    pdl?.twitter_url ? { platform: 'twitter', url: pdl.twitter_url } : null,
+    pdl?.facebook_url ? { platform: 'facebook', url: pdl.facebook_url } : null,
   ].filter(Boolean);
 
   // Deduplicate by platform
@@ -75,36 +86,46 @@ export async function quickEnrich(email, name = null) {
     return true;
   });
 
-  // Merge results — priority: GitHub > Hunter > Gravatar > Reddit/HN/Twitter for each field
+  // Merge results — priority: GitHub > PDL > Hunter > Gravatar > Reddit/HN/Twitter for each field
   const data = {
-    discovered_name: github?.name || hunter?.firstName ? `${hunter.firstName} ${hunter.lastName || ''}`.trim() : gravatar?.name || name,
+    discovered_name: github?.name || pdl?.name || (hunter?.firstName ? `${hunter.firstName} ${hunter.lastName || ''}`.trim() : null) || gravatar?.name || name,
     discovered_photo: github?.avatar || gravatar?.photo || null,
-    discovered_company: github?.company || hunter?.company || null,
-    discovered_location: github?.location || gravatar?.location || null,
+    discovered_company: github?.company || pdl?.company || hunter?.company || null,
+    discovered_location: github?.location || pdl?.location || gravatar?.location || null,
     discovered_bio: github?.bio || reddit?.bio || hackerNews?.bio || twitterBrave?.bio || null,
-    discovered_github_url: github?.profileUrl || null,
-    discovered_twitter_url: twitterBrave?.profileUrl || (github?.twitter ? `https://twitter.com/${github.twitter}` : null),
+    discovered_github_url: github?.profileUrl || pdl?.github_url || null,
+    discovered_twitter_url: twitterBrave?.profileUrl || pdl?.twitter_url || (github?.twitter ? `https://twitter.com/${github.twitter}` : null),
     github_repos: github?.publicRepos || null,
     github_followers: github?.followers || null,
     github_languages: github?.languages || null,
     github_top_repos: github?.topRepos || null,
-    // New: Reddit data
+    // Reddit data
     reddit_interests: reddit?.topSubreddits || null,
     reddit_karma: reddit ? { link: reddit.karma.link, comment: reddit.karma.comment } : null,
     reddit_bio: reddit?.bio || null,
-    // New: Hacker News data
+    // Hacker News data
     hn_karma: hackerNews?.karma || null,
     hn_topics: hackerNews?.topTopics || null,
     hn_bio: hackerNews?.bio || null,
-    // New: Hunter.io data
+    // Hunter.io data
     hunter_company: hunter?.company || null,
     hunter_position: hunter?.position || null,
     hunter_seniority: hunter?.seniority || null,
-    // New: Spotify probe
+    // Spotify probe
     spotify_exists: spotify?.exists || false,
-    // New: Twitter/X via Brave
+    // Twitter/X via Brave
     twitter_bio: twitterBrave?.bio || null,
     twitter_handle: twitterBrave?.handle || null,
+    // PDL professional data
+    pdl_headline: pdl?.headline || null,
+    pdl_industry: pdl?.industry || null,
+    pdl_experience: pdl?.experience || null,
+    pdl_education: pdl?.education || null,
+    pdl_skills: pdl?.skills || null,
+    pdl_interests: pdl?.interests || null,
+    pdl_linkedin_url: pdl?.linkedin_url || null,
+    // Holehe discovered platforms
+    discovered_platforms: discoveredPlatforms.length > 0 ? discoveredPlatforms : null,
     // Source tracking
     source: [
       gravatar ? 'gravatar' : null,
@@ -115,6 +136,8 @@ export async function quickEnrich(email, name = null) {
       hunter ? 'hunter' : null,
       spotify ? 'spotify' : null,
       twitterBrave ? 'twitter' : null,
+      pdl ? 'pdl' : null,
+      discoveredPlatforms.length > 0 ? 'holehe' : null,
     ].filter(Boolean).join('+') || 'none',
     social_links: uniqueSocialLinks,
   };
@@ -132,6 +155,8 @@ export async function quickEnrich(email, name = null) {
     hunter: hunter ? hunter.company : 'miss',
     spotify: spotify ? 'found' : 'miss',
     twitter: twitterBrave ? twitterBrave.handle : 'miss',
+    pdl: pdl ? `${pdl.company || 'no-company'}` : 'miss',
+    holehe: discoveredPlatforms.length > 0 ? `${discoveredPlatforms.length} platforms` : 'miss',
     source: data.source,
   });
 

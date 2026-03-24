@@ -100,6 +100,7 @@
     "next-themes": "^0.3.0",
     "node-cron": "^4.2.1",
     "openai": "^5.22.0",
+    "peopledatalabs": "^14.1.1",
     "posthog-js": "^1.347.0",
     "rate-limit-redis": "^4.2.3",
     "react": "^18.3.1",

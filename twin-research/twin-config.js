@@ -105,9 +105,9 @@ export const ALPHA_CITATION_BASELINE = 0.90;
 // Total should stay around 20-25 to avoid context overflow.
 export const MEMORY_CONTEXT_BUDGETS = {
   reflections:   3,
-  platform_data: 6,
+  platform_data: 4,
   facts:         5,
-  conversations: 6,
+  conversations: 8,
 };
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────
@@ -172,7 +172,7 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
 export const SAMPLING_OVERRIDES = {
   temperature_delta: -0.05,
   top_p_delta: 0.0,
-  frequency_penalty_delta: 0.0,
+  frequency_penalty_delta: 0.10,
   presence_penalty_delta: 0.15,
 };
 

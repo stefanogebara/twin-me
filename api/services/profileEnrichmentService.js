@@ -417,6 +417,16 @@ class ProfileEnrichmentService {
         github_languages: q.github_languages,
         github_top_repos: q.github_top_repos,
         social_links: q.social_links,
+        // PDL professional data (from quick enrichment)
+        pdl_headline: q.pdl_headline,
+        pdl_industry: q.pdl_industry,
+        pdl_experience: q.pdl_experience,
+        pdl_education: q.pdl_education,
+        pdl_skills: q.pdl_skills,
+        pdl_interests: q.pdl_interests,
+        pdl_linkedin_url: q.pdl_linkedin_url,
+        // Holehe discovered platforms
+        discovered_platforms: q.discovered_platforms,
       };
       enrichmentSource = q.source;
       if (q.discovered_name && (!name || !name.includes(' '))) {
