@@ -560,7 +560,13 @@ export async function generateSoulSignature(userId) {
   // Check cache
   const cached = await getCachedSignature(userId);
   if (cached) {
-    return { ...cached, cached: true };
+    // If stale, serve immediately but trigger background regen (fire-and-forget)
+    if (cached._stale) {
+      log.info('Serving stale cache, triggering background regen', { userId });
+      // Fire-and-forget: don't await — user gets instant response
+      doGenerate(userId).catch(err => log.warn('Background regen failed', { error: err.message }));
+    }
+    return { layers: cached.layers, generatedAt: cached.generatedAt, cached: true };
   }
 
   // Join an in-progress generation if one exists (prevents thundering herd)
@@ -767,9 +773,10 @@ async function getCachedSignature(userId) {
     }
 
     if (age < STALE_SERVE_MAX_MS) {
-      log.info('Cache HIT (stale, serving while allowing regen)', { userId, ageHours: Math.round(age / 3600000) });
-      // Return null to trigger regeneration — caller gets fresh data
-      return null;
+      log.info('Cache HIT (stale, serving stale + background regen)', { userId, ageHours: Math.round(age / 3600000) });
+      // Return stale data immediately — caller sees instant response
+      // Mark as stale so the caller can trigger background regeneration
+      return { layers: data.layers, generatedAt: data.generated_at, _stale: true };
     }
 
     log.info('Cache EXPIRED (beyond stale window)', { userId });
