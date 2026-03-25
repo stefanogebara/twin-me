@@ -227,3 +227,60 @@ export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
     html: emailShell(body),
   });
 }
+
+/**
+ * Platform nudge email for beta users who signed up but haven't connected platforms or chatted.
+ */
+export async function sendPlatformNudge({ toEmail, firstName, userId }) {
+  if (!resend) { log.warn('Skipping platform nudge email (Resend not configured)'); return; }
+
+  const safeName = escapeHtml(firstName || 'there');
+  const unsubToken = generateUnsubscribeToken(userId);
+  const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
+  const dashboardUrl = `${APP_URL}/dashboard`;
+
+  const body = `
+  <p style="${S.heading}">Your twin is waiting for you, ${safeName}</p>
+  <p style="${S.body}">You started your twin journey &mdash; but it's still learning the basics. The more data your twin has, the more it sounds like you. Right now, it's a blank canvas.</p>
+
+  <div style="${S.divider}"></div>
+
+  <p style="${S.subheading}">Three quick wins</p>
+
+  <div style="${S.card}">
+    <p style="${S.cardText}"><span style="${S.listStrong}">1. Connect Spotify</span> <span style="color:#57534E;">&mdash; 2 clicks</span></p>
+    <p style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#57534E;margin:6px 0 0;">Your music taste reveals more about you than you'd think.</p>
+  </div>
+
+  <div style="${S.card}">
+    <p style="${S.cardText}"><span style="${S.listStrong}">2. Connect YouTube</span> <span style="color:#57534E;">&mdash; 2 clicks</span></p>
+    <p style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#57534E;margin:6px 0 0;">What you watch tells your twin what you care about.</p>
+  </div>
+
+  <div style="${S.card}">
+    <p style="${S.cardText}"><span style="${S.listStrong}">3. Chat with your twin</span></p>
+    <p style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#57534E;margin:6px 0 0;">Every conversation makes your twin sharper and more you.</p>
+  </div>
+
+  <div style="margin-top:28px;">
+    <a href="${dashboardUrl}" style="${S.cta}">Connect your platforms</a>
+  </div>
+
+  <div style="${S.footer}">
+    <p style="margin:0 0 4px;">You're receiving this because you signed up for TwinMe.</p>
+    <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from emails</a></p>
+  </div>`;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: `Your twin is waiting for you, ${safeName}`,
+      html: emailShell(body),
+    });
+    log.info('Platform nudge email sent', { email: toEmail, userId });
+  } catch (err) {
+    log.error('Platform nudge email failed', { error: err.message, email: toEmail });
+    throw err;
+  }
+}
