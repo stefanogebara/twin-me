@@ -19,13 +19,14 @@ import { lifeEventInferenceService } from '../services/lifeEventInferenceService
 // Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
 import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
 import { createLogger } from '../services/logger.js';
+import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
 const log = createLogger('CalendarOAuth');
 
 const router = express.Router();
 
-// Google Calendar OAuth configuration
-const CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
+// Google Calendar OAuth configuration — centralized scopes (feature-flagged read-only vs full)
+const CALENDAR_SCOPES = getGoogleWorkspaceScopes();
 
 /**
  * Helper to get valid access token using centralized token refresh system

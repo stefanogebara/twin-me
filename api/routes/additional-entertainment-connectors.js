@@ -13,6 +13,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { generatePKCEParams } from '../services/pkce.js';
 import { createLogger } from '../services/logger.js';
+import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
 const log = createLogger('AdditionalConnectors');
 
@@ -337,7 +338,7 @@ router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
       return res.status(503).json({ error: 'Gmail integration not configured' });
     }
     const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
-    const scope = 'https://www.googleapis.com/auth/gmail.readonly';
+    const scope = getGoogleWorkspaceScopes().join(' ');
 
     // Generate PKCE parameters
     const pkce = generatePKCEParams();

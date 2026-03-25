@@ -14,6 +14,7 @@ import {
 } from '../services/redisClient.js';
 import { ensureFreshToken } from '../services/tokenRefreshService.js';
 import { createLogger, redact } from '../services/logger.js';
+import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
 const log = createLogger('Connectors');
 const router = express.Router();
@@ -50,21 +51,21 @@ const OAUTH_CONFIGS = {
   google_gmail: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scopes: ['https://www.googleapis.com/auth/gmail.readonly'],
+    scopes: getGoogleWorkspaceScopes(),
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
   },
   google_calendar: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+    scopes: getGoogleWorkspaceScopes(),
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
   },
   google_drive: {
     clientId: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+    scopes: getGoogleWorkspaceScopes(),
     authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
     tokenUrl: 'https://oauth2.googleapis.com/token'
   },

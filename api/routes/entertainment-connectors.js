@@ -21,6 +21,7 @@ import {
 } from '../middleware/oauthRateLimiter.js';
 
 import { createLogger } from '../services/logger.js';
+import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
 const log = createLogger('EntertainmentConnectors');
 
@@ -1527,13 +1528,8 @@ router.post('/connect/gmail', authenticateUser, oauthAuthorizationLimiter, async
     const appUrl = process.env.APP_URL || process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
-    // Gmail scopes for reading email metadata and labels
-    const scope = encodeURIComponent(
-      'https://www.googleapis.com/auth/gmail.readonly ' +
-      'https://www.googleapis.com/auth/gmail.labels ' +
-      'https://www.googleapis.com/auth/userinfo.email ' +
-      'https://www.googleapis.com/auth/userinfo.profile'
-    );
+    // Google Workspace scopes — centralized (feature-flagged read-only vs full)
+    const scope = encodeURIComponent(getGoogleWorkspaceScopes().join(' '));
 
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
     const pkce = generatePKCEParams();
@@ -1599,11 +1595,8 @@ router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimi
     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
     const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
-    // Calendar scopes
-    const scope = encodeURIComponent(
-      'https://www.googleapis.com/auth/calendar.readonly ' +
-      'https://www.googleapis.com/auth/calendar.events.readonly'
-    );
+    // Google Workspace scopes — centralized (feature-flagged read-only vs full)
+    const scope = encodeURIComponent(getGoogleWorkspaceScopes().join(' '));
 
     // Generate PKCE parameters
     const pkce = generatePKCEParams();
