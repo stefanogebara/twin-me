@@ -2,13 +2,14 @@ import React, { Suspense, lazy, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
+import OnboardingExplainer from './components/OnboardingExplainer';
 
 const WelcomeStep = lazy(() => import('./steps/WelcomeStep'));
 const InterviewStep = lazy(() => import('./steps/InterviewStep'));
 const PlatformStep = lazy(() => import('./steps/PlatformStep'));
 const AwakeningScreen = lazy(() => import('./steps/AwakeningScreen'));
 
-type Step = 'welcome' | 'interview' | 'platforms' | 'awakening';
+type Step = 'explainer' | 'welcome' | 'interview' | 'platforms' | 'awakening';
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -35,7 +36,9 @@ const OnboardingFlow: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const stepParam = params.get('step');
     if (stepParam === 'platform' || stepParam === 'platforms') return 'platforms';
-    return 'welcome';
+    // Show explainer on first visit
+    const seen = sessionStorage.getItem('twinme_explainer_seen');
+    return seen ? 'welcome' : 'explainer';
   };
 
   const [step, setStep] = useState<Step>(initialStep);
@@ -53,8 +56,24 @@ const OnboardingFlow: React.FC = () => {
     navigate('/dashboard', { replace: true });
   };
 
-  const STEPS: Step[] = ['welcome', 'interview', 'platforms', 'awakening'];
+  const STEPS: Step[] = ['explainer', 'welcome', 'interview', 'platforms', 'awakening'];
   const currentIdx = STEPS.indexOf(step);
+
+  // Show explainer before the main flow
+  if (step === 'explainer') {
+    return (
+      <OnboardingExplainer
+        onComplete={() => {
+          sessionStorage.setItem('twinme_explainer_seen', '1');
+          setStep('welcome');
+        }}
+        onSignIn={() => {
+          sessionStorage.setItem('twinme_explainer_seen', '1');
+          navigate('/auth');
+        }}
+      />
+    );
+  }
 
   return (
     <div style={{ background: 'linear-gradient(180deg, #110f0f 0%, #0d0b0b 50%, #0a0909 100%)', minHeight: '100vh' }}>
