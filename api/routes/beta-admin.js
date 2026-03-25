@@ -5,6 +5,8 @@
  * - GET /waitlist — list waitlist entries
  * - GET /feedback — list all beta feedback
  * - POST /invite-from-waitlist — convert waitlist entry to invite
+ * - POST /send-nudges — send platform nudge emails to inactive users
+ * - GET /nudge-candidates — preview users who would receive nudge
  *
  * Also: POST /api/beta/feedback (auth only, NOT admin) — submit feedback
  */
@@ -18,6 +20,7 @@ import {
   removeFromWaitlist,
 } from '../services/betaInviteService.js';
 import { sendBetaInvite } from '../services/emailService.js';
+import { findUsersNeedingNudge, sendNudgeEmails } from '../services/nudgeService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -162,6 +165,38 @@ adminRouter.post('/invite-from-waitlist', async (req, res) => {
     res.json({ success: true, data: invite });
   } catch (error) {
     log.error('Invite from waitlist error', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/beta/admin/nudge-candidates — preview who would get nudged
+adminRouter.get('/nudge-candidates', async (req, res) => {
+  try {
+    const candidates = await findUsersNeedingNudge();
+    res.json({
+      success: true,
+      count: candidates.length,
+      data: candidates.map(u => ({
+        id: u.id,
+        email: u.email,
+        first_name: u.first_name,
+        signed_up: u.created_at,
+      })),
+    });
+  } catch (error) {
+    log.error('Nudge candidates error', { error: error.message });
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/beta/admin/send-nudges — send platform nudge emails to all eligible users
+adminRouter.post('/send-nudges', async (req, res) => {
+  try {
+    const result = await sendNudgeEmails();
+    log.info('Nudge emails sent', result);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    log.error('Send nudges error', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 });
