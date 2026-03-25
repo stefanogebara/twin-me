@@ -28,11 +28,11 @@ const USE_KAPSO = !!process.env.KAPSO_API_KEY;
 // Lazy-initialize Kapso client (only when needed)
 let kapsoClient = null;
 
-function getKapsoClient() {
+async function getKapsoClient() {
   if (kapsoClient) return kapsoClient;
   try {
-    // Dynamic import to avoid breaking if SDK not installed
-    const { WhatsAppClient } = require('@kapso/whatsapp-cloud-api');
+    // Dynamic import for ESM compatibility
+    const { WhatsAppClient } = await import('@kapso/whatsapp-cloud-api');
     kapsoClient = new WhatsAppClient({ kapsoApiKey: process.env.KAPSO_API_KEY });
     log.info('Kapso WhatsApp client initialized');
     return kapsoClient;
@@ -48,7 +48,7 @@ function getKapsoClient() {
 export async function sendWhatsAppMessage(recipientPhone, text) {
   // Try Kapso first
   if (USE_KAPSO) {
-    const client = getKapsoClient();
+    const client = await getKapsoClient();
     const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
 
     if (client && phoneNumberId) {
