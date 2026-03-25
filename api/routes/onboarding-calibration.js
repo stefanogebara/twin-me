@@ -614,7 +614,7 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       }).join('\n');
 
       const summaryResult = await complete({
-        tier: TIER_CHAT,
+        tier: TIER_ANALYSIS,
         system: buildSummaryPrompt(enrichmentContext, domainInsightText),
         messages: [
           ...history,

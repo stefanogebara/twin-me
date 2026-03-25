@@ -138,10 +138,10 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             width: '36px',
             height: '36px',
             borderRadius: '100px',
-            backgroundColor: input.trim() ? '#252222' : 'transparent',
-            color: input.trim() ? 'var(--background)' : 'var(--text-muted)',
+            backgroundColor: input.trim() ? '#F5F5F4' : 'transparent',
+            color: input.trim() ? '#0C0C0C' : 'var(--text-muted)',
             cursor: input.trim() ? 'pointer' : 'default',
-            opacity: input.trim() ? 1 : 0.5,
+            opacity: input.trim() ? 1 : 0.3,
           }}
         >
           <Send className="w-4 h-4" />
