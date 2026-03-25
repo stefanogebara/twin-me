@@ -7,6 +7,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
+import GoogleWorkspaceConnect from './GoogleWorkspaceConnect';
 
 interface ConnectedPlatformsSettingsProps {
   isDemoMode: boolean;
@@ -26,11 +27,10 @@ interface ConnectorConfig {
   isOAuth: boolean;
 }
 
+// Google services (Gmail, Calendar, Drive, etc.) are handled by GoogleWorkspaceConnect above
 const connectorConfig: ConnectorConfig[] = [
   { id: 'spotify', name: 'Spotify', description: 'Music preferences and listening patterns', isOAuth: true },
-  { id: 'google_calendar', name: 'Google Calendar', description: 'Schedule and event patterns', isOAuth: true },
   { id: 'youtube', name: 'YouTube', description: 'Content preferences and watch history', isOAuth: true },
-  { id: 'google_gmail', name: 'Gmail', description: 'Communication patterns from email metadata', isOAuth: true },
   { id: 'discord', name: 'Discord', description: 'Community activity and communication style', isOAuth: true },
   { id: 'linkedin', name: 'LinkedIn', description: 'Career trajectory and professional skills', isOAuth: true },
   { id: 'github', name: 'GitHub', description: 'Coding activity and open source contributions', isOAuth: true },
@@ -51,6 +51,13 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
 }) => {
   return (
     <div>
+      {/* Google Workspace — bundled connect card */}
+      <GoogleWorkspaceConnect
+        connectorStatus={connectorStatus as Record<string, any>}
+        isDemoMode={isDemoMode}
+        navigate={navigate}
+      />
+
       {/* Refresh button — right-aligned, subtle */}
       <div className="flex justify-end mb-3">
         <button
