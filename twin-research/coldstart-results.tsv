@@ -1,0 +1,10 @@
+timestamp	coldstart_quality_score	coverage	accuracy	wow_factor	generation_time_ms	memories_used	eval_seconds	description
+2026-03-25T11:31:09.974Z	0.790000	0.800000	0.700000	0.900000	2774	50	4.7	baseline (temp=0.5, enrichment=0.5, limit=50, max_per_type=15)
+2026-03-25T12:11:45.004Z	0.785000	0.700000	0.800000	0.900000	2469	50	4.8	exp1: temp=0.3 (accuracy+0.10, coverage-0.10)
+2026-03-25T12:12:11.086Z	0.790000	0.800000	0.700000	0.900000	3607	60	5.2	exp2: temp=0.3 + limit=75 (back to baseline)
+2026-03-25T12:12:52.509Z	0.715000	0.700000	0.600000	0.900000	2083	60	3.4	exp3: strict anti-hallucination prompt (too restrictive, regression)
+2026-03-25T12:13:35.712Z	0.885000	0.800000	0.900000	1.000000	3664	60	5.4	exp4: balanced accuracy-guard prompt + enrichment=0.3 (BEST so far)
+2026-03-25T12:14:02.898Z	0.715000	0.700000	0.600000	0.900000	1840	60	3.3	exp5: max_tokens=300 (too brief, regression)
+2026-03-25T12:14:39.340Z	0.885000	0.800000	0.900000	1.000000	4593	60	6.2	exp6: max_tokens=700 (no improvement over 500)
+2026-03-25T12:15:11.925Z	0.715000	0.700000	0.600000	0.900000	1927	60	4.9	exp7: limit=100 (capped at 60 by max_per_type=15, regression)
+2026-03-25T12:15:51.932Z	0.935000	0.900000	1.000000	0.900000	6812	75	8.9	exp8: max_per_type=20 (75 memories, NEW BEST)
