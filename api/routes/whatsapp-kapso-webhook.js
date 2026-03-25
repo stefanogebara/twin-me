@@ -38,12 +38,13 @@ const processedKeys = new Map(); // key -> timestamp
 const DEDUP_TTL_MS = 300_000;    // 5 minutes
 
 // Clean up stale dedup entries every 2 minutes
-setInterval(() => {
+const dedupCleanupInterval = setInterval(() => {
   const cutoff = Date.now() - DEDUP_TTL_MS;
   for (const [key, ts] of processedKeys) {
     if (ts < cutoff) processedKeys.delete(key);
   }
 }, 120_000);
+dedupCleanupInterval.unref();
 
 // ====================================================================
 // Rate limiting: per phone number (in-memory, simple)
@@ -60,6 +61,18 @@ function isRateLimited(phone) {
   rateLimitMap.set(phone, entry);
   return entry.timestamps.length > RATE_LIMIT_MAX;
 }
+
+// Clean up stale rate limit entries every 5 minutes to prevent memory leak
+const rateLimitCleanupInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [phone, entry] of rateLimitMap) {
+    const active = entry.timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
+    if (active.length === 0) {
+      rateLimitMap.delete(phone);
+    }
+  }
+}, 300_000);
+rateLimitCleanupInterval.unref();
 
 // ====================================================================
 // Webhook signature verification (HMAC-SHA256)

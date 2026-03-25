@@ -3,6 +3,11 @@
  * =======================
  * Registers all Inngest functions with the Inngest platform.
  * Uses lazy initialization to avoid URL errors at import time.
+ *
+ * Signing key verification: The Inngest SDK reads INNGEST_SIGNING_KEY from
+ * the environment automatically and validates request signatures internally.
+ * No explicit code is needed — the SDK handles it. The key is set on Vercel
+ * as an encrypted production env var.
  */
 
 import express from 'express';

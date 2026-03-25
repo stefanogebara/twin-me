@@ -139,6 +139,13 @@ export async function buildProcedureBlock(userId, skill = null) {
 
 /**
  * Hebbian strengthening — call when an action is accepted.
+ *
+ * NOTE: This uses a SELECT-then-UPDATE pattern which has a theoretical race
+ * condition on the metadata JSONB fields. In practice, this is mitigated by
+ * Inngest's concurrency limit of 1 per userId (`concurrency: { limit: 1,
+ * key: "event.data.userId" }`), which prevents concurrent calls for the same
+ * user. If we move away from Inngest or relax concurrency, replace with an
+ * RPC-based atomic increment (e.g., `increment_procedure_count`).
  */
 export async function strengthenProcedure(userId, skill) {
   const { data } = await supabaseAdmin
@@ -172,6 +179,9 @@ export async function strengthenProcedure(userId, skill) {
 /**
  * Hebbian weakening — call when an action is rejected.
  * Prunes procedure if success rate drops too low after enough attempts.
+ *
+ * NOTE: Same SELECT-then-UPDATE race condition caveat as strengthenProcedure.
+ * Mitigated by Inngest concurrency limit of 1 per userId.
  */
 export async function weakenProcedure(userId, skill) {
   const { data } = await supabaseAdmin

@@ -675,7 +675,7 @@ export async function searchFiles(userId, { query, mimeType, maxResults = 20 } =
 
     // Build the q parameter for Drive search
     const qParts = [];
-    if (query) qParts.push(`name contains '${query.replace(/'/g, "\\'")}'`);
+    if (query) qParts.push(`name contains '${query.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`);
     if (mimeType) qParts.push(`mimeType = '${mimeType}'`);
     qParts.push('trashed = false');
     params.q = qParts.join(' and ');

@@ -48,16 +48,23 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
     setShowCheckboxModal(true);
   };
 
+  const [connectError, setConnectError] = useState<string | null>(null);
+
   const handleContinueConnect = async () => {
     setShowCheckboxModal(false);
     setConnecting(true);
+    setConnectError(null);
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
+      if (!token) {
+        setConnectError('Please sign in again to connect Google Workspace.');
+        return;
+      }
       const response = await fetch(`${API_URL}/entertainment/connect/google_gmail`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({}),
       });
@@ -66,7 +73,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         window.location.href = data.authUrl;
       }
     } catch {
-      // Connection failed silently — user can retry
+      setConnectError('Connection failed. Please try again.');
     } finally {
       setConnecting(false);
     }
@@ -176,6 +183,13 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
           >
             Manage connections
           </button>
+        )}
+
+        {/* Error message */}
+        {connectError && (
+          <p className="text-[12px] text-center mt-3" style={{ color: '#dc2626' }}>
+            {connectError}
+          </p>
         )}
 
         {/* Trust badge */}
