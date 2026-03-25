@@ -62,7 +62,7 @@ async function fetchEarlyMemories(userId, limit) {
       .from('user_memories')
       .select('id, content, memory_type, importance_score, metadata, created_at')
       .eq('user_id', userId)
-      .eq('is_archived', false)
+      // .eq('is_archived', false) — column does not exist in current schema
       .order('created_at', { ascending: true })
       .limit(limit * 3);
 
@@ -117,14 +117,15 @@ async function fetchCoreBlocks(userId) {
 
 // ─── Fetch full soul signature (ground truth) ────────────────────────────────
 async function fetchFullSoulSignature(userId) {
-  // Get the latest twin summary as ground truth
-  const { data: summary } = await supabaseAdmin
-    .from('twin_summaries')
-    .select('summary')
+  // Get soul signature from core_memory_blocks as ground truth
+  const { data: soulBlock } = await supabaseAdmin
+    .from('core_memory_blocks')
+    .select('block_content')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(1)
+    .eq('block_name', 'soul_signature')
     .single();
+
+  const summary = soulBlock ? { summary: soulBlock.block_content } : null;
 
   // Also get high-importance reflections as additional ground truth
   const { data: reflections } = await supabaseAdmin
@@ -132,7 +133,6 @@ async function fetchFullSoulSignature(userId) {
     .select('content')
     .eq('user_id', userId)
     .eq('memory_type', 'reflection')
-    .eq('is_archived', false)
     .gte('importance_score', 7)
     .order('importance_score', { ascending: false })
     .limit(20);
