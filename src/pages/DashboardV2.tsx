@@ -12,6 +12,7 @@ import { PlatformsList } from './components/dashboard-v2/PlatformsList';
 import { ChatPrompt } from './components/dashboard-v2/ChatPrompt';
 import { DailyTimeline } from './components/dashboard-v2/DailyTimeline';
 import { MessagingPrompt } from './components/dashboard-v2/MessagingPrompt';
+import { WhatsAppCard } from './components/dashboard-v2/WhatsAppCard';
 import { useWebPush } from '@/hooks/useWebPush';
 
 export function DashboardV2() {
@@ -72,6 +73,8 @@ export function DashboardV2() {
           insightId={data.heroInsight.insightId}
         />
       )}
+
+      <WhatsAppCard />
 
       <MessagingPrompt />
 

@@ -58,13 +58,36 @@ router.post('/link', authenticateUser, async (req, res) => {
 
     log.info('WhatsApp linked', { userId, phone: phone.slice(-4) });
 
-    // Send confirmation message (fire-and-forget, don't block response)
-    sendWhatsAppMessage(
-      phone,
-      'Your TwinMe twin is now connected to this WhatsApp. Say hi!'
-    ).catch(err => {
-      log.warn('Failed to send confirmation WhatsApp', { userId, error: err.message });
-    });
+    // Send confirmation message — await so we know if it fails
+    // Kapso/Meta Cloud API expect phone without leading '+'
+    const recipientPhone = phone.startsWith('+') ? phone.slice(1) : phone;
+    try {
+      const sendResult = await sendWhatsAppMessage(
+        recipientPhone,
+        'Your TwinMe twin is now connected to this WhatsApp. Say hi!'
+      );
+      if (!sendResult.success) {
+        log.warn('Confirmation WhatsApp send returned failure', {
+          userId,
+          phone: phone.slice(-4),
+          error: sendResult.error,
+        });
+      } else {
+        log.info('Confirmation WhatsApp sent', {
+          userId,
+          phone: phone.slice(-4),
+          provider: sendResult.provider,
+          messageId: sendResult.messageId,
+        });
+      }
+    } catch (err) {
+      log.error('Failed to send confirmation WhatsApp', {
+        userId,
+        phone: phone.slice(-4),
+        error: err.message,
+        stack: err.stack,
+      });
+    }
 
     return res.json({ success: true });
   } catch (err) {

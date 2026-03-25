@@ -6,8 +6,9 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Check, Loader2 } from 'lucide-react';
+import { MessageCircle, Check, Loader2, ExternalLink } from 'lucide-react';
 import { getAccessToken } from '@/services/api/apiBase';
+import { TWIN_WHATSAPP_DISPLAY, TWIN_WHATSAPP_LINK } from '@/lib/whatsappConstants';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -92,7 +93,6 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
         setStatus({ linked: true, enabled: true, phone: normalized });
         setPhoneInput('');
         setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
       } else {
         setError(data.error || 'Failed to link WhatsApp.');
       }
@@ -161,15 +161,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
               Unlink
             </button>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            {success && (
-              <span className="text-[11px]" style={{ color: 'rgba(16,183,127,0.8)' }}>
-                Connected!
-              </span>
-            )}
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Link form (when not linked) */}
@@ -227,6 +219,34 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
           <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
             Enter your number in international format with country code.
           </p>
+        </div>
+      )}
+
+      {/* Success instructions (shown after linking or when already linked) */}
+      {status?.linked && (
+        <div
+          className="py-4 space-y-3"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+        >
+          {success && (
+            <p className="text-[12px] font-medium" style={{ color: 'rgba(16,183,127,0.9)' }}>
+              Connected! Your twin is ready on WhatsApp.
+            </p>
+          )}
+          <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            Message your twin at{' '}
+            <span style={{ color: 'var(--foreground)' }}>{TWIN_WHATSAPP_DISPLAY}</span>
+          </p>
+          <a
+            href={TWIN_WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80"
+            style={{ backgroundColor: 'rgba(37,211,102,0.15)', color: 'rgba(37,211,102,0.9)' }}
+          >
+            <ExternalLink className="w-3 h-3" />
+            Message now
+          </a>
         </div>
       )}
     </div>
