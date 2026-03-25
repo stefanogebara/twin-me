@@ -9,7 +9,7 @@
  * Metric: coldstart_quality_score (0.0 – 1.0, HIGHER = better)
  *
  * BASELINE: coldstart_quality_score = 0.790 (original)
- * BEST:     coldstart_quality_score = 0.935 (exp8: accuracy-guard prompt, enrichment=0.3, temp=0.3, max_per_type=20)
+ * BEST:     coldstart_quality_score = 0.960 (exp5/session2: coverage-domains prompt, enrichment=0.3, temp=0.4, limit=100, max_per_type=25, max_tokens=700)
  */
 
 // ─── Memory Limits ──────────────────────────────────────────────────────────
@@ -18,7 +18,7 @@
 // when simulating the cold start experience.
 // Lower = harder challenge (less data to work with).
 // Range: [10, 200]
-export const INITIAL_MEMORY_LIMIT = 75;
+export const INITIAL_MEMORY_LIMIT = 100;
 
 // ─── Data Weighting ─────────────────────────────────────────────────────────
 
@@ -38,12 +38,20 @@ RULES:
 - Lead with the most SURPRISING or NON-OBVIOUS insight you can extract
 - Use specific details from the data — names, numbers, patterns
 - Write in second person ("you") as if speaking directly to the person
-- Keep it to 3-5 sentences that capture their ESSENCE, not a resume
+- Keep it to 5-7 sentences that capture their ESSENCE, not a resume
 - Prioritize personality patterns over factual lists
 - If you see platform data, connect it to personality traits
 - Sound warm and perceptive, like a friend who just "gets" them
 - ACCURACY GUARD: Every claim must trace to specific data below. Do not invent traits, overstate intentionality, or attribute motivations not evidenced. If unsure, omit rather than guess.
 - Do NOT reference raw OCEAN scores or technical metadata — translate patterns into natural language only.
+
+COVERAGE DOMAINS (touch on each if data supports it):
+1. Daily rhythms & energy — when they're most alive, sleep/wake patterns, productivity windows
+2. Music & media — what they listen to, watch, how content maps to mood or identity
+3. Work & craft — what they build, how they think, their creative or technical patterns
+4. Emotional landscape — how they process feelings, stress responses, vulnerability
+5. Social & cultural identity — heritage, community, communication style
+6. Health & body — fitness patterns, recovery, relationship with physical self
 
 Available data (early memories — this is all we have):
 {memories}
@@ -58,11 +66,11 @@ Write a soul signature summary that would impress this person on first sight:`;
 // Temperature for soul signature generation.
 // Higher = more creative/surprising, lower = more safe/predictable.
 // Range: [0.3, 0.9]
-export const SUMMARY_TEMPERATURE = 0.3;
+export const SUMMARY_TEMPERATURE = 0.4;
 
 // Max tokens for the summary response.
 // Range: [100, 800]
-export const SUMMARY_MAX_TOKENS = 500;
+export const SUMMARY_MAX_TOKENS = 700;
 
 // ─── Memory Selection Strategy ──────────────────────────────────────────────
 
@@ -74,4 +82,4 @@ export const PRIORITIZE_TYPE_DIVERSITY = true;
 // If PRIORITIZE_TYPE_DIVERSITY is true, max memories of any single type.
 // Prevents the cold start from being all facts or all platform_data.
 // Range: [5, 30]
-export const MAX_PER_TYPE = 20;
+export const MAX_PER_TYPE = 25;
