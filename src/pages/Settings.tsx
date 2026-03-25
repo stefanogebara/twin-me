@@ -8,6 +8,7 @@ import { Download, Trash2, Info, Shield, ArrowRight, Sparkles, Send, ExternalLin
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
+import WhatsAppConnect from './components/settings/WhatsAppConnect';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
@@ -523,6 +524,7 @@ const Settings = () => {
         }}
       >
         <TelegramConnect isDemoMode={isDemoMode} />
+        <WhatsAppConnect isDemoMode={isDemoMode} />
       </div>
 
       {/* ── SECTION 7: DATA & PRIVACY ── */}

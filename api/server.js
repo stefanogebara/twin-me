@@ -428,6 +428,7 @@ import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
 import webPushRoutes from './routes/web-push.js';
 import telegramWebhookRoutes from './routes/telegram-webhook.js';
 import telegramLinkRoutes from './routes/telegram-link.js';
+import whatsappLinkRoutes from './routes/whatsapp-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
 
@@ -553,6 +554,7 @@ app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat 
 app.use('/api/web-push', webPushRoutes); // Web push notification subscribe/unsubscribe
 app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
 app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
+app.use('/api/whatsapp-link', whatsappLinkRoutes); // WhatsApp self-serve phone linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
 app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
