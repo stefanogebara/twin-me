@@ -17,23 +17,23 @@ export default function DiscoverFooter() {
         {/* Top — 2 column links */}
         <div className="flex flex-col sm:flex-row sm:justify-end gap-8 sm:gap-[200px] mb-16 md:mb-[200px]">
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium" style={{ color: T.FG }}>Resources</p>
+            <p className="text-sm font-medium" style={{ color: T.FG }}>Product</p>
             {[
-              { label: 'Documentation', href: '/docs' },
-              { label: 'Blog', href: '/blog' },
-              { label: 'Community', href: '/community' },
+              { label: 'Features', href: '#features' },
+              { label: 'Pricing', href: '#pricing' },
+              { label: 'FAQ', href: '#faq' },
             ].map(l => (
-              <span key={l.label} className="text-sm cursor-default" style={{ color: T.TEXT_SEC, opacity: 0.5 }}>{l.label}</span>
+              <a key={l.label} href={l.href} className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l.label}</a>
             ))}
           </div>
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium" style={{ color: T.FG }}>Social</p>
+            <p className="text-sm font-medium" style={{ color: T.FG }}>Legal</p>
             {[
-              { label: 'X', href: 'https://x.com' },
-              { label: 'Instagram', href: 'https://instagram.com' },
-              { label: 'LinkedIn', href: 'https://linkedin.com' },
+              { label: 'Terms of Service', href: '/terms' },
+              { label: 'Privacy Policy', href: '/privacy-policy' },
+              { label: 'Contact', href: 'mailto:hello@twinme.me' },
             ].map(l => (
-              <span key={l.label} className="text-sm cursor-default" style={{ color: T.TEXT_SEC, opacity: 0.5 }}>{l.label}</span>
+              <a key={l.label} href={l.href} className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l.label}</a>
             ))}
           </div>
         </div>

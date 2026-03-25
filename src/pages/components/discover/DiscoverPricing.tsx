@@ -77,7 +77,7 @@ export default function DiscoverPricing({
         </div>
 
         {/* Cards */}
-        <div className="flex flex-col md:flex-row w-full">
+        <div className="flex flex-col lg:flex-row w-full">
           {/* Free */}
           <div className="flex flex-col flex-1" style={{ marginRight: '-1px' }}>
             <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
@@ -90,7 +90,7 @@ export default function DiscoverPricing({
                 <p className="text-xs" style={{ color: T.TEXT_SEC }}>Free forever, no credit card needed</p>
                 <div className="flex flex-col gap-px mt-5">
                   {['Up to 3 platform connections', '1,000 monthly memories', 'Basic twin chat'].map(f => (
-                    <div key={f} className="flex items-center gap-2 h-6">
+                    <div key={f} className="flex items-center gap-2 min-h-[28px] py-0.5">
                       <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
                       <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
                     </div>
@@ -113,7 +113,7 @@ export default function DiscoverPricing({
           </div>
 
           {/* Plus — elevated */}
-          <div className="flex flex-col shrink-0 w-full md:w-[438px] md:-my-[26px]" style={{ marginRight: '-1px' }}>
+          <div className="flex flex-col shrink-0 w-full lg:w-[438px] lg:-my-[26px]" style={{ marginRight: '-1px' }}>
             <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
               <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Plus</p>
               <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
@@ -128,7 +128,7 @@ export default function DiscoverPricing({
                 </p>
                 <div className="flex flex-col gap-px mt-5">
                   {['All platforms connected', 'Unlimited memories', 'Expert reflection engine', 'Soul signature portrait', 'Goal tracking & nudges'].map(f => (
-                    <div key={f} className="flex items-center gap-2 h-6">
+                    <div key={f} className="flex items-center gap-2 min-h-[28px] py-0.5">
                       <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
                       <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
                     </div>
@@ -161,7 +161,7 @@ export default function DiscoverPricing({
                 </p>
                 <div className="flex flex-col gap-px mt-5">
                   {['Everything in Plus', 'Unlimited reflections & insights', 'Personality oracle fine-tuning', 'Priority support', 'Early access to new features'].map(f => (
-                    <div key={f} className="flex items-center gap-2 h-6">
+                    <div key={f} className="flex items-center gap-2 min-h-[28px] py-0.5">
                       <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
                       <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
                     </div>

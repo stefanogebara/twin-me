@@ -263,7 +263,7 @@ const Index = () => {
             </div>
             <div className="lg:w-1/2 flex items-end">
               <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
-                We built Twin Me to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
+                We built TwinMe to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
               </p>
             </div>
           </div>
@@ -274,7 +274,7 @@ const Index = () => {
           >
             {[
               { value: '5+', label: 'Platform integrations', sub: 'And growing' },
-              { value: '1,536-dim', label: 'Vector embeddings', sub: 'Per memory' },
+              { value: '5', label: 'Expert reflections', sub: 'Unique perspectives' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (
               <div key={i} className="glass-stat-standalone bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 text-center relative overflow-hidden">
@@ -539,7 +539,7 @@ const Index = () => {
           <div className="flex flex-col lg:flex-row justify-between gap-10 mb-10">
             {/* Brand */}
             <div className="lg:max-w-[220px]">
-              <h3 className="text-[22px] font-heading font-normal mb-2">Twin Me</h3>
+              <h3 className="text-[22px] font-heading font-normal mb-2">TwinMe</h3>
               <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">Discover what makes you authentically you.</p>
             </div>
 
@@ -562,8 +562,8 @@ const Index = () => {
                 Community
               </p>
               <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">
-                <li><a href="https://github.com/twinme-ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">GitHub</a></li>
-                <li><a href="https://twitter.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Twitter / X</a></li>
+                <li><a href="https://github.com/stefanogebara" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">GitHub</a></li>
+                <li><a href="https://x.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">X</a></li>
                 <li><a href="mailto:hello@twinme.ai" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Contact us</a></li>
               </ul>
             </div>
@@ -571,7 +571,7 @@ const Index = () => {
 
           {/* Bottom row */}
           <div className="flex flex-col sm:flex-row justify-between gap-4 font-sans text-xs font-medium text-[var(--text-secondary)] leading-[1.65] pt-6 border-t border-white/[0.06]">
-            <p>&copy; 2026 Twin Me. All rights reserved.</p>
+            <p>&copy; 2026 TwinMe. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="/privacy-policy" className="hover:text-[#F5F0EB] transition-colors">Privacy Policy</a>
               <a href="/terms" className="hover:text-[#F5F0EB] transition-colors">Terms</a>
