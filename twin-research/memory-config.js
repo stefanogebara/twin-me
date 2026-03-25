@@ -11,7 +11,8 @@
  * NOTE: This is SEPARATE from twin-config.js which tunes the existing twin-eval.js
  * (type distribution metrics). This config tunes CONTENT relevance of retrieved memories.
  *
- * BASELINE: memory_relevance_score = TBD (run first eval to establish)
+ * BASELINE: memory_relevance_score = 0.490 (original)
+ * CURRENT BEST: 0.522-0.530 (relevance-dominant config, 2026-03-25)
  */
 
 // ─── Retrieval Parameters ───────────────────────────────────────────────────
@@ -23,7 +24,7 @@ export const RETRIEVAL_LIMIT = 10;
 // Minimum cosine similarity score to include a memory in results.
 // Lower = more results but more noise. Higher = fewer but more precise.
 // Range: [0.0, 0.7]
-export const RELEVANCE_THRESHOLD = 0.3;
+export const RELEVANCE_THRESHOLD = 0.45;
 
 // ─── Freshness Control ──────────────────────────────────────────────────────
 
@@ -50,8 +51,8 @@ export const DIVERSITY_RERANKING_WEIGHT = 0.5;
 
 export const RETRIEVAL_WEIGHTS = {
   recency: 0.0,
-  importance: 1.2,
-  relevance: 1.0,
+  importance: 0.4,
+  relevance: 2.2,
 };
 
 // ─── MMR Parameters ─────────────────────────────────────────────────────────
@@ -59,8 +60,8 @@ export const RETRIEVAL_WEIGHTS = {
 // MMR lambda for content relevance evaluation.
 // 0.0 = pure diversity, 1.0 = pure relevance.
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.3;
+export const MMR_LAMBDA = 0.8;
 
 // Type diversity weight in MMR reranking.
 // Range: [0.0, 0.8]
-export const TYPE_DIVERSITY_WEIGHT = 0.65;
+export const TYPE_DIVERSITY_WEIGHT = 0.2;
