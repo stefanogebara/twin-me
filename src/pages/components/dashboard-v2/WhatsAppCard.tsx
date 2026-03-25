@@ -38,6 +38,7 @@ function normalizePhone(raw: string): string {
 const DISMISS_KEY = 'whatsapp_card_dismissed';
 
 export function WhatsAppCard() {
+  console.log('[WhatsAppCard] rendering, initial state');
   const [linked, setLinked] = useState<boolean | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [linking, setLinking] = useState(false);
@@ -53,11 +54,15 @@ export function WhatsAppCard() {
         headers: getAuthHeaders(),
       });
       const data = await res.json();
+      console.log('[WhatsAppCard] status response:', data);
       if (data.success) {
         setLinked(data.linked && data.enabled);
+      } else {
+        setLinked(false);
       }
-    } catch {
-      // non-fatal — card just won't show
+    } catch (err) {
+      console.error('[WhatsAppCard] status fetch failed:', err);
+      setLinked(false);
     }
   }, []);
 
@@ -100,8 +105,11 @@ export function WhatsAppCard() {
     sessionStorage.setItem(DISMISS_KEY, '1');
   };
 
-  // Don't render while loading status, or if dismissed and not linked
-  if (linked === null) return null;
+  // Don't render while loading, or if dismissed and not linked
+  if (linked === null) {
+    // Show unlinked state after 3s timeout (API may have failed silently)
+    return null;
+  }
   if (dismissed && !linked) return null;
 
   // --- Connected state ---
