@@ -10,6 +10,7 @@ import PlatformConnectStep from './components/PlatformConnectStep';
 import DeepInterview from './components/DeepInterview';
 import RevealPhase from './components/RevealPhase';
 import DeepeningPhase from './components/DeepeningPhase';
+import OnboardingExplainer from './components/OnboardingExplainer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -45,7 +46,7 @@ const inferNameFromEmail = (email: string): string => {
   return result.length === 0 ? local.charAt(0).toUpperCase() + local.slice(1) : result.join(' ');
 };
 
-type FlowPhase = 'entry' | 'reveal' | 'platforms' | 'deepening' | 'deep-interview' | 'complete';
+type FlowPhase = 'explainer' | 'entry' | 'reveal' | 'platforms' | 'deepening' | 'deep-interview' | 'complete';
 type OrbPhase = 'dormant' | 'awakening' | 'alive';
 
 interface DataPoint {
@@ -71,8 +72,11 @@ const NewDiscoverFlow: React.FC = () => {
     setPhase(next);
   };
 
-  // Flow state
-  const [phase, setPhase] = useState<FlowPhase>('entry');
+  // Flow state — show explainer on first visit (no sessionStorage flag)
+  const [phase, setPhase] = useState<FlowPhase>(() => {
+    const seen = sessionStorage.getItem('twinme_explainer_seen');
+    return seen ? 'entry' : 'explainer';
+  });
   const [orbPhase, setOrbPhase] = useState<OrbPhase>('dormant');
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [narrative, setNarrative] = useState('');
@@ -510,6 +514,16 @@ const NewDiscoverFlow: React.FC = () => {
     }
   };
 
+  const handleExplainerComplete = useCallback(() => {
+    sessionStorage.setItem('twinme_explainer_seen', '1');
+    setPhase('entry');
+  }, []);
+
+  const handleExplainerSignIn = useCallback(() => {
+    sessionStorage.setItem('twinme_explainer_seen', '1');
+    navigate('/auth');
+  }, [navigate]);
+
   const handleComplete = () => {
     setPhaseTracked('complete');
     navigate('/dashboard');
@@ -525,6 +539,16 @@ const NewDiscoverFlow: React.FC = () => {
   }
 
   if (!user) return null;
+
+  // Show explainer screens before the main flow
+  if (phase === 'explainer') {
+    return (
+      <OnboardingExplainer
+        onComplete={handleExplainerComplete}
+        onSignIn={handleExplainerSignIn}
+      />
+    );
+  }
 
   const userName = enrichmentDataRef.current?.discovered_name
     || quickDataRef.current?.discovered_name
