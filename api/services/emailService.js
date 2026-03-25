@@ -284,3 +284,74 @@ export async function sendPlatformNudge({ toEmail, firstName, userId }) {
     throw err;
   }
 }
+
+/**
+ * Morning briefing email — personalized daily update from the twin.
+ *
+ * @param {object} params
+ * @param {string} params.toEmail
+ * @param {string} params.firstName
+ * @param {string} params.userId
+ * @param {object} params.briefing - { greeting, highlight, stats, cta, isGettingStarted }
+ */
+export async function sendMorningBriefing({ toEmail, firstName, userId, briefing }) {
+  if (!resend) { log.warn('Skipping morning briefing email (Resend not configured)'); return; }
+
+  const safeName = escapeHtml(firstName || 'there');
+  const safeGreeting = escapeHtml(briefing.greeting);
+  const safeHighlight = escapeHtml(briefing.highlight);
+  const safeCta = escapeHtml(briefing.cta);
+
+  const unsubToken = generateUnsubscribeToken(userId);
+  const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
+
+  const ctaUrl = briefing.isGettingStarted
+    ? `${APP_URL}/dashboard`
+    : `${APP_URL}/talk-to-twin`;
+
+  // Stats row: "47 memories | 1 platform | 3 insights ready"
+  const statsText = [
+    `${briefing.stats.memoriesLearned} memories`,
+    `${briefing.stats.platformsConnected} platform${briefing.stats.platformsConnected !== 1 ? 's' : ''}`,
+    `${briefing.stats.insightsReady} insight${briefing.stats.insightsReady !== 1 ? 's' : ''} ready`,
+  ].join(' &nbsp;&bull;&nbsp; ');
+
+  const body = `
+  <p style="${S.heading}">${safeGreeting}</p>
+
+  <div style="${S.divider}"></div>
+
+  <div style="${S.card}">
+    <p style="${S.cardText}">${safeHighlight}</p>
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 28px;">
+  <tr>
+    <td style="font-family:'Inter',Arial,Helvetica,sans-serif;font-size:13px;color:#57534E;line-height:1.6;">
+      ${statsText}
+    </td>
+  </tr>
+  </table>
+
+  <div style="margin-top:28px;">
+    <a href="${ctaUrl}" style="${S.cta}">${safeCta}</a>
+  </div>
+
+  <div style="${S.footer}">
+    <p style="margin:0 0 4px;">Your twin sends this every morning to keep you in the loop.</p>
+    <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from morning briefings</a></p>
+  </div>`;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: `${safeGreeting}`,
+      html: emailShell(body),
+    });
+    log.info('Morning briefing email sent', { email: toEmail, userId });
+  } catch (err) {
+    log.error('Morning briefing email failed', { error: err.message, email: toEmail });
+    throw err;
+  }
+}

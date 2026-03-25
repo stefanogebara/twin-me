@@ -82,6 +82,10 @@
       "schedule": "0 10 * * *"
     },
     {
+      "path": "/api/cron/morning-briefing-email",
+      "schedule": "0 11 * * *"
+    },
+    {
       "path": "/api/cron/intelligent-triggers",
       "schedule": "30 10 * * *"
     },

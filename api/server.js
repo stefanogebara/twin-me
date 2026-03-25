@@ -417,6 +417,7 @@ import cronEveningRecapRoutes from './routes/cron-evening-recap.js';
 import cronDeliverInsightsRoutes from './routes/cron-deliver-insights.js';
 import cronIntelligentTriggersRoutes from './routes/cron-intelligent-triggers.js';
 import cronMorningBriefingRoutes from './routes/cron-morning-briefing.js';
+import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPersonalityValidationRoutes from './routes/cron-personality-validation.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
@@ -542,6 +543,7 @@ app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening rec
 app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (*/5 min)
 app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Daily intelligent triggers (10am UTC)
 app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
+app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/cron/personality-validation', cronPersonalityValidationRoutes); // Weekly personality drift check (Sun 3am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
