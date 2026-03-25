@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { enrichmentService } from '@/services/enrichmentService';
 import type { PlatformDataPoint } from '@/services/enrichmentService';
-import PlatformDataReveal from './PlatformDataReveal';
+import TwinLearningOverlay from './TwinLearningOverlay';
 import { getAccessToken } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
@@ -51,11 +51,15 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connected, setConnected] = useState<string[]>([]);
   const [platformInsights, setPlatformInsights] = useState<Record<string, string>>({});
-  const [platformReveals, setPlatformReveals] = useState<Record<string, {
+
+  // Learning overlay state: shown immediately on OAuth return
+  const [learningPlatform, setLearningPlatform] = useState<string | null>(null);
+  const [learningData, setLearningData] = useState<{
     insight: string;
     dataPoints: PlatformDataPoint[];
     twinReaction: string;
-  }>>({});
+    isReady: boolean;
+  }>({ insight: '', dataPoints: [], twinReaction: '', isReady: false });
 
   // Fetch already-connected platforms on mount
   useEffect(() => {
@@ -85,7 +89,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
     fetchExisting();
   }, [userId]);
 
-  // Check if returning from OAuth and fetch rich platform preview
+  // Check if returning from OAuth — show learning overlay immediately, fetch data in parallel
   useEffect(() => {
     const justConnected = sessionStorage.getItem('onboarding_platform_connect');
     if (justConnected) {
@@ -93,26 +97,29 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
       setConnected(prev => [...new Set([...prev, justConnected])]);
       onPlatformConnected?.(justConnected);
 
-      // Fetch enhanced platform preview with data points
+      // Show the learning overlay in "discovering" phase right away
+      setLearningPlatform(justConnected);
+      setLearningData({ insight: '', dataPoints: [], twinReaction: '', isReady: false });
+
+      // Fetch platform preview in background — overlay animates while waiting
       enrichmentService.fetchPlatformPreview(justConnected)
         .then(result => {
           if (result.success && result.rawCount > 0) {
             setPlatformInsights(prev => ({ ...prev, [justConnected]: result.insight }));
-            // Show rich data reveal if we have data points
-            if (result.dataPoints?.length > 0 || result.twinReaction) {
-              setPlatformReveals(prev => ({
-                ...prev,
-                [justConnected]: {
-                  insight: result.insight,
-                  dataPoints: result.dataPoints || [],
-                  twinReaction: result.twinReaction || '',
-                },
-              }));
-            }
+            setLearningData({
+              insight: result.insight,
+              dataPoints: result.dataPoints || [],
+              twinReaction: result.twinReaction || '',
+              isReady: true,
+            });
+          } else {
+            // No data — still mark ready so overlay can complete gracefully
+            setLearningData(prev => ({ ...prev, isReady: true }));
           }
         })
         .catch(() => {
-          // Silent — insight is a nice-to-have
+          // On error, mark ready so overlay doesn't hang forever
+          setLearningData(prev => ({ ...prev, isReady: true }));
         });
     }
   }, [onPlatformConnected]);
@@ -227,30 +234,23 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
           );
         })}
       </div>
-      {/* Rich data reveal after platform connect */}
-      {Object.entries(platformReveals).map(([platformId, reveal]) => {
-        const platformInfo = PLATFORMS.find(p => p.id === platformId);
-        return (
-          <PlatformDataReveal
-            key={platformId}
-            platform={platformId}
-            platformName={platformInfo?.name || platformId}
-            insight={reveal.insight}
-            dataPoints={reveal.dataPoints}
-            twinReaction={reveal.twinReaction}
-            onDismiss={() => {
-              setPlatformReveals(prev => {
-                const next = { ...prev };
-                delete next[platformId];
-                return next;
-              });
-            }}
-          />
-        );
-      })}
-      {/* Simple insight fallback for platforms without rich data */}
+      {/* Twin learning overlay — shown immediately on OAuth return */}
+      {learningPlatform && (
+        <TwinLearningOverlay
+          platform={learningPlatform}
+          insight={learningData.insight}
+          dataPoints={learningData.dataPoints}
+          twinReaction={learningData.twinReaction}
+          isDataReady={learningData.isReady}
+          onComplete={() => {
+            setLearningPlatform(null);
+            setLearningData({ insight: '', dataPoints: [], twinReaction: '', isReady: false });
+          }}
+        />
+      )}
+      {/* Simple insight fallback for platforms without active learning overlay */}
       {Object.entries(platformInsights)
-        .filter(([platformId]) => !platformReveals[platformId])
+        .filter(([platformId]) => platformId !== learningPlatform)
         .map(([platformId, insight]) => (
           <div
             key={platformId}
