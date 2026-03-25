@@ -16,9 +16,9 @@ const router = express.Router();
 /**
  * GET /api/mcp/tools
  * List all tools available via MCP (from toolRegistry).
- * No auth required — for debugging/documentation only.
+ * Requires auth — exposes full tool registry including parameters.
  */
-router.get('/tools', (req, res) => {
+router.get('/tools', authenticateUser, (req, res) => {
   try {
     const tools = [];
     for (const [, tool] of registry) {

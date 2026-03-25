@@ -282,8 +282,17 @@ app.use('/api/billing', billingRoutes);
 // Parse text/plain bodies for WhatsApp import (must be before express.json so the stream isn't consumed)
 app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain' }));
 
-// Parse JSON bodies
-app.use(express.json({ limit: '100kb' }));
+// Parse JSON bodies — capture raw body for webhook signature verification
+app.use(express.json({
+  limit: '100kb',
+  verify: (req, _res, buf) => {
+    // Store raw body for HMAC verification on webhook routes
+    if (req.originalUrl.startsWith('/api/whatsapp/webhook') ||
+        req.originalUrl.startsWith('/api/telegram/webhook')) {
+      req.rawBody = buf.toString('utf8');
+    }
+  },
+}));
 
 // Parse cookies (httpOnly refresh token cookie)
 app.use(cookieParser());

@@ -24,7 +24,12 @@ import {
 } from './utils/service-adapters.js';
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? ['https://twin-ai-learn.vercel.app', 'https://twinme.me', 'https://www.twinme.me']
+    : true, // Allow all in development
+  credentials: true,
+}));
 app.use(express.json());
 
 const PORT = process.env.MCP_HTTP_PORT || 3002;

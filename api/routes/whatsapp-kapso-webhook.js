@@ -153,7 +153,8 @@ router.post('/webhook', async (req, res) => {
     return res.sendStatus(403);
   }
 
-  const rawBody = JSON.stringify(req.body);
+  // Use raw body for HMAC verification (not JSON.stringify which may reorder keys)
+  const rawBody = req.rawBody || JSON.stringify(req.body);
   if (!verifyKapsoSignature(signature, rawBody)) {
     log.warn('Webhook signature verification failed');
     return res.sendStatus(403);
