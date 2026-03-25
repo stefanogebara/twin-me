@@ -89,8 +89,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Page reload recovery: if no in-memory token, try cookie-based refresh first
     const initAuth = async () => {
       if (!getAccessToken() && !localStorage.getItem('auth_token')) {
-        // No in-memory or localStorage token — try cookie-based refresh for page reload recovery
-        await refreshAccessToken();
+        // Only attempt cookie-based refresh if we've had a previous session on this device
+        // (auth_user exists = user logged in before, refresh cookie may still be valid)
+        if (localStorage.getItem('auth_user')) {
+          await refreshAccessToken();
+        }
       }
       checkAuth();
     };
