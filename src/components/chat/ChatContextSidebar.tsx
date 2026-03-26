@@ -1,4 +1,22 @@
+import { useState, useEffect } from 'react';
 import { useWeather } from '../../hooks/useWeather';
+
+function getTimeGradient(): string {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) {
+    // Morning — light blue sky
+    return 'linear-gradient(165deg, #4a6fa5 0%, #2d4a7a 30%, #1e3560 60%, #151825 100%)';
+  } else if (hour >= 12 && hour < 18) {
+    // Afternoon — warm blue
+    return 'linear-gradient(165deg, #2d3a5c 0%, #1e2747 30%, #1a1f3a 60%, #151825 100%)';
+  } else if (hour >= 18 && hour < 21) {
+    // Evening — purple sunset
+    return 'linear-gradient(165deg, #3d2a5c 0%, #2a1e47 30%, #221a3a 60%, #151825 100%)';
+  } else {
+    // Night — deep dark purple
+    return 'linear-gradient(165deg, #1e1533 0%, #16102a 30%, #120e22 60%, #0e0b1a 100%)';
+  }
+}
 
 interface CalendarEvent {
   title: string;
@@ -45,13 +63,22 @@ export const ChatContextSidebar = ({
 }: ChatContextSidebarProps) => {
   const dateStr = formatCurrentDate();
   const weather = useWeather();
+  const [gradient, setGradient] = useState(getTimeGradient);
+
+  // Update gradient every 60 seconds to reflect time-of-day changes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGradient(getTimeGradient());
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <aside
       aria-label="Today's context"
       className="relative w-[280px] flex-shrink-0 hidden lg:flex flex-col h-full overflow-y-auto rounded-l-[20px]"
       style={{
-        background: 'linear-gradient(165deg, #2d3a5c 0%, #1e2747 30%, #1a1f3a 60%, #151825 100%)',
+        background: gradient,
         boxShadow: 'inset 0 0 80px rgba(100, 130, 255, 0.04)',
         borderLeft: '1px solid var(--glass-surface-border)',
       }}

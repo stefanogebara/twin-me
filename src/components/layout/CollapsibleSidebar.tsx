@@ -85,7 +85,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         className={cn(
           "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          isExpanded ? "w-64" : "w-14 lg:w-14",
+          isExpanded ? "w-64" : "w-12 lg:w-12",
           "overflow-visible"
         )}
       >
@@ -219,7 +219,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 title={item.label}
               >
                 <Icon
-                  className={isExpanded ? "w-5 h-5" : "w-[18px] h-[18px]"}
+                  className={isExpanded ? "w-5 h-5" : "w-5 h-5"}
                   style={active ? { color: 'var(--accent-vibrant)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />

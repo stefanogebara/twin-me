@@ -1,4 +1,31 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+
+function getGreeting(firstName: string): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return `Good Morning, ${firstName}`;
+  if (hour >= 12 && hour < 18) return `Good Afternoon, ${firstName}`;
+  if (hour >= 18 && hour < 22) return `Good Evening, ${firstName}`;
+  return `Good Night, ${firstName}`;
+}
+
+function formatCurrentDate(): string {
+  const now = new Date();
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const month = now.toLocaleDateString('en-US', { month: 'long' });
+  const day = now.getDate();
+
+  const suffix =
+    day % 10 === 1 && day !== 11
+      ? 'st'
+      : day % 10 === 2 && day !== 12
+        ? 'nd'
+        : day % 10 === 3 && day !== 13
+          ? 'rd'
+          : 'th';
+
+  return `${dayName}, ${month} ${day}${suffix}`;
+}
 
 interface Platform {
   name: string;
@@ -27,24 +54,39 @@ export const ChatEmptyState = ({
   onQuickAction,
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const firstName = user?.firstName || 'there';
+  const greeting = getGreeting(firstName);
+  const dateStr = formatCurrentDate();
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-6">
-      {/* Large serif heading — no card, no icon */}
+      {/* Date line */}
+      <span
+        className="text-center mb-2"
+        style={{
+          fontSize: '13px',
+          color: 'rgba(255,255,255,0.4)',
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        {dateStr}
+      </span>
+
+      {/* Time-aware greeting */}
       <h2
         className="text-center mb-8"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontStyle: 'italic',
-          fontSize: 'clamp(2rem, 4vw, 2.5rem)',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          opacity: 0.85,
+          fontSize: '32px',
+          fontWeight: 300,
+          color: '#F5F5F4',
           letterSpacing: '-0.02em',
         }}
       >
         {connectedPlatforms.length > 0
-          ? "What's on your mind?"
+          ? greeting
           : "Let me get to know you first"
         }
       </h2>
