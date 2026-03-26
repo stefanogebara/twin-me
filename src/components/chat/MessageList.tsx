@@ -1,6 +1,7 @@
 import { forwardRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { motion } from 'framer-motion';
 
 const REMARK_PLUGINS = [remarkGfm];
 import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
@@ -52,11 +53,21 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
     const { rated, markRated } = useRatedMessages();
     return (
       <div className="px-4 py-6 max-w-3xl mx-auto w-full">
-        {messages.map((message) => {
+        {messages.map((message, index) => {
           const isUser = message.role === 'user';
+          const isLast = index === messages.length - 1;
+
+          const Wrapper = isLast ? motion.div : 'div';
+          const wrapperProps = isLast
+            ? {
+                initial: { opacity: 0, y: 8 },
+                animate: { opacity: 1, y: 0 },
+                transition: { duration: 0.3, ease: 'easeOut' as const },
+              }
+            : {};
 
           return (
-            <div key={message.id} className="py-4">
+            <Wrapper key={message.id} className="py-4" {...wrapperProps}>
               {isUser ? (
                 /* ── User message: right-aligned, no background ── */
                 <div className="flex flex-col items-end">
@@ -223,7 +234,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   </div>
                 </div>
               )}
-            </div>
+            </Wrapper>
           );
         })}
 

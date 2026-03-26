@@ -442,6 +442,7 @@ const TalkToTwin = () => {
               quickActions={quickActions}
               onQuickAction={handleQuickAction}
               onSendMessage={handleSendMessage}
+              insightsCount={pendingInsights.length}
             />
           ) : (
             <MessageList

@@ -46,12 +46,14 @@ interface ChatEmptyStateProps {
   quickActions: QuickAction[];
   onQuickAction: (text: string) => void;
   onSendMessage?: () => void;
+  insightsCount?: number;
 }
 
 export const ChatEmptyState = ({
   connectedPlatforms,
   quickActions,
   onQuickAction,
+  insightsCount = 0,
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -59,8 +61,10 @@ export const ChatEmptyState = ({
   const greeting = getGreeting(firstName);
   const dateStr = formatCurrentDate();
 
+  const platformCount = connectedPlatforms.length;
+
   return (
-    <div className="h-full flex flex-col items-center justify-center px-6">
+    <div className="h-full flex flex-col items-center justify-center px-6 min-h-[60vh]">
       {/* Date line */}
       <span
         className="text-center mb-2"
@@ -75,7 +79,7 @@ export const ChatEmptyState = ({
 
       {/* Time-aware greeting */}
       <h2
-        className="text-center mb-8"
+        className="text-center mb-2"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontStyle: 'italic',
@@ -85,29 +89,37 @@ export const ChatEmptyState = ({
           letterSpacing: '-0.02em',
         }}
       >
-        {connectedPlatforms.length > 0
+        {platformCount > 0
           ? greeting
           : "Let me get to know you first"
         }
       </h2>
 
-      {/* Subtitle */}
-      {connectedPlatforms.length === 0 && (
+      {/* Context subtitle — Dimension-style briefing line */}
+      {platformCount > 0 && (
+        <p
+          className="text-center mb-8 max-w-sm"
+          style={{
+            fontSize: '15px',
+            color: 'rgba(255,255,255,0.4)',
+            fontWeight: 300,
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          {insightsCount > 0
+            ? `You have ${insightsCount} insight${insightsCount > 1 ? 's' : ''} waiting and ${platformCount} platform${platformCount > 1 ? 's' : ''} connected.`
+            : `${platformCount} platform${platformCount > 1 ? 's' : ''} connected and learning about you.`
+          }
+        </p>
+      )}
+
+      {/* Subtitle for no platforms */}
+      {platformCount === 0 && (
         <p
           className="text-center text-sm mb-8 max-w-sm"
           style={{ color: 'rgba(255,255,255,0.35)' }}
         >
           Connect a platform and I'll start picking up on the things that make you you.
-        </p>
-      )}
-
-      {/* Agentic awareness hint */}
-      {connectedPlatforms.length > 0 && (
-        <p
-          className="text-center text-[11px] mb-6 max-w-xs"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
-        >
-          I can set reminders, draft emails in your voice, suggest music, and more. Just ask.
         </p>
       )}
 

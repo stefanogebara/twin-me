@@ -85,7 +85,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         className={cn(
           "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          isExpanded ? "w-64" : "w-12 lg:w-12",
+          isExpanded ? "w-64" : "w-10 lg:w-10",
           "overflow-visible"
         )}
       >
@@ -148,7 +148,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         </button>
 
         {/* Logo */}
-        <div className={cn("flex items-center justify-center border-b border-sidebar-border", isExpanded ? "p-6 pb-5" : "p-3 pb-3")}>
+        <div className={cn("flex items-center justify-center border-b border-sidebar-border", isExpanded ? "p-6 pb-5" : "p-2 pb-2")}>
           <button
             onClick={() => handleNavigate('/dashboard')}
             className={cn(
@@ -204,22 +204,28 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-xl transition-all duration-150 ease-out active:scale-[0.97]",
-                  isExpanded ? "px-4 py-2.5" : "p-2 justify-center",
+                  "w-full flex items-center gap-3 transition-all duration-150 ease-out active:scale-[0.97]",
+                  isExpanded
+                    ? "px-4 py-2.5 rounded-xl"
+                    : "justify-center w-8 h-8 rounded-[10px] mx-auto",
                   active
                     ? "font-medium"
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
                 )}
                 style={active ? {
-                  background: 'var(--accent-vibrant-glow, rgba(232,224,212,0.12))',
+                  background: isExpanded
+                    ? 'var(--accent-vibrant-glow, rgba(232,224,212,0.12))'
+                    : 'rgba(255,255,255,0.08)',
                   color: 'var(--accent-vibrant)',
+                  borderLeft: isExpanded ? 'none' : '3px solid rgba(255,255,255,0.5)',
+                  borderRadius: isExpanded ? undefined : '10px',
                 } : {
                   color: 'rgba(255, 255, 255, 0.45)',
                 }}
                 title={item.label}
               >
                 <Icon
-                  className={isExpanded ? "w-5 h-5" : "w-5 h-5"}
+                  className={isExpanded ? "w-5 h-5" : "w-[18px] h-[18px]"}
                   style={active ? { color: 'var(--accent-vibrant)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
