@@ -1,13 +1,18 @@
 /**
  * Google Workspace OAuth Scopes — Centralized Configuration
- * Matching Dimension.dev's scope set for full Workspace read+write.
+ * Inspired by Dimension.dev's approach: full read+write without CASA.
  *
- * RESTRICTED scopes (require CASA Tier 2 annual certification):
- *   - gmail.modify
- *   - drive
+ * Strategy: Use SENSITIVE scopes (free verification, 2-5 weeks) instead
+ * of RESTRICTED scopes (CASA Tier 2, $900+/yr, annual audit).
  *
- * SENSITIVE scopes (require Google app verification):
+ * RESTRICTED (avoided):
+ *   - gmail.modify → replaced by gmail.readonly + gmail.send + gmail.compose
+ *   - drive (broad) → replaced by drive.file (app-created files only)
+ *
+ * SENSITIVE (used — require Google app verification):
+ *   - gmail.readonly, gmail.send, gmail.compose
  *   - calendar, calendar.events
+ *   - drive.file
  *   - documents, spreadsheets, presentations
  *   - contacts.readonly
  */
@@ -15,10 +20,13 @@ export const GOOGLE_WORKSPACE_SCOPES = [
   'openid',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
-  // Gmail — read, compose, send, label, archive (RESTRICTED)
-  'https://www.googleapis.com/auth/gmail.modify',
-  // Drive — full read/write/create/delete (RESTRICTED)
-  'https://www.googleapis.com/auth/drive',
+  // Gmail — read + send + compose/draft (all SENSITIVE, no CASA)
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.compose',
+  // Drive — read any file + write app-created files (both SENSITIVE, no CASA)
+  'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/drive.file',
   // Calendar — full management (SENSITIVE)
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
@@ -32,7 +40,7 @@ export const GOOGLE_WORKSPACE_SCOPES = [
   'https://www.googleapis.com/auth/contacts.readonly',
 ];
 
-// Subset for read-only access (pre-CASA, no write permissions)
+// Subset for read-only access (testing mode, no verification needed)
 export const GOOGLE_WORKSPACE_SCOPES_READONLY = [
   'openid',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -47,7 +55,7 @@ export const GOOGLE_WORKSPACE_SCOPES_READONLY = [
   'https://www.googleapis.com/auth/contacts.readonly',
 ];
 
-// Feature flag: use full scopes or read-only (until CASA is completed)
+// Feature flag: use full scopes (with write) or read-only
 export const USE_FULL_WORKSPACE_SCOPES = process.env.GOOGLE_WORKSPACE_FULL_SCOPES === 'true';
 
 export function getGoogleWorkspaceScopes() {

@@ -23,6 +23,7 @@ import {
 import { DataVerification } from '../components/DataVerification';
 import SoulRichnessBar from '../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
+import GoogleWorkspaceConnect from './components/settings/GoogleWorkspaceConnect';
 
 import {
   DataProvider
@@ -698,6 +699,18 @@ const InstantTwinOnboarding = () => {
             animationDelay={0}
             dotDelay={0}
             {...categoryProps}
+          />
+
+          {/* Google Workspace — full read+write suite (Gmail, Calendar, Drive, Docs, Sheets, Contacts) */}
+          <Divider />
+          <SectionLabel label="Google Workspace" />
+          <p className="text-[13px] -mt-3 mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            Let your twin read emails, check your schedule, search files, and draft documents
+          </p>
+          <GoogleWorkspaceConnect
+            connectorStatus={platformStatusData}
+            isDemoMode={isDemoMode}
+            navigate={navigate}
           />
 
           {connectedServices.length > 0 && (

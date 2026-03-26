@@ -170,12 +170,17 @@ export function getToolSchemas(tools) {
 
 async function getConnectedPlatforms(userId) {
   try {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('platform_connections')
-      .select('platform, last_sync')
+      .select('platform')
       .eq('user_id', userId);
+    if (error) {
+      log.warn('getConnectedPlatforms failed', { userId, error: error.message });
+      return [];
+    }
     return data || [];
-  } catch {
+  } catch (err) {
+    log.warn('getConnectedPlatforms exception', { error: err.message });
     return [];
   }
 }

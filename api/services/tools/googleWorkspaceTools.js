@@ -90,26 +90,8 @@ export function registerGoogleWorkspaceTools() {
     },
   });
 
-  registerTool({
-    name: 'gmail_archive',
-    platform: 'google_gmail',
-    description: 'Archive an email (remove from inbox).',
-    category: 'communication',
-    parameters: {
-      type: 'object',
-      properties: {
-        messageId: { type: 'string', description: 'Gmail message ID to archive' },
-      },
-      required: ['messageId'],
-    },
-    requiresConnection: true,
-    minAutonomyLevel: 2,
-    skillName: 'google_gmail_actions',
-    executor: async (userId, params) => {
-      const { archiveEmail } = await import('../googleWorkspaceActions.js');
-      return archiveEmail(userId, params.messageId);
-    },
-  });
+  // gmail_archive removed — requires gmail.modify (RESTRICTED/CASA).
+  // We use gmail.send+gmail.compose instead to avoid CASA certification.
 
   // ========================================================================
   // GMAIL — Write (Level 3)
@@ -562,7 +544,7 @@ export function registerGoogleWorkspaceTools() {
     },
   });
 
-  log.info('Google Workspace tools registered', { count: 22 });
+  log.info('Google Workspace tools registered', { count: 21 });
 }
 
 /**
