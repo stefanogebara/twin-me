@@ -1,0 +1,193 @@
+interface CalendarEvent {
+  title: string;
+  time: string;
+  location?: string;
+}
+
+interface Insight {
+  insight: string;
+  category?: string;
+  urgency?: string;
+}
+
+interface ChatContextSidebarProps {
+  calendarEvents?: CalendarEvent[];
+  insights?: Insight[];
+  platformCount?: number;
+  messageCount?: number;
+}
+
+function formatCurrentDate(): string {
+  const now = new Date();
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+  const month = now.toLocaleDateString('en-US', { month: 'long' });
+  const day = now.getDate();
+
+  const suffix =
+    day % 10 === 1 && day !== 11
+      ? 'st'
+      : day % 10 === 2 && day !== 12
+        ? 'nd'
+        : day % 10 === 3 && day !== 13
+          ? 'rd'
+          : 'th';
+
+  return `${dayName}, ${month} ${day}${suffix}`;
+}
+
+export const ChatContextSidebar = ({
+  calendarEvents = [],
+  insights = [],
+  platformCount = 0,
+  messageCount = 0,
+}: ChatContextSidebarProps) => {
+  const dateStr = formatCurrentDate();
+
+  return (
+    <aside
+      aria-label="Today's context"
+      className="relative w-[280px] flex-shrink-0 hidden lg:flex flex-col h-full overflow-y-auto rounded-l-[20px]"
+      style={{
+        background: 'var(--glass-surface-bg)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        borderLeft: '1px solid var(--glass-surface-border)',
+      }}
+    >
+      {/* Top gradient overlay */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-[160px] rounded-tl-[20px]"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(45,55,72,0.3) 0%, rgba(17,17,17,0) 100%)',
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col flex-1 p-5">
+        {/* Header */}
+        <div className="mb-5">
+          <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {dateStr}
+          </p>
+          <h2 className="text-[18px] font-medium" style={{ color: '#F5F5F4' }}>
+            Today
+          </h2>
+        </div>
+
+        {/* Calendar Section */}
+        <div className="mb-5">
+          <span
+            className="text-[10px] uppercase font-medium"
+            style={{
+              color: 'rgba(255,255,255,0.35)',
+              letterSpacing: '0.15em',
+            }}
+          >
+            Calendar
+          </span>
+
+          <div className="mt-2">
+            {calendarEvents.length > 0 ? (
+              calendarEvents.map((event, idx) => (
+                <div
+                  key={idx}
+                  className="py-2"
+                  style={{
+                    borderBottom:
+                      idx < calendarEvents.length - 1
+                        ? '1px solid rgba(255,255,255,0.04)'
+                        : undefined,
+                  }}
+                >
+                  <span
+                    className="text-[12px] block"
+                    style={{ color: 'rgba(255,255,255,0.4)' }}
+                  >
+                    {event.time}
+                  </span>
+                  <span
+                    className="text-[13px] block"
+                    style={{ color: '#F5F5F4' }}
+                  >
+                    {event.title}
+                  </span>
+                  {event.location && (
+                    <span
+                      className="text-[11px] block"
+                      style={{ color: 'rgba(255,255,255,0.3)' }}
+                    >
+                      {event.location}
+                    </span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p
+                className="text-[13px] py-2"
+                style={{ color: 'rgba(255,255,255,0.25)' }}
+              >
+                No events today
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Insights Section */}
+        <div className="mb-5">
+          <span
+            className="text-[10px] uppercase font-medium"
+            style={{
+              color: 'rgba(255,255,255,0.35)',
+              letterSpacing: '0.15em',
+            }}
+          >
+            Insights
+          </span>
+
+          <div className="mt-2">
+            {insights.length > 0 ? (
+              insights.slice(0, 3).map((item, idx) => (
+                <p
+                  key={idx}
+                  className="text-[12px] leading-relaxed py-2"
+                  style={{
+                    color: 'rgba(255,255,255,0.5)',
+                    borderBottom:
+                      idx < Math.min(insights.length, 3) - 1
+                        ? '1px solid rgba(255,255,255,0.04)'
+                        : undefined,
+                  }}
+                >
+                  {item.insight}
+                </p>
+              ))
+            ) : (
+              <p
+                className="text-[13px] py-2"
+                style={{ color: 'rgba(255,255,255,0.25)' }}
+              >
+                Insights appear after chatting
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Stats Row */}
+        <div
+          className="flex items-center gap-4 pt-4"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+        >
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {platformCount} Platform{platformCount !== 1 ? 's' : ''}
+          </span>
+          <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {messageCount} Message{messageCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+    </aside>
+  );
+};

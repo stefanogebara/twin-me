@@ -1,5 +1,7 @@
 import { forwardRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, Loader2 } from 'lucide-react';
+import { PlatformLogo } from '@/components/PlatformLogos';
 
 interface ChatUsage {
   used: number;
@@ -20,6 +22,17 @@ interface ChatInputAreaProps {
   chatUsage: ChatUsage | null;
 }
 
+const TOOL_PLATFORMS = [
+  'gmail',
+  'calendar',
+  'spotify',
+  'youtube',
+  'discord',
+  'github',
+  'linkedin',
+  'reddit',
+] as const;
+
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>(
   ({
     inputMessage,
@@ -32,6 +45,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     hasConnectedPlatforms,
     chatUsage,
   }, ref) => {
+    const navigate = useNavigate();
     const hasText = inputMessage.trim().length > 0;
 
     return (
@@ -110,6 +124,31 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 <Send className="w-4 h-4" aria-hidden="true" />
               )}
             </button>
+          </div>
+        </div>
+
+        {/* Connected Platforms Bar */}
+        <div
+          className="flex items-center gap-3 mt-2 px-3 cursor-pointer group"
+          onClick={() => navigate('/get-started')}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('/get-started');
+            }
+          }}
+        >
+          <span className="text-[11px] text-[rgba(255,255,255,0.25)] group-hover:text-[rgba(255,255,255,0.4)] transition-colors">
+            Connect Your Tools
+          </span>
+          <div className="flex items-center gap-1.5">
+            {TOOL_PLATFORMS.map((platform) => (
+              <div key={platform} className="opacity-50 group-hover:opacity-70 transition-opacity">
+                <PlatformLogo platform={platform} size={14} />
+              </div>
+            ))}
           </div>
         </div>
       </div>

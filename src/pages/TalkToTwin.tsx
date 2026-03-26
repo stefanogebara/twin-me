@@ -15,6 +15,7 @@ import { ChatInputArea } from '@/components/chat/ChatInputArea';
 import { ChatHeader } from '@/components/chat/ChatHeader';
 import { LimitReachedBanner } from '@/components/chat/LimitReachedBanner';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
+import { ChatContextSidebar } from '@/components/chat/ChatContextSidebar';
 import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
@@ -458,6 +459,18 @@ const TalkToTwin = () => {
         contextItems={contextItems}
         isLoadingContext={isLoadingContext}
         connectedCount={connectedCount}
+        messageCount={messages.filter(m => !m.failed).length}
+      />
+
+      <ChatContextSidebar
+        calendarEvents={[]}
+        insights={
+          [...messages]
+            .reverse()
+            .find(m => m.role === 'assistant' && m.contextUsed?.proactiveInsights?.length)
+            ?.contextUsed?.proactiveInsights ?? []
+        }
+        platformCount={connectedCount}
         messageCount={messages.filter(m => !m.failed).length}
       />
     </div>
