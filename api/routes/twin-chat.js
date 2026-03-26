@@ -1017,8 +1017,16 @@ RULES:
         chatLog(`Workspace action detected: ${action.toolName}`);
 
         try {
+          if (isStreaming) {
+            try { res.write(`data: ${JSON.stringify({ type: 'action_start', tool: action.toolName, params: action.params })}\n\n`); } catch { /* ignore */ }
+          }
+
           const actionResult = await executeAction(userId, action);
           const resultBlock = formatActionResult(actionResult);
+
+          if (isStreaming) {
+            try { res.write(`data: ${JSON.stringify({ type: 'action_result', tool: action.toolName, success: actionResult.success, data: actionResult.data, elapsedMs: actionResult.elapsedMs })}\n\n`); } catch { /* ignore */ }
+          }
 
           // Re-call LLM with the action result so it can weave the data into a natural response
           const followUpMessages = [
@@ -1028,8 +1036,6 @@ RULES:
           ];
 
           if (isStreaming) {
-            // Send a "looking up" indicator so user sees the twin is working
-            try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: 'Looking that up for you...\n\n' })}\n\n`); } catch { /* ignore */ }
             const followUp = await streamLLM({
               tier: TIER_CHAT,
               system: systemPrompt,

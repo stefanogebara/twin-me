@@ -19,12 +19,21 @@ import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 
+interface ActionEvent {
+  tool: string;
+  params?: Record<string, any>;
+  status: 'executing' | 'complete' | 'failed';
+  data?: any;
+  elapsedMs?: number;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   failed?: boolean;
+  actions?: ActionEvent[];
   contextUsed?: {
     soulSignature?: boolean;
     twinSummary?: string | null;
@@ -245,6 +254,31 @@ const TalkToTwin = () => {
                 ));
               }
               fetchUsage();
+            } else if (event.type === 'action_start') {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMsgId ? {
+                  ...m,
+                  actions: [...(m.actions || []), {
+                    tool: event.tool,
+                    params: event.params,
+                    status: 'executing' as const,
+                  }]
+                } : m
+              ));
+            } else if (event.type === 'action_result') {
+              setMessages(prev => prev.map(m =>
+                m.id === assistantMsgId ? {
+                  ...m,
+                  actions: (m.actions || []).map(a =>
+                    a.tool === event.tool ? {
+                      ...a,
+                      status: event.success ? 'complete' as const : 'failed' as const,
+                      data: event.data,
+                      elapsedMs: event.elapsedMs,
+                    } : a
+                  )
+                } : m
+              ));
             } else if (event.type === 'error') {
               setMessages(prev => {
                 const hasMsg = prev.some(m => m.id === assistantMsgId);

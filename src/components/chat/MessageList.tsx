@@ -5,6 +5,15 @@ import remarkGfm from 'remark-gfm';
 const REMARK_PLUGINS = [remarkGfm];
 import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WorkspaceActionCard } from './WorkspaceActionCard';
+
+interface ActionEvent {
+  tool: string;
+  params?: Record<string, any>;
+  status: 'executing' | 'complete' | 'failed';
+  data?: any;
+  elapsedMs?: number;
+}
 
 interface Message {
   id: string;
@@ -12,6 +21,7 @@ interface Message {
   content: string;
   timestamp: Date;
   failed?: boolean;
+  actions?: ActionEvent[];
   contextUsed?: {
     soulSignature?: boolean;
     twinSummary?: string | null;
@@ -76,19 +86,28 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   }}
                 >
                   {message.role === 'assistant' ? (
-                    <div
-                      className="prose prose-sm prose-invert max-w-none"
-                      style={{
-                        fontSize: '15px',
-                        color: 'var(--foreground)',
-                        opacity: 0.85,
-                        lineHeight: 1.7,
-                      }}
-                    >
-                      <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
+                    <>
+                      {message.actions && message.actions.length > 0 && (
+                        <div className="mb-3">
+                          {message.actions.map((action, i) => (
+                            <WorkspaceActionCard key={`${action.tool}-${i}`} action={action} />
+                          ))}
+                        </div>
+                      )}
+                      <div
+                        className="prose prose-sm prose-invert max-w-none"
+                        style={{
+                          fontSize: '15px',
+                          color: 'var(--foreground)',
+                          opacity: 0.85,
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    </>
                   ) : (
                     <p
                       className="whitespace-pre-wrap"
