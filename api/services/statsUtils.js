@@ -146,3 +146,19 @@ export function cosineSimilarity(a, b) {
   const denom = Math.sqrt(normA) * Math.sqrt(normB);
   return denom > 0 ? dot / denom : 0;
 }
+
+/**
+ * Dot product between two vectors.
+ * Unlike cosine similarity, raw magnitude matters (used for ICA axis scoring).
+ * @param {number[]} a
+ * @param {number[]} b
+ * @returns {number}
+ */
+export function dotProduct(a, b) {
+  if (!a || !b || a.length !== b.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) {
+    sum += a[i] * b[i];
+  }
+  return sum;
+}

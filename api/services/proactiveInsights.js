@@ -24,6 +24,7 @@ import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { scoreForInsightSelection } from './inSilicoEngine.js';
 
 const log = createLogger('ProactiveInsights');
 
@@ -312,6 +313,27 @@ async function generateProactiveInsights(userId) {
         };
       }
       log.info('No nudge from LLM, promoted one insight to nudge category');
+    }
+
+    // 4b. In-silico scoring: rank candidates by predicted engagement (TRIBE v2 Phase B)
+    // Non-fatal — if ICA axes don't exist yet or scoring fails, continue with LLM order
+    try {
+      const scored = await scoreForInsightSelection(userId, insights.map(i => i.insight));
+      if (scored.length > 0 && scored[0]?.engagement_score != null) {
+        const nudge = insights.find(i => i.category === 'nudge');
+        const nonNudges = insights
+          .filter(i => i.category !== 'nudge')
+          .sort((a, b) => {
+            const scoreA = scored.find(s => s.text === a.insight)?.engagement_score ?? 0;
+            const scoreB = scored.find(s => s.text === b.insight)?.engagement_score ?? 0;
+            return scoreB - scoreA;
+          });
+        insights = nudge ? [nudge, ...nonNudges] : nonNudges;
+        log.info('In-silico ranked insights', { userId, topScore: scored[0]?.engagement_score?.toFixed(3) });
+      }
+    } catch (scoringErr) {
+      // Non-fatal: if in-silico scoring fails, continue with LLM-ordered insights
+      log.warn('In-silico scoring skipped', { error: scoringErr.message });
     }
 
     // 5. Store insights (max 3), with dedup against recent undelivered
