@@ -255,16 +255,33 @@ const TalkToTwin = () => {
               }
               fetchUsage();
             } else if (event.type === 'action_start') {
-              setMessages(prev => prev.map(m =>
-                m.id === assistantMsgId ? {
-                  ...m,
-                  actions: [...(m.actions || []), {
+              // Action events arrive before any chunks, so create the message if needed
+              if (firstChunk) {
+                firstChunk = false;
+                setIsTyping(false);
+                setMessages(prev => [...prev, {
+                  id: assistantMsgId,
+                  role: 'assistant',
+                  content: '',
+                  timestamp: new Date(),
+                  actions: [{
                     tool: event.tool,
                     params: event.params,
                     status: 'executing' as const,
-                  }]
-                } : m
-              ));
+                  }],
+                }]);
+              } else {
+                setMessages(prev => prev.map(m =>
+                  m.id === assistantMsgId ? {
+                    ...m,
+                    actions: [...(m.actions || []), {
+                      tool: event.tool,
+                      params: event.params,
+                      status: 'executing' as const,
+                    }]
+                  } : m
+                ));
+              }
             } else if (event.type === 'action_result') {
               setMessages(prev => prev.map(m =>
                 m.id === assistantMsgId ? {
