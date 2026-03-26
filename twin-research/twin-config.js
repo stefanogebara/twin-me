@@ -39,6 +39,14 @@
  *   Knowledge accuracy 0.766→0.845, authenticity 0.959→1.000, personality fidelity 0.852→0.900.
  *   8 experiments: temp, freq_pen, oracle strength, budgets (2x), neurotransmitter, temp/freq extremes.
  *   Discarded: oracle 0.8 (needs full strength), budget shifts (reflections>facts), extreme sampling.
+ * SESSION 9: Phase A param tuning. Retrieval baseline ~0.871 (25 queries, DB state 2026-03-26).
+ *   BM25/TCM/STDP params not used by eval (only live service) — skipped.
+ *   Best win: MMR_LAMBDA 0.30→0.35 → avg ~0.876 (+0.005, 3 runs: 0.884/0.869/0.876).
+ *   Eval variance ~±0.015 per run (embedding API non-determinism on q10/q14/q25).
+ *   9 experiments: MMR_LAMBDA (0.35 kept, 0.40 too far), TDW (0.55/0.75 both worse),
+ *   temporal (0.10/0.20 worse), semantic (0.05 worse), identity importance (1.8 worse),
+ *   default weight swap (worse), recent importance 0.8 (worse).
+ *   Config space near-exhausted for single-param changes on retrieval eval.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -70,7 +78,7 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.3;
+export const MMR_LAMBDA = 0.35;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.

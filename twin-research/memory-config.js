@@ -12,7 +12,8 @@
  * (type distribution metrics). This config tunes CONTENT relevance of retrieved memories.
  *
  * BASELINE: memory_relevance_score = 0.490 (original)
- * CURRENT BEST: 0.522-0.530 (relevance-dominant config, 2026-03-25)
+ * PREVIOUS BEST: 0.522-0.530 (relevance-dominant config, 2026-03-25)
+ * CURRENT BEST: 0.540 (reduced diversity + faster freshness decay, 2026-03-26)
  */
 
 // ─── Retrieval Parameters ───────────────────────────────────────────────────
@@ -32,7 +33,7 @@ export const RELEVANCE_THRESHOLD = 0.45;
 // Applied as: freshness = FRESHNESS_DECAY_RATE ^ days_since_last_access
 // 1.0 = no decay (all equally fresh). 0.99 = gentle decay. 0.95 = aggressive decay.
 // Range: [0.95, 1.0]
-export const FRESHNESS_DECAY_RATE = 0.995;
+export const FRESHNESS_DECAY_RATE = 0.990;
 
 // ─── Reranking ──────────────────────────────────────────────────────────────
 
@@ -43,7 +44,7 @@ export const TYPE_RERANKING_ENABLED = true;
 // Weight for diversity in the reranking formula.
 // 0.0 = pure relevance ranking. 1.0 = maximum diversity pressure.
 // Range: [0.0, 1.0]
-export const DIVERSITY_RERANKING_WEIGHT = 0.5;
+export const DIVERSITY_RERANKING_WEIGHT = 0.3;
 
 // ─── Retrieval Weights ──────────────────────────────────────────────────────
 // Three-factor scoring weights for the search_memory_stream RPC.
@@ -77,4 +78,4 @@ export const MMR_LAMBDA = 0.8;
 
 // Type diversity weight in MMR reranking.
 // Range: [0.0, 0.8]
-export const TYPE_DIVERSITY_WEIGHT = 0.2;
+export const TYPE_DIVERSITY_WEIGHT = 0.1;

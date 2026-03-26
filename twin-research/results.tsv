@@ -25,3 +25,12 @@ fa19637	0.890	-	-	-	discard	chat: min_keyword_matches 2->3 → chat~0.890 (14/15
 fa19637	0.882	-	-	-	discard	chat: budgets refl 3->2 facts 5->7 → chat=0.882 (regression from 0.912)
 fa19637	0.878	-	-	-	discard	chat: freq_pen +0.10->+0.15 → chat=0.878 (11/15, too aggressive)
 fa19637	0.849	-	-	-	discard	chat: temp -0.05->-0.10 → chat=0.849 (too cold, personality suffered)
+2026-03-26T16:57:54Z	MMR_LAMBDA	0.30	0.35	0.884064	+0.012	kept
+2026-03-26T17:00:23Z	TEMPORAL_DIVERSITY_WEIGHT	0.15	0.10	0.876	-0.008	discarded
+2026-03-26T17:02:48Z	SEMANTIC_DIVERSITY_WEIGHT	0.0	0.05	0.869	-0.015	discarded
+2026-03-26T17:05:15Z	identity_importance	1.5	1.8	0.866	-0.018	discarded
+2026-03-26T17:07:56Z	TYPE_DIVERSITY_WEIGHT	0.65	0.55	0.868	-0.016	discarded
+2026-03-26T17:10:22Z	MMR_LAMBDA	0.35	0.40	0.877	-0.007	discarded
+2026-03-26T17:12:20Z	default_weights	importance=1.2/relevance=1.0	importance=1.0/relevance=1.2	0.862	-0.022	discarded
+2026-03-26T17:14:38Z	TEMPORAL_DIVERSITY_WEIGHT	0.15	0.20	0.870	-0.014	discarded
+2026-03-26T17:19:31Z	recent_importance	0.5	0.8	0.868	-0.008	discarded

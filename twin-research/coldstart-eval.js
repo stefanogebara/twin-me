@@ -210,7 +210,13 @@ async function judgeColdStart(coldStartSummary, fullSummary, fullReflections) {
   });
 
   const raw = (result?.content || '').trim();
-  const jsonStr = raw.replace(/^```json?\n?/i, '').replace(/\n?```$/i, '').trim();
+  // Strip markdown fences and extract JSON object
+  let jsonStr = raw.replace(/^```json?\n?/i, '').replace(/\n?```$/i, '').trim();
+  // If still not valid JSON, try extracting the first { ... } block
+  if (!jsonStr.startsWith('{')) {
+    const match = jsonStr.match(/\{[\s\S]*\}/);
+    if (match) jsonStr = match[0];
+  }
 
   try {
     const scores = JSON.parse(jsonStr);
@@ -221,6 +227,18 @@ async function judgeColdStart(coldStartSummary, fullSummary, fullReflections) {
       reasoning: scores.reasoning || '',
     };
   } catch {
+    // Fallback: regex extract numeric scores from the raw text
+    const cMatch = raw.match(/"coverage"\s*:\s*(\d+)/);
+    const aMatch = raw.match(/"accuracy"\s*:\s*(\d+)/);
+    const wMatch = raw.match(/"wow_factor"\s*:\s*(\d+)/);
+    if (cMatch && aMatch && wMatch) {
+      return {
+        coverage: Math.min(10, parseInt(cMatch[1])) / 10,
+        accuracy: Math.min(10, parseInt(aMatch[1])) / 10,
+        wow_factor: Math.min(10, parseInt(wMatch[1])) / 10,
+        reasoning: 'regex_fallback',
+      };
+    }
     console.error(`  Judge JSON parse failed: ${raw.slice(0, 200)}`);
     return { coverage: 0, accuracy: 0, wow_factor: 0, reasoning: 'PARSE_FAILED' };
   }

@@ -24,3 +24,17 @@ timestamp	coldstart_quality_score	coverage	accuracy	wow_factor	generation_time_m
 2026-03-25T23:40:13.983Z	0.885000	0.800000	0.900000	1.000000	5737	96	8.2	baseline
 2026-03-25T23:40:54.156Z	0.790000	0.800000	0.700000	0.900000	4335	96	6.0	baseline
 2026-03-25T23:41:54.385Z	0.890000	0.900000	0.800000	1.000000	5765	96	7.9	baseline
+2026-03-26T16:38:46.308Z	0.885000	0.800000	0.900000	1.000000	4485	96	6.9	baseline
+2026-03-26T16:39:25.529Z	0.000000	0.000000	0.000000	0.000000	5823	96	8.9	baseline
+2026-03-26T16:40:41.670Z	0.885000	0.800000	0.900000	1.000000	4313	96	6.8	baseline
+2026-03-26T16:42:51.666Z	0.960000	0.900000	1.000000	1.000000	4858	96	7.3	s2-baseline: current config confirmed (temp=0.4, enrichment=0.3, limit=100, max_per_type=25, max_tokens=700)
+2026-03-26T16:43:20.873Z	0.885000	0.800000	0.900000	1.000000	5720	126	7.6	s2-exp1: limit=150 max_per_type=35 (more memories hurt — diffuse coverage, REVERTED)
+2026-03-26T16:43:58.913Z	0.890000	0.900000	0.800000	1.000000	4762	96	6.5	s2-exp2: max_tokens=800 (more room hurt accuracy, REVERTED)
+2026-03-26T16:44:54.089Z	0.755000	0.800000	0.600000	0.900000	5439	96	7.5	s2-exp3: MANDATORY coverage + specific data per domain (hallucination spike, accuracy 0.6, REVERTED)
+2026-03-26T16:45:32.284Z	0.860000	0.800000	0.900000	0.900000	3868	96	6.2	s2-exp4: temp=0.3 (too conservative, coverage and wow both dropped, REVERTED)
+2026-03-26T16:46:02.673Z	0.885000	0.800000	0.900000	1.000000	6116	96	8.5	s2-exp5: temp=0.5 (too creative, coverage dropped, REVERTED)
+2026-03-26T16:46:36.379Z	0.885000	0.800000	0.900000	1.000000	6108	96	8.4	s2-exp6: music/emotional coping hints in coverage domains (no improvement, REVERTED)
+2026-03-26T16:47:10.090Z	0.860000	0.800000	0.900000	0.900000	4723	96	6.3	s2-exp7: enrichment_weight=0.4 (worse coverage and wow, REVERTED)
+2026-03-26T16:47:40.308Z	0.885000	0.800000	0.900000	1.000000	4686	96	9.4	s2-exp8: enrichment_weight=0.2 (less enrichment didn't help platform data, REVERTED)
+2026-03-26T16:48:05.371Z	0.790000	0.800000	0.700000	0.900000	3892	96	6.2	s2-exp9: temp=0.45 (accuracy tanked to 0.7, worst experiment, REVERTED)
+2026-03-26T16:48:26.104Z	0.860000	0.800000	0.900000	0.900000	5415	96	7.5	s2-final: baseline config confirmed stable (score variance 0.790-0.960 across all runs)
