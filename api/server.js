@@ -449,6 +449,7 @@ import skillsRoutes from './routes/skills.js';
 import twinScalingRoutes from './routes/twin-scaling.js';
 import personalityAxesRoutes from './routes/personality-axes.js';
 import inSilicoRoutes from './routes/in-silico.js';
+import multimodalRoutes from './routes/multimodal.js';
 
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
@@ -578,6 +579,7 @@ app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
 app.use('/api/twin', twinScalingRoutes); // Twin scaling metrics + fidelity scoring (TRIBE v2)
 app.use('/api/twin', personalityAxesRoutes); // ICA personality axes (TRIBE v2 Phase B)
 app.use('/api/twin', inSilicoRoutes); // In-silico user experimentation (TRIBE v2 Phase B)
+app.use('/api/twin', multimodalRoutes); // Multimodal personality fusion (TRIBE v2 Phase C)
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
 app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for digest emails
 

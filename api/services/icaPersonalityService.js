@@ -316,37 +316,45 @@ export async function rebuildPersonalityAxes(userId) {
  */
 export async function getPersonalityVector(userId) {
   try {
-    // Fetch axes
-    const { data: axes, error: axesError } = await supabaseAdmin
-      .from('personality_axes')
-      .select('label, mixing_vector, variance_explained')
-      .eq('user_id', userId)
-      .order('variance_explained', { ascending: false });
+    // Fetch axes + centroid + multimodal features in parallel
+    const [axesResult, profileResult, multimodalResult] = await Promise.all([
+      supabaseAdmin
+        .from('personality_axes')
+        .select('label, mixing_vector, variance_explained')
+        .eq('user_id', userId)
+        .order('variance_explained', { ascending: false }),
 
-    if (axesError) {
-      log.error('Failed to fetch axes for vector', { userId, error: axesError.message });
-      return { axes: [], centroid: null };
+      supabaseAdmin
+        .from('user_personality_profiles')
+        .select('personality_embedding')
+        .eq('user_id', userId)
+        .maybeSingle(),
+
+      supabaseAdmin
+        .from('multimodal_profiles')
+        .select('fused_vector, modalities_present, modality_count')
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ]);
+
+    if (axesResult.error) {
+      log.error('Failed to fetch axes for vector', { userId, error: axesResult.error.message });
     }
-
-    // Fetch centroid from personality profile
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('user_personality_profiles')
-      .select('personality_embedding')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (profileError) {
-      log.warn('Failed to fetch personality centroid', { userId, error: profileError.message });
+    if (profileResult.error) {
+      log.warn('Failed to fetch personality centroid', { userId, error: profileResult.error.message });
     }
-
-    const centroid = profile?.personality_embedding || null;
 
     return {
-      axes: axes || [],
-      centroid,
+      axes: axesResult.data || [],
+      centroid: profileResult.data?.personality_embedding || null,
+      multimodal: multimodalResult.data ? {
+        fused_vector: multimodalResult.data.fused_vector,
+        modalities_present: multimodalResult.data.modalities_present,
+        modality_count: multimodalResult.data.modality_count,
+      } : null,
     };
   } catch (err) {
     log.error('getPersonalityVector failed', { userId, error: err.message });
-    return { axes: [], centroid: null };
+    return { axes: [], centroid: null, multimodal: null };
   }
 }
