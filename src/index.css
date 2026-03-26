@@ -18,7 +18,7 @@
 @layer base {
   :root {
     /* Background Colors — Pure black */
-    --background: #0A0A0A;
+    --background: #111111;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
@@ -80,10 +80,10 @@
 
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
-    --body-gradient-1: rgba(210, 145, 55, 0.38);
-    --body-gradient-2: rgba(180, 110, 65, 0.30);
-    --body-gradient-3: rgba(160, 95, 55, 0.34);
-    --body-gradient-4: rgba(55, 45, 140, 0.28);
+    --body-gradient-1: rgba(210, 145, 55, 0.06);
+    --body-gradient-2: rgba(180, 110, 65, 0.04);
+    --body-gradient-3: rgba(160, 95, 55, 0.05);
+    --body-gradient-4: rgba(55, 45, 140, 0.04);
 
     /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
     --bg-pos-1: 5% 0%;
