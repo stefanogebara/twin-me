@@ -38,7 +38,6 @@ function normalizePhone(raw: string): string {
 const DISMISS_KEY = 'whatsapp_card_dismissed';
 
 export function WhatsAppCard() {
-  console.log('[WhatsAppCard] rendering, initial state');
   const [linked, setLinked] = useState<boolean | null>(null);
   const [phoneInput, setPhoneInput] = useState('');
   const [linking, setLinking] = useState(false);
@@ -54,14 +53,12 @@ export function WhatsAppCard() {
         headers: getAuthHeaders(),
       });
       const data = await res.json();
-      console.log('[WhatsAppCard] status response:', data);
       if (data.success) {
         setLinked(data.linked && data.enabled);
       } else {
         setLinked(false);
       }
-    } catch (err) {
-      console.error('[WhatsAppCard] status fetch failed:', err);
+    } catch {
       setLinked(false);
     }
   }, []);
