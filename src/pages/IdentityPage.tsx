@@ -17,6 +17,7 @@ import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetype, generateTraitBadges } from '@/utils/archetypeEngine';
+import PersonalityAxes from './components/identity/PersonalityAxes';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -792,7 +793,10 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
-        {/* ── 7. Ask Your Twin About You ──────────────────────────────────── */}
+        {/* ── 7. PERSONALITY DIMENSIONS (ICA) ──────────────────────────────── */}
+        <PersonalityAxes />
+
+        {/* ── 8. Ask Your Twin About You ──────────────────────────────────── */}
         <FadeInSection className="mb-14" delay={0.4}>
           <SectionLabel>Ask your twin about you</SectionLabel>
           <div className="flex flex-wrap gap-2">
