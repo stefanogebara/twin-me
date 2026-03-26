@@ -39,11 +39,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
         <div
           className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-opacity"
           style={{
-            background: 'var(--glass-surface-bg)',
-            backdropFilter: 'blur(42px)',
-            WebkitBackdropFilter: 'blur(42px)',
-            border: '1px solid var(--glass-surface-border)',
-            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
             opacity: limitReached ? 0.4 : 1,
             pointerEvents: limitReached ? 'none' : 'auto',
           }}
@@ -61,7 +58,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             disabled={isDisabled || limitReached}
             rows={1}
             aria-label="Message your twin"
-            className="flex-1 resize-none focus:outline-none disabled:opacity-50 text-[15px] bg-transparent"
+            className="flex-1 resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
             style={{
               color: 'var(--foreground)',
               minHeight: '24px',
