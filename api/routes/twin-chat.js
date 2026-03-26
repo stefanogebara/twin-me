@@ -900,6 +900,13 @@ RULES:
           ? applyNeurotransmitterModifiers(baseSampling, neurotransmitterMode.mode)
           : baseSampling;
 
+        // When workspace actions are enabled, buffer the first response so we can
+        // intercept [ACTION: ...] tags before they reach the client. If no action is
+        // detected, flush the buffered content as chunks. If an action IS detected,
+        // discard the buffered response and stream the follow-up instead.
+        const bufferForActions = workspaceActionsEnabled;
+        const bufferedChunks = [];
+
         const result = await streamLLM({
           tier: TIER_CHAT,
           system: systemPrompt,
@@ -913,11 +920,21 @@ RULES:
           serviceName: routingTier ? `twin-chat:${routingTier}` : 'twin-chat',
           modelOverride: routedModel,
           onChunk: (chunk) => {
-            res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+            if (bufferForActions) {
+              bufferedChunks.push(chunk);
+            } else {
+              res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+            }
           },
         });
         chatLog('Streaming LLM call complete');
         assistantMessage = result.content || 'I apologize, I could not generate a response.';
+
+        // If we buffered and no action was detected, flush chunks to client now
+        if (bufferForActions && !parseActions(assistantMessage).length) {
+          const cleanText = stripActionTags(assistantMessage);
+          res.write(`data: ${JSON.stringify({ type: 'chunk', content: cleanText })}\n\n`);
+        }
       } catch (llmError) {
         log.error('Streaming LLM Gateway failed', { error: llmError });
         const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing') || llmError.message?.includes('more credits') || llmError.message?.includes('402');
@@ -1011,8 +1028,8 @@ RULES:
           ];
 
           if (isStreaming) {
-            // Send a thinking indicator before the follow-up call
-            try { res.write(`data: ${JSON.stringify({ type: 'thinking' })}\n\n`); } catch { /* ignore */ }
+            // Send a "looking up" indicator so user sees the twin is working
+            try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: 'Looking that up for you...\n\n' })}\n\n`); } catch { /* ignore */ }
             const followUp = await streamLLM({
               tier: TIER_CHAT,
               system: systemPrompt,
@@ -1043,8 +1060,11 @@ RULES:
           chatLog('Workspace follow-up LLM call complete');
         } catch (actionErr) {
           log.warn('Workspace action execution failed (non-fatal)', { error: actionErr.message, tool: action.toolName });
-          // Strip the action tag from the response so user sees clean text
+          // Strip the action tag and send clean text
           assistantMessage = stripActionTags(assistantMessage);
+          if (isStreaming) {
+            try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: assistantMessage })}\n\n`); } catch { /* ignore */ }
+          }
         }
       }
     }
