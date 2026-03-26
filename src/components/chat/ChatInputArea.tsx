@@ -55,8 +55,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
         <div
           className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-opacity"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.05)',
             opacity: limitReached ? 0.4 : 1,
             pointerEvents: limitReached ? 'none' : 'auto',
           }}

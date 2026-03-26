@@ -15,8 +15,8 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
   // Calculate sidebar margin based on collapsed state
   // Sidebar is flush (no margin), so width = element width directly
-  // Expanded: w-64 = 256px, Collapsed: w-20 = 80px
-  const sidebarWidth = isCollapsed ? 80 : 256;
+  // Expanded: w-64 = 256px, Collapsed: w-14 = 56px
+  const sidebarWidth = isCollapsed ? 56 : 256;
 
   return (
     <div

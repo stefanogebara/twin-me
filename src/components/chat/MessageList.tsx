@@ -58,19 +58,14 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
           return (
             <div key={message.id} className="py-4">
               {isUser ? (
-                /* ── User message: subtle right-aligned pill ── */
+                /* ── User message: right-aligned, no background ── */
                 <div className="flex flex-col items-end">
-                  <div
-                    className="max-w-[80%] rounded-[20px] px-4 py-3"
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                    }}
-                  >
+                  <div className="max-w-[80%] px-1 py-2">
                     <p
-                      className="whitespace-pre-wrap"
+                      className="whitespace-pre-wrap text-right"
                       style={{
                         fontSize: '15px',
-                        color: message.failed ? '#EF4444' : 'var(--foreground)',
+                        color: message.failed ? '#EF4444' : '#EDEDED',
                         opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
                       }}
@@ -144,31 +139,31 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       </div>
                     )}
 
-                    {/* ── Metadata row: context badges + rating + timestamp ── */}
+                    {/* ── Metadata row: context badges (muted) + rating ── */}
                     {(message.contextUsed || (!message.failed && onRate)) && (
                       <div
-                        className="flex flex-wrap items-center gap-3 mt-3 pt-2"
+                        className="flex flex-wrap items-center gap-2 mt-3 pt-2"
                         style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
                       >
-                        {/* Context badges */}
+                        {/* Context badges — small and muted */}
                         {message.contextUsed?.memoryStream && message.contextUsed.memoryStream.total > 0 && (
                           <span
-                            className="text-[11px] px-2 py-0.5 rounded-full"
-                            style={{ color: 'rgba(255,255,255,0.45)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full"
+                            style={{ color: 'rgba(255,255,255,0.25)', opacity: 0.6 }}
                           >
                             {message.contextUsed.memoryStream.total} memories
                           </span>
                         )}
                         {message.contextUsed?.proactiveInsights && message.contextUsed.proactiveInsights.length > 0 && (
                           <span
-                            className="text-[11px] px-2 py-0.5 rounded-full"
-                            style={{ color: '#10b77f', border: '1px solid rgba(16,183,127,0.15)' }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-full"
+                            style={{ color: 'rgba(255,255,255,0.25)', opacity: 0.6 }}
                           >
                             {message.contextUsed.proactiveInsights.length} insight{message.contextUsed.proactiveInsights.length > 1 ? 's' : ''}
                           </span>
                         )}
 
-                        {/* Thumbs up/down */}
+                        {/* Thumbs up/down — primary visible elements */}
                         {!message.failed && onRate && (
                           <div className="flex items-center gap-1 ml-auto">
                             {rated[message.id] != null ? (
@@ -233,24 +228,29 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
         })}
 
         {isTyping && (
-          <div className="flex flex-col items-start" role="status" aria-label="Twin is thinking">
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1" aria-hidden="true">
-                <div
-                  className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '0ms' }}
-                />
-                <div
-                  className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '150ms' }}
-                />
-                <div
-                  className="w-1.5 h-1.5 rounded-full animate-bounce"
-                  style={{ backgroundColor: 'var(--accent-vibrant)', animationDelay: '300ms' }}
-                />
-              </div>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>thinking...</span>
+          <div className="flex flex-col items-start py-2" role="status" aria-label="Twin is thinking">
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: 'var(--accent-vibrant)',
+                  animation: 'thinking-pulse 1.5s ease-in-out infinite',
+                }}
+                aria-hidden="true"
+              />
+              <span
+                className="text-[13px] font-medium"
+                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif' }}
+              >
+                Thinking...
+              </span>
             </div>
+            <style>{`
+              @keyframes thinking-pulse {
+                0%, 100% { opacity: 0.3; transform: scale(0.85); }
+                50% { opacity: 1; transform: scale(1.15); }
+              }
+            `}</style>
           </div>
         )}
 

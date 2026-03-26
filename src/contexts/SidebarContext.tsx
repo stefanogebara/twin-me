@@ -11,7 +11,8 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 export const SidebarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const stored = localStorage.getItem('sidebar-collapsed');
-    return stored === 'true';
+    // Default to collapsed (icon-only) on desktop if no stored preference
+    return stored === null ? true : stored === 'true';
   });
 
   useEffect(() => {

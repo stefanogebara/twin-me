@@ -85,7 +85,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         className={cn(
           "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          isExpanded ? "w-64" : "w-20 lg:w-20",
+          isExpanded ? "w-64" : "w-14 lg:w-14",
           "overflow-visible"
         )}
       >
@@ -94,12 +94,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           onClick={toggleSidebar}
           aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={isExpanded}
-          className="hidden lg:flex absolute top-8 w-7 h-7 rounded-full items-center justify-center transition-all z-50"
+          className="hidden lg:flex absolute top-8 w-6 h-6 rounded-full items-center justify-center transition-all z-50"
           style={{
             background: 'var(--background)',
             border: '1px solid var(--glass-surface-border)',
             color: 'rgba(255, 255, 255, 0.4)',
-            right: '-16px',
+            right: '-12px',
           }}
           title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
         >
@@ -148,7 +148,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         </button>
 
         {/* Logo */}
-        <div className="p-6 pb-5 flex items-center justify-center border-b border-sidebar-border">
+        <div className={cn("flex items-center justify-center border-b border-sidebar-border", isExpanded ? "p-6 pb-5" : "p-3 pb-3")}>
           <button
             onClick={() => handleNavigate('/dashboard')}
             className={cn(
@@ -162,7 +162,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               src="/images/backgrounds/flower-hero.png"
               alt="Twin Me"
               className="object-contain drop-shadow-sm flex-shrink-0"
-              style={{ width: isExpanded ? 36 : 32, height: isExpanded ? 36 : 32 }}
+              style={{ width: isExpanded ? 36 : 24, height: isExpanded ? 36 : 24 }}
             />
             {isExpanded && (
               <>
@@ -192,7 +192,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           </button>
         </div>
 
-        <nav className="p-4 space-y-1 flex-1" role="navigation" aria-label="Main navigation">
+        <nav className={cn("space-y-1 flex-1", isExpanded ? "p-4" : "p-2")} role="navigation" aria-label="Main navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -204,8 +204,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 aria-label={`Navigate to ${item.label}`}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  "w-full flex items-center gap-3 rounded-full transition-all duration-150 ease-out active:scale-[0.97]",
-                  isExpanded ? "px-4 py-2.5" : "px-3 py-2.5 justify-center",
+                  "w-full flex items-center gap-3 rounded-xl transition-all duration-150 ease-out active:scale-[0.97]",
+                  isExpanded ? "px-4 py-2.5" : "p-2 justify-center",
                   active
                     ? "font-medium"
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
@@ -219,7 +219,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 title={item.label}
               >
                 <Icon
-                  className="w-5 h-5"
+                  className={isExpanded ? "w-5 h-5" : "w-[18px] h-[18px]"}
                   style={active ? { color: 'var(--accent-vibrant)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
                   aria-hidden="true"
                 />
@@ -230,13 +230,13 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         </nav>
 
         {/* Theme Toggle + Sign Out + User at Bottom */}
-        <div className="border-t border-sidebar-border p-4 space-y-1">
+        <div className={cn("border-t border-sidebar-border space-y-1", isExpanded ? "p-4" : "p-2")}>
           {/* Sign Out button - always visible */}
           <button
             onClick={handleSignOut}
             className={cn(
               "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-150 ease-out active:scale-[0.97]",
-              isExpanded ? "px-4 py-3" : "px-3 py-3 justify-center"
+              isExpanded ? "px-4 py-3" : "p-2 justify-center"
             )}
             aria-label="Sign out"
             title="Sign Out"
@@ -250,12 +250,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             onClick={() => handleNavigate('/settings')}
             className={cn(
               "w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors",
-              isExpanded ? "px-4 py-3" : "px-2 py-3 justify-center"
+              isExpanded ? "px-4 py-3" : "p-2 justify-center"
             )}
             aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
             title={user?.firstName || user?.email || 'Settings'}
           >
-            <div className="w-8 h-8 bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground text-sm font-bold">
+            <div className={cn("bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground font-bold", isExpanded ? "w-8 h-8 text-sm" : "w-6 h-6 text-xs")}>
               {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </div>
             {isExpanded && (

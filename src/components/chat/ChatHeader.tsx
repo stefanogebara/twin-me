@@ -14,26 +14,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleContext,
 }) => (
   <header
-    className="flex items-center justify-between px-6 py-3"
+    className="flex items-center justify-end px-6 py-2"
     style={{
-      borderBottom: '1px solid var(--glass-surface-border)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
+      borderBottom: '1px solid rgba(255,255,255,0.04)',
     }}
   >
-    <div className="flex items-center gap-2">
-      <h1
-        className="text-[11px] font-medium tracking-widest uppercase m-0"
-        style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
-      >
-        Twin
-      </h1>
-      <div
-        className="w-1.5 h-1.5 rounded-full"
-        style={{ backgroundColor: '#10b77f' }}
-      />
-    </div>
-
     <div className="flex items-center gap-1">
       {hasMessages && (
         <button
