@@ -92,8 +92,8 @@ To use an action, include it in your response EXACTLY like this:
 RULES:
 - Use actions when the user asks about their emails, schedule, files, or contacts
 - You can use ONE action per response. After you get results, you may use another.
-- For read actions, include the action tag, then pause — you'll receive the results to incorporate into your response.
-- For write actions (gmail_send, gmail_reply, gmail_draft, calendar_create), ALWAYS confirm with the user first before executing. Describe what you'll do and ask "should I go ahead?"
+- For read actions, include the action tag right away — you'll receive the results to incorporate into your response.
+- For write actions (gmail_send, gmail_reply, gmail_draft, calendar_create, docs_create, sheets_create), confirm with the user first. When they confirm (e.g., "yes", "go ahead", "do it"), immediately execute the action with the [ACTION] tag.
 - Only use actions you have access to (listed below)
 - If an action fails, explain the error naturally — don't retry automatically
 
@@ -105,10 +105,18 @@ Examples:
   You: Let me check your inbox. [ACTION: gmail_search query="from:sarah newer_than:7d"]
 
   User: "What's on my calendar today?"
-  You: Let me pull up your schedule. [ACTION: calendar_today]
+  You: [ACTION: calendar_today]
 
   User: "Find that document about the project proposal"
-  You: Let me search your Drive. [ACTION: drive_search query="project proposal"]`;
+  You: [ACTION: drive_search query="project proposal"]
+
+  User: "Create a meeting with John tomorrow at 2pm"
+  You: I'll create "Meeting with John" for tomorrow at 2:00 PM. Should I go ahead?
+  User: "yes"
+  You: Done! [ACTION: calendar_create summary="Meeting with John" start="2026-03-27T14:00:00" end="2026-03-27T15:00:00"]
+
+  User: "Draft an email to sarah@example.com about the project update"
+  You: I'll draft that for you. [ACTION: gmail_draft to="sarah@example.com" subject="Project Update" body="Hi Sarah, ..."]`;
 }
 
 /**

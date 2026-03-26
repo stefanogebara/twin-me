@@ -552,15 +552,31 @@ export function registerGoogleWorkspaceTools() {
  * These are the primary tools the LLM can invoke via [ACTION: tool_name ...] syntax.
  */
 export const GOOGLE_WORKSPACE_TOOL_NAMES = [
+  // Gmail
   'gmail_search',
   'gmail_read',
   'gmail_draft',
   'gmail_send',
   'gmail_reply',
+  // Calendar
   'calendar_today',
   'calendar_upcoming',
+  'calendar_find_free_slots',
   'calendar_create',
+  'calendar_modify_event',
+  'calendar_delete_event',
+  // Drive
   'drive_search',
+  'drive_read_file',
+  'drive_create_file',
+  // Docs
   'docs_read',
+  'docs_create',
+  'docs_append',
+  // Sheets
+  'sheets_read',
+  'sheets_write',
+  'sheets_create',
+  // Contacts
   'contacts_search',
 ];
