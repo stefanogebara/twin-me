@@ -23,6 +23,9 @@ import { startTokenExpiryNotifier, stopTokenExpiryNotifier } from './services/to
 import { initializeRateLimiter, shutdownRateLimiter } from './middleware/oauthRateLimiter.js';
 import { startObservationIngestion, stopObservationIngestion } from './services/observationIngestion.js';
 
+// Google Workspace tools — registers Gmail, Calendar, Drive, Docs, Sheets, Contacts tools
+import { registerGoogleWorkspaceTools } from './services/tools/googleWorkspaceTools.js';
+
 // Structured logging (imported early so log is available throughout server setup)
 import { createLogger } from './services/logger.js';
 const log = createLogger('Server');
@@ -51,6 +54,9 @@ if (missingVars.length > 0) {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Register Google Workspace tools (Gmail, Calendar, Drive, Docs, Sheets, Contacts)
+registerGoogleWorkspaceTools();
 
 // Initialize Sentry for error tracking (only if SENTRY_DSN is configured)
 if (process.env.SENTRY_DSN) {

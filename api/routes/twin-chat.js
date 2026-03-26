@@ -60,6 +60,7 @@ import { classifyMessageTier } from '../services/chatRouter.js';
 import { getBlocks, formatBlocksForPrompt, initializeBlocks } from '../services/coreMemoryService.js';
 import { classifyTaskIntent, parseAndCreateReminder } from '../services/taskIntentClassifier.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
+import { buildWorkspaceActionsPrompt, parseActions, executeAction, formatActionResult, stripActionTags } from '../services/tools/workspaceActionParser.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChat');
@@ -698,6 +699,20 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
+    // Google Workspace actions — inject available tools into system prompt
+    // Only builds the block if user has connected Gmail/Calendar/Drive (zero cost if not)
+    let workspaceActionsEnabled = false;
+    try {
+      const workspaceBlock = await buildWorkspaceActionsPrompt(userId);
+      if (workspaceBlock) {
+        systemPrompt.push({ type: 'text', text: `\n${workspaceBlock}` });
+        workspaceActionsEnabled = true;
+        chatLog('Workspace actions injected into system prompt');
+      }
+    } catch (wsErr) {
+      log.warn('Workspace actions prompt failed (non-fatal)', { error: wsErr.message });
+    }
+
     // P1: Conversation history already fetched in parallel above
 
     // Every 5th turn: inject a proactive deep question into the system prompt
@@ -972,6 +987,65 @@ RULES:
             : 'Chat is temporarily unavailable. The AI provider is unreachable.',
           details: process.env.NODE_ENV === 'development' ? llmError.message : undefined
         });
+      }
+    }
+
+    // Workspace action execution loop — detect [ACTION: ...] in response,
+    // execute the tool, and re-call the LLM with results so it can answer naturally.
+    // Max 1 action per turn to keep latency bounded.
+    if (workspaceActionsEnabled && assistantMessage) {
+      const detectedActions = parseActions(assistantMessage);
+      if (detectedActions.length > 0) {
+        const action = detectedActions[0]; // One action per turn
+        chatLog(`Workspace action detected: ${action.toolName}`);
+
+        try {
+          const actionResult = await executeAction(userId, action);
+          const resultBlock = formatActionResult(actionResult);
+
+          // Re-call LLM with the action result so it can weave the data into a natural response
+          const followUpMessages = [
+            ...llmMessages,
+            { role: 'assistant', content: assistantMessage },
+            { role: 'user', content: `${resultBlock}\n\nNow incorporate these results into your response naturally. Don't repeat the action tag. Summarize the key information conversationally.` },
+          ];
+
+          if (isStreaming) {
+            // Send a thinking indicator before the follow-up call
+            try { res.write(`data: ${JSON.stringify({ type: 'thinking' })}\n\n`); } catch { /* ignore */ }
+            const followUp = await streamLLM({
+              tier: TIER_CHAT,
+              system: systemPrompt,
+              messages: followUpMessages,
+              maxTokens: 2048,
+              temperature: 0.7,
+              userId,
+              serviceName: 'twin-chat:workspace-followup',
+              modelOverride: routedModel,
+              onChunk: (chunk) => {
+                res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+              },
+            });
+            assistantMessage = followUp.content || assistantMessage;
+          } else {
+            const followUp = await complete({
+              tier: TIER_CHAT,
+              system: systemPrompt,
+              messages: followUpMessages,
+              maxTokens: 2048,
+              temperature: 0.7,
+              userId,
+              serviceName: 'twin-chat:workspace-followup',
+              modelOverride: routedModel,
+            });
+            assistantMessage = followUp.content || assistantMessage;
+          }
+          chatLog('Workspace follow-up LLM call complete');
+        } catch (actionErr) {
+          log.warn('Workspace action execution failed (non-fatal)', { error: actionErr.message, tool: action.toolName });
+          // Strip the action tag from the response so user sees clean text
+          assistantMessage = stripActionTags(assistantMessage);
+        }
       }
     }
 
