@@ -55,6 +55,19 @@ export const RETRIEVAL_WEIGHTS = {
   relevance: 2.2,
 };
 
+// ─── BM25 Lexical Scoring (TiMem) ───────────────────────────────────────
+// Mirrors twin-config.js defaults for the memory eval harness.
+export const BM25_BLEND_WEIGHT = 0.10;
+export const BM25_K1 = 1.5;
+export const BM25_B = 0.75;
+
+// ─── Temporal Context Model (TCM) ──────────────────────────────────────
+export const TCM_WEIGHT = 0.15;
+export const TCM_DRIFT_RATE = 0.85;
+
+// ─── STDP Co-Retrieval Boost ───────────────────────────────────────────
+export const STDP_CORETRIEVAL_BOOST = 0.10;
+
 // ─── MMR Parameters ─────────────────────────────────────────────────────────
 
 // MMR lambda for content relevance evaluation.

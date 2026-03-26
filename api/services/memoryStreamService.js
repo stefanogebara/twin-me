@@ -22,8 +22,9 @@
 import { generateEmbedding, vectorToString } from './embeddingService.js';
 import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
-import { traverseLinksForRetrieval } from './memoryLinksService.js';
+import { traverseLinksForRetrieval, getCoCitationBoosts } from './memoryLinksService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
+import { bm25ScoreBatch, extractKeywords } from './bm25Service.js';
 
 import { createLogger } from './logger.js';
 
@@ -512,7 +513,7 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  */
 // Retrieval weights, MMR params, and memory budgets are imported from twin-config.js
 // so the research agent can tune them without touching this file.
-import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED } from '../../twin-research/twin-config.js';
+import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED, BM25_BLEND_WEIGHT, BM25_K1, BM25_B, TCM_WEIGHT, TCM_DRIFT_RATE, STDP_CORETRIEVAL_BOOST } from '../../twin-research/twin-config.js';
 
 // ====================================================================
 // MMR Reranking (Maximum Marginal Relevance)
@@ -717,7 +718,7 @@ async function generateHypotheticalMemory(query) {
  * @param {object|string} weights - Weight preset name or object { recency, importance, relevance }
  * @returns {Array} Scored, ranked, and diversity-reranked memories
  */
-async function retrieveMemories(userId, query, limit = 10, weights = 'default') {
+async function retrieveMemories(userId, query, limit = 10, weights = 'default', options = {}) {
   if (!userId || !query) return [];
 
   // Resolve weight preset
@@ -803,6 +804,61 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     // GUM: confidence weighting is now baked into SQL scoring (search_memory_stream RPC
     // multiplies by COALESCE(confidence, 0.7) before ORDER BY). No post-RPC adjustment needed.
 
+    // --- BM25 lexical rescoring (TiMem, arXiv 2601.02845) ---
+    // Catches exact named entities, dates, and precise phrases that cosine similarity misses.
+    if (BM25_BLEND_WEIGHT > 0 && data.length > 0) {
+      const keywords = extractKeywords(query);
+      if (keywords.length > 0) {
+        const documents = data.map(m => m.content || '');
+        const lexicalScores = bm25ScoreBatch(query, documents, { k1: BM25_K1, b: BM25_B });
+        const maxLex = Math.max(...lexicalScores);
+        const minLex = Math.min(...lexicalScores);
+        const range = maxLex - minLex || 1;
+        for (let i = 0; i < data.length; i++) {
+          const normLex = (lexicalScores[i] - minLex) / range;
+          data[i].score = (1 - BM25_BLEND_WEIGHT) * data[i].score + BM25_BLEND_WEIGHT * normLex;
+        }
+        data.sort((a, b) => b.score - a.score);
+      }
+    }
+
+    // --- TCM contextual scoring (TRIBE v2-inspired) ---
+    // Memories similar to the running context vector get a relevance boost.
+    if (TCM_WEIGHT > 0 && options.contextVector && data.length > 0) {
+      for (const mem of data) {
+        if (mem.embedding) {
+          const memVec = typeof mem.embedding === 'string'
+            ? JSON.parse(mem.embedding) : mem.embedding;
+          let dot = 0, normA = 0, normB = 0;
+          for (let i = 0; i < Math.min(memVec.length, options.contextVector.length); i++) {
+            dot += memVec[i] * options.contextVector[i];
+            normA += memVec[i] * memVec[i];
+            normB += options.contextVector[i] * options.contextVector[i];
+          }
+          const denom = Math.sqrt(normA) * Math.sqrt(normB);
+          const contextSim = denom > 0 ? dot / denom : 0;
+          mem.score += TCM_WEIGHT * contextSim;
+        }
+      }
+      data.sort((a, b) => b.score - a.score);
+    }
+
+    // --- STDP co-retrieval importance boost ---
+    // Memories frequently co-cited together get an importance bonus.
+    if (STDP_CORETRIEVAL_BOOST > 0 && data.length >= 2) {
+      try {
+        const candidateIds = data.slice(0, Math.min(data.length, 30)).map(m => m.id);
+        const boosts = await getCoCitationBoosts(userId, candidateIds);
+        for (const mem of data) {
+          const boost = boosts.get(mem.id) || 0;
+          if (boost > 0) mem.score += boost;
+        }
+        data.sort((a, b) => b.score - a.score);
+      } catch (e) {
+        log.warn('STDP co-retrieval boost failed (non-fatal)', { error: e.message });
+      }
+    }
+
     // Apply MMR reranking for diversity (strips embedding from output)
     const reranked = mmrRerank(data, limit);
 
@@ -840,6 +896,31 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default') 
     supabaseAdmin.rpc('touch_memories', { p_memory_ids: memoryIds })
       .then(() => {})
       .catch(err => log.warn('Failed to touch memories', { error: err }));
+
+    // Build updated TCM context vector for callers that chain retrievals
+    if (TCM_WEIGHT > 0 && reranked.length > 0) {
+      const retrievedVecs = data.slice(0, limit)
+        .filter(m => m.embedding)
+        .map(m => typeof m.embedding === 'string' ? JSON.parse(m.embedding) : m.embedding);
+      if (retrievedVecs.length > 0) {
+        const dim = retrievedVecs[0].length;
+        const avgVec = new Array(dim).fill(0);
+        for (const v of retrievedVecs) {
+          for (let i = 0; i < dim; i++) avgVec[i] += v[i];
+        }
+        for (let i = 0; i < dim; i++) avgVec[i] /= retrievedVecs.length;
+
+        if (options.contextVector) {
+          const updated = new Array(dim);
+          for (let i = 0; i < dim; i++) {
+            updated[i] = TCM_DRIFT_RATE * options.contextVector[i] + (1 - TCM_DRIFT_RATE) * avgVec[i];
+          }
+          reranked._tcmContextVector = updated;
+        } else {
+          reranked._tcmContextVector = avgVec;
+        }
+      }
+    }
 
     const weightLabel = typeof weights === 'string' ? weights : 'custom';
     log.info('Retrieved memories', { count: reranked.length, weights: weightLabel, candidates: data.length, graphLinked: graphCount, topScore: reranked[0]?.score?.toFixed(3) });
@@ -924,7 +1005,7 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
  * @param {string} [reflectionWeights='identity'] - Weight preset for reflection retrieval (e.g., 'identity', 'default', 'recent')
  * @returns {Array} Combined memories: up to 30 total with guaranteed type diversity
  */
-async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWeights = 'identity') {
+async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWeights = 'identity', options = {}) {
   const {
     reflections: maxReflections = 15,
     facts: maxFacts = MEMORY_CONTEXT_BUDGETS.facts,
@@ -936,7 +1017,7 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
 
   const [reflectionResults, factResults, platformResults, conversationResults] = await Promise.all([
     // Reflections: semantic search over-fetches, then we cap at maxReflections
-    retrieveMemories(userId, query, maxReflections * 2, reflectionWeights).catch(err => {
+    retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, options).catch(err => {
       log.warn('Diverse reflections fetch failed', { error: err });
       return [];
     }),

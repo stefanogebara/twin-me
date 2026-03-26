@@ -198,6 +198,67 @@ export async function strengthenCoCitedLinks(userId, citedIds) {
 }
 
 // ====================================================================
+// STDP Co-Retrieval Importance Boost (TRIBE v2 Phase A)
+// ====================================================================
+
+/**
+ * STDP co-retrieval importance boost.
+ * For each candidate memory, check how many strong co-citation links it has
+ * to OTHER candidates in the same retrieval set. Memories that frequently
+ * co-occur get an importance boost (Hebbian: fire together → wire together).
+ *
+ * Single DB query. Returns a Map of memoryId → boost value.
+ *
+ * @param {string} userId
+ * @param {string[]} candidateIds - IDs of memories in the current retrieval
+ * @returns {Promise<Map<string, number>>} memoryId → boost (0.0 to STDP_CORETRIEVAL_BOOST)
+ */
+export async function getCoCitationBoosts(userId, candidateIds) {
+  const boosts = new Map();
+  if (!candidateIds || candidateIds.length < 2) return boosts;
+
+  try {
+    // Dynamically import config to avoid circular dependency
+    const { STDP_CORETRIEVAL_BOOST } = await import('../../twin-research/twin-config.js');
+    if (STDP_CORETRIEVAL_BOOST <= 0) return boosts;
+
+    // Single query: fetch co_citation links where BOTH source and target are in candidateIds
+    const { data: links, error } = await supabaseAdmin
+      .from('memory_links')
+      .select('source_memory_id, target_memory_id, strength')
+      .eq('user_id', userId)
+      .eq('link_type', 'co_citation')
+      .in('source_memory_id', candidateIds)
+      .in('target_memory_id', candidateIds)
+      .gt('strength', 0.1);
+
+    if (error || !links?.length) return boosts;
+
+    // Count weighted co-citation links per memory
+    const linkCounts = new Map();
+    for (const link of links) {
+      const srcCount = linkCounts.get(link.source_memory_id) || 0;
+      linkCounts.set(link.source_memory_id, srcCount + link.strength);
+      const tgtCount = linkCounts.get(link.target_memory_id) || 0;
+      linkCounts.set(link.target_memory_id, tgtCount + link.strength);
+    }
+
+    // Normalize to [0, STDP_CORETRIEVAL_BOOST]
+    const maxCount = Math.max(...linkCounts.values());
+    if (maxCount > 0) {
+      for (const [memId, count] of linkCounts) {
+        boosts.set(memId, (count / maxCount) * STDP_CORETRIEVAL_BOOST);
+      }
+    }
+
+    return boosts;
+  } catch (err) {
+    log.warn('getCoCitationBoosts error (non-fatal):', err.message);
+    return boosts;
+  }
+}
+
+// ====================================================================
 // Batch graph traversal for scored retrieval (Synaptic Maturation)
 // ====================================================================
 

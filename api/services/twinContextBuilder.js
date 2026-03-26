@@ -61,6 +61,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     getPersonalityScores: fetchPersonality = true,
     memoryBudgets = {},
     memoryWeights = 'identity',
+    contextVector = null,
   } = options;
 
   const ctxStart = Date.now();
@@ -112,7 +113,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return null;
     })),
 
-    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights).catch(err => {
+    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights, { contextVector }).catch(err => {
       log.warn('Memory retrieval failed:', err.message);
       return [];
     })),

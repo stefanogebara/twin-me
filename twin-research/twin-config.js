@@ -175,10 +175,32 @@ export const PROACTIVE_INSIGHTS_CONFIG = {
 // Range: [-0.2, +0.2] for each
 export const SAMPLING_OVERRIDES = {
   temperature_delta: -0.05,
-  top_p_delta: 0.0,
+  top_p_delta: -0.03,
   frequency_penalty_delta: 0.10,
-  presence_penalty_delta: 0.15,
+  presence_penalty_delta: 0.20,
 };
+
+// ─── BM25 Lexical Scoring (TiMem, arXiv 2601.02845) ──────────────────────────
+// Weight of BM25 lexical score blended with semantic cosine similarity.
+// Combined: relevance = (1 - BM25_BLEND) * semantic + BM25_BLEND * lexical
+// Range: [0.0, 0.3]. Higher = more lexical influence.
+export const BM25_BLEND_WEIGHT = 0.10;
+export const BM25_K1 = 1.5;   // term frequency saturation
+export const BM25_B = 0.75;   // length normalization strength
+
+// ─── Temporal Context Model (TCM, TRIBE v2-inspired) ──────────────────────────
+// Weight of TCM contextual similarity in the final scoring formula.
+// 0.0 = disabled (pure 3-factor). Range: [0.0, 0.5].
+export const TCM_WEIGHT = 0.15;
+// Drift rate: how fast the running context vector moves toward new retrieval.
+// 1.0 = full history (no drift). 0.0 = only latest retrieval.
+export const TCM_DRIFT_RATE = 0.85;
+
+// ─── STDP Co-Retrieval Boost ──────────────────────────────────────────────────
+// Boost to importance for memories with strong co-citation links
+// to other memories in the current retrieval set.
+// 0.0 = disabled. Range: [0.0, 0.3].
+export const STDP_CORETRIEVAL_BOOST = 0.10;
 
 // ─── Oracle Integration ───────────────────────────────────────────────────────
 // Controls personality oracle draft injection strength.

@@ -446,6 +446,7 @@ import telegramLinkRoutes from './routes/telegram-link.js';
 import whatsappLinkRoutes from './routes/whatsapp-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
+import twinScalingRoutes from './routes/twin-scaling.js';
 
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
@@ -572,6 +573,7 @@ app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
 app.use('/api/whatsapp-link', whatsappLinkRoutes); // WhatsApp self-serve phone linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
 app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
+app.use('/api/twin', twinScalingRoutes); // Twin scaling metrics + fidelity scoring (TRIBE v2)
 app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
 app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for digest emails
 
