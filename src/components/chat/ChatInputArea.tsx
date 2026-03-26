@@ -20,6 +20,7 @@ interface ChatInputAreaProps {
   limitReached: boolean;
   hasConnectedPlatforms: boolean;
   chatUsage: ChatUsage | null;
+  ghostSuggestion?: string;
 }
 
 const TOOL_PLATFORMS = [
@@ -44,6 +45,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     limitReached,
     hasConnectedPlatforms,
     chatUsage,
+    ghostSuggestion,
   }, ref) => {
     const navigate = useNavigate();
     const hasText = inputMessage.trim().length > 0;
@@ -62,25 +64,50 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           <label htmlFor="twin-chat-input" className="sr-only">
             Message your twin
           </label>
-          <textarea
-            id="twin-chat-input"
-            ref={ref}
-            placeholder="Message your twin..."
-            value={inputMessage}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={onKeyDown}
-            disabled={isDisabled || limitReached}
-            rows={1}
-            aria-label="Message your twin"
-            className="flex-1 resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
-            style={{
-              color: 'var(--foreground)',
-              minHeight: '24px',
-              maxHeight: '120px',
-              caretColor: 'var(--accent-vibrant)',
-              fontFamily: 'Inter, sans-serif',
-            }}
-          />
+          <div className="flex-1 relative">
+            <textarea
+              id="twin-chat-input"
+              ref={ref}
+              placeholder="Message your twin..."
+              value={inputMessage}
+              onChange={(e) => onInputChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Tab' && ghostSuggestion && !inputMessage.trim()) {
+                  e.preventDefault();
+                  onInputChange(ghostSuggestion);
+                  return;
+                }
+                onKeyDown(e);
+              }}
+              disabled={isDisabled || limitReached}
+              rows={1}
+              aria-label="Message your twin"
+              className="w-full resize-none focus:outline-none disabled:opacity-50 text-[14px] bg-transparent placeholder:text-[rgba(255,255,255,0.3)]"
+              style={{
+                color: 'var(--foreground)',
+                minHeight: '24px',
+                maxHeight: '120px',
+                caretColor: 'var(--accent-vibrant)',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            />
+            {ghostSuggestion && !inputMessage && (
+              <div className="absolute inset-0 flex items-center pointer-events-none">
+                <span className="text-[14px] truncate" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                  {ghostSuggestion}
+                </span>
+                <span
+                  className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                  style={{
+                    color: 'rgba(255,255,255,0.25)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                >
+                  Tab
+                </span>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
             {chatUsage && chatUsage.limit != null && chatUsage.limit !== Infinity && (

@@ -117,10 +117,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     <div
                       className="prose prose-sm prose-invert max-w-none"
                       style={{
-                        fontSize: '15px',
-                        color: 'var(--foreground)',
-                        opacity: 0.85,
-                        lineHeight: 1.8,
+                        fontSize: '14px',
+                        color: '#D1D5DB',
+                        lineHeight: '24px',
                       }}
                     >
                       <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>

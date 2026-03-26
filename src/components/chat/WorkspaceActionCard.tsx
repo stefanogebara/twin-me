@@ -213,6 +213,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 animate-pulse">
           <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -233,6 +234,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" style={{ color: 'rgba(239,68,68,0.6)' }} />
@@ -253,6 +255,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 mb-1">
           <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
@@ -276,6 +279,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -355,6 +359,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
     >
       <div className="flex items-center gap-2">
         <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />

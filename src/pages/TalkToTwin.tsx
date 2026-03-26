@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
@@ -152,6 +152,26 @@ const TalkToTwin = () => {
       handleSendMessage();
     }
   }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derive ghost suggestion from conversation context
+  const ghostSuggestion = useMemo(() => {
+    if (isTyping || messages.length === 0) return undefined;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== 'assistant') return undefined;
+
+    const content = lastMsg.content.toLowerCase();
+    if (content.includes('spotify') || content.includes('music') || content.includes('listening'))
+      return 'What does my music taste say about me?';
+    if (content.includes('calendar') || content.includes('schedule') || content.includes('meeting'))
+      return 'How should I optimize my schedule?';
+    if (content.includes('goal') || content.includes('progress') || content.includes('habit'))
+      return 'What patterns do you see in my habits?';
+    if (content.includes('sleep') || content.includes('recovery') || content.includes('health'))
+      return 'How has my sleep been trending?';
+    if (content.includes('work') || content.includes('career') || content.includes('project'))
+      return 'What motivates me most at work?';
+    return 'Tell me something surprising about myself';
+  }, [messages, isTyping]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
@@ -448,6 +468,7 @@ const TalkToTwin = () => {
           limitReached={limitReached}
           hasConnectedPlatforms={connectedPlatforms.length > 0}
           chatUsage={chatUsage}
+          ghostSuggestion={ghostSuggestion}
         />
       </div>
 

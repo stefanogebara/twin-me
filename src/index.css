@@ -17,8 +17,8 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Pure black */
-    --background: #111111;
+    /* Background Colors — Dimension.dev dark */
+    --background: #0C0C0C;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
@@ -454,6 +454,52 @@
 
   .border-shimmer {
     animation: borderShimmer 3s ease-in-out infinite;
+  }
+
+  /* ===== Chat Prose: Dimension.dev-inspired code + separator styling ===== */
+  /* Inline code blocks: emerald on dark */
+  .prose code {
+    background: #171717;
+    color: #6EE7B7;
+    font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 1px 4px;
+    border-radius: 6px;
+  }
+  .prose code::before,
+  .prose code::after {
+    content: none;
+  }
+
+  /* Separator: gray-700 border */
+  .prose hr {
+    border-color: rgb(55, 65, 81);
+    margin: 20px 0;
+  }
+
+  /* Bold text: pure white */
+  .prose strong {
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  /* h3 inside prose: Dimension sizing */
+  .prose h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin-bottom: 8px;
+    line-height: 24px;
+  }
+
+  /* Links inside prose: subtle inline */
+  .prose a {
+    color: #93C5FD;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .prose a:hover {
+    color: #BFDBFE;
   }
 
   /* Smooth entrance for staggered children */
