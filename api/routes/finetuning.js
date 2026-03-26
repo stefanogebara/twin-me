@@ -13,6 +13,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { exportTrainingData } from '../services/finetuning/trainingDataExporter.js';
 import { createFinetune, checkFinetuneStatus } from '../services/finetuning/finetuneManager.js';
 import { collectFromUserFeedback } from '../services/finetuning/preferenceCollector.js';
+import { checkAndTriggerTraining, getTrainingReadiness } from '../services/finetuning/autoTrainingService.js';
 import { generateSyntheticPairs } from '../services/finetuning/syntheticPairGenerator.js';
 import { trainDPO, checkDPOEligibility } from '../services/finetuning/dpoTrainer.js';
 import { supabaseAdmin } from '../services/database.js';
@@ -321,6 +322,33 @@ router.post('/generate-pairs', authenticateUser, async (req, res) => {
       success: false,
       error: 'Failed to generate synthetic pairs',
     });
+  }
+});
+
+// ─── Auto-Training (TRIBE v2 Phase D) ─────────────────────────────────────
+
+/**
+ * GET /api/finetuning/readiness — Training readiness summary
+ */
+router.get('/readiness', authenticateUser, async (req, res) => {
+  try {
+    const readiness = await getTrainingReadiness(req.user.id);
+    res.json({ success: true, data: readiness });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to check training readiness' });
+  }
+});
+
+/**
+ * POST /api/finetuning/auto-train — Trigger auto-training check
+ * Checks eligibility and triggers SFT/DPO if conditions are met.
+ */
+router.post('/auto-train', authenticateUser, async (req, res) => {
+  try {
+    const result = await checkAndTriggerTraining(req.user.id);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Auto-training check failed' });
   }
 });
 

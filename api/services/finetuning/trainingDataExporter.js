@@ -25,7 +25,7 @@ const DATA_DIR = path.resolve('data/training');
  * Target: ~800 tokens (focused signal, not full context dump).
  */
 export async function buildPersonalitySystemPrompt(userId) {
-  const [summaryResult, reflectionsResult, profileResult, calibrationResult] = await Promise.all([
+  const [summaryResult, reflectionsResult, profileResult, calibrationResult, axesResult, multimodalResult] = await Promise.all([
     supabaseAdmin
       .from('twin_summaries')
       .select('summary')
@@ -49,6 +49,19 @@ export async function buildPersonalitySystemPrompt(userId) {
     supabaseAdmin
       .from('onboarding_calibration')
       .select('archetype, calibration_data')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    // Phase D: ICA personality axes (TRIBE v2)
+    supabaseAdmin
+      .from('personality_axes')
+      .select('label, description')
+      .eq('user_id', userId)
+      .order('variance_explained', { ascending: false })
+      .limit(10),
+    // Phase D: Multimodal features (TRIBE v2)
+    supabaseAdmin
+      .from('multimodal_profiles')
+      .select('modalities_present, spotify_features, whoop_features, calendar_features')
       .eq('user_id', userId)
       .maybeSingle(),
   ]);
@@ -107,6 +120,31 @@ export async function buildPersonalitySystemPrompt(userId) {
   if (reflectionsResult.data?.length > 0) {
     const reflections = reflectionsResult.data.map(r => `- ${r.content.slice(0, 200)}`).join('\n');
     parts.push(`\n[KEY INSIGHTS ABOUT THIS PERSON]\n${reflections}`);
+  }
+
+  // ICA personality axes (TRIBE v2 Phase B) — data-driven personality dimensions
+  if (axesResult.data?.length > 0) {
+    const axes = axesResult.data
+      .filter(a => a.label && !a.label.startsWith('Axis '))
+      .slice(0, 8)
+      .map(a => `- ${a.label}${a.description ? ': ' + a.description.slice(0, 100) : ''}`)
+      .join('\n');
+    if (axes) parts.push(`\n[PERSONALITY DIMENSIONS]\n${axes}`);
+  }
+
+  // Multimodal behavioral signals (TRIBE v2 Phase C)
+  if (multimodalResult.data?.modalities_present?.length > 0) {
+    const mm = multimodalResult.data;
+    const signals = [];
+    if (mm.whoop_features?.some(v => v !== 0.5)) {
+      const w = mm.whoop_features;
+      signals.push(`Health: recovery=${(w[1] * 100).toFixed(0)}%, workout freq=${(w[3] * 100).toFixed(0)}%, HRV stability=${(w[4] * 100).toFixed(0)}%`);
+    }
+    if (mm.calendar_features?.some(v => v !== 0.5)) {
+      const c = mm.calendar_features;
+      signals.push(`Schedule: social density=${(c[0] * 100).toFixed(0)}%, flexibility=${(c[1] * 100).toFixed(0)}%, work-life=${(c[3] * 100).toFixed(0)}%`);
+    }
+    if (signals.length > 0) parts.push(`\n[BEHAVIORAL SIGNALS] ${signals.join('. ')}`);
   }
 
   return parts.join('\n');
