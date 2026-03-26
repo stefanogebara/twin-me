@@ -33,7 +33,7 @@ def load_env():
         print("Warning: python-dotenv not installed, using existing env vars", file=sys.stderr)
 
 
-def fetch_embeddings(user_id, limit=5000):
+def fetch_embeddings(user_id, limit=2000):
     """Fetch memory embeddings from Supabase."""
     from supabase import create_client
 
@@ -92,25 +92,37 @@ def run_ica(embeddings, n_components, memory_ids, memory_contents, memory_types)
     n_samples, n_features = embeddings.shape
     actual_components = min(n_components, n_samples - 1, n_features)
 
-    print(f"Running FastICA: {n_samples} memories x {n_features} dims -> {actual_components} components", file=sys.stderr)
+    # Step 1: PCA pre-reduction (1536 → 100 dims) — makes ICA tractable
+    # TRIBE v2 uses the same pattern: layer compression before ICA decomposition
+    PCA_TARGET_DIM = min(100, n_samples - 1, n_features)
+    print(f"PCA pre-reduction: {n_features} -> {PCA_TARGET_DIM} dims", file=sys.stderr)
+    pca_pre = PCA(n_components=PCA_TARGET_DIM, random_state=42)
+    embeddings_reduced = pca_pre.fit_transform(embeddings)
+    # Keep the PCA projection matrix to map ICA components back to full embedding space
+    pca_components = pca_pre.components_  # (PCA_TARGET_DIM, 1536)
 
-    # Try FastICA first, fall back to PCA if convergence fails
+    print(f"Running FastICA: {n_samples} x {PCA_TARGET_DIM} -> {actual_components} components", file=sys.stderr)
+
+    # Step 2: FastICA on reduced space, fall back to PCA if convergence fails
     method = 'ica'
     try:
         model = FastICA(
             n_components=actual_components,
-            max_iter=1000,
+            max_iter=500,
             random_state=42,
             whiten='unit-variance',
         )
-        transformed = model.fit_transform(embeddings)  # (n_samples, n_components)
-        mixing_matrix = model.components_  # (n_components, n_features)
+        transformed = model.fit_transform(embeddings_reduced)  # (n_samples, n_components)
+        # Map ICA mixing vectors back to original 1536-dim space
+        # ica_components is (n_components, PCA_TARGET_DIM), pca_components is (PCA_TARGET_DIM, 1536)
+        mixing_matrix = model.components_ @ pca_components  # (n_components, 1536)
     except Exception as e:
-        print(f"FastICA failed ({e}), falling back to PCA", file=sys.stderr)
+        print(f"FastICA failed ({e}), falling back to PCA on reduced space", file=sys.stderr)
         method = 'pca'
         model = PCA(n_components=actual_components, random_state=42)
-        transformed = model.fit_transform(embeddings)
-        mixing_matrix = model.components_
+        transformed = model.fit_transform(embeddings_reduced)
+        # Map back to full space
+        mixing_matrix = model.components_ @ pca_components
 
     # Compute variance explained per component
     if method == 'pca':

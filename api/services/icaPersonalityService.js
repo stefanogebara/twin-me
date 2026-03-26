@@ -18,7 +18,7 @@ import { promisify } from 'util';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { supabaseAdmin } from './database.js';
-import { complete, TIER_EXTRACTION } from './llmGateway.js';
+import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 import { createLogger } from './logger.js';
 
 const execFileAsync = promisify(execFile);
@@ -28,7 +28,7 @@ const log = createLogger('ICAPersonality');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const PYTHON_PATH = process.env.PYTHON_PATH || 'python';
 const ICA_SCRIPT = path.resolve(__dirname, '../../scripts/personality_ica.py');
-const MAX_EXEC_TIMEOUT = 60_000; // 60 seconds (ICA on 5000 memories takes ~10-20s)
+const MAX_EXEC_TIMEOUT = 120_000; // 120s (fetch 2000 memories ~13s + PCA+ICA ~1s + buffer)
 const N_COMPONENTS = 20;
 
 // ─── Cache Check ────────────────────────────────────────────────────────
@@ -80,25 +80,40 @@ Respond in JSON only: {"label": "2-4 word label", "description": "1 sentence des
 
   try {
     const result = await complete({
-      tier: TIER_EXTRACTION,
+      tier: TIER_ANALYSIS, // DeepSeek produces cleaner JSON than Mistral
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
       maxTokens: 100,
       serviceName: 'ica-axis-labeling',
     });
 
-    const text = (result?.content || result?.text || '').trim();
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      log.warn('LLM returned non-JSON for axis', { axisIndex, text });
-      return { label: `Axis ${axisIndex + 1}`, description: 'Unlabeled personality dimension' };
+    const raw = (result?.content || result?.text || '').trim();
+    // Strip markdown bold/italic markers and code fences
+    const cleaned = raw.replace(/\*\*/g, '').replace(/```json?\n?/gi, '').replace(/```/g, '').trim();
+
+    // Try JSON.parse first, then regex fallback
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          label: parsed.label || `Axis ${axisIndex + 1}`,
+          description: parsed.description || '',
+        };
+      } catch {
+        // JSON.parse failed on extracted block — fall through to regex
+      }
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    return {
-      label: parsed.label || `Axis ${axisIndex + 1}`,
-      description: parsed.description || 'Unlabeled personality dimension',
-    };
+    // Regex fallback: extract label and description from raw text
+    const labelMatch = raw.match(/"label"\s*:\s*"([^"]+)"/);
+    const descMatch = raw.match(/"description"\s*:\s*"([^"]+)"/);
+    if (labelMatch) {
+      return { label: labelMatch[1], description: descMatch?.[1] || '' };
+    }
+
+    log.warn('LLM returned unparseable axis label', { axisIndex, text: raw.slice(0, 100) });
+    return { label: `Axis ${axisIndex + 1}`, description: 'Unlabeled personality dimension' };
   } catch (err) {
     log.error('Axis labeling failed', { axisIndex, error: err.message });
     return { label: `Axis ${axisIndex + 1}`, description: 'Labeling failed' };
@@ -118,7 +133,7 @@ async function labelAxesBatched(axes) {
     const batch = axes.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.all(
       batch.map((axis, batchIdx) =>
-        labelAxis(axis.top_memories || [], i + batchIdx)
+        labelAxis(axis.top_memory_contents || [], i + batchIdx)
       )
     );
 
@@ -261,7 +276,8 @@ export async function rebuildPersonalityAxes(userId) {
       mixing_vector: axis.mixing_vector,
       variance_explained: axis.variance_explained || 0,
       top_memory_ids: axis.top_memory_ids || [],
-      created_at: now,
+      top_memory_contents: axis.top_memory_contents || [],
+      generated_at: now,
     }));
 
     const { error: insertError } = await supabaseAdmin
@@ -277,7 +293,7 @@ export async function rebuildPersonalityAxes(userId) {
     const { error: cacheError } = await supabaseAdmin
       .from('personality_axes_cache')
       .upsert(
-        { user_id: userId, generated_at: now, n_components: rawAxes.length },
+        { user_id: userId, generated_at: now, n_components: rawAxes.length, n_memories_used: icaResult.n_memories || 0, total_variance_explained: icaResult.total_variance_explained || 0 },
         { onConflict: 'user_id' }
       );
 
