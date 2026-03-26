@@ -1,0 +1,65 @@
+import { useState, useEffect } from 'react';
+
+interface WeatherData {
+  city: string;
+  temperature: number;
+  condition: string;
+}
+
+function mapWeatherCode(code: number): string {
+  if (code === 0) return '\u2600\uFE0F';
+  if (code >= 1 && code <= 3) return '\u26C5';
+  if (code >= 45 && code <= 48) return '\uD83C\uDF2B\uFE0F';
+  if (code >= 51 && code <= 67) return '\uD83C\uDF27\uFE0F';
+  if (code >= 71 && code <= 77) return '\uD83C\uDF28\uFE0F';
+  if (code >= 80 && code <= 99) return '\u26C8\uFE0F';
+  return '\u2600\uFE0F';
+}
+
+export function useWeather(): WeatherData | null {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const [weatherRes, geoRes] = await Promise.all([
+            fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`
+            ),
+            fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+              { headers: { 'User-Agent': 'TwinMe/1.0' } }
+            ),
+          ]);
+
+          const weatherData = await weatherRes.json();
+          const geoData = await geoRes.json();
+
+          const city =
+            geoData.address?.city ||
+            geoData.address?.town ||
+            geoData.address?.village ||
+            'Unknown';
+          const temp = Math.round(weatherData.current?.temperature_2m || 0);
+          const code = weatherData.current?.weather_code || 0;
+          const condition = mapWeatherCode(code);
+
+          setWeather({ city, temperature: temp, condition });
+        } catch {
+          // Silently fail — weather is not critical
+        }
+      },
+      () => {
+        // Geolocation denied — silently fail
+      },
+      { timeout: 5000 }
+    );
+  }, []);
+
+  return weather;
+}

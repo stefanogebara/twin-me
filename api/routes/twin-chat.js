@@ -1032,7 +1032,7 @@ RULES:
           const followUpMessages = [
             ...llmMessages,
             { role: 'assistant', content: assistantMessage },
-            { role: 'user', content: `${resultBlock}\n\nNow incorporate these results into your response naturally. Don't repeat the action tag. Summarize the key information conversationally.` },
+            { role: 'user', content: `${resultBlock}\n\nIncorporate these results using structured formatting:\n- Use **bold** for names, subjects, and important items\n- Use numbered lists (1. 2. 3.) for multiple items\n- Include relevant emoji for categories (\uD83D\uDCE7 email, \uD83D\uDCC5 calendar, \uD83D\uDCC1 files, \uD83D\uDC64 contacts)\n- Keep it conversational but scannable \u2014 not one big paragraph\n- Highlight what needs attention or action\n- Don't repeat the action tag` },
           ];
 
           if (isStreaming) {

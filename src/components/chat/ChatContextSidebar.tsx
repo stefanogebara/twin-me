@@ -1,3 +1,5 @@
+import { useWeather } from '../../hooks/useWeather';
+
 interface CalendarEvent {
   title: string;
   time: string;
@@ -42,15 +44,15 @@ export const ChatContextSidebar = ({
   messageCount = 0,
 }: ChatContextSidebarProps) => {
   const dateStr = formatCurrentDate();
+  const weather = useWeather();
 
   return (
     <aside
       aria-label="Today's context"
       className="relative w-[280px] flex-shrink-0 hidden lg:flex flex-col h-full overflow-y-auto rounded-l-[20px]"
       style={{
-        background: 'var(--glass-surface-bg)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
+        background: 'linear-gradient(165deg, #2d3a5c 0%, #1e2747 30%, #1a1f3a 60%, #151825 100%)',
+        boxShadow: 'inset 0 0 80px rgba(100, 130, 255, 0.04)',
         borderLeft: '1px solid var(--glass-surface-border)',
       }}
     >
@@ -65,11 +67,18 @@ export const ChatContextSidebar = ({
 
       <div className="relative z-10 flex flex-col flex-1 p-5">
         {/* Header */}
-        <div className="mb-5">
-          <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {dateStr}
-          </p>
-          <h2 className="text-[18px] font-medium" style={{ color: '#F5F5F4' }}>
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {dateStr}
+            </span>
+            {weather && (
+              <span className="text-[13px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {weather.city} {weather.temperature}&deg;
+              </span>
+            )}
+          </div>
+          <h2 className="text-[18px] font-medium mt-1" style={{ color: '#F5F5F4' }}>
             Today
           </h2>
         </div>
