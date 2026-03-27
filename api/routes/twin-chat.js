@@ -349,6 +349,7 @@ router.post('/message', authenticateUser, async (req, res) => {
         else if (w.importance >= 0.8) contextOptions.memoryWeights = 'identity';
         else contextOptions.memoryWeights = 'identity'; // default fallback
       }
+      let workspaceBlock = null;
       const [ctx] = await Promise.all([
         fetchTwinContext(userId, message, contextOptions),
         supabaseAdmin
@@ -367,6 +368,10 @@ router.post('/message', authenticateUser, async (req, res) => {
             .then(draft => { oracleDraft = draft; })
             .catch(() => { /* graceful fallback — oracle is optional */ }),
         ] : []),
+        // Workspace actions: check available tools in parallel (not sequentially)
+        buildWorkspaceActionsPrompt(userId)
+          .then(block => { workspaceBlock = block; })
+          .catch(() => { /* non-fatal */ }),
       ]);
       twinContext = ctx;
     } finally {
@@ -699,18 +704,12 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Google Workspace actions — inject available tools into system prompt
-    // Only builds the block if user has connected Gmail/Calendar/Drive (zero cost if not)
+    // Google Workspace actions — inject available tools (already fetched in parallel above)
     let workspaceActionsEnabled = false;
-    try {
-      const workspaceBlock = await buildWorkspaceActionsPrompt(userId);
-      if (workspaceBlock) {
-        systemPrompt.push({ type: 'text', text: `\n${workspaceBlock}` });
-        workspaceActionsEnabled = true;
-        chatLog('Workspace actions injected into system prompt');
-      }
-    } catch (wsErr) {
-      log.warn('Workspace actions prompt failed (non-fatal)', { error: wsErr.message });
+    if (workspaceBlock) {
+      systemPrompt.push({ type: 'text', text: `\n${workspaceBlock}` });
+      workspaceActionsEnabled = true;
+      chatLog('Workspace actions injected into system prompt');
     }
 
     // P1: Conversation history already fetched in parallel above
