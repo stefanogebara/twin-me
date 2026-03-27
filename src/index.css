@@ -206,13 +206,7 @@
 
   body {
     background-color: var(--background);
-    /* Sun-driven ambient gradients — orb positions/sizes/colors set by SunContext */
-    background-image:
-      radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
-      radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
-      radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
-      radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
-    background-attachment: fixed;
+    /* Ambient gradients disabled — pure #0C0C0C black like Dimension.dev */
     color: var(--foreground);
     font-family: var(--font-body);
     font-size: 14.5px;
