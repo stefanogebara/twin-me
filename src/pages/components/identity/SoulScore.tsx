@@ -279,24 +279,27 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '' }) => {
     staleTime: 60 * 60 * 1000,
   });
 
-  const { data: scaling } = useQuery({
-    queryKey: ['tribe', 'scaling-metrics'],
+  // Fetch connected platforms directly (more reliable than scaling-metrics)
+  const { data: connectors } = useQuery({
+    queryKey: ['connectors', 'status'],
     queryFn: async () => {
-      const res = await authFetch('/tribe/scaling-metrics');
-      if (!res.ok) return null;
-      return (await res.json()).data as ScalingMetrics;
+      const res = await authFetch('/connectors/status');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data || json.connectors || []) as Array<{ platform: string; status: string }>;
     },
-    staleTime: 60 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const platforms = multimodal?.platforms ?? [];
-  const platformCount = scaling?.platform_count ?? platforms.length;
-  const memoryCount = scaling?.memory_count ?? 0;
-  const axesCount = scaling?.axes_count ?? 0;
-  const multimodalCount = multimodal?.multimodal_types?.length ?? 0;
+  const connectedPlatforms = (connectors || []).filter((c: any) => c.status === 'connected').map((c: any) => c.platform?.toLowerCase());
+  const modalitiesPresent = multimodal?.modalities_present || [];
+  const platformCount = connectedPlatforms.length || modalitiesPresent.length;
+  const memoryCount = multimodal?.memory_count || 0;
+  const axesCount = modalitiesPresent.length > 0 ? 1 : 0; // proxy: if multimodal exists, axes likely exist
+  const multimodalCount = modalitiesPresent.length;
 
   const score = computeSoulScore(platformCount, memoryCount, axesCount, multimodalCount);
-  const connectedSet = new Set(platforms.map((p: string) => p.toLowerCase()));
+  const connectedSet = new Set([...connectedPlatforms, ...modalitiesPresent.map((m: string) => m.toLowerCase())]);
 
   return (
     <motion.section

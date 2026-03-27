@@ -565,7 +565,13 @@ const IdentityPage: React.FC = () => {
 
         {/* ── NEW: Personality DNA (OCEAN Sliders) ─────────────────────────── */}
         <PersonalityDNA
-          ocean={(personalityData?.profile as any)?.ocean_scores}
+          ocean={personalityData?.profile ? {
+            openness: (personalityData.profile as any).openness ?? 0.5,
+            conscientiousness: (personalityData.profile as any).conscientiousness ?? 0.5,
+            extraversion: (personalityData.profile as any).extraversion ?? 0.5,
+            agreeableness: (personalityData.profile as any).agreeableness ?? 0.5,
+            neuroticism: (personalityData.profile as any).neuroticism ?? 0.5,
+          } : undefined}
         />
 
         {/* ── 2. YOUR VALUES ────────────────────────────────────────────── */}
