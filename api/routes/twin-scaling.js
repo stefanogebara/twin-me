@@ -133,11 +133,14 @@ router.post('/in-silico', authenticateUser, async (req, res) => {
     }
     const result = await predictEngagement(req.user.id, stimuli);
     const predictions = Array.isArray(result) ? result : (result?.predictions || []);
-    await supabaseAdmin.from('in_silico_experiments').insert({
-      user_id: req.user.id,
-      stimuli: stimuli.map(s => ({ text: s.text, id: s.id })),
-      predicted_rankings: predictions.map((r, i) => ({ rank: i + 1, text: r.text, score: r.predictedEngagement })),
-    }).catch(() => {});
+    // Store experiment (non-blocking, don't fail the request if DB insert fails)
+    try {
+      await supabaseAdmin.from('in_silico_experiments').insert({
+        user_id: req.user.id,
+        stimuli: stimuli.map(s => ({ text: s.text, id: s.id })),
+        predicted_rankings: predictions.map((r, i) => ({ rank: i + 1, text: r.text, score: r.predictedEngagement })),
+      });
+    } catch { /* non-fatal */ }
     res.json({ success: true, data: predictions });
   } catch (error) {
     log.error('In-silico prediction failed', { error: error.message });
