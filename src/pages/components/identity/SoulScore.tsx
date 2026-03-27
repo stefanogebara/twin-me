@@ -136,29 +136,37 @@ const ScoreRing: React.FC<{ score: number }> = ({ score }) => {
   const offset = RING_CIRCUMFERENCE * (1 - score / 100);
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 120, height: 120 }}>
-      <svg width="120" height="120" viewBox="0 0 120 120">
+    <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
+      {/* Subtle glow behind the ring */}
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: `radial-gradient(circle, ${ringColor}15 0%, transparent 70%)`,
+          filter: 'blur(20px)',
+        }}
+      />
+      <svg width="160" height="160" viewBox="0 0 160 160">
         <circle
-          cx="60" cy="60" r={RING_RADIUS}
+          cx="80" cy="80" r="68"
           fill="none"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="8"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="6"
         />
         <circle
-          cx="60" cy="60" r={RING_RADIUS}
+          cx="80" cy="80" r="68"
           fill="none"
           stroke={ringColor}
-          strokeWidth="8"
-          strokeDasharray={RING_CIRCUMFERENCE}
-          strokeDashoffset={offset}
+          strokeWidth="6"
+          strokeDasharray={Math.PI * 2 * 68}
+          strokeDashoffset={Math.PI * 2 * 68 * (1 - score / 100)}
           strokeLinecap="round"
-          transform="rotate(-90 60 60)"
+          transform="rotate(-90 80 80)"
           style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="text-[36px] font-normal tracking-[-0.72px]"
+          className="text-[44px] font-normal tracking-[-1px]"
           style={{ fontFamily: "'Instrument Serif', serif", color: '#F5F5F4' }}
         >
           <AnimatedCounter target={score} />
@@ -200,7 +208,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
         borderRadius: 20,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.15)',
       }}
-      className="px-5 py-5 flex flex-col gap-2.5"
+      className="px-5 py-5 flex flex-col gap-2.5 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg cursor-default"
     >
       {/* Header row */}
       <div className="flex items-center justify-between">

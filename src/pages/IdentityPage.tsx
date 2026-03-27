@@ -563,6 +563,12 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
+        {/* ── Gradient fade separator ─────────────────────────────────── */}
+        <div
+          className="w-full h-px my-10 mx-auto max-w-[200px]"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
+        />
+
         {/* ── NEW: Identity Quote ───────────────────────────────────────── */}
         <IdentityQuote />
 
@@ -581,6 +587,12 @@ const IdentityPage: React.FC = () => {
             agreeableness: (personalityData.profile as any).agreeableness ?? 0.5,
             neuroticism: (personalityData.profile as any).neuroticism ?? 0.5,
           } : undefined}
+        />
+
+        {/* ── Gradient fade separator ─────────────────────────────────── */}
+        <div
+          className="w-full h-px my-10 mx-auto max-w-[200px]"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
         />
 
         {/* ── 2. YOUR VALUES ────────────────────────────────────────────── */}
