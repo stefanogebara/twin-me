@@ -121,7 +121,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     )}
 
                     <div
-                      className="prose prose-sm prose-invert max-w-none"
+                      className="prose prose-invert max-w-none [&>p]:mb-4 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-4 [&>ol]:mb-4"
                       style={{
                         fontSize: '14px',
                         color: '#D1D5DB',

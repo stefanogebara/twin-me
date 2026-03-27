@@ -68,7 +68,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             <textarea
               id="twin-chat-input"
               ref={ref}
-              placeholder="Message your twin..."
+              placeholder={ghostSuggestion && !inputMessage ? '' : 'Message your twin...'}
               value={inputMessage}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={(e) => {
@@ -92,15 +92,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
               }}
             />
             {ghostSuggestion && !inputMessage && (
-              <div className="absolute inset-0 flex items-center pointer-events-none">
-                <span className="text-[14px] truncate" style={{ color: 'rgba(255,255,255,0.15)' }}>
+              <div className="absolute inset-0 flex items-center pointer-events-none overflow-hidden">
+                <span className="text-[13px] truncate opacity-20" style={{ color: '#D1D5DB' }}>
                   {ghostSuggestion}
                 </span>
                 <span
                   className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
                   style={{
-                    color: 'rgba(255,255,255,0.25)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.08)',
                   }}
                 >
                   Tab
