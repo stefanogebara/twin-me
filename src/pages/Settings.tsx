@@ -10,6 +10,7 @@ import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
 import WhatsAppConnect from './components/settings/WhatsAppConnect';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import TwinIntelligence from './components/settings/TwinIntelligence';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -353,6 +354,9 @@ const Settings = () => {
           </span>
         </SettingsRow>
       </div>
+
+      {/* ── SECTION 1.5: TWIN INTELLIGENCE (TRIBE v2) ── */}
+      {!isDemoMode && <TwinIntelligence />}
 
       {/* ── SECTION 2: PLAN ── */}
       <SectionLabel label="Plan" />

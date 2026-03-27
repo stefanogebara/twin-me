@@ -11,6 +11,7 @@
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { scoreForInsightSelection } from './inSilicoEngine.js';
 
 const log = createLogger('MorningBriefing');
 
@@ -69,6 +70,7 @@ export async function generateMorningBriefing(userId) {
     pendingInsights,
     firstName,
     stats,
+    userId,
   });
 
   return {
@@ -176,8 +178,31 @@ function buildGettingStartedHighlight(platformsConnected) {
   return 'Your twin is building its first impressions. Chat with it to help it understand you better.';
 }
 
-async function composeBriefingHighlight({ recentMemories, platformConnections, pendingInsights, firstName, stats }) {
-  const memorySnippets = recentMemories
+async function composeBriefingHighlight({ recentMemories, platformConnections, pendingInsights, firstName, stats, userId }) {
+  // In-silico ranking: select memories that resonate most with personality axes (TRIBE v2)
+  let rankedMemories = recentMemories;
+  try {
+    if (recentMemories.length > 3) {
+      const scored = await scoreForInsightSelection(
+        userId,
+        recentMemories.map(m => m.content.slice(0, 150))
+      );
+      if (scored.length > 0 && scored[0]?.engagement_score != null) {
+        // Reorder memories by predicted engagement
+        const scoreMap = new Map(scored.map(s => [s.text, s.engagement_score]));
+        rankedMemories = [...recentMemories].sort((a, b) => {
+          const sa = scoreMap.get(a.content.slice(0, 150)) ?? 0;
+          const sb = scoreMap.get(b.content.slice(0, 150)) ?? 0;
+          return sb - sa;
+        });
+        log.info('In-silico ranked briefing memories', { userId, topScore: scored[0]?.engagement_score?.toFixed(3) });
+      }
+    }
+  } catch (err) {
+    log.warn('In-silico ranking skipped for briefing', { error: err.message });
+  }
+
+  const memorySnippets = rankedMemories
     .slice(0, 10)
     .map(m => `[${m.memory_type}] ${m.content.slice(0, 150)}`)
     .join('\n');
