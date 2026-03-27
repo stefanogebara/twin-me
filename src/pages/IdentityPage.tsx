@@ -561,15 +561,11 @@ const IdentityPage: React.FC = () => {
         <SoulScore />
 
         {/* ── NEW: Swipeable Insight Cards ─────────────────────────────────── */}
-        <InsightCards
-          axes={(personalityData?.profile as any)?.axes}
-          memoryCount={identityData?.memoryCount}
-          platformCount={identityData?.platformCount}
-        />
+        <InsightCards />
 
         {/* ── NEW: Personality DNA (OCEAN Sliders) ─────────────────────────── */}
         <PersonalityDNA
-          ocean={personalityData?.profile?.ocean_scores}
+          ocean={(personalityData?.profile as any)?.ocean_scores}
         />
 
         {/* ── 2. YOUR VALUES ────────────────────────────────────────────── */}
