@@ -18,6 +18,10 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetype, generateTraitBadges } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
+import IdentityQuote from './components/identity/IdentityQuote';
+import SoulScore from './components/identity/SoulScore';
+import InsightCards from './components/identity/InsightCards';
+import PersonalityDNA from './components/identity/PersonalityDNA';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -549,6 +553,24 @@ const IdentityPage: React.FC = () => {
             </div>
           </FadeInSection>
         )}
+
+        {/* ── NEW: Identity Quote ───────────────────────────────────────── */}
+        <IdentityQuote />
+
+        {/* ── NEW: Soul Score + Contributor Cards ─────────────────────────── */}
+        <SoulScore />
+
+        {/* ── NEW: Swipeable Insight Cards ─────────────────────────────────── */}
+        <InsightCards
+          axes={(personalityData?.profile as any)?.axes}
+          memoryCount={identityData?.memoryCount}
+          platformCount={identityData?.platformCount}
+        />
+
+        {/* ── NEW: Personality DNA (OCEAN Sliders) ─────────────────────────── */}
+        <PersonalityDNA
+          ocean={personalityData?.profile?.ocean_scores}
+        />
 
         {/* ── 2. YOUR VALUES ────────────────────────────────────────────── */}
         {layers?.values?.values && layers.values.values.length > 0 && (
