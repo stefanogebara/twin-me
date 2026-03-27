@@ -47,7 +47,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
 
   if (isLoading) {
     return (
-      <div className={`mb-14 ${className}`}>
+      <div className={`mb-20 ${className}`}>
         <div className="flex items-center gap-2 mb-4">
           <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
           <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
@@ -76,7 +76,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
 
   return (
     <motion.div
-      className={`mb-14 ${className}`}
+      className={`mb-20 ${className}`}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}

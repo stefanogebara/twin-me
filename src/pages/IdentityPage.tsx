@@ -463,7 +463,16 @@ const IdentityPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div className="max-w-[680px] mx-auto px-6 py-16">
+      <div
+        className="max-w-[680px] mx-auto px-6 py-16"
+        style={{
+          // Boost ambient orb brightness for liquid glass effect
+          '--body-gradient-1': 'rgba(210,145,55,0.50)',
+          '--body-gradient-2': 'rgba(180,110,65,0.42)',
+          '--body-gradient-3': 'rgba(160,95,55,0.46)',
+          '--body-gradient-4': 'rgba(55,45,140,0.38)',
+        } as React.CSSProperties}
+      >
 
         {/* ── 1. Archetype Hero Section ─────────────────────────────────── */}
         {archetypeResult && (

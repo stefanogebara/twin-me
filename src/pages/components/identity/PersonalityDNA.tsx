@@ -161,7 +161,7 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
 
   return (
     <motion.div
-      className={`mb-14 ${className}`}
+      className={`mb-20 ${className}`}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
@@ -181,10 +181,13 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
         <EmptyState />
       ) : (
         <div
-          className="rounded-[16px] px-5 py-5"
+          className="rounded-[20px] px-6 py-6"
           style={{
-            background: 'rgba(255,255,255,0.03)',
+            background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(56px)',
+            WebkitBackdropFilter: 'blur(56px)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',
           }}
         >
           {TRAITS.map((trait, index) => (

@@ -271,7 +271,7 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
 
   return (
     <motion.div
-      className={`mb-14 ${className}`}
+      className={`mb-20 ${className}`}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -285,11 +285,14 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
             key={card.id}
             className="snap-start flex-shrink-0 w-[280px]"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '16px',
-              padding: '20px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '18px',
+              padding: '22px',
               borderLeft: `4px solid ${card.accentColor}`,
+              backdropFilter: 'blur(56px)',
+              WebkitBackdropFilter: 'blur(56px)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',
             }}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
