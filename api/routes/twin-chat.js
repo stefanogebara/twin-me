@@ -331,6 +331,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     let userLocation = null;
     let personalityProfile = null;
     let oracleDraft = null;
+    let workspaceBlock = null;
     try {
       // Fetch twin context + user location + personality profile + oracle draft in parallel
       // Pass neuropil-routed budgets/weights if classified (otherwise defaults preserved)
@@ -349,7 +350,6 @@ router.post('/message', authenticateUser, async (req, res) => {
         else if (w.importance >= 0.8) contextOptions.memoryWeights = 'identity';
         else contextOptions.memoryWeights = 'identity'; // default fallback
       }
-      let workspaceBlock = null;
       const [ctx] = await Promise.all([
         fetchTwinContext(userId, message, contextOptions),
         supabaseAdmin
