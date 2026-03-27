@@ -43,7 +43,7 @@ export async function extractBehavioralProbes(userId, limit = 30) {
   // Fetch conversation logs — look for preference-expressing messages
   const { data: conversations, error } = await supabaseAdmin
     .from('mcp_conversation_logs')
-    .select('user_message, assistant_message, created_at')
+    .select('user_message, twin_response, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(500);
@@ -61,7 +61,7 @@ export async function extractBehavioralProbes(userId, limit = 30) {
   // Filter for messages containing preference keywords
   const probes = [];
   for (const conv of conversations) {
-    if (!conv.user_message || !conv.assistant_message) continue;
+    if (!conv.user_message || !conv.twin_response) continue;
 
     const userMsgLower = conv.user_message.toLowerCase();
     const hasPreference = PREFERENCE_KEYWORDS.some(kw => userMsgLower.includes(kw));
@@ -69,7 +69,7 @@ export async function extractBehavioralProbes(userId, limit = 30) {
     if (hasPreference) {
       probes.push({
         stimulus: conv.user_message,
-        actualResponse: conv.assistant_message,
+        actualResponse: conv.twin_response,
       });
     }
 
