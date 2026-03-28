@@ -130,14 +130,18 @@ export const ChatEmptyState = ({
             <button
               key={idx}
               onClick={() => onQuickAction(action.label)}
-              className="px-3 py-2.5 rounded-[46px] text-[12px] font-medium transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"
+              className="px-4 py-2 rounded-full text-[13px] transition-colors duration-150 active:scale-[0.97]"
               style={{
-                color: 'rgba(255,255,255,0.6)',
-                background: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid var(--glass-surface-border)',
+                color: 'rgba(255,255,255,0.5)',
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.08)',
                 fontFamily: "'Inter', sans-serif",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
               }}
             >
               {action.label}

@@ -627,7 +627,7 @@ html {
   color: var(--foreground);
 }
 
-/* ===== SCROLLBAR ===== */
+/* ===== SCROLLBAR — Dimension.dev subtle dark ===== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -638,12 +638,18 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 /* ===== FOCUS VISIBLE ===== */

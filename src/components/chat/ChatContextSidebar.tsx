@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CheckSquare, Mail, Calendar as CalendarIcon } from 'lucide-react';
 import { useWeather } from '../../hooks/useWeather';
 
 function getTimeGradient(): string {
@@ -64,6 +65,13 @@ export const ChatContextSidebar = ({
   const dateStr = formatCurrentDate();
   const weather = useWeather();
   const [gradient, setGradient] = useState(getTimeGradient);
+  const [activeTab, setActiveTab] = useState<'overview' | 'email' | 'calendar'>('overview');
+
+  const tabs = [
+    { id: 'overview' as const, icon: CheckSquare },
+    { id: 'email' as const, icon: Mail },
+    { id: 'calendar' as const, icon: CalendarIcon },
+  ];
 
   // Update gradient every 60 seconds to reflect time-of-day changes
   useEffect(() => {
@@ -105,112 +113,140 @@ export const ChatContextSidebar = ({
               </span>
             )}
           </div>
-          <h2 className="text-[18px] font-medium mt-1" style={{ color: '#F5F5F4' }}>
-            Today
-          </h2>
-        </div>
-
-        {/* Calendar Section */}
-        <div className="mb-5">
-          <span
-            className="text-[10px] uppercase font-medium"
-            style={{
-              color: 'rgba(255,255,255,0.35)',
-              letterSpacing: '0.15em',
-            }}
-          >
-            Calendar
-          </span>
-
-          <div className="mt-2">
-            {calendarEvents.length > 0 ? (
-              calendarEvents.map((event, idx) => (
-                <div
-                  key={idx}
-                  className="py-2"
+          <div className="flex items-center justify-between mt-1">
+            <h2 className="text-[18px] font-medium" style={{ color: '#F5F5F4' }}>
+              Today
+            </h2>
+            <div className="flex items-center gap-1">
+              {tabs.map(({ id, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
                   style={{
-                    borderBottom:
-                      idx < calendarEvents.length - 1
-                        ? '1px solid rgba(255,255,255,0.04)'
-                        : undefined,
+                    background: activeTab === id ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: activeTab === id ? '#F5F5F4' : 'rgba(255,255,255,0.4)',
                   }}
                 >
-                  <span
-                    className="text-[12px] block"
-                    style={{ color: 'rgba(255,255,255,0.4)' }}
-                  >
-                    {event.time}
-                  </span>
-                  <span
-                    className="text-[13px] block"
-                    style={{ color: '#F5F5F4' }}
-                  >
-                    {event.title}
-                  </span>
-                  {event.location && (
-                    <span
-                      className="text-[11px] block"
-                      style={{ color: 'rgba(255,255,255,0.3)' }}
+                  <Icon className="w-4 h-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {activeTab === 'overview' ? (
+          <>
+            {/* Calendar Section */}
+            <div className="mb-5">
+              <span
+                className="text-[10px] uppercase font-medium"
+                style={{
+                  color: 'rgba(255,255,255,0.35)',
+                  letterSpacing: '0.15em',
+                }}
+              >
+                Calendar
+              </span>
+
+              <div className="mt-2">
+                {calendarEvents.length > 0 ? (
+                  calendarEvents.map((event, idx) => (
+                    <div
+                      key={idx}
+                      className="py-2"
+                      style={{
+                        borderBottom:
+                          idx < calendarEvents.length - 1
+                            ? '1px solid rgba(255,255,255,0.04)'
+                            : undefined,
+                      }}
                     >
-                      {event.location}
-                    </span>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p
-                className="text-[13px] py-2"
-                style={{ color: 'rgba(255,255,255,0.25)' }}
-              >
-                No events today
-              </p>
-            )}
-          </div>
-        </div>
+                      <span
+                        className="text-[12px] block"
+                        style={{ color: 'rgba(255,255,255,0.4)' }}
+                      >
+                        {event.time}
+                      </span>
+                      <span
+                        className="text-[13px] block"
+                        style={{ color: '#F5F5F4' }}
+                      >
+                        {event.title}
+                      </span>
+                      {event.location && (
+                        <span
+                          className="text-[11px] block"
+                          style={{ color: 'rgba(255,255,255,0.3)' }}
+                        >
+                          {event.location}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p
+                    className="text-[13px] py-2"
+                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                  >
+                    No events today
+                  </p>
+                )}
+              </div>
+            </div>
 
-        {/* Insights Section */}
-        <div
-          className="mb-5 pt-4 mt-4"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <span
-            className="text-[10px] uppercase font-medium"
-            style={{
-              color: 'rgba(255,255,255,0.35)',
-              letterSpacing: '0.15em',
-            }}
+            {/* Insights Section */}
+            <div
+              className="mb-5 pt-4 mt-4"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <span
+                className="text-[10px] uppercase font-medium"
+                style={{
+                  color: 'rgba(255,255,255,0.35)',
+                  letterSpacing: '0.15em',
+                }}
+              >
+                Insights
+              </span>
+
+              <div className="mt-2">
+                {insights.length > 0 ? (
+                  insights.slice(0, 3).map((item, idx) => (
+                    <p
+                      key={idx}
+                      className="text-[12px] py-2"
+                      style={{
+                        color: 'rgba(255,255,255,0.5)',
+                        lineHeight: '18px',
+                        borderBottom:
+                          idx < Math.min(insights.length, 3) - 1
+                            ? '1px solid rgba(255,255,255,0.04)'
+                            : undefined,
+                      }}
+                    >
+                      {item.insight}
+                    </p>
+                  ))
+                ) : (
+                  <p
+                    className="text-[13px] py-2"
+                    style={{ color: 'rgba(255,255,255,0.25)' }}
+                  >
+                    Insights appear after chatting
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <p
+            className="text-[13px] py-4"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
           >
-            Insights
-          </span>
-
-          <div className="mt-2">
-            {insights.length > 0 ? (
-              insights.slice(0, 3).map((item, idx) => (
-                <p
-                  key={idx}
-                  className="text-[12px] py-2"
-                  style={{
-                    color: 'rgba(255,255,255,0.5)',
-                    lineHeight: '18px',
-                    borderBottom:
-                      idx < Math.min(insights.length, 3) - 1
-                        ? '1px solid rgba(255,255,255,0.04)'
-                        : undefined,
-                  }}
-                >
-                  {item.insight}
-                </p>
-              ))
-            ) : (
-              <p
-                className="text-[13px] py-2"
-                style={{ color: 'rgba(255,255,255,0.25)' }}
-              >
-                Insights appear after chatting
-              </p>
-            )}
-          </div>
-        </div>
+            Coming soon
+          </p>
+        )}
 
         {/* Spacer */}
         <div className="flex-1" />

@@ -207,7 +207,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   "w-full flex items-center gap-3 transition-all duration-150 ease-out active:scale-[0.97]",
                   isExpanded
                     ? "px-4 py-2.5 rounded-xl"
-                    : "justify-center w-8 h-8 rounded-[10px] mx-auto",
+                    : "justify-center w-8 h-8 rounded-[10px] mx-auto hover:bg-[rgba(255,255,255,0.06)]",
                   active
                     ? "font-medium"
                     : 'text-sidebar-foreground hover:bg-sidebar-accent'
