@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -27,6 +28,41 @@ function formatCurrentDate(): string {
   return `${dayName}, ${month} ${day}${suffix}`;
 }
 
+const TIME_BASED_CHIPS: Record<string, string[]> = {
+  morning: [
+    '\u{1F4E7} Check my emails',
+    '\u{1F4C5} What\'s on my calendar?',
+    '\u{2600}\u{FE0F} Morning briefing',
+    '\u{1F9E0} What patterns do you see?',
+  ],
+  afternoon: [
+    '\u{1F3B5} What does my music say about me?',
+    '\u{1F4AA} How\'s my recovery?',
+    '\u{1F4E7} Check my emails',
+    '\u{270F}\u{FE0F} Draft an email for me',
+  ],
+  evening: [
+    '\u{1F4A4} How\'s my sleep been?',
+    '\u{1F3B5} What does my music say about me?',
+    '\u{1F9E0} What patterns do you see?',
+    '\u{1F4C5} What\'s tomorrow look like?',
+  ],
+  night: [
+    '\u{1F4A4} How\'s my sleep been?',
+    '\u{1F9E0} What patterns do you see?',
+    '\u{1F3B5} What does my music say about me?',
+    '\u{1F4DD} Tell me something surprising about myself',
+  ],
+};
+
+function getTimeSlot(): string {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  if (hour >= 18 && hour < 24) return 'evening';
+  return 'night';
+}
+
 interface Platform {
   name: string;
   icon: React.ReactNode;
@@ -35,15 +71,9 @@ interface Platform {
   connected: boolean | undefined;
 }
 
-interface QuickAction {
-  label: string;
-  icon: React.ReactNode;
-}
-
 interface ChatEmptyStateProps {
   connectedPlatforms: Platform[];
   platforms: Platform[];
-  quickActions: QuickAction[];
   onQuickAction: (text: string) => void;
   onSendMessage?: () => void;
   insightsCount?: number;
@@ -51,7 +81,6 @@ interface ChatEmptyStateProps {
 
 export const ChatEmptyState = ({
   connectedPlatforms,
-  quickActions,
   onQuickAction,
   insightsCount = 0,
 }: ChatEmptyStateProps) => {
@@ -62,6 +91,11 @@ export const ChatEmptyState = ({
   const dateStr = formatCurrentDate();
 
   const platformCount = connectedPlatforms.length;
+
+  const chips = useMemo(() => {
+    const slot = getTimeSlot();
+    return TIME_BASED_CHIPS[slot];
+  }, []);
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 min-h-[60vh]">
@@ -95,7 +129,7 @@ export const ChatEmptyState = ({
         }
       </h2>
 
-      {/* Context subtitle — Dimension-style briefing line */}
+      {/* Context subtitle — dynamic briefing line */}
       {platformCount > 0 && (
         <p
           className="text-center mb-8 max-w-sm"
@@ -107,8 +141,17 @@ export const ChatEmptyState = ({
           }}
         >
           {insightsCount > 0
-            ? `You have ${insightsCount} insight${insightsCount > 1 ? 's' : ''} waiting and ${platformCount} platform${platformCount > 1 ? 's' : ''} connected.`
-            : `${platformCount} platform${platformCount > 1 ? 's' : ''} connected and learning about you.`
+            ? (
+              <>
+                Your twin noticed <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>{insightsCount} thing{insightsCount > 1 ? 's' : ''}</span> about you today.{' '}
+                <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>{platformCount} platform{platformCount > 1 ? 's' : ''}</span> fueling your soul signature.
+              </>
+            )
+            : (
+              <>
+                <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 400 }}>{platformCount} platform{platformCount > 1 ? 's' : ''}</span> connected. Ask me anything — I know more than you think.
+              </>
+            )
           }
         </p>
       )}
@@ -123,13 +166,13 @@ export const ChatEmptyState = ({
         </p>
       )}
 
-      {/* Suggestion pills — thin borders, no backgrounds */}
+      {/* Suggestion pills — time-based action chips */}
       {connectedPlatforms.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2.5">
-          {quickActions.map((action, idx) => (
+          {chips.map((chip, idx) => (
             <button
               key={idx}
-              onClick={() => onQuickAction(action.label)}
+              onClick={() => onQuickAction(chip)}
               className="px-4 py-2 rounded-full text-[13px] transition-colors duration-150 active:scale-[0.97]"
               style={{
                 color: 'rgba(255,255,255,0.5)',
@@ -144,7 +187,7 @@ export const ChatEmptyState = ({
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              {action.label}
+              {chip}
             </button>
           ))}
         </div>

@@ -5,9 +5,6 @@ import { useAnalytics } from '../contexts/AnalyticsContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useChatSession } from '../hooks/useChatSession';
-import {
-  Lightbulb, TrendingUp, Heart, Zap,
-} from 'lucide-react';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
@@ -102,12 +99,6 @@ const TalkToTwin = () => {
 
   const connectedPlatforms = platforms.filter(p => p.connected);
 
-  const quickActions = [
-    { label: 'How am I doing today?', icon: <Heart className="w-4 h-4" /> },
-    { label: 'What have you noticed about me lately?', icon: <TrendingUp className="w-4 h-4" /> },
-    { label: 'What should I do this evening?', icon: <Lightbulb className="w-4 h-4" /> },
-    { label: "What's on my mind right now?", icon: <Zap className="w-4 h-4" /> },
-  ];
 
   const {
     interviewChecked,
@@ -439,7 +430,6 @@ const TalkToTwin = () => {
             <ChatEmptyState
               connectedPlatforms={connectedPlatforms}
               platforms={platforms}
-              quickActions={quickActions}
               onQuickAction={handleQuickAction}
               onSendMessage={handleSendMessage}
               insightsCount={pendingInsights.length}
