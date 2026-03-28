@@ -1031,7 +1031,7 @@ RULES:
           const followUpMessages = [
             ...llmMessages,
             { role: 'assistant', content: assistantMessage },
-            { role: 'user', content: `${resultBlock}\n\nIncorporate these results using structured formatting:\n- Use **bold** for names, subjects, and important items\n- Use numbered lists (1. 2. 3.) for multiple items\n- Include relevant emoji for categories (\uD83D\uDCE7 email, \uD83D\uDCC5 calendar, \uD83D\uDCC1 files, \uD83D\uDC64 contacts)\n- Keep it conversational but scannable \u2014 not one big paragraph\n- Highlight what needs attention or action\n- Don't repeat the action tag` },
+            { role: 'user', content: `${resultBlock}\n\nIncorporate these results using this EXACT format:\n- Use emoji heading for the topic (📧 for email, 📅 for calendar, 📁 for files)\n- **Bold** all sender names, subjects, event titles, file names\n- Use numbered list (1. 2. 3.) for multiple items, ordered by importance\n- Keep each item to one line with the key info\n- End with "Want me to [specific action]?" offering to dig deeper\n\nExample:\n📧 **Today's important emails**\n1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Christian Mauad Gebara**\n2. **BTG Pactual** — Bitcoin purchase confirmed, **R$ 4,918.41**\n3. **Meta** — WhatsApp template recategorized to MARKETING\n\nWant me to read any of these in detail?` },
           ];
 
           if (isStreaming) {
