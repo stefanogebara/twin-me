@@ -27,6 +27,7 @@ import { authFetch } from '@/services/api/apiBase';
 
 interface SoulScoreProps {
   className?: string;
+  compact?: boolean;
 }
 
 interface MultimodalProfile {
@@ -131,13 +132,13 @@ const AnimatedCounter: React.FC<{ target: number }> = ({ target }) => {
 /*  SVG Ring                                                           */
 /* ------------------------------------------------------------------ */
 
-const ScoreRing: React.FC<{ score: number }> = ({ score }) => {
+const ScoreRing: React.FC<{ score: number; compact?: boolean }> = ({ score, compact }) => {
   const ringColor = getRingColor(score);
-  const offset = RING_CIRCUMFERENCE * (1 - score / 100);
+  const size = compact ? 120 : 160;
+  const r = compact ? 50 : 68;
 
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
-      {/* Subtle glow behind the ring */}
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <div
         className="absolute inset-0 rounded-full"
         style={{
@@ -145,28 +146,28 @@ const ScoreRing: React.FC<{ score: number }> = ({ score }) => {
           filter: 'blur(20px)',
         }}
       />
-      <svg width="160" height="160" viewBox="0 0 160 160">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <circle
-          cx="80" cy="80" r="68"
+          cx={size / 2} cy={size / 2} r={r}
           fill="none"
           stroke="rgba(255,255,255,0.05)"
-          strokeWidth="6"
+          strokeWidth={compact ? 5 : 6}
         />
         <circle
-          cx="80" cy="80" r="68"
+          cx={size / 2} cy={size / 2} r={r}
           fill="none"
           stroke={ringColor}
-          strokeWidth="6"
-          strokeDasharray={Math.PI * 2 * 68}
-          strokeDashoffset={Math.PI * 2 * 68 * (1 - score / 100)}
+          strokeWidth={compact ? 5 : 6}
+          strokeDasharray={Math.PI * 2 * r}
+          strokeDashoffset={Math.PI * 2 * r * (1 - score / 100)}
           strokeLinecap="round"
-          transform="rotate(-90 80 80)"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
           style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="text-[44px] font-normal tracking-[-1px]"
+          className={`font-normal tracking-[-1px] ${compact ? 'text-[32px]' : 'text-[44px]'}`}
           style={{ fontFamily: "'Instrument Serif', serif", color: '#F5F5F4' }}
         >
           <AnimatedCounter target={score} />
@@ -185,9 +186,10 @@ interface ContributorCardProps {
   connected: boolean;
   score: number;
   index: number;
+  compact?: boolean;
 }
 
-const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, score, index }) => {
+const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, score, index, compact }) => {
   const Icon = domain.icon;
   const locked = !connected;
   const label = locked ? 'LOCKED' : getQualitativeLabel(score);
@@ -208,7 +210,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
         borderRadius: 20,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.15)',
       }}
-      className="px-5 py-5 flex flex-col gap-2.5 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg cursor-default"
+      className={`${compact ? 'px-3 py-3' : 'px-5 py-5'} flex flex-col gap-2 transition-all duration-300 hover:translate-y-[-2px] hover:shadow-lg cursor-default`}
     >
       {/* Header row */}
       <div className="flex items-center justify-between">
@@ -277,7 +279,7 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
-const SoulScore: React.FC<SoulScoreProps> = ({ className = '' }) => {
+const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }) => {
   const { data: multimodal } = useQuery({
     queryKey: ['twin', 'multimodal-profile'],
     queryFn: async () => {
@@ -338,8 +340,8 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '' }) => {
       </div>
 
       {/* Score ring + subtitle */}
-      <div className="flex flex-col items-center gap-3 mb-8">
-        <ScoreRing score={score} />
+      <div className={`flex flex-col items-center gap-2 ${compact ? 'mb-5' : 'mb-8'}`}>
+        <ScoreRing score={score} compact={compact} />
         <p
           className="text-[13px]"
           style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
@@ -349,7 +351,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '' }) => {
       </div>
 
       {/* Contributor grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className={`grid ${compact ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 gap-3'}`}>
         {DOMAINS.map((domain, i) => {
           const connected = domain.alwaysUnlocked || connectedSet.has(domain.platformKey);
           const domainScore = domain.alwaysUnlocked
@@ -362,6 +364,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '' }) => {
               connected={connected}
               score={domainScore}
               index={i}
+              compact={compact}
             />
           );
         })}

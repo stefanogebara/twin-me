@@ -46,19 +46,23 @@ const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, delay: 0.2 }}
     >
-      <p
-        className="text-center text-lg leading-relaxed"
-        style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
-          fontStyle: 'italic',
-          color: 'rgba(255,255,255,0.55)',
-          maxWidth: '480px',
-          margin: '0 auto',
-          letterSpacing: '-0.01em',
-        }}
+      <div
+        className="pl-4"
+        style={{ borderLeft: '2px solid rgba(255,255,255,0.08)' }}
       >
-        &ldquo;{quote}&rdquo;
-      </p>
+        <p
+          className="text-lg leading-relaxed"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            color: 'rgba(255,255,255,0.65)',
+            maxWidth: '520px',
+            letterSpacing: '-0.01em',
+          }}
+        >
+          &ldquo;{quote}&rdquo;
+        </p>
+      </div>
     </motion.div>
   );
 };

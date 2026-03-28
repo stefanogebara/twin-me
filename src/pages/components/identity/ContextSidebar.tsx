@@ -44,7 +44,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
   return (
     <div className={`flex flex-col gap-5 ${className}`}>
       {/* ── Soul Score Ring (always visible) ──────────────────── */}
-      <SoulScore className="[&>section]:mb-0" />
+      <SoulScore compact />
 
       {/* ── Tab Switcher ─────────────────────────────────────── */}
       <SidebarTabs activeTab={activeTab} onTabChange={setActiveTab} />

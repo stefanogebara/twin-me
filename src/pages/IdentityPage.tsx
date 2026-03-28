@@ -548,7 +548,7 @@ const IdentityPage: React.FC = () => {
       {showStillLearning && (
         <FadeInSection className="mb-10" delay={0.2}>
           <div
-            className="rounded-[16px] px-5 py-5 text-center"
+            className="rounded-[16px] px-5 py-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.06)',
@@ -596,7 +596,7 @@ const IdentityPage: React.FC = () => {
         <FadeInSection className="mb-12" delay={0.15}>
           <SectionLabel>Your Values</SectionLabel>
           <div
-            className="rounded-[16px] overflow-hidden"
+            className="rounded-[16px] overflow-hidden transition-transform duration-300 hover:-translate-y-0.5"
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.06)',
