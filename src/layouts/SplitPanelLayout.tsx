@@ -1,8 +1,11 @@
 /**
  * SplitPanelLayout — Dimension.dev-inspired split panel
  * =====================================================
- * Desktop: 60/40 grid with frosted glass panels floating on warm gradient.
- * Tablet: sidebar collapses to drawer.
+ * No big container cards. Individual sections float as glass cards
+ * on the warm gradient background. The grid just provides structure.
+ *
+ * Desktop: 60/40 grid, sidebar sticky.
+ * Tablet: full-width main + drawer sidebar.
  * Mobile: single column stack.
  */
 
@@ -22,7 +25,6 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
     <div
       className="min-h-screen w-full"
       style={{
-        // Boost ambient orb brightness for the identity page
         '--body-gradient-1': 'rgba(210,145,55,0.50)',
         '--body-gradient-2': 'rgba(180,110,65,0.42)',
         '--body-gradient-3': 'rgba(160,95,55,0.46)',
@@ -30,32 +32,16 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
       } as React.CSSProperties}
     >
       {/* ── Desktop: side-by-side grid ─────────────────────────────── */}
-      <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-6 max-w-[1200px] mx-auto px-6 py-10">
-        {/* Main panel — scrollable */}
-        <div
-          className="rounded-[24px] px-8 py-10 min-h-0"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(56px)',
-            WebkitBackdropFilter: 'blur(56px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.2)',
-          }}
-        >
+      <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-8 max-w-[1200px] mx-auto px-6 py-10">
+        {/* Main — no wrapper, sections float individually */}
+        <div className="min-w-0">
           {main}
         </div>
 
-        {/* Context sidebar — sticky */}
+        {/* Sidebar — sticky, no outer card */}
         <div
-          className="rounded-[24px] px-5 py-6 sticky top-[80px] self-start overflow-y-auto"
-          style={{
-            maxHeight: 'calc(100vh - 100px)',
-            background: 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(56px)',
-            WebkitBackdropFilter: 'blur(56px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.2)',
-          }}
+          className="sticky top-[80px] self-start overflow-y-auto"
+          style={{ maxHeight: 'calc(100vh - 100px)' }}
         >
           {sidebar}
         </div>
@@ -63,20 +49,8 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
 
       {/* ── Tablet: drawer toggle ──────────────────────────────────── */}
       <div className="hidden md:block lg:hidden max-w-[720px] mx-auto px-6 py-10">
-        <div
-          className="rounded-[24px] px-6 py-8"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(56px)',
-            WebkitBackdropFilter: 'blur(56px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.2)',
-          }}
-        >
-          {main}
-        </div>
+        <div>{main}</div>
 
-        {/* Drawer toggle button */}
         <button
           onClick={() => setDrawerOpen(!drawerOpen)}
           className="fixed right-4 bottom-36 z-40 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95"
@@ -95,7 +69,6 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
           }
         </button>
 
-        {/* Slide-in drawer */}
         <AnimatePresence>
           {drawerOpen && (
             <>
@@ -130,30 +103,8 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
 
       {/* ── Mobile: single column ──────────────────────────────────── */}
       <div className="block md:hidden max-w-[680px] mx-auto px-5 py-8 space-y-6">
-        <div
-          className="rounded-[20px] px-5 py-6"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(56px)',
-            WebkitBackdropFilter: 'blur(56px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.2)',
-          }}
-        >
-          {main}
-        </div>
-        <div
-          className="rounded-[20px] px-5 py-6"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            backdropFilter: 'blur(56px)',
-            WebkitBackdropFilter: 'blur(56px)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.2)',
-          }}
-        >
-          {sidebar}
-        </div>
+        <div>{main}</div>
+        <div>{sidebar}</div>
       </div>
     </div>
   );

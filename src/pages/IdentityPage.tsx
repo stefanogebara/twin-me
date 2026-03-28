@@ -467,71 +467,84 @@ const IdentityPage: React.FC = () => {
     day: 'numeric',
   });
 
+  // ── Glass card wrapper ──────────────────────────────────────────────
+
+  const glassCard = (children: React.ReactNode, className = '') => (
+    <div
+      className={`rounded-[20px] px-6 py-6 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
+      style={{
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(56px)',
+        WebkitBackdropFilter: 'blur(56px)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
+      }}
+    >
+      {children}
+    </div>
+  );
+
   // ── Main panel content ─────────────────────────────────────────────
 
   const mainContent = (
-    <>
-      {/* ── Personalized Greeting ─────────────────────────────────── */}
-      <div className="mb-10">
-        <h1
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
-            fontSize: 'clamp(28px, 5vw, 40px)',
-            fontWeight: 400,
-            color: 'var(--foreground)',
-            letterSpacing: '-0.02em',
-            lineHeight: 1.2,
-          }}
-        >
-          {getGreeting()}, {firstName}
-        </h1>
-        <p
-          className="mt-1.5 text-sm"
-          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {formattedDate}
-        </p>
-      </div>
+    <div className="space-y-5">
+      {/* ── Hero card: Greeting + Archetype + Badges ──────────────── */}
+      {glassCard(
+        <>
+          <div className="mb-6">
+            <h1
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontStyle: 'italic',
+                fontSize: 'clamp(28px, 5vw, 40px)',
+                fontWeight: 400,
+                color: 'var(--foreground)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1.2,
+              }}
+            >
+              {getGreeting()}, {firstName}
+            </h1>
+            <p
+              className="mt-1.5 text-sm"
+              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+            >
+              {formattedDate}
+            </p>
+          </div>
 
-      {/* ── Archetype Hero (compact) ──────────────────────────────── */}
-      {archetypeResult && (
-        <section className="relative mb-12">
-          <div
-            className="absolute -left-4 top-0 bottom-0 w-[3px] rounded-full"
-            style={{ background: 'linear-gradient(180deg, var(--accent-vibrant), transparent)' }}
-          />
-          <h2
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontStyle: 'italic',
-              fontSize: 'clamp(32px, 6vw, 48px)',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.15,
-            }}
-          >
-            {archetypeResult.archetype.name}
-          </h2>
-          <p
-            className="mt-2 text-sm"
-            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {archetypeResult.archetype.tagline}
-          </p>
+          {archetypeResult && (
+            <section className="relative pl-5" style={{ borderLeft: '2px solid var(--accent-vibrant)' }}>
+              <h2
+                style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontStyle: 'italic',
+                  fontSize: 'clamp(28px, 5vw, 42px)',
+                  fontWeight: 400,
+                  color: 'var(--foreground)',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.15,
+                }}
+              >
+                {archetypeResult.archetype.name}
+              </h2>
+              <p
+                className="mt-2 text-sm"
+                style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+              >
+                {archetypeResult.archetype.tagline}
+              </p>
+            </section>
+          )}
 
-          {/* Trait badges inline */}
           {traitBadges.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-2 mt-5">
               {traitBadges.map((badge) => (
                 <span
                   key={badge}
                   className="px-3 py-1.5 rounded-full text-xs font-medium"
                   style={{
                     background: 'rgba(255,255,255,0.06)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
                     color: 'rgba(255,255,255,0.6)',
                     fontFamily: "'Inter', sans-serif",
                   }}
@@ -541,33 +554,29 @@ const IdentityPage: React.FC = () => {
               ))}
             </div>
           )}
-        </section>
+        </>
       )}
 
       {/* ── Still Learning State ───────────────────────────────────── */}
       {showStillLearning && (
-        <FadeInSection className="mb-10" delay={0.2}>
-          <div
-            className="rounded-[16px] px-5 py-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            <p
-              className="text-sm mb-3"
-              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
-            </p>
-            <button
-              onClick={() => navigate('/get-started')}
-              className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-              style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Connect platforms
-            </button>
-          </div>
+        <FadeInSection delay={0.2}>
+          {glassCard(
+            <div className="text-center">
+              <p
+                className="text-sm mb-3"
+                style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
+              </p>
+              <button
+                onClick={() => navigate('/get-started')}
+                className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
+                style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Connect platforms
+              </button>
+            </div>
+          )}
         </FadeInSection>
       )}
 
@@ -585,260 +594,217 @@ const IdentityPage: React.FC = () => {
         } : undefined}
       />
 
-      {/* ── Separator ──────────────────────────────────────────────── */}
-      <div
-        className="w-full h-px my-10 mx-auto max-w-[200px]"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
-      />
-
       {/* ── Values ─────────────────────────────────────────────────── */}
       {layers?.values?.values && layers.values.values.length > 0 && (
-        <FadeInSection className="mb-12" delay={0.15}>
-          <SectionLabel>Your Values</SectionLabel>
-          <div
-            className="rounded-[16px] overflow-hidden transition-transform duration-300 hover:-translate-y-0.5"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-          >
-            {layers.values.values.map((value, idx) => (
-              <div
-                key={value.name}
-                className="px-5 py-4"
-                style={{
-                  borderBottom: idx < layers.values.values.length - 1
-                    ? '1px solid rgba(255,255,255,0.06)'
-                    : 'none',
-                }}
-              >
-                <h3
-                  className="text-sm font-medium mb-1.5"
-                  style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {value.name}
-                </h3>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {value.evidence}
-                </p>
-              </div>
-            ))}
-          </div>
-        </FadeInSection>
-      )}
-
-      {/* ── Rhythms ────────────────────────────────────────────────── */}
-      {layers?.rhythms && (
-        <FadeInSection className="mb-12" delay={0.2}>
-          <SectionLabel>Your Rhythms</SectionLabel>
-
-          <span
-            className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              color: '#E8E0D4',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {formatChronotype(layers.rhythms.chronotype)}
-          </span>
-
-          {layers.rhythms.peakHours && (
-            <p
-              className="text-xs mb-3"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-            >
-              Peak hours: {layers.rhythms.peakHours}
-            </p>
-          )}
-
-          <p
-            className="text-sm leading-relaxed mb-5"
-            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {layers.rhythms.summary}
-          </p>
-
-          {layers.rhythms.distribution && (
-            <div>
-              <div className="flex rounded-full overflow-hidden h-2 mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(232,224,212,0.20)' }} />
-                <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(232,224,212,0.30)' }} />
-                <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(232,224,212,0.50)' }} />
-                <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(232,224,212,0.40)' }} />
-              </div>
-              <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
-                <span>Morning</span>
-                <span>Afternoon</span>
-                <span>Evening</span>
-                <span>Night</span>
-              </div>
-            </div>
-          )}
-        </FadeInSection>
-      )}
-
-      {/* ── Taste ──────────────────────────────────────────────────── */}
-      {layers?.taste && (
-        <FadeInSection className="mb-12" delay={0.25}>
-          <SectionLabel>Your Taste</SectionLabel>
-
-          <p
-            className="mb-5 leading-relaxed"
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontStyle: 'italic',
-              fontSize: '17px',
-              color: 'rgba(255,255,255,0.8)',
-              lineHeight: 1.6,
-            }}
-          >
-            {layers.taste.statement}
-          </p>
-
-          {layers.taste.topSignals && layers.taste.topSignals.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {layers.taste.topSignals.map((signal) => (
-                <span
-                  key={signal}
-                  className="px-3 py-1.5 rounded-full text-xs font-medium"
+        <FadeInSection delay={0.15}>
+          {glassCard(
+            <>
+              <SectionLabel>Your Values</SectionLabel>
+              {layers.values.values.map((value, idx) => (
+                <div
+                  key={value.name}
+                  className="py-3"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.55)',
-                    fontFamily: "'Inter', sans-serif",
+                    borderBottom: idx < layers.values.values.length - 1
+                      ? '1px solid rgba(255,255,255,0.06)'
+                      : 'none',
                   }}
                 >
-                  {signal}
-                </span>
-              ))}
-            </div>
-          )}
-        </FadeInSection>
-      )}
-
-      {/* ── Connections ─────────────────────────────────────────────── */}
-      {layers?.connections && (
-        <FadeInSection className="mb-12" delay={0.3}>
-          <SectionLabel>How You Connect</SectionLabel>
-
-          <span
-            className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              color: '#E8E0D4',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {formatConnectionStyle(layers.connections.style)}
-          </span>
-
-          <p
-            className="text-sm leading-relaxed mb-4"
-            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {layers.connections.summary}
-          </p>
-
-          {layers.connections.patterns && layers.connections.patterns.length > 0 && (
-            <ul className="space-y-1.5">
-              {layers.connections.patterns.map((pattern) => (
-                <li
-                  key={pattern}
-                  className="flex items-start gap-2 text-sm"
-                  style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
-                  {pattern}
-                </li>
-              ))}
-            </ul>
-          )}
-        </FadeInSection>
-      )}
-
-      {/* ── What's Changing ─────────────────────────────────────────── */}
-      {layers?.growth_edges && (
-        <FadeInSection className="mb-12" delay={0.35}>
-          <SectionLabel>What's Changing</SectionLabel>
-
-          {layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0 ? (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
-                Your patterns have been consistent — you're in a steady state
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {layers.growth_edges.shifts.map((shift) => (
-                <div key={shift.domain} className="flex items-start gap-3">
-                  <span
-                    className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5"
-                    style={growthTypeBadgeStyle(shift.type)}
-                  >
-                    {shift.domain}
-                  </span>
-                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
-                    {shift.description}
+                  <h3 className="text-sm font-medium mb-1" style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}>
+                    {value.name}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                    {value.evidence}
                   </p>
                 </div>
               ))}
-            </div>
+            </>
           )}
         </FadeInSection>
       )}
+
+      {/* ── Rhythms + Taste (side by side on desktop) ──────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {layers?.rhythms && (
+          <FadeInSection delay={0.2}>
+            {glassCard(
+              <>
+                <SectionLabel>Your Rhythms</SectionLabel>
+                <span
+                  className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {formatChronotype(layers.rhythms.chronotype)}
+                </span>
+                {layers.rhythms.peakHours && (
+                  <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                    Peak hours: {layers.rhythms.peakHours}
+                  </p>
+                )}
+                <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                  {layers.rhythms.summary}
+                </p>
+                {layers.rhythms.distribution && (
+                  <div>
+                    <div className="flex rounded-full overflow-hidden h-2 mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(232,224,212,0.20)' }} />
+                      <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(232,224,212,0.30)' }} />
+                      <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(232,224,212,0.50)' }} />
+                      <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(232,224,212,0.40)' }} />
+                    </div>
+                    <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+                      <span>Morning</span><span>Afternoon</span><span>Evening</span><span>Night</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </FadeInSection>
+        )}
+
+        {layers?.taste && (
+          <FadeInSection delay={0.25}>
+            {glassCard(
+              <>
+                <SectionLabel>Your Taste</SectionLabel>
+                <p
+                  className="mb-4 leading-relaxed"
+                  style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontStyle: 'italic',
+                    fontSize: '16px',
+                    color: 'rgba(255,255,255,0.8)',
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {layers.taste.statement}
+                </p>
+                {layers.taste.topSignals && layers.taste.topSignals.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {layers.taste.topSignals.map((signal) => (
+                      <span
+                        key={signal}
+                        className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                        style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+                      >
+                        {signal}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </FadeInSection>
+        )}
+      </div>
+
+      {/* ── Connections + Growth (side by side) ─────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {layers?.connections && (
+          <FadeInSection delay={0.3}>
+            {glassCard(
+              <>
+                <SectionLabel>How You Connect</SectionLabel>
+                <span
+                  className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {formatConnectionStyle(layers.connections.style)}
+                </span>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                  {layers.connections.summary}
+                </p>
+                {layers.connections.patterns && layers.connections.patterns.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {layers.connections.patterns.map((pattern) => (
+                      <li key={pattern} className="flex items-start gap-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                        <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
+                        {pattern}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </FadeInSection>
+        )}
+
+        {layers?.growth_edges && (
+          <FadeInSection delay={0.35}>
+            {glassCard(
+              <>
+                <SectionLabel>What's Changing</SectionLabel>
+                {layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
+                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                      Consistent — you're in a steady state
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {layers.growth_edges.shifts.map((shift) => (
+                      <div key={shift.domain} className="flex items-start gap-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
+                          {shift.domain}
+                        </span>
+                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                          {shift.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </FadeInSection>
+        )}
+      </div>
 
       {/* ── ICA Personality Axes ────────────────────────────────────── */}
       <PersonalityAxes />
 
-      {/* ── Ask Your Twin ──────────────────────────────────────────── */}
-      <FadeInSection className="mb-10" delay={0.4}>
-        <SectionLabel>Ask your twin about you</SectionLabel>
-        <div className="flex flex-wrap gap-2">
-          {SUGGESTION_PILLS.map((pill) => (
+      {/* ── Ask Twin + Footer ──────────────────────────────────────── */}
+      {glassCard(
+        <>
+          <SectionLabel>Ask your twin about you</SectionLabel>
+          <div className="flex flex-wrap gap-2 mb-6">
+            {SUGGESTION_PILLS.map((pill) => (
+              <button
+                key={pill}
+                onClick={() => handleSuggestion(pill)}
+                className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
+                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+              >
+                {pill}
+                <ArrowRight className="w-3 h-3" style={{ color: 'var(--accent-vibrant)' }} />
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {!isDemoMode && user && (
+              <button
+                onClick={handleShare}
+                aria-label="Share your soul signature"
+                className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
+                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Share
+              </button>
+            )}
             <button
-              key={pill}
-              onClick={() => handleSuggestion(pill)}
-              className="px-3 py-2.5 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                color: 'rgba(255,255,255,0.55)',
-                fontFamily: "'Inter', sans-serif",
-              }}
+              onClick={() => navigate('/get-started')}
+              className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
+              style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
             >
-              {pill}
-              <ArrowRight className="w-3 h-3" style={{ color: 'var(--accent-vibrant)' }} />
+              Connect more platforms
+              <ArrowRight className="w-3 h-3" />
             </button>
-          ))}
-        </div>
-      </FadeInSection>
-
-      {/* ── Footer ─────────────────────────────────────────────────── */}
-      <footer className="flex items-center justify-between pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        {!isDemoMode && user && (
-          <button
-            onClick={handleShare}
-            aria-label="Share your soul signature"
-            className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            Share
-          </button>
-        )}
-        <button
-          onClick={() => navigate('/get-started')}
-          className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-          style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Connect more platforms
-          <ArrowRight className="w-3 h-3" />
-        </button>
-      </footer>
-    </>
+          </div>
+        </>
+      )}
+    </div>
   );
 
   return (
