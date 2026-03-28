@@ -19,9 +19,9 @@ import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetype, generateTraitBadges } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
-import SoulScore from './components/identity/SoulScore';
-import InsightCards from './components/identity/InsightCards';
 import PersonalityDNA from './components/identity/PersonalityDNA';
+import SplitPanelLayout from '@/layouts/SplitPanelLayout';
+import ContextSidebar from './components/identity/ContextSidebar';
 
 // ── Types for 5-Layer Soul Signature ────────────────────────────────────
 
@@ -450,6 +450,397 @@ const IdentityPage: React.FC = () => {
     navigate('/talk-to-twin', { state: { prefill: message } });
   };
 
+  // ── Greeting ────────────────────────────────────────────────────────
+
+  const getGreeting = (): string => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const firstName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? '';
+
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  // ── Main panel content ─────────────────────────────────────────────
+
+  const mainContent = (
+    <>
+      {/* ── Personalized Greeting ─────────────────────────────────── */}
+      <div className="mb-10">
+        <h1
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: 'clamp(28px, 5vw, 40px)',
+            fontWeight: 400,
+            color: 'var(--foreground)',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2,
+          }}
+        >
+          {getGreeting()}, {firstName}
+        </h1>
+        <p
+          className="mt-1.5 text-sm"
+          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        >
+          {formattedDate}
+        </p>
+      </div>
+
+      {/* ── Archetype Hero (compact) ──────────────────────────────── */}
+      {archetypeResult && (
+        <section className="relative mb-12">
+          <div
+            className="absolute -left-4 top-0 bottom-0 w-[3px] rounded-full"
+            style={{ background: 'linear-gradient(180deg, var(--accent-vibrant), transparent)' }}
+          />
+          <h2
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontSize: 'clamp(32px, 6vw, 48px)',
+              fontWeight: 400,
+              color: 'var(--foreground)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.15,
+            }}
+          >
+            {archetypeResult.archetype.name}
+          </h2>
+          <p
+            className="mt-2 text-sm"
+            style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+          >
+            {archetypeResult.archetype.tagline}
+          </p>
+
+          {/* Trait badges inline */}
+          {traitBadges.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {traitBadges.map((badge) => (
+                <span
+                  key={badge}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    color: 'rgba(255,255,255,0.6)',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── Still Learning State ───────────────────────────────────── */}
+      {showStillLearning && (
+        <FadeInSection className="mb-10" delay={0.2}>
+          <div
+            className="rounded-[16px] px-5 py-5 text-center"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            <p
+              className="text-sm mb-3"
+              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+            >
+              Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
+            </p>
+            <button
+              onClick={() => navigate('/get-started')}
+              className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
+              style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
+            >
+              Connect platforms
+            </button>
+          </div>
+        </FadeInSection>
+      )}
+
+      {/* ── Identity Quote ─────────────────────────────────────────── */}
+      <IdentityQuote />
+
+      {/* ── Personality DNA (OCEAN Sliders) ─────────────────────────── */}
+      <PersonalityDNA
+        ocean={personalityData?.profile ? {
+          openness: (personalityData.profile as any).openness ?? 0.5,
+          conscientiousness: (personalityData.profile as any).conscientiousness ?? 0.5,
+          extraversion: (personalityData.profile as any).extraversion ?? 0.5,
+          agreeableness: (personalityData.profile as any).agreeableness ?? 0.5,
+          neuroticism: (personalityData.profile as any).neuroticism ?? 0.5,
+        } : undefined}
+      />
+
+      {/* ── Separator ──────────────────────────────────────────────── */}
+      <div
+        className="w-full h-px my-10 mx-auto max-w-[200px]"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
+      />
+
+      {/* ── Values ─────────────────────────────────────────────────── */}
+      {layers?.values?.values && layers.values.values.length > 0 && (
+        <FadeInSection className="mb-12" delay={0.15}>
+          <SectionLabel>Your Values</SectionLabel>
+          <div
+            className="rounded-[16px] overflow-hidden"
+            style={{
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            {layers.values.values.map((value, idx) => (
+              <div
+                key={value.name}
+                className="px-5 py-4"
+                style={{
+                  borderBottom: idx < layers.values.values.length - 1
+                    ? '1px solid rgba(255,255,255,0.06)'
+                    : 'none',
+                }}
+              >
+                <h3
+                  className="text-sm font-medium mb-1.5"
+                  style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {value.name}
+                </h3>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {value.evidence}
+                </p>
+              </div>
+            ))}
+          </div>
+        </FadeInSection>
+      )}
+
+      {/* ── Rhythms ────────────────────────────────────────────────── */}
+      {layers?.rhythms && (
+        <FadeInSection className="mb-12" delay={0.2}>
+          <SectionLabel>Your Rhythms</SectionLabel>
+
+          <span
+            className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              color: '#E8E0D4',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            {formatChronotype(layers.rhythms.chronotype)}
+          </span>
+
+          {layers.rhythms.peakHours && (
+            <p
+              className="text-xs mb-3"
+              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+            >
+              Peak hours: {layers.rhythms.peakHours}
+            </p>
+          )}
+
+          <p
+            className="text-sm leading-relaxed mb-5"
+            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+          >
+            {layers.rhythms.summary}
+          </p>
+
+          {layers.rhythms.distribution && (
+            <div>
+              <div className="flex rounded-full overflow-hidden h-2 mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(232,224,212,0.20)' }} />
+                <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(232,224,212,0.30)' }} />
+                <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(232,224,212,0.50)' }} />
+                <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(232,224,212,0.40)' }} />
+              </div>
+              <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
+                <span>Morning</span>
+                <span>Afternoon</span>
+                <span>Evening</span>
+                <span>Night</span>
+              </div>
+            </div>
+          )}
+        </FadeInSection>
+      )}
+
+      {/* ── Taste ──────────────────────────────────────────────────── */}
+      {layers?.taste && (
+        <FadeInSection className="mb-12" delay={0.25}>
+          <SectionLabel>Your Taste</SectionLabel>
+
+          <p
+            className="mb-5 leading-relaxed"
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontSize: '17px',
+              color: 'rgba(255,255,255,0.8)',
+              lineHeight: 1.6,
+            }}
+          >
+            {layers.taste.statement}
+          </p>
+
+          {layers.taste.topSignals && layers.taste.topSignals.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {layers.taste.topSignals.map((signal) => (
+                <span
+                  key={signal}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(255,255,255,0.55)',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  {signal}
+                </span>
+              ))}
+            </div>
+          )}
+        </FadeInSection>
+      )}
+
+      {/* ── Connections ─────────────────────────────────────────────── */}
+      {layers?.connections && (
+        <FadeInSection className="mb-12" delay={0.3}>
+          <SectionLabel>How You Connect</SectionLabel>
+
+          <span
+            className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              color: '#E8E0D4',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            {formatConnectionStyle(layers.connections.style)}
+          </span>
+
+          <p
+            className="text-sm leading-relaxed mb-4"
+            style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
+          >
+            {layers.connections.summary}
+          </p>
+
+          {layers.connections.patterns && layers.connections.patterns.length > 0 && (
+            <ul className="space-y-1.5">
+              {layers.connections.patterns.map((pattern) => (
+                <li
+                  key={pattern}
+                  className="flex items-start gap-2 text-sm"
+                  style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
+                  {pattern}
+                </li>
+              ))}
+            </ul>
+          )}
+        </FadeInSection>
+      )}
+
+      {/* ── What's Changing ─────────────────────────────────────────── */}
+      {layers?.growth_edges && (
+        <FadeInSection className="mb-12" delay={0.35}>
+          <SectionLabel>What's Changing</SectionLabel>
+
+          {layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                Your patterns have been consistent — you're in a steady state
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {layers.growth_edges.shifts.map((shift) => (
+                <div key={shift.domain} className="flex items-start gap-3">
+                  <span
+                    className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5"
+                    style={growthTypeBadgeStyle(shift.type)}
+                  >
+                    {shift.domain}
+                  </span>
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                    {shift.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </FadeInSection>
+      )}
+
+      {/* ── ICA Personality Axes ────────────────────────────────────── */}
+      <PersonalityAxes />
+
+      {/* ── Ask Your Twin ──────────────────────────────────────────── */}
+      <FadeInSection className="mb-10" delay={0.4}>
+        <SectionLabel>Ask your twin about you</SectionLabel>
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTION_PILLS.map((pill) => (
+            <button
+              key={pill}
+              onClick={() => handleSuggestion(pill)}
+              className="px-3 py-2.5 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(255,255,255,0.55)',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              {pill}
+              <ArrowRight className="w-3 h-3" style={{ color: 'var(--accent-vibrant)' }} />
+            </button>
+          ))}
+        </div>
+      </FadeInSection>
+
+      {/* ── Footer ─────────────────────────────────────────────────── */}
+      <footer className="flex items-center justify-between pt-6" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        {!isDemoMode && user && (
+          <button
+            onClick={handleShare}
+            aria-label="Share your soul signature"
+            className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            Share
+          </button>
+        )}
+        <button
+          onClick={() => navigate('/get-started')}
+          className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
+          style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
+        >
+          Connect more platforms
+          <ArrowRight className="w-3 h-3" />
+        </button>
+      </footer>
+    </>
+  );
+
   return (
     <>
       {/* First-time reveal overlay */}
@@ -463,431 +854,10 @@ const IdentityPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div
-        className="max-w-[680px] mx-auto px-6 py-16"
-        style={{
-          // Boost ambient orb brightness for liquid glass effect
-          '--body-gradient-1': 'rgba(210,145,55,0.50)',
-          '--body-gradient-2': 'rgba(180,110,65,0.42)',
-          '--body-gradient-3': 'rgba(160,95,55,0.46)',
-          '--body-gradient-4': 'rgba(55,45,140,0.38)',
-        } as React.CSSProperties}
-      >
-
-        {/* ── 1. Archetype Hero Section ─────────────────────────────────── */}
-        {archetypeResult && (
-          <section className="relative mb-16 text-center">
-            <div
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              aria-hidden="true"
-            >
-              <div
-                className="w-[280px] h-[280px] rounded-full"
-                style={{
-                  background: 'radial-gradient(circle, rgba(232,224,212,0.1) 0%, rgba(232,224,212,0.03) 50%, transparent 70%)',
-                  animation: 'soulBreathe 5s ease-in-out infinite',
-                }}
-              />
-            </div>
-
-            <h1
-              className="relative z-10"
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontStyle: 'italic',
-                fontSize: 'clamp(36px, 7vw, 56px)',
-                fontWeight: 400,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.15,
-              }}
-            >
-              {archetypeResult.archetype.name}
-            </h1>
-            <p
-              className="relative z-10 mt-3 text-sm"
-              style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {archetypeResult.archetype.tagline}
-            </p>
-          </section>
-        )}
-
-        {/* ── Trait Badges ───────────────────────────────────────────────── */}
-        {traitBadges.length > 0 && (
-          <FadeInSection className="mb-14 flex flex-wrap justify-center gap-2" delay={0.1}>
-            {traitBadges.map((badge) => (
-              <span
-                key={badge}
-                className="px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{
-                  background: 'var(--glass-surface-bg)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  color: 'rgba(255,255,255,0.6)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
-                {badge}
-              </span>
-            ))}
-          </FadeInSection>
-        )}
-
-        {/* ── Still Learning State ──────────────────────────────────────── */}
-        {showStillLearning && (
-          <FadeInSection className="mb-14" delay={0.2}>
-            <div
-              className="rounded-[20px] px-5 py-6 text-center"
-              style={{
-                background: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid var(--glass-surface-border)',
-              }}
-            >
-              <p
-                className="text-sm mb-3"
-                style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Your twin is still learning your patterns. Connect more platforms to unlock your full soul signature.
-              </p>
-              <button
-                onClick={() => navigate('/get-started')}
-                className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Connect platforms
-              </button>
-            </div>
-          </FadeInSection>
-        )}
-
-        {/* ── Gradient fade separator ─────────────────────────────────── */}
-        <div
-          className="w-full h-px my-10 mx-auto max-w-[200px]"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
-        />
-
-        {/* ── NEW: Identity Quote ───────────────────────────────────────── */}
-        <IdentityQuote />
-
-        {/* ── NEW: Soul Score + Contributor Cards ─────────────────────────── */}
-        <SoulScore />
-
-        {/* ── NEW: Swipeable Insight Cards ─────────────────────────────────── */}
-        <InsightCards />
-
-        {/* ── NEW: Personality DNA (OCEAN Sliders) ─────────────────────────── */}
-        <PersonalityDNA
-          ocean={personalityData?.profile ? {
-            openness: (personalityData.profile as any).openness ?? 0.5,
-            conscientiousness: (personalityData.profile as any).conscientiousness ?? 0.5,
-            extraversion: (personalityData.profile as any).extraversion ?? 0.5,
-            agreeableness: (personalityData.profile as any).agreeableness ?? 0.5,
-            neuroticism: (personalityData.profile as any).neuroticism ?? 0.5,
-          } : undefined}
-        />
-
-        {/* ── Gradient fade separator ─────────────────────────────────── */}
-        <div
-          className="w-full h-px my-10 mx-auto max-w-[200px]"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)' }}
-        />
-
-        {/* ── 2. YOUR VALUES ────────────────────────────────────────────── */}
-        {layers?.values?.values && layers.values.values.length > 0 && (
-          <FadeInSection className="mb-14" delay={0.15}>
-            <SectionLabel>Your Values</SectionLabel>
-            <div
-              className="rounded-[20px] overflow-hidden"
-              style={{
-                background: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid var(--glass-surface-border)',
-              }}
-            >
-              {layers.values.values.map((value, idx) => (
-                <div
-                  key={value.name}
-                  className="px-5 py-4"
-                  style={{
-                    borderBottom: idx < layers.values.values.length - 1
-                      ? '1px solid rgba(255,255,255,0.06)'
-                      : 'none',
-                  }}
-                >
-                  <h3
-                    className="text-sm font-medium mb-1.5"
-                    style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    {value.name}
-                  </h3>
-                  <p
-                    className="text-sm leading-relaxed"
-                    style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    {value.evidence}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </FadeInSection>
-        )}
-
-        {/* ── 3. YOUR RHYTHMS ───────────────────────────────────────────── */}
-        {layers?.rhythms && (
-          <FadeInSection className="mb-14" delay={0.2}>
-            <SectionLabel>Your Rhythms</SectionLabel>
-
-            {/* Chronotype badge */}
-            <span
-              className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-              style={{
-                background: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                color: '#E8E0D4',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              {formatChronotype(layers.rhythms.chronotype)}
-            </span>
-
-            {/* Peak hours */}
-            {layers.rhythms.peakHours && (
-              <p
-                className="text-xs mb-3"
-                style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Peak hours: {layers.rhythms.peakHours}
-              </p>
-            )}
-
-            {/* Summary */}
-            <p
-              className="text-sm leading-relaxed mb-5"
-              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {layers.rhythms.summary}
-            </p>
-
-            {/* Activity distribution bar */}
-            {layers.rhythms.distribution && (
-              <div>
-                <div className="flex rounded-full overflow-hidden h-2 mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <div
-                    style={{
-                      width: `${layers.rhythms.distribution.morning * 100}%`,
-                      backgroundColor: 'rgba(232,224,212,0.20)',
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: `${layers.rhythms.distribution.afternoon * 100}%`,
-                      backgroundColor: 'rgba(232,224,212,0.30)',
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: `${layers.rhythms.distribution.evening * 100}%`,
-                      backgroundColor: 'rgba(232,224,212,0.50)',
-                    }}
-                  />
-                  <div
-                    style={{
-                      width: `${layers.rhythms.distribution.night * 100}%`,
-                      backgroundColor: 'rgba(232,224,212,0.40)',
-                    }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
-                  <span>Morning</span>
-                  <span>Afternoon</span>
-                  <span>Evening</span>
-                  <span>Night</span>
-                </div>
-              </div>
-            )}
-          </FadeInSection>
-        )}
-
-        {/* ── 4. YOUR TASTE ─────────────────────────────────────────────── */}
-        {layers?.taste && (
-          <FadeInSection className="mb-14" delay={0.25}>
-            <SectionLabel>Your Taste</SectionLabel>
-
-            {/* Pull-quote statement */}
-            <p
-              className="mb-5 leading-relaxed"
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontStyle: 'italic',
-                fontSize: '17px',
-                color: 'rgba(255,255,255,0.8)',
-                lineHeight: 1.6,
-              }}
-            >
-              {layers.taste.statement}
-            </p>
-
-            {/* Top signals as glass pills */}
-            {layers.taste.topSignals && layers.taste.topSignals.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {layers.taste.topSignals.map((signal) => (
-                  <span
-                    key={signal}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium"
-                    style={{
-                      background: 'var(--glass-surface-bg)',
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
-                      color: 'rgba(255,255,255,0.55)',
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
-                    {signal}
-                  </span>
-                ))}
-              </div>
-            )}
-          </FadeInSection>
-        )}
-
-        {/* ── 5. HOW YOU CONNECT ────────────────────────────────────────── */}
-        {layers?.connections && (
-          <FadeInSection className="mb-14" delay={0.3}>
-            <SectionLabel>How You Connect</SectionLabel>
-
-            {/* Connection style badge */}
-            <span
-              className="inline-block px-3 py-1.5 rounded-full text-xs font-medium mb-3"
-              style={{
-                background: 'var(--glass-surface-bg)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                color: '#E8E0D4',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              {formatConnectionStyle(layers.connections.style)}
-            </span>
-
-            {/* Summary */}
-            <p
-              className="text-sm leading-relaxed mb-4"
-              style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {layers.connections.summary}
-            </p>
-
-            {/* Pattern bullets */}
-            {layers.connections.patterns && layers.connections.patterns.length > 0 && (
-              <ul className="space-y-1.5">
-                {layers.connections.patterns.map((pattern) => (
-                  <li
-                    key={pattern}
-                    className="flex items-start gap-2 text-sm"
-                    style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
-                  >
-                    <span className="mt-[7px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: 'rgba(232,224,212,0.4)' }} />
-                    {pattern}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </FadeInSection>
-        )}
-
-        {/* ── 6. WHAT'S CHANGING ────────────────────────────────────────── */}
-        {layers?.growth_edges && (
-          <FadeInSection className="mb-14" delay={0.35}>
-            <SectionLabel>What's Changing</SectionLabel>
-
-            {layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0 ? (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-                <p
-                  className="text-sm"
-                  style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  Your patterns have been consistent — you're in a steady state
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {layers.growth_edges.shifts.map((shift) => (
-                  <div key={shift.domain} className="flex items-start gap-3">
-                    <span
-                      className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5"
-                      style={growthTypeBadgeStyle(shift.type)}
-                    >
-                      {shift.domain}
-                    </span>
-                    <p
-                      className="text-sm"
-                      style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}
-                    >
-                      {shift.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </FadeInSection>
-        )}
-
-        {/* ── 7. PERSONALITY DIMENSIONS (ICA) ──────────────────────────────── */}
-        <PersonalityAxes />
-
-        {/* ── 8. Ask Your Twin About You ──────────────────────────────────── */}
-        <FadeInSection className="mb-14" delay={0.4}>
-          <SectionLabel>Ask your twin about you</SectionLabel>
-          <div className="flex flex-wrap gap-2">
-            {SUGGESTION_PILLS.map((pill) => (
-              <button
-                key={pill}
-                onClick={() => handleSuggestion(pill)}
-                className="px-3 py-2.5 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] flex items-center gap-1.5"
-                style={{
-                  background: 'var(--glass-surface-bg)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  color: 'rgba(255,255,255,0.55)',
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
-                {pill}
-                <ArrowRight className="w-3 h-3" style={{ color: 'var(--accent-vibrant)' }} />
-              </button>
-            ))}
-          </div>
-        </FadeInSection>
-
-        {/* ── 8. Footer ──────────────────────────────────────────────────── */}
-        <footer className="flex items-center justify-between pt-6" style={{ borderTop: '1px solid var(--border-glass)' }}>
-          {!isDemoMode && user && (
-            <button
-              onClick={handleShare}
-              aria-label="Share your soul signature"
-              className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-              style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              Share
-            </button>
-          )}
-          <button
-            onClick={() => navigate('/get-started')}
-            className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Connect more platforms
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </footer>
-      </div>
+      <SplitPanelLayout
+        main={mainContent}
+        sidebar={<ContextSidebar />}
+      />
 
       {/* ── Global keyframes ────────────────────────────────────────────── */}
       <style>{`
@@ -903,57 +873,65 @@ const IdentityPage: React.FC = () => {
 // ── Loading skeleton ─────────────────────────────────────────────────────
 
 const LoadingSkeleton: React.FC = () => (
-  <div className="max-w-[680px] mx-auto px-6 py-16">
-    {/* Hero skeleton */}
-    <div className="animate-pulse text-center mb-16">
-      <div className="h-12 w-64 rounded mx-auto mb-3" style={{ background: 'var(--glass-surface-bg)' }} />
-      <div className="h-4 w-48 rounded mx-auto" style={{ background: 'rgba(255,255,255,0.04)' }} />
-    </div>
-    {/* Trait badges skeleton */}
-    <div className="animate-pulse flex flex-wrap justify-center gap-2 mb-14">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="h-7 w-24 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
-      ))}
-    </div>
-    {/* Values section skeleton */}
-    <div className="animate-pulse mb-14">
-      <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="rounded-[20px] overflow-hidden" style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
+  <div
+    className="min-h-screen w-full"
+    style={{
+      '--body-gradient-1': 'rgba(210,145,55,0.50)',
+      '--body-gradient-2': 'rgba(180,110,65,0.42)',
+      '--body-gradient-3': 'rgba(160,95,55,0.46)',
+      '--body-gradient-4': 'rgba(55,45,140,0.38)',
+    } as React.CSSProperties}
+  >
+    <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-6 max-w-[1200px] mx-auto px-6 py-10">
+      {/* Main panel skeleton */}
+      <div
+        className="rounded-[24px] px-8 py-10 animate-pulse"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(56px)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div className="h-10 w-72 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-4 w-40 rounded mb-12" style={{ background: 'rgba(255,255,255,0.03)' }} />
+        <div className="h-12 w-64 rounded mb-3" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="h-4 w-80 rounded mb-4" style={{ background: 'rgba(255,255,255,0.03)' }} />
+        <div className="flex flex-wrap gap-2 mb-12">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-7 w-24 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          ))}
+        </div>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="px-5 py-4" style={{ borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-            <div className="h-4 w-36 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
-            <div className="h-3 w-full rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+          <div key={i} className="mb-10">
+            <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <div className="h-4 w-full rounded mb-2" style={{ background: 'rgba(255,255,255,0.03)' }} />
+            <div className="h-4 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
           </div>
         ))}
       </div>
-    </div>
-    {/* Rhythms section skeleton */}
-    <div className="animate-pulse mb-14">
-      <div className="h-3 w-28 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-7 w-24 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.04)' }} />
-      <div className="h-4 w-full rounded mb-2" style={{ background: 'rgba(255,255,255,0.03)' }} />
-      <div className="h-2 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
-    </div>
-    {/* Taste section skeleton */}
-    <div className="animate-pulse mb-14">
-      <div className="h-3 w-24 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-5 w-3/4 rounded mb-3" style={{ background: 'rgba(255,255,255,0.04)' }} />
-      <div className="flex gap-2">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="h-7 w-32 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
-        ))}
+      {/* Sidebar skeleton */}
+      <div
+        className="rounded-[24px] px-5 py-6 animate-pulse"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          backdropFilter: 'blur(56px)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div className="w-28 h-28 rounded-full mx-auto mb-6" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-16 rounded-[12px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+          ))}
+        </div>
+        <div className="h-10 w-full rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
       </div>
     </div>
-    {/* Connections section skeleton */}
-    <div className="animate-pulse mb-14">
-      <div className="h-3 w-32 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-7 w-28 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.04)' }} />
-      <div className="h-4 w-full rounded mb-2" style={{ background: 'rgba(255,255,255,0.03)' }} />
-    </div>
-    {/* Growth edges skeleton */}
-    <div className="animate-pulse mb-14">
-      <div className="h-3 w-28 rounded mb-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-4 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.03)' }} />
+    {/* Mobile fallback */}
+    <div className="lg:hidden max-w-[680px] mx-auto px-5 py-8 animate-pulse">
+      <div className="h-10 w-64 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-4 w-40 rounded mb-8" style={{ background: 'rgba(255,255,255,0.03)' }} />
+      <div className="h-48 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
     </div>
   </div>
 );
