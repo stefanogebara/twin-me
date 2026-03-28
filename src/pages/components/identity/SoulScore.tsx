@@ -288,19 +288,28 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '' }) => {
     staleTime: 60 * 60 * 1000,
   });
 
+  // Fetch user ID from localStorage for connectors endpoint
+  const userId = typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('auth_user') || '{}')?.id
+    : null;
+
   // Fetch connected platforms directly (more reliable than scaling-metrics)
   const { data: connectors } = useQuery({
-    queryKey: ['connectors', 'status'],
+    queryKey: ['connectors', 'status', userId],
     queryFn: async () => {
-      const res = await authFetch('/connectors/status');
-      if (!res.ok) return [];
+      if (!userId) return {};
+      const res = await authFetch(`/connectors/status/${userId}`);
+      if (!res.ok) return {};
       const json = await res.json();
-      return (json.data || json.connectors || []) as Array<{ platform: string; status: string }>;
+      return (json.data || {}) as Record<string, { connected: boolean }>;
     },
     staleTime: 5 * 60 * 1000,
+    enabled: !!userId,
   });
 
-  const connectedPlatforms = (connectors || []).filter((c: any) => c.status === 'connected').map((c: any) => c.platform?.toLowerCase());
+  const connectedPlatforms = Object.entries(connectors || {})
+    .filter(([, v]: [string, any]) => v?.connected)
+    .map(([k]) => k.toLowerCase());
   const modalitiesPresent = multimodal?.modalities_present || [];
   const platformCount = connectedPlatforms.length || modalitiesPresent.length;
   const memoryCount = multimodal?.memory_count || 0;
