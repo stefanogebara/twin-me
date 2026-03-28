@@ -494,6 +494,7 @@ const TalkToTwin = () => {
         }
         platformCount={connectedCount}
         messageCount={messages.filter(m => !m.failed).length}
+        onMorningBriefing={() => handleQuickAction('Give me my morning briefing')}
       />
     </div>
   );

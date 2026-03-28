@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
 
 const REMARK_PLUGINS = [remarkGfm];
-import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
 import { WorkspaceActionCard } from './WorkspaceActionCard';
 
 function formatRelativeTime(date: Date): string {
@@ -59,9 +59,22 @@ function useRatedMessages() {
   return { rated, markRated };
 }
 
+/** Track which messages were recently copied (for icon feedback). */
+function useCopiedMessages() {
+  const [copied, setCopied] = useState<Record<string, boolean>>({});
+  const markCopied = (messageId: string) => {
+    setCopied(prev => ({ ...prev, [messageId]: true }));
+    setTimeout(() => {
+      setCopied(prev => ({ ...prev, [messageId]: false }));
+    }, 2000);
+  };
+  return { copied, markCopied };
+}
+
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
   ({ messages, isTyping, formatTime, onRetry, onRate }, ref) => {
     const { rated, markRated } = useRatedMessages();
+    const { copied, markCopied } = useCopiedMessages();
     return (
       <div className="px-4 py-6 max-w-3xl mx-auto w-full">
         {messages.map((message, index) => {
@@ -71,9 +84,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
           const Wrapper = isLast ? motion.div : 'div';
           const wrapperProps = isLast
             ? {
-                initial: { opacity: 0, y: 8 },
-                animate: { opacity: 1, y: 0 },
-                transition: { duration: 0.3, ease: 'easeOut' as const },
+                initial: { opacity: 0, y: 12, scale: 0.98 },
+                animate: { opacity: 1, y: 0, scale: 1 },
+                transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
               }
             : {};
 
@@ -162,7 +175,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     )}
 
                     {/* ── Metadata row: context badges (muted) + rating ── */}
-                    {(message.contextUsed || (!message.failed && onRate)) && (
+                    {(message.contextUsed || !message.failed) && (
                       <div
                         className="flex flex-wrap items-center gap-2 mt-3 pt-2"
                         style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
@@ -185,10 +198,24 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                           </span>
                         )}
 
-                        {/* Thumbs up/down — primary visible elements */}
-                        {!message.failed && onRate && (
+                        {/* Copy + Thumbs — primary visible elements */}
+                        {!message.failed && (
                           <div className="flex items-center gap-1 ml-auto">
-                            {rated[message.id] != null ? (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(message.content);
+                                markCopied(message.id);
+                              }}
+                              className="p-1 rounded-md transition-all hover:scale-110"
+                              style={{ color: copied[message.id] ? 'rgba(134,239,172,0.7)' : 'rgba(255,255,255,0.35)' }}
+                              aria-label="Copy message"
+                              title={copied[message.id] ? 'Copied!' : 'Copy'}
+                            >
+                              {copied[message.id]
+                                ? <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                                : <Copy className="w-3.5 h-3.5" aria-hidden="true" />}
+                            </button>
+                            {onRate && (rated[message.id] != null ? (
                               <span
                                 className="text-[11px] px-2 py-0.5 rounded-full"
                                 style={{ color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
@@ -230,7 +257,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                                   <ThumbsDown className="w-3.5 h-3.5" aria-hidden="true" />
                                 </button>
                               </>
-                            )}
+                            ))}
                           </div>
                         )}
                       </div>

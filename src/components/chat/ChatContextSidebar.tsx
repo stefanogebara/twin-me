@@ -36,6 +36,7 @@ interface ChatContextSidebarProps {
   insights?: Insight[];
   platformCount?: number;
   messageCount?: number;
+  onMorningBriefing?: () => void;
 }
 
 function formatCurrentDate(): string {
@@ -61,6 +62,7 @@ export const ChatContextSidebar = ({
   insights = [],
   platformCount = 0,
   messageCount = 0,
+  onMorningBriefing,
 }: ChatContextSidebarProps) => {
   const dateStr = formatCurrentDate();
   const weather = useWeather();
@@ -250,6 +252,20 @@ export const ChatContextSidebar = ({
 
         {/* Spacer */}
         <div className="flex-1" />
+
+        {/* Morning Briefing CTA */}
+        {onMorningBriefing && (
+          <button
+            onClick={onMorningBriefing}
+            className="w-full text-left text-[13px] font-medium rounded-lg px-3 py-2.5 transition-colors hover:bg-[rgba(255,255,255,0.10)] mb-3"
+            style={{
+              color: '#F5F5F4',
+              background: 'rgba(255,255,255,0.06)',
+            }}
+          >
+            Morning Briefing &rarr;
+          </button>
+        )}
 
         {/* Stats Row */}
         <div
