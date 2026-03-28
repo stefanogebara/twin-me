@@ -7,6 +7,17 @@ const REMARK_PLUGINS = [remarkGfm];
 import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { WorkspaceActionCard } from './WorkspaceActionCard';
 
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 interface ActionEvent {
   tool: string;
   params?: Record<string, any>;
@@ -75,7 +86,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     <p
                       className="whitespace-pre-wrap text-right"
                       style={{
-                        fontSize: '15px',
+                        fontSize: '13px',
                         color: message.failed ? '#EF4444' : '#EDEDED',
                         opacity: message.failed ? 0.8 : 1,
                         lineHeight: 1.7,
@@ -103,9 +114,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                   </div>
                   <div
                     className="text-[11px] mt-1.5 text-right pr-1"
-                    style={{ color: 'rgba(255,255,255,0.35)' }}
+                    style={{ color: 'rgba(255,255,255,0.3)' }}
                   >
-                    {formatTime(message.timestamp)}
+                    {formatRelativeTime(message.timestamp)}
                   </div>
                 </div>
               ) : (
@@ -121,7 +132,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     )}
 
                     <div
-                      className="prose prose-invert max-w-none [&>p]:mb-4 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-4 [&>ol]:mb-4"
+                      className="prose prose-invert max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"
                       style={{
                         fontSize: '14px',
                         color: '#D1D5DB',
@@ -227,9 +238,9 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
 
                     <div
                       className="text-[11px] mt-1.5 text-left"
-                      style={{ color: 'rgba(255,255,255,0.35)' }}
+                      style={{ color: 'rgba(255,255,255,0.3)' }}
                     >
-                      {formatTime(message.timestamp)}
+                      {formatRelativeTime(message.timestamp)}
                     </div>
                   </div>
                 </div>

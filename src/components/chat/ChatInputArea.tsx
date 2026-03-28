@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Send, Loader2 } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
@@ -49,14 +49,15 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
   }, ref) => {
     const navigate = useNavigate();
     const hasText = inputMessage.trim().length > 0;
+    const [isFocused, setIsFocused] = useState(false);
 
     return (
       <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
-          className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-opacity"
+          className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-colors duration-200"
           style={{
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.05)',
+            border: `1px solid ${isFocused ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)'}`,
             opacity: limitReached ? 0.4 : 1,
             pointerEvents: limitReached ? 'none' : 'auto',
           }}
@@ -79,6 +80,8 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 }
                 onKeyDown(e);
               }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               disabled={isDisabled || limitReached}
               rows={1}
               aria-label="Message your twin"

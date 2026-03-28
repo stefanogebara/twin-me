@@ -169,7 +169,10 @@ export const ChatContextSidebar = ({
         </div>
 
         {/* Insights Section */}
-        <div className="mb-5">
+        <div
+          className="mb-5 pt-4 mt-4"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
           <span
             className="text-[10px] uppercase font-medium"
             style={{
@@ -185,9 +188,10 @@ export const ChatContextSidebar = ({
               insights.slice(0, 3).map((item, idx) => (
                 <p
                   key={idx}
-                  className="text-[12px] leading-relaxed py-2"
+                  className="text-[12px] py-2"
                   style={{
                     color: 'rgba(255,255,255,0.5)',
+                    lineHeight: '18px',
                     borderBottom:
                       idx < Math.min(insights.length, 3) - 1
                         ? '1px solid rgba(255,255,255,0.04)'
