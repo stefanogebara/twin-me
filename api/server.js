@@ -8,6 +8,7 @@ import path from 'path';
 import http from 'http';
 import https from 'https';
 import * as Sentry from '@sentry/node';
+import { supabaseAdmin } from './services/database.js';
 
 // Increase default max sockets to prevent background jobs from blocking API requests
 http.globalAgent.maxSockets = 50;
@@ -483,19 +484,23 @@ app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 // User preferences (notification settings)
 app.get('/api/users/preferences', authenticateUser, async (req, res) => {
   try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'No user ID' });
     const { data, error } = await supabaseAdmin
       .from('users')
       .select('email_digest_unsubscribed')
-      .eq('id', req.user.id)
+      .eq('id', userId)
       .single();
     if (error) return res.status(500).json({ success: false, error: error.message });
     res.json({ success: true, preferences: { email_digest_unsubscribed: data?.email_digest_unsubscribed || false } });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to fetch preferences' });
+    res.status(500).json({ success: false, error: err.message || 'Failed to fetch preferences' });
   }
 });
 app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
   try {
+    const userId = req.user?.id || req.user?.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'No user ID' });
     const { email_digest_unsubscribed } = req.body;
     if (typeof email_digest_unsubscribed !== 'boolean') {
       return res.status(400).json({ success: false, error: 'email_digest_unsubscribed must be boolean' });
@@ -503,11 +508,11 @@ app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
     const { error } = await supabaseAdmin
       .from('users')
       .update({ email_digest_unsubscribed })
-      .eq('id', req.user.id);
+      .eq('id', userId);
     if (error) return res.status(500).json({ success: false, error: error.message });
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Failed to update preferences' });
+    res.status(500).json({ success: false, error: err.message || 'Failed to update preferences' });
   }
 });
 app.use('/api/dashboard/context', dashboardContextRoutes);
