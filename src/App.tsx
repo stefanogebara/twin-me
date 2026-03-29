@@ -32,6 +32,7 @@ const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding")
 const BrainPage = lazy(() => import("./pages/BrainPage"));
 const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
+const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
@@ -347,6 +348,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <AdminLLMCosts />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Admin: Beta Invite Dashboard */}
+            <Route path="/admin/beta" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <AdminBetaDashboard />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
