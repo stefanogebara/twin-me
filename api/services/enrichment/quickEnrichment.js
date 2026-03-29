@@ -9,6 +9,7 @@ import { discoverPlatforms } from './holeheProvider.js';
 import { enrichFromEmailRep } from './emailRepProvider.js';
 import { enrichFromHIBP } from './hibpProvider.js';
 import { mapBreachesToIntegrations } from './breachPlatformMapper.js';
+import { lookupWhatsMyName } from './wmnProvider.js';
 
 const log = createLogger('Quickenrichment');
 
@@ -75,6 +76,10 @@ export async function quickEnrich(email, name = null) {
   // Use email-matched GitHub if found, otherwise username-matched
   const github = githubByEmail || githubByUsername;
 
+  // Second pass: WhatsMyName username cascade (needs a username from first pass)
+  const cascadeUsername = github?.login || reddit?.username || username;
+  const wmn = await lookupWhatsMyName(cascadeUsername);
+
   // Build social links from all sources
   const allSocialLinks = [
     ...(gravatar?.socialLinks || []),
@@ -89,6 +94,7 @@ export async function quickEnrich(email, name = null) {
     pdl?.github_url ? { platform: 'github', url: pdl.github_url } : null,
     pdl?.twitter_url ? { platform: 'twitter', url: pdl.twitter_url } : null,
     pdl?.facebook_url ? { platform: 'facebook', url: pdl.facebook_url } : null,
+    ...(wmn?.confirmedPlatforms || []).map(p => ({ platform: p.name.toLowerCase(), url: p.url })),
   ].filter(Boolean);
 
   // Deduplicate by platform
@@ -165,7 +171,11 @@ export async function quickEnrich(email, name = null) {
       discoveredPlatforms.length > 0 ? 'holehe' : null,
       emailRep ? 'emailrep' : null,
       hibp ? 'hibp' : null,
+      wmn ? 'wmn' : null,
     ].filter(Boolean).join('+') || 'none',
+    // WhatsMyName discovered platforms
+    wmn_platforms: wmn?.confirmedPlatforms?.map(p => p.name) || null,
+    wmn_count: wmn?.totalFound || 0,
     social_links: uniqueSocialLinks,
   };
 
@@ -187,6 +197,7 @@ export async function quickEnrich(email, name = null) {
     emailRep: emailRep ? `${emailRep.reputation}` : 'miss',
     hibp: hibp ? `${hibp.breachCount} breaches` : 'miss',
     breachIntegrations: breachMapping.integrations.join(',') || 'none',
+    wmn: wmn ? `${wmn.totalFound} found` : 'skip',
     source: data.source,
   });
 
