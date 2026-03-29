@@ -15,6 +15,7 @@ import { LimitReachedBanner } from '@/components/chat/LimitReachedBanner';
 import { ContextSidebar } from '@/components/chat/ContextSidebar';
 import { ChatContextSidebar } from '@/components/chat/ChatContextSidebar';
 import { InsightsBanner } from '@/components/chat/InsightsBanner';
+import { ConversationList } from '@/components/chat/ConversationList';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 
@@ -48,6 +49,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const CHAT_HISTORY_KEY = 'twin_chat_history';
 const CHAT_HISTORY_MAX = 20;
+const CONVERSATION_ID_KEY = 'twin_conversation_id';
 
 function loadChatHistory(): Message[] {
   try {
@@ -89,8 +91,11 @@ const TalkToTwin = () => {
   const [messages, setMessages] = useState<Message[]>(loadChatHistory);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(
+    () => sessionStorage.getItem(CONVERSATION_ID_KEY)
+  );
   const [showContext, setShowContext] = useState(false);
+  const [showConversationList, setShowConversationList] = useState(false);
 
   const platforms = [
     { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
@@ -146,6 +151,43 @@ const TalkToTwin = () => {
       handleSendMessage();
     }
   }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist conversationId to sessionStorage
+  useEffect(() => {
+    if (conversationId) {
+      sessionStorage.setItem(CONVERSATION_ID_KEY, conversationId);
+    } else {
+      sessionStorage.removeItem(CONVERSATION_ID_KEY);
+    }
+  }, [conversationId]);
+
+  const handleSelectConversation = async (id: string) => {
+    try {
+      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE}/chat/history?conversationId=${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.messages) {
+        setMessages(data.messages.map((m: { id?: string; isUser?: boolean; content: string; createdAt: string }) => ({
+          id: m.id || crypto.randomUUID(),
+          role: m.isUser ? 'user' as const : 'assistant' as const,
+          content: m.content,
+          timestamp: new Date(m.createdAt),
+        })));
+        setConversationId(id);
+      }
+      setShowConversationList(false);
+    } catch (err) {
+      console.error('Failed to load conversation:', err);
+    }
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setConversationId(null);
+    setShowConversationList(false);
+  };
 
   // Derive ghost suggestion from conversation context
   const ghostSuggestion = useMemo(() => {
@@ -361,6 +403,7 @@ const TalkToTwin = () => {
 
   const handleClearChat = () => {
     localStorage.removeItem(CHAT_HISTORY_KEY);
+    sessionStorage.removeItem(CONVERSATION_ID_KEY);
     setMessages([]);
     setConversationId(null);
   };
@@ -424,7 +467,7 @@ const TalkToTwin = () => {
   }
 
   return (
-    <div className="flex twin-chat-container overflow-x-hidden" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
+    <div className="flex relative twin-chat-container overflow-x-hidden" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
       {/* Mobile: subtract pt-16 (64px) + pb-20 (80px) from SidebarLayout wrapper.
           Desktop: use full viewport height (sidebar layout has no top/bottom padding on lg+). */}
       <style>{`
@@ -432,12 +475,33 @@ const TalkToTwin = () => {
           .twin-chat-container { height: 100dvh !important; max-height: 100dvh !important; }
         }
       `}</style>
+      {/* Conversation List Panel */}
+      {showConversationList && (
+        <>
+          <div
+            className="absolute inset-0 z-20"
+            onClick={() => setShowConversationList(false)}
+          />
+          <div
+            className="absolute left-0 top-0 bottom-0 z-30 w-72 bg-[#0C0C0C] border-r border-[rgba(255,255,255,0.06)] flex flex-col"
+          >
+            <ConversationList
+              activeConversationId={conversationId}
+              onSelectConversation={handleSelectConversation}
+              onNewChat={handleNewChat}
+            />
+          </div>
+        </>
+      )}
+
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
         <ChatHeader
           hasMessages={messages.length > 0}
           showContext={showContext}
+          showConversationList={showConversationList}
           onClearChat={handleClearChat}
           onToggleContext={() => setShowContext(!showContext)}
+          onToggleConversationList={() => setShowConversationList(prev => !prev)}
         />
 
         {messages.length === 0 && (

@@ -220,8 +220,32 @@ router.post('/message', authenticateUser, async (req, res) => {
   const chatLog = (label) => log.debug(label, { elapsedMs: Date.now() - chatStartTime });
   try {
     const userId = req.user.id;
-    const { message, conversationId, context } = req.body;
+    const { message, conversationId: rawConversationId, context } = req.body;
+    let conversationId = rawConversationId;
     chatLog(`Message received from ${userId}: "${message?.substring(0, 50)}..."`);
+
+    // Auto-create conversation on first message (no conversationId from client)
+    if (!conversationId) {
+      try {
+        const title = (message || '').substring(0, 60) + ((message || '').length > 60 ? '...' : '');
+        const { data: newConv, error: convError } = await supabaseAdmin
+          .from('twin_conversations')
+          .insert({
+            user_id: userId,
+            title,
+            mode: 'twin',
+          })
+          .select('id')
+          .single();
+
+        if (!convError && newConv) {
+          conversationId = newConv.id;
+          log.info('Created new conversation', { conversationId, title });
+        }
+      } catch (err) {
+        log.warn('Failed to create conversation (non-fatal)', { error: err.message });
+      }
+    }
 
     // Feature flags: per-user A/B toggles (default all enabled)
     const featureFlags = await getFeatureFlags(userId).catch(() => ({}));
@@ -1103,6 +1127,36 @@ RULES:
         .catch(() => {}); // non-fatal
     }
 
+    // Save both messages to twin_messages for conversation history
+    if (conversationId) {
+      // Save user message (fire-and-forget)
+      supabaseAdmin
+        .from('twin_messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'user',
+          content: message,
+          metadata: {},
+        })
+        .then(() => {})
+        .catch(err => log.warn('Failed to save user message', { error: err.message }));
+
+      // Save assistant message (fire-and-forget)
+      supabaseAdmin
+        .from('twin_messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: assistantMessage,
+          metadata: {
+            model: routedModel || 'unknown',
+            tier: routingTier || 'unknown',
+          },
+        })
+        .then(() => {})
+        .catch(err => log.warn('Failed to save assistant message', { error: err.message }));
+    }
+
     // Store conversation in UNIFIED database (shared with MCP) - non-blocking
     // Flatten system prompt blocks into single string for fine-tuning export
     const renderedSystemPromptText = systemPrompt
@@ -1291,6 +1345,63 @@ RULES:
       error: 'Failed to process your message',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+});
+
+/**
+ * GET /api/chat/conversations - List user's conversations
+ */
+router.get('/conversations', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    const { data, error } = await supabaseAdmin
+      .from('twin_conversations')
+      .select(`
+        id,
+        title,
+        mode,
+        updated_at,
+        created_at
+      `)
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+
+    // For each conversation, get the last message preview
+    const conversations = await Promise.all(
+      (data || []).map(async (conv) => {
+        const { data: lastMsg } = await supabaseAdmin
+          .from('twin_messages')
+          .select('content, role, created_at')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        return {
+          id: conv.id,
+          title: conv.title,
+          lastMessage: lastMsg?.content?.substring(0, 100) || null,
+          lastMessageRole: lastMsg?.role || null,
+          updatedAt: conv.updated_at,
+          createdAt: conv.created_at,
+        };
+      })
+    );
+
+    // Filter out conversations with no messages
+    const withMessages = conversations.filter(c => c.lastMessage);
+
+    res.json({ success: true, conversations: withMessages });
+  } catch (err) {
+    log.error('List conversations failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to list conversations' });
   }
 });
 

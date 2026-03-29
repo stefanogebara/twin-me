@@ -7,4 +7,5 @@ export { ChatMessage } from './ChatMessage';
 export { MessageActions } from './MessageActions';
 export { ContextualQuickActions } from './ContextualQuickActions';
 export { ConversationControls } from './ConversationControls';
+export { ConversationList } from './ConversationList';
 export { SoulChatInterface } from './SoulChatInterface';
