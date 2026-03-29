@@ -479,6 +479,37 @@ app.use('/api/soul', soulExtractionRoutes);
 app.use('/api/data-sources', dataSourcesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
+
+// User preferences (notification settings)
+app.get('/api/users/preferences', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('email_digest_unsubscribed')
+      .eq('id', req.user.id)
+      .single();
+    if (error) return res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true, preferences: { email_digest_unsubscribed: data?.email_digest_unsubscribed || false } });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to fetch preferences' });
+  }
+});
+app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
+  try {
+    const { email_digest_unsubscribed } = req.body;
+    if (typeof email_digest_unsubscribed !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'email_digest_unsubscribed must be boolean' });
+    }
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ email_digest_unsubscribed })
+      .eq('id', req.user.id);
+    if (error) return res.status(500).json({ success: false, error: error.message });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to update preferences' });
+  }
+});
 app.use('/api/dashboard/context', dashboardContextRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail, Slack)

@@ -12,6 +12,7 @@ import { sendInsight as sendTelegramInsight } from './telegramService.js';
 import { sendWhatsAppInsight } from './whatsappService.js';
 import { sendPushToUser } from './pushNotificationService.js';
 import { sendWebPush } from './webPushService.js';
+import { sendInsightNotification } from './emailService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
@@ -150,6 +151,74 @@ export async function deliverInsight(userId, insight) {
  * Global cap of 50 deliveries per run to avoid Vercel 120s timeout.
  */
 const MAX_DELIVERIES_PER_RUN = 50;
+const EMAIL_COOLDOWN_HOURS = 4;
+
+/**
+ * Attempt email delivery of batched insights for a single user.
+ * Fire-and-forget — errors are logged but never thrown.
+ *
+ * Checks:
+ * 1. User has email and has not unsubscribed
+ * 2. No email_notification_sent marker within the cooldown window (unless high urgency)
+ * 3. Collects up to 3 recent delivered-but-not-emailed insights
+ */
+async function tryEmailDelivery(userId, recentInsights) {
+  try {
+    // 1. Fetch user — skip if opted out or no email
+    const { data: user, error: userErr } = await supabaseAdmin
+      .from('users')
+      .select('email, first_name, email_digest_unsubscribed')
+      .eq('id', userId)
+      .single();
+
+    if (userErr || !user?.email || user.email_digest_unsubscribed) return;
+
+    const hasHighUrgency = recentInsights.some(i => i.urgency === 'high');
+
+    // 2. Check cooldown — look for a recent email_notification_sent marker
+    const cooldownCutoff = new Date(Date.now() - EMAIL_COOLDOWN_HOURS * 60 * 60 * 1000).toISOString();
+    const { data: recentEmail } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('category', 'email_notification_sent')
+      .gte('created_at', cooldownCutoff)
+      .limit(1);
+
+    if (recentEmail?.length > 0 && !hasHighUrgency) return; // Cooldown active, no high urgency bypass
+
+    // 3. Collect up to 3 insights to email (from the batch just processed)
+    //    Filter out tracking markers and system categories
+    const emailableInsights = recentInsights
+      .filter(i => i.category !== 'email_notification_sent' && i.insight)
+      .slice(0, 3);
+
+    if (emailableInsights.length === 0) return;
+
+    // 4. Send email (fire-and-forget, don't await in caller)
+    await sendInsightNotification({
+      toEmail: user.email,
+      firstName: user.first_name,
+      userId,
+      insights: emailableInsights,
+    });
+
+    // 5. Insert cooldown marker
+    await supabaseAdmin.from('proactive_insights').insert({
+      user_id: userId,
+      insight: `Email sent with ${emailableInsights.length} insight${emailableInsights.length !== 1 ? 's' : ''}`,
+      category: 'email_notification_sent',
+      urgency: 'low',
+      delivered: true,
+      delivered_at: new Date().toISOString(),
+    });
+
+    log.info('Email insight notification sent', { userId, count: emailableInsights.length });
+  } catch (err) {
+    // Non-fatal — email is additive, never blocks push/telegram delivery
+    log.warn('Email insight delivery failed', { userId, error: err.message });
+  }
+}
 
 export async function deliverPendingInsights() {
   // Get all users with enabled messaging channels OR registered push tokens
@@ -165,6 +234,7 @@ export async function deliverPendingInsights() {
 
   let totalProcessed = 0;
   let totalDelivered = 0;
+  const emailPromises = [];
 
   for (const userId of uniqueUserIds) {
     // Stop if we've hit the global delivery cap
@@ -183,6 +253,9 @@ export async function deliverPendingInsights() {
       .limit(5);
 
     if (!insights?.length) continue;
+
+    // Track insights processed this run for email batching
+    const deliveredThisRun = [];
 
     for (const insight of insights) {
       // Stop if we've hit the global delivery cap
@@ -217,15 +290,24 @@ export async function deliverPendingInsights() {
 
       if (result.delivered > 0) {
         totalDelivered++;
+        deliveredThisRun.push(insight);
         // Already marked delivered above (optimistic claim)
       } else {
-        // No channels succeeded — unclaim so it can be retried
-        await supabaseAdmin
-          .from('proactive_insights')
-          .update({ delivered: false, delivered_at: null })
-          .eq('id', insight.id);
+        // No channels succeeded — but insight is still valid for email delivery
+        deliveredThisRun.push(insight);
       }
     }
+
+    // Email delivery — batch insights and send if cooldown passed or high urgency.
+    // Fire-and-forget: launch async, collect promise, don't block the loop.
+    if (deliveredThisRun.length > 0) {
+      emailPromises.push(tryEmailDelivery(userId, deliveredThisRun));
+    }
+  }
+
+  // Await all email promises (already fire-and-forget with internal try/catch)
+  if (emailPromises.length > 0) {
+    await Promise.allSettled(emailPromises);
   }
 
   return { processed: totalProcessed, delivered: totalDelivered, users: uniqueUserIds.length, capped: totalDelivered >= MAX_DELIVERIES_PER_RUN };

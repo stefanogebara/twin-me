@@ -286,6 +286,78 @@ export async function sendPlatformNudge({ toEmail, firstName, userId }) {
 }
 
 /**
+ * Proactive insight notification email — batched insights from the twin.
+ *
+ * @param {object} params
+ * @param {string} params.toEmail
+ * @param {string} params.firstName
+ * @param {string} params.userId
+ * @param {Array<{insight: string, category: string, urgency: string}>} params.insights
+ */
+export async function sendInsightNotification({ toEmail, firstName, userId, insights }) {
+  if (!resend) { log.warn('Skipping insight notification email (Resend not configured)'); return; }
+  if (!insights?.length) return;
+
+  const safeName = escapeHtml(firstName || 'there');
+  const unsubToken = generateUnsubscribeToken(userId);
+  const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
+
+  const emojiMap = {
+    nudge: '💡', trend: '📊', concern: '⚠️', celebration: '🎉',
+    goal_progress: '🎯', pattern: '🧠', suggestion: '✨',
+    anomaly: '⚠️', briefing: '☀️', reminder: '🔔',
+    default: '💬',
+  };
+
+  const insightCards = insights.slice(0, 3).map(i => {
+    const emoji = emojiMap[i.category] || emojiMap.default;
+    return `
+      <div style="${S.card}">
+        <p style="${S.cardText}">
+          <span style="font-size:16px;margin-right:8px;">${emoji}</span>
+          ${escapeHtml((i.insight || '').slice(0, 300))}
+        </p>
+      </div>`;
+  }).join('');
+
+  const subjectLine = insights.length === 1
+    ? `Your twin noticed: ${(insights[0].insight || '').substring(0, 50)}...`
+    : `Your twin has ${insights.length} things to share`;
+
+  const body = `
+  <p style="${S.heading}">Hey ${safeName}, your twin noticed something</p>
+  <p style="${S.body}">
+    ${insights.length === 1 ? "Here's what caught my attention:" : `Here are ${insights.length} things I noticed:`}
+  </p>
+
+  <div style="${S.divider}"></div>
+
+  ${insightCards}
+
+  <div style="margin-top:28px;">
+    <a href="${APP_URL}/talk-to-twin" style="${S.cta}">Talk to your twin &rarr;</a>
+  </div>
+
+  <div style="${S.footer}">
+    <p style="margin:0 0 4px;">Your twin sends these when it notices something worth sharing.</p>
+    <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Unsubscribe from notifications</a></p>
+  </div>`;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: subjectLine,
+      html: emailShell(body),
+    });
+    log.info('Insight notification email sent', { email: toEmail, userId, count: insights.length });
+  } catch (err) {
+    log.error('Insight notification email failed', { error: err.message, email: toEmail });
+    throw err;
+  }
+}
+
+/**
  * Morning briefing email — personalized daily update from the twin.
  *
  * @param {object} params

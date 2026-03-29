@@ -9,6 +9,7 @@ import ConnectedPlatformsSettings from './components/settings/ConnectedPlatforms
 import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
 import WhatsAppConnect from './components/settings/WhatsAppConnect';
+import NotificationSettings from './components/settings/NotificationSettings';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
 
@@ -529,6 +530,20 @@ const Settings = () => {
       >
         <TelegramConnect isDemoMode={isDemoMode} />
         <WhatsAppConnect isDemoMode={isDemoMode} />
+      </div>
+
+      {/* ── SECTION 6B: NOTIFICATIONS ── */}
+      <SectionLabel label="Notifications" />
+      <div
+        className="rounded-[20px] px-5 py-4 mb-10"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid var(--glass-surface-border)',
+        }}
+      >
+        <NotificationSettings userId={user?.id || ''} />
       </div>
 
       {/* ── SECTION 7: DATA & PRIVACY ── */}
