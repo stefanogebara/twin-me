@@ -55,6 +55,10 @@ export async function saveEnrichment(userId, email, enrichmentData) {
       social_media_presence: enrichmentData.social_media_presence || null,
       discovered_instagram_url: enrichmentData.discovered_instagram_url || null,
       discovered_personal_website: enrichmentData.discovered_personal_website || null,
+      // Google Gaia enrichment
+      google_gaia_id: enrichmentData.google_gaia_id || null,
+      google_maps_contributions: enrichmentData.google_maps_contributions || null,
+      google_linked_youtube: enrichmentData.google_linked_youtube || null,
       // Email reputation & breach data
       email_reputation: enrichmentData.email_reputation || null,
       email_age_days: enrichmentData.email_age_days || null,

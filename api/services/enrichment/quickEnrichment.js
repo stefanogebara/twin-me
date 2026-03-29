@@ -10,6 +10,7 @@ import { enrichFromEmailRep } from './emailRepProvider.js';
 import { enrichFromHIBP } from './hibpProvider.js';
 import { mapBreachesToIntegrations } from './breachPlatformMapper.js';
 import { lookupWhatsMyName } from './wmnProvider.js';
+import { scoreEnrichmentQuality } from './enrichmentQualityScorer.js';
 
 const log = createLogger('Quickenrichment');
 
@@ -31,11 +32,11 @@ export async function quickEnrich(email, name = null) {
   const startTime = Date.now();
   const username = email.split('@')[0];
 
-  // Run all providers in parallel (13 lookups, each with own timeout)
+  // Run all FREE providers in parallel (12 lookups, each with own timeout)
   const [
     gravatarResult, githubEmailResult, githubUsernameResult, socialResult,
     redditResult, hnResult, hunterResult, spotifyResult, twitterResult,
-    pdlResult, holeheResult, emailRepResult, hibpResult,
+    holeheResult, emailRepResult, hibpResult,
   ] = await Promise.allSettled([
     lookupGravatar(email),
     lookupGitHub(email),
@@ -46,7 +47,6 @@ export async function quickEnrich(email, name = null) {
     lookupHunter(email),
     probeSpotify(username),
     lookupTwitterViaBrave(username, name),
-    enrichFromPDL(email),
     discoverPlatforms(email),
     enrichFromEmailRep(email),
     enrichFromHIBP(email),
@@ -61,7 +61,6 @@ export async function quickEnrich(email, name = null) {
   const hunter = hunterResult.status === 'fulfilled' ? hunterResult.value : null;
   const spotify = spotifyResult.status === 'fulfilled' ? spotifyResult.value : null;
   const twitterBrave = twitterResult.status === 'fulfilled' ? twitterResult.value : null;
-  const pdl = pdlResult.status === 'fulfilled' ? pdlResult.value : null;
   const discoveredPlatforms = holeheResult.status === 'fulfilled' ? holeheResult.value : [];
   const emailRep = emailRepResult.status === 'fulfilled' ? emailRepResult.value : null;
   const hibp = hibpResult.status === 'fulfilled' ? hibpResult.value : null;
@@ -79,6 +78,30 @@ export async function quickEnrich(email, name = null) {
   // Second pass: WhatsMyName username cascade (needs a username from first pass)
   const cascadeUsername = github?.login || reddit?.username || username;
   const wmn = await lookupWhatsMyName(cascadeUsername);
+
+  // Third pass: Conditional PDL — only call if free sources returned minimal data
+  const freeDataPreview = {
+    discovered_name: github?.name || gravatar?.name || null,
+    discovered_photo: github?.avatar || gravatar?.photo || null,
+    discovered_bio: github?.bio || reddit?.bio || hackerNews?.bio || twitterBrave?.bio || null,
+    discovered_company: github?.company || hunter?.company || null,
+    discovered_location: github?.location || gravatar?.location || null,
+    social_links: [gravatar?.socialLinks, socialProfiles].flat().filter(Boolean),
+    github_repos: github?.publicRepos || null,
+    reddit_interests: reddit?.topSubreddits || null,
+    hn_karma: hackerNews?.karma || null,
+    breach_services: allBreachServices.length > 0 ? allBreachServices : null,
+    email_reputation: emailRep?.reputation || null,
+    wmn_count: wmn?.totalFound || 0,
+  };
+  const qualityScore = scoreEnrichmentQuality(freeDataPreview);
+  let pdl = null;
+  if (qualityScore.isMinimal) {
+    log.info(`Free enrichment score ${qualityScore.score}/18 (minimal) — calling PDL fallback`, { missing: qualityScore.missingFields });
+    pdl = await enrichFromPDL(email);
+  } else {
+    log.info(`Free enrichment score ${qualityScore.score}/18 — skipping PDL (sufficient data)`);
+  }
 
   // Build social links from all sources
   const allSocialLinks = [

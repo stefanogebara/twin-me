@@ -188,6 +188,25 @@ async function seedMemoriesFromEnrichment(userId) {
       });
     }
 
+    // Google Maps contributions
+    if (profile.google_maps_contributions) {
+      const { reviewCount, photoCount } = profile.google_maps_contributions;
+      if (reviewCount > 0 || photoCount > 0) {
+        memoryEntries.push({
+          content: `Active Google Maps contributor with ${reviewCount} reviews and ${photoCount} photos`,
+          importance: 5,
+        });
+      }
+    }
+
+    // Linked YouTube channel
+    if (profile.google_linked_youtube) {
+      memoryEntries.push({
+        content: `Has a YouTube channel: ${profile.google_linked_youtube}`,
+        importance: 6,
+      });
+    }
+
     // Breach-derived platform presence (from HIBP + emailrep)
     if (profile.breach_mapped_integrations && Array.isArray(profile.breach_mapped_integrations) && profile.breach_mapped_integrations.length > 0) {
       memoryEntries.push({

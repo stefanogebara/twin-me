@@ -14,6 +14,7 @@ import {
 } from '../services/webhookReceiverService.js';
 import { encryptToken, decryptToken, decryptState } from '../services/encryption.js';
 import { createLogger } from '../services/logger.js';
+import { enrichGoogleProfileInBackground } from '../services/enrichment/googleGaiaProvider.js';
 
 const log = createLogger('OAuthCallback');
 
@@ -87,6 +88,9 @@ router.get('/callback', async (req, res) => {
 
     // Extract data in background (don't wait for completion)
     extractDataInBackground(userId, provider, tokens.access_token, connectorId);
+
+    // Fire-and-forget: enrich profile from Google People API (Gaia ID, Maps, YouTube)
+    enrichGoogleProfileInBackground(userId, provider, tokens.access_token);
 
     // Redirect back to Soul Signature Dashboard with success
     res.redirect(`${appUrl}/soul-signature?connected=${provider}`);
