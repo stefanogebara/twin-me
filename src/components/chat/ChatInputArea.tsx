@@ -52,7 +52,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
     const [isFocused, setIsFocused] = useState(false);
 
     return (
-      <div className="px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
+      <div className="px-3 sm:px-6 pb-6 pt-2 max-w-3xl mx-auto w-full">
         <div
           className="flex items-center gap-3 rounded-[20px] px-5 py-3 transition-colors duration-200"
           style={{
@@ -100,7 +100,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                   {ghostSuggestion}
                 </span>
                 <span
-                  className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                  className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 hidden sm:inline"
                   style={{
                     color: 'rgba(255,255,255,0.2)',
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -159,7 +159,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
 
         {/* Connected Platforms Bar */}
         <div
-          className="flex items-center gap-3 mt-2 px-3 cursor-pointer group"
+          className="flex items-center gap-3 mt-2 px-3 cursor-pointer group overflow-x-auto"
           onClick={() => navigate('/get-started')}
           role="link"
           tabIndex={0}

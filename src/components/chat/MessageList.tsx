@@ -76,7 +76,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
     const { rated, markRated } = useRatedMessages();
     const { copied, markCopied } = useCopiedMessages();
     return (
-      <div className="px-4 py-6 max-w-3xl mx-auto w-full">
+      <div className="px-3 sm:px-4 py-6 max-w-full md:max-w-3xl md:mx-auto w-full">
         {messages.map((message, index) => {
           const isUser = message.role === 'user';
           const isLast = index === messages.length - 1;
@@ -95,7 +95,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
               {isUser ? (
                 /* ── User message: right-aligned, no background ── */
                 <div className="flex flex-col items-end">
-                  <div className="max-w-[80%] px-1 py-2">
+                  <div className="max-w-[90%] sm:max-w-[80%] px-1 py-2">
                     <p
                       className="whitespace-pre-wrap text-right"
                       style={{

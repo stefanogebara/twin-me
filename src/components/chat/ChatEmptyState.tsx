@@ -98,7 +98,7 @@ export const ChatEmptyState = ({
   }, []);
 
   return (
-    <div className="h-full flex flex-col items-center justify-center px-6 min-h-[60vh]">
+    <div className="h-full flex flex-col items-center justify-center px-4 sm:px-6 min-h-[40vh] sm:min-h-[60vh]">
       {/* Date line */}
       <span
         className="text-center mb-2"
@@ -113,11 +113,10 @@ export const ChatEmptyState = ({
 
       {/* Time-aware greeting */}
       <h2
-        className="text-center mb-2"
+        className="text-center mb-2 text-[24px] sm:text-[32px]"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontStyle: 'italic',
-          fontSize: '32px',
           fontWeight: 300,
           color: '#F5F5F4',
           letterSpacing: '-0.02em',
@@ -168,12 +167,12 @@ export const ChatEmptyState = ({
 
       {/* Suggestion pills — time-based action chips */}
       {connectedPlatforms.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-2.5">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
           {chips.map((chip, idx) => (
             <button
               key={idx}
               onClick={() => onQuickAction(chip)}
-              className="px-4 py-2 rounded-full text-[13px] transition-colors duration-150 active:scale-[0.97]"
+              className="px-3 sm:px-4 py-2 rounded-full text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
               style={{
                 color: 'rgba(255,255,255,0.5)',
                 background: 'transparent',

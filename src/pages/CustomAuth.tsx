@@ -393,8 +393,7 @@ For privacy concerns: privacy@twinme.ai`
       <div
         className="hidden lg:flex flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
         style={{
-          background: `linear-gradient(180deg, rgb(30,22,15) 0%, rgb(60,40,25) 25%, rgb(90,60,35) 50%,
-              rgb(65,45,30) 75%, rgb(25,18,12) 100%)`,
+          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
           borderRadius: '24px',
         }}
       >

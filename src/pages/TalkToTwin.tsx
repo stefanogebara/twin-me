@@ -401,7 +401,7 @@ const TalkToTwin = () => {
   }
 
   return (
-    <div className="flex twin-chat-container" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
+    <div className="flex twin-chat-container overflow-x-hidden" style={{ height: 'calc(100dvh - 64px - 80px)', maxHeight: 'calc(100dvh - 64px - 80px)' }}>
       {/* Mobile: subtract pt-16 (64px) + pb-20 (80px) from SidebarLayout wrapper.
           Desktop: use full viewport height (sidebar layout has no top/bottom padding on lg+). */}
       <style>{`
