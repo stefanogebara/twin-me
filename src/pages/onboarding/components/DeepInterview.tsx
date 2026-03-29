@@ -335,61 +335,58 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   };
 
   const handleDoneEarly = async () => {
-    await voice.endVoice();
-    if (messages.length >= 4) {
-      setLoading(true);
-      try {
-        const token = getAuthToken();
-        const response = await fetch(`${API_URL}/onboarding/voice/complete`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({
-            conversationHistory: messages,
-            enrichmentContext,
-          }),
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.done) {
-            setIsDone(true);
-            setSummary(result.personality_summary || '');
-            clearProgress();
-            await generateEnhancedSignature({
-              insights: result.insights,
-              archetypeHint: result.archetype_hint,
-              summary: result.personality_summary,
-            });
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('[DeepInterview] Early completion error:', err);
-      }
-      setLoading(false);
-    }
-    // Save partial interview answers as memories before skipping
+    // Navigate immediately — don't block on LLM calls
+    voice.endVoice().catch(() => {});
+    clearProgress();
+
     const token = getAuthToken();
-    const userAnswers = messages.filter(m => m.role === 'user');
-    if (token && userAnswers.length > 0) {
-      fetch(`${API_URL}/onboarding/calibrate`, {
+
+    if (messages.length >= 4) {
+      // Fire completion + signature generation in background (non-blocking)
+      fetch(`${API_URL}/onboarding/voice/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          history: messages.map(m => ({ role: m.role, content: m.content })),
-          questionNumber: questionNumber,
-          domainProgress,
-          forceComplete: true,
+          conversationHistory: messages,
+          enrichmentContext,
         }),
-      }).catch(err => console.warn('[DeepInterview] Partial save failed:', err));
+      })
+        .then(r => r.ok ? r.json() : null)
+        .then(result => {
+          if (result?.done) {
+            // Signature generation also in background
+            generateEnhancedSignature({
+              insights: result.insights,
+              archetypeHint: result.archetype_hint,
+              summary: result.personality_summary,
+            }).catch(() => {});
+          }
+        })
+        .catch(err => console.warn('[DeepInterview] Background completion:', err));
+    } else {
+      // Save partial interview answers in background
+      const userAnswers = messages.filter(m => m.role === 'user');
+      if (token && userAnswers.length > 0) {
+        fetch(`${API_URL}/onboarding/calibrate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            history: messages.map(m => ({ role: m.role, content: m.content })),
+            questionNumber: questionNumber,
+            domainProgress,
+            forceComplete: true,
+          }),
+        }).catch(err => console.warn('[DeepInterview] Partial save failed:', err));
+      }
     }
-    clearProgress();
+
+    // Navigate immediately — don't wait for API calls
     onSkip();
   };
 
