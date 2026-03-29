@@ -4,8 +4,34 @@ import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
 
 const REMARK_PLUGINS = [remarkGfm];
-import { RotateCcw, AlertCircle, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
+import { RotateCcw, AlertCircle, WifiOff, Clock, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
 import { WorkspaceActionCard } from './WorkspaceActionCard';
+
+type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
+
+function getErrorMessage(errorType?: ChatErrorType): string {
+  switch (errorType) {
+    case 'timeout':
+      return "Your twin is taking longer than usual. Try again \u2014 the first message after a while can be slow.";
+    case 'rate_limit':
+      return "You've sent too many messages. Take a breath and try again in a minute.";
+    case 'network':
+      return "You're offline. Connect to the internet to chat with your twin.";
+    default:
+      return "Couldn't reach your twin. This usually means the server is warming up.";
+  }
+}
+
+function getErrorIcon(errorType?: ChatErrorType) {
+  switch (errorType) {
+    case 'timeout':
+      return <Clock className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+    case 'network':
+      return <WifiOff className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+    default:
+      return <AlertCircle className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(239,68,68,0.8)' }} />;
+  }
+}
 
 function formatRelativeTime(date: Date): string {
   const now = new Date();
@@ -32,6 +58,7 @@ interface Message {
   content: string;
   timestamp: Date;
   failed?: boolean;
+  errorType?: ChatErrorType;
   actions?: ActionEvent[];
   contextUsed?: {
     soulSignature?: boolean;
@@ -109,18 +136,38 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     </p>
 
                     {message.failed && (
-                      <div className="flex items-center gap-2 mt-2 justify-end">
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#EF4444' }} />
-                        <span className="text-xs" style={{ color: '#EF4444' }}>Failed to send</span>
-                        {onRetry && (
-                          <button
-                            onClick={() => onRetry(message.content, message.id)}
-                            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-opacity hover:opacity-70"
-                            style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#EF4444' }}
+                      <div
+                        className="mt-3 rounded-lg px-4 py-3"
+                        style={{
+                          backgroundColor: 'rgba(239,68,68,0.08)',
+                          border: '1px solid rgba(239,68,68,0.15)',
+                        }}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {getErrorIcon(message.errorType)}
+                          <p
+                            className="text-[13px] leading-relaxed"
+                            style={{ color: 'rgba(239,68,68,0.8)' }}
                           >
-                            <RotateCcw className="w-3 h-3" />
-                            Retry
-                          </button>
+                            {getErrorMessage(message.errorType)}
+                          </p>
+                        </div>
+                        {onRetry && message.errorType !== 'rate_limit' && (
+                          <div className="mt-2.5 flex justify-end">
+                            <button
+                              onClick={() => onRetry(message.content, message.id)}
+                              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
+                              style={{
+                                backgroundColor: 'rgba(239,68,68,0.1)',
+                                color: 'rgba(239,68,68,0.9)',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Try again
+                            </button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -158,18 +205,38 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                     </div>
 
                     {message.failed && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#EF4444' }} />
-                        <span className="text-xs" style={{ color: '#EF4444' }}>Failed to send</span>
-                        {onRetry && (
-                          <button
-                            onClick={() => onRetry(message.content, message.id)}
-                            className="flex items-center gap-1 text-xs px-2 py-0.5 rounded transition-opacity hover:opacity-70"
-                            style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#EF4444' }}
+                      <div
+                        className="mt-3 rounded-lg px-4 py-3"
+                        style={{
+                          backgroundColor: 'rgba(239,68,68,0.08)',
+                          border: '1px solid rgba(239,68,68,0.15)',
+                        }}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {getErrorIcon(message.errorType)}
+                          <p
+                            className="text-[13px] leading-relaxed"
+                            style={{ color: 'rgba(239,68,68,0.8)' }}
                           >
-                            <RotateCcw className="w-3 h-3" />
-                            Retry
-                          </button>
+                            {getErrorMessage(message.errorType)}
+                          </p>
+                        </div>
+                        {onRetry && message.errorType !== 'rate_limit' && (
+                          <div className="mt-2.5 flex justify-start">
+                            <button
+                              onClick={() => onRetry(message.content, message.id)}
+                              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
+                              style={{
+                                backgroundColor: 'rgba(239,68,68,0.1)',
+                                color: 'rgba(239,68,68,0.9)',
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.15)'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.1)'; }}
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Try again
+                            </button>
+                          </div>
                         )}
                       </div>
                     )}

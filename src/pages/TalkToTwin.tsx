@@ -5,6 +5,7 @@ import { useAnalytics } from '../contexts/AnalyticsContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useChatSession } from '../hooks/useChatSession';
+import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
@@ -31,6 +32,7 @@ interface Message {
   content: string;
   timestamp: Date;
   failed?: boolean;
+  errorType?: 'timeout' | 'rate_limit' | 'network' | 'generic';
   actions?: ActionEvent[];
   contextUsed?: {
     soulSignature?: boolean;
@@ -73,6 +75,7 @@ const TalkToTwin = () => {
   const location = useLocation();
   const { user, isSignedIn } = useAuth();
   const { trackFunnel } = useAnalytics();
+  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -167,6 +170,14 @@ const TalkToTwin = () => {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !user?.id) return;
 
+    if (!navigator.onLine) {
+      toast({
+        title: 'Offline',
+        description: "Connect to the internet to chat with your twin.",
+      });
+      return;
+    }
+
     const msgCount = messages.filter(m => m.role === 'user').length + 1;
     trackFunnel('twin_chat_message_sent', {
       message_number: msgCount,
@@ -203,11 +214,12 @@ const TalkToTwin = () => {
       });
 
       if (response.status === 429) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setLimitReached(true);
         if (data.usage) setChatUsage({ used: data.usage.used, limit: data.usage.limit, remaining: 0, tier: data.usage.tier });
-        setMessages(prev => prev.filter(m => m.id !== userMessage.id));
-        setInputMessage(currentInput);
+        setMessages(prev => prev.map(m =>
+          m.id === userMessage.id ? { ...m, failed: true, errorType: 'rate_limit' as const } : m
+        ));
         return;
       }
 
@@ -219,6 +231,7 @@ const TalkToTwin = () => {
       const decoder = new TextDecoder();
       let buffer = '';
       let firstChunk = true;
+      let receivedDoneEvent = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -249,6 +262,7 @@ const TalkToTwin = () => {
                 ));
               }
             } else if (event.type === 'done') {
+              receivedDoneEvent = true;
               if (event.conversationId) setConversationId(event.conversationId);
               if (event.contextSources) {
                 setMessages(prev => prev.map(m =>
@@ -312,9 +326,9 @@ const TalkToTwin = () => {
               setMessages(prev => {
                 const hasMsg = prev.some(m => m.id === assistantMsgId);
                 if (hasMsg) {
-                  return prev.map(m => m.id === assistantMsgId ? { ...m, failed: true } : m);
+                  return prev.map(m => m.id === assistantMsgId ? { ...m, failed: true, errorType: 'generic' as const } : m);
                 }
-                return prev.map(m => m.id === userMessage.id ? { ...m, failed: true } : m);
+                return prev.map(m => m.id === userMessage.id ? { ...m, failed: true, errorType: 'generic' as const } : m);
               });
             }
           } catch {
@@ -322,14 +336,23 @@ const TalkToTwin = () => {
           }
         }
       }
+
+      // Stream ended without any content chunks and no done event = timeout
+      if (firstChunk && !receivedDoneEvent) {
+        setMessages(prev => prev.map(m =>
+          m.id === userMessage.id ? { ...m, failed: true, errorType: 'timeout' as const } : m
+        ));
+      }
     } catch (error) {
       console.error('Chat error:', error);
+      const isNetworkError = error instanceof TypeError && error.message === 'Failed to fetch';
+      const errorType: Message['errorType'] = isNetworkError ? 'network' : 'generic';
       setMessages(prev => {
         const hasAssistantMsg = prev.some(m => m.id === assistantMsgId);
         if (hasAssistantMsg) {
-          return prev.map(m => m.id === assistantMsgId ? { ...m, failed: true } : m);
+          return prev.map(m => m.id === assistantMsgId ? { ...m, failed: true, errorType } : m);
         }
-        return prev.map(m => m.id === userMessage.id ? { ...m, failed: true } : m);
+        return prev.map(m => m.id === userMessage.id ? { ...m, failed: true, errorType } : m);
       });
     } finally {
       setIsTyping(false);
