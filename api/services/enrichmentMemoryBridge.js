@@ -188,6 +188,31 @@ async function seedMemoriesFromEnrichment(userId) {
       });
     }
 
+    // Breach-derived platform presence (from HIBP + emailrep)
+    if (profile.breach_mapped_integrations && Array.isArray(profile.breach_mapped_integrations) && profile.breach_mapped_integrations.length > 0) {
+      memoryEntries.push({
+        content: `Has accounts on platforms: ${profile.breach_mapped_integrations.join(', ')}`,
+        importance: 6,
+      });
+    }
+
+    // Email age signal
+    if (profile.email_age_days && profile.email_age_days > 365) {
+      const years = Math.round(profile.email_age_days / 365);
+      memoryEntries.push({
+        content: `Has been using this email address for approximately ${years} year${years !== 1 ? 's' : ''}`,
+        importance: 4,
+      });
+    }
+
+    // Digital footprint breadth
+    if (profile.digital_footprint_score && profile.digital_footprint_score > 5) {
+      memoryEntries.push({
+        content: `Has a broad digital footprint across ${profile.digital_footprint_score} online services`,
+        importance: 5,
+      });
+    }
+
     if (memoryEntries.length === 0) {
       log.info(`No meaningful enrichment fields for user ${userId}`);
       return { success: true, memoriesStored: 0 };

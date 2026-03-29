@@ -112,6 +112,21 @@ function summarizeEnrichmentData(data) {
   if (data.achievements) lines.push(`Achievements: ${data.achievements.slice(0, 200)}`);
   if (data.skills && !data.pdl_skills?.length) lines.push(`Skills: ${data.skills.slice(0, 200)}`);
 
+  // Email reputation & breach data
+  if (data.email_reputation) lines.push(`Email reputation: ${data.email_reputation}`);
+  if (data.email_age_days && data.email_age_days > 365) {
+    lines.push(`Email age: ~${Math.round(data.email_age_days / 365)} years`);
+  }
+  if (data.breach_mapped_integrations?.length) {
+    lines.push(`Known platform accounts (from breach data): ${data.breach_mapped_integrations.join(', ')}`);
+  }
+  if (data.breach_social_profiles?.length) {
+    lines.push(`Other social accounts detected: ${data.breach_social_profiles.join(', ')}`);
+  }
+  if (data.digital_footprint_score > 0) {
+    lines.push(`Digital footprint breadth: ${data.digital_footprint_score} services`);
+  }
+
   // Personal
   if (data.interests_and_hobbies) lines.push(`Hobbies: ${data.interests_and_hobbies.slice(0, 200)}`);
   if (data.personality_traits) lines.push(`Personality signals: ${data.personality_traits.slice(0, 200)}`);

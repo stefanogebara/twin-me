@@ -6,6 +6,9 @@ import { probeSpotify } from './spotifyProbeProvider.js';
 import { lookupTwitterViaBrave } from './twitterBraveProvider.js';
 import { enrichFromPDL } from './pdlProvider.js';
 import { discoverPlatforms } from './holeheProvider.js';
+import { enrichFromEmailRep } from './emailRepProvider.js';
+import { enrichFromHIBP } from './hibpProvider.js';
+import { mapBreachesToIntegrations } from './breachPlatformMapper.js';
 
 const log = createLogger('Quickenrichment');
 
@@ -27,11 +30,11 @@ export async function quickEnrich(email, name = null) {
   const startTime = Date.now();
   const username = email.split('@')[0];
 
-  // Run all providers in parallel (11 lookups, each with own timeout)
+  // Run all providers in parallel (13 lookups, each with own timeout)
   const [
     gravatarResult, githubEmailResult, githubUsernameResult, socialResult,
     redditResult, hnResult, hunterResult, spotifyResult, twitterResult,
-    pdlResult, holeheResult,
+    pdlResult, holeheResult, emailRepResult, hibpResult,
   ] = await Promise.allSettled([
     lookupGravatar(email),
     lookupGitHub(email),
@@ -44,6 +47,8 @@ export async function quickEnrich(email, name = null) {
     lookupTwitterViaBrave(username, name),
     enrichFromPDL(email),
     discoverPlatforms(email),
+    enrichFromEmailRep(email),
+    enrichFromHIBP(email),
   ]);
 
   const gravatar = gravatarResult.status === 'fulfilled' ? gravatarResult.value : null;
@@ -57,6 +62,15 @@ export async function quickEnrich(email, name = null) {
   const twitterBrave = twitterResult.status === 'fulfilled' ? twitterResult.value : null;
   const pdl = pdlResult.status === 'fulfilled' ? pdlResult.value : null;
   const discoveredPlatforms = holeheResult.status === 'fulfilled' ? holeheResult.value : [];
+  const emailRep = emailRepResult.status === 'fulfilled' ? emailRepResult.value : null;
+  const hibp = hibpResult.status === 'fulfilled' ? hibpResult.value : null;
+
+  // Map breach services to TwinMe integrations
+  const allBreachServices = [
+    ...(hibp?.breachServices || []),
+    ...(emailRep?.profiles || []),
+  ];
+  const breachMapping = mapBreachesToIntegrations(allBreachServices);
 
   // Use email-matched GitHub if found, otherwise username-matched
   const github = githubByEmail || githubByUsername;
@@ -126,6 +140,17 @@ export async function quickEnrich(email, name = null) {
     pdl_linkedin_url: pdl?.linkedin_url || null,
     // Holehe discovered platforms
     discovered_platforms: discoveredPlatforms.length > 0 ? discoveredPlatforms : null,
+    // emailrep.io data
+    email_reputation: emailRep?.reputation || null,
+    email_age_days: emailRep?.emailAge || null,
+    email_first_seen: emailRep?.firstSeen || null,
+    credentials_leaked: emailRep?.credentialsLeaked || false,
+    // HIBP breach data
+    breach_count: hibp?.breachCount ?? (emailRep?.breachCount ?? null),
+    breach_services: allBreachServices.length > 0 ? allBreachServices : null,
+    breach_mapped_integrations: breachMapping.integrations.length > 0 ? breachMapping.integrations : null,
+    breach_social_profiles: breachMapping.socialProfiles.length > 0 ? breachMapping.socialProfiles : null,
+    digital_footprint_score: breachMapping.totalDigitalFootprint || 0,
     // Source tracking
     source: [
       gravatar ? 'gravatar' : null,
@@ -138,6 +163,8 @@ export async function quickEnrich(email, name = null) {
       twitterBrave ? 'twitter' : null,
       pdl ? 'pdl' : null,
       discoveredPlatforms.length > 0 ? 'holehe' : null,
+      emailRep ? 'emailrep' : null,
+      hibp ? 'hibp' : null,
     ].filter(Boolean).join('+') || 'none',
     social_links: uniqueSocialLinks,
   };
@@ -157,6 +184,9 @@ export async function quickEnrich(email, name = null) {
     twitter: twitterBrave ? twitterBrave.handle : 'miss',
     pdl: pdl ? `${pdl.company || 'no-company'}` : 'miss',
     holehe: discoveredPlatforms.length > 0 ? `${discoveredPlatforms.length} platforms` : 'miss',
+    emailRep: emailRep ? `${emailRep.reputation}` : 'miss',
+    hibp: hibp ? `${hibp.breachCount} breaches` : 'miss',
+    breachIntegrations: breachMapping.integrations.join(',') || 'none',
     source: data.source,
   });
 

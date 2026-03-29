@@ -55,6 +55,12 @@ export async function saveEnrichment(userId, email, enrichmentData) {
       social_media_presence: enrichmentData.social_media_presence || null,
       discovered_instagram_url: enrichmentData.discovered_instagram_url || null,
       discovered_personal_website: enrichmentData.discovered_personal_website || null,
+      // Email reputation & breach data
+      email_reputation: enrichmentData.email_reputation || null,
+      email_age_days: enrichmentData.email_age_days || null,
+      breach_services: enrichmentData.breach_services || null,
+      breach_mapped_integrations: enrichmentData.breach_mapped_integrations || null,
+      digital_footprint_score: enrichmentData.digital_footprint_score || 0,
       source: enrichmentData.source || 'unknown',
       raw_search_response: enrichmentData.raw || enrichmentData.raw_search_response || null,
       search_query: enrichmentData.search_query || null,
