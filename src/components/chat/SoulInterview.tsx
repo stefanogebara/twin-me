@@ -77,10 +77,12 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
     setIsLoadingSummary(true);
     try {
       const res = await authFetch('/interview/complete', { method: 'POST' });
-      const data = await res.json();
-      if (data.summary) setSummary(data.summary);
-    } catch (err) {
-      console.error('Failed to generate summary:', err);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.summary) setSummary(data.summary);
+      }
+    } catch {
+      // Non-fatal — completion screen shows fallback text
     } finally {
       setIsLoadingSummary(false);
     }
@@ -230,7 +232,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   className="text-[15px] leading-relaxed whitespace-pre-line"
                   style={{ color: 'rgba(245,245,244,0.8)' }}
                 >
-                  {summary}
+                  {summary || 'Your twin has absorbed everything you shared. The more you talk, the deeper it understands you.'}
                 </p>
               </div>
 
