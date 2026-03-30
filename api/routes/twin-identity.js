@@ -120,9 +120,9 @@ async function fetchTwinSummary(userId) {
   try {
     const { data, error } = await supabaseAdmin
       .from('twin_summaries')
-      .select('summary, updated_at')
+      .select('summary, generated_at')
       .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
+      .order('generated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -187,7 +187,7 @@ router.get('/identity', authenticateUser, async (req, res) => {
     profile: mergedProfile,
     expertInsights: expertInsights ?? {},
     summary: summaryRow?.summary ?? null,
-    summaryUpdatedAt: summaryRow?.updated_at ?? null,
+    summaryUpdatedAt: summaryRow?.generated_at ?? null,
   };
 
   // Cache for 5 minutes (identity changes slowly)
