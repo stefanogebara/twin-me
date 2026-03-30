@@ -248,47 +248,85 @@ const InstantTwinOnboarding = () => {
         );
 
         if (!popup) {
+          trackFunnel('oauth_popup_blocked', { platform: provider });
           sessionStorage.setItem('connecting_provider', provider);
           window.location.href = result.connectUrl;
           return;
         }
 
-        const pollInterval = setInterval(async () => {
+        const platformName = AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name || provider;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        const verifyConnection = async () => {
+          const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
+          try {
+            const verifyResponse = await fetch(`${baseUrl}/nango/verify-connection`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
+              },
+              body: JSON.stringify({ integrationId: nangoIntegrationId })
+            });
+            const verifyResult = await verifyResponse.json();
+
+            if (verifyResult.success && verifyResult.connected) {
+              toast({ title: 'Connected', description: `${platformName} is now connected` });
+              trackFunnel('platform_connection_verified', { platform: provider, retries: retryCount });
+              await refetchPlatformStatus();
+              setConnectingProvider(null);
+              return;
+            }
+
+            // Not connected — retry
+            if (retryCount < maxRetries) {
+              retryCount++;
+              trackFunnel('platform_connection_verify_retry', { platform: provider, attempt: retryCount });
+              setTimeout(verifyConnection, 1500);
+              return;
+            }
+
+            // Max retries exhausted
+            toast({
+              title: 'Connection not verified',
+              description: `${platformName} authorization may not have completed. Try again.`,
+              variant: 'destructive',
+            });
+            trackFunnel('platform_connection_verify_failed', { platform: provider, retries: maxRetries });
+            setConnectingProvider(null);
+          } catch (err) {
+            console.error('Verify failed:', err);
+            if (retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(verifyConnection, 1500);
+              return;
+            }
+            toast({
+              title: 'Network error',
+              description: 'Unable to verify connection. Check your internet and try again.',
+              variant: 'destructive',
+            });
+            trackFunnel('platform_connection_network_error', { platform: provider });
+            setConnectingProvider(null);
+          }
+        };
+
+        const pollInterval = setInterval(() => {
           if (!popup || popup.closed) {
             clearInterval(pollInterval);
-
-            const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
-            try {
-              const verifyResponse = await fetch(`${baseUrl}/nango/verify-connection`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
-                },
-                body: JSON.stringify({ integrationId: nangoIntegrationId })
-              });
-              const verifyResult = await verifyResponse.json();
-
-              if (verifyResult.success && verifyResult.connected) {
-                toast({
-                  title: "Connected Successfully",
-                  description: `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
-                });
-                await refetchPlatformStatus();
-              } else {
-                toast({
-                  title: "Connection not completed",
-                  description: "The connection window was closed. Try again if needed.",
-                  variant: "default",
-                });
-              }
-            } catch (err) {
-              console.error('Failed to verify connection:', err);
-            } finally {
-              setConnectingProvider(null);
-            }
+            toast({ title: 'Verifying connection...', description: `Checking ${platformName} authorization` });
+            verifyConnection();
           }
         }, 500);
+
+        // Safety: if popup open > 2 min, assume abandoned
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          if (popup && !popup.closed) popup.close();
+          trackFunnel('platform_connection_abandoned', { platform: provider });
+          setConnectingProvider(null);
+        }, 120000);
 
         return;
       } else if (result.success) {
@@ -361,16 +399,7 @@ const InstantTwinOnboarding = () => {
   }, [user, toast, refetchPlatformStatus, optimisticDisconnect, revertOptimisticUpdate]);
 
   const startTwinGeneration = useCallback(async () => {
-    if (!user) return;
-
-    if (connectedServices.length === 0) {
-      toast({
-        title: "No connections found",
-        description: "Please connect at least one service before generating your twin.",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!user || connectedServices.length === 0) return;
 
     setIsGenerating(true);
     toast({
@@ -747,13 +776,13 @@ const InstantTwinOnboarding = () => {
                 </div>
                 <button
                   onClick={startTwinGeneration}
-                  disabled={isGenerating}
+                  disabled={isGenerating || connectedServices.length === 0}
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
                   style={{
-                    backgroundColor: '#10b77f',
+                    backgroundColor: connectedServices.length > 0 ? '#10b77f' : 'rgba(16,183,127,0.3)',
                     color: '#0a0f0a',
                     fontFamily: "'Inter', sans-serif",
-                    cursor: isGenerating ? 'not-allowed' : 'pointer',
+                    cursor: isGenerating || connectedServices.length === 0 ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {isGenerating ? (
@@ -768,6 +797,19 @@ const InstantTwinOnboarding = () => {
                     </>
                   )}
                 </button>
+                {connectedServices.length === 0 && !isGenerating && (
+                  <button
+                    onClick={() => {
+                      trackFunnel('onboarding_skipped_no_platforms', { page: 'get-started' });
+                      navigate('/dashboard');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80 mt-3"
+                    style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    Skip for now — I'll connect later
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </>
           )}
