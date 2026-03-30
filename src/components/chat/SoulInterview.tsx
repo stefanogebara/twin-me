@@ -153,6 +153,18 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
     ? ((totalAvailable - remaining) / totalAvailable) * 100
     : 0;
 
+  // Shared: full-screen background with ambient gradient orbs (matches app body)
+  const overlayBackground = {
+    backgroundColor: '#13121a',
+    backgroundImage: [
+      'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(210,145,55,0.28) 0%, transparent 70%)',
+      'radial-gradient(ellipse 70% 50% at 85% 25%, rgba(180,110,65,0.22) 0%, transparent 65%)',
+      'radial-gradient(ellipse 90% 70% at 50% 80%, rgba(160,95,55,0.24) 0%, transparent 70%)',
+      'radial-gradient(ellipse 60% 50% at 75% 55%, rgba(55,45,140,0.20) 0%, transparent 65%)',
+    ].join(', '),
+    backgroundAttachment: 'fixed' as const,
+  };
+
   // Completion screen
   if (isDone) {
     return (
@@ -160,17 +172,17 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{ background: 'rgba(19, 18, 26, 0.95)', backdropFilter: 'blur(24px)' }}
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
+        style={overlayBackground}
       >
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 p-2 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-colors"
+          className="absolute top-6 right-6 p-2 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-colors z-10"
         >
           <X className="w-5 h-5 text-[rgba(255,255,255,0.4)]" />
         </button>
 
-        <div className="max-w-lg w-full px-6">
+        <div className="max-w-lg w-full px-6 py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -210,6 +222,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   background: 'rgba(255,255,255,0.06)',
                   border: '1px solid rgba(255,255,255,0.10)',
                   backdropFilter: 'blur(42px)',
+                  WebkitBackdropFilter: 'blur(42px)',
+                  boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
                 }}
               >
                 <p
@@ -246,12 +260,15 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: 'rgba(19, 18, 26, 0.95)', backdropFilter: 'blur(24px)' }}
+      style={overlayBackground}
     >
       {/* Top bar: progress + close */}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3 flex-1">
-          <span className="text-xs text-[rgba(255,255,255,0.3)]">
+          <span
+            className="text-xs"
+            style={{ color: 'rgba(255,132,0,0.7)', fontFamily: "'Inter', sans-serif" }}
+          >
             {categoryLabel || 'Soul Interview'}
           </span>
           <div className="flex-1 max-w-[200px] h-[2px] bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
@@ -287,7 +304,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
               exit={{ opacity: 0, y: -10 }}
               className="w-full"
             >
-              <p className="text-xs text-[rgba(255,255,255,0.3)] mb-4 text-center">
+              <p className="text-xs text-[rgba(255,132,0,0.6)] mb-4 text-center" style={{ fontFamily: "'Inter', sans-serif" }}>
                 Learned about you
               </p>
               <div className="space-y-2">
@@ -296,14 +313,17 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     key={idx}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: fact.visible ? 1 : 0, x: fact.visible ? 0 : -10 }}
-                    className="flex items-start gap-2 px-4 py-2.5 rounded-[12px]"
+                    className="flex items-start gap-3 px-5 py-3 rounded-[20px]"
                     style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.06)',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.10)',
+                      backdropFilter: 'blur(42px)',
+                      WebkitBackdropFilter: 'blur(42px)',
+                      boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
                     }}
                   >
                     <Check className="w-4 h-4 text-[#ff8400] mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-[rgba(255,255,255,0.7)]">{fact.text}</span>
+                    <span className="text-sm text-[rgba(245,245,244,0.7)]">{fact.text}</span>
                   </motion.div>
                 ))}
               </div>
@@ -320,7 +340,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             >
               {isLoadingQuestion ? (
                 <div className="flex items-center justify-center py-20">
-                  <div className="w-5 h-5 border-2 border-[rgba(255,255,255,0.2)] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-[rgba(255,132,0,0.4)] border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : (
                 <>
@@ -337,12 +357,15 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     {question}
                   </h2>
 
-                  {/* Answer textarea */}
+                  {/* Answer textarea — glass surface card */}
                   <div
-                    className="rounded-[16px] overflow-hidden"
+                    className="rounded-[20px] overflow-hidden"
                     style={{
                       background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.10)',
+                      backdropFilter: 'blur(42px)',
+                      WebkitBackdropFilter: 'blur(42px)',
+                      boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
                     }}
                   >
                     <textarea
