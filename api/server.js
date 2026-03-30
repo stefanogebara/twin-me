@@ -450,6 +450,7 @@ import skillsRoutes from './routes/skills.js';
 import twinScalingRoutes from './routes/twin-scaling.js';
 import multimodalRoutes from './routes/multimodal.js';
 import morningBriefingRoutes from './routes/morning-briefing.js';
+import soulInterviewRoutes from './routes/soul-interview.js';
 // personality-axes + in-silico routes merged into twin-scaling.js
 
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
@@ -539,6 +540,7 @@ app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibratio
 app.use('/api/onboarding/voice', onboardingVoiceRoutes);  // Voice interview — ElevenLabs custom LLM wrapper
 app.use('/api/onboarding', onboardingSoulSignatureRoutes); // Instant soul signature from enrichment + calibration
 app.use('/api/onboarding', onboardingPlatformPreviewRoutes); // Platform preview insights during onboarding
+app.use('/api/interview', soulInterviewRoutes); // Soul Interview — cold start personality builder
 app.use('/api/account', accountRoutes); // Account deletion + data export
 app.use('/api/api-keys', apiKeysRoutes); // Claude Desktop MCP API key management
 app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)

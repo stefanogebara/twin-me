@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, authFetch } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
@@ -16,6 +16,7 @@ import { ContextSidebar } from '@/components/chat/ContextSidebar';
 import { ChatContextSidebar } from '@/components/chat/ChatContextSidebar';
 import { InsightsBanner } from '@/components/chat/InsightsBanner';
 import { ConversationList } from '@/components/chat/ConversationList';
+import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 
@@ -96,6 +97,9 @@ const TalkToTwin = () => {
   );
   const [showContext, setShowContext] = useState(false);
   const [showConversationList, setShowConversationList] = useState(false);
+  const [showInterview, setShowInterview] = useState(false);
+  const [showInterviewChip, setShowInterviewChip] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const platforms = [
     { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
@@ -151,6 +155,23 @@ const TalkToTwin = () => {
       handleSendMessage();
     }
   }, [inputMessage, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check if Soul Interview should be shown (< 50 memories)
+  useEffect(() => {
+    if (!user?.id) return;
+    authFetch('/interview/should-show')
+      .then(r => r.json())
+      .then(data => { if (data.shouldShow) setShowInterviewChip(true); })
+      .catch(() => {});
+  }, [user?.id]);
+
+  // Open interview from sidebar link (?interview=1)
+  useEffect(() => {
+    if (searchParams.get('interview') === '1') {
+      setShowInterview(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Persist conversationId to sessionStorage
   useEffect(() => {
@@ -520,6 +541,8 @@ const TalkToTwin = () => {
               onQuickAction={handleQuickAction}
               onSendMessage={handleSendMessage}
               insightsCount={pendingInsights.length}
+              showInterviewChip={showInterviewChip}
+              onStartInterview={() => setShowInterview(true)}
             />
           ) : (
             <MessageList
@@ -573,6 +596,14 @@ const TalkToTwin = () => {
         messageCount={messages.filter(m => !m.failed).length}
         onMorningBriefing={() => handleQuickAction('Give me my morning briefing')}
       />
+
+      {/* Soul Interview overlay */}
+      {showInterview && (
+        <SoulInterview
+          onClose={() => setShowInterview(false)}
+          onComplete={() => setShowInterviewChip(false)}
+        />
+      )}
     </div>
   );
 };

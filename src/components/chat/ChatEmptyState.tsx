@@ -77,12 +77,16 @@ interface ChatEmptyStateProps {
   onQuickAction: (text: string) => void;
   onSendMessage?: () => void;
   insightsCount?: number;
+  showInterviewChip?: boolean;
+  onStartInterview?: () => void;
 }
 
 export const ChatEmptyState = ({
   connectedPlatforms,
   onQuickAction,
   insightsCount = 0,
+  showInterviewChip = false,
+  onStartInterview,
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -163,6 +167,31 @@ export const ChatEmptyState = ({
         >
           Connect a platform and I'll start picking up on the things that make you you.
         </p>
+      )}
+
+      {/* Soul Interview chip — shown when user has few memories */}
+      {showInterviewChip && onStartInterview && (
+        <div className="flex justify-center mb-3">
+          <button
+            onClick={onStartInterview}
+            className="px-4 py-2.5 rounded-[46px] text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
+            style={{
+              color: '#ff8400',
+              background: 'rgba(255,132,0,0.08)',
+              border: '1px solid rgba(255,132,0,0.20)',
+              fontFamily: "'Inter', sans-serif",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255,132,0,0.14)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255,132,0,0.08)';
+            }}
+          >
+            <span style={{ marginRight: '6px' }}>&#x2728;</span>
+            Start your Soul Interview
+          </button>
+        </div>
       )}
 
       {/* Suggestion pills — time-based action chips */}
