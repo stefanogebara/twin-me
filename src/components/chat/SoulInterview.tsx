@@ -158,8 +158,8 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] flex flex-col"
-        style={{ backgroundColor: '#0C0B10' }}
+        className="fixed inset-0 flex flex-col"
+        style={{ backgroundColor: '#0C0B10', zIndex: 9999 }}
       >
         {/* Close */}
         <div className="flex justify-end p-6">
