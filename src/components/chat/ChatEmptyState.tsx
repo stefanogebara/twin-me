@@ -174,21 +174,20 @@ export const ChatEmptyState = ({
         <div className="flex justify-center mb-3">
           <button
             onClick={onStartInterview}
-            className="px-4 py-2.5 rounded-[46px] text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
+            className="px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
             style={{
-              color: '#ff8400',
-              background: 'rgba(255,132,0,0.08)',
-              border: '1px solid rgba(255,132,0,0.20)',
+              color: 'rgba(245,245,244,0.7)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
               fontFamily: "'Inter', sans-serif",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,132,0,0.14)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255,132,0,0.08)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
             }}
           >
-            <span style={{ marginRight: '6px' }}>&#x2728;</span>
             Start your Soul Interview
           </button>
         </div>
