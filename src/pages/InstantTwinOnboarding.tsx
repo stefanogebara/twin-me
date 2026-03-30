@@ -6,9 +6,10 @@
 
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
@@ -98,6 +99,29 @@ const InstantTwinOnboarding = () => {
     optimisticDisconnect,
     revertOptimisticUpdate
   } = usePlatformStatus(user?.id);
+
+  // Fetch discovered platforms from enrichment (Holehe + breach data)
+  const { data: enrichmentData } = useQuery({
+    queryKey: ['enrichment', 'discovered-platforms', user?.id],
+    queryFn: async () => {
+      const res = await authFetch(`/enrichment/status/${user?.id}`);
+      if (!res.ok) return null;
+      const json = await res.json();
+      const profile = json.data || {};
+      return {
+        discoveredPlatforms: profile.discovered_platforms || [],
+        breachIntegrations: profile.breach_mapped_integrations || [],
+      };
+    },
+    staleTime: 10 * 60 * 1000,
+    enabled: !!user && !isDemoMode,
+  });
+
+  // Platforms we found the user on (for "We found your account" badges)
+  const discoveredSet = new Set([
+    ...(enrichmentData?.discoveredPlatforms || []).map((p: string) => p.toLowerCase()),
+    ...(enrichmentData?.breachIntegrations || []).map((p: string) => p.toLowerCase()),
+  ]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedConnectors, setSelectedConnectors] = useState<DataProvider[]>([]);
@@ -492,6 +516,11 @@ const InstantTwinOnboarding = () => {
       const bConnected = connectedServices.includes(b.provider);
       if (aConnected && !bConnected) return -1;
       if (!aConnected && bConnected) return 1;
+      // Discovered platforms (from enrichment) sort higher
+      const aDiscovered = discoveredSet.has(a.provider);
+      const bDiscovered = discoveredSet.has(b.provider);
+      if (aDiscovered && !bDiscovered) return -1;
+      if (!aDiscovered && bDiscovered) return 1;
       return 0;
     });
   };
@@ -514,6 +543,7 @@ const InstantTwinOnboarding = () => {
     colors,
     onConnect: connectService,
     onDisconnect: disconnectService,
+    discoveredPlatforms: discoveredSet,
   };
 
   return (

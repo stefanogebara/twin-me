@@ -24,6 +24,7 @@ interface PlatformCategorySectionProps {
   dotDelay: number;
   onConnect: (provider: DataProvider) => void;
   onDisconnect: (provider: DataProvider) => void;
+  discoveredPlatforms?: Set<string>;
 }
 
 export const PlatformCategorySection: React.FC<PlatformCategorySectionProps> = ({
@@ -41,6 +42,7 @@ export const PlatformCategorySection: React.FC<PlatformCategorySectionProps> = (
   colors,
   onConnect,
   onDisconnect,
+  discoveredPlatforms,
 }) => {
   if (connectors.length === 0) return null;
 
@@ -88,6 +90,7 @@ export const PlatformCategorySection: React.FC<PlatformCategorySectionProps> = (
               colors={colors}
               onConnect={onConnect}
               onDisconnect={onDisconnect}
+              isDiscovered={discoveredPlatforms?.has(connector.provider)}
             />
           );
         })}

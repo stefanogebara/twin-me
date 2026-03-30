@@ -17,6 +17,7 @@ interface ConnectorCardProps {
   };
   onConnect: (provider: DataProvider) => void;
   onDisconnect: (provider: DataProvider) => void;
+  isDiscovered?: boolean;
 }
 
 export const ConnectorCard: React.FC<ConnectorCardProps> = ({
@@ -28,12 +29,32 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
   colors,
   onConnect,
   onDisconnect,
+  isDiscovered,
 }) => {
   return (
     <div
       className="relative transition-all rounded-lg p-4"
-      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      style={{
+        border: isDiscovered && !isConnected
+          ? '1px solid rgba(255,132,0,0.3)'
+          : '1px solid var(--border-glass)',
+        backgroundColor: isDiscovered && !isConnected
+          ? 'rgba(255,132,0,0.04)'
+          : 'rgba(255,255,255,0.02)',
+      }}
     >
+      {isDiscovered && !isConnected && (
+        <span
+          className="absolute top-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded-full"
+          style={{
+            background: 'rgba(255,132,0,0.15)',
+            color: 'var(--accent-vibrant)',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          Found
+        </span>
+      )}
 
       <div className="relative flex items-center gap-4 mb-3">
         <div
