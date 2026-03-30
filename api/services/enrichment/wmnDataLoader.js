@@ -61,7 +61,7 @@ export async function getWMNSites() {
       if (!site.e_code || !site.e_string) return false;
 
       // Skip sites with heavy bot protection
-      if (site.protection && SKIP_PROTECTION.has(site.protection.toLowerCase())) return false;
+      if (site.protection && typeof site.protection === 'string' && SKIP_PROTECTION.has(site.protection.toLowerCase())) return false;
 
       // Skip POST-only sites (complex to check)
       if (site.post_body) return false;
