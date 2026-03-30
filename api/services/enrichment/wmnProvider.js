@@ -12,9 +12,9 @@ import { isUsernameCascadeable } from './usernameFilter.js';
 
 const log = createLogger('WMNProvider');
 
-const BATCH_SIZE = 30;
-const PER_REQUEST_TIMEOUT_MS = 3000;
-const OVERALL_TIMEOUT_MS = 5000;
+const BATCH_SIZE = 50;
+const PER_REQUEST_TIMEOUT_MS = 2000;
+const OVERALL_TIMEOUT_MS = 8000;
 
 /**
  * Check a single WMN site for username existence.
