@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { X, ArrowRight, Check } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
@@ -191,9 +191,11 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             transition={{ delay: 0.2 }}
             className="text-center mb-8"
           >
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[rgba(255,132,0,0.12)] mb-4">
-              <Sparkles className="w-6 h-6 text-[#ff8400]" />
-            </div>
+            <img
+              src="/images/backgrounds/flower-hero.png"
+              alt="TwinMe"
+              className="w-12 h-12 object-contain drop-shadow-md mb-4"
+            />
             <h2
               className="text-[28px] sm:text-[36px] mb-2"
               style={{
