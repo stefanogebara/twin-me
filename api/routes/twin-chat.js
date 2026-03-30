@@ -448,10 +448,14 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // Inject personality oracle draft (finetuned model behavioral compass)
-    const oracleBlock = formatOracleBlock(oracleDraft);
+    // Skip oracle for LIGHT tier (simple/task queries) — oracle adds noise for non-personality messages
+    const skipOracle = routingTier === 'LIGHT';
+    const oracleBlock = skipOracle ? null : formatOracleBlock(oracleDraft);
     if (oracleBlock) {
       systemPrompt.push({ type: 'text', text: `\n${oracleBlock}` });
-      log.debug('Oracle draft injected', { chars: oracleDraft.length });
+      log.debug('Oracle draft injected', { chars: oracleDraft.length, tier: routingTier });
+    } else if (oracleDraft && skipOracle) {
+      log.debug('Oracle skipped for LIGHT tier message');
     }
 
     // Detect neurotransmitter mode from message (pure keyword analysis, microseconds)
@@ -909,12 +913,16 @@ RULES:
       log.warn('Context condensation failed (non-fatal)', { error: condenseErr.message });
     }
 
+    // Message-type adaptive temperature: personality queries get cold (consistency),
+    // creative/exploration gets warm (surprise), task queries stay neutral
+    const tempDeltaByTier = routingTier === 'LIGHT' ? -0.05 : routingTier === 'DEEP' ? 0.05 : 0;
+
     if (isStreaming) {
       try {
         chatLog('Starting streaming LLM call');
         // Apply neurotransmitter mode modifiers on top of personality-derived sampling params
         const baseSampling = {
-          temperature: personalityProfile?.temperature ?? 0.7,
+          temperature: (personalityProfile?.temperature ?? 0.7) + tempDeltaByTier,
           top_p: personalityProfile?.top_p ?? 0.9,
           frequency_penalty: personalityProfile?.frequency_penalty ?? 0.0,
           presence_penalty: personalityProfile?.presence_penalty ?? 0.0,
@@ -992,7 +1000,7 @@ RULES:
         if (!result) {
           // Apply neurotransmitter mode modifiers on top of personality-derived sampling params
           const baseSamplingNonStream = {
-            temperature: personalityProfile?.temperature ?? 0.7,
+            temperature: (personalityProfile?.temperature ?? 0.7) + tempDeltaByTier,
             top_p: personalityProfile?.top_p ?? 0.9,
             frequency_penalty: personalityProfile?.frequency_penalty ?? 0.0,
             presence_penalty: personalityProfile?.presence_penalty ?? 0.0,
