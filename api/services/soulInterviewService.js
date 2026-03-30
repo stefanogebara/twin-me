@@ -361,14 +361,16 @@ export async function generateInterviewSummary(userId) {
       tier: TIER_ANALYSIS,
       messages: [{
         role: 'user',
-        content: `Based on these personality facts gathered from a deep soul interview, write a warm, insightful 3-4 paragraph personality portrait of this person. Write in second person ("you"). Be specific — reference actual details from their answers. End with one surprising insight that connects dots they might not have noticed.
+        content: `Based on these personality facts gathered from a deep soul interview, write a warm, concise personality portrait of this person in 3 SHORT paragraphs (max 150 words total). Write in second person ("you"). Be specific — reference actual details from their answers. End with one bold, surprising insight that connects dots they might not have noticed.
+
+Keep it punchy. Every sentence should feel like a revelation, not a description. No filler.
 
 Facts:
 ${factsText}
 
 Write the portrait directly, no title or preamble.`
       }],
-      maxTokens: 600,
+      maxTokens: 400,
       temperature: 0.6,
       serviceName: 'soul-interview-summary',
     });

@@ -174,7 +174,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
+        className="fixed inset-0 z-50 flex flex-col"
         style={overlayBackground}
       >
         <button
@@ -184,20 +184,21 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           <X className="w-5 h-5 text-[rgba(255,255,255,0.4)]" />
         </button>
 
-        <div className="max-w-lg w-full px-6 py-12">
+        {/* Header — always visible */}
+        <div className="flex-shrink-0 pt-10 pb-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-center mb-8"
+            className="flex flex-col items-center"
           >
             <img
               src="/images/backgrounds/flower-hero.png"
               alt="TwinMe"
-              className="w-12 h-12 object-contain drop-shadow-md mb-4"
+              className="w-12 h-12 object-contain drop-shadow-md mb-3"
             />
             <h2
-              className="text-[28px] sm:text-[36px] mb-2"
+              className="text-[28px] sm:text-[36px]"
               style={{
                 fontFamily: "'Instrument Serif', Georgia, serif",
                 fontStyle: 'italic',
@@ -208,50 +209,56 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
               Your soul, captured
             </h2>
           </motion.div>
+        </div>
 
-          {isLoadingSummary ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-5 h-5 border-2 border-[#ff8400] border-t-transparent rounded-full animate-spin" />
-              <span className="ml-3 text-sm text-[rgba(255,255,255,0.4)]">Synthesizing your portrait...</span>
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <div
-                className="rounded-[20px] px-6 py-5 mb-8"
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  backdropFilter: 'blur(42px)',
-                  WebkitBackdropFilter: 'blur(42px)',
-                  boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
-                }}
-              >
-                <p
-                  className="text-[15px] leading-relaxed whitespace-pre-line"
-                  style={{ color: 'rgba(245,245,244,0.8)' }}
-                >
-                  {summary || 'Your twin has absorbed everything you shared. The more you talk, the deeper it understands you.'}
-                </p>
+        {/* Summary card — scrollable middle */}
+        <div className="flex-1 overflow-y-auto px-6">
+          <div className="max-w-lg mx-auto">
+            {isLoadingSummary ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-5 h-5 border-2 border-[#ff8400] border-t-transparent rounded-full animate-spin" />
+                <span className="ml-3 text-sm text-[rgba(255,255,255,0.4)]">Synthesizing your portrait...</span>
               </div>
-
-              <div className="flex justify-center">
-                <button
-                  onClick={() => { onComplete(); onClose(); }}
-                  className="px-6 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 active:scale-[0.97]"
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <div
+                  className="rounded-[20px] px-6 py-5"
                   style={{
-                    background: '#F5F5F4',
-                    color: '#110f0f',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    backdropFilter: 'blur(42px)',
+                    WebkitBackdropFilter: 'blur(42px)',
+                    boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
                   }}
                 >
-                  Start chatting with your twin
-                </button>
-              </div>
-            </motion.div>
-          )}
+                  <p
+                    className="text-[15px] leading-relaxed whitespace-pre-line"
+                    style={{ color: 'rgba(245,245,244,0.8)' }}
+                  >
+                    {summary || 'Your twin has absorbed everything you shared. The more you talk, the deeper it understands you.'}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </div>
+
+        {/* CTA — always visible at bottom */}
+        <div className="flex-shrink-0 py-6 flex justify-center">
+          <button
+            onClick={() => { onComplete(); onClose(); }}
+            className="px-6 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 active:scale-[0.97]"
+            style={{
+              background: '#F5F5F4',
+              color: '#110f0f',
+            }}
+          >
+            Start chatting with your twin
+          </button>
         </div>
       </motion.div>
     );
