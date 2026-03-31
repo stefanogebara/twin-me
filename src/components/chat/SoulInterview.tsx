@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, Check } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
@@ -153,7 +154,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
 
   // ─── Completion Screen ───
   if (isDone) {
-    return (
+    return createPortal(
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -244,18 +245,19 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             Start chatting with your twin
           </button>
         </div>
-      </motion.div>
+      </motion.div>,
+      document.body
     );
   }
 
   // ─── Interview Question Screen ───
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex flex-col"
-      style={{ backgroundColor: '#0C0B10' }}
+      className="fixed inset-0 flex flex-col"
+      style={{ backgroundColor: '#0C0B10', zIndex: 9999 }}
     >
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 sm:px-8 py-5">
@@ -425,6 +427,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
