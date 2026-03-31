@@ -74,11 +74,18 @@ export default function DiscoverLanding() {
       if (d.discovered_twitter_url) points.push({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
       if (d.social_links?.length) {
         for (const link of d.social_links) {
-          if (!points.some(p => p.label === link.platform)) {
+          if (!points.some(p => p.label.toLowerCase() === link.platform.toLowerCase())) {
             points.push({ icon: 'social', label: link.platform, value: 'Profile found' });
           }
         }
       }
+      // New enrichment fields
+      if (d.email_reputation) points.push({ icon: 'shield', label: 'Email reputation', value: d.email_reputation });
+      if (d.digital_footprint_score > 0) points.push({ icon: 'fingerprint', label: 'Digital footprint', value: `${d.digital_footprint_score} services detected` });
+      if (d.breach_mapped_integrations?.length) points.push({ icon: 'link', label: 'Known accounts', value: d.breach_mapped_integrations.join(', ') });
+      if (d.spotify_exists) points.push({ icon: 'music', label: 'Spotify', value: 'Account found' });
+      if (d.discovered_platforms?.length) points.push({ icon: 'scan', label: 'Platforms', value: `Found on ${d.discovered_platforms.length} platforms` });
+      if (d.wmn_count > 0) points.push({ icon: 'globe', label: 'Web presence', value: `${d.wmn_count} platforms confirmed` });
       setDataPoints(points);
       if (d.persona_summary) setPersonaSummary(d.persona_summary);
       if (d.web_sources?.length) setWebSources(d.web_sources);

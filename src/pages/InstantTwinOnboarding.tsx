@@ -123,6 +123,7 @@ const InstantTwinOnboarding = () => {
     ...(enrichmentData?.breachIntegrations || []).map((p: string) => p.toLowerCase()),
   ]);
 
+  const [demoModalPlatform, setDemoModalPlatform] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedConnectors, setSelectedConnectors] = useState<DataProvider[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -190,10 +191,8 @@ const InstantTwinOnboarding = () => {
 
   const connectService = useCallback(async (provider: DataProvider) => {
     if (isDemoMode) {
-      toast({
-        title: "Demo Mode",
-        description: "Sign up to connect real platforms",
-      });
+      trackFunnel('demo_mode_platform_click', { platform: provider });
+      setDemoModalPlatform(provider);
       return;
     }
 
@@ -547,7 +546,7 @@ const InstantTwinOnboarding = () => {
   };
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <><div className="max-w-[680px] mx-auto px-6 py-16">
 
       {/* Header */}
       <h1
@@ -846,7 +845,118 @@ const InstantTwinOnboarding = () => {
         </div>
       )}
     </div>
+
+      {/* Demo Value Modal — shows sample insights when demo user clicks Connect */}
+      {demoModalPlatform && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          onClick={() => setDemoModalPlatform(null)}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <div
+            className="relative max-w-md w-full rounded-[20px] px-6 py-6"
+            style={{
+              background: 'rgba(20,18,28,0.95)',
+              backdropFilter: 'blur(56px)',
+              WebkitBackdropFilter: 'blur(56px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3
+              className="text-lg font-medium mb-1"
+              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
+            >
+              What you'd see with {demoModalPlatform.replace(/_/g, ' ')}
+            </h3>
+            <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              Sample insights from real data
+            </p>
+            <div className="space-y-3 mb-5">
+              {getDemoInsights(demoModalPlatform).map((insight, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-sm mt-0.5">{insight.emoji}</span>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+                    {insight.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setDemoModalPlatform(null);
+                  navigate('/auth');
+                }}
+                className="flex-1 py-2.5 rounded-[100px] text-sm font-medium"
+                style={{ background: 'var(--accent-vibrant)', color: '#0a0909', fontFamily: "'Inter', sans-serif" }}
+              >
+                Sign up to see your real data
+              </button>
+              <button
+                onClick={() => setDemoModalPlatform(null)}
+                className="px-4 py-2.5 rounded-[100px] text-sm"
+                style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
+
+function getDemoInsights(platform: string): { emoji: string; text: string }[] {
+  const insights: Record<string, { emoji: string; text: string }[]> = {
+    spotify: [
+      { emoji: '🎵', text: 'Your top genres reveal your mood patterns — lo-fi for focus, hip-hop for energy' },
+      { emoji: '🌙', text: 'Late-night listening spikes show when your creative brain turns on' },
+      { emoji: '🔁', text: 'Artists you replay vs. discover tell us about your openness to new experiences' },
+    ],
+    google_calendar: [
+      { emoji: '📅', text: 'Meeting density shows your social energy levels throughout the week' },
+      { emoji: '⏰', text: 'Your free blocks reveal when you do your best deep work' },
+      { emoji: '🔄', text: 'Schedule patterns predict burnout before you feel it' },
+    ],
+    youtube: [
+      { emoji: '📺', text: 'Watch history reveals hidden curiosities you might not even notice' },
+      { emoji: '🧠', text: 'Educational vs. entertainment ratio shows your learning drive' },
+      { emoji: '🕐', text: 'Binge patterns correlate with stress or creative exploration' },
+    ],
+    discord: [
+      { emoji: '💬', text: 'Server activity reveals your community interests and social style' },
+      { emoji: '🎮', text: 'Gaming channels vs. learning channels map your leisure personality' },
+      { emoji: '🤝', text: 'Active hours show when you seek connection vs. solitude' },
+    ],
+    github: [
+      { emoji: '💻', text: 'Commit patterns reveal your coding rhythm — late-night builder or morning planner?' },
+      { emoji: '🔧', text: 'Languages and frameworks show what problems excite you most' },
+      { emoji: '⭐', text: 'Starred repos reveal your aspirational interests' },
+    ],
+    linkedin: [
+      { emoji: '💼', text: 'Career trajectory shows whether you optimize for growth or stability' },
+      { emoji: '🏢', text: 'Company choices reveal your values — startup energy or enterprise structure' },
+      { emoji: '📊', text: 'Skills and endorsements map your professional identity' },
+    ],
+    reddit: [
+      { emoji: '📱', text: 'Subreddit subscriptions are the most honest map of your interests' },
+      { emoji: '💡', text: 'Comment patterns show what topics make you engage vs. lurk' },
+      { emoji: '🔥', text: 'Upvote history reveals what genuinely resonates with you' },
+    ],
+    whoop: [
+      { emoji: '💪', text: 'Recovery scores correlate with your productivity and mood patterns' },
+      { emoji: '😴', text: 'Sleep consistency reveals how you manage energy across the week' },
+      { emoji: '📈', text: 'Strain trends show whether you push too hard or coast too long' },
+    ],
+  };
+  return insights[platform] || [
+    { emoji: '✨', text: 'Connect this platform to discover patterns about yourself you never noticed' },
+    { emoji: '🔮', text: 'Your twin gets smarter with every data source you add' },
+    { emoji: '🧩', text: 'Cross-platform insights are where the real magic happens' },
+  ];
+}
 
 export default InstantTwinOnboarding;
