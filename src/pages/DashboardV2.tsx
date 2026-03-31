@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useDashboardContext } from '@/hooks/useDashboardContext';
+import { useDashboardContext, useDashboardHeatmap } from '@/hooks/useDashboardContext';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { WelcomeGuide } from './components/dashboard-v2/WelcomeGuide';
@@ -18,6 +18,7 @@ import { useWebPush } from '@/hooks/useWebPush';
 export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const { data, isLoading, isError, refetch } = useDashboardContext();
+  const { data: heatmapData } = useDashboardHeatmap();
   const { insights, markEngaged } = useProactiveInsights();
 
   // Register web push on first dashboard load (after auth)
@@ -91,7 +92,7 @@ export function DashboardV2() {
         memoryCount={data.twinStats.memoryCount}
         memoriesThisWeek={data.twinStats.memoriesThisWeek}
         streak={data.twinStats.streak}
-        heatmap={data.heatmap}
+        heatmap={heatmapData ?? data.heatmap ?? []}
       />
 
       <NextUpEvents events={data.nextEvents} />

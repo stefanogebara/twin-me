@@ -759,7 +759,23 @@ router.get('/layers', authenticateToken, async (req, res) => {
 
     log.info('Fetching 5-layer soul signature', { userId });
 
-    const result = await generateSoulSignature(userId);
+    // Use a short timeout — if generation takes >5s, return generating status
+    const timeoutMs = 5000;
+    const result = await Promise.race([
+      generateSoulSignature(userId),
+      new Promise(resolve => setTimeout(() => resolve({ _timeout: true }), timeoutMs)),
+    ]);
+
+    if (result._timeout) {
+      // Generation is still running in background (pendingGenerations map handles dedup)
+      return res.json({
+        success: true,
+        data: null,
+        generating: true,
+        message: 'Your soul signature is being generated. Please check back in a moment.',
+        retryAfter: 15,
+      });
+    }
 
     if (result.insufficient) {
       return res.json({

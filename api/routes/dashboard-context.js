@@ -211,19 +211,10 @@ router.get('/', authenticateUser, async (req, res) => {
         };
       }),
 
-      // 4. Heatmap
-      safeRun(async () => {
-        const { data, error } = await supabaseAdmin.rpc('get_daily_memory_counts', {
-          p_user_id: userId,
-        });
-        if (error) {
-          log.error('Heatmap RPC error:', error.message);
-          return [];
-        }
-        return data || [];
-      }),
+      // 4. Heatmap — lazy-loaded via /api/dashboard/context/heatmap (removed from main payload)
+      safeRun(() => Promise.resolve(null)),
 
-      // 5. Next events (3s timeout)
+      // 5. Next events (1.5s timeout)
       safeRun(() =>
         Promise.race([
           fetchNextEvents(userId),
@@ -322,6 +313,35 @@ async function safeRun(fn) {
 
 /**
  * GET /api/dashboard/context/timeline
+ * Heatmap — lazy-loaded separately from main context for faster initial dashboard render.
+ */
+router.get('/heatmap', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const hmCacheKey = `heatmap:${userId}`;
+    const cached = await cacheGet(hmCacheKey);
+    if (cached) return res.json({ success: true, heatmap: cached });
+
+    const { data, error } = await supabaseAdmin.rpc('get_daily_memory_counts', {
+      p_user_id: userId,
+    });
+
+    if (error) {
+      log.error('Heatmap RPC error:', error.message);
+      return res.json({ success: true, heatmap: [] });
+    }
+
+    const heatmap = data || [];
+    cacheSet(hmCacheKey, heatmap, 1800).catch(() => {}); // 30min TTL
+    return res.json({ success: true, heatmap });
+  } catch (err) {
+    log.error('Heatmap error:', err.message);
+    return res.json({ success: true, heatmap: [] });
+  }
+});
+
+/**
  * Today's twin activity: proactive insights + agent actions merged chronologically.
  */
 router.get('/timeline', authenticateUser, async (req, res) => {

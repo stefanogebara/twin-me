@@ -109,6 +109,13 @@ async function fetchDashboardContext(): Promise<DashboardContext> {
   return transformApiResponse(raw);
 }
 
+async function fetchHeatmap(): Promise<Array<{ date: string; count: number }>> {
+  const res = await authFetch('/dashboard/context/heatmap');
+  if (!res.ok) return [];
+  const raw = await res.json();
+  return raw.heatmap ?? [];
+}
+
 export function useDashboardContext() {
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
@@ -116,5 +123,17 @@ export function useDashboardContext() {
     queryKey: ['dashboard-context'],
     queryFn: isDemoMode ? () => Promise.resolve(DEMO_DATA) : fetchDashboardContext,
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+export function useDashboardHeatmap() {
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
+  return useQuery({
+    queryKey: ['dashboard-heatmap'],
+    queryFn: isDemoMode
+      ? () => Promise.resolve(DEMO_DATA.heatmap)
+      : fetchHeatmap,
+    staleTime: 10 * 60 * 1000, // 10min — matches backend cache
   });
 }

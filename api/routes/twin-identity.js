@@ -164,17 +164,32 @@ router.get('/identity', authenticateUser, async (req, res) => {
     return res.json({ success: true, data: cached });
   }
 
-  // Run all data fetches in parallel for maximum throughput
-  const [identity, profile, expertInsights, summaryRow, calibration] = await Promise.all([
-    inferIdentityContext(userId).catch((err) => {
-      log.warn('inferIdentityContext failed (non-fatal):', err.message);
-      return null;
-    }),
+  // Split fast DB queries from potentially slow identity inference.
+  // DB queries (~500ms total) run in parallel; identity inference uses cache-only
+  // and triggers background refresh if stale — never blocks the response.
+  const identityCacheKey = `identity_ctx:${userId}`;
+  const [cachedIdentity, profile, expertInsights, summaryRow, calibration] = await Promise.all([
+    // Only use cached identity context — never block on LLM inference
+    cacheGet(identityCacheKey),
     fetchProfile(userId),
     fetchExpertReflections(userId),
     fetchTwinSummary(userId),
     fetchCalibration(userId),
   ]);
+
+  // If no cached identity, trigger background inference (fire-and-forget)
+  let identity = cachedIdentity;
+  if (!identity) {
+    inferIdentityContext(userId)
+      .then(ctx => {
+        if (ctx) {
+          cacheSet(identityCacheKey, ctx, 14400).catch(() => {}); // 4h TTL
+          // Also refresh the full response cache so next request is fast
+          cacheSet(cacheKey, null, 0).catch(() => {}); // invalidate stale full cache
+        }
+      })
+      .catch(err => log.warn('Background identity inference failed:', err.message));
+  }
 
   // Merge interview archetype into profile if soul_signature_profile has none
   const mergedProfile = { ...(profile ?? {}) };
