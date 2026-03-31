@@ -241,6 +241,8 @@ app.use((req, res, next) => {
     : req.path.includes('/cron/') ? 115000
     : req.path.includes('/soul-signature/layers') ? 90000
     : req.path.includes('/onboarding/calibration') ? 90000
+    : req.path.includes('/whatsapp-twin/webhook') ? 90000
+    : req.path.includes('/telegram-webhook') ? 90000
     : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
   res.setTimeout(timeout, () => {
