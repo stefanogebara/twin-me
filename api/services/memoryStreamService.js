@@ -733,7 +733,9 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
 
   try {
     // Generate query embedding + optional HyDE embedding in parallel
-    const hydeText = HYDE_ENABLED ? await generateHypotheticalMemory(query) : null;
+    // skipHyDE: callers doing bulk signal gathering pass this to avoid 1-3s LLM overhead per call
+    const useHyDE = HYDE_ENABLED && !options.skipHyDE;
+    const hydeText = useHyDE ? await generateHypotheticalMemory(query) : null;
     const embeddingPromises = [generateEmbedding(query)];
     if (hydeText) embeddingPromises.push(generateEmbedding(hydeText));
     const [queryEmbedding, hydeEmbedding] = await Promise.all(embeddingPromises);
@@ -1479,9 +1481,13 @@ async function getMemoryStats(userId) {
   const defaultStats = { total: 0, byType: { fact: 0, reflection: 0, platform_data: 0, conversation: 0, observation: 0 } };
   if (!userId) return defaultStats;
 
+  // Redis cache (30min TTL) — memory counts change slowly (cron every 15-30min)
+  const cacheKey = `memstats:${userId}`;
   try {
-    // Use parallel COUNT queries (head: true returns count only, no rows transferred)
-    // This is dramatically more efficient than fetching 5000 rows for JS counting
+    const { get: cacheGet, set: cacheSet } = await import('./redisClient.js');
+    const cached = await cacheGet(cacheKey);
+    if (cached) return cached;
+
     const types = ['fact', 'reflection', 'platform_data', 'conversation', 'observation'];
     const countResults = await Promise.all(
       types.map(t =>
@@ -1503,7 +1509,9 @@ async function getMemoryStats(userId) {
       }
     }
 
-    return { total, byType };
+    const result = { total, byType };
+    cacheSet(cacheKey, result, 1800).catch(() => {}); // 30min TTL
+    return result;
   } catch (error) {
     log.error('getMemoryStats error', { error });
     return defaultStats;

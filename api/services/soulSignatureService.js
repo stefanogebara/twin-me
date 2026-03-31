@@ -663,7 +663,7 @@ async function fetchAllMemories(userId) {
       observationResults,
     ] = await Promise.all([
       // Semantic search with a broad query
-      retrieveMemories(userId, 'personality values habits interests lifestyle patterns', 50, 'identity')
+      retrieveMemories(userId, 'personality values habits interests lifestyle patterns', 50, 'identity', { skipHyDE: true })
         .catch(err => {
           log.warn('Semantic memory fetch failed', { error: err });
           return [];

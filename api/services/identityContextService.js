@@ -129,12 +129,14 @@ export async function inferIdentityContext(userId) {
 
 async function gatherSignals(userId) {
   // Parallel retrieval across identity-relevant domains
+  // skipHyDE: bulk signal gathering doesn't benefit from HyDE's precise recall — saves 3-5s
+  const opts = { skipHyDE: true };
   const [musicMemories, calendarMemories, careerMemories, contentMemories, socialMemories] = await Promise.all([
-    retrieveMemories(userId, 'music listening era decade artist genre vintage nostalgia classic contemporary', 8, 'reflection'),
-    retrieveMemories(userId, 'calendar meetings work schedule professional time management busy dense', 8, 'reflection'),
-    retrieveMemories(userId, 'linkedin career job title professional skills ambition growth work identity', 8, 'reflection'),
-    retrieveMemories(userId, 'youtube learning educational content hobbies interests creative curiosity study', 6, 'reflection'),
-    retrieveMemories(userId, 'discord community online social server interests identity', 6, 'reflection'),
+    retrieveMemories(userId, 'music listening era decade artist genre vintage nostalgia classic contemporary', 8, 'reflection', opts),
+    retrieveMemories(userId, 'calendar meetings work schedule professional time management busy dense', 8, 'reflection', opts),
+    retrieveMemories(userId, 'linkedin career job title professional skills ambition growth work identity', 8, 'reflection', opts),
+    retrieveMemories(userId, 'youtube learning educational content hobbies interests creative curiosity study', 6, 'reflection', opts),
+    retrieveMemories(userId, 'discord community online social server interests identity', 6, 'reflection', opts),
   ]);
 
   const totalMemories = musicMemories.length + calendarMemories.length + careerMemories.length + contentMemories.length + socialMemories.length;

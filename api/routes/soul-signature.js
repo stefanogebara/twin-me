@@ -749,6 +749,14 @@ router.get('/layers', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Fast Redis cache (30min TTL) — avoids even the DB cache-check query
+    const { get: cacheGet, set: cacheSet } = await import('../services/redisClient.js');
+    const cacheKey = `soul_layers:${userId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: { ...cached, cached: true } });
+    }
+
     log.info('Fetching 5-layer soul signature', { userId });
 
     const result = await generateSoulSignature(userId);
@@ -762,14 +770,15 @@ router.get('/layers', authenticateToken, async (req, res) => {
       });
     }
 
-    res.json({
-      success: true,
-      data: {
-        layers: result.layers,
-        generatedAt: result.generatedAt,
-        cached: result.cached,
-      },
-    });
+    const payload = {
+      layers: result.layers,
+      generatedAt: result.generatedAt,
+    };
+
+    // Cache in Redis for 30 minutes
+    cacheSet(cacheKey, payload, 1800).catch(() => {});
+
+    res.json({ success: true, data: { ...payload, cached: result.cached } });
   } catch (error) {
     log.error('Error fetching 5-layer soul signature:', error);
     res.status(500).json({

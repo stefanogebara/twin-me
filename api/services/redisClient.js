@@ -86,7 +86,7 @@ const CACHE_TTL = {
   SOUL_SIGNATURE: 900,       // 15 minutes - soul signature data
   EXTRACTION_JOB: 60,        // 1 minute - extraction job status (more dynamic)
   IDENTITY_CONTEXT: 14400,   // 4 hours - identity context (matches twin summary TTL)
-  DASHBOARD_CONTEXT: 120,    // 2 minutes - unified dashboard payload
+  DASHBOARD_CONTEXT: 600,    // 10 minutes - unified dashboard payload (heatmap/streak/stats are not real-time)
 };
 
 /**
@@ -168,37 +168,61 @@ async function invalidatePlatformStatusCache(userId) {
   }
 }
 
+// In-memory fallback cache when Redis is unavailable (dev, cold starts, Redis down)
+const _memCache = new Map();
+const _MEM_CACHE_MAX = 200;
+
+function _memGet(key) {
+  const entry = _memCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { _memCache.delete(key); return null; }
+  return entry.value;
+}
+
+function _memSet(key, value, ttlSeconds) {
+  if (_memCache.size >= _MEM_CACHE_MAX) {
+    // Evict oldest entry
+    const firstKey = _memCache.keys().next().value;
+    _memCache.delete(firstKey);
+  }
+  _memCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+}
+
 /**
- * Get generic cached data
+ * Get generic cached data (Redis with in-memory fallback)
  * @param {string} key - Cache key
  * @returns {Promise<any|null>}
  */
 async function get(key) {
   const client = getRedisClient();
-  if (!client || !redisAvailable) return null;
+  if (!client || !redisAvailable) return _memGet(key);
 
   try {
     const value = await client.get(key);
-    return value ? JSON.parse(value) : null;
+    if (value) return JSON.parse(value);
+    // Redis miss — check in-memory fallback
+    return _memGet(key);
   } catch (error) {
     log.error(`Error getting cache key ${key}:`, error.message);
-    return null;
+    return _memGet(key);
   }
 }
 
 /**
- * Set generic cached data
+ * Set generic cached data (Redis with in-memory fallback)
  * @param {string} key - Cache key
  * @param {any} value - Value to cache
  * @param {number} ttl - Time to live in seconds
  */
 async function set(key, value, ttl = 300) {
+  // Always set in-memory fallback
+  _memSet(key, value, ttl);
+
   const client = getRedisClient();
   if (!client || !redisAvailable) return;
 
   try {
     await client.setex(key, ttl, JSON.stringify(value));
-    log.info(`Cached key ${key} (TTL: ${ttl}s)`);
   } catch (error) {
     log.error(`Error setting cache key ${key}:`, error.message);
   }

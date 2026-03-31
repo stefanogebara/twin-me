@@ -227,7 +227,7 @@ router.get('/', authenticateUser, async (req, res) => {
       safeRun(() =>
         Promise.race([
           fetchNextEvents(userId),
-          new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
+          new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
         ])
       ),
 

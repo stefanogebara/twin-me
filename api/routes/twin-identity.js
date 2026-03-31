@@ -60,31 +60,34 @@ async function fetchProfile(userId) {
  */
 async function fetchExpertReflections(userId) {
   const result = {};
+  for (const key of EXPERT_KEYS) result[key] = [];
 
-  await Promise.all(
-    EXPERT_KEYS.map(async (expertKey) => {
-      try {
-        const { data, error } = await supabaseAdmin
-          .from('user_memories')
-          .select('content')
-          .eq('user_id', userId)
-          .eq('memory_type', 'reflection')
-          .contains('metadata', { expert: expertKey })
-          .order('importance_score', { ascending: false })
-          .limit(3);
+  try {
+    // Single query for all experts (replaces 5 parallel queries)
+    const { data, error } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, metadata')
+      .eq('user_id', userId)
+      .eq('memory_type', 'reflection')
+      .in('metadata->>expert', EXPERT_KEYS)
+      .order('importance_score', { ascending: false })
+      .limit(25);
 
-        if (error) {
-          log.warn(`reflection fetch for ${expertKey} failed (non-fatal):`, error.message);
-          result[expertKey] = [];
-          return;
-        }
-        result[expertKey] = (data ?? []).map((m) => m.content);
-      } catch (err) {
-        log.warn(`reflection fetch for ${expertKey} threw (non-fatal):`, err.message);
-        result[expertKey] = [];
+    if (error) {
+      log.warn('expert reflections fetch failed (non-fatal):', error.message);
+      return result;
+    }
+
+    // Group by expert, take top 3 per expert
+    for (const row of (data ?? [])) {
+      const expert = row.metadata?.expert;
+      if (expert && result[expert] && result[expert].length < 3) {
+        result[expert].push(row.content);
       }
-    })
-  );
+    }
+  } catch (err) {
+    log.warn('expert reflections fetch threw (non-fatal):', err.message);
+  }
 
   return result;
 }
