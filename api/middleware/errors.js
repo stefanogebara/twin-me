@@ -189,24 +189,34 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
+  // Handle JSON parsing errors (body-parser SyntaxError)
+  if (err instanceof SyntaxError && err.status === 400) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid JSON format in request body',
+      errorType: 'SyntaxError',
+      statusCode: 400,
+      details: { action: 'fix_request_body' },
+      timestamp: new Date().toISOString()
+    });
+  }
+
   // Handle generic errors — sanitize in production to prevent info leaks
   const statusCode = err.statusCode || err.status || 500;
   const isDev = process.env.NODE_ENV === 'development';
-  // In production, only expose messages for client errors (4xx), not server errors (5xx)
-  const safeMessage = isDev || statusCode < 500
+  const safeMessage = isDev
     ? (err.message || 'Internal server error')
     : 'Internal server error';
 
   res.status(statusCode).json({
     success: false,
     error: safeMessage,
-    errorType: err.name || 'Error',
+    errorType: isDev ? (err.name || 'Error') : 'Error',
     statusCode,
     details: {
       action: 'contact_support'
     },
     timestamp: new Date().toISOString(),
-    // Include stack trace ONLY in development
     ...(isDev && { stack: err.stack })
   });
 }

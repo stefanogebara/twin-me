@@ -1,11 +1,11 @@
 /**
  * Cron: Prospective Memory Check
  * ================================
- * Runs every 5 minutes to check for due time-triggered prospective memories.
+ * Runs every 15 minutes to check for due time-triggered prospective memories.
  * When triggered, injects the memory as a high-priority proactive insight
  * that the twin will surface in the next conversation.
  *
- * Schedule: every 5 minutes
+ * Schedule: every 15 minutes in vercel.json
  * Security: protected by CRON_SECRET Bearer token.
  */
 

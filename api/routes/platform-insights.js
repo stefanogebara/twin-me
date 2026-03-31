@@ -143,7 +143,7 @@ router.get('/proactive/engagement-stats', authenticateUser, async (req, res) => 
 
   if (error) {
     log.error('engagement-stats error', { error });
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 
   const stats = { total: data?.length || 0, engaged: 0, byCategory: {}, byUrgency: {} };
@@ -193,7 +193,7 @@ router.get('/proactive', authenticateUser, async (req, res) => {
 
     if (error) {
       log.error('GET /proactive error', { error });
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
     }
 
     // Sort by urgency (high > medium > low), then by recency
@@ -332,7 +332,7 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
 
   if (error) {
     log.error('Engage error', { id, error });
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 
   res.json({ success: true });

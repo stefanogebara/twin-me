@@ -140,7 +140,7 @@ router.post('/import', authenticateUser, async (req, res) => {
       .select()
       .single();
 
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) return res.status(500).json({ error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
 
     log.info('Skill imported', { name: parsed.name, id: data.id });
     return res.json({ success: true, skill: data });

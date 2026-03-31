@@ -171,8 +171,8 @@ For privacy concerns: privacy@twinme.ai`
       className="min-h-screen flex"
       style={{ backgroundColor: 'var(--background)' }}
     >
-      {/* Left panel — form (clean, no card) */}
-      <div className="flex-1 flex items-center justify-center px-6">
+      {/* Left panel — form (glass card on mobile, clean on desktop) */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
       <div className="w-full max-w-[420px]">
 
         {/* Logo */}

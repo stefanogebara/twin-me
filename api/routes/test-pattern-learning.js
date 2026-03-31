@@ -58,7 +58,7 @@ router.get('/trigger/:userId', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     log.error(`Error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -98,7 +98,7 @@ router.get('/trigger-all', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     log.error(`Error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -124,7 +124,7 @@ router.get('/metrics/:userId', authenticateUser, async (req, res) => {
     res.json({ success: true, userId, metrics });
   } catch (error) {
     log.error(`Metrics error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -203,7 +203,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     res.status(500).json({
       service: 'PatternLearningService',
       status: 'error',
-      error: error.message,
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
       timestamp: new Date().toISOString()
     });
   }
@@ -252,7 +252,7 @@ router.get('/feedback/:userId', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     log.error(`Feedback query error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -297,7 +297,7 @@ router.get('/insights/:userId', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     log.error(`Insights query error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -334,7 +334,7 @@ router.post('/sync/:userId', authenticateUser, async (req, res) => {
     res.json({ success: true, userId, results });
   } catch (error) {
     log.error(`Sync error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -392,7 +392,7 @@ router.get('/run-pipeline/:userId', authenticateUser, async (req, res) => {
     });
   } catch (error) {
     log.error(`Pipeline error:`, error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -442,7 +442,7 @@ router.get('/raw-events/:userId', authenticateUser, async (req, res) => {
       events
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -472,7 +472,7 @@ router.get('/baselines/:userId', authenticateUser, async (req, res) => {
       baselines
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -508,7 +508,7 @@ router.get('/correlations/:userId', authenticateUser, async (req, res) => {
       correlations
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -544,7 +544,7 @@ router.get('/hypotheses/:userId', authenticateUser, async (req, res) => {
       hypotheses
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -568,7 +568,7 @@ router.get('/learned-triggers/:userId', authenticateUser, async (req, res) => {
       triggers
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -592,7 +592,7 @@ router.get('/baseline-insights/:userId', authenticateUser, async (req, res) => {
       insights
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 

@@ -74,7 +74,7 @@ router.post('/run', authenticateUser, async (req, res) => {
     res.json({ run });
   } catch (err) {
     log.error('run error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -138,7 +138,7 @@ router.post('/score', authenticateUser, async (req, res) => {
     res.json({ run: updated });
   } catch (err) {
     log.error('score error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -173,7 +173,7 @@ router.get('/history', authenticateUser, async (req, res) => {
     res.json({ runs: data || [], trend });
   } catch (err) {
     log.error('history error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -193,7 +193,7 @@ router.get('/run/:id', authenticateUser, async (req, res) => {
     if (error || !data) return res.status(404).json({ error: 'Run not found' });
     res.json({ run: data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -219,7 +219,7 @@ router.get('/flags', authenticateUser, async (req, res) => {
 
     res.json({ flags: result });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -241,7 +241,7 @@ router.post('/flags', authenticateUser, async (req, res) => {
     await setFeatureFlag(targetUserId, flag_name, Boolean(enabled));
     res.json({ success: true, flag_name, enabled: Boolean(enabled) });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 

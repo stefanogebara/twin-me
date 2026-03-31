@@ -98,7 +98,7 @@ adminRouter.post('/invite', async (req, res) => {
     res.json({ success: true, data: invite });
   } catch (error) {
     log.error('Create invite error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -109,7 +109,7 @@ adminRouter.get('/invites', async (req, res) => {
     res.json({ success: true, data: invites });
   } catch (error) {
     log.error('List invites error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -120,7 +120,7 @@ adminRouter.get('/waitlist', async (req, res) => {
     res.json({ success: true, data: waitlist });
   } catch (error) {
     log.error('List waitlist error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -136,7 +136,7 @@ adminRouter.get('/feedback', async (req, res) => {
     res.json({ success: true, data });
   } catch (error) {
     log.error('List feedback error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -165,7 +165,7 @@ adminRouter.post('/invite-from-waitlist', async (req, res) => {
     res.json({ success: true, data: invite });
   } catch (error) {
     log.error('Invite from waitlist error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -185,7 +185,7 @@ adminRouter.get('/nudge-candidates', async (req, res) => {
     });
   } catch (error) {
     log.error('Nudge candidates error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -197,7 +197,7 @@ adminRouter.post('/send-nudges', async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     log.error('Send nudges error', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 

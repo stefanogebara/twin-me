@@ -1,10 +1,10 @@
 /**
  * Cron: Deliver Pending Insights to Messaging Channels
  * =====================================================
- * Runs every 5 minutes. Finds undelivered proactive insights for users
+ * Runs every 15 minutes. Finds undelivered proactive insights for users
  * with enabled messaging channels and delivers via the message router.
  *
- * Schedule: every 5 minutes
+ * Schedule: every 15 minutes in vercel.json
  * Security: protected by CRON_SECRET Bearer token.
  */
 

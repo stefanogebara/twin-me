@@ -301,7 +301,7 @@ router.get('/reflections', authenticateUser, async (req, res) => {
     res.json({ success: true, reflections });
   } catch (err) {
     log.error('Reflections error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -340,7 +340,7 @@ router.get('/memory-stats', authenticateUser, async (req, res) => {
     res.json({ success: true, totalMemories: totalCount || 0, byPlatform });
   } catch (err) {
     log.error('memory-stats error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 
@@ -421,7 +421,7 @@ router.get('/evolution', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('evolution error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error' });
   }
 });
 

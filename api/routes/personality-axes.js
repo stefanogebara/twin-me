@@ -18,7 +18,7 @@ const REBUILD_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 // ─── GET /api/personality-axes ──────────────────────────────────────────
 
-router.get('/', authenticateUser, async (req, res) => {
+router.get('/personality-axes', authenticateUser, async (req, res) => {
   try {
     const result = await getPersonalityAxes(req.user.id);
 
@@ -36,7 +36,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
 // ─── POST /api/personality-axes ─────────────────────────────────────────
 
-router.post('/', authenticateUser, async (req, res) => {
+router.post('/personality-axes', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 

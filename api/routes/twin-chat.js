@@ -1378,7 +1378,7 @@ router.get('/conversations', authenticateUser, async (req, res) => {
       .limit(limit);
 
     if (error) {
-      return res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: 'Failed to fetch conversations' });
     }
 
     // For each conversation, get the last message preview

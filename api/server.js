@@ -350,7 +350,6 @@ import dataSourcesRoutes from './routes/data-sources.js';
 import webhookRoutes from './routes/webhooks.js';
 import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
-import cronTokenRefreshHandler from './routes/cron-token-refresh.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
@@ -586,7 +585,11 @@ app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
 app.use('/api/whatsapp', whatsappKapsoWebhookRoutes); // WhatsApp Kapso inbound webhook
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser
 app.use('/api/journal', journalRoutes); // Soul Journal - personal journaling with AI analysis
-app.use('/api/admin', adminLlmCostsRoutes); // LLM cost tracking dashboard
+// Admin routes return 404 for unauthenticated to prevent route enumeration
+app.use('/api/admin', (req, res, next) => {
+  if (!req.headers.authorization) return res.status(404).json({ error: 'NOT_FOUND', message: 'Endpoint not found' });
+  next();
+}, adminLlmCostsRoutes);
 app.use('/api/beta', betaPublicRoutes); // Beta invite validation + waitlist (public, no auth)
 app.use('/api/beta', betaFeedbackRouter); // Beta feedback submission (auth required, not admin)
 app.use('/api/beta/admin', betaAdminRouter); // Beta admin: invite CRUD, waitlist, feedback list
@@ -623,7 +626,7 @@ app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for dige
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
-app.use('/api/cron/token-refresh', cronTokenRefreshHandler); // Every 5 minutes
+// cron-token-refresh removed (on-demand only, not scheduled)
 app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes

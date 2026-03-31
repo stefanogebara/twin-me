@@ -37,7 +37,7 @@ router.get('/status', async (req, res) => {
     const status = await getInterviewStatus(userId);
     res.json({ success: true, ...status });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -53,7 +53,7 @@ router.get('/should-show', async (req, res) => {
     const show = await shouldShowInterview(userId);
     res.json({ success: true, shouldShow: show });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -72,7 +72,7 @@ router.post('/question', async (req, res) => {
     const result = await generateInterviewQuestion(userId, answeredCategories, connectedPlatforms);
     res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -99,7 +99,7 @@ router.post('/answer', async (req, res) => {
     const result = await processInterviewAnswer(userId, category, question, answer);
     res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 
@@ -115,7 +115,7 @@ router.post('/complete', async (req, res) => {
     const result = await generateInterviewSummary(userId);
     res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
   }
 });
 

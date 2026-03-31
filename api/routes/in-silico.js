@@ -18,7 +18,7 @@ const MAX_STIMULI = 50;
 
 // ─── POST /api/in-silico ───────────────────────────────────────────────
 
-router.post('/', authenticateUser, async (req, res) => {
+router.post('/in-silico', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { stimuli } = req.body;
@@ -93,7 +93,7 @@ router.post('/', authenticateUser, async (req, res) => {
 
 // ─── GET /api/in-silico/validation/:experimentId ────────────────────────
 
-router.get('/validation/:experimentId', authenticateUser, async (req, res) => {
+router.get('/in-silico/validation/:experimentId', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const { experimentId } = req.params;

@@ -153,8 +153,8 @@ const handleGeneralError = (error, req, res, next) => {
     });
   }
 
-  // Handle JSON parsing errors
-  if (error.type === 'entity.parse.failed') {
+  // Handle JSON parsing errors (Express 4 uses error.type, Express 5 throws plain SyntaxError)
+  if (error.type === 'entity.parse.failed' || (error instanceof SyntaxError && error.status === 400)) {
     return res.status(400).json({
       error: 'INVALID_JSON',
       message: 'Invalid JSON format in request body',
@@ -205,24 +205,7 @@ const handle404 = (req, res) => {
     path: req.originalUrl,
   };
 
-  // Only expose available endpoints in development to avoid route enumeration in production
-  if (process.env.NODE_ENV === 'development') {
-    response.availableEndpoints = {
-      '/api/health': 'GET - Health check',
-      '/api/ai/chat': 'POST - AI chat',
-      '/api/twins': 'GET, POST - Digital twins',
-      '/api/twins/:id': 'GET, PUT, DELETE - Specific twin',
-      '/api/conversations': 'GET, POST - Conversations',
-      '/api/documents': 'POST - Document upload',
-      '/api/voice': 'POST - Voice generation',
-      '/api/dashboard/stats': 'GET - Dashboard statistics',
-      '/api/dashboard/activity': 'GET - Recent activity',
-      '/api/training/status': 'GET - Training status',
-      '/api/training/start': 'POST - Start training',
-      '/api/training/stop': 'POST - Stop training',
-      '/api/training/reset': 'POST - Reset model'
-    };
-  }
+  // Route enumeration removed — stale and a security risk even in dev
 
   res.status(404).json(response);
 };

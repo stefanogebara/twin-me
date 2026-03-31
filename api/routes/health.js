@@ -3,8 +3,13 @@ import { serverDb } from '../services/database.js';
 
 const router = express.Router();
 
-// Health check endpoint (non-blocking with timeout)
-router.get('/', async (req, res) => {
+// Fast liveness check (<10ms, no DB)
+router.get('/', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Deep health check with DB connectivity (for monitoring dashboards)
+router.get('/deep', async (req, res) => {
   let dbHealth = { healthy: false, error: null };
   try {
     const timeout = new Promise((_, reject) =>

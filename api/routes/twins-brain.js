@@ -53,7 +53,7 @@ router.get('/nodes', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting nodes:', error);
-    res.status(500).json({ error: 'Failed to get brain nodes', message: error.message });
+    res.status(500).json({ error: 'Failed to get brain nodes', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -78,7 +78,7 @@ router.get('/nodes/:nodeId', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting node:', error);
-    res.status(500).json({ error: 'Failed to get node', message: error.message });
+    res.status(500).json({ error: 'Failed to get node', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -123,7 +123,7 @@ router.post('/nodes', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error adding node:', error);
-    res.status(500).json({ error: 'Failed to add node', message: error.message });
+    res.status(500).json({ error: 'Failed to add node', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -141,7 +141,7 @@ router.delete('/nodes/:nodeId', authenticateToken, async (req, res) => {
     res.json({ success: true, message: 'Node deleted' });
   } catch (error) {
     log.error('Error deleting node:', error);
-    res.status(500).json({ error: 'Failed to delete node', message: error.message });
+    res.status(500).json({ error: 'Failed to delete node', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -169,7 +169,7 @@ router.post('/nodes/search', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error searching nodes:', error);
-    res.status(500).json({ error: 'Failed to search nodes', message: error.message });
+    res.status(500).json({ error: 'Failed to search nodes', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -193,7 +193,7 @@ router.get('/nodes/stale', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting stale nodes:', error);
-    res.status(500).json({ error: 'Failed to get stale nodes', message: error.message });
+    res.status(500).json({ error: 'Failed to get stale nodes', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -226,7 +226,7 @@ router.get('/nodes/temporal', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting temporal nodes:', error);
-    res.status(500).json({ error: 'Failed to get temporal data', message: error.message });
+    res.status(500).json({ error: 'Failed to get temporal data', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -260,7 +260,7 @@ router.post('/nodes/:nodeId/reinforce', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error reinforcing node:', error);
-    res.status(500).json({ error: 'Failed to reinforce node', message: error.message });
+    res.status(500).json({ error: 'Failed to reinforce node', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -289,7 +289,7 @@ router.post('/reinforce/platform', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error batch reinforcing:', error);
-    res.status(500).json({ error: 'Failed to batch reinforce', message: error.message });
+    res.status(500).json({ error: 'Failed to batch reinforce', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -355,7 +355,7 @@ router.get('/knowledge-gaps', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error identifying knowledge gaps:', error);
-    res.status(500).json({ error: 'Failed to identify knowledge gaps', message: error.message });
+    res.status(500).json({ error: 'Failed to identify knowledge gaps', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -382,7 +382,7 @@ router.get('/learning-suggestions', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error generating suggestions:', error);
-    res.status(500).json({ error: 'Failed to generate suggestions', message: error.message });
+    res.status(500).json({ error: 'Failed to generate suggestions', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -428,7 +428,7 @@ router.post('/edges', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error creating edge:', error);
-    res.status(500).json({ error: 'Failed to create edge', message: error.message });
+    res.status(500).json({ error: 'Failed to create edge', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -451,7 +451,7 @@ router.get('/nodes/:nodeId/neighbors', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting neighbors:', error);
-    res.status(500).json({ error: 'Failed to get neighbors', message: error.message });
+    res.status(500).json({ error: 'Failed to get neighbors', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -481,7 +481,7 @@ router.get('/graph', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting graph:', error);
-    res.status(500).json({ error: 'Failed to get brain graph', message: error.message });
+    res.status(500).json({ error: 'Failed to get brain graph', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -500,7 +500,7 @@ router.get('/health', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting health:', error);
-    res.status(500).json({ error: 'Failed to get brain health', message: error.message });
+    res.status(500).json({ error: 'Failed to get brain health', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -519,7 +519,7 @@ router.get('/summary', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting summary:', error);
-    res.status(500).json({ error: 'Failed to get brain summary', message: error.message });
+    res.status(500).json({ error: 'Failed to get brain summary', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -554,7 +554,7 @@ router.post('/snapshots', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error creating snapshot:', error);
-    res.status(500).json({ error: 'Failed to create snapshot', message: error.message });
+    res.status(500).json({ error: 'Failed to create snapshot', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -579,7 +579,7 @@ router.get('/snapshots', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting snapshots:', error);
-    res.status(500).json({ error: 'Failed to get snapshots', message: error.message });
+    res.status(500).json({ error: 'Failed to get snapshots', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -600,7 +600,7 @@ router.get('/snapshots/:snapshotId', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting snapshot:', error);
-    res.status(500).json({ error: 'Failed to get snapshot', message: error.message });
+    res.status(500).json({ error: 'Failed to get snapshot', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -633,7 +633,7 @@ router.post('/process/behavioral-pattern', authenticateToken, async (req, res) =
     });
   } catch (error) {
     log.error('Error processing pattern:', error);
-    res.status(500).json({ error: 'Failed to process pattern', message: error.message });
+    res.status(500).json({ error: 'Failed to process pattern', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -662,7 +662,7 @@ router.post('/process/moltbot-event', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error processing MoltBot event:', error);
-    res.status(500).json({ error: 'Failed to process event', message: error.message });
+    res.status(500).json({ error: 'Failed to process event', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -692,7 +692,7 @@ router.post('/process/claude-conversation', authenticateToken, async (req, res) 
     });
   } catch (error) {
     log.error('Error processing conversation:', error);
-    res.status(500).json({ error: 'Failed to process conversation', message: error.message });
+    res.status(500).json({ error: 'Failed to process conversation', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -870,7 +870,7 @@ router.get('/visualization', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Visualization error:', error);
-    res.status(500).json({ error: 'Failed to get visualization data', message: error.message });
+    res.status(500).json({ error: 'Failed to get visualization data', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -945,7 +945,7 @@ router.post('/edges/causal', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error creating causal edge:', error);
-    res.status(500).json({ error: 'Failed to create causal edge', message: error.message });
+    res.status(500).json({ error: 'Failed to create causal edge', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -973,7 +973,7 @@ router.get('/edges/analyze-causality', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error analyzing causality:', error);
-    res.status(500).json({ error: 'Failed to analyze causality', message: error.message });
+    res.status(500).json({ error: 'Failed to analyze causality', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -998,7 +998,7 @@ router.get('/nodes/:nodeId/causal-chain', authenticateToken, async (req, res) =>
     });
   } catch (error) {
     log.error('Error getting causal chain:', error);
-    res.status(500).json({ error: 'Failed to get causal chain', message: error.message });
+    res.status(500).json({ error: 'Failed to get causal chain', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1017,7 +1017,7 @@ router.get('/causal/summary', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting causal summary:', error);
-    res.status(500).json({ error: 'Failed to get causal summary', message: error.message });
+    res.status(500).json({ error: 'Failed to get causal summary', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1050,7 +1050,7 @@ router.post('/edges/upgrade-to-causal', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error upgrading to causal:', error);
-    res.status(500).json({ error: 'Failed to upgrade to causal', message: error.message });
+    res.status(500).json({ error: 'Failed to upgrade to causal', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1105,7 +1105,7 @@ router.post('/nodes/:nodeId/context', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error setting context expression:', error);
-    res.status(500).json({ error: 'Failed to set context expression', message: error.message });
+    res.status(500).json({ error: 'Failed to set context expression', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1126,7 +1126,7 @@ router.get('/nodes/:nodeId/context', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting context expressions:', error);
-    res.status(500).json({ error: 'Failed to get context expressions', message: error.message });
+    res.status(500).json({ error: 'Failed to get context expressions', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1151,7 +1151,7 @@ router.get('/context/:context/graph', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting context graph:', error);
-    res.status(500).json({ error: 'Failed to get context graph', message: error.message });
+    res.status(500).json({ error: 'Failed to get context graph', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1170,7 +1170,7 @@ router.get('/context/summary', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error getting context summary:', error);
-    res.status(500).json({ error: 'Failed to get context summary', message: error.message });
+    res.status(500).json({ error: 'Failed to get context summary', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1189,7 +1189,7 @@ router.get('/context/detect', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error detecting context patterns:', error);
-    res.status(500).json({ error: 'Failed to detect context patterns', message: error.message });
+    res.status(500).json({ error: 'Failed to detect context patterns', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1217,7 +1217,7 @@ router.post('/context/apply-suggestions', authenticateToken, async (req, res) =>
     });
   } catch (error) {
     log.error('Error applying context suggestions:', error);
-    res.status(500).json({ error: 'Failed to apply context suggestions', message: error.message });
+    res.status(500).json({ error: 'Failed to apply context suggestions', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
@@ -1262,7 +1262,7 @@ router.post('/migrate', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Migration error:', error);
-    res.status(500).json({ error: 'Migration failed', message: error.message });
+    res.status(500).json({ error: 'Migration failed', message: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 
