@@ -335,19 +335,21 @@ Return ONLY a JSON array of strings. Example: ["They value honesty above career 
 
 /**
  * Generate a personality summary after the interview is complete.
- * Uses ANALYSIS tier for deeper synthesis.
+ * Uses EXTRACTION tier for speed (must complete within Vercel timeout).
+ * Limits to 15 facts to keep prompt small and response fast.
  */
 export async function generateInterviewSummary(userId) {
   if (!userId) throw new Error('userId required');
 
-  // Fetch all interview facts
+  // Fetch interview facts — limit to 15 most recent for speed
   const { data: interviewFacts, error } = await supabaseAdmin
     .from('user_memories')
-    .select('content, metadata')
+    .select('content')
     .eq('user_id', userId)
     .eq('memory_type', 'fact')
     .like('metadata->>source', 'soul_interview_%')
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false })
+    .limit(15);
 
   if (error || !interviewFacts || interviewFacts.length === 0) {
     log.warn('No interview facts found for summary', { userId });
@@ -358,34 +360,29 @@ export async function generateInterviewSummary(userId) {
 
   try {
     const result = await complete({
-      tier: TIER_ANALYSIS,
+      tier: TIER_EXTRACTION,
       messages: [{
         role: 'user',
-        content: `Based on these personality facts gathered from a deep soul interview, write a warm, concise personality portrait of this person in 3 SHORT paragraphs (max 150 words total). Write in second person ("you"). Be specific — reference actual details from their answers. End with one bold, surprising insight that connects dots they might not have noticed.
+        content: `Write a 3-paragraph personality portrait (max 120 words) from these interview facts. Second person ("you"). Be specific. End with one surprising insight connecting the dots. No title, no filler.
 
-Keep it punchy. Every sentence should feel like a revelation, not a description. No filler.
-
-Facts:
-${factsText}
-
-Write the portrait directly, no title or preamble.`
+${factsText}`
       }],
-      maxTokens: 400,
+      maxTokens: 300,
       temperature: 0.6,
       serviceName: 'soul-interview-summary',
     });
 
     const summary = (result.content || '').trim();
 
-    // Store the summary as a high-importance reflection
+    // Store summary as reflection in background (don't block response)
     if (summary.length > 50) {
-      await addMemory(userId, `Soul Interview Portrait: ${summary}`, 'reflection', {
+      addMemory(userId, `Soul Interview Portrait: ${summary}`, 'reflection', {
         source: 'soul_interview_summary',
         interview_facts_count: interviewFacts.length,
       }, {
         importanceScore: 9,
         skipImportance: true,
-      });
+      }).catch(err => log.warn('Failed to store interview summary', { error: err.message }));
     }
 
     return { summary, factsCount: interviewFacts.length };
