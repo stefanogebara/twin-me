@@ -76,15 +76,20 @@ router.post('/webhook', express.json(), async (req, res) => {
       if (!phone || !text) continue;
 
       // Look up user by WhatsApp phone number
+      // Meta sends phone without '+' prefix, DB may store with '+' — check both
+      const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
+      const phoneWithout = phone.startsWith('+') ? phone.slice(1) : phone;
+
       const { data: channel } = await supabaseAdmin
         .from('messaging_channels')
         .select('user_id')
         .eq('channel', 'whatsapp')
-        .eq('channel_id', phone)
+        .or(`channel_id.eq.${phoneWithPlus},channel_id.eq.${phoneWithout}`)
         .single();
 
       if (!channel) {
-        await sendWhatsAppMessage(phone, 'Your WhatsApp isn\'t linked to TwinMe yet. Go to Settings in the app to connect.');
+        log.warn('No messaging_channels match for phone', { phone, phoneWithPlus, phoneWithout });
+        await sendWhatsAppMessage(phoneWithout, 'Your WhatsApp isn\'t linked to TwinMe yet. Go to Settings in the app to connect.');
         continue;
       }
 
