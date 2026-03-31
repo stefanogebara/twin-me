@@ -847,7 +847,7 @@ const InstantTwinOnboarding = () => {
       )}
     </div>
 
-      {/* Demo Value Modal — Dimension.dev style glass + motion */}
+      {/* Demo Value Modal — Dimension.dev style, forced dark theme */}
       <AnimatePresence>
         {demoModalPlatform && (
           <div
@@ -856,7 +856,7 @@ const InstantTwinOnboarding = () => {
           >
             <motion.div
               className="absolute inset-0"
-              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -865,11 +865,9 @@ const InstantTwinOnboarding = () => {
             <motion.div
               className="relative max-w-md w-full rounded-[24px] overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                backdropFilter: 'blur(56px)',
-                WebkitBackdropFilter: 'blur(56px)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 24px 64px rgba(0,0,0,0.5)',
+                background: '#1a1820',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 64px rgba(0,0,0,0.6)',
               }}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -877,10 +875,10 @@ const InstantTwinOnboarding = () => {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
             >
-              {/* Inner glow accent bar */}
+              {/* Amber accent bar */}
               <div
                 className="h-[2px] w-full"
-                style={{ background: 'linear-gradient(90deg, transparent, var(--accent-vibrant), transparent)' }}
+                style={{ background: 'linear-gradient(90deg, transparent, #ff8400, transparent)' }}
               />
 
               <div className="px-6 py-6">
@@ -889,11 +887,11 @@ const InstantTwinOnboarding = () => {
                     fontFamily: "'Instrument Serif', Georgia, serif",
                     fontStyle: 'italic',
                     fontSize: '22px',
-                    color: 'var(--foreground)',
+                    color: '#F5F5F4',
                     letterSpacing: '-0.02em',
                   }}
                 >
-                  What you'd discover with {demoModalPlatform.replace(/_/g, ' ')}
+                  What you'd discover with {formatPlatformName(demoModalPlatform)}
                 </h3>
                 <p className="text-xs mt-1 mb-5" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
                   Sample insights from real user data
@@ -903,16 +901,16 @@ const InstantTwinOnboarding = () => {
                   {getDemoInsights(demoModalPlatform).map((insight, i) => (
                     <motion.div
                       key={i}
-                      className="flex items-start gap-3 px-4 py-3 rounded-[16px] transition-all duration-200 hover:-translate-y-0.5"
+                      className="flex items-start gap-3 px-4 py-3 rounded-[16px]"
                       style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.06)',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.08)',
                       }}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + i * 0.1, duration: 0.4, ease: 'easeOut' }}
+                      transition={{ delay: 0.15 + i * 0.12, duration: 0.4, ease: 'easeOut' }}
                     >
-                      <span className="text-base mt-0.5">{insight.emoji}</span>
+                      <span className="text-base mt-0.5 flex-shrink-0">{insight.emoji}</span>
                       <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
                         {insight.text}
                       </p>
@@ -926,17 +924,17 @@ const InstantTwinOnboarding = () => {
                       setDemoModalPlatform(null);
                       navigate('/auth');
                     }}
-                    className="flex-1 py-3 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.98]"
-                    style={{ background: 'var(--accent-vibrant)', color: '#0a0909', fontFamily: "'Inter', sans-serif" }}
-                    whileHover={{ scale: 1.02 }}
+                    className="flex-1 py-3 rounded-[100px] text-sm font-medium"
+                    style={{ background: '#ff8400', color: '#0a0909', fontFamily: "'Inter', sans-serif" }}
+                    whileHover={{ scale: 1.02, opacity: 0.9 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     Sign up to see your real data
                   </motion.button>
                   <button
                     onClick={() => setDemoModalPlatform(null)}
-                    className="px-4 py-3 rounded-[100px] text-sm transition-all duration-150 hover:bg-[rgba(255,255,255,0.04)]"
-                    style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                    className="px-4 py-3 rounded-[100px] text-sm"
+                    style={{ color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Inter', sans-serif" }}
                   >
                     Close
                   </button>
@@ -949,6 +947,16 @@ const InstantTwinOnboarding = () => {
     </>
   );
 };
+
+function formatPlatformName(platform: string): string {
+  const names: Record<string, string> = {
+    spotify: 'Spotify', youtube: 'YouTube', github: 'GitHub', discord: 'Discord',
+    google_calendar: 'Google Calendar', linkedin: 'LinkedIn', reddit: 'Reddit',
+    twitch: 'Twitch', whoop: 'WHOOP', gmail: 'Gmail', slack: 'Slack',
+    strava: 'Strava', fitbit: 'Fitbit', garmin: 'Garmin', oura: 'Oura Ring',
+  };
+  return names[platform] || platform.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 function getDemoInsights(platform: string): { emoji: string; text: string }[] {
   const insights: Record<string, { emoji: string; text: string }[]> = {
@@ -987,10 +995,30 @@ function getDemoInsights(platform: string): { emoji: string; text: string }[] {
       { emoji: '💡', text: 'Comment patterns show what topics make you engage vs. lurk' },
       { emoji: '🔥', text: 'Upvote history reveals what genuinely resonates with you' },
     ],
+    twitch: [
+      { emoji: '🎮', text: 'Followed channels reveal your gaming identity and community belonging' },
+      { emoji: '📺', text: 'Watch patterns show when you unwind vs. when you engage socially' },
+      { emoji: '💬', text: 'Chat activity reveals how you interact in real-time communities' },
+    ],
     whoop: [
       { emoji: '💪', text: 'Recovery scores correlate with your productivity and mood patterns' },
       { emoji: '😴', text: 'Sleep consistency reveals how you manage energy across the week' },
       { emoji: '📈', text: 'Strain trends show whether you push too hard or coast too long' },
+    ],
+    strava: [
+      { emoji: '🏃', text: 'Training patterns reveal your discipline and how you push limits' },
+      { emoji: '📍', text: 'Route choices show whether you explore or stick to routines' },
+      { emoji: '⚡', text: 'Effort distribution reveals your relationship with challenge' },
+    ],
+    gmail: [
+      { emoji: '📧', text: 'Response times reveal your communication priorities and energy' },
+      { emoji: '🕸', text: 'Contact patterns map your real social network — who matters most' },
+      { emoji: '📝', text: 'Writing style in emails reflects your personality more than you think' },
+    ],
+    slack: [
+      { emoji: '💬', text: 'Channel activity shows where your professional curiosity lives' },
+      { emoji: '⏰', text: 'Message timing reveals your work rhythm and availability patterns' },
+      { emoji: '🤝', text: 'Reaction patterns show how you build relationships at work' },
     ],
   };
   return insights[platform] || [
