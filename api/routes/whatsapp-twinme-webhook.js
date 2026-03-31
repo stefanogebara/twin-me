@@ -109,7 +109,15 @@ router.post('/webhook', express.json(), async (req, res) => {
       }
     }
   } catch (err) {
-    log.error('WhatsApp webhook error', { error: err.message });
+    log.error('WhatsApp webhook error', { error: err.message, stack: err.stack });
+    // Send error to user for debugging (remove after stable)
+    try {
+      const entry = req.body?.entry?.[0];
+      const phone = entry?.changes?.[0]?.value?.messages?.[0]?.from;
+      if (phone) {
+        await sendWhatsAppMessage(phone, `[Debug] Twin error: ${err.message?.substring(0, 200)}`);
+      }
+    } catch { /* ignore */ }
   }
 });
 
