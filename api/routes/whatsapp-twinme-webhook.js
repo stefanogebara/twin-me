@@ -157,7 +157,7 @@ async function processTwinMessage(userId, message) {
   const system = systemParts.join('\n\n');
 
   const response = await complete({
-    system: [{ type: 'text', text: system }],
+    system,
     messages: [{ role: 'user', content: message }],
     tier: TIER_CHAT,
     maxTokens: 800,
