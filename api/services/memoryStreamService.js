@@ -1005,7 +1005,19 @@ async function getRecentImportanceSum(userId, hoursAgo = 2) {
  * @param {string} [reflectionWeights='identity'] - Weight preset for reflection retrieval (e.g., 'identity', 'default', 'recent')
  * @returns {Array} Combined memories: up to 30 total with guaranteed type diversity
  */
+// In-memory cache for diverse memory retrieval results (2-minute TTL)
+// Prevents redundant pgvector searches during burst conversations
+const _diverseMemoryCache = new Map();
+const DIVERSE_CACHE_TTL_MS = 2 * 60 * 1000;
+
 async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWeights = 'identity', options = {}) {
+  // Check cache — key by userId + query hash (first 100 chars normalized)
+  const queryKey = `${userId}_${query.slice(0, 100).toLowerCase().replace(/\s+/g, '_')}`;
+  const cached = _diverseMemoryCache.get(queryKey);
+  if (cached && (Date.now() - cached.ts) < DIVERSE_CACHE_TTL_MS) {
+    log.debug('Diverse memory cache HIT', { userId, queryLen: query.length });
+    return cached.data;
+  }
   const {
     reflections: maxReflections = 15,
     facts: maxFacts = MEMORY_CONTEXT_BUDGETS.facts,
@@ -1111,6 +1123,15 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     conversations: conversationResults.length,
     graphLinked: expanded.length - combined.length,
   });
+
+  // Cache result for burst conversations (2-minute TTL)
+  _diverseMemoryCache.set(queryKey, { data: expanded, ts: Date.now() });
+  // Evict old entries (max 50 cached queries)
+  if (_diverseMemoryCache.size > 50) {
+    const oldest = [..._diverseMemoryCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+    if (oldest) _diverseMemoryCache.delete(oldest[0]);
+  }
+
   return expanded;
 }
 
