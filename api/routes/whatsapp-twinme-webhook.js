@@ -58,15 +58,15 @@ router.post('/webhook', express.json(), async (req, res) => {
     return res.sendStatus(403);
   }
 
-  // Always respond 200 to Meta quickly
-  res.sendStatus(200);
-
+  // Process message BEFORE responding — Vercel kills functions after res.send()
   try {
     const entry = req.body?.entry?.[0];
     const changes = entry?.changes?.[0];
     const messages = changes?.value?.messages;
 
-    if (!messages?.length) return;
+    if (!messages?.length) {
+      return res.sendStatus(200);
+    }
 
     for (const msg of messages) {
       if (msg.type !== 'text') continue;
@@ -94,31 +94,24 @@ router.post('/webhook', express.json(), async (req, res) => {
       }
 
       const userId = channel.user_id;
+      log.info('Processing WhatsApp message', { userId, phone: phoneWithout, textLength: text.length });
 
       // Run twin chat pipeline (same as Telegram, non-streaming)
       const response = await processTwinMessage(userId, text);
 
-      // Store in memory stream
-      await addConversationMemory(userId, text, response, { source: 'whatsapp' }).catch(() => {});
+      // Store in memory stream (fire and forget)
+      addConversationMemory(userId, text, response, { source: 'whatsapp' }).catch(() => {});
 
       // Send response (WhatsApp limit: 4096 chars)
-      if (response.length <= 4096) {
-        await sendWhatsAppMessage(phone, response);
-      } else {
-        await sendWhatsAppMessage(phone, response.slice(0, 4096));
-      }
+      await sendWhatsAppMessage(phoneWithout, response.length <= 4096 ? response : response.slice(0, 4096));
+      log.info('WhatsApp twin response sent', { userId, responseLength: response.length });
     }
   } catch (err) {
     log.error('WhatsApp webhook error', { error: err.message, stack: err.stack });
-    // Send error to user for debugging (remove after stable)
-    try {
-      const entry = req.body?.entry?.[0];
-      const phone = entry?.changes?.[0]?.value?.messages?.[0]?.from;
-      if (phone) {
-        await sendWhatsAppMessage(phone, `[Debug] Twin error: ${err.message?.substring(0, 200)}`);
-      }
-    } catch { /* ignore */ }
   }
+
+  // Respond 200 AFTER processing to keep Vercel function alive
+  res.sendStatus(200);
 });
 
 /**
