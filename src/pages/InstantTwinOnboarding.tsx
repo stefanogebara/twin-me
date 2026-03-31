@@ -7,6 +7,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { getAccessToken, authFetch } from '@/services/api/apiBase';
@@ -846,65 +847,105 @@ const InstantTwinOnboarding = () => {
       )}
     </div>
 
-      {/* Demo Value Modal — shows sample insights when demo user clicks Connect */}
-      {demoModalPlatform && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
-          onClick={() => setDemoModalPlatform(null)}
-        >
-          <div className="absolute inset-0 bg-black/60" />
+      {/* Demo Value Modal — Dimension.dev style glass + motion */}
+      <AnimatePresence>
+        {demoModalPlatform && (
           <div
-            className="relative max-w-md w-full rounded-[20px] px-6 py-6"
-            style={{
-              background: 'rgba(20,18,28,0.95)',
-              backdropFilter: 'blur(56px)',
-              WebkitBackdropFilter: 'blur(56px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.4)',
-            }}
-            onClick={e => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            onClick={() => setDemoModalPlatform(null)}
           >
-            <h3
-              className="text-lg font-medium mb-1"
-              style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
+            <motion.div
+              className="absolute inset-0"
+              style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            />
+            <motion.div
+              className="relative max-w-md w-full rounded-[24px] overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                backdropFilter: 'blur(56px)',
+                WebkitBackdropFilter: 'blur(56px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 24px 64px rgba(0,0,0,0.5)',
+              }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
             >
-              What you'd see with {demoModalPlatform.replace(/_/g, ' ')}
-            </h3>
-            <p className="text-xs mb-4" style={{ color: 'rgba(255,255,255,0.4)' }}>
-              Sample insights from real data
-            </p>
-            <div className="space-y-3 mb-5">
-              {getDemoInsights(demoModalPlatform).map((insight, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-sm mt-0.5">{insight.emoji}</span>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
-                    {insight.text}
-                  </p>
+              {/* Inner glow accent bar */}
+              <div
+                className="h-[2px] w-full"
+                style={{ background: 'linear-gradient(90deg, transparent, var(--accent-vibrant), transparent)' }}
+              />
+
+              <div className="px-6 py-6">
+                <h3
+                  style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontStyle: 'italic',
+                    fontSize: '22px',
+                    color: 'var(--foreground)',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  What you'd discover with {demoModalPlatform.replace(/_/g, ' ')}
+                </h3>
+                <p className="text-xs mt-1 mb-5" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                  Sample insights from real user data
+                </p>
+
+                <div className="space-y-3 mb-6">
+                  {getDemoInsights(demoModalPlatform).map((insight, i) => (
+                    <motion.div
+                      key={i}
+                      className="flex items-start gap-3 px-4 py-3 rounded-[16px] transition-all duration-200 hover:-translate-y-0.5"
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.1, duration: 0.4, ease: 'easeOut' }}
+                    >
+                      <span className="text-base mt-0.5">{insight.emoji}</span>
+                      <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
+                        {insight.text}
+                      </p>
+                    </motion.div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setDemoModalPlatform(null);
-                  navigate('/auth');
-                }}
-                className="flex-1 py-2.5 rounded-[100px] text-sm font-medium"
-                style={{ background: 'var(--accent-vibrant)', color: '#0a0909', fontFamily: "'Inter', sans-serif" }}
-              >
-                Sign up to see your real data
-              </button>
-              <button
-                onClick={() => setDemoModalPlatform(null)}
-                className="px-4 py-2.5 rounded-[100px] text-sm"
-                style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)', fontFamily: "'Inter', sans-serif" }}
-              >
-                Close
-              </button>
-            </div>
+
+                <div className="flex gap-3">
+                  <motion.button
+                    onClick={() => {
+                      setDemoModalPlatform(null);
+                      navigate('/auth');
+                    }}
+                    className="flex-1 py-3 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.98]"
+                    style={{ background: 'var(--accent-vibrant)', color: '#0a0909', fontFamily: "'Inter', sans-serif" }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Sign up to see your real data
+                  </motion.button>
+                  <button
+                    onClick={() => setDemoModalPlatform(null)}
+                    className="px-4 py-3 rounded-[100px] text-sm transition-all duration-150 hover:bg-[rgba(255,255,255,0.04)]"
+                    style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 };
