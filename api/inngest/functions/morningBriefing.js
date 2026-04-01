@@ -15,6 +15,7 @@ import { inngest, EVENTS } from '../../services/inngestClient.js';
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { supabaseAdmin } from '../../services/database.js';
+import { deliverInsight } from '../../services/messageRouter.js';
 import { createLogger } from '../../services/logger.js';
 
 const log = createLogger('MorningBriefing');
@@ -148,7 +149,7 @@ Do NOT start with "Good morning" if it's not morning — match the actual time o
 
     // Step 5: Deliver as proactive insight
     await step.run('deliver', async () => {
-      await supabaseAdmin
+      const { data: insertedInsight } = await supabaseAdmin
         .from('proactive_insights')
         .insert({
           user_id: userId,
@@ -156,7 +157,19 @@ Do NOT start with "Good morning" if it's not morning — match the actual time o
           urgency: 'medium',
           category: 'briefing',
           delivered: false
-        });
+        })
+        .select('id, insight, category, urgency')
+        .single();
+
+      // Deliver to all enabled channels (WhatsApp, Telegram, push)
+      if (insertedInsight) {
+        try {
+          await deliverInsight(userId, insertedInsight);
+          log.info('Morning briefing delivered to messaging channels', { userId });
+        } catch (deliverErr) {
+          log.warn('Channel delivery failed', { userId, error: deliverErr.message });
+        }
+      }
 
       // Log agent action
       await supabaseAdmin
