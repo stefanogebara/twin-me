@@ -10,6 +10,7 @@
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
+import { getValidAccessToken } from './tokenRefreshService.js';
 import { createLogger } from './logger.js';
 import { scoreForInsightSelection } from './inSilicoEngine.js';
 
@@ -37,12 +38,14 @@ export async function generateMorningBriefing(userId) {
     platformConnections,
     pendingInsights,
     userName,
+    todayEvents,
   ] = await Promise.all([
     fetchRecentMemories(userId),
     fetchTotalMemoryCount(userId),
     fetchPlatformConnections(userId),
     fetchPendingInsights(userId),
     fetchUserName(userId),
+    fetchTodayCalendarEvents(userId),
   ]);
 
   const firstName = userName || 'there';
@@ -68,16 +71,28 @@ export async function generateMorningBriefing(userId) {
     recentMemories,
     platformConnections,
     pendingInsights,
+    todayEvents,
     firstName,
     stats,
     userId,
   });
 
+  // Build meeting prep section (Dimension-style)
+  const meetingPrep = todayEvents.length > 0
+    ? todayEvents.slice(0, 5).map(e => ({
+        title: e.summary || '(No title)',
+        time: e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'All day',
+        attendees: (e.attendees || []).filter(a => !a.self).map(a => a.displayName || a.email?.split('@')[0] || 'someone').slice(0, 3),
+      }))
+    : [];
+
   return {
     greeting: `Good morning, ${firstName}`,
     highlight,
     stats,
-    cta: 'Chat with your twin about what it\'s learning',
+    todayEvents: meetingPrep,
+    eventCount: todayEvents.length,
+    cta: todayEvents.length > 0 ? 'Review your day with your twin' : 'Chat with your twin about what it\'s learning',
     isGettingStarted: false,
   };
 }
@@ -171,6 +186,36 @@ async function fetchUserName(userId) {
   return data?.first_name || null;
 }
 
+async function fetchTodayCalendarEvents(userId) {
+  try {
+    const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+    if (!tokenResult.success || !tokenResult.accessToken) return [];
+
+    const { google } = await import('googleapis');
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: tokenResult.accessToken });
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+
+    const res = await calendar.events.list({
+      calendarId: 'primary',
+      timeMin: startOfDay.toISOString(),
+      timeMax: endOfDay.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 10,
+    });
+
+    return res.data.items || [];
+  } catch (err) {
+    log.warn('Calendar fetch for briefing failed (non-fatal)', { userId, error: err.message });
+    return [];
+  }
+}
+
 function buildGettingStartedHighlight(platformsConnected) {
   if (platformsConnected === 0) {
     return 'Your twin is still learning about you. Connect Spotify or YouTube to give it something to work with.';
@@ -178,7 +223,7 @@ function buildGettingStartedHighlight(platformsConnected) {
   return 'Your twin is building its first impressions. Chat with it to help it understand you better.';
 }
 
-async function composeBriefingHighlight({ recentMemories, platformConnections, pendingInsights, firstName, stats, userId }) {
+async function composeBriefingHighlight({ recentMemories, platformConnections, pendingInsights, todayEvents, firstName, stats, userId }) {
   // In-silico ranking: select memories that resonate most with personality axes (TRIBE v2)
   let rankedMemories = recentMemories;
   try {
@@ -214,11 +259,21 @@ async function composeBriefingHighlight({ recentMemories, platformConnections, p
     .map(i => i.insight.slice(0, 150))
     .join('\n');
 
-  const prompt = `You are composing a one-sentence morning briefing highlight for ${firstName}'s daily email.
+  const calendarSection = (todayEvents || []).length > 0
+    ? `TODAY'S CALENDAR (${todayEvents.length} events):\n` + todayEvents.slice(0, 5).map(e => {
+        const time = e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'All day';
+        const who = (e.attendees || []).filter(a => !a.self).slice(0, 2).map(a => a.displayName || a.email?.split('@')[0]).join(', ');
+        return `- ${time}: ${e.summary || '(No title)'}${who ? ' with ' + who : ''}`;
+      }).join('\n')
+    : 'TODAY\'S CALENDAR: No events scheduled';
+
+  const prompt = `You are composing a morning briefing highlight for ${firstName}'s daily email.
 You are their digital twin — a perceptive close friend who notices patterns.
 
 RECENT OBSERVATIONS (last 24h):
 ${memorySnippets || 'No recent observations'}
+
+${calendarSection}
 
 CONNECTED PLATFORMS: ${platforms || 'None'}
 
@@ -227,10 +282,13 @@ ${insightSnippets || 'None yet'}
 
 STATS: ${stats.memoriesLearned} memories learned, ${stats.platformsConnected} platforms connected, ${stats.insightsReady} insights ready.
 
-Write ONE compelling sentence (max 120 chars) that highlights the most interesting thing you noticed.
-Be specific and personal — reference actual data when possible.
-Don't start with "I noticed" — be creative. Write as a perceptive friend, not a report.
-Return ONLY the sentence, nothing else.`;
+Write 2-3 sentences for a morning briefing:
+1. Lead with today's most important event or observation (be specific)
+2. Add a personal insight or pattern you noticed from their data
+3. If they have meetings, mention who they're meeting and any relevant context
+
+Write as a perceptive close friend, not a report. Reference real data.
+Return ONLY the briefing text, nothing else.`;
 
   try {
     const result = await complete({

@@ -388,6 +388,22 @@ export async function sendMorningBriefing({ toEmail, firstName, userId, briefing
     `${briefing.stats.insightsReady} insight${briefing.stats.insightsReady !== 1 ? 's' : ''} ready`,
   ].join(' &nbsp;&bull;&nbsp; ');
 
+  // Calendar events section (Dimension-style meeting prep)
+  const eventsHtml = (briefing.todayEvents?.length > 0)
+    ? `<div style="margin:20px 0 0;">
+        <p style="font-family:'Inter',Arial,sans-serif;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1.5px;color:#78716C;margin:0 0 12px;">Today's Schedule</p>
+        ${briefing.todayEvents.map(e => {
+          const safeTitle = escapeHtml(e.title);
+          const safeTime = escapeHtml(e.time);
+          const attendeeText = e.attendees?.length > 0 ? ` &middot; ${escapeHtml(e.attendees.join(', '))}` : '';
+          return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <span style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#F5F5F4;font-weight:500;">${safeTime}</span>
+            <span style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#A8A29E;"> ${safeTitle}${attendeeText}</span>
+          </div>`;
+        }).join('')}
+      </div>`
+    : '';
+
   const body = `
   <p style="${S.heading}">${safeGreeting}</p>
 
@@ -396,6 +412,8 @@ export async function sendMorningBriefing({ toEmail, firstName, userId, briefing
   <div style="${S.card}">
     <p style="${S.cardText}">${safeHighlight}</p>
   </div>
+
+  ${eventsHtml}
 
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 28px;">
   <tr>

@@ -4096,6 +4096,16 @@ async function runObservationIngestion() {
     errors: stats.errors.length,
   });
 
+  // Pre-warm caches for users who had new data stored (fire-and-forget)
+  if (stats.observationsStored > 0) {
+    import('./cacheWarmer.js').then(({ warmUserCaches }) => {
+      // Warm caches for all processed users (dedup built into warmUserCaches)
+      for (const userId of stats.processedUserIds || []) {
+        warmUserCaches(userId, 'observation-ingestion').catch(() => {});
+      }
+    }).catch(() => {});
+  }
+
   // Log to ingestion_health_log (4E - Production Hardening)
   try {
     const supabase = await getSupabase();
