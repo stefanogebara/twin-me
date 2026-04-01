@@ -47,35 +47,41 @@ export const morningBriefingFunction = inngest.createFunction(
       return { success: false, reason: 'cooldown', message: 'Briefing exists within last 20h' };
     }
 
-    // Step 1: Gather calendar data
+    // Step 1: Gather calendar data from user_memories (observations)
     const calendarData = await step.run('gather-calendar', async () => {
       try {
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data } = await supabaseAdmin
-          .from('platform_data')
-          .select('raw_data')
+          .from('user_memories')
+          .select('content')
           .eq('user_id', userId)
-          .eq('provider', 'google_calendar')
+          .eq('memory_type', 'platform_data')
+          .or('metadata->>source.ilike.%calendar%,metadata->>source.eq.google_calendar')
+          .gte('created_at', cutoff)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        return data?.raw_data || null;
+          .limit(5);
+        if (!data?.length) return null;
+        return data.map(d => d.content).join('\n');
       } catch {
         return null;
       }
     });
 
-    // Step 2: Gather health data (Whoop)
+    // Step 2: Gather health data from user_memories (Whoop observations)
     const healthData = await step.run('gather-health', async () => {
       try {
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data } = await supabaseAdmin
-          .from('platform_data')
-          .select('raw_data')
+          .from('user_memories')
+          .select('content')
           .eq('user_id', userId)
-          .eq('provider', 'whoop')
+          .eq('memory_type', 'platform_data')
+          .or('metadata->>source.ilike.%whoop%,metadata->>source.ilike.%health%,metadata->>source.ilike.%oura%,metadata->>source.ilike.%fitbit%')
+          .gte('created_at', cutoff)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        return data?.raw_data || null;
+          .limit(5);
+        if (!data?.length) return null;
+        return data.map(d => d.content).join('\n');
       } catch {
         return null;
       }
@@ -116,9 +122,9 @@ ${humanBlock}
 GOALS:
 ${goalsBlock}
 
-${hasCalendar ? `TODAY'S CALENDAR:\n${JSON.stringify(calendarData).slice(0, 1500)}` : '[NO CALENDAR DATA — skip calendar section entirely]'}
+${hasCalendar ? `TODAY'S CALENDAR:\n${calendarData}` : '[NO CALENDAR DATA — skip calendar section entirely]'}
 
-${hasHealth ? `HEALTH/RECOVERY:\n${JSON.stringify(healthData).slice(0, 800)}` : '[NO HEALTH DATA — skip health section entirely]'}
+${hasHealth ? `HEALTH/RECOVERY:\n${healthData}` : '[NO HEALTH DATA — skip health section entirely]'}
 
 GROUNDING RULES (CRITICAL — read before writing):
 - ONLY mention specific times, events, numbers, scores, or facts that appear in the data above.
