@@ -350,6 +350,10 @@ router.post('/message', authenticateUser, async (req, res) => {
       chatLog(`Neuropil: ${neuropilResult.neuropilId} (confidence=${neuropilResult.confidence})`);
     }
 
+    // Declare routing vars early (populated after context fetch, used during system prompt build)
+    let routedModel = null;
+    let routingTier = null;
+
     chatLog('Starting fetchTwinContext');
     let twinContext;
     let userLocation = null;
@@ -887,8 +891,6 @@ RULES:
     }
 
     // Smart routing: classify message complexity to select cheapest adequate model
-    let routedModel = null;
-    let routingTier = null;
     if (useSmartRouting) {
       const routing = classifyMessageTier(message, conversationHistory);
       routedModel = routing.model;
