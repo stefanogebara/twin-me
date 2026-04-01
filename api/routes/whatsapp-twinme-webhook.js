@@ -16,105 +16,119 @@ import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
-import { runAgentLoop } from '../services/agenticCore.js';
+import { executeTool } from '../services/toolRegistry.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('WhatsAppWebhook');
 const router = express.Router();
 
 // ====================================================================
-// Intent Classification (keyword-based, no LLM — must be instant)
+// Intent Classification → Direct Tool Mapping (no planner, instant)
 // ====================================================================
 
-const TASK_PATTERNS = [
-  { pattern: /check\s*(my\s*)?(emails?|inbox|mail)/i, skill: 'general_task', task: 'Check my recent emails and summarize what needs attention' },
-  { pattern: /send\s*(an?\s*)?email/i, skill: 'general_task', task: 'Send an email' },
-  { pattern: /draft\s*(an?\s*)?(email|reply|response)/i, skill: 'general_task', task: 'Draft an email reply' },
-  { pattern: /reply\s*to\s/i, skill: 'general_task', task: 'Reply to an email' },
-  { pattern: /(what'?s?\s*on\s*my\s*calendar|my\s*schedule|what\s*do\s*i\s*have\s*today)/i, skill: 'general_task', task: 'Check my calendar for today and upcoming events' },
-  { pattern: /(schedule|create|add)\s*(a\s*)?(meeting|event|appointment)/i, skill: 'general_task', task: 'Create a calendar event' },
-  { pattern: /find\s*(free|available)\s*(time|slots?)/i, skill: 'general_task', task: 'Find free time slots in my calendar' },
-  { pattern: /(search|find|look\s*up)\s*(in\s*)?(drive|docs|files?)/i, skill: 'general_task', task: 'Search my Google Drive' },
-  { pattern: /morning\s*briefing/i, skill: 'morning_briefing', task: 'Give me my morning briefing — calendar, recovery, priorities' },
-  { pattern: /what\s*(music|song|playlist)\s*(should|to)/i, skill: 'music_mood_match', task: 'Suggest music based on my current mood and activity' },
+const TOOL_INTENTS = [
+  { pattern: /check\s*(my\s*)?(emails?|inbox|mail)/i, tool: 'gmail_search', params: { query: 'is:unread newer_than:1d', maxResults: 5 } },
+  { pattern: /unread\s*(emails?|mail)/i, tool: 'gmail_search', params: { query: 'is:unread', maxResults: 5 } },
+  { pattern: /(what'?s?\s*on\s*my\s*calendar|my\s*schedule|what\s*do\s*i\s*have\s*today)/i, tool: 'calendar_today', params: {} },
+  { pattern: /(tomorrow|upcoming|next\s*few\s*days|this\s*week)/i, tool: 'calendar_upcoming', params: { days: 3 } },
+  { pattern: /find\s*(free|available)\s*(time|slots?)/i, tool: 'calendar_find_free_slots', params: { days: 3 } },
+  { pattern: /(search|find|look\s*up)\s*(in\s*)?(drive|docs|files?)/i, tool: 'drive_search', params: {} },
+  { pattern: /morning\s*briefing/i, tool: 'calendar_today', params: {} },
+  { pattern: /(now\s*playing|what.*listening|current.*song)/i, tool: 'spotify_now_playing', params: {} },
+  { pattern: /(recent\s*tracks?|what.*been\s*listening)/i, tool: 'spotify_recent_tracks', params: { limit: 5 } },
+  { pattern: /(my\s*recovery|how.*body|whoop)/i, tool: 'whoop_recovery', params: {} },
 ];
 
 /**
- * Classify a WhatsApp message as chat or task.
- * Returns { type: 'chat' | 'task', taskDescription, skillName }
+ * Classify a WhatsApp message as chat or tool action.
+ * Returns { type: 'chat' | 'tool', toolName, toolParams }
  */
 function classifyIntent(message) {
   const text = message.trim();
-  for (const { pattern, skill, task } of TASK_PATTERNS) {
+  for (const { pattern, tool, params } of TOOL_INTENTS) {
     if (pattern.test(text)) {
-      // Append user's original message for context
-      const taskDescription = text.length > task.length
-        ? `${task}. User said: "${text}"`
-        : task;
-      return { type: 'task', taskDescription, skillName: skill };
+      // Extract dynamic params from message (e.g., search query for drive)
+      const dynamicParams = { ...params };
+      if (tool === 'drive_search') {
+        const match = text.match(/(?:search|find|look\s*up).*(?:drive|docs|files?)\s+(?:for\s+)?(.+)/i);
+        if (match) dynamicParams.query = match[1].trim();
+      }
+      if (tool === 'gmail_search' && !params.query) {
+        const match = text.match(/(?:search|find).*(?:email|mail).*(?:for|about)\s+(.+)/i);
+        if (match) dynamicParams.query = match[1].trim();
+      }
+      return { type: 'tool', toolName: tool, toolParams: dynamicParams };
     }
   }
-  return { type: 'chat', taskDescription: null, skillName: null };
+  return { type: 'chat', toolName: null, toolParams: null };
 }
 
 // ====================================================================
 // Agent Result Formatter (structured output → WhatsApp text)
 // ====================================================================
 
-function formatAgentResult(result) {
+/**
+ * Format tool execution result as WhatsApp-friendly text.
+ */
+function formatToolResult(toolName, result) {
   if (!result) return "I tried but something went wrong. Try again?";
 
-  if (result.blocked) {
-    return `I can't do that right now — ${result.reason || 'insufficient permissions'}. You can adjust my autonomy level in Settings.`;
-  }
-
   if (!result.success) {
-    return `I ran into an issue: ${result.reason || 'something went wrong'}. Want me to try a different approach?`;
+    return `Couldn't complete that: ${result.error || 'unknown error'}`;
   }
 
-  // Extract useful data from step results
-  const parts = [];
+  const data = result.data;
+  if (!data) return "Done, but nothing to report.";
 
-  if (result.review?.summary) {
-    parts.push(result.review.summary);
-  } else if (result.steps?.length > 0) {
-    for (const step of result.steps) {
-      if (!step.result?.success) continue;
-      const data = step.result.data;
-      if (!data) continue;
-
-      if (typeof data === 'string') {
-        parts.push(data);
-      } else if (data.summary) {
-        parts.push(data.summary);
-      } else if (data.emails?.length > 0) {
-        const emailList = data.emails.slice(0, 5).map(e =>
-          `• *${e.from || 'Unknown'}*: ${(e.subject || 'No subject').slice(0, 60)}`
-        ).join('\n');
-        parts.push(`*Recent emails:*\n${emailList}`);
-      } else if (data.events?.length > 0) {
-        const eventList = data.events.slice(0, 5).map(e =>
-          `• ${e.time || ''} — ${(e.title || e.summary || 'Event').slice(0, 50)}`
-        ).join('\n');
-        parts.push(`*Calendar:*\n${eventList}`);
-      } else if (data.files?.length > 0) {
-        const fileList = data.files.slice(0, 5).map(f =>
-          `• ${(f.name || f.title || 'File').slice(0, 50)}`
-        ).join('\n');
-        parts.push(`*Files found:*\n${fileList}`);
-      } else if (typeof data === 'object') {
-        // Generic object — try to extract meaningful text
-        const text = data.text || data.content || data.message || data.result;
-        if (text) parts.push(String(text).slice(0, 500));
-      }
-    }
+  // Email results
+  if (data.emails?.length > 0) {
+    const list = data.emails.slice(0, 5).map(e =>
+      `• *${(e.from || e.sender || 'Unknown').split('<')[0].trim()}* — ${(e.subject || 'No subject').slice(0, 60)}`
+    ).join('\n');
+    return `*${data.emails.length} recent emails:*\n\n${list}${data.emails.length > 5 ? `\n\n...and ${data.emails.length - 5} more` : ''}`;
   }
 
-  if (parts.length === 0) {
-    return result.plan?.summary || "Done — but I didn't find anything notable to share.";
+  // Calendar results
+  if (data.events?.length > 0) {
+    const list = data.events.slice(0, 8).map(e => {
+      const time = e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : (e.time || '');
+      return `• ${time} — ${(e.summary || e.title || 'Event').slice(0, 50)}`;
+    }).join('\n');
+    return `*Today's calendar:*\n\n${list}`;
   }
 
-  return parts.join('\n\n').slice(0, 4000);
+  // Free slots
+  if (data.freeSlots?.length > 0) {
+    const list = data.freeSlots.slice(0, 5).map(s => `• ${s.start} — ${s.end}`).join('\n');
+    return `*Free time slots:*\n\n${list}`;
+  }
+
+  // Spotify
+  if (data.track || data.artist) {
+    return `*Now playing:* ${data.track || 'Unknown'} by ${data.artist || 'Unknown'}`;
+  }
+  if (data.tracks?.length > 0) {
+    const list = data.tracks.slice(0, 5).map(t => `• ${t.name || t.track} — ${t.artist}`).join('\n');
+    return `*Recent tracks:*\n\n${list}`;
+  }
+
+  // Whoop
+  if (data.recovery != null || data.recovery_score != null) {
+    return `*Recovery:* ${data.recovery || data.recovery_score}%\n*Sleep:* ${data.sleep_hours || '?'}h\n*HRV:* ${data.hrv || '?'}ms`;
+  }
+
+  // Drive files
+  if (data.files?.length > 0) {
+    const list = data.files.slice(0, 5).map(f => `• ${(f.name || f.title || 'File').slice(0, 50)}`).join('\n');
+    return `*Files found:*\n\n${list}`;
+  }
+
+  // Generic string
+  if (typeof data === 'string') return data.slice(0, 2000);
+  if (data.text || data.content || data.message) return String(data.text || data.content || data.message).slice(0, 2000);
+
+  // Last resort — JSON dump
+  return JSON.stringify(data).slice(0, 500);
 }
 
 // ====================================================================
@@ -188,20 +202,17 @@ router.post('/webhook', express.json(), async (req, res) => {
       const userId = channel.user_id;
       log.info('WhatsApp message received', { userId, textLength: text.length });
 
-      // Classify intent: chat or task?
+      // Classify intent: chat or tool action?
       const intent = classifyIntent(text);
       let response;
 
-      if (intent.type === 'task') {
-        log.info('Agentic task detected', { userId, skill: intent.skillName, task: intent.taskDescription?.slice(0, 60) });
+      if (intent.type === 'tool') {
+        log.info('Tool action detected', { userId, tool: intent.toolName });
         try {
-          const result = await runAgentLoop(userId, intent.taskDescription, {
-            skillName: intent.skillName,
-            maxSteps: 3,
-          });
-          response = formatAgentResult(result);
+          const result = await executeTool(userId, intent.toolName, intent.toolParams);
+          response = formatToolResult(intent.toolName, result);
         } catch (err) {
-          log.error('Agent loop failed', { userId, error: err.message });
+          log.error('Tool execution failed, falling back to chat', { userId, tool: intent.toolName, error: err.message });
           response = await processTwinMessage(userId, text);
         }
       } else {
