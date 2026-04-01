@@ -47,7 +47,7 @@ async function getSupabase() {
 }
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack', 'apple_music'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'google_drive', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack', 'apple_music'];
 
 // ====================================================================
 // Prompt injection defense
@@ -1385,6 +1385,50 @@ async function fetchGmailObservations(userId) {
     }
   } catch (e) {
     log.warn('Gmail top senders error', { error: e });
+  }
+
+  return observations;
+}
+
+// ====================================================================
+// Google Drive (reads file titles + content excerpts into memory)
+// ====================================================================
+
+async function fetchGoogleDriveObservations(userId) {
+  const observations = [];
+
+  // Drive uses the same OAuth token as Calendar/Gmail (bundled Google Workspace scopes)
+  const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+  if (!tokenResult.success || !tokenResult.accessToken) {
+    log.warn('Google Drive: no valid token', { userId });
+    return observations;
+  }
+
+  try {
+    const { syncDriveToObservations } = await import('./enrichment/googleDriveProvider.js');
+
+    // Get user name for natural language observations
+    const supabase = await getSupabase();
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('first_name, last_name')
+      .eq('id', userId)
+      .single();
+    const userName = userRow?.first_name || 'User';
+
+    const driveObs = await syncDriveToObservations(tokenResult.accessToken, userName);
+
+    for (const obs of driveObs) {
+      observations.push({
+        content: obs.content,
+        contentType: 'weekly_summary', // Drive files change slowly
+        metadata: obs.metadata,
+      });
+    }
+
+    log.info('Google Drive observations', { userId, count: observations.length });
+  } catch (err) {
+    log.warn('Google Drive ingestion failed', { userId, error: err.message });
   }
 
   return observations;
@@ -3816,6 +3860,9 @@ async function runObservationIngestion() {
                 break;
               case 'google_gmail':
                 observations = await fetchGmailObservations(userId);
+                break;
+              case 'google_drive':
+                observations = await fetchGoogleDriveObservations(userId);
                 break;
               case 'outlook':
                 observations = await fetchOutlookObservations(userId);

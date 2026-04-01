@@ -33,6 +33,7 @@ import {
 
 import { AVAILABLE_CONNECTORS } from './onboarding/components/connectorConfig';
 import { PlatformCategorySection } from './onboarding/components/PlatformCategorySection';
+import { PlatformTile } from './onboarding/components/PlatformTile';
 
 // ====================================================================
 // MODULE-LEVEL CONSTANTS
@@ -700,77 +701,131 @@ const InstantTwinOnboarding = () => {
         </div>
       )}
 
-      {/* Step 1: Platform connections */}
+      {/* Step 1: Platform connections — Dimension.dev-inspired layout */}
       {currentStep === 1 && (
         <div className="space-y-8">
           <SoulRichnessBar connectedPlatforms={activeConnections} />
 
-          <SectionLabel label="Browsing" />
-          <PlatformCategorySection
-            categoryName="Browsing"
-            categorySubtext="Universal web tracking"
-            categoryColor={colors.categoryBrowsing}
-            connectors={browsingConnectors}
-            animationDelay={0}
-            dotDelay={0}
-            {...categoryProps}
-          />
+          {/* ── Connected Section ── */}
+          {connectedServices.length > 0 && (
+            <>
+              <SectionLabel label="Connected" />
+              <div
+                className="rounded-2xl p-1 space-y-1"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                {sortConnectors(availableConnectors)
+                  .filter(c => connectedServices.includes(c.provider))
+                  .map(c => (
+                    <PlatformTile
+                      key={c.provider}
+                      name={c.name}
+                      description={c.description}
+                      icon={c.icon}
+                      connected={true}
+                      syncing={connectingProvider === c.provider}
+                      onConnect={() => connectService(c.provider)}
+                      onManage={() => disconnectService(c.provider, c.name)}
+                    />
+                  ))}
+              </div>
+              <Divider />
+            </>
+          )}
 
-          <SectionLabel label="Entertainment" />
-          <PlatformCategorySection
-            categoryName="Entertainment"
-            categorySubtext="Music, videos, streaming"
-            categoryColor={colors.categoryEntertainment}
-            connectors={entertainmentConnectors}
-            animationDelay={0}
-            dotDelay={0}
-            {...categoryProps}
-          />
-
-          <SectionLabel label="Health" />
-          <PlatformCategorySection
-            categoryName="Health"
-            categorySubtext="Recovery, sleep, fitness"
-            categoryColor={colors.categoryHealth}
-            connectors={healthConnectors}
-            animationDelay={0}
-            dotDelay={0}
-            {...categoryProps}
-          />
-
-          <SectionLabel label="Social" />
-          <PlatformCategorySection
-            categoryName="Social"
-            categorySubtext="Communities, discussions"
-            categoryColor={colors.categorySocial}
-            connectors={socialConnectors}
-            animationDelay={0}
-            dotDelay={0}
-            {...categoryProps}
-          />
-
-          <SectionLabel label="Professional" />
-          <PlatformCategorySection
-            categoryName="Professional"
-            categorySubtext="Work, coding, email"
-            categoryColor={colors.categoryProfessional}
-            connectors={professionalConnectors}
-            animationDelay={0}
-            dotDelay={0}
-            {...categoryProps}
-          />
-
-          {/* Google Workspace — full read+write suite (Gmail, Calendar, Drive, Docs, Sheets, Contacts) */}
-          <Divider />
+          {/* ── Google Workspace ── */}
           <SectionLabel label="Google Workspace" />
           <p className="text-[13px] -mt-3 mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Let your twin read emails, check your schedule, search files, and draft documents
+            Access emails, calendar, Drive files, Docs, and Sheets — your twin reads and understands your work
           </p>
           <GoogleWorkspaceConnect
             connectorStatus={platformStatusData}
             isDemoMode={isDemoMode}
             navigate={navigate}
           />
+
+          {/* ── Entertainment ── */}
+          <Divider />
+          <SectionLabel label="Entertainment" />
+          <div className="space-y-1">
+            {sortConnectors(entertainmentConnectors)
+              .filter(c => !connectedServices.includes(c.provider))
+              .map(c => (
+                <PlatformTile
+                  key={c.provider}
+                  name={c.name}
+                  description={c.description}
+                  icon={c.icon}
+                  connected={false}
+                  comingSoon={c.comingSoon}
+                  syncing={connectingProvider === c.provider}
+                  onConnect={() => connectService(c.provider)}
+                />
+              ))}
+          </div>
+
+          {/* ── Health & Fitness ── */}
+          <Divider />
+          <SectionLabel label="Health & Fitness" />
+          <div className="space-y-1">
+            {sortConnectors(healthConnectors)
+              .filter(c => !connectedServices.includes(c.provider))
+              .map(c => (
+                <PlatformTile
+                  key={c.provider}
+                  name={c.name}
+                  description={c.description}
+                  icon={c.icon}
+                  connected={false}
+                  comingSoon={c.comingSoon}
+                  syncing={connectingProvider === c.provider}
+                  onConnect={() => connectService(c.provider)}
+                />
+              ))}
+          </div>
+
+          {/* ── Social & Community ── */}
+          <Divider />
+          <SectionLabel label="Social & Community" />
+          <div className="space-y-1">
+            {sortConnectors(socialConnectors)
+              .filter(c => !connectedServices.includes(c.provider))
+              .map(c => (
+                <PlatformTile
+                  key={c.provider}
+                  name={c.name}
+                  description={c.description}
+                  icon={c.icon}
+                  connected={false}
+                  comingSoon={c.comingSoon}
+                  syncing={connectingProvider === c.provider}
+                  onConnect={() => connectService(c.provider)}
+                />
+              ))}
+          </div>
+
+          {/* ── Professional ── */}
+          <Divider />
+          <SectionLabel label="Professional" />
+          <div className="space-y-1">
+            {sortConnectors([...professionalConnectors, ...browsingConnectors])
+              .filter(c => !connectedServices.includes(c.provider))
+              .map(c => (
+                <PlatformTile
+                  key={c.provider}
+                  name={c.name}
+                  description={c.description}
+                  icon={c.icon}
+                  connected={false}
+                  comingSoon={c.comingSoon}
+                  syncing={connectingProvider === c.provider}
+                  onConnect={() => connectService(c.provider)}
+                />
+              ))}
+          </div>
 
           {connectedServices.length > 0 && (
             <DataVerification
