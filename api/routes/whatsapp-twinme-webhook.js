@@ -9,9 +9,9 @@
  */
 
 import express from 'express';
-import { sendWhatsAppMessage, verifyWebhookSignature } from '../services/whatsappService.js';
+import { sendWhatsAppMessage, markMessageAsRead, verifyWebhookSignature } from '../services/whatsappService.js';
 import { supabaseAdmin } from '../services/database.js';
-import { complete, TIER_CHAT } from '../services/llmGateway.js';
+import { complete, TIER_CHAT, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
@@ -75,6 +75,9 @@ router.post('/webhook', express.json(), async (req, res) => {
       const text = msg.text?.body;
       if (!phone || !text) continue;
 
+      // Mark as read immediately (blue checkmarks = instant feedback)
+      markMessageAsRead(msg.id).catch(() => {});
+
       // Look up user by WhatsApp phone number
       // Meta sends phone without '+' prefix, DB may store with '+' — check both
       const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
@@ -118,11 +121,12 @@ router.post('/webhook', express.json(), async (req, res) => {
  * Process a message through the twin chat pipeline (simplified for WhatsApp).
  */
 async function processTwinMessage(userId, message) {
-  const [twinContext, coreBlocks, personalityProfile] = await Promise.all([
+  const [twinContext, coreBlocks] = await Promise.all([
     fetchTwinContext(userId, message).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
-    getProfile(userId).catch(() => null),
   ]);
+  // Skip personality profile fetch for WhatsApp — saves ~3s
+  const personalityProfile = null;
 
   const systemParts = [];
 
@@ -160,8 +164,8 @@ async function processTwinMessage(userId, message) {
   const response = await complete({
     system,
     messages: [{ role: 'user', content: message }],
-    tier: TIER_CHAT,
-    maxTokens: 800,
+    tier: TIER_ANALYSIS,
+    maxTokens: 500,
     temperature: personalityProfile?.temperature ?? 0.7,
     userId,
     serviceName: 'twin-chat:whatsapp',

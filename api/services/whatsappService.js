@@ -111,6 +111,25 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
 }
 
 /**
+ * Mark a message as read (shows blue checkmarks to the sender).
+ */
+export async function markMessageAsRead(messageId) {
+  const phoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  const accessToken = process.env.TWINME_WHATSAPP_ACCESS_TOKEN;
+  if (!phoneNumberId || !accessToken) return;
+
+  try {
+    await axios.post(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
+      { messaging_product: 'whatsapp', status: 'read', message_id: messageId },
+      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, timeout: 3000 }
+    );
+  } catch {
+    // Non-fatal
+  }
+}
+
+/**
  * Verify Meta webhook signature (SHA256 HMAC).
  */
 export function verifyWebhookSignature(signature, rawBody) {
