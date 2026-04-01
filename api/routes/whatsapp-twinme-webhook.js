@@ -1,8 +1,9 @@
 /**
- * WhatsApp Webhook — TwinMe Bidirectional Chat via Meta Cloud API
- * =================================================================
- * Handles incoming WhatsApp messages and routes them through the twin
- * chat pipeline (same as Telegram). Feature-flagged off until ops done.
+ * WhatsApp Webhook — TwinMe Agentic Twin via Meta Cloud API
+ * ===========================================================
+ * Handles incoming WhatsApp messages with two modes:
+ *   - Chat: conversational responses (context + LLM)
+ *   - Agentic: tool execution via agenticCore (email, calendar, etc.)
  *
  * GET  /api/whatsapp-twin/webhook — Meta verification challenge
  * POST /api/whatsapp-twin/webhook — Incoming messages
@@ -11,16 +12,114 @@
 import express from 'express';
 import { sendWhatsAppMessage, markMessageAsRead, verifyWebhookSignature } from '../services/whatsappService.js';
 import { supabaseAdmin } from '../services/database.js';
-import { complete, TIER_CHAT, TIER_ANALYSIS } from '../services/llmGateway.js';
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
-import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
-import { getProfile } from '../services/personalityProfileService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
+import { runAgentLoop } from '../services/agenticCore.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('WhatsAppWebhook');
 const router = express.Router();
+
+// ====================================================================
+// Intent Classification (keyword-based, no LLM — must be instant)
+// ====================================================================
+
+const TASK_PATTERNS = [
+  { pattern: /check\s*(my\s*)?(emails?|inbox|mail)/i, skill: 'general_task', task: 'Check my recent emails and summarize what needs attention' },
+  { pattern: /send\s*(an?\s*)?email/i, skill: 'general_task', task: 'Send an email' },
+  { pattern: /draft\s*(an?\s*)?(email|reply|response)/i, skill: 'general_task', task: 'Draft an email reply' },
+  { pattern: /reply\s*to\s/i, skill: 'general_task', task: 'Reply to an email' },
+  { pattern: /(what'?s?\s*on\s*my\s*calendar|my\s*schedule|what\s*do\s*i\s*have\s*today)/i, skill: 'general_task', task: 'Check my calendar for today and upcoming events' },
+  { pattern: /(schedule|create|add)\s*(a\s*)?(meeting|event|appointment)/i, skill: 'general_task', task: 'Create a calendar event' },
+  { pattern: /find\s*(free|available)\s*(time|slots?)/i, skill: 'general_task', task: 'Find free time slots in my calendar' },
+  { pattern: /(search|find|look\s*up)\s*(in\s*)?(drive|docs|files?)/i, skill: 'general_task', task: 'Search my Google Drive' },
+  { pattern: /morning\s*briefing/i, skill: 'morning_briefing', task: 'Give me my morning briefing — calendar, recovery, priorities' },
+  { pattern: /what\s*(music|song|playlist)\s*(should|to)/i, skill: 'music_mood_match', task: 'Suggest music based on my current mood and activity' },
+];
+
+/**
+ * Classify a WhatsApp message as chat or task.
+ * Returns { type: 'chat' | 'task', taskDescription, skillName }
+ */
+function classifyIntent(message) {
+  const text = message.trim();
+  for (const { pattern, skill, task } of TASK_PATTERNS) {
+    if (pattern.test(text)) {
+      // Append user's original message for context
+      const taskDescription = text.length > task.length
+        ? `${task}. User said: "${text}"`
+        : task;
+      return { type: 'task', taskDescription, skillName: skill };
+    }
+  }
+  return { type: 'chat', taskDescription: null, skillName: null };
+}
+
+// ====================================================================
+// Agent Result Formatter (structured output → WhatsApp text)
+// ====================================================================
+
+function formatAgentResult(result) {
+  if (!result) return "I tried but something went wrong. Try again?";
+
+  if (result.blocked) {
+    return `I can't do that right now — ${result.reason || 'insufficient permissions'}. You can adjust my autonomy level in Settings.`;
+  }
+
+  if (!result.success) {
+    return `I ran into an issue: ${result.reason || 'something went wrong'}. Want me to try a different approach?`;
+  }
+
+  // Extract useful data from step results
+  const parts = [];
+
+  if (result.review?.summary) {
+    parts.push(result.review.summary);
+  } else if (result.steps?.length > 0) {
+    for (const step of result.steps) {
+      if (!step.result?.success) continue;
+      const data = step.result.data;
+      if (!data) continue;
+
+      if (typeof data === 'string') {
+        parts.push(data);
+      } else if (data.summary) {
+        parts.push(data.summary);
+      } else if (data.emails?.length > 0) {
+        const emailList = data.emails.slice(0, 5).map(e =>
+          `• *${e.from || 'Unknown'}*: ${(e.subject || 'No subject').slice(0, 60)}`
+        ).join('\n');
+        parts.push(`*Recent emails:*\n${emailList}`);
+      } else if (data.events?.length > 0) {
+        const eventList = data.events.slice(0, 5).map(e =>
+          `• ${e.time || ''} — ${(e.title || e.summary || 'Event').slice(0, 50)}`
+        ).join('\n');
+        parts.push(`*Calendar:*\n${eventList}`);
+      } else if (data.files?.length > 0) {
+        const fileList = data.files.slice(0, 5).map(f =>
+          `• ${(f.name || f.title || 'File').slice(0, 50)}`
+        ).join('\n');
+        parts.push(`*Files found:*\n${fileList}`);
+      } else if (typeof data === 'object') {
+        // Generic object — try to extract meaningful text
+        const text = data.text || data.content || data.message || data.result;
+        if (text) parts.push(String(text).slice(0, 500));
+      }
+    }
+  }
+
+  if (parts.length === 0) {
+    return result.plan?.summary || "Done — but I didn't find anything notable to share.";
+  }
+
+  return parts.join('\n\n').slice(0, 4000);
+}
+
+// ====================================================================
+// Webhook Handlers
+// ====================================================================
 
 // Meta webhook verification (GET)
 router.get('/webhook', (req, res) => {
@@ -40,33 +139,24 @@ router.get('/webhook', (req, res) => {
 
 // Incoming messages (POST)
 router.post('/webhook', express.json(), async (req, res) => {
-  // Verify Meta webhook signature before processing
   if (!process.env.TWINME_WHATSAPP_WEBHOOK_SECRET) {
-    log.error('TWINME_WHATSAPP_WEBHOOK_SECRET not configured — rejecting request');
+    log.error('TWINME_WHATSAPP_WEBHOOK_SECRET not configured');
     return res.sendStatus(403);
   }
 
   const signature = req.headers['x-hub-signature-256'];
-  if (!signature) {
-    log.warn('WhatsApp webhook missing x-hub-signature-256 header');
-    return res.sendStatus(403);
-  }
+  if (!signature) return res.sendStatus(403);
 
   const rawBody = JSON.stringify(req.body);
-  if (!verifyWebhookSignature(signature, rawBody)) {
-    log.warn('WhatsApp webhook signature verification failed');
-    return res.sendStatus(403);
-  }
+  if (!verifyWebhookSignature(signature, rawBody)) return res.sendStatus(403);
 
-  // Process message BEFORE responding — Vercel kills functions after res.send()
+  // Process BEFORE responding (Vercel kills functions after res.send)
   try {
     const entry = req.body?.entry?.[0];
     const changes = entry?.changes?.[0];
     const messages = changes?.value?.messages;
 
-    if (!messages?.length) {
-      return res.sendStatus(200);
-    }
+    if (!messages?.length) return res.sendStatus(200);
 
     for (const msg of messages) {
       if (msg.type !== 'text') continue;
@@ -75,11 +165,10 @@ router.post('/webhook', express.json(), async (req, res) => {
       const text = msg.text?.body;
       if (!phone || !text) continue;
 
-      // Mark as read immediately (blue checkmarks = instant feedback)
+      // Mark as read immediately (blue checkmarks)
       markMessageAsRead(msg.id).catch(() => {});
 
-      // Look up user by WhatsApp phone number
-      // Meta sends phone without '+' prefix, DB may store with '+' — check both
+      // Look up user
       const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
       const phoneWithout = phone.startsWith('+') ? phone.slice(1) : phone;
 
@@ -91,42 +180,56 @@ router.post('/webhook', express.json(), async (req, res) => {
         .single();
 
       if (!channel) {
-        log.warn('No messaging_channels match for phone', { phone, phoneWithPlus, phoneWithout });
-        await sendWhatsAppMessage(phoneWithout, 'Your WhatsApp isn\'t linked to TwinMe yet. Go to Settings in the app to connect.');
+        log.warn('No messaging_channels match', { phone });
+        await sendWhatsAppMessage(phoneWithout, "Your WhatsApp isn't linked to TwinMe yet. Go to Settings in the app to connect.");
         continue;
       }
 
       const userId = channel.user_id;
-      log.info('Processing WhatsApp message', { userId, phone: phoneWithout, textLength: text.length });
+      log.info('WhatsApp message received', { userId, textLength: text.length });
 
-      // Run twin chat pipeline (same as Telegram, non-streaming)
-      const response = await processTwinMessage(userId, text);
+      // Classify intent: chat or task?
+      const intent = classifyIntent(text);
+      let response;
 
-      // Store in memory stream (fire and forget)
+      if (intent.type === 'task') {
+        log.info('Agentic task detected', { userId, skill: intent.skillName, task: intent.taskDescription?.slice(0, 60) });
+        try {
+          const result = await runAgentLoop(userId, intent.taskDescription, {
+            skillName: intent.skillName,
+            maxSteps: 3,
+          });
+          response = formatAgentResult(result);
+        } catch (err) {
+          log.error('Agent loop failed', { userId, error: err.message });
+          response = await processTwinMessage(userId, text);
+        }
+      } else {
+        response = await processTwinMessage(userId, text);
+      }
+
+      // Store conversation (fire and forget)
       addConversationMemory(userId, text, response, { source: 'whatsapp' }).catch(() => {});
 
-      // Send response (WhatsApp limit: 4096 chars)
+      // Send response
       await sendWhatsAppMessage(phoneWithout, response.length <= 4096 ? response : response.slice(0, 4096));
-      log.info('WhatsApp twin response sent', { userId, responseLength: response.length });
+      log.info('WhatsApp response sent', { userId, type: intent.type, responseLength: response.length });
     }
   } catch (err) {
     log.error('WhatsApp webhook error', { error: err.message, stack: err.stack });
   }
 
-  // Respond 200 AFTER processing to keep Vercel function alive
   res.sendStatus(200);
 });
 
 /**
- * Process a message through the twin chat pipeline (simplified for WhatsApp).
+ * Process a conversational message (no tools).
  */
 async function processTwinMessage(userId, message) {
   const [twinContext, coreBlocks] = await Promise.all([
     fetchTwinContext(userId, message).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
   ]);
-  // Skip personality profile fetch for WhatsApp — saves ~3s
-  const personalityProfile = null;
 
   const systemParts = [];
 
@@ -135,11 +238,6 @@ async function processTwinMessage(userId, message) {
 
   if (twinContext.twinSummary) {
     systemParts.push(`WHO YOU ARE:\n${twinContext.twinSummary}`);
-  }
-
-  if (personalityProfile) {
-    const personalityBlock = buildPersonalityPrompt(personalityProfile);
-    if (personalityBlock) systemParts.push(personalityBlock);
   }
 
   if (twinContext.memories?.length > 0) {
@@ -166,7 +264,7 @@ async function processTwinMessage(userId, message) {
     messages: [{ role: 'user', content: message }],
     tier: TIER_ANALYSIS,
     maxTokens: 500,
-    temperature: personalityProfile?.temperature ?? 0.7,
+    temperature: 0.7,
     userId,
     serviceName: 'twin-chat:whatsapp',
   });
