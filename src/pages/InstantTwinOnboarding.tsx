@@ -747,85 +747,101 @@ const InstantTwinOnboarding = () => {
             navigate={navigate}
           />
 
-          {/* ── Entertainment ── */}
-          <Divider />
-          <SectionLabel label="Entertainment" />
-          <div className="space-y-1">
-            {sortConnectors(entertainmentConnectors)
-              .filter(c => !connectedServices.includes(c.provider))
-              .map(c => (
-                <PlatformTile
-                  key={c.provider}
-                  name={c.name}
-                  description={c.description}
-                  icon={c.icon}
-                  connected={false}
-                  comingSoon={c.comingSoon}
-                  syncing={connectingProvider === c.provider}
-                  onConnect={() => connectService(c.provider)}
-                />
-              ))}
-          </div>
+          {/* ── Entertainment ── (hidden when all connected) */}
+          {entertainmentConnectors.some(c => !connectedServices.includes(c.provider)) && (
+            <>
+              <Divider />
+              <SectionLabel label="Entertainment" />
+              <div className="space-y-1">
+                {sortConnectors(entertainmentConnectors)
+                  .filter(c => !connectedServices.includes(c.provider))
+                  .map(c => (
+                    <PlatformTile
+                      key={c.provider}
+                      name={c.name}
+                      description={c.description}
+                      icon={c.icon}
+                      connected={false}
+                      comingSoon={c.comingSoon}
+                      syncing={connectingProvider === c.provider}
+                      onConnect={() => connectService(c.provider)}
+                    />
+                  ))}
+              </div>
+            </>
+          )}
 
-          {/* ── Health & Fitness ── */}
-          <Divider />
-          <SectionLabel label="Health & Fitness" />
-          <div className="space-y-1">
-            {sortConnectors(healthConnectors)
-              .filter(c => !connectedServices.includes(c.provider))
-              .map(c => (
-                <PlatformTile
-                  key={c.provider}
-                  name={c.name}
-                  description={c.description}
-                  icon={c.icon}
-                  connected={false}
-                  comingSoon={c.comingSoon}
-                  syncing={connectingProvider === c.provider}
-                  onConnect={() => connectService(c.provider)}
-                />
-              ))}
-          </div>
+          {/* ── Health & Fitness ── (hidden when all connected) */}
+          {healthConnectors.some(c => !connectedServices.includes(c.provider)) && (
+            <>
+              <Divider />
+              <SectionLabel label="Health & Fitness" />
+              <div className="space-y-1">
+                {sortConnectors(healthConnectors)
+                  .filter(c => !connectedServices.includes(c.provider))
+                  .map(c => (
+                    <PlatformTile
+                      key={c.provider}
+                      name={c.name}
+                      description={c.description}
+                      icon={c.icon}
+                      connected={false}
+                      comingSoon={c.comingSoon}
+                      syncing={connectingProvider === c.provider}
+                      onConnect={() => connectService(c.provider)}
+                    />
+                  ))}
+              </div>
+            </>
+          )}
 
-          {/* ── Social & Community ── */}
-          <Divider />
-          <SectionLabel label="Social & Community" />
-          <div className="space-y-1">
-            {sortConnectors(socialConnectors)
-              .filter(c => !connectedServices.includes(c.provider))
-              .map(c => (
-                <PlatformTile
-                  key={c.provider}
-                  name={c.name}
-                  description={c.description}
-                  icon={c.icon}
-                  connected={false}
-                  comingSoon={c.comingSoon}
-                  syncing={connectingProvider === c.provider}
-                  onConnect={() => connectService(c.provider)}
-                />
-              ))}
-          </div>
+          {/* ── Social & Community ── (hidden when all connected) */}
+          {socialConnectors.some(c => !connectedServices.includes(c.provider)) && (
+            <>
+              <Divider />
+              <SectionLabel label="Social & Community" />
+              <div className="space-y-1">
+                {sortConnectors(socialConnectors)
+                  .filter(c => !connectedServices.includes(c.provider))
+                  .map(c => (
+                    <PlatformTile
+                      key={c.provider}
+                      name={c.name}
+                      description={c.description}
+                      icon={c.icon}
+                      connected={false}
+                      comingSoon={c.comingSoon}
+                      syncing={connectingProvider === c.provider}
+                      onConnect={() => connectService(c.provider)}
+                    />
+                  ))}
+              </div>
+            </>
+          )}
 
-          {/* ── Professional ── */}
-          <Divider />
-          <SectionLabel label="Professional" />
-          <div className="space-y-1">
-            {sortConnectors([...professionalConnectors, ...browsingConnectors])
-              .filter(c => !connectedServices.includes(c.provider))
-              .map(c => (
-                <PlatformTile
-                  key={c.provider}
-                  name={c.name}
-                  description={c.description}
-                  icon={c.icon}
-                  connected={false}
-                  comingSoon={c.comingSoon}
-                  syncing={connectingProvider === c.provider}
-                  onConnect={() => connectService(c.provider)}
-                />
-              ))}
-          </div>
+          {/* ── Professional ── (hidden when all connected) */}
+          {[...professionalConnectors, ...browsingConnectors].some(c => !connectedServices.includes(c.provider)) && (
+            <>
+              <Divider />
+              <SectionLabel label="Professional" />
+              <div className="space-y-1">
+                {sortConnectors([...professionalConnectors, ...browsingConnectors])
+                  .filter(c => !connectedServices.includes(c.provider))
+                  .map(c => (
+                    <PlatformTile
+                      key={c.provider}
+                      name={c.name}
+                      description={c.description}
+                      icon={c.icon}
+                      connected={false}
+                      comingSoon={c.comingSoon}
+                      syncing={connectingProvider === c.provider}
+                      onConnect={() => connectService(c.provider)}
+                    />
+                  ))}
+              </div>
+            </>
+          )}
 
           {connectedServices.length > 0 && (
             <DataVerification
