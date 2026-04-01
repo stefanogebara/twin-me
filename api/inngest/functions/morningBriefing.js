@@ -100,10 +100,12 @@ export const morningBriefingFunction = inngest.createFunction(
       const timeContext = getTimeOfDayContext(saoPauloHour);
       const dayOfWeek = nowUtc.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Sao_Paulo' });
 
-      const prompt = `You are composing a ${timeContext.label} briefing for someone as their digital twin — a close friend who knows them deeply.
+      const hasCalendar = !!calendarData;
+      const hasHealth = !!healthData;
 
-CURRENT TIME CONTEXT:
-It's ${dayOfWeek}, ~${saoPauloHour}:00 in their timezone (São Paulo). ${timeContext.hint}
+      const prompt = `You are composing a ${timeContext.label} briefing for someone as their digital twin.
+
+CURRENT TIME: ${dayOfWeek}, ~${saoPauloHour}:00 in their timezone. ${timeContext.hint}
 
 WHO THEY ARE:
 ${soulSignature}
@@ -111,25 +113,29 @@ ${soulSignature}
 WHAT YOU KNOW:
 ${humanBlock}
 
-THEIR GOALS:
+GOALS:
 ${goalsBlock}
 
-TODAY'S CALENDAR:
-${calendarData ? JSON.stringify(calendarData).slice(0, 1500) : 'No calendar data available'}
+${hasCalendar ? `TODAY'S CALENDAR:\n${JSON.stringify(calendarData).slice(0, 1500)}` : '[NO CALENDAR DATA — skip calendar section entirely]'}
 
-HEALTH/RECOVERY:
-${healthData ? JSON.stringify(healthData).slice(0, 800) : 'No health data available'}
+${hasHealth ? `HEALTH/RECOVERY:\n${JSON.stringify(healthData).slice(0, 800)}` : '[NO HEALTH DATA — skip health section entirely]'}
 
-Write a warm, personal ${timeContext.label} briefing (3-5 short paragraphs). Include:
-1. A time-appropriate, personality-matched greeting (${timeContext.greetingHint})
-2. Health/recovery context if available (frame as a friend would, not clinical)
-3. Today's agenda highlights (meetings, blocks, priorities)
-4. One insight connecting their data (e.g., "packed day + moderate recovery = pace yourself")
-5. A small positive note or encouragement
+GROUNDING RULES (CRITICAL — read before writing):
+- ONLY mention specific times, events, numbers, scores, or facts that appear in the data above.
+- If a section says "NO DATA", do NOT guess or fill in. Skip that topic completely.
+- NEVER fabricate sleep times, commit times, workout times, or any specific numbers.
+- NEVER say "I saw you were up until 3am" unless a timestamp proves it.
+- It is MUCH better to write a shorter briefing with only real data than a longer one with guesses.
+- If you have almost no data, just give a warm greeting + what you DO know. That's fine.
 
-Keep it casual, warm, and USEFUL. No corporate speak. No bullet lists.
-Write it like a text from their smartest, most perceptive friend.
-Do NOT start with "Good morning" if it's not morning — match the actual time of day.`;
+Write a warm, concise ${timeContext.label} briefing (2-3 short paragraphs, max 120 words).
+${timeContext.greetingHint}
+${hasHealth ? '- Include recovery/health data (friend tone, not clinical)' : ''}
+${hasCalendar ? '- Highlight today\'s agenda' : ''}
+${hasCalendar && hasHealth ? '- One insight connecting calendar + health' : ''}
+- End with something encouraging
+
+Casual, warm, USEFUL. Like a text from a smart friend. No bullet lists.`;
 
       const response = await complete({
         messages: [{ role: 'user', content: prompt }],
