@@ -34,9 +34,20 @@ const STEPS = [
 
 export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
   const navigate = useNavigate();
-  const [visible, setVisible] = useState(
-    () => !localStorage.getItem(STORAGE_KEY),
-  );
+  const [visible, setVisible] = useState(() => {
+    // Never show if already dismissed
+    if (localStorage.getItem(STORAGE_KEY)) return false;
+    // Only show for accounts created in last 7 days (stored at login)
+    const createdAt = localStorage.getItem('twinme_account_created');
+    if (createdAt) {
+      const ageMs = Date.now() - new Date(createdAt).getTime();
+      if (ageMs > 7 * 24 * 60 * 60 * 1000) {
+        localStorage.setItem(STORAGE_KEY, 'true'); // auto-dismiss for old accounts
+        return false;
+      }
+    }
+    return true;
+  });
 
   const dismiss = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, 'true');

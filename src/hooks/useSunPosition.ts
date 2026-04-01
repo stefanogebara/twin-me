@@ -126,29 +126,36 @@ export function useSunPosition(): SunState {
   const locationRef = useRef(location);
   locationRef.current = location;
 
-  // Attempt better geolocation on mount: GPS → timezone fallback (already set as initial state)
+  // Attempt better geolocation on mount — only if permission already granted (no popup)
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      // Try GPS
-      if ('geolocation' in navigator) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 5000,
-              maximumAge: 300_000,
-            });
-          });
-          if (!cancelled) {
-            setLocation({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              source: 'gps',
-            });
-          }
-        } catch { /* GPS unavailable — timezone fallback already active */ }
+      if (!('geolocation' in navigator)) return;
+
+      // Check permission state first — never trigger a prompt
+      try {
+        const perm = await navigator.permissions.query({ name: 'geolocation' });
+        if (perm.state !== 'granted') return; // skip if not already granted
+      } catch {
+        return; // permissions API not available — skip
       }
+
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 5000,
+            maximumAge: 300_000,
+          });
+        });
+        if (!cancelled) {
+          setLocation({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            source: 'gps',
+          });
+        }
+      } catch { /* GPS unavailable — timezone fallback already active */ }
     })();
 
     return () => { cancelled = true; };

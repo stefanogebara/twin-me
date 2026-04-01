@@ -22,7 +22,11 @@ export function useWeather(): WeatherData | null {
   useEffect(() => {
     if (!navigator.geolocation) return;
 
-    navigator.geolocation.getCurrentPosition(
+    // Only use geolocation if permission already granted — never trigger popup
+    navigator.permissions?.query({ name: 'geolocation' }).then(perm => {
+      if (perm.state !== 'granted') return;
+
+      navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
 
@@ -59,6 +63,7 @@ export function useWeather(): WeatherData | null {
       },
       { timeout: 5000 }
     );
+    }).catch(() => {}); // permissions API not available
   }, []);
 
   return weather;
