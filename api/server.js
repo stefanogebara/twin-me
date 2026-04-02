@@ -612,6 +612,7 @@ app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // 
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/cron/personality-validation', cronPersonalityValidationRoutes); // Weekly personality drift check (Sun 3am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
+app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)

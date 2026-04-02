@@ -100,6 +100,10 @@
     {
       "path": "/api/cron/calendar-optimization",
       "schedule": "0 8 * * 1-5"
+    },
+    {
+      "path": "/api/cron/nudge-inactive",
+      "schedule": "0 14 * * *"
     }
   ]
 }
