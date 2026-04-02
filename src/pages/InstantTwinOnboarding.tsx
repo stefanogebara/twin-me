@@ -50,6 +50,8 @@ const NANGO_PROVIDER_MAP: Record<string, string> = {
   'fitbit': 'fitbit',
   'garmin': 'garmin',
   'twitch': 'twitch',
+  'whoop': 'whoop',
+  'oura': 'oura',
   'microsoft_outlook': 'outlook',
 };
 
@@ -59,15 +61,15 @@ const NANGO_PROVIDER_MAP: Record<string, string> = {
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <span
-    className="text-[11px] font-medium tracking-widest uppercase block mb-5"
-    style={{ color: '#10b77f', fontFamily: 'Inter, sans-serif' }}
+    className="text-[12px] font-medium tracking-[0.08em] uppercase block mb-4"
+    style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
   >
     {label}
   </span>
 );
 
 const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid var(--border-glass)' }} />
+  <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 );
 
 // ====================================================================
@@ -212,7 +214,7 @@ const InstantTwinOnboarding = () => {
       const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin', 'github', 'strava', 'oura'];
       const googlePlatforms = ['google_calendar', 'google_gmail'];
       const arcticPlatforms: string[] = [];
-      const nangoPlatforms = ['fitbit', 'garmin', 'microsoft_outlook'];
+      const nangoPlatforms = ['fitbit', 'garmin', 'microsoft_outlook', 'whoop', 'twitch', 'oura'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit = {
@@ -556,23 +558,26 @@ const InstantTwinOnboarding = () => {
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontStyle: 'italic',
-          fontSize: '28px',
+          fontSize: '32px',
           fontWeight: 400,
           color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.03em',
         }}
       >
         Connect Your Platforms
       </h1>
-      <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <p
+        className="text-[14px] leading-relaxed mb-10"
+        style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+      >
         Link your digital footprints to build your soul signature
       </p>
 
       {/* Demo notice */}
       {isDemoMode && (
         <div
-          className="flex items-center gap-2 mb-8 text-sm"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
+          className="flex items-center gap-2 mb-8 text-[13px]"
+          style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           <Info className="w-4 h-4 flex-shrink-0" />
           <span>Demo mode — all platforms shown as connected with sample data.</span>
@@ -582,19 +587,28 @@ const InstantTwinOnboarding = () => {
       {/* Connection status */}
       {connectedServices.length > 0 && currentStep === 1 && (
         <div
-          className="flex items-center gap-3 mb-8 py-3"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+          className="flex items-center gap-3 mb-8 px-4 py-3 rounded-xl"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+          }}
         >
           <CheckCircle2
             className="w-4 h-4 flex-shrink-0"
-            style={{ color: expiredConnections.length > 0 ? '#C9B99A' : '#10b77f' }}
+            style={{ color: expiredConnections.length > 0 ? '#C9B99A' : '#10b981' }}
           />
           <div>
-            <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+            <span
+              className="text-[13px]"
+              style={{ color: 'rgba(255,255,255,0.60)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            >
               {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
             </span>
             {expiredConnections.length > 0 && (
-              <span className="text-sm ml-2" style={{ color: '#C9B99A' }}>
+              <span
+                className="text-[13px] ml-2"
+                style={{ color: '#C9B99A', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+              >
                 ({expiredConnections.length} need{expiredConnections.length === 1 ? 's' : ''} reconnection)
               </span>
             )}
@@ -710,13 +724,7 @@ const InstantTwinOnboarding = () => {
           {connectedServices.length > 0 && (
             <>
               <SectionLabel label="Connected" />
-              <div
-                className="rounded-2xl p-1 space-y-1"
-                style={{
-                  backgroundColor: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
+              <div className="space-y-2">
                 {sortConnectors(availableConnectors)
                   .filter(c => connectedServices.includes(c.provider))
                   .map(c => (
@@ -725,6 +733,7 @@ const InstantTwinOnboarding = () => {
                       name={c.name}
                       description={c.description}
                       icon={c.icon}
+                      color={c.color}
                       connected={true}
                       syncing={connectingProvider === c.provider}
                       onConnect={() => connectService(c.provider)}
@@ -738,7 +747,10 @@ const InstantTwinOnboarding = () => {
 
           {/* ── Google Workspace ── */}
           <SectionLabel label="Google Workspace" />
-          <p className="text-[13px] -mt-3 mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p
+            className="text-[13px] -mt-2 mb-4 leading-relaxed"
+            style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
             Access emails, calendar, Drive files, Docs, and Sheets — your twin reads and understands your work
           </p>
           <GoogleWorkspaceConnect
@@ -752,7 +764,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Entertainment" />
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {sortConnectors(entertainmentConnectors)
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -761,6 +773,7 @@ const InstantTwinOnboarding = () => {
                       name={c.name}
                       description={c.description}
                       icon={c.icon}
+                      color={c.color}
                       connected={false}
                       comingSoon={c.comingSoon}
                       syncing={connectingProvider === c.provider}
@@ -776,7 +789,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Health & Fitness" />
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {sortConnectors(healthConnectors)
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -785,6 +798,7 @@ const InstantTwinOnboarding = () => {
                       name={c.name}
                       description={c.description}
                       icon={c.icon}
+                      color={c.color}
                       connected={false}
                       comingSoon={c.comingSoon}
                       syncing={connectingProvider === c.provider}
@@ -800,7 +814,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Social & Community" />
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {sortConnectors(socialConnectors)
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -809,6 +823,7 @@ const InstantTwinOnboarding = () => {
                       name={c.name}
                       description={c.description}
                       icon={c.icon}
+                      color={c.color}
                       connected={false}
                       comingSoon={c.comingSoon}
                       syncing={connectingProvider === c.provider}
@@ -824,7 +839,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Professional" />
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {sortConnectors([...professionalConnectors, ...browsingConnectors])
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -833,6 +848,7 @@ const InstantTwinOnboarding = () => {
                       name={c.name}
                       description={c.description}
                       icon={c.icon}
+                      color={c.color}
                       connected={false}
                       comingSoon={c.comingSoon}
                       syncing={connectingProvider === c.provider}
@@ -865,8 +881,11 @@ const InstantTwinOnboarding = () => {
               <Divider />
               <div className="text-center py-4">
                 <div className="flex items-center justify-center gap-2 mb-4">
-                  <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
-                  <span className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  <CheckCircle2 className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.25)' }} />
+                  <span
+                    className="text-[13px]"
+                    style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                  >
                     {activeConnections.length} platform{activeConnections.length !== 1 ? 's' : ''} active
                     {expiredConnections.length > 0 && (
                       <span className="ml-1" style={{ color: '#C9B99A' }}>
@@ -878,11 +897,11 @@ const InstantTwinOnboarding = () => {
                 <button
                   onClick={startTwinGeneration}
                   disabled={isGenerating || connectedServices.length === 0}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all duration-150 hover:opacity-90 disabled:opacity-50"
                   style={{
-                    backgroundColor: connectedServices.length > 0 ? '#10b77f' : 'rgba(16,183,127,0.3)',
-                    color: '#0a0f0a',
-                    fontFamily: "'Inter', sans-serif",
+                    backgroundColor: connectedServices.length > 0 ? '#F5F5F4' : 'rgba(245,245,244,0.1)',
+                    color: connectedServices.length > 0 ? '#110f0f' : 'rgba(245,245,244,0.4)',
+                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     cursor: isGenerating || connectedServices.length === 0 ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -904,8 +923,8 @@ const InstantTwinOnboarding = () => {
                       trackFunnel('onboarding_skipped_no_platforms', { page: 'get-started' });
                       navigate('/dashboard');
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80 mt-3"
-                    style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                    className="inline-flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-70 mt-3"
+                    style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                   >
                     Skip for now — I'll connect later
                     <ArrowRight className="w-3 h-3" />

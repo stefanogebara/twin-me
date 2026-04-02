@@ -42,12 +42,12 @@ export class GithubTokenManager {
       if (!isValid) {
         log.error(`GitHub token invalid for user ${userId}`);
 
-        // Mark connection as needs reauth
+        // Mark connection as expired (needs reauth)
         const { error: reauthErr } = await supabaseAdmin
           .from('platform_connections')
           .update({
-            status: 'needs_reauth',
-            last_sync_status: 'error',
+            status: 'expired',
+            last_sync_status: 'auth_error',
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId)

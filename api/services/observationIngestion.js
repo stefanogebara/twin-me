@@ -3414,7 +3414,7 @@ async function _markGitHubNeedsReauth(supabase, userId) {
   const { error } = await supabase
     .from('platform_connections')
     .update({
-      status: 'error',
+      status: 'expired',
       last_sync_status: 'auth_error',
       last_sync_error: 'Authentication failed - please reconnect GitHub',
       updated_at: new Date().toISOString(),
@@ -3982,24 +3982,36 @@ async function runObservationIngestion() {
               // Manual trigger: POST /api/skills/trigger from dashboard buttons.
             }
 
-            // Update last_sync_at in platform_connections for tracking (non-blocking)
-            // This ensures Settings UI shows accurate sync status for ALL platforms
+            // Update sync status for tracking (non-blocking)
+            // Covers both platform_connections AND nango_connection_mappings
             const syncSupabase = await getSupabase();
             if (syncSupabase) {
+              const syncTimestamp = new Date().toISOString();
+              const syncStatus = observations.length > 0 ? 'success' : 'no_new_data';
+
+              // Update platform_connections (direct OAuth platforms)
               syncSupabase
                 .from('platform_connections')
                 .update({
-                  last_sync_at: new Date().toISOString(),
-                  last_sync_status: observations.length > 0 ? 'success' : 'no_new_data',
-                  updated_at: new Date().toISOString(),
+                  last_sync_at: syncTimestamp,
+                  last_sync_status: syncStatus,
+                  updated_at: syncTimestamp,
                 })
                 .eq('user_id', userId)
                 .eq('platform', platform)
-                .then(({ error: syncUpdateErr }) => {
-                  if (syncUpdateErr) {
-                    // Silently ignore — platform may only exist in nango_connection_mappings
-                  }
-                });
+                .then(() => {});
+
+              // Also update nango_connection_mappings (Nango-managed platforms like Whoop, Twitch)
+              syncSupabase
+                .from('nango_connection_mappings')
+                .update({
+                  last_synced_at: syncTimestamp,
+                  status: syncStatus === 'success' ? 'active' : 'active',
+                  updated_at: syncTimestamp,
+                })
+                .eq('user_id', userId)
+                .eq('platform', platform)
+                .then(() => {});
             }
           } catch (platformErr) {
             const errMsg = `${platform} for user ${userId}: ${platformErr.message}`;

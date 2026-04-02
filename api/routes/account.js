@@ -191,4 +191,42 @@ router.get('/export', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/account/timezone
+ *
+ * Stores the user's IANA timezone string (detected from browser).
+ * Non-blocking call from the frontend after auth verification.
+ */
+router.patch('/timezone', authenticateUser, async (req, res) => {
+  const { timezone } = req.body;
+
+  if (!timezone || typeof timezone !== 'string') {
+    return res.status(400).json({ success: false, error: 'Invalid timezone' });
+  }
+
+  // Validate it's a real IANA timezone
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: timezone });
+  } catch {
+    return res.status(400).json({ success: false, error: 'Invalid IANA timezone' });
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ timezone })
+      .eq('id', req.user.id);
+
+    if (error) {
+      log.warn('Failed to update timezone', { userId: req.user.id, error: error.message });
+      return res.status(500).json({ success: false, error: 'Failed to update timezone' });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    log.error('Timezone update error', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to update timezone' });
+  }
+});
+
 export default router;

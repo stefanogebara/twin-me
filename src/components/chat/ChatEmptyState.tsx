@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import MorningBriefingCard from './MorningBriefingCard';
 
 function getGreeting(firstName: string): string {
   const hour = new Date().getHours();
@@ -167,6 +168,13 @@ export const ChatEmptyState = ({
         >
           Connect a platform and I'll start picking up on the things that make you you.
         </p>
+      )}
+
+      {/* Morning Briefing Card — Dimension.dev-inspired */}
+      {platformCount > 0 && (
+        <div className="w-full max-w-lg mb-6">
+          <MorningBriefingCard onAskTwin={onQuickAction} />
+        </div>
       )}
 
       {/* Soul Interview chip — shown when user has few memories */}

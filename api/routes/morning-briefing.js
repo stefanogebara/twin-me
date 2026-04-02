@@ -45,19 +45,19 @@ router.get('/generate', authenticateUser, async (req, res) => {
       recentInsights,
       sleepData,
       recentMusic,
-      userName,
+      userProfile,
       platformConnections,
     ] = await Promise.all([
       fetchCalendarEvents(userId),
       fetchRecentInsights(userId),
       fetchSleepRecovery(userId),
       fetchRecentMusic(userId),
-      fetchUserName(userId),
+      fetchUserProfile(userId),
       fetchConnectedPlatforms(userId),
     ]);
 
-    const firstName = userName || 'there';
-    const hour = new Date().getHours();
+    const firstName = userProfile?.first_name || 'there';
+    const hour = getUserLocalHour(userProfile?.timezone);
     const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
     // 3. If no data at all, return a lightweight briefing (no LLM call = free)
@@ -146,21 +146,38 @@ async function cacheBriefing(userId, briefing) {
 
 async function fetchCalendarEvents(userId) {
   const now = new Date();
-  const endOfDay = new Date(now);
-  endOfDay.setHours(23, 59, 59, 999);
 
-  // Pull calendar events from platform_data or user_memories
+  // Pull calendar observations from last 24h — filter out JSON/extraction summaries
   const { data } = await supabaseAdmin
     .from('user_memories')
-    .select('content, metadata')
+    .select('content, metadata, created_at')
     .eq('user_id', userId)
     .in('memory_type', ['platform_data', 'observation'])
     .gte('created_at', new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
     .ilike('content', '%calendar%')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(15);
 
-  return (data || []).map(m => m.content).slice(0, 8);
+  if (!data || data.length === 0) return [];
+
+  // Filter out raw JSON extraction summaries and dedup similar content
+  const seen = new Set();
+  return data
+    .map(m => m.content)
+    .filter(content => {
+      // Skip raw JSON / extraction summaries
+      if (content.includes('extraction_summary') || content.includes('"itemsExtracted"') || content.includes('"extract')) return false;
+      // Skip very short or metadata-like content
+      if (content.length < 20) return false;
+      // Dedup: use "Calendar schedule today" prefix as a key (same-day summaries are redundant)
+      const key = content.startsWith('Calendar schedule today')
+        ? 'calendar_schedule_today'
+        : content.substring(0, 50).toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 async function fetchRecentInsights(userId) {
@@ -213,14 +230,30 @@ async function fetchRecentMusic(userId) {
   return (data || []).map(m => m.content);
 }
 
-async function fetchUserName(userId) {
+async function fetchUserProfile(userId) {
   const { data } = await supabaseAdmin
     .from('users')
-    .select('first_name')
+    .select('first_name, timezone')
     .eq('id', userId)
     .single();
 
-  return data?.first_name || null;
+  return data || null;
+}
+
+/**
+ * Get the current hour in the user's stored timezone.
+ * Falls back to America/Sao_Paulo (primary market) if no timezone stored.
+ */
+function getUserLocalHour(timezone) {
+  const tz = timezone || 'America/Sao_Paulo';
+  try {
+    const hourStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date());
+    return parseInt(hourStr, 10);
+  } catch {
+    // Invalid timezone string — fall back to São Paulo (UTC-3)
+    const nowUtc = new Date();
+    return (nowUtc.getUTCHours() - 3 + 24) % 24;
+  }
 }
 
 async function fetchConnectedPlatforms(userId) {

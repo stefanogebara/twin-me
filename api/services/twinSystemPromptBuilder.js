@@ -263,8 +263,12 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
 
   // === TEMPORAL + GEOGRAPHIC AWARENESS ===
   const now = new Date();
-  const hour = now.getHours();
-  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+  // Use user's timezone if available, otherwise São Paulo (UTC-3) as primary market default
+  const tzOffset = userLocation?.timezone
+    ? (() => { try { const parts = new Intl.DateTimeFormat('en-US', { timeZone: userLocation.timezone, hour: 'numeric', hour12: false }).formatToParts(now); return parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10); } catch { return (now.getUTCHours() - 3 + 24) % 24; } })()
+    : (now.getUTCHours() - 3 + 24) % 24;
+  const hour = tzOffset;
+  const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long', timeZone: userLocation?.timezone || 'America/Sao_Paulo' });
   const timeOfDay = hour < 6 ? 'late night' : hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
 
   // Season from hemisphere-aware month

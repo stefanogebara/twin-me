@@ -37,28 +37,32 @@ export async function generateMorningBriefing(userId) {
     totalMemoryCount,
     platformConnections,
     pendingInsights,
-    userName,
+    userProfile,
     todayEvents,
   ] = await Promise.all([
     fetchRecentMemories(userId),
     fetchTotalMemoryCount(userId),
     fetchPlatformConnections(userId),
     fetchPendingInsights(userId),
-    fetchUserName(userId),
+    fetchUserProfile(userId),
     fetchTodayCalendarEvents(userId),
   ]);
 
-  const firstName = userName || 'there';
+  const firstName = userProfile?.first_name || 'there';
   const memoriesLearned = totalMemoryCount;
   const platformsConnected = platformConnections.length;
   const insightsReady = pendingInsights.length;
 
   const stats = { memoriesLearned, platformsConnected, insightsReady };
 
+  // Greeting uses the user's stored timezone, falling back to São Paulo (primary market)
+  const userHour = getUserLocalHour(userProfile?.timezone);
+  const timeGreeting = userHour < 12 ? 'Good morning' : userHour < 17 ? 'Good afternoon' : 'Good evening';
+
   // Low-data users get a "getting started" briefing (no LLM call = free)
   if (memoriesLearned < MIN_MEMORIES_FOR_FULL_BRIEFING) {
     return {
-      greeting: `Good morning, ${firstName}`,
+      greeting: `${timeGreeting}, ${firstName}`,
       highlight: buildGettingStartedHighlight(platformsConnected),
       stats,
       cta: platformsConnected === 0 ? 'Connect a platform' : 'Chat with your twin',
@@ -87,7 +91,7 @@ export async function generateMorningBriefing(userId) {
     : [];
 
   return {
-    greeting: `Good morning, ${firstName}`,
+    greeting: `${timeGreeting}, ${firstName}`,
     highlight,
     stats,
     todayEvents: meetingPrep,
@@ -176,14 +180,30 @@ async function fetchPendingInsights(userId) {
   return data || [];
 }
 
-async function fetchUserName(userId) {
+async function fetchUserProfile(userId) {
   const { data } = await supabaseAdmin
     .from('users')
-    .select('first_name')
+    .select('first_name, timezone')
     .eq('id', userId)
     .single();
 
-  return data?.first_name || null;
+  return data || null;
+}
+
+/**
+ * Get the current hour in the user's stored timezone.
+ * Falls back to America/Sao_Paulo (primary market) if no timezone stored.
+ */
+function getUserLocalHour(timezone) {
+  const tz = timezone || 'America/Sao_Paulo';
+  try {
+    const hourStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date());
+    return parseInt(hourStr, 10);
+  } catch {
+    // Invalid timezone string — fall back to São Paulo (UTC-3)
+    const nowUtc = new Date();
+    return (nowUtc.getUTCHours() - 3 + 24) % 24;
+  }
 }
 
 async function fetchTodayCalendarEvents(userId) {

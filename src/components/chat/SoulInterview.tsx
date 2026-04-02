@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, Check } from 'lucide-react';
+import { X, ArrowRight, Check, SkipForward } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
@@ -83,7 +83,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         if (data.summary) setSummary(data.summary);
       }
     } catch {
-      // Non-fatal — completion screen shows fallback text
+      // Non-fatal
     } finally {
       setIsLoadingSummary(false);
     }
@@ -142,6 +142,12 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
     }
   };
 
+  const handleSkip = () => {
+    const newAnswered = [...answeredCategories, category];
+    setAnsweredCategories(newAnswered);
+    fetchNextQuestion(newAnswered);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -162,7 +168,6 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         className="fixed inset-0 flex flex-col"
         style={{ backgroundColor: '#0C0B10', zIndex: 9999 }}
       >
-        {/* Close */}
         <div className="flex justify-end p-6">
           <button
             onClick={onClose}
@@ -172,7 +177,6 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           </button>
         </div>
 
-        {/* Header — pinned */}
         <div className="flex-shrink-0 pb-6">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -200,13 +204,12 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           </motion.div>
         </div>
 
-        {/* Summary — scrollable */}
         <div className="flex-1 overflow-y-auto px-6 sm:px-8">
           <div className="max-w-[520px] mx-auto">
             {isLoadingSummary ? (
               <div className="flex items-center justify-center py-16">
                 <div className="w-4 h-4 border-[1.5px] border-[rgba(255,255,255,0.2)] border-t-transparent rounded-full animate-spin" />
-                <span className="ml-3 text-[13px]" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                <span className="ml-3 text-[13px]" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                   Synthesizing your portrait...
                 </span>
               </div>
@@ -220,7 +223,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                   className="text-[16px] leading-[1.75] whitespace-pre-line"
                   style={{
                     color: 'rgba(245,245,244,0.7)',
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     fontWeight: 400,
                   }}
                 >
@@ -231,7 +234,6 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
           </div>
         </div>
 
-        {/* CTA — pinned bottom */}
         <div className="flex-shrink-0 py-8 flex justify-center">
           <button
             onClick={() => { onComplete(); onClose(); }}
@@ -239,7 +241,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
             style={{
               background: 'rgba(255,255,255,0.9)',
               color: '#0C0B10',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
           >
             Start chatting with your twin
@@ -259,71 +261,68 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
       className="fixed inset-0 flex flex-col"
       style={{ backgroundColor: '#0C0B10', zIndex: 9999 }}
     >
-      {/* Top bar */}
+      {/* Top bar — progress + close */}
       <div className="flex items-center justify-between px-6 sm:px-8 py-5">
-        <div className="flex items-center gap-4 flex-1">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Step indicator */}
           <span
-            className="text-[12px] tracking-wide uppercase"
-            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif", fontWeight: 500, letterSpacing: '0.08em' }}
+            className="text-[13px] font-medium flex-shrink-0"
+            style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
-            {categoryLabel || 'Soul Interview'}
+            {questionNumber + 1} of {totalQuestions}
           </span>
-          <div className="flex-1 max-w-[160px] h-[1px] bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
+
+          {/* Progress bar */}
+          <div className="flex-1 max-w-[200px] h-[3px] bg-[rgba(255,255,255,0.08)] rounded-full overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: 'rgba(255,255,255,0.4)' }}
+              style={{ background: 'rgba(255,255,255,0.45)' }}
               initial={{ width: 0 }}
-              animate={{ width: `${(questionNumber / totalQuestions) * 100}%` }}
+              animate={{ width: `${((questionNumber + 1) / totalQuestions) * 100}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             />
           </div>
-          <span
-            className="text-[12px]"
-            style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {questionNumber}/{totalQuestions}
-          </span>
         </div>
+
         <button
           onClick={onClose}
-          className="p-2 rounded-full transition-colors hover:bg-[rgba(255,255,255,0.05)]"
+          className="p-2 rounded-full transition-colors hover:bg-[rgba(255,255,255,0.05)] flex-shrink-0 ml-4"
         >
           <X className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.3)' }} />
         </button>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-8 max-w-[600px] mx-auto w-full">
+      <div className="flex-1 flex flex-col px-6 sm:px-8 max-w-[640px] mx-auto w-full overflow-y-auto">
         <AnimatePresence mode="wait">
           {showFacts ? (
+            /* ── Extracted facts view ── */
             <motion.div
               key="facts"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="w-full"
+              className="flex-1 flex flex-col justify-center w-full py-12"
             >
               <p
-                className="text-[11px] uppercase tracking-widest mb-5 text-center"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}
+                className="text-[11px] uppercase tracking-[0.1em] mb-6"
+                style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
               >
                 Learned about you
               </p>
-              <div className="space-y-2.5">
+              <div className="space-y-1">
                 {extractedFacts.map((fact, idx) => (
                   <motion.div
                     key={idx}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: fact.visible ? 1 : 0, x: fact.visible ? 0 : -8 }}
-                    className="flex items-start gap-3 px-4 py-3"
-                    style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    }}
+                    className="flex items-start gap-3 py-3"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                   >
-                    <Check className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.4)' }} />
+                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#10b981' }} />
                     <span
                       className="text-[14px] leading-relaxed"
-                      style={{ color: 'rgba(245,245,244,0.6)', fontFamily: "'Inter', sans-serif" }}
+                      style={{ color: 'rgba(245,245,244,0.65)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                     >
                       {fact.text}
                     </span>
@@ -332,13 +331,14 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
               </div>
             </motion.div>
           ) : (
+            /* ── Question view ── */
             <motion.div
               key={`q-${category}`}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.35 }}
-              className="w-full"
+              transition={{ duration: 0.3 }}
+              className="flex-1 flex flex-col justify-center w-full py-8"
             >
               {isLoadingQuestion ? (
                 <div className="flex items-center justify-center py-24">
@@ -346,24 +346,30 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                 </div>
               ) : (
                 <>
-                  {/* Question */}
+                  {/* Category label */}
+                  <span
+                    className="text-[11px] uppercase tracking-[0.1em] mb-4"
+                    style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}
+                  >
+                    {categoryLabel}
+                  </span>
+
+                  {/* Question — left-aligned, readable */}
                   <h2
-                    className="text-center mb-12 text-[24px] sm:text-[30px] leading-[1.35]"
+                    className="mb-8 text-[22px] sm:text-[26px] leading-[1.4]"
                     style={{
                       fontFamily: "'Instrument Serif', Georgia, serif",
                       fontStyle: 'italic',
-                      color: 'rgba(245,245,244,0.88)',
+                      color: 'rgba(245,245,244,0.90)',
                       letterSpacing: '-0.02em',
-                      maxWidth: '540px',
-                      margin: '0 auto 48px',
                     }}
                   >
                     {question}
                   </h2>
 
-                  {/* Answer textarea — minimal, no heavy glass */}
+                  {/* Answer textarea */}
                   <div
-                    className="rounded-[12px] overflow-hidden"
+                    className="rounded-2xl overflow-hidden"
                     style={{
                       border: '1px solid rgba(255,255,255,0.08)',
                       background: 'rgba(255,255,255,0.03)',
@@ -374,51 +380,48 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Take your time..."
-                      className="w-full bg-transparent px-5 py-4 text-[15px] leading-relaxed resize-none outline-none min-h-[120px] max-h-[220px]"
+                      placeholder="Type your answer here..."
+                      className="w-full bg-transparent px-5 py-4 text-[15px] leading-relaxed resize-none outline-none min-h-[100px] max-h-[200px]"
                       style={{
                         color: 'rgba(245,245,244,0.85)',
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         fontWeight: 400,
                       }}
                       disabled={isSubmitting}
                     />
-                    <div className="flex items-center justify-between px-5 pb-3">
-                      <span
-                        className="text-[11px]"
-                        style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
-                      >
-                        {answer.length > 0 ? `${answer.length}` : 'Enter to submit'}
-                      </span>
+                    <div className="flex items-center justify-end px-4 pb-3 gap-2">
                       <button
                         onClick={handleSubmit}
                         disabled={!answer.trim() || isSubmitting}
-                        className="w-7 h-7 flex items-center justify-center rounded-full transition-all duration-150 active:scale-[0.92]"
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.95]"
                         style={{
-                          background: answer.trim() ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.06)',
+                          background: answer.trim() ? '#F5F5F4' : 'rgba(255,255,255,0.06)',
+                          color: answer.trim() ? '#0C0B10' : 'rgba(255,255,255,0.25)',
+                          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         }}
                       >
                         {isSubmitting ? (
                           <div className="w-3.5 h-3.5 border-[1.5px] border-[#0C0B10] border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <ArrowRight className="w-3.5 h-3.5" style={{ color: '#0C0B10', opacity: answer.trim() ? 1 : 0.2 }} />
+                          <>
+                            Submit
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </>
                         )}
                       </button>
                     </div>
                   </div>
 
-                  {/* Skip */}
-                  <div className="flex justify-center mt-6">
+                  {/* Skip — visible and easy to find */}
+                  <div className="flex justify-start mt-4">
                     <button
-                      onClick={() => {
-                        const newAnswered = [...answeredCategories, category];
-                        setAnsweredCategories(newAnswered);
-                        fetchNextQuestion(newAnswered);
-                      }}
-                      className="text-[12px] transition-colors hover:text-[rgba(255,255,255,0.4)]"
-                      style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+                      onClick={handleSkip}
+                      disabled={isSubmitting}
+                      className="flex items-center gap-1.5 text-[13px] py-1.5 transition-colors hover:text-[rgba(255,255,255,0.50)] disabled:opacity-30"
+                      style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
                     >
-                      Skip this one
+                      <SkipForward className="w-3.5 h-3.5" />
+                      Skip this question
                     </button>
                   </div>
                 </>

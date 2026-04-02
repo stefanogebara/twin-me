@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { DEMO_USER } from '../services/demoDataService';
-import { setAccessToken, getAccessToken } from '../services/api/apiBase';
+import { setAccessToken, getAccessToken, authFetch } from '../services/api/apiBase';
 
 /**
  * AuthContext - Authentication Management
@@ -196,6 +196,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           .then(r => r.ok ? r.json() : null)
           .then(data => { if (data?.isNew) setNeedsOnboarding(true); })
           .catch(() => {});
+        // Non-blocking: sync browser timezone to backend
+        const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (detectedTz) {
+          authFetch('/account/timezone', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timezone: detectedTz }),
+          }).catch(() => {}); // Fire-and-forget
+        }
       } else {
         // Token is invalid - clear auth state
         setAccessToken(null);

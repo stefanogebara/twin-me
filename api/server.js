@@ -612,7 +612,7 @@ app.use('/api/cron/personality-validation', cronPersonalityValidationRoutes); //
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
-app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (feature-flagged off until ops)
+app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)
 app.use('/api/web-push', webPushRoutes); // Web push notification subscribe/unsubscribe
 app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
 app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
@@ -628,7 +628,7 @@ app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for dige
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
-// cron-token-refresh removed (on-demand only, not scheduled)
+// Token refresh is on-demand only (no cron) — see tokenRefreshService.js
 app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
@@ -659,10 +659,9 @@ app.use(errorHandler);
 // Start server only in development (not in Vercel serverless)
 //
 // ARCHITECTURE NOTES:
-// - Development: Background services (token refresh, platform polling) run via node-cron
-// - Production (Vercel): Vercel Cron Jobs call HTTP endpoints instead:
-//   * /api/cron/token-refresh (every 5 minutes)
-//   * /api/cron/platform-polling (every 30 minutes)
+// - Development: Background services (platform polling, etc.) run via node-cron
+// - Production (Vercel): Vercel Cron Jobs call HTTP endpoints (see vercel.json)
+// - Token refresh is on-demand only (no cron) — triggered by status checks and data fetches
 // - This is necessary because Vercel serverless functions are stateless - persistent
 //   cron jobs won't work. Vercel Cron calls our endpoints on schedule instead.
 //
@@ -695,10 +694,9 @@ if (process.env.NODE_ENV !== 'production') {
     // Production equivalent: Vercel Cron → /api/cron/platform-polling
     startPlatformPolling();
 
-    // Token lifecycle background jobs (token refresh + OAuth state cleanup)
-    // - Token refresh: Every 5 minutes (prevents token expiration)
+    // Token lifecycle background jobs (OAuth state cleanup)
     // - OAuth cleanup: Every 15 minutes (removes expired/used states)
-    // Production equivalent: Vercel Cron → /api/cron/token-refresh
+    // - Token refresh: on-demand only (triggered by status checks and data fetches)
     startBackgroundJobs();
 
     // Pattern learning job (feedback processing + insight generation)

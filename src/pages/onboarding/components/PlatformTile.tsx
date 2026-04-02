@@ -1,8 +1,8 @@
 /**
  * PlatformTile — Dimension.dev-inspired integration tile
  *
- * Glass card with: icon (left) + name & description (center) + action button (right)
- * States: disconnected ("Connect"), connected (green dot + "Manage"), syncing (spinner)
+ * Clean minimal card: large icon (brand-tinted bg) + name/description + pill action button
+ * States: disconnected ("Connect"), connected (checkmark + "Manage"), syncing (spinner)
  */
 
 import React from 'react';
@@ -15,6 +15,7 @@ interface PlatformTileProps {
   connected: boolean;
   syncing?: boolean;
   comingSoon?: boolean;
+  color?: string;
   onConnect: () => void;
   onManage?: () => void;
 }
@@ -26,23 +27,24 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
   connected,
   syncing,
   comingSoon,
+  color,
   onConnect,
   onManage,
 }) => {
   return (
     <div
-      className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 hover:scale-[1.01]"
+      className="flex items-center gap-4 px-5 py-4 rounded-2xl transition-colors duration-150"
       style={{
         backgroundColor: connected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${connected ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}`,
+        border: `1px solid ${connected ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)'}`,
       }}
     >
-      {/* Icon */}
+      {/* Icon — brand-tinted background */}
       <div
-        className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+        className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
         style={{
-          backgroundColor: 'rgba(255,255,255,0.08)',
-          color: connected ? '#F5F5F4' : 'rgba(255,255,255,0.5)',
+          backgroundColor: color ? `${color}15` : 'rgba(255,255,255,0.06)',
+          color: connected ? (color || '#F5F5F4') : (color ? `${color}cc` : 'rgba(255,255,255,0.45)'),
         }}
       >
         {icon}
@@ -52,52 +54,59 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span
-            className="text-sm font-medium truncate"
-            style={{ color: '#F5F5F4', fontFamily: "'Inter', sans-serif" }}
+            className="text-[14px] font-medium truncate"
+            style={{ color: '#F5F5F4', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
           >
             {name}
           </span>
           {connected && (
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#10b981' }} />
+            <Check
+              className="w-3.5 h-3.5 flex-shrink-0"
+              style={{ color: '#10b981' }}
+              strokeWidth={2.5}
+            />
           )}
         </div>
         <span
-          className="text-xs truncate block mt-0.5"
-          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          className="text-[12px] leading-relaxed truncate block mt-0.5"
+          style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {description}
         </span>
       </div>
 
-      {/* Action Button */}
+      {/* Action Button — pill shape */}
       {comingSoon ? (
         <span
-          className="text-[11px] px-3 py-1.5 rounded-lg flex-shrink-0"
+          className="text-[12px] px-4 py-1.5 rounded-full flex-shrink-0"
           style={{
             backgroundColor: 'rgba(255,255,255,0.04)',
-            color: 'rgba(255,255,255,0.3)',
-            fontFamily: "'Inter', sans-serif",
+            color: 'rgba(255,255,255,0.25)',
+            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >
           Soon
         </span>
       ) : syncing ? (
         <div
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg flex-shrink-0"
-          style={{ backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full flex-shrink-0"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            color: 'rgba(255,255,255,0.50)',
+          }}
         >
           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Syncing</span>
+          <span className="text-[12px]" style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>Syncing</span>
         </div>
       ) : connected ? (
         <button
           onClick={onManage || onConnect}
-          className="text-xs px-3 py-1.5 rounded-lg flex-shrink-0 transition-opacity hover:opacity-80"
+          className="text-[12px] px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:bg-[rgba(255,255,255,0.10)]"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            color: '#F5F5F4',
-            fontFamily: "'Inter', sans-serif",
-            border: '1px solid rgba(255,255,255,0.1)',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            color: 'rgba(255,255,255,0.60)',
+            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            border: '1px solid rgba(255,255,255,0.08)',
           }}
         >
           Manage
@@ -105,12 +114,11 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
       ) : (
         <button
           onClick={onConnect}
-          className="text-xs px-3 py-1.5 rounded-lg flex-shrink-0 transition-opacity hover:opacity-80"
+          className="text-[12px] font-medium px-4 py-1.5 rounded-full flex-shrink-0 transition-all duration-150 hover:opacity-90"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.08)',
-            color: '#F5F5F4',
-            fontFamily: "'Inter', sans-serif",
-            border: '1px solid rgba(255,255,255,0.1)',
+            backgroundColor: '#F5F5F4',
+            color: '#110f0f',
+            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           }}
         >
           Connect

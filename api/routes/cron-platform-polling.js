@@ -183,7 +183,7 @@ async function pollPlatform(userId, platform, accessToken) {
         const { error: reauthErr } = await getSupabaseClient()
           .from('platform_connections')
           .update({
-            status: 'error',
+            status: 'expired',
             last_sync_status: 'auth_error',
             last_sync_error: 'Authentication failed - please reconnect',
             updated_at: new Date().toISOString(),

@@ -274,13 +274,9 @@ class DataExtractionService {
           notifyExtractionCompleted(userId, jobId, platform, result.itemsExtracted || 0);
           notifyPlatformSync(userId, platform, result);
 
-          // Store extraction summary in Mem0 for long-term memory
-          addPlatformMemory(userId, platform, 'extraction_summary', {
-            itemsExtracted: result.itemsExtracted || 0,
-            extractedAt: new Date().toISOString(),
-            jobId,
-            dataTypes: result.dataTypes || ['default']
-          }).catch(err => log.warn(`Failed to store in Mem0:`, err.message));
+          // Extraction summaries are metadata, not user observations — skip memory storage
+          // (was polluting memory stream with raw JSON like "google_calendar extraction_summary: {...}")
+          log.info(`Extraction complete: ${platform} extracted ${result.itemsExtracted || 0} items`);
         } else {
           notifyExtractionFailed(userId, jobId, platform, new Error(result.error || result.message || 'Extraction failed'));
         }
