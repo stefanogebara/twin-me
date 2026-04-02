@@ -97,7 +97,7 @@ router.post('/scan', async (req, res) => {
     let persona_summary = null;
     const personName = discovered.discovered_name || safeName || inferNameFromEmail(email);
     const phase1Elapsed = Date.now() - startTime;
-    const PHASE2_BUDGET_MS = 35000; // 35s max for Phase 2
+    const PHASE2_BUDGET_MS = 30000; // 30s max for Phase 2 (server timeout is 55s)
     const skipPhase2 = phase1Elapsed > 20000;
 
     if (personName && process.env.BRAVE_SEARCH_API_KEY && !skipPhase2) {

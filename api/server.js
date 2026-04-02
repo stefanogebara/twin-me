@@ -243,6 +243,7 @@ app.use((req, res, next) => {
     : req.path.includes('/onboarding/calibration') ? 90000
     : req.path.includes('/whatsapp-twin/webhook') ? 90000
     : req.path.includes('/telegram-webhook') ? 90000
+    : req.path.includes('/discovery/scan') ? 55000
     : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
   res.setTimeout(timeout, () => {
@@ -438,6 +439,7 @@ import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPersonalityValidationRoutes from './routes/cron-personality-validation.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
+import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
