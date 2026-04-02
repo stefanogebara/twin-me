@@ -17,19 +17,28 @@ const SoulRichnessBar: React.FC<{ connectedPlatforms: string[] }> = ({ connected
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">Soul Richness</span>
-        <span className="text-indigo-400 font-medium">{score}%</span>
+        <span style={{ color: 'var(--text-secondary)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+          Soul Richness
+        </span>
+        <span style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}>
+          {score}%
+        </span>
       </div>
-      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+      <div
+        className="h-[3px] rounded-full overflow-hidden"
+        style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+      >
         <div
-          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-600 ease-out"
-          style={{ width: `${score}%` }}
+          className="h-full rounded-full transition-all duration-700 ease-out"
+          style={{
+            width: `${score}%`,
+            background: 'linear-gradient(90deg, rgba(255,255,255,0.35), rgba(255,255,255,0.55))',
+          }}
         />
       </div>
-      <p className="text-xs text-muted-foreground">{label(score)}</p>
-      {score >= 15 && score < 60 && (
-        <p className="text-xs text-indigo-400">Connect more for a richer portrait — or reveal now.</p>
-      )}
+      <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+        {label(score)}
+      </p>
     </div>
   );
 };

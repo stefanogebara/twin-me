@@ -137,7 +137,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
 
                     {message.failed && (
                       <div
-                        className="mt-3 rounded-lg px-4 py-3"
+                        className="mt-3 rounded-xl px-4 py-3"
                         style={{
                           backgroundColor: 'rgba(239,68,68,0.08)',
                           border: '1px solid rgba(239,68,68,0.15)',
@@ -206,7 +206,7 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
 
                     {message.failed && (
                       <div
-                        className="mt-3 rounded-lg px-4 py-3"
+                        className="mt-3 rounded-xl px-4 py-3"
                         style={{
                           backgroundColor: 'rgba(239,68,68,0.08)',
                           border: '1px solid rgba(239,68,68,0.15)',

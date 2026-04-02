@@ -36,7 +36,7 @@ export function ChatMessage({
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group flex gap-4 px-6 py-4 rounded-xl"
+      className="group flex gap-4 px-6 py-4 rounded-[20px]"
       style={{
         backgroundColor: isAssistant ? 'rgba(255,255,255,0.02)' : 'transparent',
         border: isAssistant ? '1px solid var(--border-glass)' : undefined,

@@ -15,13 +15,13 @@ export interface StandardBadgeProps extends React.HTMLAttributes<HTMLSpanElement
 }
 
 const variants = {
-  default: 'bg-[var(--accent-vibrant)]/10 text-[var(--accent-vibrant)] border-[var(--accent-vibrant)]/20',
-  success: 'bg-green-900/20 text-green-400 border-green-800/30',
-  error: 'bg-red-900/20 text-red-400 border-red-800/30',
-  warning: 'bg-amber-900/15 text-amber-400 border-amber-800/20',
-  info: 'bg-blue-900/20 text-blue-400 border-blue-800/30',
-  premium: 'bg-purple-900/20 text-purple-400 border-purple-800/30',
-  neutral: 'bg-muted text-muted-foreground border-border'
+  default: 'bg-[rgba(255,132,0,0.10)] text-[rgba(255,132,0,0.85)] border-[rgba(255,132,0,0.15)]',
+  success: 'bg-[rgba(16,185,129,0.10)] text-[rgba(16,185,129,0.85)] border-[rgba(16,185,129,0.15)]',
+  error: 'bg-[rgba(220,38,38,0.10)] text-[rgba(220,38,38,0.85)] border-[rgba(220,38,38,0.15)]',
+  warning: 'bg-[rgba(245,158,11,0.10)] text-[rgba(245,158,11,0.85)] border-[rgba(245,158,11,0.15)]',
+  info: 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.65)] border-[rgba(255,255,255,0.10)]',
+  premium: 'bg-[rgba(139,92,246,0.10)] text-[rgba(139,92,246,0.85)] border-[rgba(139,92,246,0.15)]',
+  neutral: 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.50)] border-[rgba(255,255,255,0.08)]',
 };
 
 const sizes = {

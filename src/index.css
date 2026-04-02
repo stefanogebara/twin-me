@@ -216,10 +216,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Headings — Inter for all UI headings; Instrument Serif only via inline style on hero/display/auth titles */
+  /* Headings — Geist/Inter for UI headings; Instrument Serif only via inline style on hero/display/auth titles */
   h1, h2 {
     font-family: var(--font-body);
-    font-weight: 500;
+    font-weight: 400;
     letter-spacing: -0.02em;
     line-height: 1.2;
     color: var(--text-primary);
