@@ -93,17 +93,22 @@ router.post('/scan', async (req, res) => {
       : { source: 'web_scrape', social_links: [], discovered_name: null, discovered_photo: null, discovered_company: null, discovered_location: null, discovered_bio: null, discovered_github_url: null, discovered_twitter_url: null, github_repos: null, github_followers: null, github_languages: null, github_top_repos: null };
 
     // Phase 2: Deep web scraping + LLM persona narrative
-    // searchWithBrave runs 5 queries, scrapes top 6 pages (prioritizing interviews/bios/blogs)
+    // Time-budgeted: skip if Phase 1 already used >20s (Vercel 60s limit)
     let persona_summary = null;
     const personName = discovered.discovered_name || safeName || inferNameFromEmail(email);
+    const phase1Elapsed = Date.now() - startTime;
+    const PHASE2_BUDGET_MS = 35000; // 35s max for Phase 2
+    const skipPhase2 = phase1Elapsed > 20000;
 
-    if (personName && process.env.BRAVE_SEARCH_API_KEY) {
+    if (personName && process.env.BRAVE_SEARCH_API_KEY && !skipPhase2) {
       try {
-        log.info(`Deep discovery for "${personName}" (${email})`);
-        const braveResult = await searchWithBrave(personName, email);
+        log.info(`Deep discovery for "${personName}" (${email}), budget: ${PHASE2_BUDGET_MS}ms`);
 
-        if (braveResult) {
-          // Combine all evidence: scraped pages + snippets + quickEnrich data
+        // Race Phase 2 against a timeout
+        const phase2Promise = (async () => {
+          const braveResult = await searchWithBrave(personName, email);
+          if (!braveResult) return null;
+
           const socialInfo = (discovered?.social_links || [])
             .map(l => `${l.platform}: ${l.url}`).join(', ');
 
@@ -123,11 +128,10 @@ router.post('/scan', async (req, res) => {
             socialInfo && `Social profiles: ${socialInfo}`,
           ].filter(Boolean).join('\n');
 
-          // Use full scraped content (not just snippets) for maximum depth
           const evidence = [
             knownFacts && `=== KNOWN FACTS ===\n${knownFacts}`,
-            braveResult.scrapedOnly && `=== SCRAPED WEB PAGES ===\n${braveResult.scrapedOnly.substring(0, 12000)}`,
-            braveResult.snippetsOnly && `=== SEARCH SNIPPETS ===\n${braveResult.snippetsOnly.substring(0, 4000)}`,
+            braveResult.scrapedOnly && `=== SCRAPED WEB PAGES ===\n${braveResult.scrapedOnly.substring(0, 8000)}`,
+            braveResult.snippetsOnly && `=== SEARCH SNIPPETS ===\n${braveResult.snippetsOnly.substring(0, 3000)}`,
           ].filter(Boolean).join('\n\n');
 
           if (evidence.length > 100) {
@@ -150,20 +154,35 @@ RULES:
                 role: 'user',
                 content: `Write a persona portrait for this person (email username: ${email.split('@')[0]}):\n\n${evidence}`,
               }],
+              maxTokens: 200,
               serviceName: 'discovery-persona',
             });
-            persona_summary = llmResult?.content?.trim() || null;
-            log.info(`Persona summary generated: ${persona_summary?.length || 0} chars`);
-          }
 
-          // Attach web sources for frontend display
-          if (braveResult.sources?.length) {
-            discovered._web_sources = braveResult.sources.slice(0, 8);
+            return { summary: llmResult?.content?.trim() || null, sources: braveResult.sources?.slice(0, 8) };
           }
+          return { summary: null, sources: braveResult.sources?.slice(0, 8) };
+        })();
+
+        const timeoutPromise = new Promise(resolve =>
+          setTimeout(() => resolve(null), PHASE2_BUDGET_MS)
+        );
+
+        const phase2Result = await Promise.race([phase2Promise, timeoutPromise]);
+
+        if (phase2Result) {
+          persona_summary = phase2Result.summary;
+          if (phase2Result.sources?.length) {
+            discovered._web_sources = phase2Result.sources;
+          }
+          log.info(`Persona summary generated: ${persona_summary?.length || 0} chars`);
+        } else {
+          log.warn('Phase 2 timed out or skipped — returning Phase 1 data only');
         }
       } catch (braveErr) {
         log.warn('Persona summary failed (non-blocking):', braveErr.message);
       }
+    } else if (skipPhase2) {
+      log.warn(`Phase 2 skipped — Phase 1 took ${phase1Elapsed}ms (>20s budget)`);
     }
 
     discovered.persona_summary = persona_summary;
