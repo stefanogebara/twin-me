@@ -37,9 +37,21 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
   const [visible, setVisible] = useState(() => {
     // Never show if already dismissed
     if (localStorage.getItem(STORAGE_KEY)) return false;
-    // Auto-dismiss: if user has chatted before or has significant data, they're not new
-    const hasToken = !!(localStorage.getItem('access_token') || localStorage.getItem('auth_token'));
-    if (!hasToken) return false; // not logged in
+    // Auto-dismiss for accounts older than 3 days
+    try {
+      const cached = localStorage.getItem('auth_user');
+      if (cached) {
+        const user = JSON.parse(cached);
+        const created = user.createdAt || localStorage.getItem('twinme_account_created');
+        if (created) {
+          const ageMs = Date.now() - new Date(created).getTime();
+          if (ageMs > 3 * 24 * 60 * 60 * 1000) {
+            localStorage.setItem(STORAGE_KEY, 'true');
+            return false;
+          }
+        }
+      }
+    } catch { /* ignore parse errors */ }
     return true;
   });
 

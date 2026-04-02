@@ -189,6 +189,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(userData.user);
         // Cache user data for next load
         localStorage.setItem('auth_user', JSON.stringify(userData.user));
+        // Store account creation date for welcome guide auto-dismiss
+        if (userData.user?.createdAt) {
+          localStorage.setItem('twinme_account_created', userData.user.createdAt);
+        }
         // Non-blocking: check if new user needs onboarding
         fetch(`${import.meta.env.VITE_API_URL}/onboarding/new-user-check`, {
           headers: { 'Authorization': `Bearer ${token}` }

@@ -14,10 +14,13 @@ async function fetchInsights(): Promise<ProactiveInsight[]> {
 export function useProactiveInsights() {
   const queryClient = useQueryClient();
 
+  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+
   const query = useQuery<ProactiveInsight[]>({
     queryKey: QUERY_KEY,
-    queryFn: fetchInsights,
+    queryFn: isDemoMode ? () => Promise.resolve([]) : fetchInsights,
     staleTime: 60_000,
+    enabled: !isDemoMode,
   });
 
   const engageMutation = useMutation({

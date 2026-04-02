@@ -208,7 +208,7 @@ For privacy concerns: privacy@twinme.ai`
             color: 'var(--foreground)',
           }}
         >
-          Welcome back
+          Sign in
         </h1>
         <p
           className="text-sm mb-10"
