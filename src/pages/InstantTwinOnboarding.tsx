@@ -724,7 +724,7 @@ const InstantTwinOnboarding = () => {
           {connectedServices.length > 0 && (
             <>
               <SectionLabel label="Connected" />
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {sortConnectors(availableConnectors)
                   .filter(c => connectedServices.includes(c.provider))
                   .map(c => (
@@ -764,7 +764,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Entertainment" />
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {sortConnectors(entertainmentConnectors)
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -789,7 +789,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Health & Fitness" />
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {sortConnectors(healthConnectors)
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -814,7 +814,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Social & Community" />
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {sortConnectors(socialConnectors)
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
@@ -839,7 +839,7 @@ const InstantTwinOnboarding = () => {
             <>
               <Divider />
               <SectionLabel label="Professional" />
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {sortConnectors([...professionalConnectors, ...browsingConnectors])
                   .filter(c => !connectedServices.includes(c.provider))
                   .map(c => (
