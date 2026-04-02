@@ -19,7 +19,7 @@ const log = createLogger('ExtensionData');
 
 const router = express.Router();
 
-const allowedPlatforms = ['netflix', 'youtube', 'twitch', 'reddit', 'amazon', 'hbo', 'disney', 'web'];
+const allowedPlatforms = ['netflix', 'youtube', 'twitch', 'reddit', 'amazon', 'hbo', 'disney', 'web', 'instagram', 'disneyplus', 'hbomax', 'hulu', 'primevideo'];
 
 /**
  * Map raw event types from extension to valid data_type CHECK constraint values
@@ -43,6 +43,16 @@ function mapEventType(eventType, platform = '') {
     'category_browse': 'extension_browse',
     'chat_engagement': 'extension_chat',
     'clip_view': 'extension_clip_view',
+    // Web browsing events
+    // Streaming platform events (Disney+, HBO Max, Hulu, Prime Video)
+    'watch': 'extension_video_watch',
+    'watchlist_add': 'extension_video_watch',
+    'continue_watching': 'extension_video_watch',
+    'capture': 'extension_video_watch',
+    // Instagram events
+    'post_like': 'extension_page_visit',
+    'story_view': 'extension_page_visit',
+    'follow': 'extension_page_visit',
     // Web browsing events
     'tab_visit': 'extension_page_visit',
     'page_visit': 'extension_page_visit',
@@ -219,6 +229,34 @@ router.post('/batch', authenticateUser, async (req, res) => {
       });
       ingestWebObservations(userId, normalised).catch(err =>
         log.warn('Web observation ingestion failed (non-fatal):', err.message)
+      );
+    }
+
+    // B2: Route streaming/social platform data → memory stream (non-blocking)
+    const STREAMING_PLATFORMS = new Set(['netflix', 'disneyplus', 'hbomax', 'hulu', 'primevideo', 'instagram']);
+    const streamingEvents = events.filter(e => {
+      const p = (e.platform || platform || '').toLowerCase();
+      return STREAMING_PLATFORMS.has(p);
+    });
+    if (streamingEvents.length > 0) {
+      const streamPlatform = (streamingEvents[0].platform || platform || 'streaming').toLowerCase();
+      const observations = streamingEvents.map(e => {
+        const inner = e.raw_data || e.data || e;
+        const title = inner.title || inner.name || 'Unknown';
+        const type = inner.type || 'content';
+        return {
+          data_type: 'extension_video_watch',
+          raw_data: {
+            title,
+            platform: streamPlatform,
+            content_type: type,
+            url: inner.url || '',
+            timestamp: e.timestamp || new Date().toISOString(),
+          },
+        };
+      });
+      ingestWebObservations(userId, observations).catch(err =>
+        log.warn(`${streamPlatform} observation ingestion failed (non-fatal):`, err.message)
       );
     }
 

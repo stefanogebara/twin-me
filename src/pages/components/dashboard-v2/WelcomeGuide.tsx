@@ -37,15 +37,9 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
   const [visible, setVisible] = useState(() => {
     // Never show if already dismissed
     if (localStorage.getItem(STORAGE_KEY)) return false;
-    // Only show for accounts created in last 7 days (stored at login)
-    const createdAt = localStorage.getItem('twinme_account_created');
-    if (createdAt) {
-      const ageMs = Date.now() - new Date(createdAt).getTime();
-      if (ageMs > 7 * 24 * 60 * 60 * 1000) {
-        localStorage.setItem(STORAGE_KEY, 'true'); // auto-dismiss for old accounts
-        return false;
-      }
-    }
+    // Auto-dismiss: if user has chatted before or has significant data, they're not new
+    const hasToken = !!(localStorage.getItem('access_token') || localStorage.getItem('auth_token'));
+    if (!hasToken) return false; // not logged in
     return true;
   });
 
