@@ -210,7 +210,7 @@ export const ChatEmptyState = ({
               onClick={() => onQuickAction(chip)}
               className="px-3 sm:px-4 py-2 rounded-full text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
               style={{
-                color: 'rgba(255,255,255,0.5)',
+                color: 'rgba(255,255,255,0.40)',
                 background: 'transparent',
                 border: '1px solid rgba(255,255,255,0.08)',
                 fontFamily: "'Inter', sans-serif",

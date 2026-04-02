@@ -36,7 +36,7 @@ function formatRelativeTime(dateStr: string): string {
 
 function SkeletonRow() {
   return (
-    <div className="px-3 py-2.5 rounded-lg animate-pulse">
+    <div className="px-3 py-2.5 rounded-xl animate-pulse">
       <div className="h-[13px] w-3/4 rounded bg-[rgba(255,255,255,0.06)] mb-1.5" />
       <div className="h-[11px] w-full rounded bg-[rgba(255,255,255,0.04)]" />
     </div>
@@ -90,7 +90,7 @@ export function ConversationList({
       <div className="px-3 pt-3 pb-2">
         <button
           onClick={onNewChat}
-          className="bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-[13px] text-[#F5F5F4] w-full text-left flex items-center gap-2 transition-colors"
+          className="bg-[rgba(255,255,255,0.06)] hover:bg-[rgba(255,255,255,0.1)] rounded-xl px-3 py-2 text-[13px] text-[#F5F5F4] w-full text-left flex items-center gap-2 transition-colors"
         >
           <Plus className="w-3.5 h-3.5 opacity-60" />
           New Chat
@@ -121,7 +121,7 @@ export function ConversationList({
                 <button
                   key={conv.id}
                   onClick={() => onSelectConversation(conv.id)}
-                  className={`px-3 py-2.5 rounded-lg cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-colors text-left w-full ${
+                  className={`px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-colors text-left w-full ${
                     isActive ? 'bg-[rgba(255,255,255,0.08)]' : ''
                   }`}
                 >

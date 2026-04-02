@@ -94,7 +94,14 @@ const Index = () => {
 
       {/* ────────────── NAV ────────────── */}
       <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full max-w-[878px] px-4">
-      <nav className="flex items-center justify-between pl-5 pr-3 py-[10px] rounded-[32px] bg-[rgba(20,20,20,0.7)] backdrop-blur-[19.65px] border border-white/[0.08]">
+      <nav
+        className="flex items-center justify-between pl-5 pr-3 py-[10px] rounded-[32px] border border-white/[0.08]"
+        style={{
+          backgroundColor: 'rgba(20,20,20,0.7)',
+          backdropFilter: 'blur(19.65px)',
+          WebkitBackdropFilter: 'blur(19.65px)',
+        }}
+      >
         <div className="flex items-center justify-between w-full">
           {/* Left: Logo — flower + TwinMe (matches auth & discover) */}
           <div

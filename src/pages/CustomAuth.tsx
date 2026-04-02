@@ -212,7 +212,7 @@ For privacy concerns: privacy@twinme.ai`
         </h1>
         <p
           className="text-sm mb-10"
-          style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
+          style={{ color: 'rgba(255,255,255,0.60)', fontFamily: "'Inter', sans-serif" }}
         >
           Sign in to discover your soul signature
         </p>
@@ -268,7 +268,7 @@ For privacy concerns: privacy@twinme.ai`
                 {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
               </button>
             </div>
-            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-[12px] mt-2" style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Inter', sans-serif" }}>
               No code?{' '}
               <button
                 onClick={() => navigate('/waitlist')}
@@ -393,7 +393,7 @@ For privacy concerns: privacy@twinme.ai`
       <div
         className="hidden lg:flex flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
         style={{
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+          background: 'linear-gradient(135deg, rgba(210,145,55,0.15) 0%, rgba(55,45,140,0.12) 50%, rgba(160,95,55,0.10) 100%), #13121a',
           borderRadius: '24px',
         }}
       >
@@ -429,7 +429,7 @@ For privacy concerns: privacy@twinme.ai`
             fontFamily: "'Inter', sans-serif",
             fontSize: '14px',
             lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgba(255,255,255,0.60)',
           }}
         >
           Connect your platforms, discover your patterns, meet your digital twin.
