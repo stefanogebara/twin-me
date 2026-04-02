@@ -74,7 +74,7 @@ export const FAQ_ANSWERS: Record<string, string> = {
   'How is my data used?':
     'Your data never leaves our secure infrastructure and is never used to train AI models. You own your soul signature completely.',
   'What platforms can I connect?':
-    'Spotify, Google Calendar, YouTube, Discord, LinkedIn, and Whoop are currently supported. More coming soon.',
+    'Spotify, Google Calendar, YouTube, Gmail, Discord, LinkedIn, GitHub, Reddit, Whoop, Twitch, and Google Drive. Plus a browser extension for web activity.',
   'How accurate is the twin?':
     'Twin accuracy improves over time as memories accumulate. Most users notice meaningful personality alignment within a few days of connecting platforms.',
   'Can I delete my data?':

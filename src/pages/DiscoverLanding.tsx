@@ -57,13 +57,18 @@ export default function DiscoverLanding() {
 
     const result = await discoveryScan(trimmed);
 
-    if (!result.success && result.error) {
-      setError(result.error);
+    if (!result.success) {
+      setError(result.error || 'We couldn\'t find public information for this email. Try a different one or sign up directly.');
       setPhase('idle');
       return;
     }
 
     const d = result.discovered;
+    if (!d) {
+      setError('No public information found for this email. Try another email or sign up directly.');
+      setPhase('idle');
+      return;
+    }
     if (d) {
       const points: DataPoint[] = [];
       if (d.discovered_name) points.push({ icon: 'name', label: 'Name', value: d.discovered_name });
@@ -123,7 +128,17 @@ export default function DiscoverLanding() {
   return (
     <div
       className="min-h-screen overflow-x-hidden"
-      style={{ backgroundColor: T.BG, color: T.FG, fontFamily: "'Inter', sans-serif" }}
+      style={{
+        backgroundColor: T.BG,
+        backgroundImage: `
+          radial-gradient(ellipse 90% 70% at 15% 8%, rgba(210,145,55,0.28) 0%, transparent 55%),
+          radial-gradient(ellipse 80% 60% at 85% 15%, rgba(180,110,65,0.20) 0%, transparent 50%),
+          radial-gradient(ellipse 70% 50% at 50% 85%, rgba(160,95,55,0.24) 0%, transparent 50%),
+          radial-gradient(ellipse 55% 45% at 80% 65%, rgba(55,45,140,0.18) 0%, transparent 50%)
+        `,
+        color: T.FG,
+        fontFamily: "'Inter', sans-serif",
+      }}
     >
       <DiscoverNav
         mobileMenuOpen={mobileMenuOpen}
