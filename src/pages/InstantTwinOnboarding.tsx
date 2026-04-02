@@ -200,26 +200,37 @@ const InstantTwinOnboarding = () => {
       return;
     }
 
+    // Handle external URL connectors (e.g. Browser Extension → Chrome Web Store)
+    const connector = AVAILABLE_CONNECTORS.find(c => c.provider === provider);
+    if (connector?.externalUrl) {
+      trackFunnel('platform_external_link', { platform: provider });
+      window.open(connector.externalUrl, '_blank');
+      setConnectingProvider(null);
+      return;
+    }
+
     setConnectingProvider(provider);
     try {
       const userId = user?.id || 'demo-user';
       toast({
         title: "Connecting...",
-        description: `Redirecting to ${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name}`,
+        description: `Redirecting to ${connector?.name || provider}`,
       });
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
-      const healthPlatforms: string[] = [];
-      const entertainmentPlatforms = ['spotify', 'discord', 'youtube', 'netflix', 'hbo_max', 'prime_video', 'disney_plus', 'apple_tv', 'reddit', 'linkedin', 'github', 'strava', 'oura'];
+      // Platform routing: each platform goes to its correct backend endpoint
+      // Entertainment (direct OAuth): spotify, discord, youtube, reddit, linkedin, github, strava, oura, slack
+      // Google (direct OAuth): google_calendar, google_gmail
+      // Nango (managed OAuth): fitbit, garmin, microsoft_outlook, whoop, twitch
       const googlePlatforms = ['google_calendar', 'google_gmail'];
-      const arcticPlatforms: string[] = [];
-      const nangoPlatforms = ['fitbit', 'garmin', 'microsoft_outlook', 'whoop', 'twitch', 'oura'];
+      const nangoPlatforms = ['fitbit', 'garmin', 'microsoft_outlook', 'whoop', 'twitch'];
 
       let apiUrl: string;
-      let fetchOptions: RequestInit = {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+      let fetchOptions: RequestInit;
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`,
       };
 
       if (nangoPlatforms.includes(provider as string)) {
@@ -227,28 +238,17 @@ const InstantTwinOnboarding = () => {
         apiUrl = `${baseUrl}/nango/connect-session`;
         fetchOptions = {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
-          },
-          body: JSON.stringify({ integrationId: nangoIntegrationId })
+          headers: authHeaders,
+          body: JSON.stringify({ integrationId: nangoIntegrationId }),
         };
-      } else if (entertainmentPlatforms.includes(provider as string) || googlePlatforms.includes(provider as string)) {
+      } else {
+        // All other platforms use entertainment connect (including Google, oura, strava, slack)
         apiUrl = `${baseUrl}/entertainment/connect/${provider}`;
         fetchOptions = {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
-          },
-          body: JSON.stringify({ userId })
+          headers: authHeaders,
+          body: JSON.stringify({ userId }),
         };
-      } else if (healthPlatforms.includes(provider as string)) {
-        apiUrl = `${baseUrl}/health/connect/${provider}?userId=${encodeURIComponent(userId)}`;
-      } else if (arcticPlatforms.includes(provider as string)) {
-        apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
-      } else {
-        apiUrl = `${baseUrl}/arctic/connect/${provider}?userId=${encodeURIComponent(userId)}`;
       }
 
       const response = await fetch(apiUrl, fetchOptions);

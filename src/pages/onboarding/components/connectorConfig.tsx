@@ -268,7 +268,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 5,
     setupTime: '5 seconds',
     privacyLevel: 'medium',
-    category: 'professional'
+    category: 'professional',
+    comingSoon: true,
   },
   {
     provider: 'strava' as DataProvider,
