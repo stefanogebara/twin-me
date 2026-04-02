@@ -45,7 +45,7 @@ export default function DiscoverHero({
   };
 
   return (
-    <section className="relative flex flex-col items-center pt-48 pb-36 px-6" style={{ overflowX: 'clip' }}>
+    <section className="relative flex flex-col items-center pt-48 pb-20 px-6" style={{ overflowX: 'clip' }}>
       {/* H1 */}
       <h1
         className="relative text-center mb-3 max-w-[608px] text-[32px] md:text-[48px]"
