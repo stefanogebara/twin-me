@@ -106,7 +106,7 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-2xl font-medium text-[var(--foreground)] mb-2" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+          <h3 className="text-2xl font-medium text-[var(--foreground)] mb-2">
             Contextual Twins
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>

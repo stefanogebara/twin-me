@@ -131,8 +131,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 <span
                   className="text-2xl"
                   style={{
-                    fontFamily: "'Instrument Serif', Georgia, serif",
-                    fontWeight: 400,
+                    fontWeight: 500,
                     letterSpacing: '-0.02em',
                     color: 'var(--foreground)'
                   }}

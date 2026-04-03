@@ -205,8 +205,8 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       style={{
         background: locked ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
         border: '1px solid rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(56px)',
-        WebkitBackdropFilter: 'blur(56px)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
         borderRadius: 20,
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.15)',
       }}

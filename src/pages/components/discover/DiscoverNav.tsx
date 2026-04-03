@@ -52,7 +52,7 @@ export default function DiscoverNav({
           {/* Nav links — hidden on mobile */}
           <div
             className="hidden md:flex items-center px-5 gap-14 flex-1"
-            style={{ fontFamily: "'Poppins', sans-serif", fontSize: '14px', color: T.FG }}
+            style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '14px', color: T.FG }}
           >
             <a href="#how-it-works" className="hover:opacity-60 transition-opacity whitespace-nowrap">How it works</a>
             <a href="#features"     className="hover:opacity-60 transition-opacity whitespace-nowrap">Features</a>
@@ -180,7 +180,7 @@ export default function DiscoverNav({
                   onClick={onCloseMobileMenu}
                   className="block py-3 px-3 rounded-[12px] transition-colors duration-150 ease-out"
                   style={{
-                    fontFamily: "'Poppins', sans-serif",
+                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     fontSize: '16px',
                     color: T.FG,
                   }}

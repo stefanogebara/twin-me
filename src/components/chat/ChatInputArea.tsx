@@ -139,10 +139,10 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
                 borderRadius: '100px',
                 padding: '8px',
                 background: hasText && !isDisabled && !limitReached
-                  ? '#252222'
+                  ? '#F5F5F4'
                   : 'var(--border-glass)',
                 color: hasText && !isDisabled && !limitReached
-                  ? 'var(--foreground)'
+                  ? '#110f0f'
                   : 'rgba(255,255,255,0.2)',
                 cursor: (!hasText || isDisabled || limitReached) ? 'not-allowed' : 'pointer',
                 flexShrink: 0,

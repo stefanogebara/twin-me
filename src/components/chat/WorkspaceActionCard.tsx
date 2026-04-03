@@ -212,7 +212,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 animate-pulse">
@@ -233,7 +233,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center gap-2 mb-1">
@@ -278,7 +278,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
       >
         <div className="flex items-center justify-between mb-2">
@@ -358,7 +358,7 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-[rgba(255,255,255,0.04)] rounded-[14px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
+      className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-4 py-3 mb-3"
         style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
     >
       <div className="flex items-center gap-2">

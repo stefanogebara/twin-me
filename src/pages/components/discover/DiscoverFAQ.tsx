@@ -76,7 +76,7 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
               >
                 <div className="flex items-center justify-between p-6 gap-4">
                   <p style={{
-                    fontFamily: "'Poppins', sans-serif",
+                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     fontSize: '16px', lineHeight: 1, color: T.FG,
                   }}>
                     {q}

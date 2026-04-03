@@ -77,7 +77,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
           {insights.map(insight => (
             <div
               key={insight.id}
-              className="flex items-start gap-2.5 px-3 py-2 rounded-[12px]"
+              className="flex items-start gap-2.5 px-3 py-2 rounded-[20px]"
               style={{
                 background: 'var(--glass-surface-bg)',
                 backdropFilter: 'blur(42px)',

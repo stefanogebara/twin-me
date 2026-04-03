@@ -46,7 +46,7 @@ export function DriftAlert() {
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-[12px] mb-6"
+      className="flex items-center gap-3 px-4 py-3 rounded-[20px] mb-6"
       style={{
         background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
         backdropFilter: 'blur(42px)',

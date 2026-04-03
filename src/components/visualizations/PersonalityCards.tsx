@@ -56,7 +56,7 @@ export function PersonalityCards({ data, className = '' }: PersonalityCardsProps
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-6 h-6 text-[#C9B99A]" />
-          <h3 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+          <h3 className="text-2xl font-semibold text-foreground">
             Your Personality Profile
           </h3>
         </div>

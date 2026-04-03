@@ -120,7 +120,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
               onClick={() => setExpandedAxis(isExpanded ? null : axis.axis_index)}
             >
               <div
-                className="px-4 py-3 rounded-[14px] transition-all duration-200"
+                className="px-4 py-3 rounded-[20px] transition-all duration-200"
                 style={{
                   background: isExpanded ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
                   border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)'}`,

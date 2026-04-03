@@ -502,10 +502,8 @@ const AdminLLMCosts: React.FC = () => {
         <h1
           className="mb-6"
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
             fontSize: '28px',
-            fontWeight: 400,
+            fontWeight: 600,
             color: 'var(--foreground)',
             letterSpacing: '-0.02em',
           }}
@@ -534,10 +532,9 @@ const AdminLLMCosts: React.FC = () => {
       <h1
         className="mb-2"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
-          fontStyle: 'italic',
+          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
           fontSize: '28px',
-          fontWeight: 400,
+          fontWeight: 600,
           color: 'var(--foreground)',
           letterSpacing: '-0.02em',
         }}

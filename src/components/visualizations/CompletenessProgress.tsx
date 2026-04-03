@@ -63,7 +63,7 @@ export function CompletenessProgress({ completeness, breakdown, className = '' }
       style={darkCardStyle}
     >
       <div className="mb-6">
-        <h3 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+        <h3 className="text-2xl font-semibold text-foreground">
           Soul Signature Completeness
         </h3>
         <p className="text-sm text-muted-foreground mt-2">

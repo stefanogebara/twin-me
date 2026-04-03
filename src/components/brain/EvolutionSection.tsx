@@ -171,7 +171,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
       {/* Header */}
       <div className="flex items-center gap-3">
         <TrendingUp size={18} className="text-foreground/40" />
-        <h2 className="text-xl text-foreground" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>Soul Signature Evolution</h2>
+        <h2 className="text-xl text-foreground">Soul Signature Evolution</h2>
         <div
           className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs"
           style={{ background: 'rgba(139,92,246,0.08)', color: '#8b5cf6' }}

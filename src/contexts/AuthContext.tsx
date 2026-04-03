@@ -394,7 +394,16 @@ export const SignInButton: React.FC<{
     window.location.href = '/auth';
   };
 
-  return <div onClick={handleClick}>{children}</div>;
+  return (
+    <div
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
+    >
+      {children}
+    </div>
+  );
 };
 
 export const SignUpButton: React.FC<{
@@ -409,5 +418,14 @@ export const SignUpButton: React.FC<{
     window.location.href = '/auth?mode=signup';
   };
 
-  return <div onClick={handleClick}>{children}</div>;
+  return (
+    <div
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
+    >
+      {children}
+    </div>
+  );
 };

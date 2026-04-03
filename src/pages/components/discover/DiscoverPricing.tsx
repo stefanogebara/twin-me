@@ -81,12 +81,12 @@ export default function DiscoverPricing({
           {/* Free */}
           <div className="flex flex-col flex-1" style={{ marginRight: '-1px' }}>
             <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Free</p>
+              <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Free</p>
               <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>Get started discovering yourself</p>
             </div>
             <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
               <div className="flex flex-col gap-2 flex-1">
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>$0</p>
+                <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>$0</p>
                 <p className="text-xs" style={{ color: T.TEXT_SEC }}>Free forever, no credit card needed</p>
                 <div className="flex flex-col gap-px mt-5">
                   {['Up to 3 platform connections', '1,000 monthly memories', 'Basic twin chat'].map(f => (
@@ -115,12 +115,12 @@ export default function DiscoverPricing({
           {/* Plus — elevated */}
           <div className="flex flex-col shrink-0 w-full lg:w-[438px] lg:-my-[26px]" style={{ marginRight: '-1px' }}>
             <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Plus</p>
+              <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Plus</p>
               <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
             </div>
             <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
               <div className="flex flex-col gap-2 flex-1">
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
+                <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
                   {billingAnnual ? '$15/mo' : '$20/mo'}
                 </p>
                 <p className="text-xs" style={{ color: T.TEXT_SEC }}>
@@ -148,12 +148,12 @@ export default function DiscoverPricing({
           {/* Pro */}
           <div className="flex flex-col flex-1">
             <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-              <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
+              <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
               <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For power users who want it all</p>
             </div>
             <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
               <div className="flex flex-col gap-2 flex-1">
-                <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
+                <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
                   {billingAnnual ? '$75/mo' : '$100/mo'}
                 </p>
                 <p className="text-xs" style={{ color: T.TEXT_SEC }}>

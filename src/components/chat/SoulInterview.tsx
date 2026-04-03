@@ -167,7 +167,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 flex flex-col"
-        style={{ backgroundColor: '#0C0B10', zIndex: 9999 }}
+        style={{ backgroundColor: 'var(--background)', zIndex: 9999 }}
       >
         <div className="flex justify-end p-6">
           <button
@@ -260,7 +260,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 flex flex-col"
-      style={{ backgroundColor: '#0C0B10', zIndex: 9999 }}
+      style={{ backgroundColor: 'var(--background)', zIndex: 9999 }}
     >
       {/* Top bar — progress + close */}
       <div className="flex items-center justify-between px-6 sm:px-8 py-5">

@@ -68,8 +68,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
       {/* Title & Description */}
       <div className="max-w-md mx-auto mb-6">
-        <h3 className="text-2xl text-foreground mb-2"
-            style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 500 }}>
+        <h3 className="text-2xl text-foreground mb-2 font-medium">
           {title}
         </h3>
         <p style={{ color: 'rgba(255,255,255,0.4)' }} className="text-base leading-relaxed">

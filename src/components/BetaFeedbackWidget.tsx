@@ -79,7 +79,7 @@ const BetaFeedbackWidget: React.FC = () => {
         <div
           className="fixed bottom-20 lg:bottom-5 right-5 z-50 w-[320px] rounded-2xl overflow-hidden"
           style={{
-            backgroundColor: '#1a1a1a',
+            backgroundColor: 'var(--background)',
             border: '1px solid var(--border)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}

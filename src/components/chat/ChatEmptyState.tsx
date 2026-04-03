@@ -120,7 +120,6 @@ export const ChatEmptyState = ({
       <h2
         className="text-center mb-2 text-[24px] sm:text-[32px]"
         style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
           fontStyle: 'italic',
           fontWeight: 300,
           color: '#F5F5F4',

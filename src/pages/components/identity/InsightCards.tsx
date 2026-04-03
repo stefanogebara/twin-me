@@ -290,8 +290,8 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
               borderRadius: '18px',
               padding: '22px',
               borderLeft: `4px solid ${card.accentColor}`,
-              backdropFilter: 'blur(56px)',
-              WebkitBackdropFilter: 'blur(56px)',
+              backdropFilter: 'blur(42px)',
+              WebkitBackdropFilter: 'blur(42px)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.12)',
             }}
             initial={{ opacity: 0, x: 20 }}

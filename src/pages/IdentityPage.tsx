@@ -473,8 +473,8 @@ const IdentityPage: React.FC = () => {
       className={`rounded-[20px] px-4 sm:px-6 py-5 sm:py-6 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
       style={{
         background: 'rgba(255,255,255,0.04)',
-        backdropFilter: 'blur(56px)',
-        WebkitBackdropFilter: 'blur(56px)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
         border: '1px solid rgba(255,255,255,0.06)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
       }}
@@ -853,7 +853,7 @@ const LoadingSkeleton: React.FC = () => (
         className="rounded-[24px] px-8 py-10 animate-pulse"
         style={{
           background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(56px)',
+          backdropFilter: 'blur(42px)',
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
@@ -879,7 +879,7 @@ const LoadingSkeleton: React.FC = () => (
         className="rounded-[24px] px-5 py-6 animate-pulse"
         style={{
           background: 'rgba(255,255,255,0.04)',
-          backdropFilter: 'blur(56px)',
+          backdropFilter: 'blur(42px)',
           border: '1px solid rgba(255,255,255,0.06)',
         }}
       >

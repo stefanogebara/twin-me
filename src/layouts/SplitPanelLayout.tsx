@@ -84,8 +84,8 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
                 className="fixed right-0 top-0 bottom-0 z-50 w-[380px] max-w-[85vw] overflow-y-auto px-5 py-6"
                 style={{
                   background: 'rgba(20,18,28,0.95)',
-                  backdropFilter: 'blur(56px)',
-                  WebkitBackdropFilter: 'blur(56px)',
+                  backdropFilter: 'blur(42px)',
+                  WebkitBackdropFilter: 'blur(42px)',
                   borderLeft: '1px solid rgba(255,255,255,0.06)',
                   boxShadow: '-8px 0 32px rgba(0,0,0,0.3)',
                 }}

@@ -105,7 +105,7 @@ export default function DiscoverFeatures() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <p style={{
-                    fontFamily: "'Poppins', sans-serif",
+                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                     fontSize: '24px', lineHeight: 1, color: T.FG,
                   }}>
                     {title}
