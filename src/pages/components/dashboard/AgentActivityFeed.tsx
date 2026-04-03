@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, CheckCircle2, XCircle, Clock, Zap } from 'lucide-react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -51,6 +51,11 @@ const AgentActivityFeed: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemoMode()) {
+      setActions([]);
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await fetch(`${API_URL}/agent-actions?limit=8`, { headers: getAuthHeaders() });

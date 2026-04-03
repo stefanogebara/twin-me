@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -55,6 +55,8 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
   // Interview guard: if user started but didn't finish the interview, redirect them back.
   useEffect(() => {
     const checkInterview = async () => {
+      // Demo mode: skip interview check entirely
+      if (isDemoMode()) { setInterviewChecked(true); return; }
       try {
         const token = getAccessToken() || localStorage.getItem('auth_token');
         if (!token) { setInterviewChecked(true); return; }
@@ -81,7 +83,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
 
   // Fetch chat usage limits
   const fetchUsage = async () => {
-    if (!userId) return;
+    if (!userId || isDemoMode()) return;
     try {
       const token = getAccessToken() || localStorage.getItem('auth_token');
       const res = await fetch(`${API_BASE}/chat/usage`, {
@@ -109,6 +111,16 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
       return;
     }
     setIntroFetched(true);
+    // Demo mode: show a static greeting instead of fetching
+    if (isDemoMode()) {
+      setMessages([{
+        id: 'twin-intro',
+        role: 'assistant',
+        content: "Hey there! I'm your AI twin. I know about your music taste, schedule, and daily patterns. Ask me anything about yourself!",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
     const token = getAccessToken() || localStorage.getItem('auth_token');
     fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -127,7 +139,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
 
   // Load context sidebar items
   const loadContext = async () => {
-    if (!userId) return;
+    if (!userId || isDemoMode()) return;
     setIsLoadingContext(true);
     try {
       const token = getAccessToken() || localStorage.getItem('auth_token');

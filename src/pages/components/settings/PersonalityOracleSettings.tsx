@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Sparkles, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -36,6 +36,7 @@ export default function PersonalityOracleSettings({ cardStyle }: PersonalityOrac
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   const fetchStatus = useCallback(async () => {
+    if (isDemoMode()) { setLoading(false); return; }
     try {
       const [statusRes, flagsRes] = await Promise.all([
         fetch(`${API_URL}/finetuning/status`, { headers: getAuthHeaders() }),

@@ -114,7 +114,7 @@ The service is provided "as is" without warranties. We are not liable for indire
 We may update these terms. Continued use constitutes acceptance of changes.
 
 8. Contact
-For questions about these terms, contact support@twinme.ai`
+For questions about these terms, contact support@twinme.me`
     },
     privacy: {
       title: 'Privacy Policy',
@@ -162,7 +162,7 @@ Data may be processed in the United States.
 We'll notify you of significant changes via email.
 
 10. Contact Us
-For privacy concerns: privacy@twinme.ai`
+For privacy concerns: privacy@twinme.me`
     }
   };
 

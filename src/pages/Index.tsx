@@ -571,7 +571,7 @@ const Index = () => {
               <ul className="space-y-2.5 font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">
                 <li><a href="https://github.com/stefanogebara" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">GitHub</a></li>
                 <li><a href="https://x.com/twinme_ai" target="_blank" rel="noopener noreferrer" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">X</a></li>
-                <li><a href="mailto:hello@twinme.ai" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Contact us</a></li>
+                <li><a href="mailto:hello@twinme.me" className="text-[var(--text-secondary)] hover:text-[#F5F0EB] transition-colors">Contact us</a></li>
               </ul>
             </div>
           </div>

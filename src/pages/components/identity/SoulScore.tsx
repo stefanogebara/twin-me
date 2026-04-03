@@ -280,6 +280,8 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
 /* ------------------------------------------------------------------ */
 
 const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }) => {
+  const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true';
+
   const { data: multimodal } = useQuery({
     queryKey: ['twin', 'multimodal-profile'],
     queryFn: async () => {
@@ -288,6 +290,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
       return (await res.json()).data as MultimodalProfile;
     },
     staleTime: 60 * 60 * 1000,
+    enabled: !isDemoMode,
   });
 
   // Fetch user ID from localStorage for connectors endpoint
@@ -306,15 +309,69 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
       return (json.data || {}) as Record<string, { connected: boolean }>;
     },
     staleTime: 5 * 60 * 1000,
-    enabled: !!userId,
+    enabled: !!userId && !isDemoMode,
   });
+
+  // ── Demo mode: realistic synthetic data ──────────────────────────────
+  if (isDemoMode) {
+    const demoScore = 72;
+    const demoPlatformCount = 5;
+    const demoDomainScores: Record<string, number> = {
+      spotify: 85,
+      whoop: 65,
+      google_calendar: 45,
+      github: 65,
+      youtube: 45,
+      __always__: 65,
+    };
+
+    return (
+      <motion.section
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className={className}
+      >
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getRingColor(demoScore) }} />
+          <h2
+            className="text-[11px] font-medium tracking-widest uppercase"
+            style={{ color: '#F5F5F4', fontFamily: "'Inter', sans-serif" }}
+          >
+            Soul Score
+          </h2>
+        </div>
+        <div className={`flex flex-col items-center gap-2 ${compact ? 'mb-5' : 'mb-8'}`}>
+          <ScoreRing score={demoScore} compact={compact} />
+          <p
+            className="text-[13px]"
+            style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
+          >
+            Identity richness across {demoPlatformCount} sources
+          </p>
+        </div>
+        <div className={`grid ${compact ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 gap-3'}`}>
+          {DOMAINS.map((domain, i) => (
+            <ContributorCard
+              key={domain.id}
+              domain={domain}
+              connected={true}
+              score={demoDomainScores[domain.platformKey] ?? 45}
+              index={i}
+              compact={compact}
+            />
+          ))}
+        </div>
+      </motion.section>
+    );
+  }
 
   const connectedPlatforms = Object.entries(connectors || {})
     .filter(([, v]: [string, any]) => v?.connected)
     .map(([k]) => k.toLowerCase());
-  const modalitiesPresent = multimodal?.modalities_present || [];
+  const modalitiesPresent = (multimodal as any)?.modalities_present || [];
   const platformCount = connectedPlatforms.length || modalitiesPresent.length;
-  const memoryCount = multimodal?.memory_count || 0;
+  const memoryCount = (multimodal as any)?.memory_count || 0;
   const axesCount = modalitiesPresent.length > 0 ? 1 : 0; // proxy: if multimodal exists, axes likely exist
   const multimodalCount = modalitiesPresent.length;
 

@@ -235,7 +235,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>11. Contact</h2>
             <p style={{ color: 'var(--foreground)' }}>
               If you have questions about this Privacy Policy or your data, please contact us
-              through the Settings page in the application, or email us at privacy@twinme.ai.
+              through the Settings page in the application, or email us at privacy@twinme.me.
             </p>
           </section>
         </div>

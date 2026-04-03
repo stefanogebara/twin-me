@@ -1,6 +1,6 @@
 // src/hooks/useSubscription.ts
 import { useEffect, useState } from 'react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -9,6 +9,13 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Demo mode: pretend user is on pro plan, no API call
+    if (isDemoMode()) {
+      setPlan('pro');
+      setLoading(false);
+      return;
+    }
+
     const token = getAccessToken() || localStorage.getItem('auth_token');
     if (!token) { setLoading(false); return; }
     fetch(`${API_URL}/billing/subscription`, { headers: { Authorization: `Bearer ${token}` } })

@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -35,6 +35,7 @@ export function useWebPush(isAuthenticated: boolean) {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    if (isDemoMode()) return; // No push registration in demo mode
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (permission === 'denied') return;
 
