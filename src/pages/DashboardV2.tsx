@@ -13,6 +13,7 @@ import { ChatPrompt } from './components/dashboard-v2/ChatPrompt';
 import { DailyTimeline } from './components/dashboard-v2/DailyTimeline';
 import { MessagingPrompt } from './components/dashboard-v2/MessagingPrompt';
 import { WhatsAppCard } from './components/dashboard-v2/WhatsAppCard';
+import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import { useWebPush } from '@/hooks/useWebPush';
 
 export function DashboardV2() {
@@ -64,6 +65,8 @@ export function DashboardV2() {
         insightCount={data.greeting.insightCount}
         streak={data.greeting.streak}
       />
+
+      <ExpiredTokenBanner />
 
       <WelcomeGuide firstName={data.greeting.firstName} />
 
