@@ -300,6 +300,86 @@ async function getGoalSummary(userId) {
 // ====================================================================
 
 /**
+ * Fetch structured platform data from `user_platform_data` table.
+ * Builds the shape expected by extractMetricFromPlatformData():
+ *   { whoop: { sleepHours, recovery, hrv }, calendar: { todayEvents }, spotify: { recentTracks } }
+ *
+ * This is the bridge between the raw data stored by observation ingestion
+ * (storeWhoopPlatformData, etc.) and the goal metric extraction logic.
+ */
+async function fetchStructuredPlatformData(userId) {
+  const supabase = await getSupabase();
+  if (!supabase) return null;
+
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  // Fetch today's (or yesterday's) Whoop + Calendar data in one query
+  const { data: rows, error } = await supabase
+    .from('user_platform_data')
+    .select('platform, data_type, raw_data, source_url')
+    .eq('user_id', userId)
+    .in('platform', ['whoop', 'google_calendar', 'calendar'])
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error || !rows || rows.length === 0) return null;
+
+  const result = { whoop: {}, calendar: {}, spotify: {} };
+
+  for (const row of rows) {
+    const src = row.source_url || '';
+
+    // Whoop recovery — prefer today's, fall back to yesterday's
+    if (row.platform === 'whoop' && row.data_type === 'recovery') {
+      if (src.includes(today) || src.includes(yesterday) || !result.whoop.recovery) {
+        const raw = row.raw_data || {};
+        if (raw.recovery_score != null) result.whoop.recovery = raw.recovery_score;
+        if (raw.hrv_rmssd_milli != null) result.whoop.hrv = Math.round(raw.hrv_rmssd_milli);
+      }
+    }
+
+    // Whoop sleep
+    if (row.platform === 'whoop' && row.data_type === 'sleep') {
+      if (src.includes(today) || src.includes(yesterday) || !result.whoop.sleepHours) {
+        const raw = row.raw_data || {};
+        if (raw.total_sleep_hours != null) result.whoop.sleepHours = raw.total_sleep_hours;
+      }
+    }
+
+    // Calendar events — use latest row (today's events are stored as data_type='events')
+    if ((row.platform === 'google_calendar' || row.platform === 'calendar') && row.data_type === 'events') {
+      if (!result.calendar.todayEvents) {
+        const raw = row.raw_data || {};
+        const items = raw.items || [];
+        // Map to the shape extractMetricFromPlatformData expects: { start, end }
+        result.calendar.todayEvents = items.map(e => ({
+          start: e.start?.dateTime || e.start?.date,
+          end: e.end?.dateTime || e.end?.date,
+          summary: e.summary,
+        }));
+      }
+    }
+  }
+
+  // Only return if we found something useful
+  const hasWhoop = result.whoop.recovery != null || result.whoop.sleepHours != null || result.whoop.hrv != null;
+  const hasCalendar = result.calendar.todayEvents != null;
+  if (!hasWhoop && !hasCalendar) return null;
+
+  log.info('Fetched structured platform data', {
+    userId,
+    hasWhoop,
+    hasCalendar,
+    whoopRecovery: result.whoop.recovery,
+    whoopSleep: result.whoop.sleepHours,
+    calendarEvents: result.calendar.todayEvents?.length,
+  });
+
+  return result;
+}
+
+/**
  * Extract a metric value from platform data.
  * Platform data comes from twinContextBuilder's _fetchPlatformData format.
  */
@@ -379,9 +459,11 @@ async function extractMetricFromMemories(userId, metricType) {
     sleep_hours: /[Ss]lept?\s+([\d.]+)\s*h/,
     recovery_score: /[Rr]ecovery\s+(?:score:?\s*)?([\d.]+)\s*%/,
     hrv: /HRV:?\s*([\d.]+)\s*ms/i,
-    meeting_count: /(\d+)\s+(?:events?|meetings?)\s+(?:today|scheduled)/i,
+    // Match "Calendar schedule today: 2 events" (primary ingestion format)
+    // or "N meetings today/scheduled" (legacy format)
+    meeting_count: /(?:Calendar schedule today:\s*(\d+)\s+events?|(\d+)\s+(?:events?|meetings?)\s+(?:today|scheduled))/i,
     listening_hours: /([\d.]+)\s*h(?:ours?)?\s+(?:of\s+)?listening/i,
-    focus_time: /([\d.]+)\s*h(?:ours?)?\s+(?:focused|focus|deep\s+work)/i,
+    focus_time: /([\d.]+)\s*h(?:ours?)?\s+(?:focused|focus|deep\s+work|unbooked)/i,
   };
 
   const pattern = patterns[metricType];
@@ -400,12 +482,27 @@ async function extractMetricFromMemories(userId, metricType) {
   for (const mem of recent) {
     const match = mem.content.match(pattern);
     if (match) {
-      const value = parseFloat(match[1]);
+      // Some patterns use alternation with multiple capture groups (e.g. meeting_count).
+      // Pick the first non-undefined group.
+      const rawValue = match[1] || match[2];
+      const value = parseFloat(rawValue);
       const bounds = METRIC_BOUNDS[metricType];
       if (!isNaN(value) && bounds && value >= bounds.min && value <= bounds.max) {
         log.info('Extracted metric from memory', { metricType, value, memoryPreview: mem.content.substring(0, 60) });
         return value;
       }
+    }
+
+    // Special cases that regex numeric patterns miss:
+    // "Calendar schedule today: no meetings or events" -> meeting_count = 0
+    if (metricType === 'meeting_count' && /no meetings or events/i.test(mem.content)) {
+      log.info('Extracted metric from memory', { metricType, value: 0, memoryPreview: mem.content.substring(0, 60) });
+      return 0;
+    }
+    // "completely open day" or "Free afternoon" -> focus_time = 9 (full 9am-6pm block)
+    if (metricType === 'focus_time' && /completely open day/i.test(mem.content)) {
+      log.info('Extracted metric from memory', { metricType, value: 9, memoryPreview: mem.content.substring(0, 60) });
+      return 9;
     }
   }
 
@@ -607,7 +704,8 @@ async function generateGoalSuggestions(userId) {
  * Called during observation ingestion after platform data is fetched.
  *
  * @param {string} userId
- * @param {object} platformData - Live platform data from twinContextBuilder format
+ * @param {object|null} platformData - Live platform data from twinContextBuilder format.
+ *   When null (e.g. called from observation ingestion), auto-fetches from user_platform_data table.
  */
 async function trackGoalProgress(userId, platformData) {
   try {
@@ -615,6 +713,9 @@ async function trackGoalProgress(userId, platformData) {
     const activeGoals = await getUserGoals(userId, 'active');
 
     if (activeGoals.length === 0) return 0;
+
+    // Auto-fetch structured data from DB when caller passes null
+    const resolvedPlatformData = platformData || await fetchStructuredPlatformData(userId);
 
     const today = new Date().toISOString().split('T')[0];
     let tracked = 0;
@@ -633,7 +734,7 @@ async function trackGoalProgress(userId, platformData) {
       if (alreadyTracked.has(goal.id)) continue;
 
       // Extract metric from platform data, or fallback to recent memories
-      let measuredValue = extractMetricFromPlatformData(goal.metric_type, platformData);
+      let measuredValue = extractMetricFromPlatformData(goal.metric_type, resolvedPlatformData);
       if (measuredValue == null) {
         measuredValue = await extractMetricFromMemories(userId, goal.metric_type);
       }

@@ -570,25 +570,30 @@ class ExtractionOrchestrator {
   }
 
   /**
-   * Retry failed extractions
+   * Retry failed extractions (max 3 retries per job)
    * @param {string} userId - User ID (optional, retry all if not provided)
    */
   async retryFailedExtractions(userId = null) {
+    const MAX_RETRIES = 3;
     log.info('Retrying failed extractions...');
 
     try {
-      // Get failed jobs from the last 24 hours
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      // Get failed jobs from the last 7 days that haven't exceeded max retries
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
       let query = supabaseAdmin
         .from('data_extraction_jobs')
-        .select('user_id, platform')
+        .select('id, user_id, platform, retry_count')
         .eq('status', 'failed')
-        .gte('started_at', yesterday);
+        .gte('started_at', weekAgo)
+        .lt('retry_count', MAX_RETRIES);
 
       if (userId) {
         query = query.eq('user_id', userId);
       }
+
+      // De-duplicate: only retry the most recent failed job per user+platform
+      query = query.order('started_at', { ascending: false });
 
       const { data: failedJobs, error } = await query;
 
@@ -597,25 +602,59 @@ class ExtractionOrchestrator {
       }
 
       if (!failedJobs || failedJobs.length === 0) {
-        log.info('No failed jobs to retry');
-        return { success: true, retried: 0 };
+        log.info('No failed jobs to retry (all either succeeded or exhausted retries)');
+        return { success: true, retried: 0, skippedMaxRetries: 0 };
       }
 
-      log.info('Found failed jobs to retry', { count: failedJobs.length });
+      // De-duplicate by user_id+platform (keep only the most recent per combo)
+      const seen = new Set();
+      const uniqueJobs = failedJobs.filter(job => {
+        const key = `${job.user_id}-${job.platform}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
-      // Retry each failed extraction
-      const retryPromises = failedJobs.map(job =>
-        this.extractPlatform(job.user_id, job.platform)
-      );
+      log.info('Found failed jobs to retry', {
+        total: failedJobs.length,
+        unique: uniqueJobs.length
+      });
 
-      const results = await Promise.all(retryPromises);
-      const successful = results.filter(r => r.success).length;
+      // Increment retry_count on the original failed job before retrying
+      const retryResults = [];
+      for (const job of uniqueJobs) {
+        const newRetryCount = (job.retry_count || 0) + 1;
+        log.info(`Retrying ${job.platform} (attempt ${newRetryCount}/${MAX_RETRIES})`, {
+          userId: job.user_id,
+          originalJobId: job.id
+        });
 
-      log.info('Retry complete', { successful, total: failedJobs.length });
+        // Mark the old job's retry_count so it won't be picked up again
+        await supabaseAdmin
+          .from('data_extraction_jobs')
+          .update({ retry_count: newRetryCount })
+          .eq('id', job.id);
+
+        const result = await this.extractPlatform(job.user_id, job.platform);
+
+        // If the new job was created, carry forward the retry_count
+        if (result.jobId) {
+          await supabaseAdmin
+            .from('data_extraction_jobs')
+            .update({ retry_count: newRetryCount })
+            .eq('id', result.jobId);
+        }
+
+        retryResults.push(result);
+      }
+
+      const successful = retryResults.filter(r => r.success).length;
+
+      log.info('Retry complete', { successful, total: uniqueJobs.length });
 
       return {
         success: true,
-        retried: failedJobs.length,
+        retried: uniqueJobs.length,
         successful
       };
 

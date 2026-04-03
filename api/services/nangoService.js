@@ -668,7 +668,8 @@ export async function extractPlatformData(userId, platform) {
         .from('platform_connections')
         .update({
           last_sync_at: new Date().toISOString(),
-          last_sync_status: errors.length > 0 ? 'partial' : 'success'
+          last_sync_status: errors.length > 0 ? 'partial' : 'success',
+          last_sync_error: errors.length > 0 ? errors[0] : null,
         })
         .eq('user_id', userId)
         .eq('platform', dbPlatformKey);

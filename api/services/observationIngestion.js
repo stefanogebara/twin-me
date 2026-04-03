@@ -31,6 +31,7 @@ import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
+import { calculateAllActivityMetrics } from './activityMetricsService.js';
 
 import { createLogger } from './logger.js';
 
@@ -4527,6 +4528,7 @@ async function runObservationIngestion() {
                 .update({
                   last_sync_at: syncTimestamp,
                   last_sync_status: syncStatus,
+                  last_sync_error: null,
                   updated_at: syncTimestamp,
                 })
                 .eq('user_id', userId)
@@ -4600,6 +4602,11 @@ async function runObservationIngestion() {
           // Generate goal suggestions based on observed patterns (throttled: max once/24h)
           generateGoalSuggestions(userId).catch(err =>
             log.warn('Goal suggestions failed', { userId, error: err })
+          );
+
+          // Update activity metrics for all connected platforms (non-blocking)
+          calculateAllActivityMetrics(userId).catch(err =>
+            log.warn('Activity metrics update failed', { userId, error: err })
           );
 
           // Check for personality drift (non-blocking)

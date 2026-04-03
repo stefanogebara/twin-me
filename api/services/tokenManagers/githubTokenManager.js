@@ -48,6 +48,7 @@ export class GithubTokenManager {
           .update({
             status: 'expired',
             last_sync_status: 'auth_error',
+            last_sync_error: 'GitHub token has been revoked - please reconnect',
             updated_at: new Date().toISOString()
           })
           .eq('user_id', userId)

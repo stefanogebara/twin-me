@@ -108,6 +108,14 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       'discord', 'discord-getting-started',
       'reddit', 'reddit-getting-started',
       'linkedin', 'linkedin-getting-started',
+      'whoop', 'whoop-getting-started',
+      'strava', 'strava-getting-started',
+      'oura', 'oura-getting-started',
+      'twitch', 'twitch-getting-started',
+      'github', 'github-getting-started',
+      'fitbit', 'fitbit-getting-started',
+      'garmin', 'garmin-getting-started',
+      'outlook', 'outlook-getting-started',
     ]);
     if (!ALLOWED_INTEGRATION_IDS.has(integrationId)) {
       log.warn(`Rejected unknown integrationId: ${integrationId}`);
@@ -139,10 +147,17 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       'google-mail': 'google_gmail',
       'discord': 'discord',
       'github': 'github',
+      'github-getting-started': 'github',
       'youtube': 'youtube',
       'reddit': 'reddit',
       'outlook': 'outlook',
-      'linkedin': 'linkedin'
+      'linkedin': 'linkedin',
+      'whoop': 'whoop',
+      'strava': 'strava',
+      'oura': 'oura',
+      'twitch': 'twitch',
+      'fitbit': 'fitbit',
+      'garmin': 'garmin',
     };
 
     const platformKey = platformKeyMap[integrationId] || integrationId;
@@ -175,6 +190,32 @@ router.post('/verify-connection', authenticateUser, async (req, res) => {
       // Still return connected=true since Nango has the connection
     } else {
       log.info(`Registered ${platformKey} connection for user ${userId}`);
+
+      // Auto-dismiss stale "expired"/"error" notifications for this platform
+      // so users don't see old warnings after reconnecting
+      try {
+        const { data: dismissed, error: dismissErr } = await supabaseAdmin
+          .from('user_notifications')
+          .update({
+            dismissed: true,
+            read: true,
+            read_at: new Date().toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('platform', platformKey)
+          .eq('dismissed', false)
+          .in('type', ['token_expired', 'token_expiring', 'connection_error', 'sync_error'])
+          .select('id');
+
+        if (dismissErr) {
+          log.warn(`Failed to dismiss stale notifications for ${platformKey}:`, dismissErr.message);
+        } else if (dismissed?.length > 0) {
+          log.info(`Auto-dismissed ${dismissed.length} stale notification(s) for ${platformKey}`);
+        }
+      } catch (notifErr) {
+        // Non-blocking — don't fail the connection flow for notification cleanup
+        log.warn(`Notification cleanup error for ${platformKey}:`, notifErr.message);
+      }
     }
 
     // Save connection mapping for Nango connection ID lookups
