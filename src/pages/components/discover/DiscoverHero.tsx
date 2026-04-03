@@ -1,9 +1,12 @@
 import { ArrowRight, Loader2 } from 'lucide-react';
 import SoulOrb from '../../onboarding/components/SoulOrb';
 import DataRevealItem from '../../onboarding/components/DataRevealItem';
+import { IdentityConfirmation } from './IdentityConfirmation';
+import { DiscoverCorrectionForm } from './DiscoverCorrectionForm';
 import { T } from './discoverTokens';
 
 type DiscoverPhase = 'idle' | 'scanning' | 'revealed';
+type ConfirmationPhase = 'pending' | 'confirmed' | 'correcting';
 
 interface DataPoint {
   icon: string;
@@ -18,11 +21,18 @@ interface DiscoverHeroProps {
   dataPoints: DataPoint[];
   personaSummary: string | null;
   webSources: Array<{ title: string; url: string }>;
+  discoveredName?: string | null;
+  confirmationPhase?: ConfirmationPhase;
+  isRescanning?: boolean;
   onEmailChange: (value: string) => void;
   onDiscover: () => void;
   onResetPhase: () => void;
   onNavigateAuth: (email: string) => void;
   onEnterDemo: () => void;
+  onConfirmYes?: () => void;
+  onConfirmNo?: () => void;
+  onCorrectionSubmit?: (data: { name: string; linkedin: string; website: string }) => void;
+  onCorrectionSkip?: () => void;
 }
 
 export default function DiscoverHero({
@@ -32,11 +42,18 @@ export default function DiscoverHero({
   dataPoints,
   personaSummary,
   webSources,
+  discoveredName,
+  confirmationPhase = 'pending',
+  isRescanning = false,
   onEmailChange,
   onDiscover,
   onResetPhase,
   onNavigateAuth,
   onEnterDemo,
+  onConfirmYes,
+  onConfirmNo,
+  onCorrectionSubmit,
+  onCorrectionSkip,
 }: DiscoverHeroProps) {
   const chatboxStyle = {
     background: T.CARD_BG,
@@ -179,19 +196,38 @@ export default function DiscoverHero({
             </p>
           )}
 
-          {/* CTA: Create your twin */}
-          <button
-            onClick={() => onNavigateAuth(email.trim())}
-            className="mt-8 flex items-center gap-2 px-8 py-3 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
-            style={{
-              background: T.CTA_BG,
-              color: T.CTA_FG,
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            Create your twin
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          {/* Identity confirmation flow */}
+          {confirmationPhase === 'pending' && (
+            <IdentityConfirmation
+              onConfirm={onConfirmYes ?? (() => {})}
+              onReject={onConfirmNo ?? (() => {})}
+            />
+          )}
+
+          {confirmationPhase === 'correcting' && (
+            <DiscoverCorrectionForm
+              defaultName={discoveredName ?? ''}
+              onResearch={onCorrectionSubmit ?? (() => {})}
+              onSkip={onCorrectionSkip ?? (() => {})}
+              isLoading={isRescanning}
+            />
+          )}
+
+          {/* CTA: Create your twin — only after confirmation */}
+          {confirmationPhase === 'confirmed' && (
+            <button
+              onClick={() => onNavigateAuth(email.trim())}
+              className="mt-8 flex items-center gap-2 px-8 py-3 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
+              style={{
+                background: T.CTA_BG,
+                color: T.CTA_FG,
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Create your twin
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Try different email */}
           <button
