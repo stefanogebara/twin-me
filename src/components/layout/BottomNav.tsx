@@ -59,12 +59,12 @@ export const BottomNav: React.FC = () => {
           >
             <Icon
               className={cn('w-5 h-5 transition-transform duration-150 ease-out', active && 'scale-110')}
-              style={{ color: active ? 'var(--accent-vibrant)' : 'var(--sidebar-foreground)' }}
+              style={{ color: active ? '#F5F5F4' : 'var(--sidebar-foreground)' }}
               aria-hidden="true"
             />
             <span
               className="text-[10px] font-semibold leading-none"
-              style={{ color: active ? 'var(--accent-vibrant)' : 'var(--sidebar-foreground)' }}
+              style={{ color: active ? '#F5F5F4' : 'var(--sidebar-foreground)' }}
             >
               {item.label}
             </span>

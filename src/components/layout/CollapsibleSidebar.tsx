@@ -171,7 +171,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         : "rounded-full hover:bg-[rgba(255,255,255,0.08)]"
                     )}
                     style={active ? {
-                      background: 'rgba(255, 132, 0, 0.12)',
+                      background: 'rgba(255, 255, 255, 0.08)',
                     } : {
                       background: 'transparent',
                     }}
@@ -179,7 +179,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   >
                     <Icon
                       className="w-5 h-5 flex-shrink-0"
-                      style={{ color: active ? '#ff8400' : 'rgba(255, 255, 255, 0.45)' }}
+                      style={{ color: active ? '#F5F5F4' : 'rgba(255, 255, 255, 0.45)' }}
                       aria-hidden="true"
                     />
                     <span
@@ -187,7 +187,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                       style={{
                         fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
                         fontWeight: active ? 500 : 400,
-                        color: active ? '#ff8400' : 'rgba(255, 255, 255, 0.45)',
+                        color: active ? '#F5F5F4' : 'rgba(255, 255, 255, 0.45)',
                       }}
                     >
                       {item.label}
@@ -228,8 +228,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               >
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
                   style={{
-                    backgroundColor: 'rgba(255, 132, 0, 0.15)',
-                    color: '#ff8400',
+                    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+                    color: '#F5F5F4',
                   }}
                 >
                   {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
