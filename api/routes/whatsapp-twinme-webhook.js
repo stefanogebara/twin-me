@@ -9,6 +9,7 @@
  * POST /api/whatsapp-twin/webhook — Incoming messages
  */
 
+import crypto from 'crypto';
 import express from 'express';
 import { sendWhatsAppMessage, markMessageAsRead, verifyWebhookSignature } from '../services/whatsappService.js';
 import { supabaseAdmin } from '../services/database.js';
@@ -142,7 +143,9 @@ router.get('/webhook', (req, res) => {
   const challenge = req.query['hub.challenge'];
 
   const verifyToken = process.env.TWINME_WHATSAPP_VERIFY_TOKEN;
-  if (mode === 'subscribe' && token === verifyToken) {
+  if (mode === 'subscribe' && verifyToken && token &&
+      token.length === verifyToken.length &&
+      crypto.timingSafeEqual(Buffer.from(token), Buffer.from(verifyToken))) {
     log.info('WhatsApp webhook verified');
     return res.status(200).send(challenge);
   }

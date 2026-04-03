@@ -292,7 +292,10 @@ router.post('/connect/youtube', authenticateUser, oauthAuthorizationLimiter, asy
     }
 
     // YouTube/Google OAuth
-    const clientId = process.env.GOOGLE_CLIENT_ID || '851806289280-k0v833noqjk02r43m45cjr7prnhg24gr.apps.googleusercontent.com';
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ success: false, error: 'Google OAuth not configured' });
+    }
     const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`);
     const scope = encodeURIComponent(
       'https://www.googleapis.com/auth/youtube.readonly ' +
