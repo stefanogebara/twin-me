@@ -40,10 +40,10 @@ class SpotifyFeatureExtractor {
       const cutoffDate = new Date(Date.now() - this.LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
       // Fetch from BOTH tables to get all Spotify data
-      // Primary source: user_platform_data (11,000+ records)
+      // Only select needed columns to avoid loading huge JSONB payloads for every row
       const { data: platformData, error: platformError } = await supabaseAdmin
         .from('user_platform_data')
-        .select('*')
+        .select('data_type, raw_data, extracted_at')
         .eq('user_id', userId)
         .eq('platform', 'spotify')
         .gte('extracted_at', cutoffDate)
@@ -56,7 +56,7 @@ class SpotifyFeatureExtractor {
       // Secondary source: soul_data (legacy, 18 records)
       const { data: soulData, error: soulError } = await supabaseAdmin
         .from('soul_data')
-        .select('*')
+        .select('data_type, raw_data, created_at')
         .eq('user_id', userId)
         .eq('platform', 'spotify')
         .gte('created_at', cutoffDate)
