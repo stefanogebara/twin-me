@@ -471,7 +471,7 @@ const IdentityPage: React.FC = () => {
 
   const glassCard = (children: React.ReactNode, className = '') => (
     <div
-      className={`rounded-[20px] px-6 py-6 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
+      className={`rounded-[20px] px-4 sm:px-6 py-5 sm:py-6 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
       style={{
         background: 'rgba(255,255,255,0.04)',
         backdropFilter: 'blur(56px)',

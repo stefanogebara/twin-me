@@ -33,10 +33,13 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
 }) => {
   return (
     <div
-      className="flex items-center gap-4 px-5 py-4 rounded-2xl transition-colors duration-150"
+      className="flex items-center gap-4 px-5 py-4 rounded-[20px] transition-colors duration-150"
       style={{
-        backgroundColor: connected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        background: connected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
         border: `1px solid ${connected ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)'}`,
+        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
       }}
     >
       {/* Icon — brand-tinted background */}

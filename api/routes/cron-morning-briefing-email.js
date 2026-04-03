@@ -27,7 +27,7 @@ const router = express.Router();
 
 const MAX_USERS_PER_RUN = 20;
 
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   const startTime = Date.now();
 
   try {

@@ -9,11 +9,9 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export const SidebarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [isCollapsed, setIsCollapsed] = useState(() => {
-    const stored = localStorage.getItem('sidebar-collapsed');
-    // Default to collapsed (icon-only) on desktop if no stored preference
-    return stored === null ? true : stored === 'true';
-  });
+  // Sidebar is always expanded on desktop now (floating pill nav).
+  // Keep the context for backward compatibility but default to false (expanded).
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', String(isCollapsed));

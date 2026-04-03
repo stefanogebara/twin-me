@@ -188,7 +188,7 @@ const GoalsPage: React.FC = () => {
   const hasNoData = !isLoading && activeGoals.length === 0 && suggestions.length === 0;
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
       {/* Header */}
       <h1
         className="mb-2"

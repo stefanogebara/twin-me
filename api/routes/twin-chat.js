@@ -327,6 +327,30 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Without this, the client sees nothing for 2-4s while fetchTwinContext runs,
     // and Vercel/proxies may drop the connection before the first byte is written.
     const isStreaming = req.query.stream === '1';
+
+    // ================================================================
+    // Timeout guard: ensure we ALWAYS respond before Vercel kills the
+    // connection (maxDuration=60s). 50s budget leaves 10s safety margin.
+    // ================================================================
+    const RESPONSE_TIMEOUT_MS = 50000;
+    let responseTimedOut = false;
+    const timeoutTimer = setTimeout(() => {
+      responseTimedOut = true;
+      if (!res.headersSent) {
+        log.error('Chat endpoint timed out', { userId, elapsedMs: Date.now() - chatStartTime });
+        res.status(504).json({
+          success: false,
+          error: 'Chat response took too long. Please try again.',
+        });
+      } else if (isStreaming) {
+        log.error('Chat endpoint timed out (streaming)', { userId, elapsedMs: Date.now() - chatStartTime });
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'error', error: 'Response took too long. Please try again with a shorter message.' })}\n\n`);
+          res.end();
+        } catch { /* client already gone */ }
+      }
+    }, RESPONSE_TIMEOUT_MS);
+
     if (isStreaming) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
@@ -969,6 +993,8 @@ RULES:
           res.write(`data: ${JSON.stringify({ type: 'chunk', content: cleanText })}\n\n`);
         }
       } catch (llmError) {
+        clearTimeout(timeoutTimer);
+        if (responseTimedOut) return;
         log.error('Streaming LLM Gateway failed', { error: llmError });
         const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing') || llmError.message?.includes('more credits') || llmError.message?.includes('402');
         res.write(`data: ${JSON.stringify({ type: 'error', error: isBillingIssue ? 'Chat is temporarily unavailable due to API billing.' : 'Chat is temporarily unavailable.' })}\n\n`);
@@ -1028,6 +1054,8 @@ RULES:
         chatLog('LLM call complete');
         assistantMessage = result.content || 'I apologize, I could not generate a response.';
       } catch (llmError) {
+        clearTimeout(timeoutTimer);
+        if (responseTimedOut) return;
         log.error('LLM Gateway failed', { error: llmError });
         const isBillingIssue = llmError.message?.includes('credit balance') || llmError.message?.includes('billing');
         return res.status(503).json({
@@ -1313,6 +1341,10 @@ RULES:
       }
     };
 
+    // Clear timeout guard — we're about to send the real response
+    clearTimeout(timeoutTimer);
+    if (responseTimedOut) return;
+
     // Guard against client disconnect / timeout race
     if (res.destroyed || res.writableEnded) {
       log.warn('Response already closed (client timeout?) - skipping send');
@@ -1324,6 +1356,10 @@ RULES:
     }
 
   } catch (error) {
+    // Clear timeout guard in catch block
+    clearTimeout(timeoutTimer);
+    if (responseTimedOut) return;
+
     // Silently ignore write-after-close from client disconnects
     if (error.code === 'ERR_HTTP_HEADERS_SENT' || res.destroyed || res.writableEnded) {
       log.warn('Client disconnected before response could be sent');

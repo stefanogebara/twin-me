@@ -27,7 +27,7 @@ export function DashboardV2() {
 
   if (isLoading) {
     return (
-      <div className="max-w-[720px] mx-auto px-6 py-16">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-16">
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="animate-spin w-5 h-5" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
@@ -37,7 +37,7 @@ export function DashboardV2() {
 
   if (isError || !data) {
     return (
-      <div className="max-w-[720px] mx-auto px-6 py-16">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-16">
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
             Something went wrong
@@ -58,7 +58,7 @@ export function DashboardV2() {
   }
 
   return (
-    <div className="max-w-[720px] mx-auto px-6 pb-24">
+    <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24">
       <DashboardGreeting
         firstName={data.greeting.firstName}
         timeLabel={data.greeting.timeLabel}

@@ -102,7 +102,7 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
       </div>
 
       {/* ── Mobile: single column ──────────────────────────────────── */}
-      <div className="block md:hidden max-w-[680px] mx-auto px-5 py-8 space-y-6">
+      <div className="block md:hidden max-w-[680px] mx-auto px-4 sm:px-5 py-8 space-y-6">
         <div>{main}</div>
         <div>{sidebar}</div>
       </div>

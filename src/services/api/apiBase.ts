@@ -9,6 +9,12 @@ let currentAccessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   currentAccessToken = token;
+  // Persist to localStorage so token survives full page reloads (e.g. window.location.href redirect after OAuth)
+  if (token) {
+    localStorage.setItem('auth_token', token);
+  } else {
+    localStorage.removeItem('auth_token');
+  }
 }
 
 export function getAccessToken(): string | null {

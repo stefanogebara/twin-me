@@ -395,6 +395,7 @@ const App = () => {
             <Route path="/terms-of-service" element={<Navigate to="/terms" replace />} />
 
             {/* Legacy route redirects */}
+            <Route path="/landing" element={<Navigate to="/" replace />} />
             <Route path="/portfolio" element={<Navigate to="/" replace />} />
             <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
 

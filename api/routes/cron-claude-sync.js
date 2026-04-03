@@ -336,7 +336,7 @@ async function runSyncForUser(userId) {
  * POST /api/cron/claude-sync
  * Vercel cron job endpoint - runs daily at 4 AM
  */
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)

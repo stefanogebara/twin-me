@@ -55,52 +55,57 @@ export default function DiscoverLanding() {
     setPersonaSummary(null);
     setWebSources([]);
 
-    const result = await discoveryScan(trimmed);
+    try {
+      const result = await discoveryScan(trimmed);
 
-    if (!result.success) {
-      setError(result.error || 'We couldn\'t find public information for this email. Try a different one or sign up directly.');
-      setPhase('idle');
-      return;
-    }
+      if (!result.success) {
+        setError(result.error || 'We couldn\'t find public information for this email. Try a different one or sign up directly.');
+        setPhase('idle');
+        return;
+      }
 
-    const d = result.discovered;
-    if (!d) {
-      setError('No public information found for this email. Try another email or sign up directly.');
-      setPhase('idle');
-      return;
-    }
-    if (d) {
-      const points: DataPoint[] = [];
-      if (d.discovered_name) points.push({ icon: 'name', label: 'Name', value: d.discovered_name });
-      if (d.discovered_company) points.push({ icon: 'company', label: 'Company', value: d.discovered_company });
-      if (d.discovered_location) points.push({ icon: 'location', label: 'Location', value: d.discovered_location });
-      if (d.discovered_bio) points.push({ icon: 'bio', label: 'Bio', value: d.discovered_bio });
-      if (d.discovered_github_url) points.push({ icon: 'github', label: 'GitHub', value: 'Profile found' });
-      if (d.discovered_twitter_url) points.push({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
-      if (d.social_links?.length) {
-        for (const link of d.social_links) {
-          if (!points.some(p => p.label.toLowerCase() === link.platform.toLowerCase())) {
-            points.push({ icon: 'social', label: link.platform, value: 'Profile found' });
+      const d = result.discovered;
+      if (!d) {
+        setError('No public information found for this email. Try another email or sign up directly.');
+        setPhase('idle');
+        return;
+      }
+      if (d) {
+        const points: DataPoint[] = [];
+        if (d.discovered_name) points.push({ icon: 'name', label: 'Name', value: d.discovered_name });
+        if (d.discovered_company) points.push({ icon: 'company', label: 'Company', value: d.discovered_company });
+        if (d.discovered_location) points.push({ icon: 'location', label: 'Location', value: d.discovered_location });
+        if (d.discovered_bio) points.push({ icon: 'bio', label: 'Bio', value: d.discovered_bio });
+        if (d.discovered_github_url) points.push({ icon: 'github', label: 'GitHub', value: 'Profile found' });
+        if (d.discovered_twitter_url) points.push({ icon: 'twitter', label: 'Twitter', value: 'Profile found' });
+        if (d.social_links?.length) {
+          for (const link of d.social_links) {
+            if (!points.some(p => p.label.toLowerCase() === link.platform.toLowerCase())) {
+              points.push({ icon: 'social', label: link.platform, value: 'Profile found' });
+            }
           }
         }
+        // New enrichment fields
+        if (d.email_reputation) points.push({ icon: 'shield', label: 'Email reputation', value: d.email_reputation });
+        if (d.digital_footprint_score > 0) points.push({ icon: 'fingerprint', label: 'Digital footprint', value: `${d.digital_footprint_score} services detected` });
+        if (d.breach_mapped_integrations?.length) points.push({ icon: 'link', label: 'Known accounts', value: d.breach_mapped_integrations.join(', ') });
+        if (d.spotify_exists) points.push({ icon: 'music', label: 'Spotify', value: 'Account found' });
+        if (d.discovered_platforms?.length) points.push({ icon: 'scan', label: 'Platforms', value: `Found on ${d.discovered_platforms.length} platforms` });
+        if (d.wmn_count > 0) points.push({ icon: 'globe', label: 'Web presence', value: `${d.wmn_count} platforms confirmed` });
+        setDataPoints(points);
+        if (d.persona_summary) setPersonaSummary(d.persona_summary);
+        if (d.web_sources?.length) setWebSources(d.web_sources);
+
+        // Cache for post-auth pickup
+        sessionStorage.setItem('twinme_discovery_data', JSON.stringify(d));
+        sessionStorage.setItem('twinme_discovery_email', trimmed);
       }
-      // New enrichment fields
-      if (d.email_reputation) points.push({ icon: 'shield', label: 'Email reputation', value: d.email_reputation });
-      if (d.digital_footprint_score > 0) points.push({ icon: 'fingerprint', label: 'Digital footprint', value: `${d.digital_footprint_score} services detected` });
-      if (d.breach_mapped_integrations?.length) points.push({ icon: 'link', label: 'Known accounts', value: d.breach_mapped_integrations.join(', ') });
-      if (d.spotify_exists) points.push({ icon: 'music', label: 'Spotify', value: 'Account found' });
-      if (d.discovered_platforms?.length) points.push({ icon: 'scan', label: 'Platforms', value: `Found on ${d.discovered_platforms.length} platforms` });
-      if (d.wmn_count > 0) points.push({ icon: 'globe', label: 'Web presence', value: `${d.wmn_count} platforms confirmed` });
-      setDataPoints(points);
-      if (d.persona_summary) setPersonaSummary(d.persona_summary);
-      if (d.web_sources?.length) setWebSources(d.web_sources);
 
-      // Cache for post-auth pickup
-      sessionStorage.setItem('twinme_discovery_data', JSON.stringify(d));
-      sessionStorage.setItem('twinme_discovery_email', trimmed);
+      setPhase('revealed');
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setPhase('idle');
     }
-
-    setPhase('revealed');
   };
 
   const handleEmailChange = (value: string) => {

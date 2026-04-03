@@ -93,16 +93,16 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
             return (
               <div
                 key={connector.id}
-                className="flex items-center justify-between py-3"
+                className="flex items-center justify-between gap-3 py-3"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <PlatformLogo platform={connector.id} size={18} />
-                  <div>
+                  <div className="min-w-0">
                     <span className="text-sm" style={{ color: 'var(--foreground)' }}>
                       {connector.name}
                     </span>
-                    <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.25)' }}>
                       {connector.description}
                     </p>
                   </div>

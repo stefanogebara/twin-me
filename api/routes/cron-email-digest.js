@@ -11,7 +11,7 @@ const log = createLogger('CronEmailDigest');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   const startTime = Date.now();
 
   // Verify cron secret (timing-safe)

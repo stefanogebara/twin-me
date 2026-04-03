@@ -504,7 +504,7 @@ const TalkToTwin = () => {
             onClick={() => setShowConversationList(false)}
           />
           <div
-            className="absolute left-0 top-0 bottom-0 z-30 w-72 bg-[#0C0C0C] border-r border-[rgba(255,255,255,0.06)] flex flex-col"
+            className="absolute left-0 top-0 bottom-0 z-30 w-64 sm:w-72 max-w-[85vw] bg-[#0C0C0C] border-r border-[rgba(255,255,255,0.06)] flex flex-col"
           >
             <ConversationList
               activeConversationId={conversationId}
