@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Coffee, Moon, Music2, Mail, Bell, Lightbulb, TrendingUp, Zap, Bot } from 'lucide-react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -37,6 +37,16 @@ export function DailyTimeline() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Demo mode: show placeholder data, no API call
+    if (isDemoMode()) {
+      setItems([
+        { id: 'demo-1', type: 'insight', title: 'Morning energy peak', body: 'Your productivity tends to peak around 10am based on calendar patterns.', category: 'briefing', timestamp: new Date().toISOString() },
+        { id: 'demo-2', type: 'action', title: 'Music mood match', body: 'Based on your schedule, try some focused instrumental tracks this afternoon.', category: 'music_mood_match', timestamp: new Date(Date.now() - 3600000).toISOString() },
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
     fetch(`${API_URL}/dashboard/context/timeline`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

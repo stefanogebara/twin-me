@@ -7,7 +7,7 @@
  */
 
 // Base utilities
-export { API_URL, getAuthHeaders, handleAPIError } from './api/apiBase';
+export { API_URL, getAuthHeaders, handleAPIError, isDemoMode, authFetch } from './api/apiBase';
 export type { AuthHeaders } from './api/apiBase';
 
 // Dashboard

@@ -151,7 +151,7 @@ const TermsOfService = () => {
             <h2 className="text-lg mb-3" style={{ fontFamily: "'Instrument Serif', Georgia, serif", fontWeight: 400 }}>13. Contact</h2>
             <p style={{ color: 'var(--foreground)' }}>
               If you have questions about these Terms of Service, please contact us through the
-              Settings page in the application, or email us at support@twinme.ai.
+              Settings page in the application, or email us at support@twinme.me.
             </p>
           </section>
         </div>
