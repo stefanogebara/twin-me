@@ -296,12 +296,15 @@ interface DiscoveryScanResponse {
  * Public discovery scan — calls POST /api/discovery/scan without auth.
  * Rate limited to 3 requests per IP per 15 min.
  */
-export const discoveryScan = async (email: string): Promise<DiscoveryScanResponse> => {
+export const discoveryScan = async (
+  email: string,
+  options?: { name?: string; linkedin?: string; website?: string }
+): Promise<DiscoveryScanResponse> => {
   try {
     const response = await fetch(`${API_URL}/discovery/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, ...options }),
     });
 
     if (response.status === 429) {

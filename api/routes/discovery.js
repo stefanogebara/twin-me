@@ -74,7 +74,7 @@ router.post('/scan', async (req, res) => {
     return res.status(429).json({ success: false, error: 'Too many requests. Try again in 15 minutes.' });
   }
 
-  const { email, name } = req.body;
+  const { email, name, linkedin, website } = req.body;
   if (!email || typeof email !== 'string' || email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ success: false, error: 'Valid email required' });
@@ -82,6 +82,10 @@ router.post('/scan', async (req, res) => {
 
   // Sanitize name input
   const safeName = name && typeof name === 'string' ? name.substring(0, 100).trim() : null;
+
+  // Sanitize optional disambiguation params
+  const safeLinkedin = linkedin && typeof linkedin === 'string' ? linkedin.substring(0, 200).trim() || null : null;
+  const safeWebsite = website && typeof website === 'string' ? website.substring(0, 200).trim() || null : null;
 
   try {
     // Phase 1: Quick enrichment (Gravatar + GitHub + social probing) — ~2s
@@ -106,7 +110,8 @@ router.post('/scan', async (req, res) => {
 
         // Race Phase 2 against a timeout
         const phase2Promise = (async () => {
-          const braveResult = await searchWithBrave(personName, email);
+          const searchQuery = safeLinkedin ? `${personName} ${safeLinkedin}` : personName;
+          const braveResult = await searchWithBrave(searchQuery, email);
           if (!braveResult) return null;
 
           const socialInfo = (discovered?.social_links || [])
@@ -125,6 +130,8 @@ router.post('/scan', async (req, res) => {
             discovered?.hn_karma && `Hacker News karma: ${discovered.hn_karma}`,
             discovered?.twitter_bio && `Twitter/X bio: ${discovered.twitter_bio}`,
             discovered?.spotify_exists && `Has Spotify profile`,
+            safeLinkedin && `LinkedIn: ${safeLinkedin}`,
+            safeWebsite && `Website: ${safeWebsite}`,
             socialInfo && `Social profiles: ${socialInfo}`,
           ].filter(Boolean).join('\n');
 

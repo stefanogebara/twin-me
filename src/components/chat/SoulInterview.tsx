@@ -5,6 +5,7 @@ import { X, ArrowRight, Check, SkipForward } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
+import { CATEGORY_TOOLTIPS, CATEGORY_STARTERS } from './SoulInterviewHelpers';
 
 interface ExtractedFact {
   text: string;
@@ -367,6 +368,20 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                     {question}
                   </h2>
 
+                  {/* Helper tooltip — Cofounder-style hint */}
+                  <div className="flex justify-center mb-3">
+                    <span
+                      className="text-[11px] px-3 py-1.5 rounded-full"
+                      style={{
+                        backgroundColor: 'rgba(255,255,255,0.08)',
+                        color: 'rgba(255,255,255,0.40)',
+                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                      }}
+                    >
+                      {CATEGORY_TOOLTIPS[category] || 'Take your time with this one'}
+                    </span>
+                  </div>
+
                   {/* Answer textarea */}
                   <div
                     className="rounded-2xl overflow-hidden"
@@ -380,7 +395,7 @@ export function SoulInterview({ onClose, onComplete }: SoulInterviewProps) {
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Type your answer here..."
+                      placeholder={CATEGORY_STARTERS[category] || "Type your answer here..."}
                       className="w-full bg-transparent px-5 py-4 text-[15px] leading-relaxed resize-none outline-none min-h-[100px] max-h-[200px]"
                       style={{
                         color: 'rgba(245,245,244,0.85)',
