@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import { T, AMBER_GLOW_CSS } from './discoverTokens';
+import { T } from './discoverTokens';
 
 interface DiscoverPricingProps {
   billingAnnual: boolean;
@@ -7,67 +7,77 @@ interface DiscoverPricingProps {
   onNavigate: (path: string) => void;
 }
 
-export default function DiscoverPricing({
-  billingAnnual,
-  onToggleBilling,
-  onNavigate,
-}: DiscoverPricingProps) {
-  const bentoStyle = {
-    background: T.BENTO_BG,
-    border: `1px solid ${T.CARD_BDR}`,
-  };
+const PLANS = [
+  {
+    name: 'Free',
+    desc: 'Get started discovering yourself',
+    price: { monthly: '$0', annual: '$0' },
+    sub: 'Free forever',
+    features: ['Up to 3 platforms', '1,000 monthly memories', 'Basic twin chat'],
+    cta: 'Get started',
+    primary: false,
+  },
+  {
+    name: 'Plus',
+    desc: 'For those who want depth',
+    price: { monthly: '$20/mo', annual: '$15/mo' },
+    sub: { monthly: 'Billed monthly', annual: 'Billed annually ($180/yr)' },
+    features: ['All platforms connected', 'Unlimited memories', 'Expert reflections', 'Soul signature portrait', 'Goal tracking & nudges'],
+    cta: 'Start with Plus',
+    primary: true,
+  },
+  {
+    name: 'Pro',
+    desc: 'For power users',
+    price: { monthly: '$100/mo', annual: '$75/mo' },
+    sub: { monthly: 'Billed monthly', annual: 'Billed annually ($900/yr)' },
+    features: ['Everything in Plus', 'Unlimited reflections', 'Personality oracle', 'Priority support', 'Early access'],
+    cta: 'Start with Pro',
+    primary: false,
+  },
+];
 
+export default function DiscoverPricing({ billingAnnual, onToggleBilling, onNavigate }: DiscoverPricingProps) {
   return (
-    <section id="pricing" className="relative px-6 md:px-[100px] py-[37px] mt-[120px] overflow-hidden">
-      {/* Amber glow from Figma pricing SVG — rising from bottom center */}
-      <div
-        className="absolute pointer-events-none overflow-hidden"
-        style={{ inset: 0 }}
-      >
-        <div style={{
-          position: 'absolute',
-          bottom: 0, left: '50%',
-          transform: 'translateX(-50%)',
-          width: '1512px', height: '764px',
-          opacity: 0.5,
-          background: AMBER_GLOW_CSS,
-        }} />
-      </div>
+    <section id="pricing" className="px-6 md:px-[100px] py-24">
+      <div className="max-w-[800px] mx-auto">
 
-      {/* Bottom border */}
-      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: T.CARD_BDR }} />
+        <p
+          className="text-[11px] font-medium tracking-[2px] uppercase mb-6"
+          style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+        >
+          Pricing
+        </p>
 
-      <div className="max-w-[1312px] mx-auto flex flex-col items-center gap-7 relative">
         <h2
-          className="text-center whitespace-nowrap"
+          className="mb-4"
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
-            fontSize: '48px', lineHeight: 1.1,
-            letterSpacing: '-0.96px', color: T.FG,
+            fontSize: '42px', lineHeight: 1.15,
+            letterSpacing: '-0.84px', color: T.FG,
           }}
         >
-          Get started today
+          Simple, transparent pricing.
         </h2>
 
+        <p className="text-sm mb-10" style={{ color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+          Start free. Upgrade when you want more depth.
+        </p>
+
         {/* Toggle */}
-        <div
-          className="flex items-center gap-3 h-12 px-[5px] py-1 rounded-[32px]"
-          style={{
-            background: 'var(--sidebar)',
-            border: `1px solid ${T.CARD_BDR}`,
-          }}
-        >
+        <div className="flex items-center gap-3 mb-12">
           {['Monthly', 'Annually'].map(label => {
             const active = label === 'Monthly' ? !billingAnnual : billingAnnual;
             return (
               <button
                 key={label}
                 onClick={() => onToggleBilling(label === 'Annually')}
-                className="flex items-center justify-center w-[120px] h-full rounded-[32px] text-sm transition-all duration-200 ease-out active:scale-[0.97]"
+                className="px-4 py-2 rounded-full text-sm transition-all duration-200"
                 style={{
                   fontFamily: "'Inter', sans-serif",
-                  background: active ? T.FG : 'transparent',
-                  color:      active ? T.BG  : T.FG,
+                  background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
+                  color: active ? '#F5F5F4' : 'rgba(255,255,255,0.4)',
+                  border: active ? '1px solid rgba(255,255,255,0.15)' : '1px solid transparent',
                 }}
               >
                 {label}
@@ -76,112 +86,53 @@ export default function DiscoverPricing({
           })}
         </div>
 
-        {/* Cards */}
-        <div className="flex flex-col lg:flex-row w-full">
-          {/* Free */}
-          <div className="flex flex-col flex-1" style={{ marginRight: '-1px' }}>
-            <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-              <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Free</p>
-              <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>Get started discovering yourself</p>
-            </div>
-            <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
-              <div className="flex flex-col gap-2 flex-1">
-                <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>$0</p>
-                <p className="text-xs" style={{ color: T.TEXT_SEC }}>Free forever, no credit card needed</p>
-                <div className="flex flex-col gap-px mt-5">
-                  {['Up to 3 platform connections', '1,000 monthly memories', 'Basic twin chat'].map(f => (
-                    <div key={f} className="flex items-center gap-2 min-h-[28px] py-0.5">
-                      <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
-                      <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate('/auth')}
-                className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
-                style={{
-                  background: T.GHOST_BG,
-                  border: `1px solid ${T.CARD_BDR}`,
-                  color: T.FG,
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
-                Get started
-              </button>
-            </div>
-          </div>
+        {/* Plans — clean rows, no cards */}
+        <div className="flex flex-col gap-0">
+          {PLANS.map(plan => {
+            const price = billingAnnual ? plan.price.annual : plan.price.monthly;
+            const sub = typeof plan.sub === 'string' ? plan.sub : (billingAnnual ? plan.sub.annual : plan.sub.monthly);
 
-          {/* Plus — elevated */}
-          <div className="flex flex-col shrink-0 w-full lg:w-[438px] lg:-my-[26px]" style={{ marginRight: '-1px' }}>
-            <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-              <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Plus</p>
-              <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For those who want depth</p>
-            </div>
-            <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
-              <div className="flex flex-col gap-2 flex-1">
-                <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
-                  {billingAnnual ? '$15/mo' : '$20/mo'}
-                </p>
-                <p className="text-xs" style={{ color: T.TEXT_SEC }}>
-                  {billingAnnual ? 'Billed annually ($180/yr)' : 'Billed monthly'}
-                </p>
-                <div className="flex flex-col gap-px mt-5">
-                  {['All platforms connected', 'Unlimited memories', 'Expert reflection engine', 'Soul signature portrait', 'Goal tracking & nudges'].map(f => (
-                    <div key={f} className="flex items-center gap-2 min-h-[28px] py-0.5">
-                      <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
-                      <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate('/auth')}
-                className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90"
-                style={{ background: T.CTA_BG, color: T.CTA_FG, fontFamily: "'Inter', sans-serif" }}
+            return (
+              <div
+                key={plan.name}
+                className="flex flex-col md:flex-row md:items-center gap-6 py-8"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
               >
-                Start with Plus
-              </button>
-            </div>
-          </div>
+                {/* Name + Price */}
+                <div className="md:w-[200px] flex-shrink-0">
+                  <p className="text-lg font-medium" style={{ color: '#F5F5F4', fontFamily: "'Geist', 'Inter', sans-serif" }}>
+                    {plan.name}
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{price}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{sub}</p>
+                </div>
 
-          {/* Pro */}
-          <div className="flex flex-col flex-1">
-            <div className="px-10 py-[23px]" style={{ ...bentoStyle, marginBottom: '-1px' }}>
-              <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '20px', lineHeight: 1, color: T.FG }}>Pro</p>
-              <p className="mt-1 text-xs" style={{ color: T.TEXT_SEC }}>For power users who want it all</p>
-            </div>
-            <div className="flex flex-col gap-6 p-10 flex-1" style={bentoStyle}>
-              <div className="flex flex-col gap-2 flex-1">
-                <p style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '24px', lineHeight: 1, color: T.FG }}>
-                  {billingAnnual ? '$75/mo' : '$100/mo'}
-                </p>
-                <p className="text-xs" style={{ color: T.TEXT_SEC }}>
-                  {billingAnnual ? 'Billed annually ($900/yr)' : 'Billed monthly'}
-                </p>
-                <div className="flex flex-col gap-px mt-5">
-                  {['Everything in Plus', 'Unlimited reflections & insights', 'Personality oracle fine-tuning', 'Priority support', 'Early access to new features'].map(f => (
-                    <div key={f} className="flex items-center gap-2 min-h-[28px] py-0.5">
-                      <Check className="w-6 h-6 shrink-0" style={{ color: T.TEXT_SEC }} />
-                      <span className="text-xs" style={{ color: T.TEXT_SEC }}>{f}</span>
+                {/* Features */}
+                <div className="flex-1 flex flex-wrap gap-x-6 gap-y-2">
+                  {plan.features.map(f => (
+                    <div key={f} className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                      <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>{f}</span>
                     </div>
                   ))}
                 </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => onNavigate('/auth')}
+                  className="flex-shrink-0 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-80"
+                  style={{
+                    background: plan.primary ? '#F5F5F4' : 'rgba(255,255,255,0.08)',
+                    color: plan.primary ? '#110f0f' : '#F5F5F4',
+                    border: plan.primary ? 'none' : '1px solid rgba(255,255,255,0.10)',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  {plan.cta}
+                </button>
               </div>
-              <button
-                onClick={() => onNavigate('/auth')}
-                className="flex items-center justify-center h-10 w-full rounded-[100px] text-sm font-medium transition-opacity hover:opacity-80"
-                style={{
-                  background: T.GHOST_BG,
-                  border: `1px solid ${T.CARD_BDR}`,
-                  color: T.FG,
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
-                Start with Pro
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
     </section>

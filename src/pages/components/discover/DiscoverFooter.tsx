@@ -1,72 +1,45 @@
-import { T, FOOTER_GLOW_1, FOOTER_GLOW_2, FOOTER_GLOW_3 } from './discoverTokens';
+import { T } from './discoverTokens';
 
 export default function DiscoverFooter() {
   return (
-    <footer
-      className="relative overflow-hidden"
-      style={{ borderTop: `1px solid ${T.CARD_BDR}` }}
-    >
-      {/* Three layered sunset gradients (exact from Figma footer frame SVG) */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_1, opacity: 0.5 }} />
-        <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_2, opacity: 0.5 }} />
-        <div style={{ position: 'absolute', inset: 0, background: FOOTER_GLOW_3, opacity: 0.5 }} />
-      </div>
+    <footer className="px-6 md:px-[100px] py-16">
+      <div className="max-w-[800px] mx-auto">
+        <div className="h-px mb-12" style={{ background: 'rgba(255,255,255,0.06)' }} />
 
-      <div className="relative max-w-[1512px] mx-auto px-6 md:px-[100px] pt-12 pb-8">
-        {/* Top — 2 column links */}
-        <div className="flex flex-col sm:flex-row sm:justify-end gap-8 sm:gap-[200px] mb-16 md:mb-[200px]">
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium" style={{ color: T.FG }}>Product</p>
-            {[
-              { label: 'Features', href: '#features' },
-              { label: 'Pricing', href: '#pricing' },
-              { label: 'FAQ', href: '#faq' },
-            ].map(l => (
-              <a key={l.label} href={l.href} className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l.label}</a>
-            ))}
-          </div>
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium" style={{ color: T.FG }}>Legal</p>
-            {[
-              { label: 'Terms of Service', href: '/terms' },
-              { label: 'Privacy Policy', href: '/privacy-policy' },
-              { label: 'Contact', href: 'mailto:hello@twinme.me' },
-            ].map(l => (
-              <a key={l.label} href={l.href} className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>{l.label}</a>
-            ))}
-          </div>
-        </div>
-
-        {/* Center — wordmark */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-1">
-            <div
-              className="w-8 h-8 rounded-full opacity-80"
-              style={{ background: 'radial-gradient(circle at 35% 35%, #D4CBBE, #7c2d12)' }}
-            />
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-8 mb-16">
+          {/* Brand */}
+          <div className="flex items-center gap-2">
+            <img src="/images/backgrounds/flower.png" alt="" className="w-6 h-6 rounded-full object-cover" />
             <span style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: '36px',
-              letterSpacing: '-0.7px',
+              fontSize: '20px',
+              letterSpacing: '-0.4px',
               color: T.FG,
             }}>
               TwinMe
             </span>
           </div>
-        </div>
 
-        {/* Bottom bar */}
-        <div
-          className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4"
-          style={{ borderTop: `1px solid ${T.CARD_BDR}` }}
-        >
-          <p className="text-sm" style={{ color: T.TEXT_SEC }}>©2026 TwinMe Inc.</p>
-          <div className="flex items-center gap-8">
-            <a href="/terms" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Terms of service</a>
-            <a href="/privacy-policy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: T.TEXT_SEC }}>Privacy notice</a>
+          {/* Links */}
+          <div className="flex gap-16">
+            <div className="flex flex-col gap-2.5">
+              <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Product</p>
+              {['Features', 'Pricing', 'FAQ'].map(l => (
+                <a key={l} href={`#${l.toLowerCase()}`} className="text-sm hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.5)' }}>{l}</a>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2.5">
+              <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: 'rgba(255,255,255,0.3)' }}>Legal</p>
+              <a href="/terms" className="text-sm hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.5)' }}>Terms</a>
+              <a href="/privacy-policy" className="text-sm hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.5)' }}>Privacy</a>
+              <a href="mailto:hello@twinme.me" className="text-sm hover:opacity-70 transition-opacity" style={{ color: 'rgba(255,255,255,0.5)' }}>Contact</a>
+            </div>
           </div>
         </div>
+
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          &copy; 2026 TwinMe. All rights reserved.
+        </p>
       </div>
     </footer>
   );
