@@ -168,6 +168,42 @@ class YouTubeFeatureExtractor {
         }));
       }
 
+      // 8. Subscription Loyalty (Conscientiousness)
+      const subLoyalty = this.calculateSubscriptionLoyalty(youtubeData);
+      if (subLoyalty !== null) {
+        features.push(this.createFeature(userId, 'yt_subscription_loyalty', subLoyalty.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.28,
+          description: 'Average subscription age — long-held subscriptions indicate commitment to interests',
+          evidence: { correlation: 0.28, citation: 'Digital loyalty behavior research' },
+          raw_value: subLoyalty.rawValue
+        }));
+      }
+
+      // 9. Topic Diversity from topicDetails (Openness)
+      const topicDiversity = this.calculateTopicDiversity(youtubeData);
+      if (topicDiversity !== null) {
+        features.push(this.createFeature(userId, 'yt_topic_diversity', topicDiversity.value, {
+          contributes_to: 'openness',
+          contribution_weight: 0.35,
+          description: 'Shannon entropy of Wikipedia topic categories from liked videos',
+          evidence: { correlation: 0.35, citation: 'Content diversity and Openness' },
+          raw_value: topicDiversity.rawValue
+        }));
+      }
+
+      // 10. Curation Behavior (Conscientiousness)
+      const curation = this.calculateCurationBehavior(youtubeData);
+      if (curation !== null) {
+        features.push(this.createFeature(userId, 'yt_curation_behavior', curation.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.30,
+          description: 'Number and organization of user-created playlists',
+          evidence: { correlation: 0.30, citation: 'Content curation and personality' },
+          raw_value: curation.rawValue
+        }));
+      }
+
       log.info(`Extracted ${features.length} features`);
       return features;
 
@@ -534,6 +570,93 @@ class YouTubeFeatureExtractor {
   // ─────────────────────────────────────────────
   // Helper Methods
   // ─────────────────────────────────────────────
+
+  /**
+   * Subscription Loyalty: average subscription age in months
+   */
+  calculateSubscriptionLoyalty(youtubeData) {
+    const subsEntries = youtubeData.filter(e =>
+      e.data_type === 'subscriptions' || e.data_type === 'subscription'
+    );
+    const dates = [];
+    for (const entry of subsEntries) {
+      const items = entry.raw_data?.items || [];
+      for (const item of items) {
+        const pubDate = item.snippet?.publishedAt;
+        if (pubDate) {
+          const d = new Date(pubDate);
+          if (!isNaN(d.getTime())) dates.push(d);
+        }
+      }
+    }
+    if (dates.length < 3) return null;
+
+    const now = Date.now();
+    const avgMonths = dates.reduce((s, d) => s + (now - d.getTime()), 0) / dates.length / (1000 * 60 * 60 * 24 * 30);
+    // Score: 0-100. 0 months = 0, 24+ months average = 100
+    const value = Math.min(100, Math.round((avgMonths / 24) * 100));
+    return { value, rawValue: { avgMonths: Math.round(avgMonths), subCount: dates.length } };
+  }
+
+  /**
+   * Topic Diversity: Shannon entropy of topicDetails categories from liked videos
+   */
+  calculateTopicDiversity(youtubeData) {
+    const likedEntries = youtubeData.filter(e =>
+      e.data_type === 'likedVideos' || e.data_type === 'liked_video'
+    );
+    const topicCounts = {};
+    for (const entry of likedEntries) {
+      const items = entry.raw_data?.items || (entry.raw_data?.topicDetails ? [entry.raw_data] : []);
+      for (const item of items) {
+        const categories = item.topicDetails?.topicCategories || [];
+        for (const url of categories) {
+          const label = url.split('/wiki/').pop()?.replace(/_/g, ' ');
+          if (label) topicCounts[label] = (topicCounts[label] || 0) + 1;
+        }
+      }
+    }
+
+    const topics = Object.values(topicCounts);
+    if (topics.length < 2) return null;
+
+    // Shannon entropy
+    const total = topics.reduce((a, b) => a + b, 0);
+    const entropy = -topics.reduce((s, c) => {
+      const p = c / total;
+      return s + (p > 0 ? p * Math.log2(p) : 0);
+    }, 0);
+
+    // Normalize: max entropy = log2(N topics). Scale to 0-100.
+    const maxEntropy = Math.log2(topics.length);
+    const value = maxEntropy > 0 ? Math.round((entropy / maxEntropy) * 100) : 50;
+    return { value, rawValue: { uniqueTopics: topics.length, entropy: Math.round(entropy * 100) / 100 } };
+  }
+
+  /**
+   * Curation Behavior: number and organization of user-created playlists
+   */
+  calculateCurationBehavior(youtubeData) {
+    const plEntries = youtubeData.filter(e => e.data_type === 'user_playlists' || e.data_type === 'playlists');
+    if (plEntries.length === 0) return null;
+
+    const latestEntry = plEntries[0];
+    const playlists = latestEntry.raw_data?.playlists || latestEntry.raw_data?.items || [];
+    const total = latestEntry.raw_data?.total || playlists.length;
+    if (total === 0) return null;
+
+    // Score: 0-100. 0 playlists = 0, 10+ playlists = 100
+    const value = Math.min(100, Math.round((total / 10) * 100));
+    return {
+      value,
+      rawValue: {
+        playlistCount: total,
+        avgItems: playlists.length > 0
+          ? Math.round(playlists.reduce((s, p) => s + (p.itemCount || p.contentDetails?.itemCount || 0), 0) / playlists.length)
+          : 0
+      }
+    };
+  }
 
   createFeature(userId, featureType, featureValue, metadata = {}) {
     return {

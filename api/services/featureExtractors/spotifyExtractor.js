@@ -242,6 +242,54 @@ class SpotifyFeatureExtractor {
         }));
       }
 
+      // 14. Podcast Engagement (Openness)
+      const podcastEngagement = this.calculatePodcastEngagement(spotifyData);
+      if (podcastEngagement !== null) {
+        features.push(this.createFeature(userId, 'podcast_engagement', podcastEngagement.value, {
+          contributes_to: 'openness',
+          contribution_weight: 0.38,
+          description: 'Diversity and quantity of saved podcasts — podcast listeners score higher on Openness',
+          evidence: { correlation: 0.38, citation: 'Podcast consumption research (2023)' },
+          raw_value: podcastEngagement.rawValue
+        }));
+      }
+
+      // 15. Content Modality Balance (Openness)
+      const modalityBalance = this.calculateContentModalityBalance(spotifyData);
+      if (modalityBalance !== null) {
+        features.push(this.createFeature(userId, 'content_modality_balance', modalityBalance.value, {
+          contributes_to: 'openness',
+          contribution_weight: 0.30,
+          description: 'Balance of podcast vs music consumption — mixed consumption correlates with Openness',
+          evidence: { correlation: 0.30, citation: 'Media diet diversity research' },
+          raw_value: modalityBalance.rawValue
+        }));
+      }
+
+      // 16. Album Commitment (Conscientiousness)
+      const albumCommitment = this.calculateAlbumCommitment(spotifyData);
+      if (albumCommitment !== null) {
+        features.push(this.createFeature(userId, 'album_commitment', albumCommitment.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.30,
+          description: 'Saving full albums vs individual tracks — signals engagement with complete works',
+          evidence: { correlation: 0.30, citation: 'Musical commitment behavior' },
+          raw_value: albumCommitment.rawValue
+        }));
+      }
+
+      // 17. Musical Era Preference (Openness)
+      const eraPreference = this.calculateMusicalEraPreference(spotifyData);
+      if (eraPreference !== null) {
+        features.push(this.createFeature(userId, 'musical_era_preference', eraPreference.value, {
+          contributes_to: 'openness',
+          contribution_weight: 0.25,
+          description: 'Preference for newer vs older music — novelty-seeking vs nostalgia',
+          evidence: { correlation: -0.25, citation: 'Music preference and personality' },
+          raw_value: eraPreference.rawValue
+        }));
+      }
+
       log.info(`Extracted ${features.length} features`);
       return features;
 
@@ -899,6 +947,82 @@ class SpotifyFeatureExtractor {
   /**
    * Create standardized feature object
    */
+  /**
+   * Calculate podcast engagement from saved_show data
+   */
+  calculatePodcastEngagement(spotifyData) {
+    const showEntries = spotifyData.filter(e => e.data_type === 'saved_show');
+    if (showEntries.length === 0) return null;
+
+    const latestEntry = showEntries[0];
+    const shows = latestEntry.raw_data?.shows || [];
+    const total = latestEntry.raw_data?.total || shows.length;
+    if (total === 0) return null;
+
+    // Score: 0-100 based on podcast count (0=none, 50=5 podcasts, 100=15+)
+    const value = Math.min(100, Math.round((total / 15) * 100));
+    return { value, rawValue: { total, showCount: shows.length } };
+  }
+
+  /**
+   * Calculate content modality balance (podcast vs music ratio)
+   */
+  calculateContentModalityBalance(spotifyData) {
+    const showEntries = spotifyData.filter(e => e.data_type === 'saved_show');
+    const trackEntries = spotifyData.filter(e =>
+      ['recently_played', 'top_track', 'top_tracks', 'saved_track', 'savedTracks', 'recentTracks'].includes(e.data_type)
+    );
+    if (showEntries.length === 0 && trackEntries.length === 0) return null;
+
+    const podcastCount = showEntries[0]?.raw_data?.total || 0;
+    const musicEntries = trackEntries.length;
+    const total = podcastCount + musicEntries;
+    if (total === 0) return null;
+
+    // Score: how balanced is consumption. 50/50 = 100, all-one-side = 0
+    const ratio = podcastCount / total;
+    const balance = 1 - Math.abs(ratio - 0.5) * 2; // 0 at extremes, 1 at 50/50
+    const value = Math.round(balance * 100);
+    return { value, rawValue: { podcastCount, musicEntries, ratio: Math.round(ratio * 100) } };
+  }
+
+  /**
+   * Calculate album commitment from saved_album data
+   */
+  calculateAlbumCommitment(spotifyData) {
+    const albumEntries = spotifyData.filter(e => e.data_type === 'saved_album');
+    if (albumEntries.length === 0) return null;
+
+    const total = albumEntries[0]?.raw_data?.total || 0;
+    if (total === 0) return null;
+
+    // Score: 0-100 based on album count (0=none, 50=10 albums, 100=25+)
+    const value = Math.min(100, Math.round((total / 25) * 100));
+    return { value, rawValue: { total } };
+  }
+
+  /**
+   * Calculate musical era preference from saved_album release dates
+   */
+  calculateMusicalEraPreference(spotifyData) {
+    const albumEntries = spotifyData.filter(e => e.data_type === 'saved_album');
+    if (albumEntries.length === 0) return null;
+
+    const albums = albumEntries[0]?.raw_data?.albums || [];
+    const currentYear = new Date().getFullYear();
+    const years = albums
+      .map(a => a.release_date ? parseInt(a.release_date.slice(0, 4)) : null)
+      .filter(y => y && y > 1900 && y <= currentYear);
+
+    if (years.length < 3) return null;
+
+    const avgYear = years.reduce((a, b) => a + b, 0) / years.length;
+    // Score: 0=very old music, 100=very new. Based on how recent the average album is.
+    // 2026 avg = 100, 1970 avg = 0
+    const value = Math.min(100, Math.max(0, Math.round(((avgYear - 1970) / (currentYear - 1970)) * 100)));
+    return { value, rawValue: { avgYear: Math.round(avgYear), albumCount: years.length } };
+  }
+
   createFeature(userId, featureType, featureValue, metadata = {}) {
     return {
       user_id: userId,

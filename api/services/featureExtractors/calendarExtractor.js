@@ -225,6 +225,54 @@ class CalendarFeatureExtractor {
         }));
       }
 
+      // 13. Meeting Leadership (Extraversion)
+      const meetingLeadership = this.calculateMeetingLeadership(events);
+      if (meetingLeadership !== null) {
+        features.push(this.createFeature(userId, 'meeting_leadership', meetingLeadership.value, {
+          contributes_to: 'extraversion',
+          contribution_weight: 0.35,
+          description: 'Ratio of self-organized meetings — proactive scheduling signals Extraversion',
+          evidence: { correlation: 0.35, citation: 'Calendar behavior and personality' },
+          raw_value: meetingLeadership.rawValue
+        }));
+      }
+
+      // 14. Routine Structure (Conscientiousness)
+      const routineStructure = this.calculateRoutineStructure(events);
+      if (routineStructure !== null) {
+        features.push(this.createFeature(userId, 'routine_structure', routineStructure.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.33,
+          description: 'Ratio of recurring events — structured routine signals Conscientiousness',
+          evidence: { correlation: 0.33, citation: 'Schedule regularity research' },
+          raw_value: routineStructure.rawValue
+        }));
+      }
+
+      // 15. Deep Work Commitment (Conscientiousness) — from Focus Time blocks
+      const deepWork = await this.calculateDeepWorkCommitment(userId);
+      if (deepWork !== null) {
+        features.push(this.createFeature(userId, 'deep_work_commitment', deepWork.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.40,
+          description: 'Frequency and duration of Focus Time blocks — deep work protection',
+          evidence: { correlation: 0.40, citation: 'Newport (2016) Deep Work' },
+          raw_value: deepWork.rawValue
+        }));
+      }
+
+      // 16. Calendar Organization (Conscientiousness) — from CalendarList
+      const calOrg = await this.calculateCalendarOrganization(userId);
+      if (calOrg !== null) {
+        features.push(this.createFeature(userId, 'calendar_organization', calOrg.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.30,
+          description: 'Number and categorization of maintained calendars',
+          evidence: { correlation: 0.30, citation: 'Digital organization research' },
+          raw_value: calOrg.rawValue
+        }));
+      }
+
       log.info(`Extracted ${features.length} features`);
       return features;
 
@@ -829,6 +877,96 @@ class CalendarFeatureExtractor {
   /**
    * Create standardized feature object
    */
+  /**
+   * Meeting Leadership: ratio of self-organized events
+   */
+  calculateMeetingLeadership(events) {
+    if (events.length < 5) return null;
+    let selfOrganized = 0;
+    for (const e of events) {
+      // Access raw Google Calendar fields via raw_data (set in transformGoogleCalendarEvent)
+      const raw = e.raw_data || e;
+      if (raw.creator?.self && raw.organizer?.self) {
+        selfOrganized++;
+      }
+    }
+    const ratio = selfOrganized / events.length;
+    const value = Math.round(ratio * 100);
+    return { value, rawValue: { selfOrganized, total: events.length, ratio: Math.round(ratio * 100) } };
+  }
+
+  /**
+   * Routine Structure: ratio of recurring events
+   */
+  calculateRoutineStructure(events) {
+    if (events.length < 5) return null;
+    let recurring = 0;
+    for (const e of events) {
+      const raw = e.raw_data || e;
+      if (raw.recurringEventId || raw.recurrence) recurring++;
+    }
+    const ratio = recurring / events.length;
+    const value = Math.round(ratio * 100);
+    return { value, rawValue: { recurring, total: events.length } };
+  }
+
+  /**
+   * Deep Work Commitment: from stored focus_time data in user_platform_data
+   */
+  async calculateDeepWorkCommitment(userId) {
+    try {
+      const { supabaseAdmin } = await import('../database.js');
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data')
+        .eq('user_id', userId)
+        .eq('platform', 'google_calendar')
+        .eq('data_type', 'focus_time')
+        .gte('extracted_at', cutoff)
+        .limit(1);
+
+      // Focus Time data may not exist yet — return null gracefully
+      if (!data || data.length === 0) return null;
+      const focusData = data[0]?.raw_data;
+      if (!focusData?.total) return null;
+
+      // Score: 0 blocks/week = 0, 5+/week = 100
+      const blocksPerWeek = focusData.total / 4; // ~4 weeks
+      const value = Math.min(100, Math.round((blocksPerWeek / 5) * 100));
+      return { value, rawValue: { blocksPerMonth: focusData.total } };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Calendar Organization: from stored calendar_list data
+   */
+  async calculateCalendarOrganization(userId) {
+    try {
+      const { supabaseAdmin } = await import('../database.js');
+      const { data } = await supabaseAdmin
+        .from('user_platform_data')
+        .select('raw_data')
+        .eq('user_id', userId)
+        .eq('platform', 'google_calendar')
+        .eq('data_type', 'calendar_list')
+        .order('extracted_at', { ascending: false })
+        .limit(1);
+
+      if (!data || data.length === 0) return null;
+      const calData = data[0]?.raw_data;
+      if (!calData?.total) return null;
+
+      // Score: 1 calendar = 20, 3 = 60, 5+ = 100
+      const value = Math.min(100, Math.round((calData.total / 5) * 100));
+      return { value, rawValue: { calendarCount: calData.total } };
+    } catch {
+      return null;
+    }
+  }
+
   createFeature(userId, featureType, featureValue, metadata = {}) {
     return {
       user_id: userId,

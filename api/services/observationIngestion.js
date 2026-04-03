@@ -402,6 +402,131 @@ async function fetchSpotifyObservations(userId) {
     });
   }
 
+  // ── Saved podcasts — intellectual identity signal ─────────────────────────
+  try {
+    const showsRes = await axios.get(
+      'https://api.spotify.com/v1/me/shows?limit=20',
+      { headers, timeout: 10000 }
+    );
+    const shows = showsRes.data?.items || [];
+    if (shows.length > 0) {
+      const showNames = shows.map(s => sanitizeExternal(s.show?.name, 60)).filter(Boolean).slice(0, 8);
+      observations.push({
+        content: `Listens to ${shows.length} podcast${shows.length !== 1 ? 's' : ''} on Spotify: ${showNames.join(', ')}`,
+        contentType: 'weekly_summary',
+      });
+
+      // Extract publishers for diversity signal
+      const publishers = [...new Set(shows.map(s => sanitizeExternal(s.show?.publisher, 40)).filter(Boolean))].slice(0, 5);
+      if (publishers.length > 1) {
+        observations.push({
+          content: `Podcast publishers include: ${publishers.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+
+      // Store raw podcast data for feature extractor
+      try {
+        const supabase = await getSupabase();
+        if (supabase) {
+          const today = new Date().toISOString().slice(0, 10);
+          await supabase.from('user_platform_data').upsert({
+            user_id: userId,
+            platform: 'spotify',
+            data_type: 'saved_show',
+            source_url: `spotify:saved_shows:${today}`,
+            raw_data: {
+              total: shows.length,
+              shows: shows.map(s => ({
+                name: s.show?.name,
+                publisher: s.show?.publisher,
+                description: s.show?.description?.slice(0, 200),
+                total_episodes: s.show?.total_episodes,
+                explicit: s.show?.explicit,
+                languages: s.show?.languages,
+                added_at: s.added_at,
+              })),
+            },
+            processed: true,
+          }, { onConflict: 'user_id,platform,data_type,source_url' });
+        }
+      } catch (storeErr) {
+        log.warn('Spotify: failed to store saved shows', { error: storeErr });
+      }
+    }
+  } catch (e) {
+    // Saved shows endpoint may fail — non-critical
+    log.debug('Spotify saved shows error', { error: e?.message });
+  }
+
+  // ── Saved albums — music commitment signal ────────────────────────────────
+  try {
+    const albumsRes = await axios.get(
+      'https://api.spotify.com/v1/me/albums?limit=20',
+      { headers, timeout: 10000 }
+    );
+    const albums = albumsRes.data?.items || [];
+    if (albums.length > 0) {
+      const albumNames = albums.slice(0, 5).map(a => {
+        const name = sanitizeExternal(a.album?.name, 50);
+        const artist = sanitizeExternal(a.album?.artists?.[0]?.name, 30);
+        return artist ? `${name} by ${artist}` : name;
+      }).filter(Boolean);
+      observations.push({
+        content: `Has ${albums.length} saved album${albums.length !== 1 ? 's' : ''} on Spotify: ${albumNames.join(', ')}`,
+        contentType: 'weekly_summary',
+      });
+
+      // Release year distribution for era preference
+      const years = albums.map(a => {
+        const rd = a.album?.release_date;
+        return rd ? parseInt(rd.slice(0, 4)) : null;
+      }).filter(y => y && y > 1900 && y <= new Date().getFullYear());
+      if (years.length >= 3) {
+        const decades = {};
+        for (const y of years) {
+          const dec = `${Math.floor(y / 10) * 10}s`;
+          decades[dec] = (decades[dec] || 0) + 1;
+        }
+        const topDecades = Object.entries(decades).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([d, c]) => `${d} (${c})`);
+        observations.push({
+          content: `Album era preferences: ${topDecades.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+
+      // Store raw album data for feature extractor
+      try {
+        const supabase = await getSupabase();
+        if (supabase) {
+          const today = new Date().toISOString().slice(0, 10);
+          await supabase.from('user_platform_data').upsert({
+            user_id: userId,
+            platform: 'spotify',
+            data_type: 'saved_album',
+            source_url: `spotify:saved_albums:${today}`,
+            raw_data: {
+              total: albums.length,
+              albums: albums.map(a => ({
+                name: a.album?.name,
+                artist: a.album?.artists?.[0]?.name,
+                release_date: a.album?.release_date,
+                total_tracks: a.album?.total_tracks,
+                album_type: a.album?.album_type,
+                added_at: a.added_at,
+              })),
+            },
+            processed: true,
+          }, { onConflict: 'user_id,platform,data_type,source_url' });
+        }
+      } catch (storeErr) {
+        log.warn('Spotify: failed to store saved albums', { error: storeErr });
+      }
+    }
+  } catch (e) {
+    log.debug('Spotify saved albums error', { error: e?.message });
+  }
+
   // Audio features analysis: mood detection from energy, valence, danceability
   if (recentItems.length > 0) {
     try {
@@ -544,6 +669,38 @@ async function fetchCalendarObservations(userId) {
       });
     }
 
+    // Creator vs organizer analysis + conferenceData + recurrence
+    if (events.length > 0) {
+      let selfOrganized = 0;
+      let virtualMeetings = 0;
+      let recurringCount = 0;
+      for (const ev of events) {
+        if (ev.creator?.self && ev.organizer?.self) selfOrganized++;
+        if (ev.conferenceData?.conferenceSolution) virtualMeetings++;
+        if (ev.recurringEventId) recurringCount++;
+      }
+
+      if (events.length >= 3) {
+        const orgPct = Math.round((selfOrganized / events.length) * 100);
+        const virtualPct = Math.round((virtualMeetings / events.length) * 100);
+        const recurringPct = Math.round((recurringCount / events.length) * 100);
+
+        const styleParts = [];
+        if (orgPct > 60) styleParts.push(`organized ${orgPct}% of own meetings (proactive scheduler)`);
+        else if (orgPct < 30) styleParts.push(`mostly attends others\' meetings (${orgPct}% self-organized)`);
+        if (virtualPct > 70) styleParts.push('primarily virtual meetings');
+        else if (virtualPct < 30 && events.length >= 3) styleParts.push('mostly in-person meetings');
+        if (recurringPct > 50) styleParts.push(`${recurringPct}% recurring (structured routine)`);
+
+        if (styleParts.length > 0) {
+          observations.push({
+            content: `Calendar work style: ${styleParts.join(', ')}`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+
     // Workload assessment: heavy meeting day
     if (events.length >= 5) {
       observations.push({ content: `Heavy meeting day: ${events.length} meetings scheduled`, contentType: 'daily_summary' });
@@ -564,6 +721,111 @@ async function fetchCalendarObservations(userId) {
     }
   } catch (e) {
     log.warn('Calendar error', { error: e });
+  }
+
+  // ── Focus Time + OOO blocks — deep work and boundary signals ──────────────
+  try {
+    const tokenResult2 = await getValidAccessToken(userId, 'google_calendar');
+    if (tokenResult2.success && tokenResult2.accessToken) {
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      const [focusRes, oooRes] = await Promise.all([
+        axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          headers: { Authorization: `Bearer ${tokenResult2.accessToken}` },
+          params: { eventTypes: 'focusTime', timeMin: weekAgo.toISOString(), timeMax: weekAhead.toISOString(), singleEvents: true, maxResults: 20 },
+          timeout: 10000,
+        }).catch(() => ({ data: { items: [] } })),
+        axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+          headers: { Authorization: `Bearer ${tokenResult2.accessToken}` },
+          params: { eventTypes: 'outOfOffice', timeMin: weekAgo.toISOString(), timeMax: weekAhead.toISOString(), singleEvents: true, maxResults: 10 },
+          timeout: 10000,
+        }).catch(() => ({ data: { items: [] } })),
+      ]);
+
+      const focusBlocks = focusRes.data?.items || [];
+      if (focusBlocks.length > 0) {
+        // Calculate total focus time hours this week
+        let totalFocusMs = 0;
+        for (const fb of focusBlocks) {
+          const start = fb.start?.dateTime ? new Date(fb.start.dateTime) : null;
+          const end = fb.end?.dateTime ? new Date(fb.end.dateTime) : null;
+          if (start && end) totalFocusMs += end.getTime() - start.getTime();
+        }
+        const focusHours = Math.round(totalFocusMs / (1000 * 60 * 60) * 10) / 10;
+        observations.push({
+          content: `Has ${focusBlocks.length} Focus Time block${focusBlocks.length !== 1 ? 's' : ''} scheduled this week (${focusHours} hours of deep work time)`,
+          contentType: 'weekly_summary',
+        });
+      }
+
+      const oooBlocks = oooRes.data?.items || [];
+      if (oooBlocks.length > 0) {
+        const oooTitles = oooBlocks.map(o => sanitizeExternal(o.summary || 'Out of Office', 40)).slice(0, 3);
+        observations.push({
+          content: `Out of office scheduled: ${oooTitles.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    // Focus Time/OOO may not be supported on all accounts — non-critical
+    log.debug('Calendar Focus Time/OOO error', { error: e?.message });
+  }
+
+  // ── CalendarList — organizational complexity signal ────────────────────────
+  try {
+    const tokenResult3 = await getValidAccessToken(userId, 'google_calendar');
+    if (tokenResult3.success && tokenResult3.accessToken) {
+      const calListRes = await axios.get(
+        'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=20',
+        { headers: { Authorization: `Bearer ${tokenResult3.accessToken}` }, timeout: 10000 }
+      );
+      const calendars = calListRes.data?.items || [];
+      if (calendars.length > 1) {
+        const calNames = calendars
+          .filter(c => !c.primary) // exclude "primary" as it's always there
+          .map(c => sanitizeExternal(c.summaryOverride || c.summary || '', 40))
+          .filter(Boolean)
+          .slice(0, 6);
+        const ownedCount = calendars.filter(c => c.accessRole === 'owner').length;
+        observations.push({
+          content: `Maintains ${calendars.length} calendar${calendars.length !== 1 ? 's' : ''} (${ownedCount} owned): ${calNames.join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+
+        // Store for feature extractor
+        try {
+          const supabase = await getSupabase();
+          if (supabase) {
+            const today = new Date().toISOString().slice(0, 10);
+            await supabase.from('user_platform_data').upsert({
+              user_id: userId,
+              platform: 'google_calendar',
+              data_type: 'calendar_list',
+              source_url: `calendar:list:${today}`,
+              raw_data: {
+                total: calendars.length,
+                calendars: calendars.map(c => ({
+                  summary: c.summaryOverride || c.summary,
+                  primary: c.primary || false,
+                  accessRole: c.accessRole,
+                  colorId: c.colorId,
+                  hidden: c.hidden || false,
+                  selected: c.selected,
+                })),
+              },
+              processed: true,
+            }, { onConflict: 'user_id,platform,data_type,source_url' });
+          }
+        } catch (storeErr) {
+          log.warn('Calendar: failed to store calendar list', { error: storeErr });
+        }
+      }
+    }
+  } catch (e) {
+    log.debug('Calendar list error', { error: e?.message });
   }
 
   return observations;
@@ -625,7 +887,7 @@ async function fetchYouTubeObservations(userId) {
 
     try {
       const likedRes = await axios.get(
-        'https://www.googleapis.com/youtube/v3/videos?part=snippet&myRating=like&maxResults=10',
+        'https://www.googleapis.com/youtube/v3/videos?part=snippet,topicDetails&myRating=like&maxResults=15',
         { headers, timeout: 10000 }
       );
       likedItems = likedRes.data?.items || [];
@@ -657,6 +919,29 @@ async function fetchYouTubeObservations(userId) {
   if (subsItems.length > 0) {
     const channelNames = subsItems.map(i => sanitizeExternal(i.snippet?.title)).filter(Boolean).slice(0, 10);
     observations.push({ content: `Subscribed to YouTube channels: ${channelNames.join(', ')}`, contentType: 'weekly_summary' });
+
+    // Subscription tenure analysis from publishedAt timestamps
+    const subDates = subsItems
+      .map(i => i.snippet?.publishedAt ? new Date(i.snippet.publishedAt) : null)
+      .filter(d => d && !isNaN(d.getTime()));
+    if (subDates.length >= 3) {
+      const now = Date.now();
+      const agesMonths = subDates.map(d => (now - d.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const avgAge = Math.round(agesMonths.reduce((a, b) => a + b, 0) / agesMonths.length);
+      const oldestAge = Math.round(Math.max(...agesMonths));
+
+      // Identify recently subscribed (< 30 days)
+      const recentSubs = subsItems.filter(i => {
+        const d = i.snippet?.publishedAt ? new Date(i.snippet.publishedAt) : null;
+        return d && (now - d.getTime()) < 30 * 24 * 60 * 60 * 1000;
+      });
+      const recentNames = recentSubs.map(i => sanitizeExternal(i.snippet?.title, 40)).filter(Boolean).slice(0, 3);
+
+      observations.push({
+        content: `YouTube subscription tenure: average ${avgAge} months, oldest ${oldestAge} months${recentNames.length > 0 ? `, recently subscribed to: ${recentNames.join(', ')}` : ''}`,
+        contentType: 'weekly_summary',
+      });
+    }
   }
 
   // Liked videos (recent activity signal)
@@ -668,26 +953,88 @@ async function fetchYouTubeObservations(userId) {
       contentType: 'daily_summary',
     });
 
-    // Category clustering from liked videos
+    // Topic clustering from liked videos — prefer topicDetails (Wikipedia categories) over categoryId
+    const topicCounts = {};
     const categoryCounts = {};
     for (const item of likedItems) {
+      // Rich topic categories from topicDetails (Wikipedia URLs)
+      const topicCategories = item.topicDetails?.topicCategories || [];
+      for (const url of topicCategories) {
+        // Extract label from Wikipedia URL: https://en.wikipedia.org/wiki/Entertainment → Entertainment
+        const label = url.split('/wiki/').pop()?.replace(/_/g, ' ');
+        if (label) topicCounts[label] = (topicCounts[label] || 0) + 1;
+      }
+      // Fallback to categoryId
       const cat = item.snippet?.categoryId;
       if (cat) {
-        // YouTube category IDs → human-readable mapping (common IDs)
         const categoryMap = { '1': 'Film & Animation', '2': 'Autos', '10': 'Music', '15': 'Pets', '17': 'Sports', '20': 'Gaming', '22': 'People & Vlogs', '23': 'Comedy', '24': 'Entertainment', '25': 'News', '26': 'How-to & Style', '27': 'Education', '28': 'Science & Tech' };
         const label = categoryMap[cat] || `Category ${cat}`;
         categoryCounts[label] = (categoryCounts[label] || 0) + 1;
       }
     }
-    const topCategories = Object.entries(categoryCounts)
+
+    // Prefer topicDetails if available, fall back to categoryId
+    const topicSource = Object.keys(topicCounts).length > 0 ? topicCounts : categoryCounts;
+    const topCategories = Object.entries(topicSource)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 4)
+      .slice(0, 5)
       .map(([cat, count]) => `${cat} (${count})`);
     if (topCategories.length > 0) {
       observations.push({
         content: `YouTube content interests: ${topCategories.join(', ')}`,
         contentType: 'weekly_summary',
       });
+    }
+  }
+
+  // ── User playlists — curation behavior signal ─────────────────────────────
+  if (!isNangoManaged) {
+    try {
+      const tokenResult2 = await getValidAccessToken(userId, 'youtube');
+      if (tokenResult2.success && tokenResult2.accessToken) {
+        const playlistRes = await axios.get(
+          'https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&mine=true&maxResults=10',
+          { headers: { Authorization: `Bearer ${tokenResult2.accessToken}` }, timeout: 10000 }
+        );
+        const playlists = playlistRes.data?.items || [];
+        if (playlists.length > 0) {
+          const plNames = playlists.map(p => sanitizeExternal(p.snippet?.title, 50)).filter(Boolean).slice(0, 6);
+          const avgItems = Math.round(playlists.reduce((s, p) => s + (p.contentDetails?.itemCount || 0), 0) / playlists.length);
+          observations.push({
+            content: `Has ${playlists.length} YouTube playlist${playlists.length !== 1 ? 's' : ''}: ${plNames.join(', ')} (avg ${avgItems} videos each)`,
+            contentType: 'weekly_summary',
+          });
+
+          // Store for feature extractor
+          try {
+            const supabase = await getSupabase();
+            if (supabase) {
+              const today = new Date().toISOString().slice(0, 10);
+              await supabase.from('user_platform_data').upsert({
+                user_id: userId,
+                platform: 'youtube',
+                data_type: 'user_playlists',
+                source_url: `youtube:user_playlists:${today}`,
+                raw_data: {
+                  total: playlists.length,
+                  playlists: playlists.map(p => ({
+                    title: p.snippet?.title,
+                    description: p.snippet?.description?.slice(0, 200),
+                    itemCount: p.contentDetails?.itemCount,
+                    publishedAt: p.snippet?.publishedAt,
+                    privacyStatus: p.status?.privacyStatus,
+                  })),
+                },
+                processed: true,
+              }, { onConflict: 'user_id,platform,data_type,source_url' });
+            }
+          } catch (storeErr) {
+            log.warn('YouTube: failed to store user playlists', { error: storeErr });
+          }
+        }
+      }
+    } catch (e) {
+      log.debug('YouTube user playlists error', { error: e?.message });
     }
   }
 
@@ -2252,6 +2599,28 @@ function _buildTwitchChannelObservations(observations, channels) {
       contentType: 'weekly_summary',
     });
   }
+
+  // Follow loyalty: parse followed_at timestamps
+  const followDates = channels
+    .map(c => ({ name: c.broadcaster_name || c.broadcaster_login, date: c.followed_at ? new Date(c.followed_at) : null }))
+    .filter(f => f.date && !isNaN(f.date.getTime()))
+    .sort((a, b) => a.date - b.date);
+
+  if (followDates.length >= 3) {
+    const now = Date.now();
+    const avgMonths = Math.round(followDates.reduce((sum, f) => sum + (now - f.date.getTime()), 0) / followDates.length / (1000 * 60 * 60 * 24 * 30));
+    const oldest = followDates[0];
+    const oldestMonths = Math.round((now - oldest.date.getTime()) / (1000 * 60 * 60 * 24 * 30));
+
+    // Recently followed (< 30 days)
+    const recentFollows = followDates.filter(f => (now - f.date.getTime()) < 30 * 24 * 60 * 60 * 1000);
+    const recentNames = recentFollows.map(f => sanitizeExternal(f.name, 40)).filter(Boolean).slice(0, 3);
+
+    observations.push({
+      content: `Twitch follow loyalty: following ${channels.length} channels for avg ${avgMonths} months, oldest follow ${sanitizeExternal(oldest.name, 40)} (${oldestMonths} months)${recentNames.length > 0 ? `, recently followed: ${recentNames.join(', ')}` : ''}`,
+      contentType: 'weekly_summary',
+    });
+  }
 }
 
 /**
@@ -3026,11 +3395,18 @@ async function fetchWhoopObservations(userId) {
   const hrv = recoveryData?.score?.hrv_rmssd_milli ? Math.round(recoveryData.score.hrv_rmssd_milli) : null;
   const restingHR = recoveryData?.score?.resting_heart_rate ? Math.round(recoveryData.score.resting_heart_rate) : null;
 
+  const spo2 = recoveryData?.score?.spo2_percentage ?? null;
+  const skinTemp = recoveryData?.score?.skin_temp_celsius != null
+    ? Math.round(recoveryData.score.skin_temp_celsius * 10) / 10
+    : null;
+
   if (recoveryScore !== null) {
     const recoveryLabel = recoveryScore >= 70 ? 'high' : recoveryScore >= 50 ? 'moderate' : 'low';
     const parts = [`Recovery score: ${recoveryScore}% (${recoveryLabel} recovery)`];
     if (hrv) parts.push(`HRV ${hrv}ms`);
     if (restingHR) parts.push(`resting heart rate ${restingHR}bpm`);
+    if (spo2) parts.push(`SpO2 ${spo2}%`);
+    if (skinTemp) parts.push(`skin temp ${skinTemp}°C`);
     observations.push({
       content: parts.join(', '),
       contentType: 'daily_summary',
@@ -3077,6 +3453,29 @@ async function fetchWhoopObservations(userId) {
       let obs = `Slept ${sleepHours.toFixed(1)} hours (${sleepLabel})`;
       if (sleepPerf !== null) obs += ` — sleep performance ${sleepPerf}%`;
       observations.push({ content: obs, contentType: 'daily_summary' });
+
+      // Sleep detail: respiratory rate, disturbances, consistency, stage breakdown
+      const respiratoryRate = latestSleep.score?.respiratory_rate ?? null;
+      const disturbances = stageSummary.disturbance_count ?? null;
+      const sleepConsistency = latestSleep.score?.sleep_consistency_percentage ?? null;
+      const remMs = stageSummary.total_rem_sleep_time_milli ?? 0;
+      const deepMs = stageSummary.total_slow_wave_sleep_time_milli ?? 0;
+
+      const detailParts = [];
+      if (respiratoryRate) detailParts.push(`respiratory rate ${Math.round(respiratoryRate)} breaths/min`);
+      if (disturbances !== null) detailParts.push(`${disturbances} disturbance${disturbances !== 1 ? 's' : ''}`);
+      if (sleepConsistency !== null) detailParts.push(`consistency ${sleepConsistency}%`);
+      if (totalSleepMs > 0 && (remMs > 0 || deepMs > 0)) {
+        const remPct = Math.round((remMs / totalSleepMs) * 100);
+        const deepPct = Math.round((deepMs / totalSleepMs) * 100);
+        detailParts.push(`${remPct}% REM, ${deepPct}% deep sleep`);
+      }
+      if (detailParts.length > 0) {
+        observations.push({
+          content: `Sleep details: ${detailParts.join(', ')}`,
+          contentType: 'daily_summary',
+        });
+      }
     }
   }
 

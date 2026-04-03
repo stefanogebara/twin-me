@@ -208,6 +208,30 @@ class WhoopFeatureExtractor {
         }));
       }
 
+      // 11. Sleep Quality Depth (Conscientiousness)
+      const sleepQualityDepth = this.calculateSleepQualityDepth(parsed);
+      if (sleepQualityDepth !== null) {
+        features.push(this.createFeature(userId, 'sleep_quality_depth', sleepQualityDepth.value, {
+          contributes_to: 'conscientiousness',
+          contribution_weight: 0.30,
+          description: 'Combined REM/deep sleep ratio + respiratory rate quality',
+          evidence: { correlation: 0.30, citation: 'Sleep architecture and personality (2020)' },
+          raw_value: sleepQualityDepth.rawValue
+        }));
+      }
+
+      // 12. Physiological Stability (Neuroticism negative)
+      const physioStability = this.calculatePhysiologicalStability(parsed);
+      if (physioStability !== null) {
+        features.push(this.createFeature(userId, 'physiological_stability', physioStability.value, {
+          contributes_to: 'neuroticism',
+          contribution_weight: -0.22,
+          description: 'Low variance in SpO2 and skin temperature across days — stability inversely correlates with Neuroticism',
+          evidence: { correlation: -0.22, citation: 'Physiological variability and emotional stability' },
+          raw_value: physioStability.rawValue
+        }));
+      }
+
       log.info(`Extracted ${features.length} features`);
       return features;
 
@@ -240,18 +264,29 @@ class WhoopFeatureExtractor {
       if (raw.recovery_score !== undefined || raw.recovery !== undefined) {
         records.recovery.push({
           date,
+          type: 'recovery',
           score: raw.recovery_score ?? raw.recovery ?? null,
-          hrv: raw.hrv ?? raw.hrv_rmssd ?? null
+          hrv: raw.hrv ?? raw.hrv_rmssd ?? raw.hrv_rmssd_milli ?? null,
+          spo2: raw.spo2_percentage ?? null,
+          skinTemp: raw.skin_temp_celsius ?? null,
         });
       }
 
-      if (raw.sleep_duration !== undefined || raw.sleep_hours !== undefined || raw.sleep !== undefined) {
+      if (raw.sleep_duration !== undefined || raw.sleep_hours !== undefined || raw.sleep !== undefined || raw.total_sleep_hours !== undefined) {
+        const totalMs = raw.rem_milli ?? 0 + (raw.deep_milli ?? 0) + (raw.light_milli ?? 0);
+        const sleepMs = totalMs > 0 ? totalMs : ((raw.total_sleep_hours ?? 0) * 3600000);
         records.sleep.push({
           date,
-          duration_hours: raw.sleep_hours ?? raw.sleep_duration ?? (typeof raw.sleep === 'number' ? raw.sleep : null),
+          type: 'sleep',
+          duration_hours: raw.total_sleep_hours ?? raw.sleep_hours ?? raw.sleep_duration ?? (typeof raw.sleep === 'number' ? raw.sleep : null),
           stages: raw.sleep_stages ?? raw.stages ?? null,
-          bedtime: raw.bedtime ?? null,
-          waketime: raw.wake_time ?? raw.waketime ?? null
+          bedtime: raw.bedtime ?? raw.start ?? null,
+          waketime: raw.wake_time ?? raw.waketime ?? raw.end ?? null,
+          remPct: sleepMs > 0 && raw.rem_milli ? Math.round((raw.rem_milli / sleepMs) * 100) : null,
+          deepPct: sleepMs > 0 && raw.deep_milli ? Math.round((raw.deep_milli / sleepMs) * 100) : null,
+          respiratoryRate: raw.respiratory_rate ?? null,
+          disturbances: raw.disturbances ?? null,
+          sleepPerformance: raw.sleep_performance_percentage ?? null,
         });
       }
 
@@ -764,6 +799,67 @@ class WhoopFeatureExtractor {
         weekend_samples: weekendStrains.length,
         weekday_samples: weekdayStrains.length
       }
+    };
+  }
+
+  /**
+   * Sleep quality depth: REM/deep sleep ratio + respiratory rate quality
+   */
+  calculateSleepQualityDepth(parsed) {
+    const sleepRecords = (parsed.sleep || []).filter(r => r.remPct != null);
+    if (sleepRecords.length < 3) return null;
+
+    // Ideal: 20-25% REM, 15-20% deep, respiratory rate 12-20
+    let qualitySum = 0;
+    for (const s of sleepRecords) {
+      const remScore = s.remPct >= 15 && s.remPct <= 30 ? 1 : 0.5;
+      const deepScore = s.deepPct >= 10 && s.deepPct <= 25 ? 1 : 0.5;
+      const respScore = s.respiratoryRate >= 12 && s.respiratoryRate <= 20 ? 1 : 0.5;
+      qualitySum += (remScore + deepScore + respScore) / 3;
+    }
+    const avgQuality = qualitySum / sleepRecords.length;
+    const value = Math.round(avgQuality * 100);
+    return {
+      value,
+      rawValue: {
+        avgRemPct: Math.round(sleepRecords.reduce((s, r) => s + (r.remPct || 0), 0) / sleepRecords.length),
+        avgDeepPct: Math.round(sleepRecords.reduce((s, r) => s + (r.deepPct || 0), 0) / sleepRecords.length),
+        samples: sleepRecords.length
+      }
+    };
+  }
+
+  /**
+   * Physiological stability: low variance in SpO2 and skin temperature
+   */
+  calculatePhysiologicalStability(parsed) {
+    const recoveryRecords = (parsed.recovery || []).filter(r => r.spo2 != null || r.skinTemp != null);
+    if (recoveryRecords.length < 3) return null;
+
+    let stabilityScore = 50; // default middle
+
+    const spo2Values = recoveryRecords.map(r => r.spo2).filter(v => v != null);
+    if (spo2Values.length >= 3) {
+      const mean = spo2Values.reduce((a, b) => a + b, 0) / spo2Values.length;
+      const variance = spo2Values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / spo2Values.length;
+      const std = Math.sqrt(variance);
+      // Low SpO2 variance (< 1%) is very stable. Scale: std 0 = 100, std 3+ = 0
+      stabilityScore = Math.max(0, Math.round((1 - std / 3) * 100));
+    }
+
+    const skinTempValues = recoveryRecords.map(r => r.skinTemp).filter(v => v != null);
+    if (skinTempValues.length >= 3) {
+      const mean = skinTempValues.reduce((a, b) => a + b, 0) / skinTempValues.length;
+      const variance = skinTempValues.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / skinTempValues.length;
+      const std = Math.sqrt(variance);
+      // Low skin temp variance (< 0.5°C) is stable. Scale: std 0 = 100, std 2+ = 0
+      const tempScore = Math.max(0, Math.round((1 - std / 2) * 100));
+      stabilityScore = Math.round((stabilityScore + tempScore) / 2);
+    }
+
+    return {
+      value: stabilityScore,
+      rawValue: { spo2Samples: spo2Values.length, skinTempSamples: skinTempValues.length }
     };
   }
 

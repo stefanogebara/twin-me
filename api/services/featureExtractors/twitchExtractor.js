@@ -78,6 +78,8 @@ class TwitchFeatureExtractor {
         'Variety of game categories', 0.28, 'Diverse gaming interests suggest curiosity');
       push(this.calculateCommunityEngagement(data), 'community_engagement', 'agreeableness', 0.22,
         'Following smaller streamers vs only big ones', 0.22, 'Supporting smaller creators suggests agreeableness');
+      push(this.calculateFollowLoyalty(data), 'follow_loyalty', 'conscientiousness', 0.25,
+        'Average follow duration — long-held follows indicate commitment', 0.25, 'Follow loyalty correlates with conscientiousness');
 
       log.info(`Extracted ${features.length} features`);
       return features;
@@ -199,6 +201,34 @@ class TwitchFeatureExtractor {
     if (total === 0) return null;
     const ratio = small / total;
     return { value: Math.min(100, Math.round((ratio / 0.6) * 10000) / 100), rawValue: { small_streamers: small, total_channels: total, small_ratio: Math.round(ratio * 100) } };
+  }
+
+  /**
+   * Follow Loyalty: average follow duration across followed channels
+   */
+  calculateFollowLoyalty(data) {
+    const dates = [];
+    for (const entry of data) {
+      const raw = entry.raw_data || {};
+      const dt = entry.data_type || '';
+      if (['followed_channels', 'follows', 'followed_channels_raw'].includes(dt)) {
+        const items = raw.items || raw.channels || raw.follows || [];
+        for (const ch of items) {
+          const followedAt = ch.followed_at;
+          if (followedAt) {
+            const d = new Date(followedAt);
+            if (!isNaN(d.getTime())) dates.push(d);
+          }
+        }
+      }
+    }
+    if (dates.length < 3) return null;
+
+    const now = Date.now();
+    const avgMonths = dates.reduce((s, d) => s + (now - d.getTime()), 0) / dates.length / (1000 * 60 * 60 * 24 * 30);
+    // Score: 0-100. 0 months = 0, 24+ months = 100
+    const value = Math.min(100, Math.round((avgMonths / 24) * 100));
+    return { value, rawValue: { avgMonths: Math.round(avgMonths), followCount: dates.length } };
   }
 
   createFeature(userId, featureType, featureValue, metadata = {}) {
