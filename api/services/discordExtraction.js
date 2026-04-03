@@ -98,7 +98,8 @@ export async function extractDiscordData(userId) {
       .from('platform_connections')
       .update({
         last_sync_at: new Date().toISOString(),
-        last_sync_status: 'success'
+        last_sync_status: 'success',
+        last_sync_error: null,
       })
       .eq('user_id', userId)
       .eq('platform', 'discord');

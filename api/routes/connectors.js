@@ -854,6 +854,7 @@ router.post('/callback', async (req, res) => {
         connected_at: new Date().toISOString(),  // Use correct column name
         status: 'connected',  // Reset status to connected after successful OAuth (matches DB constraint)
         last_sync_status: 'success',  // IMPORTANT: Set to success after OAuth completes!
+        last_sync_error: null,  // Clear any previous sync errors
         last_sync_at: new Date().toISOString(),  // Use correct column name
         metadata: {
           connected_at: new Date().toISOString(),

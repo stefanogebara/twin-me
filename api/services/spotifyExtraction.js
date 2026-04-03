@@ -124,7 +124,8 @@ export async function extractSpotifyData(userId) {
       .from('platform_connections')
       .update({
         last_sync_at: new Date(),
-        last_sync_status: 'success'
+        last_sync_status: 'success',
+        last_sync_error: null,
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');

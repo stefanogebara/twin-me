@@ -418,7 +418,8 @@ class DataExtractionService {
         .from('platform_connections')
         .update({
           last_sync_at: now,
-          last_sync_status: extractionResult.success ? 'success' : 'failed'
+          last_sync_status: extractionResult.success ? 'success' : 'failed',
+          last_sync_error: extractionResult.success ? null : (extractionResult.error || 'Extraction failed'),
         })
         .eq('id', connectorId);
       if (metaErr) log.warn('Error updating connector metadata:', metaErr.message);

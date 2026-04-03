@@ -248,6 +248,7 @@ async function pollAllUsers() {
               .update({
                 last_sync_at: new Date().toISOString(),
                 last_sync_status: 'success',
+                last_sync_error: null,
                 updated_at: new Date().toISOString(),
               })
               .eq('user_id', userId)

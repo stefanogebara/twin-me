@@ -473,6 +473,22 @@ async function storeOAuthTokens(userId, provider, tokens) {
     RETURNING id
   `, [userId, provider, encryptedAccessToken, encryptedRefreshToken, expiresAt]);
 
+  // Auto-dismiss stale "expired"/"error" notifications for this platform
+  // so users don't see old warnings after reconnecting
+  try {
+    await serverDb.query(`
+      UPDATE user_notifications
+      SET dismissed = true, read = true, read_at = NOW()
+      WHERE user_id = $1
+        AND platform = $2
+        AND dismissed = false
+        AND type IN ('token_expired', 'token_expiring', 'connection_error', 'sync_error')
+    `, [userId, provider]);
+  } catch (notifErr) {
+    // Non-blocking — don't fail the connection flow for notification cleanup
+    log.warn(`Notification cleanup error for ${provider}:`, notifErr.message);
+  }
+
   return result.rows[0]?.id;
 }
 

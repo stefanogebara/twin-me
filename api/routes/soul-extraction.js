@@ -169,7 +169,8 @@ case 'github':
       .from('platform_connections')
       .update({
         last_sync_at: new Date().toISOString(),
-        last_sync_status: extraction.success !== false ? 'success' : 'failed'
+        last_sync_status: extraction.success !== false ? 'success' : 'failed',
+        last_sync_error: extraction.success !== false ? null : (extraction.error || 'Extraction failed'),
       })
       .eq('user_id', userId)
       .eq('platform', platform);
@@ -248,6 +249,7 @@ router.post('/extract/spotify-deep/:userId', authenticateUser, asyncHandler(asyn
     .update({
       last_sync: new Date().toISOString(),
       last_sync_status: 'success',
+      last_sync_error: null,
       metadata: {
         enhanced_extraction: true,
         data_quality: enhancedProfile.dataQuality?.quality || 'unknown',
@@ -335,6 +337,7 @@ router.post('/extract/youtube-deep/:userId', authenticateUser, asyncHandler(asyn
     .update({
       last_sync: new Date().toISOString(),
       last_sync_status: 'success',
+      last_sync_error: null,
       metadata: {
         enhanced_extraction: true,
         data_quality: enhancedProfile.dataQuality?.quality || 'unknown',

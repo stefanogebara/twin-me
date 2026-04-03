@@ -320,6 +320,7 @@ router.get('/events', authenticateUser, async (req, res) => {
       .update({
         last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
+        last_sync_error: null,
         metadata: {
           last_sync: new Date().toISOString(),
           last_sync_status: 'success',
@@ -514,6 +515,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
       .update({
         last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
+        last_sync_error: null,
         metadata: {
           last_sync: new Date().toISOString(),
           last_sync_status: 'success',
