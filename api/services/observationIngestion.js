@@ -312,6 +312,35 @@ async function fetchSpotifyObservations(userId) {
     // No current playback — that's fine
   }
 
+  // Playback state — device type, shuffle, repeat mode
+  try {
+    const playerRes = await axios.get(
+      'https://api.spotify.com/v1/me/player',
+      { headers, timeout: 10000 }
+    );
+    if (playerRes.data) {
+      const device = playerRes.data.device;
+      const shuffle = playerRes.data.shuffle_state;
+      const repeat = playerRes.data.repeat_state;
+      const isPrivate = device?.is_private_session;
+
+      if (device?.type) {
+        const deviceLabel = device.type.toLowerCase(); // computer, smartphone, speaker, etc.
+        const modeParts = [];
+        if (shuffle) modeParts.push('shuffle on');
+        if (repeat && repeat !== 'off') modeParts.push(`repeat ${repeat}`);
+        if (isPrivate) modeParts.push('private session');
+        const modeStr = modeParts.length > 0 ? ` (${modeParts.join(', ')})` : '';
+        observations.push({
+          content: `Listening on ${deviceLabel}${device.name ? ` "${sanitizeExternal(device.name, 30)}"` : ''}${modeStr}`,
+          contentType: 'current_state',
+        });
+      }
+    }
+  } catch (e) {
+    // No active device — that's fine
+  }
+
   // Recently played — fetch once, reuse for observations, discovery, and session density
   let recentItems = [];
   let recentTracks = [];
@@ -767,6 +796,67 @@ async function fetchCalendarObservations(userId) {
           content: `Out of office scheduled: ${oooTitles.join(', ')}`,
           contentType: 'weekly_summary',
         });
+      }
+
+      // ── fromGmail events — passive real-world behavior (flights, restaurants, tickets) ──
+      try {
+        const gmailEventsRes = await axios.get(
+          'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+          {
+            headers: { Authorization: `Bearer ${tokenResult2.accessToken}` },
+            params: {
+              eventTypes: 'fromGmail',
+              timeMin: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+              timeMax: weekAhead.toISOString(),
+              singleEvents: true,
+              maxResults: 15,
+            },
+            timeout: 10000,
+          }
+        ).catch(() => ({ data: { items: [] } }));
+
+        const gmailEvents = gmailEventsRes.data?.items || [];
+        if (gmailEvents.length > 0) {
+          // Categorize by type: flights, restaurants, hotels, events/tickets, packages
+          const categories = { flights: [], restaurants: [], hotels: [], events: [], other: [] };
+          const flightPattern = /\b(flight|fly|airline|boarding|depart|arrive|airport)\b/i;
+          const restaurantPattern = /\b(restaurant|reservation|dining|table for|brunch|dinner)\b/i;
+          const hotelPattern = /\b(hotel|stay|check.?in|check.?out|booking|airbnb|hostel)\b/i;
+          const eventPattern = /\b(ticket|concert|show|game|match|event|festival|theater|theatre)\b/i;
+
+          for (const ev of gmailEvents) {
+            const text = `${ev.summary || ''} ${ev.description || ''} ${ev.location || ''}`;
+            if (flightPattern.test(text)) categories.flights.push(ev);
+            else if (restaurantPattern.test(text)) categories.restaurants.push(ev);
+            else if (hotelPattern.test(text)) categories.hotels.push(ev);
+            else if (eventPattern.test(text)) categories.events.push(ev);
+            else categories.other.push(ev);
+          }
+
+          const parts = [`Gmail-created calendar events (last 30 days): ${gmailEvents.length} total`];
+          if (categories.flights.length > 0) parts.push(`${categories.flights.length} flights`);
+          if (categories.restaurants.length > 0) parts.push(`${categories.restaurants.length} restaurant reservations`);
+          if (categories.hotels.length > 0) parts.push(`${categories.hotels.length} hotel bookings`);
+          if (categories.events.length > 0) parts.push(`${categories.events.length} event tickets`);
+
+          observations.push({
+            content: parts.join(', '),
+            contentType: 'weekly_summary',
+          });
+
+          // Add specific items as separate observations for richer memory
+          const recentTitles = gmailEvents.slice(0, 5)
+            .map(ev => sanitizeExternal(ev.summary || '', 60))
+            .filter(Boolean);
+          if (recentTitles.length > 0) {
+            observations.push({
+              content: `Recent real-world activities from email: ${recentTitles.join(', ')}`,
+              contentType: 'weekly_summary',
+            });
+          }
+        }
+      } catch (gmailErr) {
+        log.debug('Calendar fromGmail error', { error: gmailErr?.message });
       }
     }
   } catch (e) {
