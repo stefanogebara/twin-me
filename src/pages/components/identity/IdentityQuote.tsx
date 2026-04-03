@@ -63,7 +63,7 @@ const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => 
       transition={{ duration: 0.8, delay: 0.2 }}
     >
       <div
-        className="rounded-[20px] px-6 py-5 transition-all duration-300 hover:-translate-y-0.5"
+        className="rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5"
         style={{
           background: 'rgba(255,255,255,0.04)',
           backdropFilter: 'blur(42px)',

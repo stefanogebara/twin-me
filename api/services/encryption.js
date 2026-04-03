@@ -36,7 +36,7 @@ function getEncryptionKey() {
         throw new Error(`Encryption key must be ${KEY_LENGTH} bytes (${KEY_LENGTH * 2} hex characters)`);
       }
     } catch (error) {
-      log.error('Encryption setup failed:', error.message);
+      log.error('Encryption setup failed', { error: error.message });
       log.error('Generate a key with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
       throw new Error(`Encryption initialization failed: ${error.message}`);
     }
@@ -71,7 +71,7 @@ export function encryptToken(plaintext) {
     // Return in format: iv:authTag:ciphertext (all hex)
     return `${iv.toString('hex')}:${authTag.toString('hex')}:${ciphertext}`;
   } catch (error) {
-    log.error('Token encryption error:', error);
+    log.error('Token encryption error', { error });
     throw new Error('Failed to encrypt token');
   }
 }
@@ -117,7 +117,7 @@ export function decryptToken(encryptedData) {
 
     return plaintext;
   } catch (error) {
-    log.error('Token decryption error:', error.message);
+    log.error('Token decryption error', { error: error.message });
     throw new Error('Failed to decrypt token - data may be corrupted or key mismatch');
   }
 }
@@ -139,7 +139,7 @@ export function testEncryption() {
     log.info('Encryption test passed');
     return true;
   } catch (error) {
-    log.error('Encryption test failed:', error.message);
+    log.error('Encryption test failed', { error: error.message });
     return false;
   }
 }

@@ -800,7 +800,7 @@ async function snapshotPersonalityScores(userId) {
 
     log.info('Personality snapshot recorded', { userId });
   } catch (err) {
-    log.warn('snapshotPersonalityScores error:', err.message);
+    log.warn('snapshotPersonalityScores error', { error: err.message });
   }
 }
 

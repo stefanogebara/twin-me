@@ -4,6 +4,10 @@
  * when sending data to the Anthropic API
  */
 
+import { createLogger } from './logger.js';
+
+const log = createLogger('UnicodeSanitizer');
+
 /**
  * Sanitize a string by removing or fixing broken Unicode surrogate pairs
  * @param {string} str - The string to sanitize
@@ -22,7 +26,7 @@ export function sanitizeUnicode(str) {
       '\uFFFD' // Unicode replacement character
     );
   } catch (error) {
-    console.error('Error sanitizing Unicode:', error);
+    log.error('Error sanitizing Unicode', { error });
     // Fallback: remove all non-BMP characters if sanitization fails
     return str.replace(/[\uD800-\uDFFF]/g, '');
   }
@@ -65,7 +69,7 @@ export function safeJsonStringify(data) {
     // Then stringify
     return JSON.stringify(sanitized);
   } catch (error) {
-    console.error('Error in safeJsonStringify:', error);
+    log.error('Error in safeJsonStringify', { error });
     throw new Error(`Failed to stringify data: ${error.message}`);
   }
 }

@@ -9,20 +9,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-primary/20",
-        destructive: "bg-gradient-to-br from-destructive to-red-500 text-destructive-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-red-300/30",
-        outline: "border-2 border-primary/30 bg-background/80 backdrop-blur-sm hover:bg-primary/10 hover:border-primary/50 text-primary rounded-2xl transition-all duration-200",
-        secondary: "bg-gradient-to-br from-secondary to-stone-700 text-secondary-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-2xl border-2 border-white/10",
-        ghost: "hover:bg-accent/20 hover:text-accent-foreground rounded-2xl",
+        default: "bg-[#F5F5F4] text-[#110f0f] hover:shadow-lg hover:-translate-y-0.5 rounded-[100px]",
+        destructive: "bg-gradient-to-br from-destructive to-red-500 text-destructive-foreground hover:shadow-lg hover:-translate-y-0.5 rounded-[100px] border-2 border-red-300/30",
+        outline: "border border-[rgba(255,255,255,0.10)] bg-[rgba(255,255,255,0.06)] backdrop-blur-[42px] hover:bg-[rgba(255,255,255,0.10)] text-foreground rounded-[100px] transition-all duration-200",
+        secondary: "bg-[rgba(255,255,255,0.08)] text-secondary-foreground hover:bg-[rgba(255,255,255,0.12)] rounded-[100px]",
+        ghost: "hover:bg-[rgba(255,255,255,0.06)] hover:text-accent-foreground rounded-[6px]",
         link: "text-primary underline-offset-4 hover:underline",
-        liquid: "bg-white/5 border border-white/10 text-foreground hover:bg-white/10 backdrop-blur-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300",
-        cartoon: "bg-gradient-to-br from-accent to-yellow-400 text-accent-foreground hover:shadow-xl hover:-translate-y-1 rounded-3xl border-2 border-yellow-300/40 font-bold",
+        liquid: "bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] text-foreground hover:bg-[rgba(255,255,255,0.10)] backdrop-blur-[42px] hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-[100px]",
+        cartoon: "bg-gradient-to-br from-accent to-yellow-400 text-accent-foreground hover:shadow-xl hover:-translate-y-1 rounded-[100px] border-2 border-yellow-300/40 font-bold",
       },
       size: {
-        default: "h-12 px-6 py-3 rounded-2xl",
-        sm: "h-10 px-4 py-2 rounded-xl",
-        lg: "h-14 px-10 py-4 rounded-3xl text-base",
-        icon: "h-12 w-12 rounded-2xl",
+        default: "h-12 px-6 py-3",
+        sm: "h-10 px-4 py-2",
+        lg: "h-14 px-10 py-4 text-base",
+        icon: "h-12 w-12 rounded-[100px]",
       },
     },
     defaultVariants: {

@@ -14,7 +14,7 @@ interface LimitReachedBannerProps {
 export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsage }) => (
   <div className="flex justify-center px-6 py-6" role="alert">
     <div
-      className="flex flex-col items-center text-center gap-3 px-8 py-6 max-w-sm w-full"
+      className="flex flex-col items-center text-center gap-3 px-5 py-4 max-w-sm w-full"
       style={{
         background: 'var(--glass-surface-bg)',
         backdropFilter: 'blur(42px)',

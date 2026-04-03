@@ -34,7 +34,7 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
           YOUR TWIN
         </h2>
         <div
-          className="rounded-[20px] p-6"
+          className="rounded-[20px] px-5 py-4"
           style={{
             background: 'linear-gradient(135deg, rgba(232,224,212,0.08) 0%, rgba(93,92,174,0.06) 100%)',
             backdropFilter: 'blur(42px)',

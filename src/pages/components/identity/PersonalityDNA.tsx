@@ -181,7 +181,7 @@ const PersonalityDNA: React.FC<PersonalityDNAProps> = ({
         <EmptyState />
       ) : (
         <div
-          className="rounded-[20px] px-6 py-6"
+          className="rounded-[20px] px-5 py-4"
           style={{
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.06)',

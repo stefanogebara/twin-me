@@ -138,8 +138,21 @@ router.get('/', authenticateUser, async (req, res) => {
     // ── Cache check ────────────────────────────────────────────────────────
     const cached = await cacheGet(cacheKey);
     if (cached) {
+      // Record daily checkin for streak tracking (non-blocking, fire-and-forget)
+      supabaseAdmin
+        .from('daily_checkins')
+        .upsert({ user_id: userId, date: new Date().toISOString().split('T')[0] }, { onConflict: 'user_id,date' })
+        .then(() => {})
+        .catch(() => {});
       return res.json({ success: true, ...cached });
     }
+
+    // Record daily checkin for streak tracking (non-blocking)
+    supabaseAdmin
+      .from('daily_checkins')
+      .upsert({ user_id: userId, date: new Date().toISOString().split('T')[0] }, { onConflict: 'user_id,date' })
+      .then(() => {})
+      .catch(() => {});
 
     // ── Parallel sub-queries ───────────────────────────────────────────────
     // All 7 branches run concurrently. insightCount was previously sequential

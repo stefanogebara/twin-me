@@ -10,6 +10,9 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 import { decryptToken } from '../services/encryption.js';
+import { createLogger } from '../utils/logger.js';
+
+const log = createLogger('CronPlatformPolling');
 
 // Lazy initialization to avoid crashes if env vars not loaded yet
 let supabase = null;
@@ -97,7 +100,7 @@ async function pollPlatform(userId, platform, accessToken) {
   const config = POLLING_CONFIGS[platform];
 
   if (!config) {
-    console.log(`ℹ️  No polling config for platform: ${platform}`);
+    log.info('No polling config for platform', { platform });
     return { success: false, error: 'No polling config' };
   }
 
@@ -105,7 +108,7 @@ async function pollPlatform(userId, platform, accessToken) {
 
   for (const endpoint of config.endpoints) {
     try {
-      console.log(`📡 Polling ${platform} - ${endpoint.name} for user ${userId}`);
+      log.info('Polling platform endpoint', { platform, endpoint: endpoint.name, userId });
 
       let url = endpoint.url;
 
@@ -130,7 +133,7 @@ async function pollPlatform(userId, platform, accessToken) {
         params: endpoint.params || {},
       });
 
-      console.log(`✅ Successfully polled ${platform} - ${endpoint.name}`);
+      log.info('Successfully polled platform endpoint', { platform, endpoint: endpoint.name });
 
       // Store the raw data
       const { error: insertErr } = await getSupabaseClient().from('user_platform_data').insert({
@@ -140,7 +143,7 @@ async function pollPlatform(userId, platform, accessToken) {
         raw_data: response.data,
         extracted_at: new Date().toISOString(),
       });
-      if (insertErr) console.warn(`[PlatformPolling] Failed to store ${platform}/${endpoint.name} data:`, insertErr.message);
+      if (insertErr) log.warn('Failed to store platform data', { platform, dataType: endpoint.name, error: insertErr.message });
 
       results.push({
         endpoint: endpoint.name,
@@ -148,7 +151,7 @@ async function pollPlatform(userId, platform, accessToken) {
         itemCount: Array.isArray(response.data) ? response.data.length : response.data.items?.length || 1,
       });
     } catch (error) {
-      console.error(`❌ Error polling ${platform} - ${endpoint.name}:`, error.response?.data || error.message);
+      log.error('Error polling platform endpoint', { platform, endpoint: endpoint.name, error: error.response?.data || error.message });
 
       results.push({
         endpoint: endpoint.name,
@@ -168,7 +171,7 @@ async function pollPlatform(userId, platform, accessToken) {
           })
           .eq('user_id', userId)
           .eq('platform', platform);
-        if (reauthErr) console.warn(`[PlatformPolling] Failed to mark ${platform} as needs_reauth:`, reauthErr.message);
+        if (reauthErr) log.warn('Failed to mark platform as needs_reauth', { platform, error: reauthErr.message });
       }
     }
   }
@@ -184,7 +187,7 @@ async function pollPlatform(userId, platform, accessToken) {
  */
 async function pollAllUsers() {
   try {
-    console.log('🌍 [CRON] Starting background polling for all users...');
+    log.info('Starting background polling for all users');
 
     // Get all unique user IDs with at least one connected platform
     const { data: connections, error } = await getSupabaseClient()
@@ -193,16 +196,16 @@ async function pollAllUsers() {
       .eq('status', 'connected');
 
     if (error) {
-      console.error('❌ Error fetching users:', error);
+      log.error('Error fetching connected platforms', { error });
       return { success: false, error: error.message };
     }
 
     if (!connections || connections.length === 0) {
-      console.log('ℹ️  No connected platforms found');
+      log.info('No connected platforms found');
       return { success: true, userCount: 0, platformCount: 0, message: 'No connected platforms' };
     }
 
-    console.log(`👥 Found ${connections.length} connected platforms across users`);
+    log.info('Found connected platforms', { count: connections.length });
 
     const pollingResults = [];
 
@@ -216,7 +219,7 @@ async function pollAllUsers() {
     }, {});
 
     const uniqueUserIds = Object.keys(userPlatforms);
-    console.log(`👥 Polling ${uniqueUserIds.length} users`);
+    log.info('Polling users', { userCount: uniqueUserIds.length });
 
     // Poll each user's platforms
     for (const userId of uniqueUserIds) {
@@ -228,7 +231,7 @@ async function pollAllUsers() {
           const accessToken = decryptToken(connection.access_token);
 
           if (!accessToken) {
-            console.error(`❌ Could not decrypt token for ${connection.platform} (user: ${userId})`);
+            log.error('Could not decrypt token', { platform: connection.platform, userId });
             pollingResults.push({
               userId,
               platform: connection.platform,
@@ -253,7 +256,7 @@ async function pollAllUsers() {
               })
               .eq('user_id', userId)
               .eq('platform', connection.platform);
-            if (syncErr) console.warn(`[PlatformPolling] Failed to update last_sync for ${connection.platform}:`, syncErr.message);
+            if (syncErr) log.warn('Failed to update last_sync', { platform: connection.platform, error: syncErr.message });
           }
 
           pollingResults.push({
@@ -266,7 +269,7 @@ async function pollAllUsers() {
           // Wait 2 seconds between platforms to avoid rate limits
           await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
-          console.error(`❌ Error polling ${connection.platform} for user ${userId}:`, error.message);
+          log.error('Error polling platform for user', { platform: connection.platform, userId, error: error.message });
           const { error: catchUpdateErr } = await getSupabaseClient()
             .from('platform_connections')
             .update({
@@ -278,7 +281,7 @@ async function pollAllUsers() {
             .eq('user_id', userId)
             .eq('platform', connection.platform);
           if (catchUpdateErr) {
-            console.warn(`[PlatformPolling] Failed to update error status for ${connection.platform}:`, catchUpdateErr.message);
+            log.warn('Failed to update error status', { platform: connection.platform, error: catchUpdateErr.message });
           }
           pollingResults.push({
             userId,
@@ -295,7 +298,7 @@ async function pollAllUsers() {
 
     const successCount = pollingResults.filter(r => r.success).length;
 
-    console.log('✅ Completed background polling for all users');
+    log.info('Completed background polling', { userCount: uniqueUserIds.length, successCount, failedCount: pollingResults.length - successCount });
 
     return {
       success: true,
@@ -306,7 +309,7 @@ async function pollAllUsers() {
       results: pollingResults,
     };
   } catch (error) {
-    console.error('❌ Error in background polling:', error);
+    log.error('Error in background polling', { error });
     return { success: false, error: error.message };
   }
 }
@@ -316,14 +319,14 @@ async function pollAllUsers() {
  * Called every 30 minutes by Vercel Cron
  */
 export default async function handler(req, res) {
-  console.log('🌐 [CRON] Platform polling endpoint called');
+  log.info('Platform polling endpoint called');
 
   // Security: Verify cron secret (Vercel automatically adds this header)
   const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    console.error('❌ Unauthorized cron request - invalid secret');
+    log.error('Unauthorized cron request - invalid secret');
     return res.status(401).json({
       success: false,
       error: 'Unauthorized',
@@ -337,7 +340,7 @@ export default async function handler(req, res) {
   // Return results
   const status = result.success ? 200 : 500;
 
-  console.log(`✅ [CRON] Platform polling completed:`, result);
+  log.info('Platform polling completed', { success: result.success, userCount: result.userCount, platformCount: result.platformCount });
 
   return res.status(status).json({
     ...result,

@@ -106,7 +106,7 @@ export function DailyTimeline() {
         Today
       </h2>
       <div
-        className="rounded-[20px] px-4 py-3"
+        className="rounded-[20px] px-5 py-4"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
