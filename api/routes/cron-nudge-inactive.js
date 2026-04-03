@@ -23,7 +23,8 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('CronNudgeInactive');
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+// Accept both GET and POST — Vercel crons send GET by default
+router.all('/', async (req, res) => {
   const startTime = Date.now();
   try {
     const authResult = verifyCronSecret(req);

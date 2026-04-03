@@ -968,7 +968,7 @@ const InstantTwinOnboarding = () => {
               {/* Amber accent bar */}
               <div
                 className="h-[2px] w-full"
-                style={{ background: 'linear-gradient(90deg, transparent, #ff8400, transparent)' }}
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)' }}
               />
 
               <div className="px-6 py-6">
@@ -1015,7 +1015,7 @@ const InstantTwinOnboarding = () => {
                       navigate('/auth');
                     }}
                     className="flex-1 py-3 rounded-[100px] text-sm font-medium"
-                    style={{ background: '#ff8400', color: '#0a0909', fontFamily: "'Inter', sans-serif" }}
+                    style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
                     whileHover={{ scale: 1.02, opacity: 0.9 }}
                     whileTap={{ scale: 0.98 }}
                   >
