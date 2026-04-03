@@ -21,7 +21,7 @@ const router = express.Router();
 const BATCH_SIZE = 5;
 const MAX_USERS = 10;
 
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   // Verify cron secret (timing-safe)
   const authResult = verifyCronSecret(req);
   if (!authResult.authorized) {

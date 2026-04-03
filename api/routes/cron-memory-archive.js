@@ -22,7 +22,7 @@ const log = createLogger('CronMemoryArchive');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)

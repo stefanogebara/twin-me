@@ -24,7 +24,7 @@ const log = createLogger('CronSaliencyReplay');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   const startTime = Date.now();
   try {
     const authResult = verifyCronSecret(req);

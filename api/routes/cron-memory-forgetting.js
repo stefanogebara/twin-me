@@ -33,7 +33,7 @@ const router = express.Router();
 // How many memories to process per batch (avoid timeout on large tables)
 const BATCH_SIZE = 500;
 
-router.post('/', async (req, res) => {
+router.all('/', async (req, res) => {
   const startTime = Date.now();
   try {
     // Verify cron secret (timing-safe)
