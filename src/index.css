@@ -17,8 +17,8 @@
 /* ===== DESIGN TOKENS - CLAURA DESIGN SYSTEM ===== */
 @layer base {
   :root {
-    /* Background Colors — Dimension.dev dark */
-    --background: #0C0C0C;
+    /* Background Colors — Night sky base */
+    --background: #13121a;
     --surface: rgba(255, 255, 255, 0.06);
     --surface-solid: rgba(255, 255, 255, 0.12);
 
@@ -80,10 +80,10 @@
 
 
     /* Body gradients — amber/copper on charcoal (sun-driven overrides via SunContext) */
-    --body-gradient-1: rgba(210, 145, 55, 0.06);
-    --body-gradient-2: rgba(180, 110, 65, 0.04);
-    --body-gradient-3: rgba(160, 95, 55, 0.05);
-    --body-gradient-4: rgba(55, 45, 140, 0.04);
+    --body-gradient-1: rgba(210, 145, 55, 0.38);
+    --body-gradient-2: rgba(180, 110, 65, 0.30);
+    --body-gradient-3: rgba(160, 95, 55, 0.34);
+    --body-gradient-4: rgba(55, 45, 140, 0.28);
 
     /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
     --bg-pos-1: 5% 0%;
@@ -206,7 +206,12 @@
 
   body {
     background-color: var(--background);
-    /* Ambient gradients disabled — pure #0C0C0C black like Dimension.dev */
+    background-image:
+      radial-gradient(ellipse var(--bg-size-1) at var(--bg-pos-1), var(--body-gradient-1) 0%, transparent var(--bg-spread-1)),
+      radial-gradient(ellipse var(--bg-size-2) at var(--bg-pos-2), var(--body-gradient-2) 0%, transparent var(--bg-spread-2)),
+      radial-gradient(ellipse var(--bg-size-3) at var(--bg-pos-3), var(--body-gradient-3) 0%, transparent var(--bg-spread-3)),
+      radial-gradient(ellipse var(--bg-size-4) at var(--bg-pos-4), var(--body-gradient-4) 0%, transparent var(--bg-spread-4));
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-body);
     font-size: 14.5px;

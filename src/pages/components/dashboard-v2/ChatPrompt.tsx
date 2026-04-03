@@ -66,7 +66,7 @@ export function ChatPrompt() {
   return (
     <section className="mb-12">
       <div
-        className="rounded-[20px] p-4"
+        className="rounded-[20px] p-3 sm:p-4"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',

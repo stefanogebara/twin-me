@@ -44,15 +44,15 @@ export function NextUpEvents({ events }: NextUpEventsProps) {
         {visible.map((evt, i) => (
           <div
             key={`${evt.title}-${i}`}
-            className="flex items-center justify-between py-3"
+            className="flex items-center justify-between gap-3 py-3"
             style={{
               borderBottom: i < visible.length - 1 ? '1px solid var(--border-glass)' : undefined,
             }}
           >
-            <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>
+            <span className="text-[14px] truncate min-w-0" style={{ color: 'var(--foreground)' }}>
               {evt.title}
             </span>
-            <span className="text-[13px] ml-4 flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-[13px] flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
               {formatEventTime(evt.startTime)}
             </span>
           </div>

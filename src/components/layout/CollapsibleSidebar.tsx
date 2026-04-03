@@ -1,15 +1,11 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSidebar } from '@/contexts/SidebarContext';
 import {
   Home,
   MessageCircle,
   Sparkles,
   Link2,
-  Brain,
-  ChevronsLeft,
-  ChevronsRight,
   X,
   Settings,
   LogOut,
@@ -48,8 +44,6 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { isCollapsed, toggleSidebar } = useSidebar();
-  const isExpanded = !isCollapsed;
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -57,8 +51,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
   const handleNavigate = (path: string) => {
     navigate(path);
-    // Only close the mobile overlay, not the sidebar itself
-    if (window.innerWidth < 1024) { // lg breakpoint
+    // Only close the mobile overlay
+    if (window.innerWidth < 1024) {
       onClose();
     }
   };
@@ -82,92 +76,58 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
         />
       )}
 
-      {/* Sidebar wrapper — overflow-visible so the toggle button can protrude */}
+      {/* Floating Pill Sidebar — always expanded on desktop, overlay on mobile */}
       <div
         className={cn(
           "fixed top-0 left-0 bottom-0 z-40 transition-all duration-200 ease-out",
+          // Mobile: slide in/out as overlay
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-          isExpanded ? "w-64" : "w-10 lg:w-10",
-          "overflow-visible"
+          // Always 240px wide
+          "w-[240px]"
         )}
       >
-        {/* Toggle Button for Desktop - rendered in wrapper so it can overflow */}
-        <button
-          onClick={toggleSidebar}
-          aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-          aria-expanded={isExpanded}
-          className="hidden lg:flex absolute top-8 w-6 h-6 rounded-full items-center justify-center transition-all z-50"
-          style={{
-            background: 'var(--background)',
-            border: '1px solid var(--glass-surface-border)',
-            color: 'rgba(255, 255, 255, 0.4)',
-            right: '-12px',
-          }}
-          title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          {isExpanded ? (
-            <ChevronsLeft className="w-4 h-4" aria-hidden="true" />
-          ) : (
-            <ChevronsRight className="w-4 h-4" aria-hidden="true" />
-          )}
-        </button>
-
-        {/* Inner glass container — overflow-hidden clips content to rounded corners */}
+        {/* Glass container — floating pill shape */}
         <div
-          className="flex flex-col h-full overflow-hidden"
+          className="flex flex-col h-[calc(100%-32px)] m-4 overflow-hidden rounded-[32px]"
           style={{
-            background: 'var(--background)',
-            borderRight: '1px solid var(--glass-surface-border)',
+            background: 'rgba(255, 255, 255, 0.06)',
+            backdropFilter: 'blur(19.65px)',
+            WebkitBackdropFilter: 'blur(19.65px)',
+            border: '1px solid rgba(255, 255, 255, 0.10)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
           }}
         >
-        <style>
-          {`
-            /* Hide Scrollbar */
-            .sidebar-scroll::-webkit-scrollbar {
-              display: none;
-            }
+          <style>
+            {`
+              .sidebar-scroll::-webkit-scrollbar { display: none; }
+              .sidebar-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+            `}
+          </style>
 
-            /* Firefox */
-            .sidebar-scroll {
-              scrollbar-width: none;
-            }
+          <div className="overflow-y-auto flex-1 flex flex-col sidebar-scroll">
+            {/* Close button for mobile */}
+            <button
+              onClick={onClose}
+              aria-label="Close navigation menu"
+              className="absolute top-4 right-4 p-2 hover:bg-[rgba(255,255,255,0.08)] rounded-lg transition-colors lg:hidden"
+            >
+              <X className="w-5 h-5" style={{ color: 'var(--foreground)' }} aria-hidden="true" />
+            </button>
 
-            /* IE and Edge */
-            .sidebar-scroll {
-              -ms-overflow-style: none;
-            }
-          `}
-        </style>
-
-        <div className="overflow-y-auto flex-1 flex flex-col sidebar-scroll">
-        {/* Close button for mobile */}
-        <button
-          onClick={onClose}
-          aria-label="Close navigation menu"
-          className="absolute top-4 right-4 p-2 hover:bg-sidebar-accent rounded-lg transition-colors lg:hidden"
-        >
-          <X className="w-5 h-5 text-sidebar-foreground" aria-hidden="true" />
-        </button>
-
-        {/* Logo */}
-        <div className={cn("flex items-center justify-center border-b border-sidebar-border", isExpanded ? "p-6 pb-5" : "p-2 pb-2")}>
-          <button
-            onClick={() => handleNavigate('/dashboard')}
-            className={cn(
-              "hover:opacity-80 transition-all duration-200 flex items-center gap-2.5",
-              isExpanded ? "" : "justify-center"
-            )}
-            aria-label="Go to dashboard"
-            title="Twin Me"
-          >
-            <img
-              src="/images/backgrounds/flower-hero.png"
-              alt="Twin Me"
-              className="object-contain drop-shadow-sm flex-shrink-0"
-              style={{ width: isExpanded ? 36 : 24, height: isExpanded ? 36 : 24 }}
-            />
-            {isExpanded && (
-              <>
+            {/* Logo */}
+            <div className="flex items-center justify-center p-5 pb-4 border-b border-[rgba(255,255,255,0.08)]">
+              <button
+                onClick={() => handleNavigate('/dashboard')}
+                className="hover:opacity-80 transition-all duration-200 flex items-center gap-2.5"
+                aria-label="Go to dashboard"
+                title="Twin Me"
+              >
+                <img
+                  src="/images/backgrounds/flower-hero.png"
+                  alt="Twin Me"
+                  className="object-contain drop-shadow-sm flex-shrink-0"
+                  style={{ width: 32, height: 32 }}
+                />
                 <span
                   className="text-2xl"
                   style={{
@@ -182,106 +142,116 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 <span
                   className="text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full self-start mt-1"
                   style={{
-                    backgroundColor: 'var(--input)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
                     color: 'rgba(255,255,255,0.6)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
                   BETA
                 </span>
-              </>
-            )}
-          </button>
-        </div>
-
-        <nav className={cn("space-y-1 flex-1", isExpanded ? "p-4" : "p-2")} role="navigation" aria-label="Main navigation">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavigate(item.path)}
-                aria-label={`Navigate to ${item.label}`}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  "w-full flex items-center gap-3 transition-all duration-150 ease-out active:scale-[0.97]",
-                  isExpanded
-                    ? "px-4 py-2.5 rounded-xl"
-                    : "justify-center w-8 h-8 rounded-[10px] mx-auto hover:bg-[rgba(255,255,255,0.06)]",
-                  active
-                    ? "font-medium"
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent'
-                )}
-                style={active ? {
-                  background: isExpanded
-                    ? 'var(--accent-vibrant-glow, rgba(232,224,212,0.12))'
-                    : 'rgba(255,255,255,0.08)',
-                  color: 'var(--accent-vibrant)',
-                  borderLeft: isExpanded ? 'none' : '3px solid rgba(255,255,255,0.5)',
-                  borderRadius: isExpanded ? undefined : '10px',
-                } : {
-                  color: 'rgba(255, 255, 255, 0.45)',
-                }}
-                title={item.label}
-              >
-                <Icon
-                  className={isExpanded ? "w-5 h-5" : "w-[18px] h-[18px]"}
-                  style={active ? { color: 'var(--accent-vibrant)' } : { color: 'rgba(255, 255, 255, 0.45)' }}
-                  aria-hidden="true"
-                />
-                {isExpanded && <span className="text-sm" style={{ fontFamily: 'Inter, sans-serif', fontWeight: active ? 500 : 400 }}>{item.label}</span>}
               </button>
-            );
-          })}
-        </nav>
-
-        {/* Theme Toggle + Sign Out + User at Bottom */}
-        <div className={cn("border-t border-sidebar-border space-y-1", isExpanded ? "p-4" : "p-2")}>
-          {/* Sign Out button - always visible */}
-          <button
-            onClick={handleSignOut}
-            className={cn(
-              "w-full flex items-center gap-3 rounded-lg text-sidebar-foreground opacity-70 hover:opacity-100 hover:bg-sidebar-accent transition-all duration-150 ease-out active:scale-[0.97]",
-              isExpanded ? "px-4 py-3" : "p-2 justify-center"
-            )}
-            aria-label="Sign out"
-            title="Sign Out"
-          >
-            <LogOut className="w-5 h-5" aria-hidden="true" />
-            {isExpanded && <span className="text-sm">Sign Out</span>}
-          </button>
-
-          {/* User profile */}
-          <button
-            onClick={() => handleNavigate('/settings')}
-            className={cn(
-              "w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors",
-              isExpanded ? "px-4 py-3" : "p-2 justify-center"
-            )}
-            aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
-            title={user?.firstName || user?.email || 'Settings'}
-          >
-            <div className={cn("bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground font-bold", isExpanded ? "w-8 h-8 text-sm" : "w-6 h-6 text-xs")}>
-              {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
             </div>
-            {isExpanded && (
-              <div className="flex-1 text-left min-w-0">
-                <div className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user?.firstName || 'User'}
-                </div>
-                <div
-                  className="text-xs text-sidebar-foreground opacity-60 truncate"
-                  title={user?.email}
+
+            {/* Nav Items */}
+            <nav className="space-y-1 flex-1 p-3" role="navigation" aria-label="Main navigation">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleNavigate(item.path)}
+                    aria-label={`Navigate to ${item.label}`}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-2.5 transition-all duration-150 ease-out active:scale-[0.97]",
+                      active
+                        ? "rounded-full font-medium"
+                        : "rounded-full hover:bg-[rgba(255,255,255,0.08)]"
+                    )}
+                    style={active ? {
+                      background: 'rgba(255, 132, 0, 0.12)',
+                    } : {
+                      background: 'transparent',
+                    }}
+                    title={item.label}
+                  >
+                    <Icon
+                      className="w-5 h-5 flex-shrink-0"
+                      style={{ color: active ? '#ff8400' : 'rgba(255, 255, 255, 0.45)' }}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className="text-sm truncate"
+                      style={{
+                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                        fontWeight: active ? 500 : 400,
+                        color: active ? '#ff8400' : 'rgba(255, 255, 255, 0.45)',
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Sign Out + User at Bottom */}
+            <div className="border-t border-[rgba(255,255,255,0.08)] space-y-1 p-3">
+              {/* Sign Out button */}
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full opacity-70 hover:opacity-100 hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out active:scale-[0.97]"
+                aria-label="Sign out"
+                title="Sign Out"
+              >
+                <LogOut className="w-5 h-5" style={{ color: 'rgba(255, 255, 255, 0.45)' }} aria-hidden="true" />
+                <span
+                  className="text-sm"
+                  style={{
+                    fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                    fontWeight: 400,
+                    color: 'rgba(255, 255, 255, 0.45)',
+                  }}
                 >
-                  {user?.email}
+                  Sign Out
+                </span>
+              </button>
+
+              {/* User profile */}
+              <button
+                onClick={() => handleNavigate('/settings')}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-full hover:bg-[rgba(255,255,255,0.08)] transition-colors"
+                aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
+                title={user?.firstName || user?.email || 'Settings'}
+              >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                  style={{
+                    backgroundColor: 'rgba(255, 132, 0, 0.15)',
+                    color: '#ff8400',
+                  }}
+                >
+                  {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </div>
-              </div>
-            )}
-          </button>
-        </div>
-        </div>
+                <div className="flex-1 text-left min-w-0">
+                  <div
+                    className="text-sm font-medium truncate"
+                    style={{ color: 'var(--foreground)' }}
+                  >
+                    {user?.firstName || 'User'}
+                  </div>
+                  <div
+                    className="text-xs truncate"
+                    style={{ color: 'rgba(255, 255, 255, 0.4)' }}
+                    title={user?.email}
+                  >
+                    {user?.email}
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

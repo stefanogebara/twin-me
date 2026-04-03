@@ -68,7 +68,7 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
-          className="relative mb-10 rounded-[20px] px-5 py-5"
+          className="relative mb-10 rounded-[20px] px-4 sm:px-5 py-5"
           style={{
             background: 'var(--glass-surface-bg)',
             backdropFilter: 'blur(42px)',
@@ -163,7 +163,7 @@ export function WelcomeGuide({ firstName }: WelcomeGuideProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               onClick={goToChat}
               className="text-[13px] font-medium px-4 py-2 rounded-[100px] cursor-pointer transition-all duration-150 ease-out hover:brightness-110 active:scale-[0.97]"

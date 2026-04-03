@@ -34,10 +34,13 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
           YOUR TWIN
         </h2>
         <div
-          className="rounded-2xl p-6"
+          className="rounded-[20px] p-6"
           style={{
             background: 'linear-gradient(135deg, rgba(232,224,212,0.08) 0%, rgba(93,92,174,0.06) 100%)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
             border: '1px solid rgba(232,224,212,0.12)',
+            boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
           }}
         >
           <p
@@ -60,39 +63,39 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
         YOUR TWIN
       </h2>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-3 sm:gap-6">
         {/* Readiness — Rule 11.1: tabular-nums for data */}
-        <div>
-          <span className="text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="min-w-0">
+          <span className="text-2xl sm:text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
             {readiness.score}
           </span>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>readiness</p>
+          <p className="text-[10px] sm:text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>readiness</p>
           {readiness.trend !== 0 && (
-            <p className="text-xs mt-0.5" style={{ color: readiness.trend > 0 ? '#10B981' : '#EF4444' }}>
+            <p className="text-[10px] sm:text-xs mt-0.5" style={{ color: readiness.trend > 0 ? '#10B981' : '#EF4444' }}>
               {readiness.trend > 0 ? '+' : ''}{readiness.trend} {readiness.trend > 0 ? '\u2191' : '\u2193'}
             </p>
           )}
         </div>
 
         {/* Memories — tabular-nums */}
-        <div>
-          <span className="text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="min-w-0">
+          <span className="text-2xl sm:text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
             {formatMemoryCount(memoryCount)}
           </span>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>memories</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-[10px] sm:text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>memories</p>
+          <p className="text-[10px] sm:text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
             +{memoriesThisWeek} this week
           </p>
         </div>
 
         {/* Streak — tabular-nums */}
-        <div>
-          <span className="text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
+        <div className="min-w-0">
+          <span className="text-2xl sm:text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
             {streak}
           </span>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>day streak</p>
+          <p className="text-[10px] sm:text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>day streak</p>
           {streak > 7 && (
-            <p className="text-xs mt-0.5" style={{ color: '#C9B99A' }}>personal best</p>
+            <p className="text-[10px] sm:text-xs mt-0.5" style={{ color: '#C9B99A' }}>personal best</p>
           )}
         </div>
       </div>

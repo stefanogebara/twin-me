@@ -43,16 +43,16 @@ const SettingsRow: React.FC<{
   children: React.ReactNode;
 }> = ({ label, description, children }) => (
   <div
-    className="flex items-center justify-between py-4"
+    className="flex items-center justify-between gap-3 py-4"
     style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
   >
-    <div>
+    <div className="min-w-0 flex-1">
       <span className="text-sm" style={{ color: 'var(--foreground)' }}>{label}</span>
       {description && (
-        <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
+        <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
       )}
     </div>
-    <div className="flex-shrink-0 ml-4">
+    <div className="flex-shrink-0">
       {children}
     </div>
   </div>
@@ -119,12 +119,12 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
 
   return (
     <div>
-      <div className="flex items-center justify-between py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="flex items-center gap-3">
-          <Send className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
-          <div>
+      <div className="flex items-center justify-between gap-3 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
+          <div className="min-w-0">
             <span className="text-sm" style={{ color: 'var(--foreground)' }}>Telegram</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
               {status?.linked ? 'Connected — twin sends insights here' : 'Chat with your twin on Telegram'}
             </p>
           </div>
@@ -158,7 +158,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
         <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
           <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
-            <span className="text-2xl font-mono tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
+            <span className="text-xl sm:text-2xl font-mono tracking-[0.2em] sm:tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
               {linkCode}
             </span>
           </div>
@@ -300,7 +300,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="max-w-[680px] mx-auto px-6 py-16">
+    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
 
       {/* Header */}
       <h1
@@ -331,7 +331,7 @@ const Settings = () => {
       {/* ── SECTION 1: ACCOUNT ── */}
       <SectionLabel label="Account" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -340,12 +340,12 @@ const Settings = () => {
         }}
       >
         <SettingsRow label="Email">
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-sm truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {user?.email ?? 'Not set'}
           </span>
         </SettingsRow>
         <SettingsRow label="Display Name">
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-sm truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
           </span>
         </SettingsRow>
@@ -362,7 +362,7 @@ const Settings = () => {
       {/* ── SECTION 2: PLAN ── */}
       <SectionLabel label="Plan" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -370,10 +370,10 @@ const Settings = () => {
           border: '1px solid var(--glass-surface-border)',
         }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div
-              className="flex items-center justify-center w-10 h-10 rounded-lg"
+              className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
               style={{ background: 'rgba(196,162,101,0.1)', border: '1px solid rgba(196,162,101,0.2)' }}
             >
               <Sparkles className="w-5 h-5" style={{ color: '#C4A265' }} />
@@ -389,7 +389,7 @@ const Settings = () => {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {subscription?.plan && subscription.plan !== 'free' ? (
               <button
                 onClick={handleManageBilling}
@@ -416,7 +416,7 @@ const Settings = () => {
       {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
       <SectionLabel label="Connected Platforms" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -439,7 +439,7 @@ const Settings = () => {
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
       <SectionLabel label="Personality Engine" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -492,7 +492,7 @@ const Settings = () => {
       {/* ── SECTION 5: TWIN AUTONOMY ── */}
       <SectionLabel label="Twin Autonomy" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -506,7 +506,7 @@ const Settings = () => {
       {/* ── SECTION 5B: USER RULES ── */}
       <SectionLabel label="Twin Rules" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -520,7 +520,7 @@ const Settings = () => {
       {/* ── SECTION 6: MESSAGING CHANNELS ── */}
       <SectionLabel label="Messaging" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -535,7 +535,7 @@ const Settings = () => {
       {/* ── SECTION 6B: NOTIFICATIONS ── */}
       <SectionLabel label="Notifications" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -549,7 +549,7 @@ const Settings = () => {
       {/* ── SECTION 7: DATA & PRIVACY ── */}
       <SectionLabel label="Data & Privacy" />
       <div
-        className="rounded-[20px] px-5 py-4 mb-10"
+        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
         style={{
           background: 'var(--glass-surface-bg)',
           backdropFilter: 'blur(42px)',
@@ -560,7 +560,7 @@ const Settings = () => {
         {/* Privacy Spectrum — prominent card */}
         <button
           onClick={() => navigate('/privacy-spectrum')}
-          className="w-full flex items-center gap-4 p-4 mb-4 rounded-xl transition-colors"
+          className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 mb-4 rounded-xl transition-colors"
           style={{
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid var(--border)',
@@ -574,9 +574,9 @@ const Settings = () => {
           >
             <Shield className="w-5 h-5" style={{ color: 'var(--accent-vibrant)' }} />
           </div>
-          <div className="flex-1 text-left">
+          <div className="flex-1 text-left min-w-0">
             <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
-            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
               Control what your twin knows and shares
             </p>
           </div>
@@ -610,27 +610,27 @@ const Settings = () => {
               Delete everything
             </button>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <input
                 type="text"
                 placeholder='Type "DELETE"'
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 aria-label="Type DELETE to confirm account deletion"
-                className="text-sm px-2 py-1 rounded w-28 bg-transparent focus:outline-none"
+                className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
                 style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
               />
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleteConfirmText !== 'DELETE' || deleting}
-                className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30"
+                className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
                 style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#c1452c' }}
               >
                 {deleting ? '...' : 'Confirm'}
               </button>
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                className="text-[12px] transition-opacity hover:opacity-60"
+                className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
                 style={{ color: 'rgba(255,255,255,0.3)' }}
               >
                 Cancel

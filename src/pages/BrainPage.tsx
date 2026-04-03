@@ -169,7 +169,7 @@ const BrainPage: React.FC = () => {
 
   if (!isLoaded) {
     return (
-      <div className="max-w-[720px] mx-auto px-6 py-16">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <div className="flex items-center justify-center h-64">
           <div
             className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
@@ -182,7 +182,7 @@ const BrainPage: React.FC = () => {
 
   if (!isSignedIn) {
     return (
-      <div className="max-w-[720px] mx-auto px-6 py-16">
+      <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
         <h1
           className="mb-2"
           style={{
@@ -215,7 +215,7 @@ const BrainPage: React.FC = () => {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="max-w-[720px] mx-auto px-6 py-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Drift Alert — always at top */}
       <DriftAlert />
