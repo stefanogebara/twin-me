@@ -460,9 +460,6 @@ class OuraFeatureExtractor {
       sample_size: 1,
       contributes_to: metadata.contributes_to || null,
       contribution_weight: metadata.contribution_weight || 0,
-      metadata: {
-        raw_value: metadata.raw_value || {},
-      },
       evidence: {
         description: metadata.description,
         correlation: metadata.evidence?.correlation,
