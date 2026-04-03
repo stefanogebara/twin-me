@@ -1032,6 +1032,49 @@ async function fetchYouTubeObservations(userId) {
         contentType: 'weekly_summary',
       });
     }
+
+    // Channel topic enrichment — fetch topicDetails for subscribed channels (direct OAuth only)
+    if (!isNangoManaged) {
+      try {
+        const tokenResult2 = await getValidAccessToken(userId, 'youtube');
+        if (tokenResult2.success && tokenResult2.accessToken) {
+          const channelIds = subsItems
+            .map(i => i.snippet?.resourceId?.channelId)
+            .filter(Boolean)
+            .slice(0, 20);
+          if (channelIds.length >= 3) {
+            const channelRes = await axios.get(
+              `https://www.googleapis.com/youtube/v3/channels?part=topicDetails,brandingSettings&id=${channelIds.join(',')}`,
+              { headers: { Authorization: `Bearer ${tokenResult2.accessToken}` }, timeout: 10000 }
+            );
+            const channels = channelRes.data?.items || [];
+            const topicCounts = {};
+            const keywords = [];
+            for (const ch of channels) {
+              const topics = ch.topicDetails?.topicCategories || [];
+              for (const url of topics) {
+                const label = url.split('/wiki/').pop()?.replace(/_/g, ' ');
+                if (label) topicCounts[label] = (topicCounts[label] || 0) + 1;
+              }
+              const kw = ch.brandingSettings?.channel?.keywords;
+              if (kw) keywords.push(...kw.split(/\s+/).slice(0, 3));
+            }
+            const topTopics = Object.entries(topicCounts)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 6)
+              .map(([t, c]) => `${t} (${c})`);
+            if (topTopics.length > 0) {
+              observations.push({
+                content: `YouTube subscription topics: ${topTopics.join(', ')}`,
+                contentType: 'weekly_summary',
+              });
+            }
+          }
+        }
+      } catch (e) {
+        log.debug('YouTube channel topics error', { error: e?.message });
+      }
+    }
   }
 
   // Liked videos (recent activity signal)
