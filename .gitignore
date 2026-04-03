@@ -3,6 +3,10 @@ scripts/autoresearch-results/
 
 # Secrets / deploy hooks
 DEPLOY_HOOK_URL.txt
+
+# Test files with secrets
+comprehensive-encryption-test.js
+test-jwt-validation.js
 AZURE_CREDENTIALS*
 OAUTH_*.md
 JWT-*.md
