@@ -35,6 +35,14 @@ const platformExtractors = {
 };
 
 // ====================================================================
+// GET /api/soul-signature
+// Root handler — API discovery
+// ====================================================================
+router.get('/', authenticateToken, async (req, res) => {
+  res.json({ success: true, message: 'Soul Signature API. Available endpoints: /profile, /personality-scores, /archetype' });
+});
+
+// ====================================================================
 // GET /api/soul-signature/profile
 // Get complete soul signature profile for a user
 // ====================================================================
