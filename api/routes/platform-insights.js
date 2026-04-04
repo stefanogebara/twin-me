@@ -48,6 +48,14 @@ const PLATFORM_DB_NAMES = {
 };
 
 /**
+ * GET /api/insights
+ * Root handler — API discovery
+ */
+router.get('/', authenticateUser, async (req, res) => {
+  res.json({ success: true, message: 'Insights API. Available endpoints vary by platform.' });
+});
+
+/**
  * GET /api/insights/all
  * Get reflections for all connected platforms at once
  * Useful for dashboard preview

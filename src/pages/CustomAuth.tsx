@@ -338,6 +338,11 @@ For privacy concerns: privacy@twinme.me`
             </>
           )}
         </button>
+        {!inviteValid && (
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
+            Enter your invite code above to unlock sign-in
+          </p>
+        )}
 
         {/* Divider */}
         <div className="my-8" style={{ borderTop: '1px solid var(--border-glass)' }} />

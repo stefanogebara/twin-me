@@ -216,6 +216,7 @@ export const requireProfessor = async (req, res, next) => {
 };
 
 // Rate limiting middleware per user
+// TODO: Migrate to Redis-backed rate limiting for serverless resilience (see oauthRateLimiter.js pattern)
 export const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
   const requests = new Map();
 

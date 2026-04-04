@@ -255,6 +255,7 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="/connect" element={<Navigate to="/get-started" replace />} />
+            <Route path="/connect-data" element={<Navigate to="/get-started" replace />} />
             <Route path="/connections" element={<Navigate to="/get-started" replace />} />
             <Route path="/memory-explorer" element={<Navigate to="/brain" replace />} />
 

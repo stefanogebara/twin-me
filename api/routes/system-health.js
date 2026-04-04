@@ -1,4 +1,5 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { supabaseAdmin } from '../services/database.js';
 import { getCircuitBreakerStatus, resetCircuitBreaker } from '../services/llmGateway.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
@@ -6,14 +7,45 @@ import { authenticateUser } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const JWT_SECRET = process.env.JWT_SECRET;
+
 // Health check cache: avoid hammering Supabase on every uptime probe
 let _healthCache = null;
 let _healthCacheAt = 0;
 const HEALTH_CACHE_TTL_MS = 30_000; // 30 seconds
 
 // System health check endpoint (4A - Production Hardening)
-// No auth required so uptime monitors (UptimeRobot, Vercel checks) can hit it
+// Returns basic health for uptime monitors; full details only for authenticated users
 router.get('/', async (req, res) => {
+  // Always available: basic health response for uptime monitors
+  const basicHealth = { status: 'ok', uptime: Math.floor(process.uptime()) };
+
+  // Check if caller is authenticated (Bearer token or cron secret)
+  const authHeader = req.headers.authorization;
+  let isAuthenticated = false;
+
+  if (authHeader && authHeader.startsWith('Bearer ') && JWT_SECRET) {
+    try {
+      jwt.verify(authHeader.substring(7), JWT_SECRET, { algorithms: ['HS256'] });
+      isAuthenticated = true;
+    } catch {
+      // Invalid token — fall through to basic response
+    }
+  }
+
+  // Also accept cron secret for automated monitoring
+  if (!isAuthenticated) {
+    const cronResult = verifyCronSecret(req);
+    if (cronResult.authorized) isAuthenticated = true;
+  }
+
+  // If not authenticated, return only basic health
+  if (!isAuthenticated) {
+    return res.json(basicHealth);
+  }
+
+  // --- Authenticated: return full detailed response ---
+
   // Return cached result if fresh enough
   if (_healthCache && (Date.now() - _healthCacheAt) < HEALTH_CACHE_TTL_MS) {
     return res.status(_healthCache.status === 'unhealthy' ? 503 : 200).json(_healthCache);
@@ -86,14 +118,6 @@ router.get('/', async (req, res) => {
 
   _healthCache = checks;
   _healthCacheAt = Date.now();
-
-  // In production, only return status + timestamp (no internal metrics)
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(200).json({
-      status: checks.status,
-      timestamp: checks.timestamp,
-    });
-  }
 
   res.status(200).json(checks);
 });

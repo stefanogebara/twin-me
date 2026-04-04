@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -230,6 +231,7 @@ const CategorySection: React.FC<CategorySectionProps> = ({ category, clusters, o
 
 // --- Main Dashboard ---
 const PrivacySpectrumDashboard: React.FC = () => {
+  useDocumentTitle('Privacy Spectrum');
   const { settings, isLoading: settingsLoading, updateSettings, isUpdating } = usePrivacySettings();
   const { twins, activeTwin, isLoading: twinsLoading, activateTwin, deactivateAllTwins } = useContextualTwins();
   const { clusters, isLoading: clustersLoading, updateClusterPrivacy, toggleCluster } = useUserClusters();
