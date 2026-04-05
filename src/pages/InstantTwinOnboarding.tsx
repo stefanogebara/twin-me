@@ -26,6 +26,7 @@ import {
   usePlatformConnect,
 } from './components/onboarding';
 import type { RevealedArchetype } from './components/onboarding';
+import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
 
 const InstantTwinOnboarding = () => {
   useDocumentTitle('Connect Platforms');
@@ -92,8 +93,8 @@ const InstantTwinOnboarding = () => {
 
     if (connected === 'true' && provider) {
       toast({
-        title: "Connected Successfully",
-        description: `${provider.replace('_', ' ')} is now connected`,
+        title: "Connected",
+        description: CONNECTION_INSIGHT_MESSAGES[provider] || `${provider.replace('_', ' ')} is now connected`,
         variant: "default",
       });
       setConnectingProvider(null);
@@ -103,11 +104,12 @@ const InstantTwinOnboarding = () => {
     const handleOAuthMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'oauth-success' && event.data?.provider) {
-        const providerName = event.data.provider.replace('google_', '').replace('_', ' ');
+        const rawProvider = event.data.provider as string;
+        const providerName = rawProvider.replace('google_', '').replace('_', ' ');
         const displayName = providerName.charAt(0).toUpperCase() + providerName.slice(1);
         toast({
-          title: "Connected Successfully",
-          description: `${displayName} is now connected`,
+          title: "Connected",
+          description: CONNECTION_INSIGHT_MESSAGES[rawProvider] || `${displayName} is now connected`,
           variant: "default",
         });
         setConnectingProvider(null);

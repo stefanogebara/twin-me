@@ -34,6 +34,14 @@ const TOOL_PLATFORMS = [
   'reddit',
 ] as const;
 
+const getSmartPlaceholder = (): string => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning — ask about your day ahead...";
+  if (hour < 17) return "How's the day going? Ask me anything...";
+  if (hour < 21) return "Evening check-in — what's on your mind?";
+  return "Late night thoughts? I'm here...";
+};
+
 export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>(
   ({
     inputMessage,
@@ -69,7 +77,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
             <textarea
               id="twin-chat-input"
               ref={ref}
-              placeholder={ghostSuggestion && !inputMessage ? '' : 'Message your twin...'}
+              placeholder={ghostSuggestion && !inputMessage ? '' : getSmartPlaceholder()}
               value={inputMessage}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={(e) => {

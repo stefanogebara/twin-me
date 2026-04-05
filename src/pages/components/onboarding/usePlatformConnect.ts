@@ -10,6 +10,7 @@ import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { NANGO_PROVIDER_MAP } from './onboardingHelpers';
+import { CONNECTION_INSIGHT_MESSAGES } from './connectionInsights';
 
 interface UsePlatformConnectOptions {
   userId: string | undefined;
@@ -105,8 +106,8 @@ export function usePlatformConnect({
       } else if (result.success) {
         await refetchPlatformStatus();
         toast({
-          title: "Test Connection",
-          description: `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} test connection added`,
+          title: "Connected",
+          description: CONNECTION_INSIGHT_MESSAGES[provider] || `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
           variant: "default",
         });
       } else {
@@ -161,7 +162,7 @@ export function usePlatformConnect({
         const verifyResult = await verifyResponse.json();
 
         if (verifyResult.success && verifyResult.connected) {
-          toast({ title: 'Connected', description: `${platformName} is now connected` });
+          toast({ title: 'Connected', description: CONNECTION_INSIGHT_MESSAGES[provider] || `${platformName} is now connected` });
           trackFunnel('platform_connection_verified', { platform: provider, retries: retryCount });
           await refetchPlatformStatus();
           setConnectingProvider(null);

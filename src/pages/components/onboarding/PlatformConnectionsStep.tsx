@@ -127,6 +127,12 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
         isDemoMode={isDemoMode}
         navigate={navigate}
       />
+      <p
+        className="text-[11px] mt-3"
+        style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+      >
+        Your data stays yours. We never train AI on your personal data or sell it.
+      </p>
 
       {/* Entertainment */}
       {entertainmentConnectors.some(c => !connectedServices.includes(c.provider)) && (
