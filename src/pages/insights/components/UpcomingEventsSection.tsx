@@ -81,8 +81,8 @@ export const UpcomingEventsSection: React.FC<UpcomingEventsSectionProps> = ({ ev
               {dayEvents.map((event, index) => (
                 <div
                   key={index}
-                  className="p-3 rounded-lg"
-                  style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+                  className="p-3 rounded-[20px]"
+                  style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
                 >
                   <div className="flex items-center gap-3">
                     <div

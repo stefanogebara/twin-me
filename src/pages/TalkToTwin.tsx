@@ -504,7 +504,8 @@ const TalkToTwin = () => {
             onClick={() => setShowConversationList(false)}
           />
           <div
-            className="absolute left-0 top-0 bottom-0 z-30 w-64 sm:w-72 max-w-[85vw] bg-[#0C0C0C] border-r border-[rgba(255,255,255,0.06)] flex flex-col"
+            className="absolute left-0 top-0 bottom-0 z-30 w-64 sm:w-72 max-w-[85vw] border-r flex flex-col"
+            style={{ background: 'rgba(20,19,26,0.95)', borderColor: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
           >
             <ConversationList
               activeConversationId={conversationId}
@@ -525,13 +526,7 @@ const TalkToTwin = () => {
           onToggleConversationList={() => setShowConversationList(prev => !prev)}
         />
 
-        {messages.length === 0 && (
-          <InsightsBanner
-            insights={pendingInsights.slice(0, 3)}
-            onQuickAction={handleQuickAction}
-            onEngage={markEngaged}
-          />
-        )}
+        {/* InsightsBanner removed — insights are already on the dashboard */}
 
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (

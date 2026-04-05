@@ -33,7 +33,7 @@ import OverviewSection from './components/privacy/OverviewSection';
 const TEXT_PRIMARY = 'var(--foreground)';
 const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
 const BORDER_COLOR = 'var(--border-glass)';
-const CARD_BG = 'rgba(255,255,255,0.02)';
+const CARD_BG = 'rgba(255,255,255,0.06)';
 
 const CATEGORY_COLORS = {
   personal: '#f472b6',
@@ -374,8 +374,8 @@ const PrivacySpectrumDashboard: React.FC = () => {
       <section
         style={{
           background: CARD_BG,
-          borderRadius: 16,
-          border: `1px solid ${BORDER_COLOR}`,
+          borderRadius: 20,
+          border: '1px solid rgba(255,255,255,0.10)',
           padding: '20px 24px',
           marginBottom: 20,
         }}

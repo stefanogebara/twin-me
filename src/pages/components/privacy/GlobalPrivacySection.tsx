@@ -12,7 +12,7 @@ import { Slider } from '@/components/ui/slider';
 const TEXT_PRIMARY = 'var(--foreground)';
 const TEXT_SECONDARY = 'rgba(255,255,255,0.4)';
 const BORDER_COLOR = 'var(--border-glass)';
-const CARD_BG = 'rgba(255,255,255,0.02)';
+const CARD_BG = 'rgba(255,255,255,0.06)';
 
 // Built-in presets used when the DB table is empty
 const BUILT_IN_PRESETS = [
@@ -54,8 +54,8 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
   <section
     style={{
       background: CARD_BG,
-      borderRadius: 16,
-      border: `1px solid ${BORDER_COLOR}`,
+      borderRadius: 20,
+      border: '1px solid rgba(255,255,255,0.10)',
       padding: '20px 24px',
       marginBottom: 20,
     }}

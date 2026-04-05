@@ -90,10 +90,12 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
 
       <CollapsibleContent className="mt-3">
         <div
-          className="rounded-xl p-4 space-y-4"
+          className="rounded-[20px] p-4 space-y-4"
           style={{
             backgroundColor: colors.bgSubtle,
-            border: `1px solid ${colors.border}`
+            border: `1px solid ${colors.border}`,
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)'
           }}
         >
           {/* Cross-Platform Context Badges */}

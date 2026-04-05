@@ -69,11 +69,11 @@ const GoalCard: React.FC<GoalCardProps> = ({
     <div
       className="p-5 space-y-4"
       style={{
-        borderRadius: '12px',
-        background: 'var(--glass-surface-bg, rgba(244,241,236,0.7))',
+        borderRadius: '20px',
+        background: 'rgba(255,255,255,0.06)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: `1px solid var(--glass-surface-border, #d9d1cb)`,
+        border: '1px solid rgba(255,255,255,0.10)',
         boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
       }}
     >

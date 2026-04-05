@@ -72,7 +72,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Top Artists with Play Count Bars */}
       {insights?.topArtistsWithPlays && insights.topArtistsWithPlays.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -116,7 +116,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Genre Distribution */}
       {insights?.topGenres && insights.topGenres.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -179,7 +179,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Listening Peak Hours */}
       {insights?.listeningHours && insights.listeningHours.length > 0 && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <span
             className="text-[11px] font-medium tracking-widest uppercase block mb-4"
             style={{ color: '#10b77f' }}
@@ -225,7 +225,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
 
       {/* Current Mood - Visual indicator */}
       {insights?.currentMood && (
-        <div className="p-4 rounded-lg mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+        <div className="p-4 rounded-[20px] mb-6" style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}>
           <div className="flex items-center justify-between">
             <div>
               <span

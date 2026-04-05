@@ -17,9 +17,11 @@ function formatMemoryCount(n: number): string {
 
 function heatmapColor(count: number): string {
   if (count === 0) return 'rgba(255,255,255,0.04)';
-  if (count <= 2) return 'rgba(232,224,212,0.15)';
-  if (count <= 5) return 'rgba(232,224,212,0.35)';
-  return 'rgba(232,224,212,0.6)';
+  if (count <= 5) return 'rgba(232,224,212,0.12)';
+  if (count <= 15) return 'rgba(232,224,212,0.22)';
+  if (count <= 40) return 'rgba(232,224,212,0.35)';
+  if (count <= 100) return 'rgba(232,224,212,0.50)';
+  return 'rgba(232,224,212,0.70)';
 }
 
 export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, heatmap }: TwinStatsProps) {

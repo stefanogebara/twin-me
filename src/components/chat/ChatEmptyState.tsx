@@ -169,16 +169,9 @@ export const ChatEmptyState = ({
         </p>
       )}
 
-      {/* Morning Briefing Card — Dimension.dev-inspired */}
-      {platformCount > 0 && (
-        <div className="w-full max-w-lg mb-6">
-          <MorningBriefingCard onAskTwin={onQuickAction} />
-        </div>
-      )}
-
       {/* Soul Interview chip — shown when user has few memories */}
       {showInterviewChip && onStartInterview && (
-        <div className="flex justify-center mb-3">
+        <div className="flex justify-center mb-4">
           <button
             onClick={onStartInterview}
             className="px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
@@ -186,7 +179,7 @@ export const ChatEmptyState = ({
               color: 'rgba(245,245,244,0.7)',
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.10)',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
@@ -200,10 +193,10 @@ export const ChatEmptyState = ({
         </div>
       )}
 
-      {/* Suggestion pills — time-based action chips */}
+      {/* Suggestion pills — only shown when no briefing card (avoid double CTA) */}
       {connectedPlatforms.length > 0 && (
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-          {chips.map((chip, idx) => (
+          {chips.slice(0, 3).map((chip, idx) => (
             <button
               key={idx}
               onClick={() => onQuickAction(chip)}
@@ -212,7 +205,7 @@ export const ChatEmptyState = ({
                 color: 'rgba(255,255,255,0.40)',
                 background: 'transparent',
                 border: '1px solid rgba(255,255,255,0.08)',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.04)';

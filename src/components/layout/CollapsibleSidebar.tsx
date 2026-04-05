@@ -27,13 +27,11 @@ interface CollapsibleSidebarProps {
   onClose: () => void;
 }
 
+// Nav: 3 core tabs + settings (per CLAUDE.md: "Home / Chat / Me")
 const navItems: NavItem[] = [
   { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
-  { id: 'interview',    label: 'Interview Me',    icon: Mic,           path: '/talk-to-twin?interview=1' },
-  { id: 'goals',        label: 'Goals',            icon: Target,        path: '/goals' },
-  { id: 'connect-data', label: 'Connect Data',    icon: Link2,         path: '/get-started' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 

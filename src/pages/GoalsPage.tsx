@@ -228,7 +228,7 @@ const GoalsPage: React.FC = () => {
           </p>
           <button
             onClick={() => navigate('/get-started')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
             style={{
               backgroundColor: 'var(--accent-vibrant)',
               color: '#0a0f0a',

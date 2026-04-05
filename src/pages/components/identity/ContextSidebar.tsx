@@ -19,10 +19,10 @@ import InsightCards from './InsightCards';
 import SidebarTabs, { type SidebarTab } from './SidebarTabs';
 
 const glassStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
+  background: 'rgba(255,255,255,0.06)',
   backdropFilter: 'blur(42px)',
   WebkitBackdropFilter: 'blur(42px)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.10)',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
 };
 

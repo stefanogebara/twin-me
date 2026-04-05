@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDashboardContext, useDashboardHeatmap } from '@/hooks/useDashboardContext';
@@ -7,20 +8,31 @@ import { WelcomeGuide } from './components/dashboard-v2/WelcomeGuide';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { TwinStats } from './components/dashboard-v2/TwinStats';
-import { NextUpEvents } from './components/dashboard-v2/NextUpEvents';
-import { PlatformsList } from './components/dashboard-v2/PlatformsList';
-import { ChatPrompt } from './components/dashboard-v2/ChatPrompt';
-import { DailyTimeline } from './components/dashboard-v2/DailyTimeline';
-import { MessagingPrompt } from './components/dashboard-v2/MessagingPrompt';
-import { WhatsAppCard } from './components/dashboard-v2/WhatsAppCard';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import { useWebPush } from '@/hooks/useWebPush';
+
+const WELCOME_DISMISSED_KEY = 'twinme_welcome_dismissed';
 
 export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const { data, isLoading, isError, refetch } = useDashboardContext();
   const { data: heatmapData } = useDashboardHeatmap();
   const { insights, markEngaged } = useProactiveInsights();
+
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !localStorage.getItem(WELCOME_DISMISSED_KEY);
+  });
+
+  // Auto-dismiss welcome guide after first render and mark in localStorage
+  useEffect(() => {
+    if (showWelcome && data) {
+      const timer = setTimeout(() => {
+        localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
+        setShowWelcome(false);
+      }, 30_000); // auto-dismiss after 30s if user doesn't interact
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome, data]);
 
   // Register web push on first dashboard load (after auth)
   useWebPush(true);
@@ -57,8 +69,13 @@ export function DashboardV2() {
     );
   }
 
+  const handleDismissWelcome = () => {
+    localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
+    setShowWelcome(false);
+  };
+
   return (
-    <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24">
+    <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24 space-y-10">
       <DashboardGreeting
         firstName={data.greeting.firstName}
         timeLabel={data.greeting.timeLabel}
@@ -68,7 +85,9 @@ export function DashboardV2() {
 
       <ExpiredTokenBanner />
 
-      <WelcomeGuide firstName={data.greeting.firstName} />
+      {showWelcome && (
+        <WelcomeGuide firstName={data.greeting.firstName} onDismiss={handleDismissWelcome} />
+      )}
 
       {data.heroInsight && (
         <HeroInsight
@@ -78,17 +97,11 @@ export function DashboardV2() {
         />
       )}
 
-      <WhatsAppCard />
-
-      <MessagingPrompt />
-
       <InsightsFeed
         insights={insights}
         heroInsightId={data.heroInsight?.insightId}
         onEngage={markEngaged}
       />
-
-      <DailyTimeline />
 
       <TwinStats
         readiness={data.twinStats.readiness}
@@ -97,12 +110,6 @@ export function DashboardV2() {
         streak={data.twinStats.streak}
         heatmap={heatmapData ?? data.heatmap ?? []}
       />
-
-      <NextUpEvents events={data.nextEvents} />
-
-      <PlatformsList platforms={data.platforms} />
-
-      <ChatPrompt />
     </div>
   );
 }

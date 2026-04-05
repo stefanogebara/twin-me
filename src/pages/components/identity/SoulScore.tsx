@@ -203,8 +203,8 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 + index * 0.1, duration: 0.5, ease: 'easeOut' }}
       style={{
-        background: locked ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: locked ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.10)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         borderRadius: 20,

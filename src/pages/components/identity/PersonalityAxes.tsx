@@ -92,7 +92,7 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
         </span>
         <span
           className="text-[10px] px-1.5 py-0.5 rounded-full"
-          style={{ color: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.04)' }}
+          style={{ color: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.06)' }}
         >
           ICA
         </span>
@@ -122,8 +122,8 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
               <div
                 className="px-5 py-4 rounded-[20px] transition-all duration-200"
                 style={{
-                  background: isExpanded ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
-                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)'}`,
+                  background: isExpanded ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)'}`,
                 }}
               >
                 {/* Axis header */}

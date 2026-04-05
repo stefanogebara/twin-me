@@ -285,8 +285,8 @@ const InsightCards: React.FC<InsightCardsProps> = (props) => {
             key={card.id}
             className="snap-start flex-shrink-0 w-[280px] transition-transform duration-300 hover:translate-y-[-3px]"
             style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: '18px',
               padding: '22px',
               borderLeft: `4px solid ${card.accentColor}`,

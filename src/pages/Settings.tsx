@@ -157,7 +157,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
       {linkCode && !status?.linked && (
         <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
           <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
             <span className="text-xl sm:text-2xl font-mono tracking-[0.2em] sm:tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
               {linkCode}
             </span>
@@ -394,7 +394,7 @@ const Settings = () => {
               <button
                 onClick={handleManageBilling}
                 disabled={managingBilling || isDemoMode}
-                className="text-[12px] px-3 py-1.5 rounded-lg transition-opacity hover:opacity-60 disabled:opacity-30"
+                className="text-[12px] px-3 py-1.5 rounded-[100px] transition-opacity hover:opacity-60 disabled:opacity-30"
                 style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
               >
                 {managingBilling ? '...' : 'Manage'}
@@ -403,7 +403,7 @@ const Settings = () => {
               <button
                 onClick={() => navigate('/talk-to-twin')}
                 disabled={isDemoMode}
-                className="text-[12px] px-3 py-1.5 rounded-lg font-medium transition-opacity hover:opacity-80"
+                className="text-[12px] px-3 py-1.5 rounded-[100px] font-medium transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(196,162,101,0.15)', color: '#C4A265' }}
               >
                 Upgrade
@@ -560,7 +560,7 @@ const Settings = () => {
         {/* Privacy Spectrum — prominent card */}
         <button
           onClick={() => navigate('/privacy-spectrum')}
-          className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 mb-4 rounded-xl transition-colors"
+          className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 mb-4 rounded-[20px] transition-colors"
           style={{
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid var(--border)',

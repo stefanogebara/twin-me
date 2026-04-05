@@ -202,7 +202,7 @@ const BrainPage: React.FC = () => {
         <button
           onClick={() => navigate('/auth')}
           className="px-5 py-2.5 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-          style={{ backgroundColor: '#252222', color: '#fdfcfb', fontFamily: "'Inter', sans-serif" }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#fdfcfb', fontFamily: "'Inter', sans-serif" }}
         >
           Sign In to Explore
         </button>
@@ -313,7 +313,7 @@ const BrainPage: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="mt-4 px-5 py-2 rounded-full text-sm font-medium transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#252222', color: '#fdfcfb' }}
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#fdfcfb' }}
             >
               Connect Platforms
             </button>

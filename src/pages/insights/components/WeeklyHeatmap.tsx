@@ -24,8 +24,8 @@ export const WeeklyHeatmap: React.FC<WeeklyHeatmapProps> = ({ heatmap, colors })
 
   return (
     <div
-      className="p-4 rounded-lg mb-6"
-      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
+      className="p-4 rounded-[20px] mb-6"
+      style={{ border: '1px solid var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)' }}
     >
       <span
         className="text-[11px] font-medium tracking-widest uppercase block mb-4"

@@ -54,10 +54,12 @@ export const TwinReflection: React.FC<TwinReflectionProps> = ({
 
   return (
     <div
-      className={`p-5 rounded-lg ${className}`}
+      className={`p-5 rounded-[20px] ${className}`}
       style={{
         border: '1px solid var(--border-glass)',
-        backgroundColor: 'rgba(255,255,255,0.02)'
+        backgroundColor: 'rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)'
       }}
     >
       <div className="space-y-4">
