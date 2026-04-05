@@ -68,7 +68,7 @@ function InsightCard({ insight }: { insight: TwinInsight }) {
       <View style={[styles.insightDot, { backgroundColor: color }]} />
       <View style={styles.insightBody}>
         <Text style={[styles.insightCategory, { color }]}>{label.toUpperCase()}</Text>
-        <Text style={styles.insightText} numberOfLines={3}>{insight.content}</Text>
+        <Text style={styles.insightText} numberOfLines={3}>{insight.content?.replace(/\*\*/g, '')}</Text>
       </View>
     </View>
   );

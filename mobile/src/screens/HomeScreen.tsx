@@ -27,7 +27,7 @@ function toSecondPerson(text: string): string {
 
 function InsightCard({ insight }: { insight: TwinInsight }) {
   const [expanded, setExpanded] = useState(false);
-  const text = toSecondPerson(insight.content);
+  const text = toSecondPerson(insight.content?.replace(/\*\*/g, '') ?? '');
   return (
     <TouchableOpacity
       style={styles.insightCard}
