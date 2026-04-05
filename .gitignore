@@ -170,3 +170,4 @@ test-data/
 .claude/launch.json
 .env.vercel-*
 production
+.playwright-mcp/
