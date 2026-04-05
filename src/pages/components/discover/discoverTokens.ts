@@ -4,14 +4,14 @@ export const T = {
   FG:       '#fdfcfb',
   TEXT_SEC: '#a09898',
   TEXT_PH:  '#86807b',
-  CARD_BG:  'rgba(255, 255, 255, 0.02)',
+  CARD_BG:  'rgba(255, 255, 255, 0.06)',
   CARD_BDR: 'var(--glass-surface-border)',
-  BENTO_BG: 'rgba(255, 255, 255, 0.02)',
+  BENTO_BG: 'rgba(255, 255, 255, 0.06)',
   CTA_BG:   '#fdfcfb',
   CTA_FG:   'var(--primary-foreground)',
   SIGN_UP_BG: '#fdfcfb',
   SIGN_UP_FG: '#222528',
-  GHOST_BG: 'rgba(255, 255, 255, 0.02)',
+  GHOST_BG: 'rgba(255, 255, 255, 0.06)',
 };
 
 // ── Hero glow: RADIAL gradient (Figma exact — two stacked 455.74px ellipses) ──
@@ -56,7 +56,7 @@ export const FOOTER_GLOW_3 = `radial-gradient(ellipse at 45.3% 148%,
   rgba(93,92,174,0.3) 74.519%, rgba(73,56,57,0) 96.635%
 )`;
 
-export const PLATFORM_LOGOS = ['Spotify', 'YouTube', 'Discord', 'LinkedIn', 'Whoop'];
+export const PLATFORM_LOGOS = ['Spotify', 'YouTube', 'Gmail', 'Calendar', 'Discord', 'LinkedIn', 'GitHub', 'Whoop'];
 
 export const FAQ_ITEMS = [
   { q: 'What is a soul signature?' },

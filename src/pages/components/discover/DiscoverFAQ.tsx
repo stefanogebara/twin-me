@@ -10,7 +10,7 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
-    <section id="faq" className="px-6 md:px-[100px] py-24">
+    <section id="faq" className="px-6 md:px-[100px] py-20">
       <div className="max-w-[800px] mx-auto">
 
         <div className="flex flex-col md:flex-row gap-16">
@@ -26,8 +26,8 @@ export default function DiscoverFAQ({ onNavigate }: DiscoverFAQProps) {
             <h2
               style={{
                 fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: '36px', lineHeight: 1.15,
-                letterSpacing: '-0.72px', color: T.FG,
+                fontSize: '42px', lineHeight: 1.15,
+                letterSpacing: '-0.84px', color: T.FG,
               }}
             >
               Common questions

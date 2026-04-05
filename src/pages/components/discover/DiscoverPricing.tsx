@@ -39,7 +39,7 @@ const PLANS = [
 
 export default function DiscoverPricing({ billingAnnual, onToggleBilling, onNavigate }: DiscoverPricingProps) {
   return (
-    <section id="pricing" className="px-6 md:px-[100px] py-24">
+    <section id="pricing" className="px-6 md:px-[100px] py-20">
       <div className="max-w-[800px] mx-auto">
 
         <p

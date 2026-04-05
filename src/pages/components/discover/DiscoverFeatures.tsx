@@ -35,7 +35,7 @@ export default function DiscoverFeatures() {
       <div className="max-w-[800px] mx-auto h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
 
       {/* ── Features ── */}
-      <section id="features" className="px-6 md:px-[100px] py-24">
+      <section id="features" className="px-6 md:px-[100px] py-20">
         <div className="max-w-[800px] mx-auto">
 
           <p
@@ -46,7 +46,7 @@ export default function DiscoverFeatures() {
           </p>
 
           <h2
-            className="mb-16"
+            className="mb-12"
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
               fontSize: '42px',
@@ -74,7 +74,7 @@ export default function DiscoverFeatures() {
                 </h3>
                 <p
                   className="text-sm leading-relaxed"
-                  style={{ color: 'rgba(255,255,255,0.45)' }}
+                  style={{ color: 'rgba(255,255,255,0.55)' }}
                 >
                   {body}
                 </p>

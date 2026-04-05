@@ -54,7 +54,6 @@ export default function DiscoverNav({
             className="hidden md:flex items-center px-5 gap-14 flex-1"
             style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '14px', color: T.FG }}
           >
-            <a href="#how-it-works" className="hover:opacity-60 transition-opacity whitespace-nowrap">How it works</a>
             <a href="#features"     className="hover:opacity-60 transition-opacity whitespace-nowrap">Features</a>
             <a href="#pricing"      className="hover:opacity-60 transition-opacity whitespace-nowrap">Pricing</a>
             <a href="#faq"          className="hover:opacity-60 transition-opacity whitespace-nowrap">FAQ</a>
@@ -169,7 +168,6 @@ export default function DiscoverNav({
 
             <div className="flex flex-col gap-1 mb-6">
               {[
-                { label: 'How it works', href: '#how-it-works' },
                 { label: 'Features',     href: '#features' },
                 { label: 'Pricing',      href: '#pricing' },
                 { label: 'FAQ',          href: '#faq' },

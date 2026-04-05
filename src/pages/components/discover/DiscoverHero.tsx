@@ -62,7 +62,7 @@ export default function DiscoverHero({
   };
 
   return (
-    <section className="relative flex flex-col items-center pt-48 pb-20 px-6" style={{ overflowX: 'clip' }}>
+    <section className="relative flex flex-col items-center pt-40 pb-16 px-6" style={{ overflowX: 'clip' }}>
       {/* H1 */}
       <h1
         className="relative text-center mb-3 max-w-[608px] text-[32px] md:text-[48px]"
@@ -78,7 +78,7 @@ export default function DiscoverHero({
 
       {/* Subtitle */}
       <p
-        className="relative text-center mb-14 max-w-[608px]"
+        className="relative text-center mb-10 max-w-[608px]"
         style={{ color: T.TEXT_SEC, fontSize: '16px', lineHeight: 1.25 }}
       >
         {phase === 'revealed' && dataPoints.length > 0
@@ -91,7 +91,11 @@ export default function DiscoverHero({
         <div className="relative w-full max-w-[608px]">
           <div
             className="rounded-[20px] px-5 py-4"
-            style={chatboxStyle}
+            style={{
+              ...chatboxStyle,
+              backdropFilter: 'blur(42px)',
+              WebkitBackdropFilter: 'blur(42px)',
+            }}
           >
             <form
               onSubmit={(e) => { e.preventDefault(); onDiscover(); }}
@@ -125,7 +129,7 @@ export default function DiscoverHero({
           )}
           <button
             onClick={onEnterDemo}
-            className="mt-4 text-xs transition-opacity hover:opacity-70"
+            className="mt-4 text-xs transition-opacity hover:opacity-70 w-full text-center"
             style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer' }}
           >
             or try the demo
