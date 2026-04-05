@@ -188,16 +188,16 @@ export default function DiscoverHero({
                 </div>
               )}
             </div>
-          ) : dataPoints.length > 0 ? (
-            <div className="w-full max-w-sm mt-6">
-              {dataPoints.map((dp) => (
-                <DataRevealItem key={dp.label} icon={dp.icon} label={dp.label} value={dp.value} />
-              ))}
-            </div>
           ) : (
-            <p className="text-sm mt-6 text-center" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
-              We couldn't find public info for that email yet — but your twin is ready to learn from you directly.
-            </p>
+            <div className="w-full max-w-md mt-6">
+              <div className="px-5 py-4 rounded-[20px]" style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                  {dataPoints.length > 0
+                    ? `We found traces of you across ${dataPoints.length} platforms. Sign up to see what your digital footprint reveals about who you really are.`
+                    : "We couldn't find public info for that email yet — but your twin is ready to learn from you directly."}
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Identity confirmation flow */}
