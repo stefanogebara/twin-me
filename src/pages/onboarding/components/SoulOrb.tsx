@@ -173,33 +173,7 @@ const SoulOrb: React.FC<SoulOrbProps> = ({
           )}
         </div>
 
-        {/* Data ring — orbiting dots */}
-        <div
-          className="absolute soul-orb-ring"
-          style={{
-            width: config.size + 80,
-            height: config.size + 80,
-            animationDuration: voiceState === 'listening' ? '8s' : '0s',
-          }}
-        >
-          {dots.map((angle, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: 6,
-                height: 6,
-                backgroundColor: voice.ringColor,
-                boxShadow: `0 0 8px rgba(232, 213, 183, ${voiceState !== 'idle' ? 0.8 : 0.6})`,
-                top: '50%',
-                left: '50%',
-                opacity: voiceState !== 'idle' ? 1 : 0.8,
-                transform: `rotate(${angle}deg) translateY(-${(config.size + 80) / 2}px) translateX(-3px) translateY(-3px)`,
-                transition: 'opacity 0.3s ease, background-color 0.5s ease',
-              }}
-            />
-          ))}
-        </div>
+        {/* Data ring removed — clean orb only */}
 
         {/* CSS animations */}
         <style>{`

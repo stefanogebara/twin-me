@@ -156,12 +156,10 @@ export default function DiscoverHero({
           <SoulOrb phase="alive" dataPointCount={dataPoints.length} />
 
           {personaSummary ? (
-            <div className="w-full max-w-md mt-6">
-              <div className="px-5 py-4 rounded-[20px]" style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)' }}>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}>
-                  {personaSummary}
-                </p>
-              </div>
+            <div className="w-full max-w-md mt-8">
+              <p className="text-[15px] leading-[1.8] text-center" style={{ color: 'rgba(255,255,255,0.70)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
+                {personaSummary}
+              </p>
               {webSources.length > 0 && (
                 <div className="mt-3 px-1">
                   <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
