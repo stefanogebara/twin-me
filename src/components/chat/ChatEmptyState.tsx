@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import MorningBriefingCard from './MorningBriefingCard';
+// MorningBriefingCard removed — chat empty state should be clean and minimal
 
 function getGreeting(firstName: string): string {
   const hour = new Date().getHours();
