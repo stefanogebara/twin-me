@@ -41,14 +41,14 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 // Restore state on service worker wake-up + ensure alarm exists
-chrome.storage.local.get(['userId', 'auth_token']).then(({ userId: id, auth_token: token }) => {
+(async () => {
+  const { userId: id, auth_token: token } = await chrome.storage.local.get(['userId', 'auth_token']);
   if (id) userId = id;
   if (token) authToken = token;
-});
-// Re-create alarm on every wake (survives service worker restarts)
-chrome.alarms.get('sync-data', (alarm) => {
+  // Re-create alarm on every wake (survives service worker restarts)
+  const alarm = await chrome.alarms.get('sync-data');
   if (!alarm) chrome.alarms.create('sync-data', { periodInMinutes: 5 });
-});
+})();
 
 // ─────────────────────────────────────────────
 // Alarm handler
@@ -158,6 +158,8 @@ const SENSITIVE_DOMAINS = [
   'paypal.com', 'venmo.com',
   'mail.google.com', 'outlook.live.com', 'mail.yahoo.com',
   '1password.com', 'lastpass.com', 'bitwarden.com',
+  'crypto.com', 'coinbase.com', 'kraken.com', 'binance.com',
+  'myhealth.', 'patient.',
 ];
 
 function shouldSkip(url) {
@@ -217,6 +219,7 @@ function flushActiveTab() {
 // Tab finishes loading → update stored URL/title
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
+  if (tab.incognito) return;
   if (shouldSkip(tab.url)) return;
 
   if (!tabTimestamps[tabId]) {
@@ -257,6 +260,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   // Get the tab details
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (tab.incognito) return;
     if (shouldSkip(tab.url)) return;
 
     tabTimestamps[activeInfo.tabId] = {
@@ -442,9 +446,10 @@ async function handleBrowsingActivity(data) {
 // ─────────────────────────────────────────────
 
 async function sendToBackend(platform, events) {
-  if (!userId || !events || events.length === 0) return;
+  if (!userId || !events || events.length === 0) return false;
 
-  const token = authToken || userId;
+  const token = authToken;
+  if (!token) { console.warn('[Background] No auth token — skipping sync'); return false; }
   try {
     const response = await fetch(`${API_BASE_URL}/extension/batch`, {
       method: 'POST',
@@ -458,11 +463,14 @@ async function sendToBackend(platform, events) {
     if (response.ok) {
       const result = await response.json();
       console.log(`[Background] Sent ${result.inserted} ${platform} events`);
+      return true;
     } else {
       console.error(`[Background] Backend rejected ${platform} events:`, response.status);
+      return false;
     }
   } catch (error) {
     console.error(`[Background] Failed to send ${platform} events:`, error.message);
+    return false;
   }
 }
 
@@ -489,13 +497,13 @@ async function syncCollectedData() {
     if (unsynced.length === 0) continue;
 
     try {
-      await sendToBackend(platform, unsynced);
-      // Mark events as synced in the stored array
-      for (const item of list) {
-        if (!item.synced) item.synced = true;
+      const success = await sendToBackend(platform, unsynced);
+      if (success) {
+        // Mark events as synced in the stored array
+        const updated = list.map(item => item.synced ? item : { ...item, synced: true });
+        await chrome.storage.local.set({ [key]: updated });
+        totalSynced += unsynced.length;
       }
-      await chrome.storage.local.set({ [key]: list });
-      totalSynced += unsynced.length;
     } catch (err) {
       console.error(`[Background] Sync failed for ${platform}:`, err.message);
     }

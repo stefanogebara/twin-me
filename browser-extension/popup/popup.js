@@ -194,7 +194,9 @@ async function analyzeCurrentPage() {
 async function silentAutoDetect() {
   try {
     const tabs = await chrome.tabs.query({});
-    const appTab = tabs.find(t => t.url && APP_ORIGINS.some(o => t.url.startsWith(o)));
+    const appTab = tabs.find(t => {
+      try { return t.url && new URL(t.url).origin === APP_URL; } catch { return false; }
+    });
     if (!appTab) return;
 
     const results = await chrome.scripting.executeScript({
@@ -229,7 +231,9 @@ async function autoDetectUser() {
 
   try {
     const tabs = await chrome.tabs.query({});
-    let appTab = tabs.find(t => t.url && APP_ORIGINS.some(o => t.url.startsWith(o)));
+    let appTab = tabs.find(t => {
+      try { return t.url && new URL(t.url).origin === APP_URL; } catch { return false; }
+    });
 
     if (!appTab) {
       detectStatus.textContent = 'Opening TwinMe to check login...';
@@ -248,10 +252,10 @@ async function autoDetectUser() {
             return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email };
           } catch { return null; }
         }
-        if (token) {
+        if (token && token.split('.').length === 3) {
           try {
             const p = JSON.parse(atob(token.split('.')[1]));
-            return { userId: p.userId || p.sub, name: p.name || p.email, email: p.email };
+            return { userId: p.id || p.userId || p.sub, name: p.name || p.email, email: p.email };
           } catch { return null; }
         }
         return null;
