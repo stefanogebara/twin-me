@@ -47,7 +47,7 @@ export async function findUsersNeedingNudge() {
     .from('platform_connections')
     .select('user_id')
     .in('user_id', userIds)
-    .eq('status', 'active');
+    .eq('status', 'connected');
 
   if (connErr) {
     log.error('Failed to query platform connections', { error: connErr.message });
