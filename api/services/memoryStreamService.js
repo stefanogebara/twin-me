@@ -516,7 +516,7 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  */
 // Retrieval weights, MMR params, and memory budgets are imported from twin-config.js
 // so the research agent can tune them without touching this file.
-import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED, BM25_BLEND_WEIGHT, BM25_K1, BM25_B, TCM_WEIGHT, TCM_DRIFT_RATE, STDP_CORETRIEVAL_BOOST } from '../../twin-research/twin-config.js';
+import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED, BM25_BLEND_WEIGHT, BM25_K1, BM25_B, TCM_WEIGHT, TCM_DRIFT_RATE, STDP_CORETRIEVAL_BOOST, MIN_COSINE_SIMILARITY, LLM_RERANKER_ENABLED } from '../../twin-research/twin-config.js';
 
 // ====================================================================
 // MMR Reranking (Maximum Marginal Relevance)
@@ -809,6 +809,25 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     // GUM: confidence weighting is now baked into SQL scoring (search_memory_stream RPC
     // multiplies by COALESCE(confidence, 0.7) before ORDER BY). No post-RPC adjustment needed.
 
+    // --- Post-retrieval cosine similarity filter ---
+    // Drop candidates with raw cosine similarity below threshold to reduce noise.
+    if (MIN_COSINE_SIMILARITY > 0 && queryEmbedding && data.length > 0) {
+      const qVec = typeof queryEmbedding === 'string' ? parseVec(queryEmbedding) : queryEmbedding;
+      if (qVec) {
+        const before = data.length;
+        data = data.filter(m => {
+          if (!m.embedding) return true; // keep memories without embeddings (graph-injected etc)
+          const mVec = typeof m.embedding === 'string' ? parseVec(m.embedding) : m.embedding;
+          if (!mVec) return true;
+          const sim = cosineSim(qVec, mVec);
+          return sim >= MIN_COSINE_SIMILARITY;
+        });
+        if (data.length < before) {
+          log.info('Cosine filter', { before, after: data.length, threshold: MIN_COSINE_SIMILARITY });
+        }
+      }
+    }
+
     // --- BM25 lexical rescoring (TiMem, arXiv 2601.02845) ---
     // Catches exact named entities, dates, and precise phrases that cosine similarity misses.
     if (BM25_BLEND_WEIGHT > 0 && data.length > 0) {
@@ -866,6 +885,18 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
 
     // Apply MMR reranking for diversity (strips embedding from output)
     const reranked = mmrRerank(data, limit);
+
+    // --- LLM reranker pass (optional, feature-flagged) ---
+    if (LLM_RERANKER_ENABLED && reranked.length > limit) {
+      try {
+        const { rerankerPass } = await import('./memoryReranker.js');
+        const llmReranked = await rerankerPass(query, reranked, limit);
+        reranked.length = 0;
+        reranked.push(...llmReranked);
+      } catch (e) {
+        log.warn('LLM reranker failed (non-fatal)', { error: e.message });
+      }
+    }
 
     // Graph traversal: augment vector results with strength-weighted linked memories
     // Default ON — validated by twin-research experiments (2026-03-10)

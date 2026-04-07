@@ -105,6 +105,13 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // 0.0 = disabled. Range: [0.0, 0.3]
 export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
 
+// ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
+// Drop candidates whose raw cosine similarity to the query embedding falls below
+// this minimum BEFORE BM25/TCM/STDP rescoring and MMR reranking.
+// Removes noisy low-relevance memories from the candidate pool.
+// 0.0 = disabled (no filtering). Range: [0.0, 0.5]
+export const MIN_COSINE_SIMILARITY = 0.0;
+
 // ─── Alpha Blending ───────────────────────────────────────────────────────────
 // Baseline for computeAlpha() citation boost.
 // Formula: confidence * (importance/10) * min(1, CITATION_BASELINE + 0.05 * retrieval_count)
@@ -121,6 +128,12 @@ export const MEMORY_CONTEXT_BUDGETS = {
   facts:         5,
   conversations: 6,
 };
+
+// ─── LLM Memory Reranker ─────────────────────────────────────────────────────
+// Post-MMR reranking pass using a lightweight LLM to select the most relevant
+// memories from candidates. Adds ~1-2s latency per retrieval (cached).
+// Cost: ~$0.0001 per query (EXTRACTION_TIER, Mistral Small).
+export const LLM_RERANKER_ENABLED = false;
 
 // ─── Reflection Engine ────────────────────────────────────────────────────────
 export const REFLECTION_CONFIG = {

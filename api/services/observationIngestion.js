@@ -97,8 +97,8 @@ function contentHash(platform, content) {
  * Different observation types have different natural refresh rates.
  */
 const DEDUP_WINDOWS_MS = {
-  current_state: 1 * 60 * 60 * 1000,       // 1 hour
-  trend: 4 * 60 * 60 * 1000,               // 4 hours
+  current_state: 30 * 60 * 1000,            // 30 min (was 1 hour)
+  trend: 2 * 60 * 60 * 1000,               // 2 hours (was 4 hours)
   daily_summary: 24 * 60 * 60 * 1000,      // 24 hours
   weekly_summary: 7 * 24 * 60 * 60 * 1000, // 7 days
 };

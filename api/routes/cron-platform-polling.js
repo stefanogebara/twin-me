@@ -105,6 +105,23 @@ const POLLING_CONFIGS = {
       },
     ],
   },
+  linkedin: {
+    endpoints: [
+      {
+        name: 'profile',
+        url: 'https://api.linkedin.com/v2/userinfo',
+      },
+    ],
+  },
+  reddit: {
+    endpoints: [
+      {
+        name: 'overview',
+        url: 'https://oauth.reddit.com/user/{username}/overview',
+        params: { limit: 25, sort: 'new' },
+      },
+    ],
+  },
 };
 
 /**
