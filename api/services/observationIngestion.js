@@ -4546,7 +4546,8 @@ async function runObservationIngestion() {
     log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
 
     // Global timeout guard — stop processing before Vercel kills us (60s limit)
-    const GLOBAL_TIMEOUT_MS = 50_000;
+    // Reduced to 42s to leave headroom for post-processing (snapshots, cache warm)
+    const GLOBAL_TIMEOUT_MS = 42_000;
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
     // Round-robin: rotate which user starts first so all users get serviced
