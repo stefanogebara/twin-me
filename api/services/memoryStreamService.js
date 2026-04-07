@@ -336,8 +336,11 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
     ]);
 
-    // Floor: platform_data and conversations never drop below importance 4 (protects from early archival)
-    if ((memoryType === 'platform_data' || memoryType === 'conversation') && importanceScore < 4) {
+    // Floor: platform_data gets importance 6 (ensures surfacing alongside reflections 7-9)
+    // Conversations keep floor 4 (protects from early archival)
+    if (memoryType === 'platform_data' && importanceScore < 6) {
+      importanceScore = 6;
+    } else if (memoryType === 'conversation' && importanceScore < 4) {
       importanceScore = 4;
     }
 

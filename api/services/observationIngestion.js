@@ -614,11 +614,30 @@ async function fetchCalendarObservations(userId) {
     const now = new Date();
     const todayEnd = new Date(now);
     todayEnd.setHours(23, 59, 59, 999);
+    const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
 
-    const calRes = await axios.get(
-      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-      {
-        headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+    // ── Fetch ALL calendars via CalendarList, then events from each ──────────
+    let calendarIds = ['primary'];
+    try {
+      const calListRes = await axios.get(
+        'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=20',
+        { headers, timeout: 8000 }
+      );
+      const calendars = calListRes.data?.items || [];
+      // Use owner/writer calendars only (skip read-only subscriptions like "Holidays")
+      calendarIds = calendars
+        .filter(c => c.accessRole === 'owner' || c.accessRole === 'writer')
+        .slice(0, 5) // Cap at 5 calendars
+        .map(c => c.id);
+      if (calendarIds.length === 0) calendarIds = ['primary'];
+    } catch (e) {
+      log.warn('CalendarList fetch failed, falling back to primary', { error: e.message });
+    }
+
+    // Fetch events from all calendars in parallel
+    const eventPromises = calendarIds.map(calId =>
+      axios.get(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`, {
+        headers,
         params: {
           timeMin: now.toISOString(),
           timeMax: todayEnd.toISOString(),
@@ -627,10 +646,24 @@ async function fetchCalendarObservations(userId) {
           orderBy: 'startTime',
         },
         timeout: 10000,
-      }
+      }).catch(() => null)
     );
+    const calResults = await Promise.all(eventPromises);
 
-    const events = calRes.data?.items || [];
+    // Merge and deduplicate events by ID
+    const seenIds = new Set();
+    const events = [];
+    for (const res of calResults) {
+      for (const e of (res?.data?.items || [])) {
+        if (e.id && !seenIds.has(e.id)) {
+          seenIds.add(e.id);
+          events.push(e);
+        }
+      }
+    }
+    // Sort by start time
+    events.sort((a, b) => new Date(a.start?.dateTime || a.start?.date || 0) - new Date(b.start?.dateTime || b.start?.date || 0));
+
     for (const e of events) {
       const title = e.summary || 'Untitled event';
       const startRaw = e.start?.dateTime || e.start?.date;
@@ -646,6 +679,10 @@ async function fetchCalendarObservations(userId) {
       } else if (startRaw) {
         observations.push({ content: `Has an all-day event '${title}'`, contentType: 'daily_summary' });
       }
+    }
+
+    if (calendarIds.length > 1) {
+      observations.push({ content: `Events pulled from ${calendarIds.length} calendars (work, personal, shared)`, contentType: 'weekly_summary' });
     }
 
     // Detect free afternoon — use daily_summary to avoid per-hour duplicates
@@ -988,18 +1025,42 @@ async function fetchYouTubeObservations(userId) {
 
     // Watch activity (activities endpoint — direct token only, not available via Nango proxy)
     try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const actRes = await axios.get(
-        'https://www.googleapis.com/youtube/v3/activities?part=snippet&mine=true&maxResults=10',
+        `https://www.googleapis.com/youtube/v3/activities?part=snippet&mine=true&maxResults=50&publishedAfter=${sevenDaysAgo}`,
         { headers: { Authorization: `Bearer ${tokenResult.accessToken}` }, timeout: 10000 }
       );
       const activities = actRes.data?.items || [];
       const watchItems = activities.filter(a => a.snippet?.type === 'watch');
       if (watchItems.length > 0) {
-        const recentTitles = watchItems.map(a => sanitizeExternal(a.snippet?.title, 80)).filter(Boolean).slice(0, 3);
+        const recentTitles = watchItems.map(a => sanitizeExternal(a.snippet?.title, 80)).filter(Boolean).slice(0, 5);
         observations.push({
           content: `Recently watched on YouTube: ${recentTitles.map(t => `"${t}"`).join(', ')}`,
           contentType: 'current_state',
         });
+
+        // Weekly watch volume
+        observations.push({
+          content: `Watched ${watchItems.length} YouTube videos in the past 7 days (avg ${Math.round(watchItems.length / 7 * 10) / 10} per day)`,
+          contentType: 'weekly_summary',
+        });
+
+        // Time-of-day viewing pattern
+        const hourBuckets = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+        for (const a of watchItems) {
+          const h = new Date(a.snippet?.publishedAt).getHours();
+          if (h >= 6 && h < 12) hourBuckets.morning++;
+          else if (h >= 12 && h < 17) hourBuckets.afternoon++;
+          else if (h >= 17 && h < 22) hourBuckets.evening++;
+          else hourBuckets.night++;
+        }
+        const peak = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0];
+        if (peak[1] > 0) {
+          observations.push({
+            content: `YouTube watching peaks in the ${peak[0]} (${peak[1]} of ${watchItems.length} videos)`,
+            contentType: 'weekly_summary',
+          });
+        }
       }
     } catch (e) {
       // Activities endpoint may not always be available — non-critical
@@ -1288,6 +1349,48 @@ async function fetchDiscordObservations(userId) {
     log.warn('Discord guilds error', { error: e });
   }
 
+  // ── Connected accounts — cross-platform identity signal ───────────────────
+  try {
+    const connRes = await axios.get('https://discord.com/api/v10/users/@me/connections', { headers, timeout: 8000 });
+    const connections = connRes.data || [];
+    if (connections.length > 0) {
+      const platforms = connections.map(c => sanitizeExternal(c.type, 30)).filter(Boolean);
+      observations.push({
+        content: `Discord linked to: ${[...new Set(platforms)].join(', ')} — cross-platform digital identity`,
+        contentType: 'weekly_summary',
+      });
+    }
+  } catch (e) {
+    log.warn('Discord connections error', { error: e.message });
+  }
+
+  // ── User profile — account age + Nitro status ────────────────────────────
+  try {
+    const profileRes = await axios.get('https://discord.com/api/v10/users/@me', { headers, timeout: 8000 });
+    const profile = profileRes.data;
+    if (profile?.id) {
+      // Extract account creation date from Discord Snowflake ID
+      const snowflake = BigInt(profile.id);
+      const discordEpoch = BigInt(1420070400000);
+      const createdMs = Number((snowflake >> BigInt(22)) + discordEpoch);
+      const years = Math.round((Date.now() - createdMs) / (365.25 * 24 * 60 * 60 * 1000) * 10) / 10;
+      if (years > 0) {
+        observations.push({
+          content: `Discord account is ${years} years old — ${years > 5 ? 'early adopter' : years > 2 ? 'established user' : 'relatively new'}`,
+          contentType: 'weekly_summary',
+        });
+      }
+      if (profile.premium_type && profile.premium_type > 0) {
+        observations.push({
+          content: 'Has Discord Nitro subscription — invests in premium digital experiences',
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    log.warn('Discord profile error', { error: e.message });
+  }
+
   return observations;
 }
 
@@ -1542,6 +1645,66 @@ async function fetchRedditObservations(userId) {
     });
   }
 
+  // ── Reddit username + comment/post history ────────────────────────────────
+  let redditUsername = null;
+  try {
+    const meRes = await axios.get('https://oauth.reddit.com/api/v1/me', { headers, timeout: 8000 });
+    redditUsername = meRes.data?.name;
+  } catch (e) {
+    log.warn('Reddit identity error', { error: e.message });
+  }
+
+  if (redditUsername) {
+    // Recent comments (metadata only — no body content)
+    try {
+      const commentsRes = await axios.get(
+        `https://oauth.reddit.com/user/${redditUsername}/comments?limit=25&sort=new&t=week`,
+        { headers, timeout: 10000 }
+      );
+      const comments = (commentsRes.data?.data?.children || []).map(c => c.data);
+      if (comments.length > 0) {
+        const commentSubs = [...new Set(comments.map(c => c.subreddit).filter(Boolean))];
+        const avgLen = Math.round(comments.reduce((sum, c) => sum + (c.body?.length || 0), 0) / comments.length);
+        const style = avgLen > 300 ? 'verbose' : avgLen > 100 ? 'moderate' : 'concise';
+        observations.push({
+          content: `Commented ${comments.length} times on Reddit this week, mostly in ${commentSubs.slice(0, 3).map(s => 'r/' + s).join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+        observations.push({
+          content: `Reddit commenting style: ${style} (avg ${avgLen} characters per comment)`,
+          contentType: 'weekly_summary',
+        });
+      }
+    } catch (e) {
+      log.warn('Reddit comments error', { error: e.message });
+    }
+
+    // Recent posts/submissions
+    try {
+      const postsRes = await axios.get(
+        `https://oauth.reddit.com/user/${redditUsername}/submitted?limit=25&sort=new&t=month`,
+        { headers, timeout: 10000 }
+      );
+      const posts = (postsRes.data?.data?.children || []).map(c => c.data);
+      if (posts.length > 0) {
+        const postTitles = posts.slice(0, 3).map(p => sanitizeExternal(p.title, 80)).filter(Boolean);
+        observations.push({
+          content: `Posted ${posts.length} times on Reddit this month: ${postTitles.map(t => `"${t}"`).join(', ')}`,
+          contentType: 'weekly_summary',
+        });
+        const topPost = posts.reduce((best, p) => (p.score > (best?.score || 0)) ? p : best, null);
+        if (topPost && topPost.score > 10) {
+          observations.push({
+            content: `Most upvoted recent Reddit post: "${sanitizeExternal(topPost.title, 80)}" in r/${topPost.subreddit} (${topPost.score} upvotes)`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    } catch (e) {
+      log.warn('Reddit posts error', { error: e.message });
+    }
+  }
+
   return observations;
 }
 
@@ -1579,6 +1742,34 @@ async function fetchGmailObservations(userId) {
       totalMessages > 1000  ? `a moderate-sized mailbox (~${Math.round(totalMessages / 1000)}k messages)` :
                               `a lean mailbox (${totalMessages} messages)`;
     observations.push({ content: `Manages ${sizeLabel}`, contentType: 'weekly_summary' });
+  }
+
+  // ── 1b. Unread email count — reveals email engagement ──────────────────────
+  try {
+    const [inboxLabel, unreadLabel] = await Promise.all([
+      axios.get(`${BASE}/labels/INBOX`, { headers, timeout: 8000 }).catch(() => null),
+      axios.get(`${BASE}/labels/UNREAD`, { headers, timeout: 8000 }).catch(() => null),
+    ]);
+    const inboxUnread = inboxLabel?.data?.messagesUnread ?? null;
+    const totalUnread = unreadLabel?.data?.messagesUnread ?? null;
+
+    if (inboxUnread !== null) {
+      if (inboxUnread === 0) {
+        observations.push({ content: 'Practices inbox zero — 0 unread emails in inbox', contentType: 'daily_summary' });
+      } else {
+        const urgency = inboxUnread > 50 ? 'a backlog of' : inboxUnread > 20 ? 'a moderate pile of' : '';
+        observations.push({ content: `Has ${urgency ? urgency + ' ' : ''}${inboxUnread} unread emails in inbox`, contentType: 'daily_summary' });
+      }
+    }
+    if (totalUnread !== null && inboxUnread !== null && totalMessages) {
+      const inboxTotal = inboxLabel?.data?.messagesTotal ?? totalMessages;
+      if (inboxTotal > 0) {
+        const readPct = Math.round(((inboxTotal - inboxUnread) / inboxTotal) * 100);
+        observations.push({ content: `Reads ${readPct}% of incoming email (${inboxTotal - inboxUnread} of ${inboxTotal} inbox messages read)`, contentType: 'weekly_summary' });
+      }
+    }
+  } catch (e) {
+    log.warn('Gmail unread tracking error', { error: e.message });
   }
 
   // ── 2. Custom labels — reveals organization habits ─────────────────────────
