@@ -31,7 +31,7 @@ import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
-import { calculateAllActivityMetrics } from './activityMetricsService.js';
+import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
 
 import { createLogger } from './logger.js';
 
@@ -4812,7 +4812,31 @@ async function runObservationIngestion() {
           );
 
           // Update activity metrics for all connected platforms (non-blocking)
-          calculateAllActivityMetrics(userId).catch(err =>
+          calculateAllActivityMetrics(userId).then(async () => {
+            // After metrics updated, check for anomalies per platform
+            try {
+              const sb = await getSupabase();
+              const { data: conns } = await sb.from('platform_connections')
+                .select('platform, content_volume')
+                .eq('user_id', userId)
+                .in('status', ['connected', 'pending']);
+              for (const conn of (conns || [])) {
+                const anomaly = await detectActivityAnomaly(userId, conn.platform, conn.content_volume || 0);
+                if (anomaly?.anomaly) {
+                  // Store as proactive insight
+                  await sb.from('proactive_insights').insert({
+                    user_id: userId,
+                    category: 'activity_anomaly',
+                    content: anomaly.message,
+                    urgency: 'medium',
+                    metadata: { platform: conn.platform, zScore: anomaly.zScore, direction: anomaly.direction },
+                  }).catch(() => {});
+                }
+              }
+            } catch (e) {
+              log.warn('Anomaly detection failed', { userId, error: e.message });
+            }
+          }).catch(err =>
             log.warn('Activity metrics update failed', { userId, error: err })
           );
 

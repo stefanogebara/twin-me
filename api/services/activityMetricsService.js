@@ -159,3 +159,88 @@ export async function calculateAllActivityMetrics(userId, platforms) {
     log.warn('calculateAllActivityMetrics failed', { userId, error: err.message });
   }
 }
+
+/**
+ * Detect activity anomalies by comparing current 7-day count to EMA baseline.
+ * Uses z-score: flag when |z| > 2.0 (Spotify Wrapped approach).
+ * Requires 21+ days of history (stored in activity_metrics JSONB).
+ *
+ * @param {string} userId
+ * @param {string} platform
+ * @param {number} currentCount - current 7-day memory count
+ * @returns {Promise<{anomaly: boolean, direction: string, zScore: number, message: string} | null>}
+ */
+export async function detectActivityAnomaly(userId, platform, currentCount) {
+  const supabase = await getSupabase();
+  if (!supabase) return null;
+
+  try {
+    const { data: conn } = await supabase
+      .from('platform_connections')
+      .select('activity_metrics')
+      .eq('user_id', userId)
+      .eq('platform', platform)
+      .single();
+
+    const metrics = conn?.activity_metrics || {};
+    const history = metrics.ema_history || [];
+
+    // Update EMA history (append current count with timestamp)
+    const today = new Date().toISOString().slice(0, 10);
+    const updatedHistory = [
+      ...history.filter(h => h.date !== today).slice(-30), // keep last 30 days, dedup today
+      { date: today, count: currentCount },
+    ];
+
+    // Calculate EMA (lambda=0.1, adapts in ~10 days)
+    const LAMBDA = 0.1;
+    let ema = updatedHistory[0]?.count || 0;
+    for (const h of updatedHistory) {
+      ema = LAMBDA * h.count + (1 - LAMBDA) * ema;
+    }
+
+    // Calculate standard deviation
+    const counts = updatedHistory.map(h => h.count);
+    const mean = counts.reduce((a, b) => a + b, 0) / counts.length;
+    const variance = counts.reduce((sum, c) => sum + (c - mean) ** 2, 0) / counts.length;
+    const stdDev = Math.sqrt(variance) || 1; // prevent division by zero
+
+    // Z-score
+    const zScore = (currentCount - ema) / stdDev;
+
+    // Persist updated history + EMA
+    await supabase
+      .from('platform_connections')
+      .update({
+        activity_metrics: {
+          ...metrics,
+          memory_count_7d: currentCount,
+          ema_history: updatedHistory,
+          ema_current: Math.round(ema * 10) / 10,
+          std_dev: Math.round(stdDev * 10) / 10,
+          calculated_at: new Date().toISOString(),
+        },
+      })
+      .eq('user_id', userId)
+      .eq('platform', platform);
+
+    // Need 21+ days of history before flagging anomalies
+    if (updatedHistory.length < 21) return null;
+
+    const THRESHOLD = 2.0;
+    if (Math.abs(zScore) < THRESHOLD) return null;
+
+    const direction = zScore > 0 ? 'spike' : 'drop';
+    const platformName = platform.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    const message = direction === 'spike'
+      ? `Unusual spike in ${platformName} activity — ${currentCount} data points this week vs your usual ${Math.round(ema)}`
+      : `${platformName} activity dropped significantly — ${currentCount} data points this week vs your usual ${Math.round(ema)}`;
+
+    log.info('Activity anomaly detected', { userId, platform, zScore: Math.round(zScore * 100) / 100, direction, current: currentCount, ema: Math.round(ema) });
+
+    return { anomaly: true, direction, zScore: Math.round(zScore * 100) / 100, message };
+  } catch (err) {
+    log.warn('Anomaly detection failed', { userId, platform, error: err.message });
+    return null;
+  }
+}

@@ -896,6 +896,29 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
       log.warn('Graph traversal failed (non-fatal)', { error: graphErr });
     }
 
+    // Platform activity weighting: boost memories from high-activity platforms
+    // Uses activity_score (0-100) from platform_connections, computed every 30 min
+    try {
+      const { data: activityData } = await supabaseAdmin
+        .from('platform_connections')
+        .select('platform, activity_score')
+        .eq('user_id', userId);
+      if (activityData?.length > 0) {
+        const scoreMap = Object.fromEntries(activityData.map(a => [a.platform, a.activity_score || 0]));
+        for (const mem of reranked) {
+          const platform = mem.metadata?.source || mem.metadata?.platform;
+          if (platform && scoreMap[platform] !== undefined) {
+            // weighted = score * (0.5 + 0.5 * activity/100)
+            // Floor of 0.5 prevents zeroing out inactive platform memories
+            mem.score = (mem.score ?? 0) * (0.5 + 0.5 * scoreMap[platform] / 100);
+          }
+        }
+        reranked.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+      }
+    } catch (e) {
+      log.warn('Platform activity weighting failed (non-fatal)', { error: e.message });
+    }
+
     // Touch accessed memories (update last_accessed_at) - non-blocking
     const memoryIds = reranked.map(m => m.id);
     supabaseAdmin.rpc('touch_memories', { p_memory_ids: memoryIds })

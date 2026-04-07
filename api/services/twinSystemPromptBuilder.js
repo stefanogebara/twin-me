@@ -355,6 +355,23 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
     }
   }
 
+  // === PLATFORM ACTIVITY PRIORITIES ===
+  // Tells the LLM which platforms matter most to this user right now
+  if (platformData?.activityPriorities?.length > 0) {
+    const priorities = platformData.activityPriorities;
+    const active = priorities.filter(p => p.score >= 50);
+    const dormant = priorities.filter(p => p.score < 20);
+    if (active.length > 0) {
+      dynamicContext += '\n\nPLATFORM PRIORITIES (what defines me right now):';
+      for (const p of active.slice(0, 5)) {
+        dynamicContext += `\n- ${p.platform} (activity: ${p.level}, ${p.volume} data points this week)`;
+      }
+      if (dormant.length > 0) {
+        dynamicContext += `\nDormant: ${dormant.map(p => p.platform).join(', ')}`;
+      }
+    }
+  }
+
   // === PLATFORM CONTEXT ===
   if (platformData) {
     if (platformData.spotify) {

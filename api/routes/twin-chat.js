@@ -439,6 +439,23 @@ router.post('/message', authenticateUser, async (req, res) => {
     const contextBuildMs = Date.now() - chatStartTime;
     const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory } = twinContext;
 
+    // Inject platform activity priorities into platformData for system prompt
+    try {
+      const { data: actData } = await supabase
+        .from('platform_connections')
+        .select('platform, activity_score, activity_level, content_volume')
+        .eq('user_id', userId)
+        .order('activity_score', { ascending: false });
+      if (actData?.length > 0 && platformData) {
+        platformData.activityPriorities = actData.map(a => ({
+          platform: a.platform,
+          score: a.activity_score || 0,
+          level: a.activity_level || 'none',
+          volume: a.content_volume || 0,
+        }));
+      }
+    } catch (e) { /* non-fatal */ }
+
     // Fetch core memory blocks for identity anchoring (prevents personality drift)
     let coreBlockText = null;
     try {

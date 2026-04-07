@@ -823,7 +823,22 @@ async function routeMemoryContext(userId, userMessage, memoryDomains = null) {
   const { weights } = memoryDomains;
 
   // Convert 0-1 weights into memory budgets
-  const baseBudgets = { reflections: 15, facts: 6, platformData: 4, conversations: 4 };
+  // Platform budget scales with number of high-activity platforms (activity_score >= 50)
+  let platformBudget = 4; // default
+  try {
+    const { data: activityData } = await supabaseAdmin
+      .from('platform_connections')
+      .select('activity_score')
+      .eq('user_id', userId)
+      .gte('activity_score', 50);
+    const activePlatforms = activityData?.length || 0;
+    // Scale: 0 active → 4, 1-2 → 6, 3-4 → 8, 5+ → 10
+    platformBudget = Math.min(10, 4 + Math.floor(activePlatforms / 2) * 2);
+  } catch (e) {
+    // Non-fatal, use default
+  }
+
+  const baseBudgets = { reflections: 15, facts: 6, platformData: platformBudget, conversations: 4 };
   const memoryBudgets = {
     reflections: Math.max(1, Math.round(baseBudgets.reflections * (weights.reflections || 0.6))),
     facts: Math.max(1, Math.round(baseBudgets.facts * (weights.facts || 0.6))),
