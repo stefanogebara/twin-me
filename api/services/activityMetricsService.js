@@ -51,11 +51,12 @@ export async function calculateActivityMetrics(userId, platform) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Count memories for this platform in the last 7 days
+    // Note: platform is stored in metadata JSONB, not a top-level column
     const { count, error: countErr } = await supabase
       .from('user_memories')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('source', platform)
+      .contains('metadata', { source: platform })
       .gte('created_at', sevenDaysAgo);
 
     if (countErr) {
