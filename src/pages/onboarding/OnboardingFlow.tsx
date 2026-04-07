@@ -76,7 +76,7 @@ const OnboardingFlow: React.FC = () => {
   }
 
   return (
-    <div style={{ background: 'linear-gradient(180deg, #110f0f 0%, #0d0b0b 50%, #0a0909 100%)', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--background)', minHeight: '100vh' }}>
     <Suspense fallback={<LoadingFallback />}>
       {/* Progress dots — hidden on welcome (intro) and awakening (finale) */}
       {step !== 'welcome' && step !== 'awakening' && (

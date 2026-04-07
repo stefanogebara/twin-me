@@ -84,15 +84,12 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           "w-[240px]"
         )}
       >
-        {/* Glass container — floating pill shape */}
+        {/* Flat sidebar — straight edges, no pill */}
         <div
-          className="flex flex-col h-[calc(100%-32px)] m-4 overflow-hidden rounded-[32px]"
+          className="flex flex-col h-full overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.06)',
-            backdropFilter: 'blur(19.65px)',
-            WebkitBackdropFilter: 'blur(19.65px)',
-            border: '1px solid rgba(255, 255, 255, 0.10)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+            background: 'rgba(255, 255, 255, 0.025)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
           <style>

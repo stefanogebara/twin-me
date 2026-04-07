@@ -1,5 +1,10 @@
 # TwinMe - Soul Signature Platform
 
+## User Preferences (MUST FOLLOW)
+
+- **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
+- **Design**: Keep existing dark design system. Sidebar must be FLAT (straight edges, no rounded pill). Background must be black (#13121a) or use the sun-driven gradient system — NEVER navy blue.
+
 ## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
 
 - **Crons**: NEVER more than */15. Removed token-refresh cron (on-demand only). deliver-insights and prospective-check at */15.

@@ -478,6 +478,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
     let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation, coreBlockText);
 
+    // Hard rule: never use emojis (user preference)
+    systemPrompt.push({ type: 'text', text: '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead.' });
+
     // Inject persona block: translates personality data into prescriptive behavioral rules
     const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
     if (personaBlock) {
@@ -644,7 +647,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       styleParts.push(`I write in a ${writingProfile.communicationStyle} style`);
       styleParts.push(`my messages are ${writingProfile.messageLength}`);
       styleParts.push(`my vocabulary is ${writingProfile.vocabularyRichness}`);
-      if (writingProfile.usesEmojis) styleParts.push(`I use emojis naturally`);
+      // Never use emojis — user preference
       if (writingProfile.asksQuestions) styleParts.push(`I ask a lot of questions`);
       additionalContext += `\n\nMY VOICE (match this closely): ${styleParts.join(', ')}.`;
       if (writingProfile.personalityIndicators) {
@@ -1110,7 +1113,7 @@ RULES:
           const followUpMessages = [
             ...llmMessages,
             { role: 'assistant', content: assistantMessage },
-            { role: 'user', content: `${resultBlock}\n\nIncorporate these results using this EXACT format:\n- Use emoji heading for the topic (📧 for email, 📅 for calendar, 📁 for files)\n- **Bold** all sender names, subjects, event titles, file names\n- Use numbered list (1. 2. 3.) for multiple items, ordered by importance\n- Keep each item to one line with the key info\n- End with "Want me to [specific action]?" offering to dig deeper\n\nExample:\n📧 **Today's important emails**\n1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Christian Mauad Gebara**\n2. **BTG Pactual** — Bitcoin purchase confirmed, **R$ 4,918.41**\n3. **Meta** — WhatsApp template recategorized to MARKETING\n\nWant me to read any of these in detail?` },
+            { role: 'user', content: `${resultBlock}\n\nIncorporate these results using this EXACT format:\n- Use a plain text heading for the topic (no emojis)\n- **Bold** all sender names, subjects, event titles, file names\n- Use numbered list (1. 2. 3.) for multiple items, ordered by importance\n- Keep each item to one line with the key info\n- End with "Want me to [specific action]?" offering to dig deeper\n- NEVER use emojis anywhere in the response\n\nExample:\n**Today's important emails**\n1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Christian Mauad Gebara**\n2. **BTG Pactual** — Bitcoin purchase confirmed, **R$ 4,918.41**\n3. **Meta** — WhatsApp template recategorized to MARKETING\n\nWant me to read any of these in detail?` },
           ];
 
           if (isStreaming) {

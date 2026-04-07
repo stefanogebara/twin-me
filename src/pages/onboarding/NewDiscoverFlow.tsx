@@ -534,7 +534,7 @@ const NewDiscoverFlow: React.FC = () => {
   // Loading state
   if (!authLoaded || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0C0C0C]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#E8D5B7' }} />
       </div>
     );
@@ -558,7 +558,7 @@ const NewDiscoverFlow: React.FC = () => {
     || inferNameFromEmail(user.email);
 
   return (
-    <div className={`bg-[#0C0C0C] relative ${phase === 'deep-interview' ? 'h-dvh flex flex-col overflow-hidden' : 'min-h-screen overflow-hidden'}`}>
+    <div className={`bg-[var(--background)] relative ${phase === 'deep-interview' ? 'h-dvh flex flex-col overflow-hidden' : 'min-h-screen overflow-hidden'}`}>
       <style>{`
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

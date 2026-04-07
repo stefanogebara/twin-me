@@ -104,7 +104,7 @@ const AwakeningScreen: React.FC<AwakeningScreenProps> = ({ onEnter }) => {
     <div
       className="h-screen w-full flex flex-col items-center justify-center relative overflow-hidden"
       style={{
-        background: 'linear-gradient(180deg, #110f0f 0%, #0d0b0b 50%, #0a0909 100%)',
+        background: 'var(--background)',
       }}
     >
       <Stars />
