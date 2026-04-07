@@ -1201,37 +1201,42 @@ RULES:
       .map(block => block.text || '')
       .join('\n')
       .trim();
-    logConversationToDatabase({
-      userId,
-      userMessage: message,
-      twinResponse: assistantMessage,
-      source: 'twinme_web',
-      conversationId,
-      renderedSystemPrompt: renderedSystemPromptText,
-      platformsContext: {
-        spotify: !!platformData.spotify,
-        calendar: !!platformData.calendar,
-        whoop: !!platformData.whoop,
-        platforms_included: Object.keys(platformData)
-      },
-      brainStats: {
-        has_soul_signature: !!soulSignature,
-        has_memory_stream: memories?.length > 0,
-        has_writing_profile: !!writingProfile
-      }
-    }).catch(err => log.warn('Failed to log conversation', { error: err }));
-
-    // Skip memory writes + reflection during eval runs to avoid polluting memory stream
+    // Critical persistence: await these BEFORE sending response to prevent Vercel
+    // from killing the function before writes complete (was causing 5.2% conversation memory)
     const evalMode = req.headers['x-eval-mode'] === 'true';
 
+    await Promise.all([
+      logConversationToDatabase({
+        userId,
+        userMessage: message,
+        twinResponse: assistantMessage,
+        source: 'twinme_web',
+        conversationId,
+        renderedSystemPrompt: renderedSystemPromptText,
+        platformsContext: {
+          spotify: !!platformData.spotify,
+          calendar: !!platformData.calendar,
+          whoop: !!platformData.whoop,
+          platforms_included: Object.keys(platformData)
+        },
+        brainStats: {
+          has_soul_signature: !!soulSignature,
+          has_memory_stream: memories?.length > 0,
+          has_writing_profile: !!writingProfile
+        }
+      }).catch(err => log.warn('Failed to log conversation', { error: err })),
+
+      !evalMode
+        ? addConversationMemoryStream(userId, message, assistantMessage, {
+            conversationId,
+            platforms: Object.keys(platformData),
+            hasSoulSignature: !!soulSignature,
+            chatSource
+          }).catch(err => log.warn('Failed to store in memory stream', { error: err }))
+        : Promise.resolve(),
+    ]);
+
     if (!evalMode) {
-    // Store in unified memory stream - non-blocking
-    addConversationMemoryStream(userId, message, assistantMessage, {
-      conversationId,
-      platforms: Object.keys(platformData),
-      hasSoulSignature: !!soulSignature,
-      chatSource
-    }).catch(err => log.warn('Failed to store in memory stream', { error: err }));
 
     // Extract facts from user message - non-blocking
     extractConversationFacts(userId, message).catch(err => log.error('Fact extraction failed', { error: err }));
