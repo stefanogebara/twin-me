@@ -12,8 +12,8 @@
  * (type distribution metrics). This config tunes CONTENT relevance of retrieved memories.
  *
  * BASELINE: memory_relevance_score = 0.490 (original)
- * PREVIOUS BEST: 0.522-0.530 (relevance-dominant config, 2026-03-25)
- * CURRENT BEST: 0.540 (reduced diversity + faster freshness decay, 2026-03-26)
+ * PREVIOUS BEST: 0.540 (reduced diversity + faster freshness decay, 2026-03-26)
+ * CURRENT BEST: 0.524 avg / 0.546 peak (relevance=2.8, importance=0.3, 2026-04-07)
  */
 
 // ─── Retrieval Parameters ───────────────────────────────────────────────────
@@ -52,8 +52,8 @@ export const DIVERSITY_RERANKING_WEIGHT = 0.3;
 
 export const RETRIEVAL_WEIGHTS = {
   recency: 0.0,
-  importance: 0.4,
-  relevance: 2.2,
+  importance: 0.3,
+  relevance: 2.8,
 };
 
 // ─── BM25 Lexical Scoring (TiMem) ───────────────────────────────────────

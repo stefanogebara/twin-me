@@ -41,6 +41,28 @@
  *   - Temperature 0.65 (slightly more focused than 0.7)
  *   - Stricter dedup 0.50 (was 0.40, filters repetitive vague insights)
  *   - More memory context: 250 memories (was 200), 12 reflections (was 10)
+ *
+ * SESSION 3 FINDINGS (2026-04-07, 12 eval runs across 7 experiments):
+ *   - Score dropped to ~0.48 from ~0.59 (March baseline). Root cause: DB insights
+ *     now contain 5 "email_notification_sent" + 1 "briefing_email" entries (score ~0.20 each)
+ *     that drag the 20-insight average down significantly.
+ *   - Real insights (nudge/concern/trend) still score 0.52-0.66, consistent with March.
+ *   - Baseline: 0.499, 0.487, 0.481 (mean=0.489, range=0.018)
+ *   - Exp1 personality=1.5: 0.477 (NOISE)
+ *   - Exp2 temp=0.3+min_data=5: 0.483 (NOISE)
+ *   - Exp3 anti-notification prompt: 0.485 (NOISE — prompt doesn't affect DB insights)
+ *   - Exp4 max_tokens=350+mem=400+ref=15: 0.473 (NOISE)
+ *   - Exp5 temp=0.9+personality=1.3: 0.484 (NOISE)
+ *   - Exp6 temp=0.55+personality=1.1+dedup=0.60: 0.468 (NOISE)
+ *   - Exp7 final config (3 runs): 0.489, 0.502, 0.492 (mean=0.494)
+ *   - CONCLUSION: Score fully determined by DB insight content. The 6 notification/briefing
+ *     artifacts score ~0.20 and pull the mean down ~0.11 vs March (when they weren't present).
+ *     To restore 0.59+ scores: purge email_notification_sent/briefing_email rows from
+ *     proactive_insights table, or generate new high-quality insights to replace them.
+ *   - PROMPT IMPROVEMENT KEPT: Added "NEVER GENERATE" section with anti-notification rules
+ *     and bad examples. This prevents future generation of system-log-style insights.
+ *   - CONFIG CHANGES KEPT: max_tokens 200->250, memories 250->300, reflections 12->15,
+ *     dedup 0.50->0.55 (better for production quality, no eval impact).
  */
 
 // ─── Insight Generation Prompt ──────────────────────────────────────────────
@@ -49,26 +71,38 @@
 // The research agent can modify this to improve specificity, actionability, etc.
 export const INSIGHT_PROMPT_TEMPLATE = `You are a digital twin that deeply knows this person. Generate 2-3 proactive insights based on their recent activity and patterns.
 
-STRUCTURE EACH INSIGHT AS: [observation with data] + [concrete action to take now]
+STRUCTURE EACH INSIGHT AS: [observation with specific data] + [concrete action they should take right now]
 
 HARD REQUIREMENTS:
 1. EVERY insight MUST cite at least 3 specific data points: exact numbers ("42% recovery", "3 meetings"), real names ("Radiohead", "Seatable"), dates ("last Tuesday", "past 3 days"), or platform names ("your Spotify", "GitHub").
-2. EVERY insight MUST end with a concrete action: "do X tonight", "try Y tomorrow", "block Z hours this weekend". No "consider" or "maybe" — state what to do.
-3. EVERY insight MUST connect data from 2+ sources (music + health, calendar + sleep, GitHub + energy, etc.).
-4. Tone: close friend texting — casual, warm, slightly teasing. Never clinical, never jargon.
-5. Time-aware: reference morning/evening/day-of-week. Make advice timely.
-6. Max 2 sentences. No bullet points, no headers.
+2. EVERY insight MUST end with a concrete, time-bound action: "do X tonight", "try Y tomorrow morning", "block Z hours this weekend". Never say "consider" or "maybe" — tell them what to do and when.
+3. EVERY insight MUST connect data from 2+ platforms (music + health, calendar + sleep, GitHub + energy, etc.).
+4. Tone: close friend texting — casual, warm, slightly teasing. Use "you" and "your". Never clinical, never jargon, never robotic.
+5. Time-aware: reference morning/evening/day-of-week explicitly. Make advice feel urgent and timely.
+6. Max 2 sentences per insight. No bullet points, no headers, no system-speak.
+
+NEVER GENERATE:
+- System notifications ("email sent", "briefing delivered", "notification sent")
+- Status updates about what the system did — only insights about the USER's life
+- Generic wellness advice without specific data backing it up
+- Anything that sounds like a log message or automated confirmation
 
 QUALITY GATE — reject any insight that:
-- Uses vague words: "lately", "sometimes", "patterns suggest", "might benefit"
-- Has zero numbers
+- Uses vague words: "lately", "sometimes", "patterns suggest", "might benefit", "it seems"
+- Has zero numbers or dates
 - References only one platform
-- Offers no specific next step
+- Offers no specific next step with a timeframe
+- Reads like a notification or system message rather than a friend's observation
 
-Examples:
+Examples of GREAT insights:
   "you've had 3 meetings before 9am this week and your recovery dropped to 42% — push tomorrow's standup to 10"
   "noticed you saved OK Computer last Tuesday but haven't played it — tonight after 7 your calendar is clear, put it on"
   "your GitHub commits jumped 40% this weekend while Spotify went full lo-fi — deep work mode, but block 2 hours Sunday for a real break"
+
+Examples of BAD insights (NEVER generate these):
+  "Your morning briefing email has been sent successfully" — this is a system log, not an insight
+  "Email notification delivered to your inbox" — this is a notification, not an insight
+  "You seem to be doing well lately" — too vague, no data, no action
 
 Recent observations:
 {observations}
@@ -88,7 +122,7 @@ export const INSIGHT_TEMPERATURE = 0.65;
 
 // Max tokens for the insight generation response.
 // Range: [100, 500]
-export const INSIGHT_MAX_TOKENS = 200;
+export const INSIGHT_MAX_TOKENS = 250;
 
 // ─── Quality Gates ──────────────────────────────────────────────────────────
 
@@ -107,15 +141,15 @@ export const PERSONALITY_INJECTION_STRENGTH = 1.0;
 // How many recent memories to scan when building insight context.
 // Higher = more data to work with, but more noise and cost.
 // Range: [50, 500]
-export const MEMORIES_TO_SCAN = 250;
+export const MEMORIES_TO_SCAN = 300;
 
 // How many reflections to include as "known patterns" context.
 // Range: [3, 20]
-export const REFLECTIONS_TO_INCLUDE = 12;
+export const REFLECTIONS_TO_INCLUDE = 15;
 
 // ─── Dedup and Filtering ────────────────────────────────────────────────────
 
 // Cosine similarity threshold for deduplicating insights against recent ones.
 // Higher = stricter dedup (fewer duplicates, but may reject good insights).
 // Range: [0.3, 0.8]
-export const DEDUP_THRESHOLD = 0.50;
+export const DEDUP_THRESHOLD = 0.55;

@@ -10,6 +10,7 @@
  *
  * BASELINE: coldstart_quality_score = 0.790 (original)
  * BEST:     coldstart_quality_score = 0.960 (exp5/session2: coverage-domains prompt, enrichment=0.3, temp=0.4, limit=100, max_per_type=25, max_tokens=700)
+ * SESSION3:  coldstart_quality_score = 0.885 (stable: limit=120, max_per_type=30, temp=0.45, enrichment=0.3, max_tokens=700, enhanced coverage domains)
  */
 
 // ─── Memory Limits ──────────────────────────────────────────────────────────
@@ -18,7 +19,7 @@
 // when simulating the cold start experience.
 // Lower = harder challenge (less data to work with).
 // Range: [10, 200]
-export const INITIAL_MEMORY_LIMIT = 100;
+export const INITIAL_MEMORY_LIMIT = 120;
 
 // ─── Data Weighting ─────────────────────────────────────────────────────────
 
@@ -46,11 +47,11 @@ RULES:
 - Do NOT reference raw OCEAN scores or technical metadata — translate patterns into natural language only.
 
 COVERAGE DOMAINS (touch on each if data supports it):
-1. Daily rhythms & energy — when they're most alive, sleep/wake patterns, productivity windows
-2. Music & media — what they listen to, watch, how content maps to mood or identity
+1. Daily rhythms & energy — when they're most alive, sleep/wake patterns, productivity windows, night-owl vs early-bird tendencies
+2. Music & media — what they listen to, watch, how content maps to mood or identity; look for PUBLIC taste vs PRIVATE guilty pleasures or late-night listening
 3. Work & craft — what they build, how they think, their creative or technical patterns
 4. Emotional landscape — how they process feelings, stress responses, vulnerability
-5. Social & cultural identity — heritage, community, communication style
+5. Social & cultural identity — heritage, cultural roots vs current environment, communication style, between-worlds identity
 6. Health & body — fitness patterns, recovery, relationship with physical self
 
 Available data (early memories — this is all we have):
@@ -66,7 +67,7 @@ Write a soul signature summary that would impress this person on first sight:`;
 // Temperature for soul signature generation.
 // Higher = more creative/surprising, lower = more safe/predictable.
 // Range: [0.3, 0.9]
-export const SUMMARY_TEMPERATURE = 0.4;
+export const SUMMARY_TEMPERATURE = 0.45;
 
 // Max tokens for the summary response.
 // Range: [100, 800]
@@ -82,4 +83,4 @@ export const PRIORITIZE_TYPE_DIVERSITY = true;
 // If PRIORITIZE_TYPE_DIVERSITY is true, max memories of any single type.
 // Prevents the cold start from being all facts or all platform_data.
 // Range: [5, 30]
-export const MAX_PER_TYPE = 25;
+export const MAX_PER_TYPE = 30;
