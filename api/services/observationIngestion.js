@@ -4545,12 +4545,27 @@ async function runObservationIngestion() {
 
     log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
 
-    // Process each user
-    for (const [userId, platforms] of userPlatforms) {
+    // Global timeout guard — stop processing before Vercel kills us (60s limit)
+    const GLOBAL_TIMEOUT_MS = 50_000;
+    const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
+
+    // Round-robin: rotate which user starts first so all users get serviced
+    // Uses minute-of-hour as a simple rotation key
+    const userEntries = [...userPlatforms.entries()];
+    const rotationOffset = new Date().getMinutes() % userEntries.length;
+    const rotatedUsers = [...userEntries.slice(rotationOffset), ...userEntries.slice(0, rotationOffset)];
+
+    // Process each user (with timeout guard)
+    for (const [userId, platforms] of rotatedUsers) {
+      if (isTimedOut()) {
+        log.info('Global timeout reached, stopping ingestion', { elapsed: Date.now() - startTime, usersProcessed: stats.usersProcessed });
+        break;
+      }
       try {
         let userObsCount = 0;
 
         for (const platform of platforms) {
+          if (isTimedOut()) break;
           try {
             // Fetch observations from platform
             let observations = [];
