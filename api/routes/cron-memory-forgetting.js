@@ -5,7 +5,7 @@
  * memory quality over time — lower-signal memories fade, higher-signal ones
  * persist. Different tiers use different time windows and actions.
  *
- * Tier 1 — Aggressive (conversation): >30 days + importance ≤3 → archive
+ * Tier 1 — Moderate (conversation):   >90 days + importance ≤2 → archive
  * Tier 2 — Moderate (platform_data):  >30 days + importance ≤4 + retrieval_count=0 → archive
  * Tier 3 — Gentle (fact):             >90 days + importance ≤5 → decay importance by 20%
  * Tier 6 — Stale reflections:         >90 days + importance <8 + retrieval_count=0 → archive
@@ -51,16 +51,17 @@ router.all('/', async (req, res) => {
       errors: [],
     };
 
-    // ── Tier 1: Conversation memories > 30 days + importance ≤ 3 → archive ──
+    // ── Tier 1: Conversation memories > 90 days + importance ≤ 2 → archive ──
+    // Extended from 30d/≤3 to 90d/≤2 to retain more conversation context (was only 5.2% of stream)
     try {
-      const tier1Cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const tier1Cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
       const { data: tier1Rows } = await supabaseAdmin
         .from('user_memories')
         .select('id, user_id, content, memory_type, metadata, importance_score, created_at, last_accessed_at')
         .eq('memory_type', 'conversation')
         .lt('created_at', tier1Cutoff)
-        .lte('importance_score', 3)
+        .lte('importance_score', 2)
         .lt('retrieval_count', 3)  // not frequently accessed
         .limit(BATCH_SIZE);
 

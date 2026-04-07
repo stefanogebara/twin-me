@@ -336,8 +336,8 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
     ]);
 
-    // Floor: platform_data never drops below importance 4 (protects from early archival)
-    if (memoryType === 'platform_data' && importanceScore < 4) {
+    // Floor: platform_data and conversations never drop below importance 4 (protects from early archival)
+    if ((memoryType === 'platform_data' || memoryType === 'conversation') && importanceScore < 4) {
       importanceScore = 4;
     }
 
@@ -421,7 +421,7 @@ async function decaySourceMemories(userId, evidenceIds) {
     const { data: decayed, error } = await supabaseAdmin.rpc('bulk_decay_memories', {
       p_user_id: userId,
       p_memory_ids: evidenceIds,
-      p_decay_factor: 0.6,
+      p_decay_factor: 0.8,
     });
 
     if (error) throw error;

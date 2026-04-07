@@ -164,8 +164,9 @@ async function isDuplicateReflection(userId, expertId, newObservation) {
 }
 
 // Reflection threshold: trigger when sum of recent importance scores exceeds this
-// 60 = ~12 platform observations at avg importance 5, prevents runaway triggering
-export const IMPORTANCE_THRESHOLD = 60;
+// 80 = ~16 observations at avg importance 5. Raised from 60 to reduce reflection
+// oversaturation (was 48.5% of stream, crowding out conversation memories at 5.2%)
+export const IMPORTANCE_THRESHOLD = 80;
 
 // Max recursive reflection depth — depth-1 prevents feedback loops by disallowing
 // meta-reflections (reflections-on-reflections), keeping memory composition healthier
