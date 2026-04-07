@@ -211,7 +211,7 @@ export default function DiscoverLanding() {
   };
 
   const handleNavigateAuth = (emailValue: string) => {
-    navigate(`/auth?email=${encodeURIComponent(emailValue)}`);
+    navigate(`/auth?email=${encodeURIComponent(emailValue)}&redirect=/soul-reveal`);
   };
 
   const handleEnterDemo = () => {

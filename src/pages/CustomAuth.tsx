@@ -34,6 +34,9 @@ const CustomAuth = () => {
       // Only persist if from URL (fresh) — sessionStorage already has stale one
       if (urlCode) sessionStorage.setItem('beta_invite_code', code);
       validateCode(code);
+    } else if (sessionStorage.getItem('twinme_discovery_confirmed') === 'true') {
+      // Users who completed discovery flow are pre-qualified — bypass invite gate
+      setInviteValid(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

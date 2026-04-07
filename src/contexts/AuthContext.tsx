@@ -345,6 +345,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       params.set('invite', inviteCode);
     }
 
+    // Users who completed discovery are pre-qualified for beta
+    if (sessionStorage.getItem('twinme_discovery_confirmed') === 'true') {
+      params.set('discovery', 'true');
+    }
+
     if (params.toString()) {
       oauthUrl += `?${params.toString()}`;
     }

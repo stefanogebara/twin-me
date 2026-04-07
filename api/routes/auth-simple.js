@@ -566,6 +566,11 @@ router.get('/oauth/google', (req, res) => {
     stateData.inviteCode = req.query.invite.trim();
   }
 
+  // Discovery-confirmed users are pre-qualified for beta
+  if (req.query.discovery === 'true') {
+    stateData.discoveryConfirmed = true;
+  }
+
   // Include redirect parameter in state if provided (relative paths only — prevent open redirect)
   if (req.query.redirect) {
     const redirectParam = req.query.redirect;
@@ -1024,6 +1029,7 @@ router.post('/oauth/callback', async (req, res) => {
 
     // Check if user exists or create new (only for auth flows, not connector flows)
     let user = null;
+    let isNewUser = false;
 
     log.info('Checking user', { isConnectorFlow, hasUserData: !!userData });
 
@@ -1052,8 +1058,10 @@ router.post('/oauth/callback', async (req, res) => {
 
       if (!existingUser) {
         // Beta gate: check invite code for new users (POST callback)
+        // Discovery-confirmed users bypass the invite gate (they completed the discovery flow)
         let resolvedInviteCodePost = null;
-        if (betaInviteService.isBetaGateEnabled()) {
+        const discoveryBypass = stateData?.discoveryConfirmed === true;
+        if (betaInviteService.isBetaGateEnabled() && !discoveryBypass) {
           const inviteCode = stateData?.inviteCode || req.body?.inviteCode;
           const preInvite = await betaInviteService.isEmailPreInvited(userData.email);
           resolvedInviteCodePost = inviteCode || preInvite?.code;
@@ -1069,6 +1077,9 @@ router.post('/oauth/callback', async (req, res) => {
             log.info('New user rejected via POST (invalid invite)', { email: userData.email });
             return res.status(403).json({ success: false, error: validation.error, waitlist: true });
           }
+        }
+        if (discoveryBypass) {
+          log.info('Discovery-confirmed user bypassing beta gate', { email: userData.email });
         }
 
         // Create new user
@@ -1107,6 +1118,7 @@ router.post('/oauth/callback', async (req, res) => {
 
         log.info('New user created', { userId: newUser.id });
         user = newUser;
+        isNewUser = true;
 
         // Redeem invite code after user creation (reuse cached code)
         if (resolvedInviteCodePost) {
@@ -1168,6 +1180,7 @@ router.post('/oauth/callback', async (req, res) => {
       const responseData = {
         success: true,
         token: accessToken,
+        isNewUser,
         user: {
           id: user.id,
           email: user.email,

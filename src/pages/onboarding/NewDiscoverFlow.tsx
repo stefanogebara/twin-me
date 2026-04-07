@@ -102,7 +102,9 @@ const NewDiscoverFlow: React.FC = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [enrichError, setEnrichError] = useState<string | null>(null);
-  const [identityConfirmed, setIdentityConfirmed] = useState(false);
+  const [identityConfirmed, setIdentityConfirmed] = useState(() => {
+    return sessionStorage.getItem('twinme_discovery_confirmed') === 'true';
+  });
   const [briefing, setBriefing] = useState<OnboardingBriefing | null>(null);
 
   // Refs
