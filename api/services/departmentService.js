@@ -12,7 +12,7 @@
  *   - database.js          — Supabase admin client
  */
 
-import { DEPARTMENTS, DEPARTMENT_NAMES, getDepartmentConfig } from '../config/departmentConfig.js';
+import { DEPARTMENTS, DEPARTMENT_NAMES, getDepartmentConfig, getToolCostEstimate } from '../config/departmentConfig.js';
 import { queueActionForApproval, getAutonomyBySkillName, AUTONOMY_LEVELS } from './autonomyService.js';
 import { checkDepartmentBudget } from './departmentBudgetService.js';
 import { supabaseAdmin } from './database.js';
@@ -97,7 +97,7 @@ export async function proposeDepartmentAction(userId, department, { toolName, pa
 
   try {
     // Budget check (estimate 0.01 as a default estimated cost)
-    const estimatedCost = 0.01;
+    const estimatedCost = getToolCostEstimate(toolName);
     const budgetResult = await checkDepartmentBudget(userId, department, estimatedCost);
     if (!budgetResult.allowed) {
       log.info('Action blocked by budget', { userId, department, toolName });
@@ -146,6 +146,39 @@ export async function proposeDepartmentAction(userId, department, { toolName, pa
 }
 
 /**
+ * Generate a human-readable description from a proposal's raw data.
+ */
+function generateDisplayDescription(action) {
+  const ctx = action.context_summary || '';
+  const isGeneric = !ctx || ctx.endsWith('department action') || ctx === 'Pending action';
+  if (ctx && !isGeneric) return ctx;
+
+  try {
+    const parsed = typeof action.proposed_action === 'string'
+      ? JSON.parse(action.proposed_action)
+      : action.proposed_action;
+    if (!parsed) return ctx || 'Pending action';
+
+    const tool = parsed.toolName || parsed.tool || '';
+    const p = parsed.params || {};
+    const desc = {
+      gmail_send: () => p.to ? `Send email to ${p.to}${p.subject ? ': ' + p.subject : ''}` : 'Send email',
+      gmail_reply: () => p.subject ? `Reply to: ${p.subject}` : 'Reply to email',
+      gmail_draft: () => p.to ? `Draft email to ${p.to}${p.subject ? ': ' + p.subject : ''}` : 'Draft email',
+      calendar_create: () => p.summary || p.title ? `Create event: ${p.summary || p.title}` : 'Create calendar event',
+      calendar_modify_event: () => p.summary ? `Modify event: ${p.summary}` : 'Modify calendar event',
+      docs_create: () => p.title ? `Create document: ${p.title}` : 'Create document draft',
+      drive_search: () => p.query ? `Search files for "${p.query}"` : 'Search your files',
+      suggest: () => p.suggestion || parsed.description || ctx || 'Suggestion from your twin',
+    };
+    if (desc[tool]) return desc[tool]();
+    if (tool) return tool.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  } catch { /* JSON parse failed */ }
+
+  return ctx || 'Pending action';
+}
+
+/**
  * Get pending department proposals for a user.
  * Returns actions where department IS NOT NULL and user_response IS NULL.
  */
@@ -169,10 +202,11 @@ export async function getPendingProposals(userId) {
       return [];
     }
 
-    // Enrich with department name parsed from skill_name (e.g., "communications_actions")
+    // Enrich with department name and human-readable description
     return (data || []).map(action => {
       const department = extractDepartmentFromSkillName(action.skill_name);
-      return { ...action, department };
+      const display_description = generateDisplayDescription(action);
+      return { ...action, department, display_description };
     });
   } catch (err) {
     log.error('getPendingProposals failed', { userId, error: err.message });
@@ -182,6 +216,7 @@ export async function getPendingProposals(userId) {
 
 /**
  * Get recent actions for a department (last N, default 20).
+ * Returns formatted activity items with human-readable descriptions.
  */
 export async function getDepartmentActivity(userId, department, limit = 20) {
   if (!userId || !department) {
@@ -204,11 +239,80 @@ export async function getDepartmentActivity(userId, department, limit = 20) {
       return [];
     }
 
-    return data || [];
+    return (data || []).map(row => formatActivityItem(row, department));
   } catch (err) {
     log.error('getDepartmentActivity failed', { userId, department, error: err.message });
     return [];
   }
+}
+
+/**
+ * Get recent activity across ALL departments (unified feed, sorted by recency).
+ */
+export async function getAllDepartmentActivity(userId, limit = 50) {
+  if (!userId) {
+    throw new Error('userId is required');
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('agent_actions')
+      .select('id, action_type, proposed_action, context_summary, user_response, outcome_data, department, skill_name, created_at, resolved_at')
+      .eq('user_id', userId)
+      .not('department', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      log.error('getAllDepartmentActivity query failed', { userId, error });
+      return [];
+    }
+
+    return (data || []).map(row => {
+      const dept = row.department || extractDepartmentFromSkillName(row.skill_name);
+      return formatActivityItem(row, dept);
+    });
+  } catch (err) {
+    log.error('getAllDepartmentActivity failed', { userId, error: err.message });
+    return [];
+  }
+}
+
+/**
+ * Transform a raw agent_actions row into a formatted activity item.
+ */
+function formatActivityItem(row, department) {
+  const type = resolveActivityType(row);
+  const config = getDepartmentConfig(department);
+  const description = row.context_summary
+    || row.proposed_action
+    || `${config?.name || department} action`;
+  const outcome = row.outcome_data
+    ? (typeof row.outcome_data === 'string' ? row.outcome_data : row.outcome_data?.summary || null)
+    : null;
+
+  return {
+    id: row.id,
+    type,
+    department: department || 'unknown',
+    description,
+    toolName: row.action_type || null,
+    status: type,
+    createdAt: row.created_at,
+    resolvedAt: row.resolved_at || null,
+    outcome,
+  };
+}
+
+/**
+ * Derive activity type from user_response and resolved_at fields.
+ */
+function resolveActivityType(row) {
+  if (row.user_response === 'approved' && row.resolved_at) return 'executed';
+  if (row.user_response === 'approved') return 'approved';
+  if (row.user_response === 'rejected') return 'rejected';
+  if (row.user_response === null && !row.resolved_at) return 'proposal';
+  return 'suggestion';
 }
 
 /**
@@ -368,7 +472,20 @@ export async function checkDepartmentHeartbeats(userId, options = {}) {
     const pending = await getPendingProposals(userId);
     if (pending.length >= 5) return { proposals: [], skipped: 'too_many_pending' };
 
-    // 4. Build LLM prompt
+    // 4. Fetch cross-department context for coordinated intelligence
+    const { data: recentActions } = await supabaseAdmin
+      .from('agent_actions')
+      .select('department, action_type, context_summary, created_at')
+      .eq('user_id', userId)
+      .not('department', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const crossDeptContext = recentActions?.length > 0
+      ? `\nRECENT DEPARTMENT ACTIVITY:\n${recentActions.map(a => `- [${a.department}] ${a.context_summary || a.action_type} (${new Date(a.created_at).toLocaleDateString()})`).join('\n')}`
+      : '';
+
+    // 5. Build LLM prompt
     const deptDescriptions = activeDepts.map(d => {
       const tools = (getDepartmentConfig(d.department)?.tools || []).join(', ') || 'none yet';
       return `- ${d.name} (${d.department}): ${d.description}. Tools: ${tools}`;
@@ -383,6 +500,13 @@ ${deptDescriptions}
 
 RECENT USER ACTIVITY (last 6 hours):
 ${obsText}
+${crossDeptContext}
+
+CROSS-DEPARTMENT OPPORTUNITIES:
+When you see patterns that span multiple departments, suggest coordinated actions. Examples:
+- Health data (low recovery) + Scheduling (packed calendar) → suggest lighter schedule
+- Communications (unread emails from colleague) + Scheduling (meeting tomorrow) → suggest prep email
+- Content (user posted about topic X) + Research (trending articles on X) → suggest content idea
 
 EXISTING PENDING PROPOSALS: ${pending.length}
 
@@ -399,7 +523,7 @@ Rules:
 - Max 3 suggestions. If nothing is clearly actionable, return []
 - Match department to the right tool (gmail_send for communications, calendar_create for scheduling, etc.)`;
 
-    // 5. Call LLM (cheapest tier)
+    // 6. Call LLM (cheapest tier)
     const response = await complete({
       messages: [{ role: 'user', content: prompt }],
       tier: TIER_EXTRACTION,
@@ -409,7 +533,7 @@ Rules:
       serviceName: 'department-heartbeat',
     });
 
-    // 6. Parse response and create proposals (robust JSON extraction)
+    // 7. Parse response and create proposals (robust JSON extraction)
     const text = response?.content || '';
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
     if (!jsonMatch) { log.debug('No proposals generated', { textLen: text.length }); return { proposals: [], count: 0 }; }
@@ -451,7 +575,7 @@ Rules:
       createdProposals.push({ ...result, department: s.department, description: s.description });
     }
 
-    // 7. Set cooldown (2 hours = 7200 seconds)
+    // 8. Set cooldown (2 hours = 7200 seconds)
     await cacheSet(cooldownKey, Date.now(), 7200);
 
     log.info('Department heartbeat complete', { userId, proposalsCreated: createdProposals.length });

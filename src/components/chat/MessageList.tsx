@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
@@ -8,6 +8,7 @@ import { RotateCcw, AlertCircle, WifiOff, Clock, ThumbsUp, ThumbsDown, Copy, Che
 import { WorkspaceActionCard } from './WorkspaceActionCard';
 import { DepartmentProposalBubble, type ProposalData, type ProposalStatus } from './DepartmentProposalBubble';
 import { ProposalSummaryCard } from './ProposalSummaryCard';
+import { DepartmentSuggestionCard, parseDepartmentSuggestions } from './DepartmentSuggestionCard';
 
 type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
 
@@ -94,6 +95,7 @@ interface MessageListProps {
   onRejectProposal?: (proposalId: string) => void;
   onApproveAllProposals?: (messageId: string) => void;
   onReviewInDepartments?: () => void;
+  onApproveDepartmentSuggestion?: (department: string, action: string) => Promise<void>;
 }
 
 /** Track which messages the user has already rated this session. */
@@ -116,8 +118,54 @@ function useCopiedMessages() {
   return { copied, markCopied };
 }
 
+/**
+ * Renders assistant message text with DEPT_SUGGEST tags parsed out
+ * and replaced by interactive suggestion cards.
+ */
+function AssistantMessageBody({
+  content,
+  onApproveDepartmentSuggestion,
+}: {
+  content: string;
+  onApproveDepartmentSuggestion?: (department: string, action: string) => Promise<void>;
+}) {
+  const { suggestions, cleanText } = useMemo(
+    () => parseDepartmentSuggestions(content),
+    [content]
+  );
+
+  return (
+    <>
+      <div
+        className="prose prose-invert max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"
+        style={{
+          fontSize: '14px',
+          color: '#D1D5DB',
+          lineHeight: '24px',
+        }}
+      >
+        <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
+          {cleanText}
+        </ReactMarkdown>
+      </div>
+
+      {suggestions.length > 0 && onApproveDepartmentSuggestion && (
+        <div className="mt-2">
+          {suggestions.map((s, i) => (
+            <DepartmentSuggestionCard
+              key={`${s.department}-${i}`}
+              suggestion={s}
+              onApprove={onApproveDepartmentSuggestion}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
-  ({ messages, isTyping, formatTime, onRetry, onRate, onApproveProposal, onRejectProposal, onApproveAllProposals, onReviewInDepartments }, ref) => {
+  ({ messages, isTyping, formatTime, onRetry, onRate, onApproveProposal, onRejectProposal, onApproveAllProposals, onReviewInDepartments, onApproveDepartmentSuggestion }, ref) => {
     const { rated, markRated } = useRatedMessages();
     const { copied, markCopied } = useCopiedMessages();
     return (
@@ -244,18 +292,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                       );
                     })()}
 
-                    <div
-                      className="prose prose-invert max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"
-                      style={{
-                        fontSize: '14px',
-                        color: '#D1D5DB',
-                        lineHeight: '24px',
-                      }}
-                    >
-                      <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
+                    <AssistantMessageBody
+                      content={message.content}
+                      onApproveDepartmentSuggestion={onApproveDepartmentSuggestion}
+                    />
 
                     {message.failed && (
                       <div

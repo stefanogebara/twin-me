@@ -9,13 +9,14 @@ import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
-import type { Department, Proposal } from '@/services/api/departmentsAPI';
+import type { Department, Proposal, ActivityItem } from '@/services/api/departmentsAPI';
 import { getTemplates, applyTemplate as applyTemplateAPI } from '@/services/api/templatesAPI';
 import type { Template } from '@/services/api/templatesAPI';
 import DepartmentCard from './components/departments/DepartmentCard';
 import DepartmentOnboarding from './components/departments/DepartmentOnboarding';
 import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
+import ActivityFeed from './components/departments/ActivityFeed';
 import { Loader2, Inbox, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -84,6 +85,7 @@ const QUERY_KEYS = {
   departments: ['departments'] as const,
   proposals: ['departments', 'proposals'] as const,
   templates: ['templates'] as const,
+  activity: ['departments', 'activity'] as const,
 };
 
 const DepartmentsPage: React.FC = () => {
@@ -125,6 +127,16 @@ const DepartmentsPage: React.FC = () => {
     queryKey: QUERY_KEYS.templates,
     queryFn: () => getTemplates(),
     staleTime: 60_000,
+    enabled: !isDemoMode,
+    initialData: isDemoMode ? [] : undefined,
+  });
+
+  const {
+    data: activityItems = [],
+  } = useQuery({
+    queryKey: QUERY_KEYS.activity,
+    queryFn: () => departmentsAPI.getActivity(50),
+    staleTime: 30_000,
     enabled: !isDemoMode,
     initialData: isDemoMode ? [] : undefined,
   });
@@ -400,6 +412,19 @@ const DepartmentsPage: React.FC = () => {
               />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Recent activity */}
+      {!isLoading && (
+        <section className="mb-10">
+          <h2
+            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-3"
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
+          >
+            Recent Activity
+          </h2>
+          <ActivityFeed items={activityItems} />
         </section>
       )}
 

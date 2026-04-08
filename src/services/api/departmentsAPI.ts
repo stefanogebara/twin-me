@@ -34,6 +34,18 @@ export interface Proposal {
   createdAt: string;
 }
 
+export interface ActivityItem {
+  id: string;
+  type: 'proposal' | 'approved' | 'rejected' | 'executed' | 'suggestion';
+  department: string;
+  description: string;
+  toolName: string | null;
+  status: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  outcome: string | null;
+}
+
 // --- API Methods ---
 
 export const departmentsAPI = {
@@ -114,7 +126,7 @@ export const departmentsAPI = {
       id: p.id,
       department: p.department || p.skill_name?.split('_')[0] || 'general',
       departmentColor: p.departmentColor || '#6366F1',
-      description: p.context_summary || p.proposed_action || p.description || 'Pending action',
+      description: p.display_description || p.context_summary || p.description || 'Pending action',
       estimatedCost: p.estimated_cost_usd ?? 0,
       createdAt: p.created_at || new Date().toISOString(),
     }));
@@ -152,6 +164,36 @@ export const departmentsAPI = {
   triggerHeartbeat: async (): Promise<{ success: boolean; proposals: any[]; count?: number; skipped?: string }> => {
     const response = await authFetch('/departments/heartbeat', { method: 'POST' });
     if (!response.ok) throw new Error('Heartbeat failed');
+    return response.json();
+  },
+
+  /**
+   * Get unified activity feed across all departments
+   */
+  getActivity: async (limit = 50): Promise<ActivityItem[]> => {
+    const response = await authFetch(`/departments/activity?limit=${limit}`);
+    if (!response.ok) throw new Error('Failed to fetch activity');
+    const data = await response.json();
+    return data.activity ?? [];
+  },
+
+  /**
+   * Create a proposal for a department action (from twin DEPT_SUGGEST tags)
+   */
+  propose: async (department: string, opts: { toolName?: string; params?: Record<string, unknown>; context?: string }): Promise<{ success: boolean; proposal: unknown }> => {
+    const response = await authFetch(`/departments/${encodeURIComponent(department)}/propose`, {
+      method: 'POST',
+      body: JSON.stringify({
+        toolName: opts.toolName || 'suggest',
+        params: opts.params || {},
+        context: opts.context || '',
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create proposal: ${response.statusText}`);
+    }
+
     return response.json();
   },
 };

@@ -546,6 +546,17 @@ const TalkToTwin = () => {
     navigate('/departments');
   }, [navigate]);
 
+  const handleApproveDepartmentSuggestion = useCallback(async (department: string, action: string) => {
+    try {
+      await departmentsAPI.propose(department, { context: action });
+      toast({ title: 'Action queued', description: `${department.charAt(0).toUpperCase() + department.slice(1)} department will handle this.` });
+    } catch (err) {
+      console.error('Failed to create department suggestion proposal:', err);
+      toast({ title: 'Failed', description: 'Could not queue this action. Try again.' });
+      throw err; // re-throw so the card shows error state
+    }
+  }, [toast]);
+
   const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
     try {
       const token = getAccessToken() || localStorage.getItem('auth_token');
@@ -657,6 +668,7 @@ const TalkToTwin = () => {
               onRejectProposal={handleRejectProposal}
               onApproveAllProposals={handleApproveAllProposals}
               onReviewInDepartments={handleReviewInDepartments}
+              onApproveDepartmentSuggestion={handleApproveDepartmentSuggestion}
             />
           )}
 

@@ -143,6 +143,22 @@ router.put('/:name/toggle', authenticateUser, async (req, res) => {
 });
 
 // ========================================================================
+// GET /api/departments/activity — Unified activity feed across all departments
+// ========================================================================
+
+router.get('/activity', authenticateUser, async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const { getAllDepartmentActivity } = await getDepartmentService();
+    const activity = await getAllDepartmentActivity(req.user.id, Math.min(parseInt(limit) || 50, 100));
+    return res.json({ success: true, activity });
+  } catch (err) {
+    log.error('Failed to get unified activity feed', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to fetch activity' });
+  }
+});
+
+// ========================================================================
 // GET /api/departments/:name — Single department detail
 // ========================================================================
 

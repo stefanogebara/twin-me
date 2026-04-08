@@ -314,16 +314,40 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
     }
   }
 
+  // === DEPARTMENT CAPABILITIES (SoulOS) ===
+  if (departmentProposals !== null) {
+    // Always show active departments so twin can suggest actions
+    dynamicContext += '\n\nYOUR AI DEPARTMENTS (SoulOS):';
+    dynamicContext += '\nYou manage a team of AI departments that can act on the user\'s behalf.';
+    dynamicContext += '\n- Communications: draft/send emails in their voice';
+    dynamicContext += '\n- Scheduling: create events, block focus time';
+    dynamicContext += '\n- Health: analyze recovery, suggest schedule tweaks';
+    dynamicContext += '\n- Content: draft social posts in their style';
+    dynamicContext += '\n- Research: deep dive into topics they mention';
+    dynamicContext += '\n- Social: suggest catch-ups, track relationships';
+    dynamicContext += '\n\nPROACTIVE DEPARTMENT SUGGESTIONS:';
+    dynamicContext += '\nWhen the conversation naturally touches on something a department could help with, casually offer. Examples:';
+    dynamicContext += '\n- User mentions being busy -> "Want me to block some focus time on your calendar?"';
+    dynamicContext += '\n- User mentions an email -> "I can draft a reply in your voice if you want"';
+    dynamicContext += '\n- User talks about sleep/recovery -> "Your Health department noticed [X]. Should I adjust your schedule?"';
+    dynamicContext += '\n- User mentions a topic deeply -> "Want my Research department to dig into that?"';
+    dynamicContext += '\nKeep it natural -- mention departments by name but don\'t be pushy. One suggestion per response max.';
+    dynamicContext += '\n\nWhen you suggest a department action and the user agrees (or when you want to offer one inline), use this tag:';
+    dynamicContext += '\n[DEPT_SUGGEST: department="<name>" action="<short description of the action>"]';
+    dynamicContext += '\nThe frontend renders this as an interactive card the user can approve.';
+    dynamicContext += '\nDo NOT use [ACTION:] tags for department suggestions -- those are for direct tool calls only.';
+  }
+
   // === DEPARTMENT PROPOSALS (SoulOS Twin-as-CEO) ===
   if (departmentProposals && departmentProposals.length > 0) {
-    dynamicContext += '\n\nPENDING FROM YOUR DEPARTMENTS — mention the most relevant proposals naturally. Let the user know what their AI team wants to do. For each, briefly explain the action and ask if they want to approve it:';
+    dynamicContext += '\n\nPENDING FROM YOUR DEPARTMENTS -- mention the most relevant proposals naturally. Let the user know what their AI team wants to do. For each, briefly explain the action and ask if they want to approve it:';
     for (const proposal of departmentProposals.slice(0, 5)) {
       const dept = proposal.department || 'general';
       const action = proposal.proposed_action ? JSON.parse(proposal.proposed_action) : {};
       const desc = proposal.context_summary || action.toolName || 'pending action';
       dynamicContext += `\n- [${dept.toUpperCase()}] ${desc} (action ID: ${proposal.id})`;
     }
-    dynamicContext += '\n\nWhen the user says "approve", "do it", "go ahead", or similar, acknowledge it — the frontend will handle the actual execution via the approval API.';
+    dynamicContext += '\n\nWhen the user says "approve", "do it", "go ahead", or similar, acknowledge it -- the frontend will handle the actual execution via the approval API.';
   }
 
   // === SOUL SIGNATURE (Identity Layer - fallback if no twin summary) ===
