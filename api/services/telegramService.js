@@ -64,28 +64,16 @@ export async function sendMessage(chatId, text, options = {}) {
   }
 }
 
-// Category → emoji mapping for insight formatting
-const CATEGORY_EMOJI = {
-  briefing: '\u2615', // coffee
-  evening_recap: '\u{1F319}', // crescent moon
-  music_mood_match: '\u{1F3B5}', // musical note
-  email_triage: '\u{1F4E7}', // email
-  reminder: '\u{1F514}', // bell
-  suggestion: '\u{1F4A1}', // light bulb
-  nudge: '\u{1F449}', // point right
-};
-
 /**
  * Format a proactive insight for Telegram delivery.
  */
 export function formatInsightMessage(insight) {
-  const emoji = CATEGORY_EMOJI[insight.category] || '\u2728'; // sparkles default
-  const urgencyTag = insight.urgency === 'high' ? ' \u{1F525}' : '';
+  const urgencyTag = insight.urgency === 'high' ? '[!] ' : '';
 
   // Escape markdown special chars in the insight text
   const text = (insight.insight || '').replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
 
-  return `${emoji}${urgencyTag} *${formatCategoryLabel(insight.category)}*\n\n${text}`;
+  return `${urgencyTag}*${formatCategoryLabel(insight.category)}*\n\n${text}`;
 }
 
 function formatCategoryLabel(category) {

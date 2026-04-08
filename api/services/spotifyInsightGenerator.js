@@ -334,61 +334,61 @@ class SpotifyInsightGenerator {
     const moodMap = {
       'energetic-positive': {
         label: 'Energized',
-        emoji: '⚡',
+        emoji: '',
         description: 'upbeat and positive',
         color: '#22c55e'
       },
       'happy-energized': {
         label: 'Energized',
-        emoji: '⚡',
+        emoji: '',
         description: 'upbeat and positive',
         color: '#22c55e'
       },
       'peaceful-content': {
         label: 'Peaceful',
-        emoji: '😌',
+        emoji: '',
         description: 'calm and content',
         color: '#3b82f6'
       },
       'calm-content': {
         label: 'Peaceful',
-        emoji: '😌',
+        emoji: '',
         description: 'calm and content',
         color: '#3b82f6'
       },
       'intense-agitated': {
         label: 'Intense',
-        emoji: '🔥',
+        emoji: '',
         description: 'energetic but processing emotions',
         color: '#C9B99A'
       },
       'stressed-anxious': {
         label: 'Processing',
-        emoji: '💭',
+        emoji: '',
         description: 'working through something',
         color: '#C9B99A'
       },
       'melancholic-reflective': {
         label: 'Reflective',
-        emoji: '🌙',
+        emoji: '',
         description: 'introspective and contemplative',
         color: '#8b5cf6'
       },
       'sad-tired': {
         label: 'Restful',
-        emoji: '🌙',
+        emoji: '',
         description: 'winding down',
         color: '#8b5cf6'
       },
       'neutral': {
         label: 'Balanced',
-        emoji: '⚖️',
+        emoji: '',
         description: 'steady and focused',
         color: '#6b7280'
       },
       'neutral-balanced': {
         label: 'Balanced',
-        emoji: '⚖️',
+        emoji: '',
         description: 'steady and focused',
         color: '#6b7280'
       }
