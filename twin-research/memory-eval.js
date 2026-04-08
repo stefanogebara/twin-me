@@ -121,19 +121,22 @@ function mmrRerank(candidates, k) {
 }
 
 // ─── Retrieve memories for a query ──────────────────────────────────────────
-async function retrieveForQuery(query) {
+async function retrieveForQuery(query, retrievalMode = 'default') {
   const queryEmbedding = await generateEmbedding(query);
   if (!queryEmbedding) throw new Error('Embedding returned null');
   const embeddingStr = vectorToString(queryEmbedding);
+
+  // Per-mode weight selection: use mode-specific preset if available, else default
+  const w = RETRIEVAL_WEIGHTS[retrievalMode] || RETRIEVAL_WEIGHTS.default || RETRIEVAL_WEIGHTS;
 
   const { data: rawResults, error } = await supabaseAdmin.rpc('search_memory_stream', {
     p_user_id: TEST_USER_ID,
     p_query_embedding: embeddingStr,
     p_limit: RETRIEVAL_LIMIT * 3, // over-fetch for MMR
     p_decay_factor: FRESHNESS_DECAY_RATE,
-    p_weight_recency: RETRIEVAL_WEIGHTS.recency,
-    p_weight_importance: RETRIEVAL_WEIGHTS.importance,
-    p_weight_relevance: RETRIEVAL_WEIGHTS.relevance,
+    p_weight_recency: w.recency ?? 0,
+    p_weight_importance: w.importance ?? 0.3,
+    p_weight_relevance: w.relevance ?? 2.8,
   });
 
   if (error || !rawResults || rawResults.length === 0) return [];
@@ -207,10 +210,10 @@ async function judgeRelevance(query, memories) {
 
 // ─── Single query evaluation ────────────────────────────────────────────────
 async function evaluateQuery(testQuery) {
-  const { query } = testQuery;
+  const { query, retrieval_mode } = testQuery;
 
-  // Retrieve memories using current config
-  const memories = await retrieveForQuery(query);
+  // Retrieve memories using current config (per-mode weights)
+  const memories = await retrieveForQuery(query, retrieval_mode || 'default');
   if (memories.length === 0) {
     return { relevance: 0, freshness: 0, noise: 1, count: 0 };
   }

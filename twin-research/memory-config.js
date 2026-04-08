@@ -50,10 +50,13 @@ export const DIVERSITY_RERANKING_WEIGHT = 0.3;
 // Three-factor scoring weights for the search_memory_stream RPC.
 // Format: { recency, importance, relevance }
 
+// Per-mode weight presets (mirrors twin-config.js architecture).
+// The eval selects weights based on each query's retrieval_mode field.
 export const RETRIEVAL_WEIGHTS = {
-  recency: 0.0,
-  importance: 0.3,
-  relevance: 2.8,
+  default:    { recency: 0.0, importance: 0.3, relevance: 2.8 },
+  identity:   { recency: 0.0, importance: 0.5, relevance: 2.8 },
+  recent:     { recency: 0.0, importance: 0.2, relevance: 2.8 },
+  reflection: { recency: 0.0, importance: 0.2, relevance: 3.2 },
 };
 
 // ─── BM25 Lexical Scoring (TiMem) ───────────────────────────────────────
