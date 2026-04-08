@@ -46,7 +46,7 @@ import {
 } from './memory-config.js';
 
 // ─── Services ───────────────────────────────────────────────────────────────
-import { complete, TIER_EXTRACTION } from '../api/services/llmGateway.js';
+import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from '../api/services/llmGateway.js';
 import { generateEmbedding, vectorToString } from '../api/services/embeddingService.js';
 import { supabaseAdmin } from '../api/services/database.js';
 
@@ -187,7 +187,7 @@ async function judgeRelevance(query, memories) {
     messages: [{ role: 'user', content: user }],
     maxTokens: 500,
     temperature: 0,
-    tier: TIER_EXTRACTION,
+    tier: TIER_ANALYSIS,
     serviceName: 'memory-eval-judge',
   });
 

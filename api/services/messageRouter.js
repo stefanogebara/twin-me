@@ -203,7 +203,7 @@ async function tryEmailDelivery(userId, recentInsights) {
       insights: emailableInsights,
     });
 
-    // 5. Insert cooldown marker
+    // 5. Insert cooldown marker (system marker — excluded from eval/display)
     await supabaseAdmin.from('proactive_insights').insert({
       user_id: userId,
       insight: `Email sent with ${emailableInsights.length} insight${emailableInsights.length !== 1 ? 's' : ''}`,
@@ -211,6 +211,7 @@ async function tryEmailDelivery(userId, recentInsights) {
       urgency: 'low',
       delivered: true,
       delivered_at: new Date().toISOString(),
+      metadata: { is_system_marker: true },
     });
 
     log.info('Email insight notification sent', { userId, count: emailableInsights.length });
