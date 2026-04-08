@@ -11,8 +11,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
 import type { Department, Proposal } from '@/services/api/departmentsAPI';
+import { getTemplates, applyTemplate as applyTemplateAPI } from '@/services/api/templatesAPI';
+import type { Template } from '@/services/api/templatesAPI';
 import DepartmentCard from './components/departments/DepartmentCard';
 import ProposalCard from './components/departments/ProposalCard';
+import TemplateCard from './components/departments/TemplateCard';
 import { Loader2, Inbox } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -80,6 +83,7 @@ const DEFAULT_DEPARTMENTS: Department[] = [
 const QUERY_KEYS = {
   departments: ['departments'] as const,
   proposals: ['departments', 'proposals'] as const,
+  templates: ['templates'] as const,
 };
 
 const DepartmentsPage: React.FC = () => {
@@ -90,6 +94,7 @@ const DepartmentsPage: React.FC = () => {
   // Local optimistic state for department changes
   const [localDepts, setLocalDepts] = useState<Department[] | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   const {
     data: remoteDepts,
@@ -109,6 +114,16 @@ const DepartmentsPage: React.FC = () => {
     queryKey: QUERY_KEYS.proposals,
     queryFn: () => departmentsAPI.getProposals(),
     staleTime: 30_000,
+    enabled: !isDemoMode,
+    initialData: isDemoMode ? [] : undefined,
+  });
+
+  const {
+    data: templates = [],
+  } = useQuery({
+    queryKey: QUERY_KEYS.templates,
+    queryFn: () => getTemplates(),
+    staleTime: 60_000,
     enabled: !isDemoMode,
     initialData: isDemoMode ? [] : undefined,
   });
@@ -195,6 +210,19 @@ const DepartmentsPage: React.FC = () => {
     }
   }, [queryClient]);
 
+  const handleApplyTemplate = useCallback(async (templateId: string) => {
+    try {
+      await applyTemplateAPI(templateId);
+      setActiveTemplateId(templateId);
+      // Refresh departments to reflect the new autonomy + budget settings
+      setLocalDepts(null);
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments });
+      toast.success('Template applied successfully.');
+    } catch (err) {
+      toast.error('Failed to apply template.');
+    }
+  }, [queryClient]);
+
   return (
     <div className="max-w-[880px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
 
@@ -255,6 +283,49 @@ const DepartmentsPage: React.FC = () => {
       </div>
 
       <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
+
+      {/* Life Operating Systems */}
+      {!isLoading && templates.length > 0 && (
+        <section className="mb-10">
+          <h2
+            className="mb-1"
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontSize: '20px',
+              fontWeight: 400,
+              color: 'var(--foreground)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Life Operating Systems
+          </h2>
+          <p
+            className="text-[12px] mb-5"
+            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+          >
+            Pre-configured department setups for common workflows
+          </p>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-thin">
+            {templates.map((t: Template) => (
+              <TemplateCard
+                key={t.id}
+                id={t.id}
+                name={t.name}
+                description={t.description}
+                tagline={t.tagline}
+                icon={t.icon}
+                color={t.color}
+                departmentCount={t.departmentCount}
+                totalBudget={t.totalBudget}
+                isActive={activeTemplateId === t.id}
+                onApply={handleApplyTemplate}
+              />
+            ))}
+          </div>
+          <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mt-6 mb-2" />
+        </section>
+      )}
 
       {/* Loading state */}
       {isLoading && (

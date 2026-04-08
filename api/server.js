@@ -431,6 +431,7 @@ try {
 import autonomyRoutes from './routes/autonomy.js';
 import agentActionsRoutes from './routes/agent-actions.js';
 import departmentsRoutes from './routes/departments.js';
+import templatesRoutes from './routes/templates.js';
 import cronProspectiveCheckRoutes from './routes/cron-prospective-check.js';
 import cronEveningRecapRoutes from './routes/cron-evening-recap.js';
 import cronDeliverInsightsRoutes from './routes/cron-deliver-insights.js';
@@ -441,6 +442,7 @@ import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPersonalityValidationRoutes from './routes/cron-personality-validation.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
+import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
@@ -605,6 +607,7 @@ app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
 app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum settings
 app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
 app.use('/api/departments', departmentsRoutes); // SoulOS department management + proposals
+app.use('/api/templates', templatesRoutes); // Life Operating System templates (one-click department setups)
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
 app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)
 app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (*/5 min)
@@ -615,6 +618,7 @@ app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily act
 app.use('/api/cron/personality-validation', cronPersonalityValidationRoutes); // Weekly personality drift check (Sun 3am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
+app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)

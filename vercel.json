@@ -96,6 +96,10 @@
     {
       "path": "/api/cron/nudge-inactive",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/department-execute",
+      "schedule": "0 */3 * * *"
     }
   ]
 }

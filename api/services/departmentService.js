@@ -16,6 +16,8 @@ import { DEPARTMENTS, DEPARTMENT_NAMES, getDepartmentConfig } from '../config/de
 import { queueActionForApproval, getAutonomyBySkillName, AUTONOMY_LEVELS } from './autonomyService.js';
 import { checkDepartmentBudget } from './departmentBudgetService.js';
 import { supabaseAdmin } from './database.js';
+import { get as cacheGet, set as cacheSet } from './redisClient.js';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('DepartmentService');
@@ -314,23 +316,106 @@ async function countRecentActions(userId, department) {
 
 /**
  * Heartbeat check — called from observation ingestion cron after new data arrives.
- * Lightweight: checks if any department should propose an action based on new observations.
- * Currently a stub that logs the check — will be extended in Phase 2 with LLM-driven proposals.
+ * Analyzes recent observations via LLM and generates department action proposals.
+ * Cost-controlled: 2-hour cooldown per user, TIER_EXTRACTION (cheapest model).
  */
 export async function checkDepartmentHeartbeats(userId) {
   try {
     const departments = await getAllDepartments(userId);
     const activeDepts = departments.filter(d => d.autonomyLevel > 0);
-
     if (activeDepts.length === 0) return;
 
-    log.debug('Department heartbeat check', {
+    // 1. Cooldown — max 1 heartbeat per user per 2 hours
+    const cooldownKey = `dept_heartbeat:${userId}`;
+    const lastRun = await cacheGet(cooldownKey);
+    if (lastRun) return;
+
+    // 2. Fetch recent observations (last 6 hours, max 30)
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    const { data: recentObs } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, memory_type, metadata, created_at')
+      .eq('user_id', userId)
+      .in('memory_type', ['observation', 'platform_data'])
+      .gte('created_at', sixHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (!recentObs || recentObs.length < 3) return;
+
+    // 3. Don't create duplicates — cap pending proposals
+    const pending = await getPendingProposals(userId);
+    if (pending.length >= 5) return;
+
+    // 4. Build LLM prompt
+    const deptDescriptions = activeDepts.map(d => {
+      const tools = (getDepartmentConfig(d.department)?.tools || []).join(', ') || 'none yet';
+      return `- ${d.name} (${d.department}): ${d.description}. Tools: ${tools}`;
+    }).join('\n');
+
+    const obsText = recentObs.slice(0, 20).map(o => `- ${o.content}`).join('\n');
+
+    const prompt = `You are an AI department coordinator analyzing a user's recent activity to suggest helpful actions.
+
+ACTIVE DEPARTMENTS:
+${deptDescriptions}
+
+RECENT USER ACTIVITY (last 6 hours):
+${obsText}
+
+EXISTING PENDING PROPOSALS: ${pending.length}
+
+Based on this activity, suggest 0-3 concrete actions that departments could take. Only suggest actions where:
+1. The department has tools to execute it (or it's an observation/suggestion)
+2. The action is clearly valuable based on the data (not generic advice)
+3. There isn't already a similar pending proposal
+
+Return JSON array (empty array if no good suggestions):
+[{"department":"<key>","description":"Brief action description","toolName":"tool_name or null","params":{},"priority":1-10,"reasoning":"Why now"}]
+
+Rules:
+- Be conservative — only suggest actions with clear evidence in the data
+- Max 3 suggestions. If nothing is clearly actionable, return []
+- Match department to the right tool (gmail_send for communications, calendar_create for scheduling, etc.)`;
+
+    // 5. Call LLM (cheapest tier)
+    const response = await complete({
+      messages: [{ role: 'user', content: prompt }],
+      tier: TIER_EXTRACTION,
+      maxTokens: 500,
+      temperature: 0.3,
       userId,
-      activeDepartments: activeDepts.map(d => d.name),
+      serviceName: 'department-heartbeat',
     });
 
-    // Phase 2: LLM-driven proposal generation based on recent observations
-    // For now, just log that we checked
+    // 6. Parse response and create proposals
+    const text = response?.content || '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) { log.debug('No proposals generated'); return; }
+
+    const suggestions = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(suggestions) || suggestions.length === 0) return;
+
+    let proposalsCreated = 0;
+    for (const s of suggestions.slice(0, 3)) {
+      if (!DEPARTMENT_NAMES.includes(s.department)) continue;
+      if (!activeDepts.find(d => d.department === s.department)) continue;
+
+      // toolName is required by proposeDepartmentAction; use 'suggest' for observation-only proposals
+      const toolName = s.toolName || 'suggest';
+      await proposeDepartmentAction(userId, s.department, {
+        toolName,
+        params: s.params || {},
+        context: s.description,
+        priority: s.priority || 5,
+      });
+      proposalsCreated++;
+    }
+
+    // 7. Set cooldown (2 hours = 7200 seconds)
+    await cacheSet(cooldownKey, Date.now(), 7200);
+
+    log.info('Department heartbeat complete', { userId, proposalsCreated });
   } catch (err) {
     log.warn('Department heartbeat check failed', { userId, error: err.message });
   }

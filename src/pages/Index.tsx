@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ArrowRight, Music, Brain, Database, Bell, Shield, Menu, X } from 'lucide-react';
+import { ArrowRight, Music, Brain, Database, Bell, Shield, Menu, X, Mail, Calendar, HeartPulse, PenLine, Wallet, Search, Users } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 
@@ -40,23 +40,23 @@ const SERVICES = [
     title: 'Connect',
     num: '01',
     heading: 'Connect',
-    desc: 'Securely link Spotify, Google Calendar, YouTube, and more. Your digital footprint becomes the raw material of your soul signature.',
+    desc: 'Link your platforms. Spotify, Calendar, Whoop, YouTube, and more. Your data becomes your twin\'s memory.',
     img: CARD_IMAGES.connect,
   },
   {
-    id: 'discover',
-    title: 'Discover',
+    id: 'understand',
+    title: 'Understand',
     num: '02',
-    heading: 'Discover',
-    desc: 'AI unearths invisible patterns across your data -- personality traits, rhythms, and curiosities you never noticed about yourself.',
+    heading: 'Understand',
+    desc: 'AI maps your personality, habits, and patterns across every platform. Patterns you never noticed about yourself.',
     img: CARD_IMAGES.discover,
   },
   {
-    id: 'share',
-    title: 'Share',
+    id: 'delegate',
+    title: 'Delegate',
     num: '03',
-    heading: 'Share',
-    desc: 'Share your authentic soul signature with the world. Let others see the real you -- not your resume, but your personality.',
+    heading: 'Delegate',
+    desc: 'Seven AI departments work for you -- drafting emails in your voice, optimizing your calendar, tracking your health. You approve, they execute.',
     img: CARD_IMAGES.share,
   },
   {
@@ -64,9 +64,20 @@ const SERVICES = [
     title: 'Control',
     num: '04',
     heading: 'Control',
-    desc: 'Choose what to reveal and what to keep private. Your privacy spectrum dashboard puts you in total control of your data.',
+    desc: 'Set autonomy levels per department. From "just suggest" to "act on my behalf." Your privacy spectrum, your rules.',
     img: CARD_IMAGES.control,
   },
+];
+
+/* ── Department showcase data ── */
+const DEPARTMENTS = [
+  { name: 'Communications', icon: Mail, color: '#3B82F6', desc: 'Emails in your voice' },
+  { name: 'Scheduling', icon: Calendar, color: '#8B5CF6', desc: 'Calendar optimization' },
+  { name: 'Health', icon: HeartPulse, color: '#EF4444', desc: 'Recovery tracking' },
+  { name: 'Content', icon: PenLine, color: '#F59E0B', desc: 'Content in your style' },
+  { name: 'Finance', icon: Wallet, color: '#10B981', desc: 'Spending patterns' },
+  { name: 'Research', icon: Search, color: '#6366F1', desc: 'Deep topic research' },
+  { name: 'Social', icon: Users, color: '#EC4899', desc: 'Relationship upkeep' },
 ];
 
 const Index = () => {
@@ -200,14 +211,14 @@ const Index = () => {
           <h1
             className="text-[48px] md:text-[80px] font-heading font-normal mb-8"
           >
-            What if your data could reveal your soul?
+            Your Twin Doesn't Just Know You — It Acts For You
           </h1>
 
           {/* One paragraph — narrative voice, 60% opacity */}
           <p
             className="narrative-voice mb-10 text-lg max-w-[460px]"
           >
-            Your music, your calendar, your conversations — they already know who you are. We just listen to what they're saying.
+            Connect your platforms. Your AI twin learns your personality, then manages your email, calendar, health, and content — all in your authentic voice.
           </p>
 
           {/* Single earned CTA — not loud, not multiple */}
@@ -265,12 +276,12 @@ const Index = () => {
             <div className="lg:w-1/2">
               <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Who we are</span>
               <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
-                The soul signature built for <span className="font-heading font-normal italic">you.</span>
+                A personal AI built from <span className="font-heading font-normal italic">your</span> soul.
               </h2>
             </div>
             <div className="lg:w-1/2 flex items-end">
               <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
-                We built TwinMe to go beyond your public persona. We listen to your private data patterns, discover what makes you unique, and build a digital twin that truly knows you.
+                TwinMe goes beyond your public persona. It learns your patterns, embodies your personality, and acts on your behalf — so you can focus on what matters.
               </p>
             </div>
           </div>
@@ -280,8 +291,8 @@ const Index = () => {
             className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
             {[
+              { value: '7', label: 'AI departments', sub: 'Working for you' },
               { value: '5+', label: 'Platform integrations', sub: 'And growing' },
-              { value: '5', label: 'Expert reflections', sub: 'Unique perspectives' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (
               <div key={i} className="glass-stat-standalone bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 text-center relative overflow-hidden">
@@ -306,10 +317,10 @@ const Index = () => {
             <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Services</span>
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-16">
               <h2 className="text-[36px] md:text-[56px] font-heading font-normal lg:max-w-[520px]">
-                We handle everything so you don't have to.
+                From knowing you to acting for you.
               </h2>
               <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[480px] lg:pt-2">
-                From connecting your platforms to generating insights and building your AI twin -- we manage the entire process while you discover yourself.
+                Connect your platforms, let AI understand your patterns, then delegate tasks to departments that work in your authentic voice.
               </p>
             </div>
           </div>
@@ -364,13 +375,53 @@ const Index = () => {
         </div>
       </section>
 
+      {/* ────────────── DEPARTMENTS — Horizontal Showcase ────────────── */}
+      <section className="px-6 lg:px-16 py-20 border-t border-white/[0.06]">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="text-center mb-10">
+            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Your AI Team</span>
+            <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
+              Seven departments, one <span className="font-heading font-normal italic">you.</span>
+            </h2>
+            <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[480px] mx-auto mt-4">
+              Each department specializes in a different part of your life. All of them speak in your voice.
+            </p>
+          </div>
+
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+            {DEPARTMENTS.map((dept) => {
+              const DeptIcon = dept.icon;
+              return (
+                <div
+                  key={dept.name}
+                  className="flex-shrink-0 snap-center w-[160px] bg-[rgba(255,255,255,0.06)] backdrop-blur-[42px] border border-[rgba(255,255,255,0.10)] rounded-[20px] py-6 px-5 flex flex-col items-center text-center transition-all duration-150 hover:border-[rgba(255,255,255,0.20)] hover:bg-white/[0.08]"
+                >
+                  <div
+                    className="mb-3 flex items-center justify-center w-10 h-10 rounded-[12px]"
+                    style={{ backgroundColor: `${dept.color}15`, borderColor: `${dept.color}30`, borderWidth: '1px', borderStyle: 'solid' }}
+                  >
+                    <DeptIcon className="w-5 h-5" style={{ color: dept.color }} />
+                  </div>
+                  <h4 className="font-sans text-sm font-semibold text-[#F5F0EB] leading-[1.4] mb-1">
+                    {dept.name}
+                  </h4>
+                  <p className="font-sans text-xs text-[var(--text-secondary)] leading-[1.5]">
+                    {dept.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* ────────────── FEATURES — 2x2 Grid ────────────── */}
       <section id="features" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto relative z-10">
           <div className="mb-14">
             <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Features</span>
             <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
-              Everything your twin needs to <span className="font-heading font-normal italic">know you.</span>
+              Everything your twin needs to <span className="font-heading font-normal italic">act for you.</span>
             </h2>
           </div>
 
@@ -457,7 +508,7 @@ const Index = () => {
               Getting you results <span className="font-heading font-normal italic">without</span> the complexity.
             </h2>
             <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] mb-8 max-w-[440px]">
-              Our three-step process takes you from connecting platforms to discovering your soul signature, with clear progress and insights at every stage.
+              Connect your platforms, let your twin learn who you are, then hand off the tasks you don't want to do yourself.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               {isLoaded && isSignedIn ? (
@@ -478,8 +529,8 @@ const Index = () => {
           <div className="lg:w-[55%] flex flex-col gap-10">
             {[
               { num: '01', title: 'Connect Your Platforms', badge: 'Step 1', desc: 'Link your Spotify, Google Calendar, YouTube and more. We securely pull your data without storing passwords.' },
-              { num: '02', title: 'Discover Your Patterns', badge: 'Step 2', desc: 'Our AI analyzes your cross-platform data, identifying personality traits, daily rhythms, and hidden curiosities.' },
-              { num: '03', title: 'Meet Your Twin', badge: 'Ongoing', desc: 'Your AI twin embodies your personality. Chat with it, share it, and watch it evolve as you add more data.' },
+              { num: '02', title: 'Your Twin Learns You', badge: 'Step 2', desc: 'AI analyzes your cross-platform data -- personality traits, daily rhythms, communication style, and hidden patterns.' },
+              { num: '03', title: 'Delegate and Approve', badge: 'Ongoing', desc: 'Your twin drafts emails, optimizes your calendar, and tracks your health. You set the autonomy level -- suggest, draft, or act.' },
             ].map((step, idx) => (
               <div
                 key={step.num}
@@ -505,7 +556,7 @@ const Index = () => {
       <section className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
-            Turn confusion into <span className="font-heading font-normal italic">clarity,</span> today.
+            Stop managing everything <span className="font-heading font-normal italic">yourself.</span>
           </h2>
 
           {/* Standalone flower image */}
@@ -520,7 +571,7 @@ const Index = () => {
           </div>
 
           <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
-            Start free and discover patterns about yourself you never noticed. Your soul signature is waiting.
+            Start free and let your twin learn who you are. Then hand off the tasks you never wanted to do yourself.
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
@@ -547,7 +598,7 @@ const Index = () => {
             {/* Brand */}
             <div className="lg:max-w-[220px]">
               <h3 className="text-[22px] font-heading font-normal mb-2">TwinMe</h3>
-              <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">Discover what makes you authentically you.</p>
+              <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65]">Your personal AI that knows you and acts for you.</p>
             </div>
 
             {/* Product links */}
