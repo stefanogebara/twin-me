@@ -135,7 +135,7 @@ export const departmentsAPI = {
   /**
    * Approve a pending proposal
    */
-  approveProposal: async (id: string): Promise<void> => {
+  approveProposal: async (id: string): Promise<{ success: boolean; result?: unknown }> => {
     const response = await authFetch(`/departments/proposals/${encodeURIComponent(id)}/approve`, {
       method: 'POST',
     });
@@ -143,6 +143,7 @@ export const departmentsAPI = {
     if (!response.ok) {
       throw new Error(`Failed to approve proposal: ${response.statusText}`);
     }
+    return response.json();
   },
 
   /**
