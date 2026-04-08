@@ -758,10 +758,16 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     };
 
     // Run vector search with query embedding (+ HyDE embedding if available)
+    // In identity mode, also run a parallel fact-only search so biographical facts
+    // can compete on their own terms (normalized within the fact pool) instead of
+    // being drowned out by 9K+ reflections in the main search.
+    const isIdentityMode = typeof weights === 'string' && weights === 'identity';
+    const queryEmbStr = vectorToString(queryEmbedding);
+
     const searchPromises = [
       supabaseAdmin.rpc('search_memory_stream', {
         ...rpcParams,
-        p_query_embedding: vectorToString(queryEmbedding),
+        p_query_embedding: queryEmbStr,
       }),
     ];
     if (hydeEmbedding) {
@@ -769,6 +775,16 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
         supabaseAdmin.rpc('search_memory_stream', {
           ...rpcParams,
           p_query_embedding: vectorToString(hydeEmbedding),
+        }),
+      );
+    }
+    if (isIdentityMode) {
+      searchPromises.push(
+        supabaseAdmin.rpc('search_memory_stream', {
+          ...rpcParams,
+          p_query_embedding: queryEmbStr,
+          p_limit: Math.max(limit, 5),
+          p_memory_types: ['fact'],
         }),
       );
     }
@@ -780,40 +796,35 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
       return fallbackKeywordSearch(userId, query, limit);
     }
 
-    // Merge results: interleave query + HyDE results, dedup by ID
+    // Merge results: interleave query + HyDE + fact-only results, dedup by ID
     let data;
-    if (searchResults.length > 1 && searchResults[1].data?.length > 0) {
+    const allStreams = searchResults.map(r => r.data || []).filter(d => d.length > 0);
+
+    if (allStreams.length > 1) {
       const seen = new Set();
       const merged = [];
-      const qData = searchResults[0].data || [];
-      const hData = searchResults[1].data || [];
-      const maxLen = Math.max(qData.length, hData.length);
+      const maxLen = Math.max(...allStreams.map(s => s.length));
       for (let i = 0; i < maxLen; i++) {
-        if (i < qData.length && !seen.has(qData[i].id)) {
-          seen.add(qData[i].id);
-          merged.push(qData[i]);
-        }
-        if (i < hData.length && !seen.has(hData[i].id)) {
-          seen.add(hData[i].id);
-          merged.push(hData[i]);
+        for (const stream of allStreams) {
+          if (i < stream.length && !seen.has(stream[i].id)) {
+            seen.add(stream[i].id);
+            merged.push(stream[i]);
+          }
         }
       }
       data = merged.slice(0, limit * 3);
-      log.info('HyDE merge', { queryResults: qData.length, hydeResults: hData.length, merged: data.length });
+      const factStream = isIdentityMode && searchResults.length > 2 ? (searchResults[2].data || []) : [];
+      log.info('HyDE merge', {
+        queryResults: (searchResults[0].data || []).length,
+        hydeResults: searchResults[1]?.data?.length || 0,
+        factResults: factStream.length,
+        merged: data.length,
+      });
     } else {
       data = searchResults[0].data;
     }
 
     if (!data || data.length === 0) return [];
-
-    // NOTE: Parallel fact injection for identity mode was extensively tested and disabled.
-    // Three variants tested (median-score, cosine-threshold=0.15, cosine-threshold=0.25):
-    // all reduced eval scores by 0.04-0.11 because injected facts get scored as noise by
-    // the LLM judge for non-biographical identity queries. The fundamental issue is that
-    // biographical facts (concrete data) and reflections (analytical observations) live in
-    // different semantic spaces — mixing them in results degrades perceived quality.
-    // To properly fix this: deploy search_memory_stream_type_filter migration (20260408)
-    // which adds p_memory_types parameter for native pgvector type-filtered search.
 
     // GUM: confidence weighting is now baked into SQL scoring (search_memory_stream RPC
     // multiplies by COALESCE(confidence, 0.7) before ORDER BY). No post-RPC adjustment needed.
