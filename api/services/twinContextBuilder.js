@@ -18,6 +18,7 @@ import { getEnrichment } from './enrichment/enrichmentStore.js';
 import { getActiveGoalContext } from './goalTrackingService.js';
 import { getTopPatterns } from './twinPatternService.js';
 import { inferIdentityContext } from './identityContextService.js';
+import { getPendingProposals } from './departmentService.js';
 import axios from 'axios';
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
@@ -84,7 +85,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // Uses individual tracked promises so the circuit breaker preserves already-resolved results
   const CONTEXT_TIMEOUT_MS = 7000;
 
-  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null, []];
+  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], []];
 
   const fetchPromises = [
     fetchSoul
@@ -169,6 +170,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       log.warn('Nudge history fetch failed:', err.message);
       return [];
     })),
+
+    // SoulOS: Pending department proposals for twin-as-CEO briefing
+    timed('departmentProposals', getPendingProposals(userId).catch(err => {
+      log.warn('Department proposals fetch failed:', err.message);
+      return [];
+    })),
   ];
 
   let contextResults;
@@ -207,6 +214,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     identityContext,
     calibrationContext,
     nudgeHistory,
+    departmentProposals,
   ] = contextResults;
 
   ctxLog('All parallel fetches complete');
@@ -252,6 +260,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     identityContext,
     calibrationContext,
     nudgeHistory,
+    departmentProposals,
     timings,
   };
 }

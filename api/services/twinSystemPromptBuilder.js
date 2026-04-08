@@ -251,7 +251,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -312,6 +312,18 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
       const nudgeMarker = insight.category === 'nudge' ? ' [suggest this action]' : '';
       dynamicContext += `\n- ${insight.insight}${urgencyMarker}${nudgeMarker}`;
     }
+  }
+
+  // === DEPARTMENT PROPOSALS (SoulOS Twin-as-CEO) ===
+  if (departmentProposals && departmentProposals.length > 0) {
+    dynamicContext += '\n\nPENDING FROM YOUR DEPARTMENTS — mention the most relevant proposals naturally. Let the user know what their AI team wants to do. For each, briefly explain the action and ask if they want to approve it:';
+    for (const proposal of departmentProposals.slice(0, 5)) {
+      const dept = proposal.department || 'general';
+      const action = proposal.proposed_action ? JSON.parse(proposal.proposed_action) : {};
+      const desc = proposal.context_summary || action.toolName || 'pending action';
+      dynamicContext += `\n- [${dept.toUpperCase()}] ${desc} (action ID: ${proposal.id})`;
+    }
+    dynamicContext += '\n\nWhen the user says "approve", "do it", "go ahead", or similar, acknowledge it — the frontend will handle the actual execution via the approval API.';
   }
 
   // === SOUL SIGNATURE (Identity Layer - fallback if no twin summary) ===
