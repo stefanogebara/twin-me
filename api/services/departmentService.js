@@ -535,7 +535,7 @@ ${deptDescriptions}
 
 RECENT USER ACTIVITY (last 6 hours):
 ${obsText}
-${crossDeptContext}
+${crossDeptContext}${signalContext}${goalPromptSection}
 
 CROSS-DEPARTMENT OPPORTUNITIES:
 When you see patterns that span multiple departments, suggest coordinated actions. Examples:
@@ -551,12 +551,13 @@ Based on this activity, suggest 0-3 concrete actions that departments could take
 3. There isn't already a similar pending proposal
 
 Return JSON array (empty array if no good suggestions):
-[{"department":"<key>","description":"Brief action description","toolName":"tool_name or null","params":{},"priority":1-10,"reasoning":"Why now"}]
+[{"department":"<key>","description":"Brief action description","toolName":"tool_name or null","params":{},"priority":1-10,"reasoning":"Why now","goalId":"goal text snippet or null"}]
 
 Rules:
 - Be conservative — only suggest actions with clear evidence in the data
 - Max 3 suggestions. If nothing is clearly actionable, return []
-- Match department to the right tool (gmail_send for communications, calendar_create for scheduling, etc.)`;
+- Match department to the right tool (gmail_send for communications, calendar_create for scheduling, etc.)
+- If a proposal helps achieve a specific active goal, include goalId with the goal title snippet`;
 
     // 6. Call LLM (cheapest tier)
     const response = await complete({
