@@ -445,9 +445,43 @@ async function handleBrowsingActivity(data) {
 // Backend sync
 // ─────────────────────────────────────────────
 
+/**
+ * Try to refresh auth token from an open TwinMe tab.
+ * MV3 service workers lose in-memory state on restart, so we always
+ * check storage first, then try to grab a fresh token from the app.
+ */
+async function refreshAuthToken() {
+  // 1. Check storage (may have been updated by another code path)
+  const { auth_token: stored } = await chrome.storage.local.get('auth_token');
+  if (stored) { authToken = stored; return stored; }
+
+  // 2. Try to get token from an open TwinMe tab
+  try {
+    const tabs = await chrome.tabs.query({ url: `${API_BASE_URL.replace('/api', '')}/*` });
+    for (const tab of tabs) {
+      try {
+        const [result] = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => localStorage.getItem('auth_token'),
+        });
+        if (result?.result) {
+          authToken = result.result;
+          await chrome.storage.local.set({ auth_token: authToken });
+          console.log('[Background] Refreshed auth token from TwinMe tab');
+          return authToken;
+        }
+      } catch (_) { /* tab may not be scriptable */ }
+    }
+  } catch (_) {}
+
+  return null;
+}
+
 async function sendToBackend(platform, events) {
   if (!userId || !events || events.length === 0) return false;
 
+  // Try to refresh token if missing
+  if (!authToken) await refreshAuthToken();
   const token = authToken;
   if (!token) { console.warn('[Background] No auth token — skipping sync'); return false; }
   try {
@@ -464,6 +498,26 @@ async function sendToBackend(platform, events) {
       const result = await response.json();
       console.log(`[Background] Sent ${result.inserted} ${platform} events`);
       return true;
+    } else if (response.status === 401) {
+      // Token expired — try to refresh and retry once
+      console.log('[Background] Token expired, attempting refresh...');
+      authToken = null;
+      await chrome.storage.local.remove('auth_token');
+      const newToken = await refreshAuthToken();
+      if (newToken) {
+        const retry = await fetch(`${API_BASE_URL}/extension/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${newToken}` },
+          body: JSON.stringify({ platform, events }),
+        });
+        if (retry.ok) {
+          const result = await retry.json();
+          console.log(`[Background] Retry succeeded: ${result.inserted} ${platform} events`);
+          return true;
+        }
+      }
+      console.error('[Background] Token refresh failed — events remain pending');
+      return false;
     } else {
       console.error(`[Background] Backend rejected ${platform} events:`, response.status);
       return false;

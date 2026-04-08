@@ -25,7 +25,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px;
+      padding: 12px 16px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       background: linear-gradient(180deg, rgba(45, 45, 41, 0.4) 0%, transparent 100%);
     }
@@ -99,10 +99,10 @@
 
     /* Content */
     .content {
-      padding: 16px 20px;
+      padding: 12px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     /* Setup Section */
@@ -196,10 +196,7 @@
       text-transform: uppercase;
       letter-spacing: 1.2px;
       color: rgba(193, 192, 182, 0.4);
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      margin-bottom: 6px;
     }
 
     /* Stats Grid */
@@ -214,8 +211,8 @@
       border: 1px solid rgba(255,255,255,0.10);
       backdrop-filter: blur(42px);
       -webkit-backdrop-filter: blur(42px);
-      border-radius: 12px;
-      padding: 12px;
+      border-radius: 10px;
+      padding: 10px 8px;
       text-align: center;
     }
 
@@ -323,7 +320,7 @@
 
     /* Footer */
     .footer {
-      padding: 12px 20px;
+      padding: 10px 16px;
       border-top: 1px solid rgba(255,255,255,0.08);
       display: flex;
       align-items: center;
@@ -436,7 +433,7 @@
       <!-- Tracking Toggle -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:14px;">&#128065;&#65039;</span>
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:rgba(193,192,182,0.4);">TRACK</span>
           <div>
             <div style="font-size:12px;font-weight:500;color:#e5e5e0;">Universal Tracking</div>
             <div style="font-size:10px;color:rgba(193,192,182,0.4);">Browsing patterns &amp; interests</div>
@@ -451,7 +448,7 @@
 
       <!-- Today's stats -->
       <div>
-        <div class="section-label">&#128202; Today</div>
+        <div class="section-label">Today</div>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-value" id="pages-count">0</div>
@@ -470,13 +467,13 @@
 
       <!-- Top domains today -->
       <div id="domains-section" class="hidden">
-        <div class="section-label">&#128205; Top Sites Today</div>
+        <div class="section-label">Top Sites Today</div>
         <div class="domain-list" id="domain-list"></div>
       </div>
 
       <!-- Analyze this page -->
       <div>
-        <div class="section-label">&#128269; Page Analysis</div>
+        <div class="section-label">Page Analysis</div>
         <button class="btn btn-accent btn-sm" id="analyze-btn">Analyze This Page</button>
         <div id="analyze-result" class="analyze-result hidden" style="margin-top:8px;"></div>
       </div>
@@ -484,7 +481,7 @@
       <!-- History import (shown once) -->
       <div class="import-banner" id="import-banner">
         <div class="import-banner-text">
-          <strong>&#128190; Import browsing history</strong>
+          <strong>Import browsing history</strong>
           Boost your soul signature with 7 days of past activity.
         </div>
         <button class="btn btn-accent btn-sm" id="import-btn">Import</button>
