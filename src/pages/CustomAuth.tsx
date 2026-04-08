@@ -321,7 +321,7 @@ For privacy concerns: privacy@twinme.me`
         {/* Google sign-in */}
         <button
           onClick={handleGoogleSignIn}
-          disabled={loading || !inviteValid}
+          disabled={loading}
           className="w-full flex items-center justify-center gap-2.5 h-12 rounded-full text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
             backgroundColor: 'var(--foreground)',
