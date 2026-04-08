@@ -17,7 +17,7 @@
 
 import crypto from 'crypto';
 import OpenAI from 'openai';
-import { getRedisClient, isRedisAvailable } from './redisClient.js';
+import { getRedisClient, isRedisAvailable, get as redisGet, set as redisSet } from './redisClient.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 
@@ -125,6 +125,8 @@ const TIER_TIMEOUTS = {
 // ====================================================================
 // LLM Budget Guard (4D)
 // ====================================================================
+const PER_USER_DAILY_BUDGET_USD = parseFloat(process.env.PER_USER_DAILY_BUDGET_USD) || 0.50;
+
 let dailyCostCache = { value: 0, fetchedAt: 0 };
 
 async function getDailyCost() {
@@ -167,6 +169,57 @@ async function getDailyCost() {
   } catch (err) {
     log.warn('Budget check failed', { error: err });
     return dailyCostCache.value;
+  }
+}
+
+/**
+ * Get a specific user's total LLM cost for today (UTC).
+ * Cached in Redis for 5 minutes to avoid hammering the DB.
+ * @param {string} userId
+ * @returns {Promise<number>} cost in USD
+ */
+async function getUserDailyCost(userId) {
+  if (!userId || !supabaseAdmin) return 0;
+
+  const cacheKey = `llm_user_daily_cost:${userId}`;
+
+  try {
+    const cached = await redisGet(cacheKey);
+    if (cached !== null && cached !== undefined) {
+      return cached;
+    }
+  } catch (err) {
+    log.warn('getUserDailyCost cache read error', { error: err });
+  }
+
+  try {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    const { data, error } = await supabaseAdmin
+      .from('llm_usage_log')
+      .select('cost_usd')
+      .eq('user_id', userId)
+      .gte('created_at', todayStart.toISOString());
+
+    if (error) {
+      log.warn('getUserDailyCost query error', { userId, error });
+      return 0;
+    }
+
+    const totalCost = (data || []).reduce((sum, row) => sum + (row.cost_usd || 0), 0);
+
+    // Cache for 5 minutes
+    try {
+      await redisSet(cacheKey, totalCost, 300);
+    } catch (err) {
+      log.warn('getUserDailyCost cache write error', { error: err });
+    }
+
+    return totalCost;
+  } catch (err) {
+    log.warn('getUserDailyCost failed', { userId, error: err });
+    return 0;
   }
 }
 
@@ -378,6 +431,18 @@ export async function complete({
     }
   }
 
+  // Per-user budget guard — downgrade to cheapest tier (don't reject)
+  if (userId && !budgetDowngraded && effectiveTier !== TIER_EXTRACTION) {
+    const userDailyCost = await getUserDailyCost(userId);
+    if (userDailyCost >= PER_USER_DAILY_BUDGET_USD) {
+      log.warn('Per-user budget exceeded — downgrading to TIER_EXTRACTION', {
+        userId, userDailyCost: userDailyCost.toFixed(4),
+        limit: PER_USER_DAILY_BUDGET_USD.toFixed(2), originalTier: effectiveTier,
+      });
+      effectiveTier = TIER_EXTRACTION;
+    }
+  }
+
   // Resolve model and cache TTL (after potential budget downgrade)
   model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_ANALYSIS];
   ttl = CACHE_TTL_BY_TIER[effectiveTier] || 0;
@@ -506,7 +571,7 @@ export async function stream({
   onChunk,
   modelOverride,
 }) {
-  const model = modelOverride || OPENROUTER_MODELS[tier] || OPENROUTER_MODELS[TIER_CHAT];
+  let effectiveTier = tier;
   const startTime = Date.now();
 
   // Circuit breaker check (4B)
@@ -523,6 +588,20 @@ export async function stream({
       throw new Error(`[LLM Gateway] Daily LLM budget exceeded: $${dailyCost.toFixed(2)} >= $${budget.toFixed(2)} limit. Resets at midnight UTC.`);
     }
   }
+
+  // Per-user budget guard — downgrade to TIER_ANALYSIS (cheaper but decent for chat)
+  if (userId && effectiveTier !== TIER_EXTRACTION && effectiveTier !== TIER_ANALYSIS) {
+    const userDailyCost = await getUserDailyCost(userId);
+    if (userDailyCost >= PER_USER_DAILY_BUDGET_USD) {
+      log.warn('Per-user budget exceeded (stream) — downgrading to TIER_ANALYSIS', {
+        userId, userDailyCost: userDailyCost.toFixed(4),
+        limit: PER_USER_DAILY_BUDGET_USD.toFixed(2), originalTier: effectiveTier,
+      });
+      effectiveTier = TIER_ANALYSIS;
+    }
+  }
+
+  const model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_CHAT];
 
   try {
     const client = getClientForModel(model);

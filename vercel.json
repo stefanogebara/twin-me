@@ -26,20 +26,12 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/platform-polling",
-      "schedule": "0 * * * *"
-    },
-    {
       "path": "/api/cron/pattern-learning",
       "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/cron/ingest-observations",
       "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/claude-sync",
-      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/claude-sync/process-analysis",
@@ -75,7 +67,7 @@
     },
     {
       "path": "/api/cron/deliver-insights",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/morning-briefing",

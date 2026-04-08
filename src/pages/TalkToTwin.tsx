@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
@@ -19,6 +19,8 @@ import { ConversationList } from '@/components/chat/ConversationList';
 import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
+import { departmentsAPI } from '@/services/api/departmentsAPI';
+import type { ProposalStatus } from '@/components/chat/DepartmentProposalBubble';
 
 interface ActionEvent {
   tool: string;
@@ -26,6 +28,17 @@ interface ActionEvent {
   status: 'executing' | 'complete' | 'failed';
   data?: any;
   elapsedMs?: number;
+}
+
+interface ProposalEvent {
+  id: string;
+  department: string;
+  departmentColor: string;
+  description: string;
+  toolName: string;
+  estimatedCost: number;
+  createdAt: string;
+  status: ProposalStatus;
 }
 
 interface Message {
@@ -36,6 +49,7 @@ interface Message {
   failed?: boolean;
   errorType?: 'timeout' | 'rate_limit' | 'network' | 'generic';
   actions?: ActionEvent[];
+  proposals?: ProposalEvent[];
   contextUsed?: {
     soulSignature?: boolean;
     twinSummary?: string | null;
@@ -385,7 +399,37 @@ const TalkToTwin = () => {
                   )
                 } : m
               ));
-            } else if (event.type === 'error') {
+            } else if (event.type === 'action_pending_confirmation') {
+                // Department proposal — a write tool was intercepted and needs approval
+                const proposal: ProposalEvent = {
+                  id: event.actionId,
+                  department: event.department || event.tool,
+                  departmentColor: event.departmentColor || '#6366F1',
+                  description: event.description || `Action "${event.tool}" requires your approval`,
+                  toolName: event.tool,
+                  estimatedCost: event.estimatedCost ?? 0,
+                  createdAt: new Date().toISOString(),
+                  status: 'pending' as const,
+                };
+
+                if (firstChunk) {
+                  firstChunk = false;
+                  setIsTyping(false);
+                  setMessages(prev => [...prev, {
+                    id: assistantMsgId,
+                    role: 'assistant',
+                    content: '',
+                    timestamp: new Date(),
+                    proposals: [proposal],
+                  }]);
+                } else {
+                  setMessages(prev => prev.map(m =>
+                    m.id === assistantMsgId
+                      ? { ...m, proposals: [...(m.proposals || []), proposal] }
+                      : m
+                  ));
+                }
+              } else if (event.type === 'error') {
               setMessages(prev => {
                 const hasMsg = prev.some(m => m.id === assistantMsgId);
                 if (hasMsg) {
@@ -441,6 +485,58 @@ const TalkToTwin = () => {
       handleSendMessage();
     }
   };
+
+  // ── Department proposal handlers ──────────────────────────────────
+
+  const updateProposalStatus = useCallback((proposalId: string, newStatus: ProposalStatus) => {
+    setMessages(prev => prev.map(msg => {
+      if (!msg.proposals) return msg;
+      const hasProposal = msg.proposals.some(p => p.id === proposalId);
+      if (!hasProposal) return msg;
+      return {
+        ...msg,
+        proposals: msg.proposals.map(p =>
+          p.id === proposalId ? { ...p, status: newStatus } : p
+        ),
+      };
+    }));
+  }, []);
+
+  const handleApproveProposal = useCallback(async (proposalId: string) => {
+    updateProposalStatus(proposalId, 'approved');
+    try {
+      await departmentsAPI.approveProposal(proposalId);
+      updateProposalStatus(proposalId, 'completed');
+    } catch (err) {
+      console.error('Failed to approve proposal:', err);
+      updateProposalStatus(proposalId, 'pending');
+      toast({
+        title: 'Approval failed',
+        description: 'Could not approve this action. Try again.',
+      });
+    }
+  }, [updateProposalStatus, toast]);
+
+  const handleRejectProposal = useCallback(async (proposalId: string) => {
+    updateProposalStatus(proposalId, 'rejected');
+    try {
+      await departmentsAPI.rejectProposal(proposalId);
+    } catch (err) {
+      console.error('Failed to reject proposal:', err);
+      updateProposalStatus(proposalId, 'pending');
+    }
+  }, [updateProposalStatus]);
+
+  const handleApproveAllProposals = useCallback(async (messageId: string) => {
+    const msg = messages.find(m => m.id === messageId);
+    if (!msg?.proposals) return;
+    const pending = msg.proposals.filter(p => p.status === 'pending');
+    await Promise.all(pending.map(p => handleApproveProposal(p.id)));
+  }, [messages, handleApproveProposal]);
+
+  const handleReviewInDepartments = useCallback(() => {
+    navigate('/departments');
+  }, [navigate]);
 
   const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
     try {
@@ -547,6 +643,10 @@ const TalkToTwin = () => {
               formatTime={formatTime}
               onRetry={handleRetry}
               onRate={handleRate}
+              onApproveProposal={handleApproveProposal}
+              onRejectProposal={handleRejectProposal}
+              onApproveAllProposals={handleApproveAllProposals}
+              onReviewInDepartments={handleReviewInDepartments}
             />
           )}
 

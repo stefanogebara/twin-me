@@ -221,6 +221,93 @@ export async function logAgentAction(userId, actionData) {
 }
 
 /**
+ * Queue an action for user approval (DRAFT_CONFIRM level).
+ * Stores the proposed action in agent_actions as a pending item
+ * that the user can later approve or reject via the approval queue.
+ *
+ * @param {string} userId
+ * @param {{ toolName: string, params: object, context?: string, skillName?: string }} actionData
+ * @returns {string} The created action ID
+ */
+export async function queueActionForApproval(userId, { toolName, params, context, skillName }) {
+  if (!userId || !toolName) {
+    throw new Error('userId and toolName are required to queue an action');
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('agent_actions')
+    .insert({
+      user_id: userId,
+      action_type: toolName,
+      skill_name: skillName || `${toolName.split('_')[0]}_actions`,
+      proposed_action: JSON.stringify({ toolName, params }),
+      context_summary: context || '',
+      created_at: new Date().toISOString()
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    log.error('Failed to queue action for approval', { userId, toolName, error });
+    throw error;
+  }
+
+  log.info('Action queued for approval', { userId, actionId: data.id, toolName });
+  return data.id;
+}
+
+/**
+ * Execute a previously queued action that the user has approved.
+ * Only pending actions (user_response IS NULL) can be executed.
+ *
+ * @param {string} userId
+ * @param {string} actionId
+ * @returns {object} The execution result from the tool
+ */
+export async function executeApprovedAction(userId, actionId) {
+  if (!userId || !actionId) {
+    throw new Error('userId and actionId are required');
+  }
+
+  // Fetch the action — must belong to this user and be pending
+  const { data: action, error: fetchError } = await supabaseAdmin
+    .from('agent_actions')
+    .select('*')
+    .eq('id', actionId)
+    .eq('user_id', userId)
+    .is('user_response', null)
+    .single();
+
+  if (fetchError || !action) {
+    throw new Error('Action not found or already processed');
+  }
+
+  if (!action.proposed_action) {
+    throw new Error('Action has no proposed_action to execute');
+  }
+
+  // Parse the stored action (immutable — original action row unchanged)
+  const { toolName, params } = JSON.parse(action.proposed_action);
+
+  if (!toolName) {
+    throw new Error('Stored action is missing toolName');
+  }
+
+  // Execute via tool registry
+  const { executeTool } = await import('./toolRegistry.js');
+  const result = await executeTool(userId, toolName, params);
+
+  // Record the outcome
+  await recordActionResponse(actionId, 'accepted', {
+    executionResult: result,
+    executedAt: new Date().toISOString()
+  });
+
+  log.info('Approved action executed', { userId, actionId, toolName });
+  return result;
+}
+
+/**
  * Record user response to an agent action.
  */
 export async function recordActionResponse(actionId, response, outcomeData = null) {

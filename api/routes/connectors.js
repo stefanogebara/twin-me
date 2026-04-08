@@ -104,7 +104,7 @@ const OAUTH_CONFIGS = {
   github: {
     clientId: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    scopes: ['user', 'repo', 'read:org'],
+    scopes: ['user', 'public_repo', 'read:org'],
     authUrl: 'https://github.com/login/oauth/authorize',
     tokenUrl: 'https://github.com/login/oauth/access_token'
   },
@@ -1018,7 +1018,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     for (let attempt = 0; attempt < 2; attempt++) {
       const result = await supabaseAdmin
         .from('platform_connections')
-        .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status')
+        .select('platform, connected_at, token_expires_at, access_token, metadata, last_sync_at, last_sync_status, status') // access_token needed only for NANGO_MANAGED sentinel check — never returned to client
         .eq('user_id', userUuid);
       connections = result.data;
       error = result.error;

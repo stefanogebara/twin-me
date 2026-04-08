@@ -14,15 +14,54 @@
  *   - Composio 250+ managed tools
  */
 
+import crypto from 'crypto';
 import { supabaseAdmin } from './database.js';
 import { getValidAccessToken } from './tokenRefreshService.js';
 import { createLogger } from './logger.js';
+import { get as cacheGet, set as cacheSet } from './redisClient.js';
 import axios from 'axios';
 
 const log = createLogger('ToolRegistry');
 
 // In-memory tool registry (populated at startup + on demand)
 const registry = new Map();
+
+// ========================================================================
+// Idempotency Protection for Write Tools
+// Prevents duplicate side effects (e.g. double emails, double calendar
+// events) when the twin retries an action due to timeout or error.
+// Uses Redis with in-memory fallback via redisClient.
+// ========================================================================
+
+const IDEMPOTENCY_TTL_S = 5 * 60; // 5-minute dedup window
+
+/**
+ * Generate a deterministic idempotency key for a write tool execution.
+ * Same user + tool + sorted params within the same 5-minute window = same key.
+ */
+function generateIdempotencyKey(userId, toolName, params) {
+  const windowId = Math.floor(Date.now() / (IDEMPOTENCY_TTL_S * 1000));
+  const payload = JSON.stringify({
+    userId,
+    toolName,
+    params: sortedParams(params),
+    windowId,
+  });
+  return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 32);
+}
+
+/**
+ * Sort object keys for deterministic serialization.
+ * Ensures { to: 'a', context: 'b' } and { context: 'b', to: 'a' } produce the same key.
+ */
+function sortedParams(params) {
+  if (!params || typeof params !== 'object') return params;
+  if (Array.isArray(params)) return params;
+  return Object.keys(params).sort().reduce((acc, key) => {
+    acc[key] = params[key];
+    return acc;
+  }, {});
+}
 
 /**
  * Tool definition shape:
@@ -135,6 +174,27 @@ export async function executeTool(userId, toolName, params = {}) {
     }
   }
 
+  // Idempotency check for write tools (minAutonomyLevel >= 2)
+  // Read tools always execute fresh — only write tools are deduped.
+  const isWriteTool = tool.minAutonomyLevel != null && tool.minAutonomyLevel >= 2;
+  let idempotencyKey = null;
+
+  if (isWriteTool) {
+    idempotencyKey = generateIdempotencyKey(userId, toolName, params);
+    const cacheKey = `idempotency:${idempotencyKey}`;
+
+    try {
+      const cached = await cacheGet(cacheKey);
+      if (cached) {
+        log.warn('Duplicate write action blocked', { toolName, idempotencyKey, userId });
+        return { ...cached, deduplicated: true };
+      }
+    } catch (cacheErr) {
+      // Non-fatal: if cache lookup fails, proceed with execution
+      log.debug('Idempotency cache lookup failed, proceeding', { error: cacheErr.message });
+    }
+  }
+
   try {
     const startTime = Date.now();
     const result = await tool.executor(userId, params);
@@ -142,7 +202,19 @@ export async function executeTool(userId, toolName, params = {}) {
 
     log.info('Tool executed', { userId, tool: toolName, elapsedMs: elapsed });
 
-    return { success: true, data: result, tool: toolName, elapsedMs: elapsed };
+    const response = { success: true, data: result, tool: toolName, elapsedMs: elapsed };
+
+    // Cache the result for write tools so duplicates within the window are blocked
+    if (isWriteTool && idempotencyKey) {
+      const cacheKey = `idempotency:${idempotencyKey}`;
+      try {
+        await cacheSet(cacheKey, response, IDEMPOTENCY_TTL_S);
+      } catch (cacheErr) {
+        log.debug('Idempotency cache write failed', { error: cacheErr.message });
+      }
+    }
+
+    return response;
   } catch (err) {
     log.error('Tool execution failed', { userId, tool: toolName, error: err.message });
     return { success: false, error: err.message, tool: toolName };

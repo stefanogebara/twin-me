@@ -6,11 +6,11 @@
  *
  * Trigger: twin/skill.email_draft event (from intelligent triggers or manual)
  * Cooldown: 4 hours between drafts per user
- * Cost: ~$0.003 per draft (TIER_CHAT for stylometric matching)
+ * Cost: ~$0.0003 per draft (TIER_ANALYSIS — stylometric matching doesn't need Sonnet)
  */
 
 import { inngest, EVENTS } from '../../services/inngestClient.js';
-import { complete, TIER_CHAT } from '../../services/llmGateway.js';
+import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { getAutonomyBySkillName, logAgentAction } from '../../services/autonomyService.js';
 import { isInsightDuplicate } from '../../services/proactiveInsights.js';
@@ -249,7 +249,7 @@ SUBJECT: Re: [original subject or new subject]
 
       const response = await complete({
         messages: [{ role: 'user', content: prompt }],
-        tier: TIER_CHAT,
+        tier: TIER_ANALYSIS,
         maxTokens: 500,
         temperature: 0.6,
         userId,

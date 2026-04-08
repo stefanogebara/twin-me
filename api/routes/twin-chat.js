@@ -1106,7 +1106,10 @@ RULES:
           const resultBlock = formatActionResult(actionResult);
 
           if (isStreaming) {
-            try { res.write(`data: ${JSON.stringify({ type: 'action_result', tool: action.toolName, success: actionResult.success, data: actionResult.data, elapsedMs: actionResult.elapsedMs })}\n\n`); } catch { /* ignore */ }
+            const actionEvent = actionResult.pendingConfirmation
+              ? { type: 'action_pending_confirmation', tool: action.toolName, actionId: actionResult.actionId, params: actionResult.params }
+              : { type: 'action_result', tool: action.toolName, success: actionResult.success, data: actionResult.data, elapsedMs: actionResult.elapsedMs };
+            try { res.write(`data: ${JSON.stringify(actionEvent)}\n\n`); } catch { /* ignore */ }
           }
 
           // Re-call LLM with the action result so it can weave the data into a natural response

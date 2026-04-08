@@ -430,6 +430,7 @@ try {
 // Phase 1 Agentic Foundation routes
 import autonomyRoutes from './routes/autonomy.js';
 import agentActionsRoutes from './routes/agent-actions.js';
+import departmentsRoutes from './routes/departments.js';
 import cronProspectiveCheckRoutes from './routes/cron-prospective-check.js';
 import cronEveningRecapRoutes from './routes/cron-evening-recap.js';
 import cronDeliverInsightsRoutes from './routes/cron-deliver-insights.js';
@@ -603,6 +604,7 @@ app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
 // Phase 1 Agentic Foundation
 app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum settings
 app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
+app.use('/api/departments', departmentsRoutes); // SoulOS department management + proposals
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
 app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)
 app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (*/5 min)

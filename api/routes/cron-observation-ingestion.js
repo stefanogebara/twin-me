@@ -88,6 +88,18 @@ export default async function handler(req, res) {
       } catch (e) {
         log.warn('Feature extraction setup failed', { error: e.message });
       }
+
+      // Check if departments should propose actions (SoulOS heartbeat)
+      try {
+        const { checkDepartmentHeartbeats } = await import('../services/departmentService.js');
+        for (const uid of result.processedUserIds) {
+          checkDepartmentHeartbeats(uid).catch(e =>
+            log.warn('Department heartbeat check failed (non-fatal)', { userId: uid.slice(0, 8), error: e.message })
+          );
+        }
+      } catch (e) {
+        log.warn('Department heartbeat setup failed', { error: e.message });
+      }
     }
 
     const status = result.errors.length > 0 && result.observationsStored === 0 ? 500 : 200;

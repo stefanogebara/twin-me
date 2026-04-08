@@ -26,11 +26,9 @@ export const PLATFORM_CONFIGS = {
       'user-top-read',
       'user-library-read',
       'user-read-playback-state',
-      'user-modify-playback-state',
       'user-read-currently-playing',
       'playlist-read-private',
-      'playlist-read-collaborative',
-      'streaming'
+      'playlist-read-collaborative'
     ],
     apiBaseUrl: 'https://api.spotify.com/v1',
 
@@ -106,7 +104,7 @@ export const PLATFORM_CONFIGS = {
     name: 'GitHub',
     authUrl: 'https://github.com/login/oauth/authorize',
     tokenUrl: 'https://github.com/login/oauth/access_token',
-    scopes: ['read:user', 'repo', 'read:org'], // User profile, repositories, organization membership
+    scopes: ['read:user', 'public_repo', 'read:org'], // User profile, public repos (read-only), org membership
     apiBaseUrl: 'https://api.github.com',
 
     endpoints: {

@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 const REMARK_PLUGINS = [remarkGfm];
 import { RotateCcw, AlertCircle, WifiOff, Clock, ThumbsUp, ThumbsDown, Copy, Check } from 'lucide-react';
 import { WorkspaceActionCard } from './WorkspaceActionCard';
+import { DepartmentProposalBubble, type ProposalData, type ProposalStatus } from './DepartmentProposalBubble';
+import { ProposalSummaryCard } from './ProposalSummaryCard';
 
 type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
 
@@ -52,6 +54,17 @@ interface ActionEvent {
   elapsedMs?: number;
 }
 
+export interface ProposalEvent {
+  id: string;
+  department: string;
+  departmentColor: string;
+  description: string;
+  toolName: string;
+  estimatedCost: number;
+  createdAt: string;
+  status: ProposalStatus;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -60,6 +73,7 @@ interface Message {
   failed?: boolean;
   errorType?: ChatErrorType;
   actions?: ActionEvent[];
+  proposals?: ProposalEvent[];
   contextUsed?: {
     soulSignature?: boolean;
     twinSummary?: string | null;
@@ -76,6 +90,10 @@ interface MessageListProps {
   formatTime: (date: Date) => string;
   onRetry?: (content: string, messageId: string) => void;
   onRate?: (messageId: string, rating: number, messageContent: string, userMessage: string | null) => void;
+  onApproveProposal?: (proposalId: string) => void;
+  onRejectProposal?: (proposalId: string) => void;
+  onApproveAllProposals?: (messageId: string) => void;
+  onReviewInDepartments?: () => void;
 }
 
 /** Track which messages the user has already rated this session. */
@@ -99,7 +117,7 @@ function useCopiedMessages() {
 }
 
 export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
-  ({ messages, isTyping, formatTime, onRetry, onRate }, ref) => {
+  ({ messages, isTyping, formatTime, onRetry, onRate, onApproveProposal, onRejectProposal, onApproveAllProposals, onReviewInDepartments }, ref) => {
     const { rated, markRated } = useRatedMessages();
     const { copied, markCopied } = useCopiedMessages();
     return (
@@ -190,6 +208,41 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
                         ))}
                       </div>
                     )}
+
+                    {/* Department proposals — inline cards */}
+                    {message.proposals && message.proposals.length > 0 && (() => {
+                      const pendingProposals = message.proposals.filter(p => p.status === 'pending');
+                      const showSummary = pendingProposals.length >= 3;
+
+                      return (
+                        <div className="mb-3">
+                          {showSummary ? (
+                            <ProposalSummaryCard
+                              proposals={pendingProposals.map(p => ({
+                                id: p.id,
+                                department: p.department,
+                                departmentColor: p.departmentColor,
+                                description: p.description,
+                              }))}
+                              onApproveAll={() => onApproveAllProposals?.(message.id)}
+                              onApprove={(id) => onApproveProposal?.(id)}
+                              onReject={(id) => onRejectProposal?.(id)}
+                              onReviewInDepartments={onReviewInDepartments}
+                            />
+                          ) : (
+                            message.proposals.map((proposal) => (
+                              <DepartmentProposalBubble
+                                key={proposal.id}
+                                proposal={proposal}
+                                status={proposal.status}
+                                onApprove={(id) => onApproveProposal?.(id)}
+                                onReject={(id) => onRejectProposal?.(id)}
+                              />
+                            ))
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     <div
                       className="prose prose-invert max-w-none [&>p]:mb-5 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0 [&>h3]:mt-6 [&>h3]:mb-2 [&>hr]:my-5 [&>ul]:mb-5 [&>ol]:mb-5"

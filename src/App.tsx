@@ -53,6 +53,7 @@ const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
+const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 
 // Prototype pages (Sundust design system)
 const PrototypeLanding    = lazy(() => import('./prototype/pages/PrototypeLanding'));
@@ -309,6 +310,17 @@ const App = () => {
 
             {/* Soul Journal */}
             <Route path="/journal" element={<Navigate to="/brain" replace />} />
+
+            {/* Departments — SoulOS control room */}
+            <Route path="/departments" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <DepartmentsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
 
             {/* Goal Tracking */}
             <Route path="/goals" element={

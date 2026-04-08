@@ -50,6 +50,27 @@ router.put('/settings/:skillId', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'autonomyLevel must be 0-4' });
     }
 
+    // Require recent authentication for autonomy level 3+ (ACT_NOTIFY, AUTONOMOUS)
+    // A stolen JWT should not be able to escalate to full autonomy
+    const MAX_TOKEN_AGE_FOR_ESCALATION = 5 * 60 * 1000; // 5 minutes
+    if (autonomyLevel >= 3) {
+      const tokenAge = Date.now() - (req.user.iat * 1000);
+      if (tokenAge > MAX_TOKEN_AGE_FOR_ESCALATION) {
+        log.warn('Autonomy escalation blocked — token too old', {
+          userId: req.user.id,
+          skillId,
+          requestedLevel: autonomyLevel,
+          tokenAgeMs: tokenAge
+        });
+        return res.status(403).json({
+          success: false,
+          error: 'reauth_required',
+          message: 'Changing to autonomous mode requires recent authentication. Please sign in again.',
+          maxTokenAge: '5 minutes'
+        });
+      }
+    }
+
     const result = await setAutonomyLevel(req.user.id, skillId, autonomyLevel);
     return res.json({
       success: true,
