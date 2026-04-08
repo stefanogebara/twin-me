@@ -1,9 +1,9 @@
 /**
  * TemplateCard
  *
- * Glass card for a Life Operating System template.
- * Shows icon, name, tagline, department count, total budget,
- * and an apply button with active state.
+ * Compact glass pill for a Life Operating System template.
+ * Renders as a small horizontal chip: icon + name + tagline + apply link.
+ * Uses same dark glass styling as department cards.
  */
 
 import React, { useState } from 'react';
@@ -40,19 +40,17 @@ const ICON_MAP: Record<string, LucideIcon> = {
 const TemplateCard: React.FC<TemplateCardProps> = ({
   id,
   name,
-  description,
   tagline,
   icon,
   color,
-  departmentCount,
-  totalBudget,
   isActive,
   onApply,
 }) => {
   const [isApplying, setIsApplying] = useState(false);
   const Icon = ICON_MAP[icon] || Zap;
 
-  const handleApply = async () => {
+  const handleApply = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (isActive || isApplying) return;
     setIsApplying(true);
     try {
@@ -64,90 +62,48 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
   return (
     <div
-      className="flex flex-col p-6 min-w-[260px] max-w-[300px] flex-shrink-0 transition-all duration-200 hover:-translate-y-[2px] hover:border-[rgba(255,255,255,0.14)]"
+      className="flex items-center gap-2.5 px-3 py-2.5 flex-shrink-0 transition-all duration-200 hover:border-[rgba(255,255,255,0.14)]"
       style={{
-        borderRadius: '20px',
+        borderRadius: '14px',
         background: 'rgba(255,255,255,0.06)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         border: isActive
           ? `1px solid ${color}40`
           : '1px solid rgba(255,255,255,0.08)',
+        maxWidth: '280px',
       }}
     >
-      {/* Header: Icon + Name */}
-      <div className="flex items-center gap-3 mb-4">
-        <div
-          className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
-          style={{
-            background: `${color}1A`,
-          }}
-        >
-          <Icon className="w-4 h-4" style={{ color }} />
-        </div>
-        <div className="min-w-0">
-          <h3
-            className="text-sm font-medium leading-snug truncate"
-            style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {name}
-          </h3>
-          <p
-            className="text-[11px] mt-0.5 truncate"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {tagline}
-          </p>
-        </div>
-      </div>
-
-      {/* Description */}
-      <p
-        className="text-[12px] leading-relaxed mb-4 flex-1"
-        style={{
-          color: 'rgba(255,255,255,0.35)',
-          fontFamily: "'Inter', sans-serif",
-          display: '-webkit-box',
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}
+      {/* Icon */}
+      <div
+        className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
+        style={{ background: `${color}1A` }}
       >
-        {description}
-      </p>
-
-      {/* Meta: department count + budget */}
-      <div className="flex items-center gap-3 mb-5">
-        <span
-          className="text-[11px]"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-        >
-          {departmentCount} {departmentCount === 1 ? 'department' : 'departments'}
-        </span>
-        <span
-          className="w-[3px] h-[3px] rounded-full"
-          style={{ background: 'rgba(255,255,255,0.15)' }}
-        />
-        <span
-          className="text-[11px]"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-        >
-          ${totalBudget.toFixed(2)}/mo
-        </span>
+        <Icon className="w-3.5 h-3.5" style={{ color }} />
       </div>
 
-      {/* Apply / Active button */}
-      {isActive ? (
-        <div
-          className="flex items-center justify-center gap-1.5 rounded-[100px] px-3 py-2"
-          style={{
-            background: `${color}20`,
-            border: `1px solid ${color}30`,
-          }}
+      {/* Name + tagline */}
+      <div className="min-w-0 flex-1">
+        <h3
+          className="text-[12px] font-medium leading-snug truncate"
+          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
-          <Check className="w-3.5 h-3.5" style={{ color }} />
+          {name}
+        </h3>
+        <p
+          className="text-[10px] truncate"
+          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+        >
+          {tagline}
+        </p>
+      </div>
+
+      {/* Apply / Active */}
+      {isActive ? (
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Check className="w-3 h-3" style={{ color }} />
           <span
-            className="text-[12px] font-medium"
+            className="text-[10px] font-medium"
             style={{ color, fontFamily: "'Inter', sans-serif" }}
           >
             Active
@@ -157,19 +113,23 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         <button
           onClick={handleApply}
           disabled={isApplying}
-          className="flex items-center justify-center gap-1.5 rounded-[100px] px-3 py-2 transition-all duration-200 hover:bg-white/90 hover:shadow-[0_0_12px_rgba(255,255,255,0.15)] disabled:opacity-50"
+          className="text-[10px] font-medium transition-colors duration-150 flex-shrink-0 disabled:opacity-50"
           style={{
-            background: '#F5F5F4',
-            color: '#110f0f',
+            color: 'rgba(255,255,255,0.4)',
             fontFamily: "'Inter', sans-serif",
-            fontSize: '12px',
-            fontWeight: 500,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
         >
           {isApplying ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : null}
-          {isApplying ? 'Applying...' : 'Apply'}
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            'Apply'
+          )}
         </button>
       )}
     </div>

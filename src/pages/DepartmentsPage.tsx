@@ -1,9 +1,8 @@
 /**
  * DepartmentsPage
  *
- * SoulOS Department Dashboard — control room for your AI team.
- * Shows all 7 departments with autonomy controls, budget bars,
- * and pending proposals.
+ * SoulOS Department Dashboard — clean settings-panel aesthetic.
+ * Compact department list, horizontal template strip, pending proposals.
  */
 
 import React, { useState, useCallback } from 'react';
@@ -148,7 +147,6 @@ const DepartmentsPage: React.FC = () => {
   // ── Handlers ───────────────────────────────────────────────────────────
 
   const handleAutonomyChange = useCallback(async (name: string, level: number) => {
-    // Optimistic update
     setLocalDepts((prev) => {
       const base = prev ?? departments;
       return base.map((d) =>
@@ -161,13 +159,11 @@ const DepartmentsPage: React.FC = () => {
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments });
     } catch (err) {
       toast.error('Failed to update autonomy level.');
-      // Revert
       setLocalDepts(null);
     }
   }, [departments, queryClient]);
 
   const handleToggle = useCallback(async (name: string, enabled: boolean) => {
-    // Optimistic update
     setLocalDepts((prev) => {
       const base = prev ?? departments;
       return base.map((d) =>
@@ -215,7 +211,6 @@ const DepartmentsPage: React.FC = () => {
     try {
       await applyTemplateAPI(templateId);
       setActiveTemplateId(templateId);
-      // Refresh departments to reflect the new autonomy + budget settings
       setLocalDepts(null);
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments });
       toast.success('Template applied successfully.');
@@ -284,14 +279,14 @@ const DepartmentsPage: React.FC = () => {
         )}
       </div>
       <p
-        className="text-sm mb-10"
+        className="text-sm mb-8"
         style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
       >
         Your AI team, working for you
       </p>
 
       {/* Total monthly budget bar */}
-      <div className="mb-10">
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <span
             className="text-[11px] font-medium tracking-[0.12em] uppercase"
@@ -325,24 +320,18 @@ const DepartmentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-10" />
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
 
-      {/* Life Operating Systems */}
+      {/* Life Operating Systems — compact horizontal strip */}
       {!isLoading && templates.length > 0 && (
-        <section className="mb-12">
+        <section className="mb-10">
           <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase mb-1.5"
+            className="text-[11px] font-medium tracking-[0.12em] uppercase mb-3"
             style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
           >
             Life Operating Systems
           </h2>
-          <p
-            className="text-[12px] mb-6"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Pre-configured department setups for common workflows
-          </p>
-          <div className="flex gap-5 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-thin">
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-thin">
             {templates.map((t: Template) => (
               <TemplateCard
                 key={t.id}
@@ -359,7 +348,7 @@ const DepartmentsPage: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mt-8 mb-2" />
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mt-6 mb-2" />
         </section>
       )}
 
@@ -370,16 +359,16 @@ const DepartmentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Department grid */}
+      {/* Department list */}
       {!isLoading && (
-        <section className="mb-12">
+        <section className="mb-10">
           <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-5"
+            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-3"
             style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
           >
             Your Departments
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex flex-col gap-2">
             {departments.map((dept) => (
               <DepartmentCard
                 key={dept.name}
@@ -400,15 +389,15 @@ const DepartmentsPage: React.FC = () => {
       {/* Pending proposals */}
       {!isLoading && (
         <section>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-6" />
           <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-5"
+            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-3"
             style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
           >
             Pending Proposals
           </h2>
           {proposals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <div className="flex flex-col items-center justify-center py-10 space-y-3">
               <Inbox className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.08)' }} />
               <p
                 className="text-[13px] text-center"
@@ -419,7 +408,7 @@ const DepartmentsPage: React.FC = () => {
             </div>
           ) : (
             <div
-              className="rounded-[20px] px-5 py-5"
+              className="rounded-[16px] px-4 py-4"
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 backdropFilter: 'blur(42px)',
