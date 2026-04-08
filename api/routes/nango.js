@@ -51,8 +51,18 @@ router.get('/platforms', (req, res) => {
 router.post('/connect-session', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const userEmail = req.user.email;
+    let userEmail = req.user.email;
     const { integrationId, allowedIntegrations } = req.body;
+
+    // Fetch email from DB if not in JWT payload
+    if (!userEmail) {
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .single();
+      userEmail = user?.email;
+    }
 
     log.info(`Creating connect session for user ${userId}`);
 

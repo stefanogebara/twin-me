@@ -325,11 +325,12 @@ export async function createConnectSession(userId, userEmail, options = {}) {
       ? [options.integrationId]
       : (options.allowedIntegrations || Object.keys(PLATFORM_CONFIGS));
 
+    const displayName = userEmail ? userEmail.split('@')[0] : userId.slice(0, 8);
     const sessionParams = {
       end_user: {
         id: userId,
-        email: userEmail,
-        display_name: userEmail.split('@')[0]
+        ...(userEmail ? { email: userEmail } : {}),
+        display_name: displayName,
       },
       allowed_integrations: allowedIntegrations
     };
