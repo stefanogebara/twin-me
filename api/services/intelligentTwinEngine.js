@@ -278,7 +278,7 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
 
       // Simple status based on recovery
       let statusLabel = 'balanced';
-      let statusEmoji = '😊';
+      let statusEmoji = '';
       let primaryMetric = null;
 
       if (context.whoop?.recovery !== undefined) {
@@ -287,13 +287,13 @@ Respond ONLY with valid JSON, no markdown code blocks:`;
 
         if (recovery < 33) {
           statusLabel = 'needs rest';
-          statusEmoji = '😴';
+          statusEmoji = '';
         } else if (recovery < 66) {
           statusLabel = 'moderate energy';
-          statusEmoji = '🙂';
+          statusEmoji = '';
         } else {
           statusLabel = 'peak performance';
-          statusEmoji = '⚡';
+          statusEmoji = '';
         }
       }
 

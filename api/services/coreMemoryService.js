@@ -260,9 +260,7 @@ export async function generateSoulSignature(userId) {
         if (style.formality_score != null) {
           styleParts.push(style.formality_score < 0.3 ? 'very casual' : style.formality_score < 0.6 ? 'casual-balanced' : 'somewhat formal');
         }
-        if (style.emoji_frequency != null && style.emoji_frequency > 0.05) {
-          styleParts.push('uses emojis');
-        }
+        // Emoji style trait removed — user preference is NO EMOJIS
         if (styleParts.length > 0) {
           parts.push(`Communication style: ${styleParts.join(', ')}`);
         }

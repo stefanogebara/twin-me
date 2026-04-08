@@ -302,19 +302,19 @@ export async function sendInsightNotification({ toEmail, firstName, userId, insi
   const unsubToken = generateUnsubscribeToken(userId);
   const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
 
-  const emojiMap = {
-    nudge: '💡', trend: '📊', concern: '⚠️', celebration: '🎉',
-    goal_progress: '🎯', pattern: '🧠', suggestion: '✨',
-    anomaly: '⚠️', briefing: '☀️', reminder: '🔔',
-    default: '💬',
+  const categoryLabels = {
+    nudge: 'Nudge', trend: 'Trend', concern: 'Alert', celebration: 'Win',
+    goal_progress: 'Goal', pattern: 'Pattern', suggestion: 'Idea',
+    anomaly: 'Alert', briefing: 'Briefing', reminder: 'Reminder',
+    default: 'Insight',
   };
 
   const insightCards = insights.slice(0, 3).map(i => {
-    const emoji = emojiMap[i.category] || emojiMap.default;
+    const label = categoryLabels[i.category] || categoryLabels.default;
     return `
       <div style="${S.card}">
         <p style="${S.cardText}">
-          <span style="font-size:16px;margin-right:8px;">${emoji}</span>
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:#A8A29E;margin-right:8px;">${label}</span>
           ${escapeHtml((i.insight || '').slice(0, 300))}
         </p>
       </div>`;

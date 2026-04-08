@@ -157,9 +157,8 @@ export function buildCommunicationStyleRules(personalityScores, writingProfile) 
       rules.push('Give thorough, detailed responses');
     }
 
-    if (writingProfile.usesEmojis) {
-      rules.push('Use emojis naturally in responses');
-    }
+    // Emoji rule removed — user preference is NO EMOJIS.
+    // Enforced via CRITICAL STYLE RULE in twin-chat.js.
 
     if (writingProfile.personalityIndicators?.assertiveness > 0.7) {
       rules.push('State opinions confidently, take clear positions');

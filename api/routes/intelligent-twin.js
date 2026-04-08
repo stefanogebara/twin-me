@@ -898,8 +898,8 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
       if (moodInsight?.mood) {
         // Use enhanced mood data
         const mood = moodInsight.mood;
-        moodEmoji = mood.emoji || '';
-        musicTitle = `Current Mood: ${mood.label} ${moodEmoji}`;
+        moodEmoji = '';
+        musicTitle = `Current Mood: ${mood.label}`;
         musicSummary = `Based on your recent listening, you're in a ${mood.description} mood`;
         musicDetail = `Your recent tracks show ${Math.round(averageEnergy)}% energy and ${Math.round(averageValence)}% positivity. ${
           averageEnergy > 70 ? 'Great energy for tackling challenging tasks!' :
