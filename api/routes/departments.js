@@ -141,6 +141,18 @@ router.put('/:name/autonomy', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'autonomyLevel must be 0-4' });
     }
 
+    // Step-up auth: autonomy level 3+ requires fresh JWT (< 5 min old)
+    if (autonomyLevel >= 3 && req.user.iat) {
+      const tokenAge = Date.now() - (req.user.iat * 1000);
+      if (tokenAge > 5 * 60 * 1000) {
+        return res.status(403).json({
+          success: false,
+          error: 'reauth_required',
+          message: 'Enabling autonomous mode requires recent authentication. Please sign in again.',
+        });
+      }
+    }
+
     const { updateDepartmentAutonomy } = await getDepartmentService();
     const result = await updateDepartmentAutonomy(req.user.id, name, autonomyLevel);
     return res.json({ success: true, ...result });
