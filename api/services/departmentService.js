@@ -313,6 +313,30 @@ async function countRecentActions(userId, department) {
 }
 
 /**
+ * Heartbeat check — called from observation ingestion cron after new data arrives.
+ * Lightweight: checks if any department should propose an action based on new observations.
+ * Currently a stub that logs the check — will be extended in Phase 2 with LLM-driven proposals.
+ */
+export async function checkDepartmentHeartbeats(userId) {
+  try {
+    const departments = await getAllDepartments(userId);
+    const activeDepts = departments.filter(d => d.autonomyLevel > 0);
+
+    if (activeDepts.length === 0) return;
+
+    log.debug('Department heartbeat check', {
+      userId,
+      activeDepartments: activeDepts.map(d => d.name),
+    });
+
+    // Phase 2: LLM-driven proposal generation based on recent observations
+    // For now, just log that we checked
+  } catch (err) {
+    log.warn('Department heartbeat check failed', { userId, error: err.message });
+  }
+}
+
+/**
  * Extract department key from a skill_name like "communications_actions".
  */
 function extractDepartmentFromSkillName(skillName) {

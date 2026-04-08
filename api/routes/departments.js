@@ -32,8 +32,8 @@ function validateDepartmentName(name) {
 
 router.get('/', authenticateUser, async (req, res) => {
   try {
-    const { listDepartments } = await getDepartmentService();
-    const departments = await listDepartments(req.user.id);
+    const { getAllDepartments } = await getDepartmentService();
+    const departments = await getAllDepartments(req.user.id);
     return res.json({ success: true, departments });
   } catch (err) {
     log.error('Failed to list departments', { userId: req.user.id, error: err.message });
@@ -94,9 +94,9 @@ router.post('/proposals/:id/approve', authenticateUser, async (req, res) => {
 router.post('/proposals/:id/reject', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
-    const { rejectProposal } = await getDepartmentService();
-    const result = await rejectProposal(req.user.id, id);
-    return res.json({ success: true, result });
+    const { recordActionResponse } = await getAutonomyService();
+    await recordActionResponse(id, 'rejected', { rejectedAt: new Date().toISOString() });
+    return res.json({ success: true, actionId: id, response: 'rejected' });
   } catch (err) {
     log.error('Failed to reject proposal', { userId: req.user.id, proposalId: req.params.id, error: err.message });
     return res.status(500).json({ success: false, error: err.message || 'Failed to reject proposal' });
@@ -115,8 +115,8 @@ router.get('/:name', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
     }
 
-    const { getDepartmentDetail } = await getDepartmentService();
-    const department = await getDepartmentDetail(req.user.id, name);
+    const { getDepartmentStatus } = await getDepartmentService();
+    const department = await getDepartmentStatus(req.user.id, name);
     return res.json({ success: true, department });
   } catch (err) {
     log.error('Failed to get department detail', { userId: req.user.id, department: req.params.name, error: err.message });
@@ -141,8 +141,8 @@ router.put('/:name/autonomy', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'autonomyLevel must be 0-4' });
     }
 
-    const { setDepartmentAutonomy } = await getDepartmentService();
-    const result = await setDepartmentAutonomy(req.user.id, name, autonomyLevel);
+    const { updateDepartmentAutonomy } = await getDepartmentService();
+    const result = await updateDepartmentAutonomy(req.user.id, name, autonomyLevel);
     return res.json({ success: true, ...result });
   } catch (err) {
     log.error('Failed to update department autonomy', { userId: req.user.id, department: req.params.name, error: err.message });
@@ -184,8 +184,9 @@ router.post('/:name/propose', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
     }
 
-    const { triggerDepartmentProposal } = await getDepartmentService();
-    const proposal = await triggerDepartmentProposal(req.user.id, name);
+    const { proposeDepartmentAction } = await getDepartmentService();
+    const { toolName, params, context } = req.body || {};
+    const proposal = await proposeDepartmentAction(req.user.id, name, { toolName, params, context, priority: 5 });
     return res.json({ success: true, proposal });
   } catch (err) {
     log.error('Failed to trigger department proposal', { userId: req.user.id, department: req.params.name, error: err.message });
