@@ -37,8 +37,11 @@ const CustomAuth = () => {
     } else if (sessionStorage.getItem('twinme_discovery_confirmed') === 'true') {
       // Users who completed discovery flow are pre-qualified — bypass invite gate
       setInviteValid(true);
-    } else if (localStorage.getItem('auth_user') || localStorage.getItem('twinme_account_created')) {
+    } else if (localStorage.getItem('auth_user') || localStorage.getItem('twinme_account_created') || localStorage.getItem('auth_provider')) {
       // Returning users who previously signed in — bypass invite gate for re-authentication
+      setInviteValid(true);
+    } else if (searchParams.get('mode') === 'signin') {
+      // Direct sign-in link bypasses invite gate
       setInviteValid(true);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
