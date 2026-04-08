@@ -5,7 +5,7 @@
  * Compact department list, horizontal template strip, pending proposals.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
@@ -98,6 +98,7 @@ const DepartmentsPage: React.FC = () => {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [heartbeatLoading, setHeartbeatLoading] = useState(false);
+  const [showAllProposals, setShowAllProposals] = useState(false);
 
   const {
     data: remoteDepts,
@@ -145,6 +146,18 @@ const DepartmentsPage: React.FC = () => {
   const departments = localDepts ?? remoteDepts ?? DEFAULT_DEPARTMENTS;
 
   const isLoading = isDemoMode ? false : (loadingDepts && loadingProposals);
+
+  // ── Group proposals by department ─────────────────────────────────────
+  const VISIBLE_LIMIT = 10;
+  const groupedProposals = useMemo(() => {
+    const groups: Record<string, typeof proposals> = {};
+    for (const p of proposals) {
+      const dept = p.department || 'general';
+      if (!groups[dept]) groups[dept] = [];
+      groups[dept].push(p);
+    }
+    return groups;
+  }, [proposals]);
 
   // ── Budget totals ──────────────────────────────────────────────────────
 
@@ -204,7 +217,10 @@ const DepartmentsPage: React.FC = () => {
   const handleApproveProposal = useCallback(async (id: string) => {
     setActionLoadingId(id);
     try {
-      await departmentsAPI.approveProposal(id);
+      const response = await departmentsAPI.approveProposal(id);
+      const proposal = proposals.find(p => p.id === id);
+      const dept = proposal?.department || 'Department';
+      toast.success(response?.result ? `${dept}: Action completed` : `${dept}: Approved`);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.proposals }),
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments }),
@@ -214,7 +230,7 @@ const DepartmentsPage: React.FC = () => {
     } finally {
       setActionLoadingId(null);
     }
-  }, [queryClient]);
+  }, [queryClient, proposals]);
 
   const handleRejectProposal = useCallback(async (id: string) => {
     setActionLoadingId(id);
@@ -323,8 +339,8 @@ const DepartmentsPage: React.FC = () => {
           </span>
         </div>
         <div
-          className="h-[3px] rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.04)' }}
+          className="h-[4px] rounded-full overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.06)' }}
         >
           <div
             className="h-full rounded-full transition-all duration-500"
@@ -450,7 +466,7 @@ const DepartmentsPage: React.FC = () => {
             </div>
           ) : (
             <div
-              className="rounded-[16px] px-4 py-4"
+              className="rounded-[16px] px-4 py-3"
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 backdropFilter: 'blur(42px)',
@@ -458,21 +474,51 @@ const DepartmentsPage: React.FC = () => {
                 border: '1px solid rgba(255,255,255,0.08)',
               }}
             >
-              <div>
-                {proposals.map((proposal) => (
-                  <ProposalCard
-                    key={proposal.id}
-                    id={proposal.id}
-                    department={proposal.department}
-                    departmentColor={proposal.departmentColor}
-                    description={proposal.description}
-                    estimatedCost={proposal.estimatedCost}
-                    createdAt={proposal.createdAt}
-                    onApprove={handleApproveProposal}
-                    onReject={handleRejectProposal}
-                  />
-                ))}
-              </div>
+              {(() => {
+                let rendered = 0;
+                return Object.entries(groupedProposals).map(([deptKey, deptProposals]) => {
+                  const deptConfig = departments.find(d => d.name === deptKey);
+                  const deptColor = deptConfig?.config?.color || deptProposals[0]?.departmentColor || '#6366F1';
+                  const visible = showAllProposals ? deptProposals : deptProposals.filter(() => {
+                    if (rendered >= VISIBLE_LIMIT) return false;
+                    rendered++;
+                    return true;
+                  });
+                  if (visible.length === 0) return null;
+                  return (
+                    <div key={deptKey} className="mb-2 last:mb-0">
+                      <div className="flex items-center gap-2 pt-2 pb-1">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: deptColor }} />
+                        <span className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: deptColor }}>
+                          {deptKey} ({deptProposals.length})
+                        </span>
+                      </div>
+                      {visible.map((proposal) => (
+                        <ProposalCard
+                          key={proposal.id}
+                          id={proposal.id}
+                          department={proposal.department}
+                          departmentColor={proposal.departmentColor}
+                          description={proposal.description}
+                          estimatedCost={proposal.estimatedCost}
+                          createdAt={proposal.createdAt}
+                          onApprove={handleApproveProposal}
+                          onReject={handleRejectProposal}
+                        />
+                      ))}
+                    </div>
+                  );
+                });
+              })()}
+              {!showAllProposals && proposals.length > VISIBLE_LIMIT && (
+                <button
+                  onClick={() => setShowAllProposals(true)}
+                  className="w-full text-center py-2 mt-1 text-[11px] font-medium transition-opacity hover:opacity-80"
+                  style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  Show {proposals.length - VISIBLE_LIMIT} more
+                </button>
+              )}
             </div>
           )}
         </section>

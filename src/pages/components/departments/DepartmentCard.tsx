@@ -161,19 +161,19 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
         </div>
       </div>
 
-      {/* Budget bar: barely-visible thin line at bottom */}
+      {/* Budget bar */}
       <div
-        className="h-[2px] overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.03)' }}
+        className="h-[4px] overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.06)' }}
       >
         <div
           className="h-full transition-all duration-500"
           style={{
             backgroundColor: budgetPercent < 50
-              ? 'rgba(34,197,94,0.3)'
+              ? 'rgba(34,197,94,0.5)'
               : budgetPercent < 80
-                ? 'rgba(245,158,11,0.3)'
-                : 'rgba(239,68,68,0.3)',
+                ? 'rgba(245,158,11,0.5)'
+                : 'rgba(239,68,68,0.5)',
             width: `${budgetPercent}%`,
           }}
         />

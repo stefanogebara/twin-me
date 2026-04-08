@@ -485,6 +485,41 @@ export async function checkDepartmentHeartbeats(userId, options = {}) {
       ? `\nRECENT DEPARTMENT ACTIVITY:\n${recentActions.map(a => `- [${a.department}] ${a.context_summary || a.action_type} (${new Date(a.created_at).toLocaleDateString()})`).join('\n')}`
       : '';
 
+    // 4b. Consume pending cross-department signals for each active department
+    const { consumeSignals } = await import('./departmentSignalService.js');
+    const signalsByDept = {};
+    for (const dept of activeDepts) {
+      const signals = await consumeSignals(userId, dept.department);
+      if (signals.length) signalsByDept[dept.department] = signals;
+    }
+
+    const signalContext = Object.keys(signalsByDept).length > 0
+      ? '\nDEPARTMENT SIGNALS (from other departments):\n' +
+        Object.entries(signalsByDept).map(([dept, sigs]) =>
+          sigs.map(s => `- [${s.from_department} -> ${dept}] ${s.signal_type}: ${JSON.stringify(s.payload)}`).join('\n')
+        ).join('\n')
+      : '';
+
+    // 4c. Auto-emit Health -> Scheduling signal on low recovery
+    const recoveryObs = recentObs.find(o => o.content?.match(/recovery\s+\d+%/i));
+    if (recoveryObs) {
+      const match = recoveryObs.content.match(/recovery\s+(\d+)%/i);
+      if (match && parseInt(match[1]) < 50) {
+        const { emitSignal } = await import('./departmentSignalService.js');
+        await emitSignal(userId, 'health', 'scheduling', 'low_recovery', {
+          recoveryPercent: parseInt(match[1]),
+          suggestion: 'Consider blocking recovery time or reducing meeting load',
+        });
+      }
+    }
+
+    // 4d. Fetch active goals for department context
+    const { getActiveGoalContext } = await import('./goalTrackingService.js');
+    const goalContext = await getActiveGoalContext(userId);
+    const goalPromptSection = goalContext
+      ? `\n${goalContext}\nDepartments should align proposals with these goals when relevant.`
+      : '';
+
     // 5. Build LLM prompt
     const deptDescriptions = activeDepts.map(d => {
       const tools = (getDepartmentConfig(d.department)?.tools || []).join(', ') || 'none yet';

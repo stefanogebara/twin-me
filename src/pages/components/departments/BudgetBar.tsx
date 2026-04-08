@@ -38,7 +38,7 @@ const BudgetBar: React.FC<BudgetBarProps> = ({ spent, total }) => {
         </span>
       </div>
       <div
-        className="h-[3px] rounded-full overflow-hidden"
+        className="h-[4px] rounded-full overflow-hidden"
         style={{ background: 'rgba(255,255,255,0.06)' }}
       >
         <div

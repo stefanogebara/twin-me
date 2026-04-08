@@ -97,3 +97,19 @@ export const DEPARTMENTS = Object.freeze({
 export const DEPARTMENT_NAMES = Object.keys(DEPARTMENTS);
 
 export const getDepartmentConfig = (name) => DEPARTMENTS[name] || null;
+
+// Per-tool cost estimates in USD (based on LLM tier pricing)
+export const TOOL_COST_ESTIMATES = Object.freeze({
+  gmail_send: 0.005,
+  gmail_reply: 0.005,
+  gmail_draft: 0.003,
+  calendar_create: 0.002,
+  calendar_modify_event: 0.002,
+  docs_create: 0.008,
+  drive_search: 0.001,
+  suggest: 0.001,
+});
+
+export function getToolCostEstimate(toolName) {
+  return TOOL_COST_ESTIMATES[toolName] ?? 0.003;
+}

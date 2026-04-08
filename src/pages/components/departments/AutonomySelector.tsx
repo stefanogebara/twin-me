@@ -24,6 +24,14 @@ const LEVEL_LABELS: Record<number, string> = {
   4: 'Auto',
 };
 
+const LEVEL_DESCRIPTIONS: Record<number, string> = {
+  0: 'Watches and learns, never acts',
+  1: 'Suggests actions in chat for you to decide',
+  2: 'Prepares drafts, waits for your approval',
+  3: 'Acts on your behalf, then notifies you',
+  4: 'Acts silently, surfaces outcomes only',
+};
+
 const AutonomySelector: React.FC<AutonomySelectorProps> = ({
   level,
   color,
@@ -78,7 +86,7 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
               WebkitBackdropFilter: 'blur(20px)',
               border: '1px solid rgba(255,255,255,0.10)',
               borderRadius: '10px',
-              minWidth: '110px',
+              minWidth: '220px',
             }}
           >
             {[0, 1, 2, 3, 4].map((lvl) => {
@@ -106,10 +114,15 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
                   }}
                 >
                   <span
-                    className="w-1 h-1 rounded-full flex-shrink-0"
+                    className="w-1 h-1 rounded-full flex-shrink-0 mt-0.5"
                     style={{ backgroundColor: isActive ? color : 'transparent' }}
                   />
-                  {LEVEL_LABELS[lvl]}
+                  <span>
+                    <span className="block">{LEVEL_LABELS[lvl]}</span>
+                    <span className="block text-[9px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                      {LEVEL_DESCRIPTIONS[lvl]}
+                    </span>
+                  </span>
                 </button>
               );
             })}
