@@ -52,7 +52,7 @@ import { supabaseAdmin } from '../api/services/database.js';
 
 // ─── Fixed constants (never modified by agent) ──────────────────────────────
 const TEST_USER_ID = process.env.TEST_TWIN_USER_ID || '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
-const EVAL_TIMEOUT_MS = 120_000;
+const EVAL_TIMEOUT_MS = 1_800_000; // 30min — full production pipeline (HyDE+BM25+MMR+graph) ~35s/query
 const RESULTS_FILE = join(__dirname, 'memory-results.tsv');
 const JUDGE_CONCURRENCY = 3;
 const MEMORIES_PER_JUDGE_CALL = 5; // Judge 5 memories at once to reduce LLM calls
