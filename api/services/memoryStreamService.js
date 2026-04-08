@@ -806,12 +806,14 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
 
     if (!data || data.length === 0) return [];
 
-    // NOTE: Type-aware fact injection for identity mode was tested and disabled.
-    // Injecting top-importance facts into the candidate pool added noise for non-biographical
-    // identity queries (personality, motivation, etc.), reducing the overall score.
-    // The core issue is that 9K+ memories compete for 150 candidate slots in pgvector,
-    // and facts have lower cosine similarity to abstract identity queries than reflections.
-    // Future: consider query-type classification to selectively inject only for biographical queries.
+    // NOTE: Parallel fact injection for identity mode was extensively tested and disabled.
+    // Three variants tested (median-score, cosine-threshold=0.15, cosine-threshold=0.25):
+    // all reduced eval scores by 0.04-0.11 because injected facts get scored as noise by
+    // the LLM judge for non-biographical identity queries. The fundamental issue is that
+    // biographical facts (concrete data) and reflections (analytical observations) live in
+    // different semantic spaces — mixing them in results degrades perceived quality.
+    // To properly fix this: deploy search_memory_stream_type_filter migration (20260408)
+    // which adds p_memory_types parameter for native pgvector type-filtered search.
 
     // GUM: confidence weighting is now baked into SQL scoring (search_memory_stream RPC
     // multiplies by COALESCE(confidence, 0.7) before ORDER BY). No post-RPC adjustment needed.
