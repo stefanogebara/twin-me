@@ -88,6 +88,27 @@ export async function createFinetune(userId, filePath, {
   }
   log.info(`File uploaded: ${fileId}`);
 
+  // Wait for together.ai to process the file (poll up to 60s)
+  const FILE_POLL_INTERVAL_MS = 5_000;
+  const FILE_POLL_MAX_MS = 60_000;
+  const fileStart = Date.now();
+  while (Date.now() - fileStart < FILE_POLL_MAX_MS) {
+    try {
+      const checkRes = await fetch(`${TOGETHER_API}/files/${fileId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (checkRes.ok) {
+        const fileInfo = await checkRes.json();
+        if (fileInfo.object === 'file' && (fileInfo.status === 'processed' || fileInfo.bytes > 0)) {
+          log.info(`File processed: ${fileId}`, { status: fileInfo.status });
+          break;
+        }
+        log.info(`File processing: ${fileId}`, { status: fileInfo.status });
+      }
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, FILE_POLL_INTERVAL_MS));
+  }
+
   // Step 2: Create fine-tuning job
   const jobBody = {
     training_file: fileId,
