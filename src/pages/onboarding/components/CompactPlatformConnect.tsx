@@ -164,10 +164,14 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
           body: JSON.stringify({ userId }),
         };
       } else {
-        apiUrl = `${API_URL}/arctic/connect/${platform.id}?userId=${encodeURIComponent(userId)}`;
+        apiUrl = `${API_URL}/nango/connect-session`;
         fetchOptions = {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ integrationId: platform.id }),
         };
       }
 

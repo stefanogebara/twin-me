@@ -161,8 +161,15 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
           body: JSON.stringify({ userId })
         };
       } else {
-        apiUrl = `${API_URL}/arctic/connect/${platform.id}?userId=${encodeURIComponent(userId)}`;
-        fetchOptions = { method: 'GET' };
+        apiUrl = `${API_URL}/nango/connect-session`;
+        fetchOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ integrationId: platform.id }),
+        };
       }
 
       const response = await fetch(apiUrl, fetchOptions);
