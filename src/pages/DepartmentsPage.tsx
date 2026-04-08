@@ -224,7 +224,7 @@ const DepartmentsPage: React.FC = () => {
   }, [queryClient]);
 
   return (
-    <div className="max-w-[880px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
 
       {/* Header */}
       <h1
@@ -241,7 +241,7 @@ const DepartmentsPage: React.FC = () => {
         Departments
       </h1>
       <p
-        className="text-sm mb-8"
+        className="text-sm mb-10"
         style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
       >
         Your AI team, working for you
@@ -249,23 +249,23 @@ const DepartmentsPage: React.FC = () => {
 
       {/* Total monthly budget bar */}
       <div className="mb-10">
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-2">
           <span
-            className="text-[11px] font-medium tracking-wide uppercase"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            className="text-[11px] font-medium tracking-[0.12em] uppercase"
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
           >
             Monthly Budget
           </span>
           <span
             className="text-[11px]"
-            style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
           >
             ${totalBudget.spent.toFixed(2)} / ${totalBudget.total.toFixed(2)}
           </span>
         </div>
         <div
-          className="h-1.5 rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          className="h-[3px] rounded-full overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.04)' }}
         >
           <div
             className="h-full rounded-full transition-all duration-500"
@@ -273,40 +273,33 @@ const DepartmentsPage: React.FC = () => {
               width: `${budgetPercent}%`,
               backgroundColor:
                 budgetPercent < 50
-                  ? 'rgba(34,197,94,0.7)'
+                  ? 'rgba(34,197,94,0.5)'
                   : budgetPercent < 80
-                    ? 'rgba(245,158,11,0.7)'
-                    : 'rgba(239,68,68,0.7)',
+                    ? 'rgba(245,158,11,0.5)'
+                    : 'rgba(239,68,68,0.5)',
             }}
           />
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-8" />
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-10" />
 
       {/* Life Operating Systems */}
       {!isLoading && templates.length > 0 && (
-        <section className="mb-10">
+        <section className="mb-12">
           <h2
-            className="mb-1"
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontStyle: 'italic',
-              fontSize: '20px',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              letterSpacing: '-0.02em',
-            }}
+            className="text-[11px] font-medium tracking-[0.12em] uppercase mb-1.5"
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
           >
             Life Operating Systems
           </h2>
           <p
-            className="text-[12px] mb-5"
-            style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+            className="text-[12px] mb-6"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
           >
             Pre-configured department setups for common workflows
           </p>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-thin">
+          <div className="flex gap-5 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-thin">
             {templates.map((t: Template) => (
               <TemplateCard
                 key={t.id}
@@ -323,7 +316,7 @@ const DepartmentsPage: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mt-6 mb-2" />
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mt-8 mb-2" />
         </section>
       )}
 
@@ -338,12 +331,12 @@ const DepartmentsPage: React.FC = () => {
       {!isLoading && (
         <section className="mb-12">
           <h2
-            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-5"
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
           >
             Your Departments
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {departments.map((dept) => (
               <DepartmentCard
                 key={dept.name}
@@ -364,33 +357,33 @@ const DepartmentsPage: React.FC = () => {
       {/* Pending proposals */}
       {!isLoading && (
         <section>
-          <div style={{ borderTop: '1px solid var(--border-glass)' }} className="mb-6" />
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
           <h2
-            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-5"
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
           >
             Pending Proposals
           </h2>
-          <div
-            className="rounded-[20px] px-4 sm:px-5 py-4"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              backdropFilter: 'blur(42px)',
-              WebkitBackdropFilter: 'blur(42px)',
-              border: '1px solid rgba(255,255,255,0.10)',
-            }}
-          >
-            {proposals.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                <Inbox className="w-6 h-6" style={{ color: 'rgba(255,255,255,0.12)' }} />
-                <p
-                  className="text-sm text-center"
-                  style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  No pending proposals. Your departments are waiting for data.
-                </p>
-              </div>
-            ) : (
+          {proposals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+              <Inbox className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.08)' }} />
+              <p
+                className="text-[13px] text-center"
+                style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+              >
+                No pending proposals
+              </p>
+            </div>
+          ) : (
+            <div
+              className="rounded-[20px] px-5 py-5"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                backdropFilter: 'blur(42px)',
+                WebkitBackdropFilter: 'blur(42px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
               <div>
                 {proposals.map((proposal) => (
                   <ProposalCard
@@ -406,8 +399,8 @@ const DepartmentsPage: React.FC = () => {
                   />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </section>
       )}
     </div>

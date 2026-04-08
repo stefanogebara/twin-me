@@ -13,7 +13,7 @@ import { departmentsAPI } from '@/services/api/departmentsAPI';
 import type { Department, Proposal } from '@/services/api/departmentsAPI';
 import { useState, useCallback } from 'react';
 
-const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.15em] font-medium mb-4';
+const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.12em] font-medium mb-4';
 
 const DEFAULT_DEPT_COLOR = 'rgba(255,255,255,0.15)';
 const DISABLED_COLOR = 'rgba(255,255,255,0.08)';
@@ -70,16 +70,16 @@ export function DepartmentWidget() {
   const pendingCount = proposals.length;
 
   return (
-    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
+    <section className="mb-10 pb-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)', marginBottom: 0 }}>
+        <h2 className={LABEL_STYLE} style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 0 }}>
           YOUR AI TEAM
         </h2>
         <button
           onClick={() => navigate('/departments')}
-          className="text-[11px] font-medium transition-all duration-150 ease-out hover:brightness-150 active:scale-[0.97]"
+          className="text-[10px] font-medium transition-all duration-200 ease-out hover:opacity-70 active:scale-[0.97]"
           style={{
-            color: 'var(--text-secondary)',
+            color: 'rgba(255,255,255,0.35)',
             fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
             background: 'none',
             border: 'none',
@@ -97,17 +97,16 @@ export function DepartmentWidget() {
           background: 'rgba(255,255,255,0.06)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid rgba(255,255,255,0.10)',
-          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.08)',
         }}
       >
         {/* Department status dots */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-4">
           <LayoutGrid
             className="w-4 h-4 flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
+            style={{ color: 'rgba(255,255,255,0.25)' }}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {departments.map((dept) => (
               <div
                 key={dept.name}

@@ -1,4 +1,4 @@
-import React, { ReactNode, useState } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { BottomNav } from './BottomNav';
 import BetaFeedbackWidget from '../BetaFeedbackWidget';
@@ -8,11 +8,28 @@ interface SidebarLayoutProps {
   children: ReactNode;
 }
 
-// Sidebar is always 240px wide on desktop (floating pill with 16px margin each side)
-const SIDEBAR_WIDTH = 240;
+const SIDEBAR_WIDTH_EXPANDED = 240;
+const SIDEBAR_WIDTH_COLLAPSED = 64;
 
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    const handler = () => {
+      setSidebarCollapsed(localStorage.getItem('sidebar_collapsed') === 'true');
+    };
+    window.addEventListener('storage', handler);
+    window.addEventListener('sidebar-toggle', handler);
+    return () => {
+      window.removeEventListener('storage', handler);
+      window.removeEventListener('sidebar-toggle', handler);
+    };
+  }, []);
 
   return (
     <div
@@ -57,7 +74,8 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         <style>{`
           @media (min-width: 1024px) {
             main {
-              margin-left: ${SIDEBAR_WIDTH}px !important;
+              margin-left: ${sidebarCollapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH_EXPANDED}px !important;
+              transition: margin-left 200ms ease-out;
             }
           }
         `}</style>

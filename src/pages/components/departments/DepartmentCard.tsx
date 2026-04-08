@@ -59,14 +59,13 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
 
   return (
     <div
-      className="p-5 space-y-4 transition-opacity duration-200"
+      className="p-5 space-y-5 transition-all duration-200 hover:-translate-y-[2px] hover:border-[rgba(255,255,255,0.14)]"
       style={{
         borderRadius: '20px',
         background: 'rgba(255,255,255,0.06)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.08)',
         opacity: isEnabled ? 1 : 0.5,
       }}
     >
@@ -74,10 +73,9 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
             style={{
-              background: `${config.color}15`,
-              border: `1px solid ${config.color}30`,
+              background: `${config.color}1A`,
             }}
           >
             <Icon className="w-4 h-4" style={{ color: config.color }} />
@@ -127,7 +125,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
       {/* Autonomy selector */}
       <div>
         <span
-          className="text-[10px] block mb-1.5"
+          className="text-[10px] block mb-2"
           style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
         >
           Autonomy

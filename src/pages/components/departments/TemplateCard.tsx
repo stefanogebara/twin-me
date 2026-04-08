@@ -64,7 +64,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
   return (
     <div
-      className="flex flex-col p-5 min-w-[260px] max-w-[300px] flex-shrink-0 transition-all duration-200"
+      className="flex flex-col p-6 min-w-[260px] max-w-[300px] flex-shrink-0 transition-all duration-200 hover:-translate-y-[2px] hover:border-[rgba(255,255,255,0.14)]"
       style={{
         borderRadius: '20px',
         background: 'rgba(255,255,255,0.06)',
@@ -72,20 +72,18 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         WebkitBackdropFilter: 'blur(42px)',
         border: isActive
           ? `1px solid ${color}40`
-          : '1px solid rgba(255,255,255,0.10)',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+          : '1px solid rgba(255,255,255,0.08)',
       }}
     >
       {/* Header: Icon + Name */}
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-3 mb-4">
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
           style={{
-            background: `${color}15`,
-            border: `1px solid ${color}30`,
+            background: `${color}1A`,
           }}
         >
-          <Icon className="w-[18px] h-[18px]" style={{ color }} />
+          <Icon className="w-4 h-4" style={{ color }} />
         </div>
         <div className="min-w-0">
           <h3
@@ -119,7 +117,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       </p>
 
       {/* Meta: department count + budget */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-3 mb-5">
         <span
           className="text-[11px]"
           style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
@@ -159,7 +157,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         <button
           onClick={handleApply}
           disabled={isApplying}
-          className="flex items-center justify-center gap-1.5 rounded-[100px] px-3 py-2 transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+          className="flex items-center justify-center gap-1.5 rounded-[100px] px-3 py-2 transition-all duration-200 hover:bg-white/90 hover:shadow-[0_0_12px_rgba(255,255,255,0.15)] disabled:opacity-50"
           style={{
             background: '#F5F5F4',
             color: '#110f0f',
