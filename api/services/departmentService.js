@@ -409,12 +409,30 @@ Rules:
       serviceName: 'department-heartbeat',
     });
 
-    // 6. Parse response and create proposals
+    // 6. Parse response and create proposals (robust JSON extraction)
     const text = response?.content || '';
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) { log.debug('No proposals generated'); return { proposals: [], count: 0 }; }
+    const jsonMatch = text.match(/\[[\s\S]*?\]/);
+    if (!jsonMatch) { log.debug('No proposals generated', { textLen: text.length }); return { proposals: [], count: 0 }; }
 
-    const suggestions = JSON.parse(jsonMatch[0]);
+    let suggestions;
+    try {
+      // Clean common LLM JSON issues: trailing commas, single quotes, unquoted keys
+      const cleaned = jsonMatch[0]
+        .replace(/,\s*([}\]])/g, '$1')           // trailing commas
+        .replace(/'/g, '"')                        // single quotes
+        .replace(/(\w+)\s*:/g, '"$1":')            // unquoted keys
+        .replace(/""/g, '"');                       // double-double quotes from key fix
+      suggestions = JSON.parse(cleaned);
+    } catch (parseErr) {
+      log.warn('Heartbeat JSON parse failed, attempting line-by-line', { error: parseErr.message });
+      // Fallback: try to extract individual objects
+      try {
+        const objects = text.match(/\{[^{}]+\}/g) || [];
+        suggestions = objects.map(o => {
+          try { return JSON.parse(o.replace(/'/g, '"')); } catch { return null; }
+        }).filter(Boolean);
+      } catch { suggestions = []; }
+    }
     if (!Array.isArray(suggestions) || suggestions.length === 0) return { proposals: [], count: 0 };
 
     const createdProposals = [];

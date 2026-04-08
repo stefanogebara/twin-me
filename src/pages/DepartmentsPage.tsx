@@ -13,6 +13,7 @@ import type { Department, Proposal } from '@/services/api/departmentsAPI';
 import { getTemplates, applyTemplate as applyTemplateAPI } from '@/services/api/templatesAPI';
 import type { Template } from '@/services/api/templatesAPI';
 import DepartmentCard from './components/departments/DepartmentCard';
+import DepartmentOnboarding from './components/departments/DepartmentOnboarding';
 import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
 import { Loader2, Inbox, RefreshCw } from 'lucide-react';
@@ -329,6 +330,14 @@ const DepartmentsPage: React.FC = () => {
       </div>
 
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
+
+      {/* Onboarding banner — shown when all departments are at autonomy 0 */}
+      {!isLoading && departments.every(d => d.autonomyLevel === 0) && (
+        <DepartmentOnboarding
+          onSelectTemplate={handleApplyTemplate}
+          visible={departments.every(d => d.autonomyLevel === 0)}
+        />
+      )}
 
       {/* Life Operating Systems — compact horizontal strip */}
       {!isLoading && templates.length > 0 && (

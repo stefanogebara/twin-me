@@ -85,6 +85,25 @@ export function registerGoogleWorkspaceTools() {
     minAutonomyLevel: 2,
     skillName: 'google_gmail_actions',
     executor: async (userId, params) => {
+      // Try personality-aware draft from Communications department executor
+      try {
+        const { getAutonomyBySkillName } = await import('../autonomyService.js');
+        const level = await getAutonomyBySkillName(userId, 'google_gmail_actions');
+        if (level >= 2) {
+          const { draftEmailInUserVoice } = await import('../departmentExecutors/communicationsExecutor.js');
+          const personalizedDraft = await draftEmailInUserVoice(userId, {
+            to: params.to,
+            subject: params.subject,
+            context: params.body || '',
+          });
+          if (personalizedDraft) {
+            return { draft: personalizedDraft, personalized: true };
+          }
+        }
+      } catch (err) {
+        log.debug('Personality-aware draft unavailable, falling back to generic', { error: err.message });
+      }
+      // Fall back to generic draft
       const { draftEmail } = await import('../googleWorkspaceActions.js');
       return draftEmail(userId, params);
     },
