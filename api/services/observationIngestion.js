@@ -4573,11 +4573,15 @@ async function runObservationIngestion() {
     const GLOBAL_TIMEOUT_MS = 50_000;
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
-    // Round-robin: rotate which user starts first so all users get serviced
-    // Uses minute-of-hour as a simple rotation key
+    // Round-robin: rotate which user starts first so all users get serviced.
+    // Cap at MAX_USERS_PER_RUN to stay well within Vercel's 60s limit (~10s/user).
+    // Cron runs every 30 min, so with 3/run all users cycle within ~1 hour.
+    const MAX_USERS_PER_RUN = 3;
     const userEntries = [...userPlatforms.entries()];
     const rotationOffset = new Date().getMinutes() % userEntries.length;
-    const rotatedUsers = [...userEntries.slice(rotationOffset), ...userEntries.slice(0, rotationOffset)];
+    const rotatedUsers = [...userEntries.slice(rotationOffset), ...userEntries.slice(0, rotationOffset)]
+      .slice(0, MAX_USERS_PER_RUN);
+    log.info('User selection', { total: userEntries.length, processing: rotatedUsers.length, rotationOffset });
 
     // Process each user (with timeout guard)
     for (const [userId, platforms] of rotatedUsers) {
