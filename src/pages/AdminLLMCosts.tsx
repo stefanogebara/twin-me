@@ -12,6 +12,7 @@ import {
   BarChart3,
   Cpu,
   Layers,
+  LayoutGrid,
 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getAccessToken } from '@/services/api/apiBase';
@@ -99,6 +100,13 @@ interface RealtimeData {
   calls: RealtimeCall[];
 }
 
+interface DepartmentBudgetItem {
+  department: string;
+  monthly_budget_usd: number;
+  spent_this_month_usd: number;
+  remaining_usd: number;
+}
+
 type PeriodOption = { label: string; days: number };
 type SortKey = 'created_at' | 'cost_usd' | 'latency_ms' | 'tier' | 'model' | 'service_name';
 
@@ -129,6 +137,16 @@ const TIER_BAR_COLORS: Record<string, string> = {
   chat: '#3B82F6',
   analysis: '#EAB308',
   extraction: '#22C55E',
+};
+
+const DEPT_COLORS: Record<string, string> = {
+  memory: '#8B5CF6',
+  wellbeing: '#EC4899',
+  growth: '#10B981',
+  schedule: '#3B82F6',
+  social: '#F59E0B',
+  privacy: '#14B8A6',
+  creativity: '#F97316',
 };
 
 const CARD_STYLE = {
@@ -331,6 +349,7 @@ const AdminLLMCosts: React.FC = () => {
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [realtime, setRealtime] = useState<RealtimeData | null>(null);
   const [userCosts, setUserCosts] = useState<UserCostData | null>(null);
+  const [deptBudgets, setDeptBudgets] = useState<DepartmentBudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -347,11 +366,12 @@ const AdminLLMCosts: React.FC = () => {
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const apiUrl = import.meta.env.VITE_API_URL || '';
 
-      const [summaryRes, dailyRes, realtimeRes, userRes] = await Promise.all([
+      const [summaryRes, dailyRes, realtimeRes, userRes, deptBudgetRes] = await Promise.all([
         fetch(`${apiUrl}/admin/llm-costs?days=${days}`, { headers }),
         fetch(`${apiUrl}/admin/llm-costs/daily?days=${days}`, { headers }),
         fetch(`${apiUrl}/admin/llm-costs/realtime?limit=50`, { headers }),
         fetch(`${apiUrl}/admin/llm-costs/by-user?days=${days}`, { headers }),
+        fetch(`${apiUrl}/departments/budgets`, { headers }),
       ]);
 
       if (!summaryRes.ok) {
@@ -359,17 +379,19 @@ const AdminLLMCosts: React.FC = () => {
         throw new Error(`Failed to fetch cost data (${summaryRes.status}): ${body}`);
       }
 
-      const [summaryData, dailyData, realtimeData, userData] = await Promise.all([
+      const [summaryData, dailyData, realtimeData, userData, deptBudgetData] = await Promise.all([
         summaryRes.json(),
         dailyRes.ok ? dailyRes.json() : null,
         realtimeRes.ok ? realtimeRes.json() : null,
         userRes.ok ? userRes.json() : null,
+        deptBudgetRes.ok ? deptBudgetRes.json() : null,
       ]);
 
       setSummary(summaryData);
       setDaily(dailyData);
       setRealtime(realtimeData);
       setUserCosts(userData);
+      setDeptBudgets(deptBudgetData?.budgets ?? []);
       setLastRefresh(new Date());
       setError(null);
     } catch (err) {
@@ -784,6 +806,86 @@ const AdminLLMCosts: React.FC = () => {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================================================================ */}
+      {/* Department Spending                                             */}
+      {/* ================================================================ */}
+      {deptBudgets.length > 0 && (
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <LayoutGrid className="w-4 h-4" style={{ color: '#10b77f' }} />
+            <span className="text-[11px] font-medium tracking-widest uppercase" style={{ color: '#10b77f' }}>
+              Department Spending
+            </span>
+          </div>
+          <div className="rounded-lg overflow-hidden" style={CARD_STYLE}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: TABLE_BORDER }}>
+                    {['Department', 'Budget', 'Spent', 'Remaining', '% Used', ''].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-[11px] uppercase tracking-wider font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {deptBudgets.map((dept, i) => {
+                    const pctUsed = dept.monthly_budget_usd > 0
+                      ? (dept.spent_this_month_usd / dept.monthly_budget_usd) * 100
+                      : 0;
+                    const barColor = DEPT_COLORS[dept.department] || '#6B7280';
+
+                    return (
+                      <tr key={dept.department} style={{ borderBottom: i < deptBudgets.length - 1 ? TABLE_BORDER : undefined }}>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: barColor }} />
+                            <span className="text-xs font-medium capitalize" style={{ color: 'var(--foreground)' }}>{dept.department}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatCost(dept.monthly_budget_usd)}</td>
+                        <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>{formatCost(dept.spent_this_month_usd)}</td>
+                        <td className="px-4 py-3 font-mono text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{formatCost(dept.remaining_usd)}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{pctUsed.toFixed(1)}%</td>
+                        <td className="px-4 py-3 w-24">
+                          <PercentBar value={dept.spent_this_month_usd} total={dept.monthly_budget_usd} color={barColor} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Total row */}
+                  <tr style={{ borderTop: TABLE_BORDER }}>
+                    <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Total</td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+                      {formatCost(deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0))}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+                      {formatCost(deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0))}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+                      {formatCost(deptBudgets.reduce((s, d) => s + d.remaining_usd, 0))}
+                    </td>
+                    <td className="px-4 py-3 text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+                      {(() => {
+                        const totalBudget = deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0);
+                        const totalSpent = deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0);
+                        return totalBudget > 0 ? `${((totalSpent / totalBudget) * 100).toFixed(1)}%` : '0%';
+                      })()}
+                    </td>
+                    <td className="px-4 py-3 w-24">
+                      <PercentBar
+                        value={deptBudgets.reduce((s, d) => s + d.spent_this_month_usd, 0)}
+                        total={deptBudgets.reduce((s, d) => s + d.monthly_budget_usd, 0)}
+                        color="#10b77f"
+                      />
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

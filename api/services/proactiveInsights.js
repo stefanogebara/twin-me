@@ -317,6 +317,7 @@ async function generateProactiveInsights(userId) {
       if (!item.insight || item.insight.length < 10) continue;
 
       const validCategories = ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion', 'nudge'];
+      const validDepartments = ['communications', 'scheduling', 'health', 'content', 'finance', 'research', 'social'];
       const itemCategory = validCategories.includes(item.category) ? item.category : null;
       if (await isInsightDuplicate(userId, item.insight, itemCategory)) continue;
       const insertData = {
@@ -324,6 +325,7 @@ async function generateProactiveInsights(userId) {
         insight: item.insight.substring(0, 500),
         urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
         category: validCategories.includes(item.category) ? item.category : null,
+        department: validDepartments.includes(item.department) ? item.department : null,
       };
       // Populate nudge_action when category is 'nudge'
       if (item.category === 'nudge' && item.nudge_action) {
@@ -401,7 +403,7 @@ async function getUndeliveredInsights(userId, limit = 3) {
   try {
     const { data, error } = await supabaseAdmin
       .from('proactive_insights')
-      .select('id, insight, urgency, category, created_at')
+      .select('id, insight, urgency, category, department, created_at')
       .eq('user_id', userId)
       .eq('delivered', false)
       .order('created_at', { ascending: false })

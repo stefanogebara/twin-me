@@ -121,6 +121,22 @@ export async function proposeDepartmentAction(userId, department, { toolName, pa
     });
 
     log.info('Department action proposed', { userId, department, toolName, actionId });
+
+    // Fire-and-forget push notification (non-fatal)
+    try {
+      const { sendWebPush } = await import('./webPushService.js');
+      const deptConfig = getDepartmentConfig(department);
+      await sendWebPush(userId, {
+        title: `${deptConfig?.name || department}: Action proposed`,
+        body: context || 'Your AI department has a suggestion for you',
+        url: '/departments',
+        tag: `department_proposal_${actionId}`,
+        category: 'department_proposal',
+      });
+    } catch (pushErr) {
+      log.debug('Push notification failed (non-fatal)', { error: pushErr.message });
+    }
+
     return { actionId, status: 'pending_approval' };
   } catch (err) {
     log.error('proposeDepartmentAction failed', { userId, department, toolName, error: err.message });

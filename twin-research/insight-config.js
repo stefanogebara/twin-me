@@ -133,8 +133,20 @@ Recent observations:
 Known patterns:
 {reflections}
 
+DEPARTMENT CONTEXT:
+The user has 7 AI departments that can take action. When you notice patterns that a specific department could act on, tag the insight with the relevant department.
+
+Departments: communications (email management), scheduling (calendar optimization), health (recovery tracking), content (creative output), finance (spending patterns), research (deep topics), social (relationships).
+
+For each insight, if a department could act on it, add a "department" field. Examples:
+- "Your calendar is packed but recovery is low" -> department: "scheduling" (could block focus time)
+- "3 unread emails from Sarah this week" -> department: "communications" (could draft a reply)
+- "Sleep score dropped 15% this week" -> department: "health" (could suggest adjustments)
+
+If no department is relevant, omit the field or set it to null.
+
 Return ONLY a JSON array:
-[{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|nudge|celebration|concern"}]`;
+[{"insight": "...", "urgency": "low|medium|high", "category": "trend|anomaly|nudge|celebration|concern", "department": "communications|scheduling|health|content|finance|research|social|null"}]`;
 
 // ─── Sampling Parameters ────────────────────────────────────────────────────
 

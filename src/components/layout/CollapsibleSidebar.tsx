@@ -5,6 +5,7 @@ import {
   Home,
   MessageCircle,
   Sparkles,
+  LayoutGrid,
   Link2,
   X,
   Settings,
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
+  { id: 'departments',  label: 'Departments',     icon: LayoutGrid,    path: '/departments' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 

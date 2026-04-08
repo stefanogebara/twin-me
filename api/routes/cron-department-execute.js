@@ -121,6 +121,18 @@ router.all('/', async (req, res) => {
           await executeApprovedAction(userId, action.id);
           totalExecuted++;
           log.info('Auto-executed action', { userId: userId.slice(0, 8), actionId: action.id, department: action.department });
+
+          // Fire-and-forget push notification (non-fatal)
+          try {
+            const { sendWebPush } = await import('../services/webPushService.js');
+            await sendWebPush(userId, {
+              title: `${action.department}: Action completed`,
+              body: `Automatically executed: ${action.action_type}`,
+              url: '/departments',
+              tag: `department_executed_${action.id}`,
+              category: 'department_executed',
+            });
+          } catch (_) { /* push failure is non-fatal */ }
         } catch (execErr) {
           log.error('Auto-execution failed', { userId: userId.slice(0, 8), actionId: action.id, error: execErr.message });
           totalSkipped++;

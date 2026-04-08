@@ -7,6 +7,7 @@ import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { WelcomeGuide } from './components/dashboard-v2/WelcomeGuide';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
+import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import { useWebPush } from '@/hooks/useWebPush';
@@ -102,6 +103,8 @@ export function DashboardV2() {
         heroInsightId={data.heroInsight?.insightId}
         onEngage={markEngaged}
       />
+
+      <DepartmentWidget />
 
       <TwinStats
         readiness={data.twinStats.readiness}
