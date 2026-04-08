@@ -48,7 +48,25 @@ export const departmentsAPI = {
     }
 
     const data = await response.json();
-    return data.data ?? [];
+    const raw = data.departments ?? data.data ?? [];
+
+    // Transform backend shape to frontend Department interface
+    return raw.map((d: any) => ({
+      name: d.department || d.name,
+      config: {
+        name: d.name || d.department,
+        description: d.description || '',
+        icon: d.icon || 'circle',
+        color: d.color || '#6366F1',
+      },
+      autonomyLevel: d.autonomyLevel ?? d.defaultAutonomy ?? 1,
+      budget: {
+        spent: d.budget?.spent ?? 0,
+        total: d.budget?.budget ?? d.defaultMonthlyBudget ?? 0.10,
+      },
+      actionsThisWeek: d.recentActionsCount ?? 0,
+      isEnabled: (d.autonomyLevel ?? 0) > 0,
+    }));
   },
 
   /**
@@ -90,7 +108,14 @@ export const departmentsAPI = {
     }
 
     const data = await response.json();
-    return data.data ?? [];
+    return (data.proposals ?? data.data ?? []).map((p: any) => ({
+      id: p.id,
+      department: p.department || p.skill_name?.split('_')[0] || 'general',
+      departmentColor: p.departmentColor || '#6366F1',
+      description: p.context_summary || p.proposed_action || p.description || 'Pending action',
+      estimatedCost: p.estimated_cost_usd ?? 0,
+      createdAt: p.created_at || new Date().toISOString(),
+    }));
   },
 
   /**
