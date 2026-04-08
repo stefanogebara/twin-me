@@ -148,32 +148,15 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
       let apiUrl: string;
       let fetchOptions: RequestInit;
 
-      // Direct OAuth platforms use the entertainment/connect route
-      // Nango-managed platforms (whoop, twitch, fitbit, garmin) use the arctic/connect route
-      const NANGO_PLATFORMS = ['whoop', 'twitch', 'fitbit', 'garmin'];
-      const useNango = NANGO_PLATFORMS.includes(platform.id);
-
-      if (!useNango) {
-        apiUrl = `${API_URL}/entertainment/connect/${platform.id}`;
-        fetchOptions = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ userId }),
-        };
-      } else {
-        apiUrl = `${API_URL}/nango/connect-session`;
-        fetchOptions = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ integrationId: platform.id }),
-        };
-      }
+      // All platforms use direct OAuth via connectors/connect route
+      // This handles token exchange server-side and returns an authUrl
+      apiUrl = `${API_URL}/connectors/connect/${platform.id}`;
+      fetchOptions = {
+        method: 'GET',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      };
 
       const response = await fetch(apiUrl, fetchOptions);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

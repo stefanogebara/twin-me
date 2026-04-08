@@ -143,34 +143,17 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
 
     setConnecting(platform.id);
     try {
-      // These providers all use the /entertainment/connect/:id POST endpoint
-      const entertainmentProviders = ['spotify', 'discord', 'youtube', 'google_calendar', 'gmail', 'strava'];
-      const isEntertainment = entertainmentProviders.includes(platform.id);
-
+      // All platforms use direct OAuth via connectors/connect route
       let apiUrl: string;
       let fetchOptions: RequestInit;
 
-      if (isEntertainment) {
-        apiUrl = `${API_URL}/entertainment/connect/${platform.id}`;
-        fetchOptions = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({ userId })
-        };
-      } else {
-        apiUrl = `${API_URL}/nango/connect-session`;
-        fetchOptions = {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`,
-          },
-          body: JSON.stringify({ integrationId: platform.id }),
-        };
-      }
+      apiUrl = `${API_URL}/connectors/connect/${platform.id}`;
+      fetchOptions = {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
+      };
 
       const response = await fetch(apiUrl, fetchOptions);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
