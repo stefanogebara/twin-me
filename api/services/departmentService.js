@@ -115,9 +115,10 @@ export async function proposeDepartmentAction(userId, department, { toolName, pa
     const skillName = `${department}_actions`;
     const actionId = await queueActionForApproval(userId, {
       toolName,
-      params: { ...params, department, priority: priority || 'medium' },
+      params: { ...params, priority: priority || 'medium' },
       context: context || `${config.name} department action`,
       skillName,
+      department,
     });
 
     log.info('Department action proposed', { userId, department, toolName, actionId });
@@ -156,10 +157,10 @@ export async function getPendingProposals(userId) {
   try {
     const { data, error } = await supabaseAdmin
       .from('agent_actions')
-      .select('id, skill_name, action_type, proposed_action, context_summary, created_at')
+      .select('id, department, skill_name, action_type, proposed_action, context_summary, estimated_cost_usd, created_at')
       .eq('user_id', userId)
       .is('user_response', null)
-      .not('skill_name', 'is', null)
+      .not('department', 'is', null)
       .order('created_at', { ascending: false })
       .limit(50);
 

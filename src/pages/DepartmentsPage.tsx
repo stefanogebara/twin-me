@@ -155,7 +155,15 @@ const DepartmentsPage: React.FC = () => {
     });
 
     try {
-      await departmentsAPI.updateAutonomy(name, level);
+      const result = await departmentsAPI.updateAutonomy(name, level);
+      if (result?.scopeUpgradeRequired) {
+        toast(result.message || 'Additional permissions needed. Please reconnect in Settings.', {
+          action: {
+            label: 'Go to Settings',
+            onClick: () => window.location.href = result.reconnectUrl || '/settings',
+          },
+        });
+      }
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments });
     } catch (err) {
       toast.error('Failed to update autonomy level.');

@@ -72,7 +72,7 @@ export const departmentsAPI = {
   /**
    * Update the autonomy level for a department
    */
-  updateAutonomy: async (name: string, level: number): Promise<void> => {
+  updateAutonomy: async (name: string, level: number): Promise<{ scopeUpgradeRequired?: boolean; message?: string; reconnectUrl?: string }> => {
     const response = await authFetch(`/departments/${encodeURIComponent(name)}/autonomy`, {
       method: 'PUT',
       body: JSON.stringify({ autonomyLevel: level }),
@@ -81,6 +81,8 @@ export const departmentsAPI = {
     if (!response.ok) {
       throw new Error(`Failed to update autonomy: ${response.statusText}`);
     }
+
+    return response.json();
   },
 
   /**

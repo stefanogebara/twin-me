@@ -229,19 +229,25 @@ export async function logAgentAction(userId, actionData) {
  * @param {{ toolName: string, params: object, context?: string, skillName?: string }} actionData
  * @returns {string} The created action ID
  */
-export async function queueActionForApproval(userId, { toolName, params, context, skillName }) {
+export async function queueActionForApproval(userId, { toolName, params, context, skillName, department }) {
   if (!userId || !toolName) {
     throw new Error('userId and toolName are required to queue an action');
   }
+
+  // action_type must be one of: suggestion, draft, execution, nudge, reminder, briefing, insight_delivery
+  const actionType = toolName?.startsWith('gmail_') || toolName?.startsWith('calendar_') || toolName?.startsWith('docs_')
+    ? 'draft' : 'suggestion';
 
   const { data, error } = await supabaseAdmin
     .from('agent_actions')
     .insert({
       user_id: userId,
-      action_type: toolName,
+      action_type: actionType,
+      action_content: context || `${toolName} action`,
       skill_name: skillName || `${toolName.split('_')[0]}_actions`,
       proposed_action: JSON.stringify({ toolName, params }),
       context_summary: context || '',
+      department: department || null,
       created_at: new Date().toISOString()
     })
     .select('id')

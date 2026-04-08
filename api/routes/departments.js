@@ -119,6 +119,30 @@ router.post('/heartbeat', authenticateUser, async (req, res) => {
 });
 
 // ========================================================================
+// PUT /api/departments/:name/toggle — Enable or disable a department
+// ========================================================================
+
+router.put('/:name/toggle', authenticateUser, async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { enabled } = req.body;
+
+    if (!validateDepartmentName(name)) {
+      return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
+    }
+
+    // Toggle = set autonomy to 1 (SUGGEST) if enabling, 0 (OBSERVE) if disabling
+    const { updateDepartmentAutonomy } = await getDepartmentService();
+    const level = enabled ? 1 : 0;
+    const result = await updateDepartmentAutonomy(req.user.id, name, level);
+    return res.json({ success: true, department: name, enabled, autonomyLevel: level, ...result });
+  } catch (err) {
+    log.error('Failed to toggle department', { userId: req.user.id, department: req.params.name, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to toggle department' });
+  }
+});
+
+// ========================================================================
 // GET /api/departments/:name — Single department detail
 // ========================================================================
 
