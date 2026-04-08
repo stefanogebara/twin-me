@@ -121,31 +121,21 @@ function mmrRerank(candidates, k) {
 }
 
 // ─── Retrieve memories for a query ──────────────────────────────────────────
+// Uses the FULL production retrieval pipeline (HyDE + BM25 + TCM + STDP + MMR + graph traversal)
+// instead of the simplified raw-RPC path. This ensures the eval measures what users actually get.
+let _retrieveMemories = null;
+async function getRetrieveMemories() {
+  if (!_retrieveMemories) {
+    const mod = await import('../api/services/memoryStreamService.js');
+    _retrieveMemories = mod.retrieveMemories || mod.default?.retrieveMemories;
+  }
+  return _retrieveMemories;
+}
+
 async function retrieveForQuery(query, retrievalMode = 'default') {
-  const queryEmbedding = await generateEmbedding(query);
-  if (!queryEmbedding) throw new Error('Embedding returned null');
-  const embeddingStr = vectorToString(queryEmbedding);
-
-  // Per-mode weight selection: use mode-specific preset if available, else default
-  const w = RETRIEVAL_WEIGHTS[retrievalMode] || RETRIEVAL_WEIGHTS.default || RETRIEVAL_WEIGHTS;
-
-  const { data: rawResults, error } = await supabaseAdmin.rpc('search_memory_stream', {
-    p_user_id: TEST_USER_ID,
-    p_query_embedding: embeddingStr,
-    p_limit: RETRIEVAL_LIMIT * 3, // over-fetch for MMR
-    p_decay_factor: FRESHNESS_DECAY_RATE,
-    p_weight_recency: w.recency ?? 0,
-    p_weight_importance: w.importance ?? 0.3,
-    p_weight_relevance: w.relevance ?? 2.8,
-  });
-
-  if (error || !rawResults || rawResults.length === 0) return [];
-
-  // Apply MMR reranking
-  const reranked = mmrRerank(rawResults, RETRIEVAL_LIMIT);
-
-  // Strip embeddings for output
-  return reranked.map(m => ({ ...m, embedding: undefined }));
+  const retrieveMemories = await getRetrieveMemories();
+  const memories = await retrieveMemories(TEST_USER_ID, query, RETRIEVAL_LIMIT, retrievalMode);
+  return memories || [];
 }
 
 // ─── Judge relevance of retrieved memories (FIXED — do not modify) ──────────

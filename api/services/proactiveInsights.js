@@ -28,41 +28,16 @@ import { scoreForInsightSelection } from './inSilicoEngine.js';
 
 const log = createLogger('ProactiveInsights');
 
-const INSIGHT_GENERATION_PROMPT = `You MUST generate exactly 2-3 insights as a JSON array. The FIRST insight MUST have category "nudge" with a nudge_action field.
+// Import the research-tuned prompt template and parameters
+import { INSIGHT_PROMPT_TEMPLATE, INSIGHT_TEMPERATURE, INSIGHT_MAX_TOKENS, MEMORIES_TO_SCAN, REFLECTIONS_TO_INCLUDE, DEDUP_THRESHOLD } from '../../twin-research/insight-config.js';
 
-A "nudge" is a specific, casual micro-action suggestion based on the person's data (e.g., "take a 10-min walk after lunch", "try that album you saved last week", "block 30 min of focus time tomorrow"). It should feel like a friend's offhand suggestion, NOT a prescription.
+// Wrap the research template with nudge enforcement (production requirement)
+const INSIGHT_GENERATION_PROMPT = `${INSIGHT_PROMPT_TEMPLATE}
 
-The remaining 1-2 insights can be any of: trend, anomaly, celebration, concern, goal_progress, goal_suggestion.
-
-Focus on:
-- Cross-platform patterns (music + health + schedule connections)
-- Trends (things getting better or worse over time)
-- Anomalies (unusual behavior compared to their patterns)
-- Supportive observations (celebrating wins, flagging burnout)
-- Goal progress (celebrate streaks or encourage when falling behind)
-
-TONE RULES — this is critical:
-- Write like a close friend texting, NOT a wellness app or doctor
-- Max 1-2 short sentences per insight. No bullet points, no headers.
-- Zero jargon: no "cortisol", "HRV variability", "cognitive load", "biometrics", "longitudinal patterns"
-- Use plain words: "you seem tired" not "recovery metrics indicate fatigue"
-
-Good nudge examples:
-  {"insight": "you've been grinding pretty hard — might be worth taking an actual break this weekend", "urgency": "medium", "category": "nudge", "nudge_action": "block 2 hours this Saturday with nothing scheduled"}
-  {"insight": "noticed you haven't listened to much music lately — that usually means you're in your head", "urgency": "low", "category": "nudge", "nudge_action": "put on your comfort playlist during lunch today"}
-
-Good non-nudge examples:
-  {"insight": "you keep going back to that same playlist when your weeks get busy — comfort music?", "urgency": "low", "category": "trend"}
-  {"insight": "your sleep has been all over the place lately, guessing things are hectic?", "urgency": "medium", "category": "concern"}
-
-Recent observations:
-{observations}
-
-Known patterns:
-{reflections}
-
-Return ONLY a JSON array. First element MUST be a nudge with nudge_action:
-[{"insight": "...", "urgency": "low|medium|high", "category": "nudge", "nudge_action": "specific action"}, ...]`;
+ADDITIONAL PRODUCTION REQUIREMENT:
+The FIRST insight in the array MUST have category "nudge" with a nudge_action field.
+A "nudge" is a specific micro-action suggestion (e.g., "block 30 min of focus time tomorrow at 9am").
+If generating 3 insights: 1 nudge + 2 others (trend/anomaly/celebration/concern).`;
 
 /**
  * Extract significant keywords from insight text for topic-based dedup.
@@ -233,14 +208,14 @@ async function generateProactiveInsights(userId) {
       });
 
     // 1. Fetch 200 memories to find enough platform signals (reflections dominate recent stream ~90%)
-    const recentMemories = await getRecentMemories(userId, 200);
+    const recentMemories = await getRecentMemories(userId, MEMORIES_TO_SCAN || 300);
     if (recentMemories.length < 3) {
       log.info('Not enough memories for insights', { count: recentMemories.length });
       return 0;
     }
 
     // 2. Get reflections for context (recent weights: recency dominant for trend detection)
-    const reflections = await retrieveMemories(userId, "patterns and trends in recent behavior", 10, 'recent');
+    const reflections = await retrieveMemories(userId, "patterns and trends in recent behavior", REFLECTIONS_TO_INCLUDE || 15, 'recent');
 
     // 3. Format for LLM — explicitly separate signals from reflections
     // GUM Task 4: Filter out low-confidence memories (< 0.30) before LLM call
@@ -276,8 +251,8 @@ async function generateProactiveInsights(userId) {
           .replace('{observations}', observations)
           .replace('{reflections}', reflectionText),
       }],
-      maxTokens: 500,
-      temperature: 0.6,
+      maxTokens: INSIGHT_MAX_TOKENS || 250,
+      temperature: INSIGHT_TEMPERATURE || 0.65,
       serviceName: 'proactiveInsights-generate',
     });
 

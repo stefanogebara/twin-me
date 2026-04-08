@@ -145,7 +145,7 @@ export const INSIGHT_TEMPERATURE = 0.65;
 
 // Max tokens for the insight generation response.
 // Range: [100, 500]
-export const INSIGHT_MAX_TOKENS = 250;
+export const INSIGHT_MAX_TOKENS = 500;
 
 // ─── Quality Gates ──────────────────────────────────────────────────────────
 
