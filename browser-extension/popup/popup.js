@@ -203,10 +203,11 @@ async function silentAutoDetect() {
       target: { tabId: appTab.id },
       func: () => {
         const raw = localStorage.getItem('auth_user');
+        const token = localStorage.getItem('auth_token');
         if (!raw) return null;
         try {
           const u = JSON.parse(raw);
-          return { userId: u.id, name: u.name || u.given_name || u.email };
+          return { userId: u.id, name: u.name || u.given_name || u.email, token };
         } catch { return null; }
       },
     });
@@ -217,6 +218,10 @@ async function silentAutoDetect() {
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) showConnectedState();
       });
+      // Also send auth token for API sync
+      if (userData.token) {
+        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token: userData.token });
+      }
     }
   } catch {
     // Silent fail
@@ -271,6 +276,15 @@ async function autoDetectUser() {
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) setTimeout(() => showConnectedState(), 500);
       });
+      // Also extract and send auth token for API sync
+      const tokenResult = await chrome.scripting.executeScript({
+        target: { tabId: appTab.id },
+        func: () => localStorage.getItem('auth_token'),
+      }).catch(() => null);
+      const token = tokenResult?.[0]?.result;
+      if (token) {
+        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token });
+      }
     } else {
       detectStatus.textContent = 'Not logged in. Sign into TwinMe first, or enter ID manually.';
       detectStatus.style.color = '#f87171';
