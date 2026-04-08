@@ -105,23 +105,9 @@ const POLLING_CONFIGS = {
       },
     ],
   },
-  linkedin: {
-    endpoints: [
-      {
-        name: 'profile',
-        url: 'https://api.linkedin.com/v2/userinfo',
-      },
-    ],
-  },
-  reddit: {
-    endpoints: [
-      {
-        name: 'overview',
-        url: 'https://oauth.reddit.com/user/{username}/overview',
-        params: { limit: 25, sort: 'new' },
-      },
-    ],
-  },
+  // LinkedIn and Reddit are fully handled by cron-observation-ingestion.js
+  // (deep extraction with natural language observations + feature extraction).
+  // They were removed from polling to avoid redundant API calls.
 };
 
 /**

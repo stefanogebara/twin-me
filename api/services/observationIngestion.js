@@ -1486,12 +1486,13 @@ async function fetchLinkedInObservations(userId) {
   }
 
   // Connection count (if available via v2 API)
+  let connectionCount = null;
   try {
     const connectionsRes = await axios.get(
       'https://api.linkedin.com/v2/connections?q=viewer&count=0',
       { headers, timeout: 10000 }
     );
-    const connectionCount = connectionsRes.data?.paging?.total ?? null;
+    connectionCount = connectionsRes.data?.paging?.total ?? null;
     if (connectionCount !== null && connectionCount > 0) {
       const networkLabel = connectionCount > 500 ? 'extensive' : connectionCount > 100 ? 'solid' : 'growing';
       observations.push({
@@ -1501,6 +1502,43 @@ async function fetchLinkedInObservations(userId) {
     }
   } catch {
     // Connection count requires specific scope — non-fatal
+  }
+
+  // ── Store structured LinkedIn data in user_platform_data (fire-and-forget) ──
+  // The feature extractor (linkedinExtractor.js) reads from user_platform_data
+  // with data_type='profile'. Without this, all feature calculations return null.
+  try {
+    const supabase = await getSupabase();
+    if (supabase && (headline || industry || connectionCount)) {
+      // Extract skills from headline (LinkedIn API skills endpoint requires special scope)
+      const headlineSkills = [];
+      if (headline) {
+        const skillPatterns = /\b(python|javascript|typescript|react|node|aws|cloud|devops|ai|ml|machine learning|data science|product|design|ux|marketing|sales|finance|consulting|engineering|developer|architect)\b/gi;
+        const matches = headline.match(skillPatterns) || [];
+        matches.forEach(s => headlineSkills.push(s.toLowerCase()));
+      }
+
+      const profileData = {
+        headline: headline || null,
+        industry: industry || null,
+        connections: connectionCount,
+        locale: locale || null,
+        skills: headlineSkills.length > 0 ? headlineSkills : undefined,
+        profilePicture: true, // assume exists (we got profile data)
+      };
+
+      supabase.from('user_platform_data').upsert({
+        user_id: userId,
+        platform: 'linkedin',
+        data_type: 'profile',
+        raw_data: profileData,
+        extracted_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,platform,data_type' }).then(({ error }) => {
+        if (error) log.warn('LinkedIn user_platform_data upsert error', { error: error.message });
+      });
+    }
+  } catch (e) {
+    log.warn('LinkedIn structured data storage failed (non-fatal)', { error: e.message });
   }
 
   return observations;
