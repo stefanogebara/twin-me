@@ -7,13 +7,16 @@ interface WeatherData {
 }
 
 function mapWeatherCode(code: number): string {
-  if (code === 0) return '\u2600\uFE0F';
-  if (code >= 1 && code <= 3) return '\u26C5';
-  if (code >= 45 && code <= 48) return '\uD83C\uDF2B\uFE0F';
-  if (code >= 51 && code <= 67) return '\uD83C\uDF27\uFE0F';
-  if (code >= 71 && code <= 77) return '\uD83C\uDF28\uFE0F';
-  if (code >= 80 && code <= 99) return '\u26C8\uFE0F';
-  return '\u2600\uFE0F';
+  if (code === 0) return 'Clear';
+  if (code >= 1 && code <= 3) return 'Partly cloudy';
+  if (code >= 45 && code <= 48) return 'Foggy';
+  if (code >= 51 && code <= 55) return 'Drizzle';
+  if (code >= 56 && code <= 67) return 'Rain';
+  if (code >= 71 && code <= 77) return 'Snow';
+  if (code >= 80 && code <= 82) return 'Showers';
+  if (code >= 85 && code <= 86) return 'Snow showers';
+  if (code >= 95 && code <= 99) return 'Thunderstorm';
+  return 'Clear';
 }
 
 export function useWeather(): WeatherData | null {

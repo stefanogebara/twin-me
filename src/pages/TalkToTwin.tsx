@@ -19,6 +19,7 @@ import { ConversationList } from '@/components/chat/ConversationList';
 import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
+import { useSidebarContext } from '@/hooks/useSidebarContext';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
 import { PendingProposalsBadge } from '@/components/chat/PendingProposalsBadge';
 import type { ProposalStatus } from '@/components/chat/DepartmentProposalBubble';
@@ -103,6 +104,11 @@ const TalkToTwin = () => {
     isLoading: isLoadingPlatforms
   } = usePlatformStatus(user?.id);
   const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
+  const {
+    calendarEvents: sidebarCalendarEvents,
+    recentEmails: sidebarRecentEmails,
+    isLoading: isLoadingSidebar,
+  } = useSidebarContext(user?.id);
 
   const [messages, setMessages] = useState<Message[]>(loadChatHistory);
   const [inputMessage, setInputMessage] = useState('');
@@ -112,6 +118,7 @@ const TalkToTwin = () => {
   );
   const [showContext, setShowContext] = useState(false);
   const [showConversationList, setShowConversationList] = useState(false);
+  const [showRightSidebar, setShowRightSidebar] = useState(false);
   const [showInterview, setShowInterview] = useState(false);
   const [showInterviewChip, setShowInterviewChip] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -618,9 +625,11 @@ const TalkToTwin = () => {
           hasMessages={messages.length > 0}
           showContext={showContext}
           showConversationList={showConversationList}
+          showRightSidebar={showRightSidebar}
           onClearChat={handleClearChat}
           onToggleContext={() => setShowContext(!showContext)}
           onToggleConversationList={() => setShowConversationList(prev => !prev)}
+          onToggleRightSidebar={() => setShowRightSidebar(prev => !prev)}
         />
 
         {/* InsightsBanner removed — insights are already on the dashboard */}
@@ -689,7 +698,9 @@ const TalkToTwin = () => {
       />
 
       <ChatContextSidebar
-        calendarEvents={[]}
+        calendarEvents={sidebarCalendarEvents}
+        recentEmails={sidebarRecentEmails}
+        isLoadingSidebar={isLoadingSidebar}
         insights={
           [...messages]
             .reverse()
@@ -699,6 +710,8 @@ const TalkToTwin = () => {
         platformCount={connectedCount}
         messageCount={messages.filter(m => !m.failed).length}
         onMorningBriefing={() => handleQuickAction('Give me my morning briefing')}
+        mobileOpen={showRightSidebar}
+        onCloseMobile={() => setShowRightSidebar(false)}
       />
 
       {/* Soul Interview overlay */}

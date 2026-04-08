@@ -1,21 +1,25 @@
-import { Layers, Trash2, History } from 'lucide-react';
+import { Layers, Trash2, History, PanelRight } from 'lucide-react';
 
 interface ChatHeaderProps {
   hasMessages: boolean;
   showContext: boolean;
   showConversationList?: boolean;
+  showRightSidebar?: boolean;
   onClearChat: () => void;
   onToggleContext: () => void;
   onToggleConversationList?: () => void;
+  onToggleRightSidebar?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   hasMessages,
   showContext,
   showConversationList = false,
+  showRightSidebar = false,
   onClearChat,
   onToggleContext,
   onToggleConversationList,
+  onToggleRightSidebar,
 }) => (
   <header
     className="flex items-center justify-end px-6 py-2"
@@ -57,6 +61,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       >
         <Layers className="w-4 h-4" aria-hidden="true" />
       </button>
+      {/* Right sidebar toggle -- visible only on mobile/tablet (hidden on lg where sidebar is always accessible) */}
+      {onToggleRightSidebar && (
+        <button
+          onClick={onToggleRightSidebar}
+          className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90 lg:hidden"
+          style={{ color: showRightSidebar ? '#10b77f' : 'rgba(255,255,255,0.25)' }}
+          aria-label={showRightSidebar ? "Hide today's context" : "Show today's context"}
+          aria-expanded={showRightSidebar}
+          title="Today's context"
+        >
+          <PanelRight className="w-4 h-4" aria-hidden="true" />
+        </button>
+      )}
     </div>
   </header>
 );
