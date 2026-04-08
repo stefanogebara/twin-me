@@ -143,4 +143,13 @@ export const departmentsAPI = {
       throw new Error(`Failed to reject proposal: ${response.statusText}`);
     }
   },
+
+  /**
+   * Trigger a manual heartbeat check (bypasses 2-hour cooldown)
+   */
+  triggerHeartbeat: async (): Promise<{ success: boolean; proposals: any[]; count?: number; skipped?: string }> => {
+    const response = await authFetch('/departments/heartbeat', { method: 'POST' });
+    if (!response.ok) throw new Error('Heartbeat failed');
+    return response.json();
+  },
 };

@@ -104,6 +104,21 @@ router.post('/proposals/:id/reject', authenticateUser, async (req, res) => {
 });
 
 // ========================================================================
+// POST /api/departments/heartbeat — Manual heartbeat trigger (bypasses cooldown)
+// ========================================================================
+
+router.post('/heartbeat', authenticateUser, async (req, res) => {
+  try {
+    const { checkDepartmentHeartbeats } = await getDepartmentService();
+    const result = await checkDepartmentHeartbeats(req.user.id, { skipCooldown: true });
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    log.error('Manual heartbeat failed', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ========================================================================
 // GET /api/departments/:name — Single department detail
 // ========================================================================
 
@@ -149,6 +164,40 @@ router.put('/:name/autonomy', authenticateUser, async (req, res) => {
           success: false,
           error: 'reauth_required',
           message: 'Enabling autonomous mode requires recent authentication. Please sign in again.',
+        });
+      }
+    }
+
+    // Scope escalation: Communications at autonomy 2+ needs Gmail write scopes
+    if (name === 'communications' && autonomyLevel >= 2) {
+      const { checkUserHasWriteScopes } = await import('../services/scopeEscalationService.js');
+      const hasScopes = await checkUserHasWriteScopes(req.user.id, 'communications');
+      if (!hasScopes) {
+        const { updateDepartmentAutonomy: updateAuto } = await getDepartmentService();
+        const result = await updateAuto(req.user.id, name, autonomyLevel);
+        return res.json({
+          success: true,
+          ...result,
+          scopeUpgradeRequired: true,
+          message: 'Gmail write access needed to enable email actions. Please reconnect Gmail with expanded permissions.',
+          reconnectUrl: '/settings?reconnect=gmail&scopes=write',
+        });
+      }
+    }
+
+    // Scope escalation: Scheduling at autonomy 2+ needs Calendar write scopes
+    if (name === 'scheduling' && autonomyLevel >= 2) {
+      const { checkUserHasWriteScopes } = await import('../services/scopeEscalationService.js');
+      const hasScopes = await checkUserHasWriteScopes(req.user.id, 'scheduling');
+      if (!hasScopes) {
+        const { updateDepartmentAutonomy: updateAuto } = await getDepartmentService();
+        const result = await updateAuto(req.user.id, name, autonomyLevel);
+        return res.json({
+          success: true,
+          ...result,
+          scopeUpgradeRequired: true,
+          message: 'Calendar write access needed to enable scheduling actions. Please reconnect Google Calendar with expanded permissions.',
+          reconnectUrl: '/settings?reconnect=calendar&scopes=write',
         });
       }
     }

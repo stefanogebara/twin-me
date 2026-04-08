@@ -335,16 +335,20 @@ async function countRecentActions(userId, department) {
  * Analyzes recent observations via LLM and generates department action proposals.
  * Cost-controlled: 2-hour cooldown per user, TIER_EXTRACTION (cheapest model).
  */
-export async function checkDepartmentHeartbeats(userId) {
+export async function checkDepartmentHeartbeats(userId, options = {}) {
+  const { skipCooldown = false } = options;
+
   try {
     const departments = await getAllDepartments(userId);
     const activeDepts = departments.filter(d => d.autonomyLevel > 0);
-    if (activeDepts.length === 0) return;
+    if (activeDepts.length === 0) return { proposals: [], skipped: 'no_active_departments' };
 
     // 1. Cooldown — max 1 heartbeat per user per 2 hours
     const cooldownKey = `dept_heartbeat:${userId}`;
-    const lastRun = await cacheGet(cooldownKey);
-    if (lastRun) return;
+    if (!skipCooldown) {
+      const lastRun = await cacheGet(cooldownKey);
+      if (lastRun) return { proposals: [], skipped: 'cooldown' };
+    }
 
     // 2. Fetch recent observations (last 6 hours, max 30)
     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
@@ -357,11 +361,11 @@ export async function checkDepartmentHeartbeats(userId) {
       .order('created_at', { ascending: false })
       .limit(30);
 
-    if (!recentObs || recentObs.length < 3) return;
+    if (!recentObs || recentObs.length < 3) return { proposals: [], skipped: 'insufficient_data' };
 
     // 3. Don't create duplicates — cap pending proposals
     const pending = await getPendingProposals(userId);
-    if (pending.length >= 5) return;
+    if (pending.length >= 5) return { proposals: [], skipped: 'too_many_pending' };
 
     // 4. Build LLM prompt
     const deptDescriptions = activeDepts.map(d => {
@@ -407,33 +411,35 @@ Rules:
     // 6. Parse response and create proposals
     const text = response?.content || '';
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) { log.debug('No proposals generated'); return; }
+    if (!jsonMatch) { log.debug('No proposals generated'); return { proposals: [], count: 0 }; }
 
     const suggestions = JSON.parse(jsonMatch[0]);
-    if (!Array.isArray(suggestions) || suggestions.length === 0) return;
+    if (!Array.isArray(suggestions) || suggestions.length === 0) return { proposals: [], count: 0 };
 
-    let proposalsCreated = 0;
+    const createdProposals = [];
     for (const s of suggestions.slice(0, 3)) {
       if (!DEPARTMENT_NAMES.includes(s.department)) continue;
       if (!activeDepts.find(d => d.department === s.department)) continue;
 
       // toolName is required by proposeDepartmentAction; use 'suggest' for observation-only proposals
       const toolName = s.toolName || 'suggest';
-      await proposeDepartmentAction(userId, s.department, {
+      const result = await proposeDepartmentAction(userId, s.department, {
         toolName,
         params: s.params || {},
         context: s.description,
         priority: s.priority || 5,
       });
-      proposalsCreated++;
+      createdProposals.push({ ...result, department: s.department, description: s.description });
     }
 
     // 7. Set cooldown (2 hours = 7200 seconds)
     await cacheSet(cooldownKey, Date.now(), 7200);
 
-    log.info('Department heartbeat complete', { userId, proposalsCreated });
+    log.info('Department heartbeat complete', { userId, proposalsCreated: createdProposals.length });
+    return { proposals: createdProposals, count: createdProposals.length };
   } catch (err) {
     log.warn('Department heartbeat check failed', { userId, error: err.message });
+    return { proposals: [], error: err.message };
   }
 }
 

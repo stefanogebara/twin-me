@@ -20,6 +20,7 @@ import { SoulInterview } from '@/components/chat/SoulInterview';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
+import { PendingProposalsBadge } from '@/components/chat/PendingProposalsBadge';
 import type { ProposalStatus } from '@/components/chat/DepartmentProposalBubble';
 
 interface ActionEvent {
@@ -651,6 +652,14 @@ const TalkToTwin = () => {
           )}
 
           {limitReached && <LimitReachedBanner chatUsage={chatUsage} />}
+        </div>
+
+        {/* Pending proposals badge -- above input */}
+        <div className="px-3 sm:px-6 max-w-3xl mx-auto w-full">
+          <PendingProposalsBadge
+            onProposalApproved={(id) => updateProposalStatus(id, 'completed')}
+            onProposalRejected={(id) => updateProposalStatus(id, 'rejected')}
+          />
         </div>
 
         <ChatInputArea

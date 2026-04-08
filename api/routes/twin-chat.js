@@ -1107,7 +1107,14 @@ RULES:
 
           if (isStreaming) {
             const actionEvent = actionResult.pendingConfirmation
-              ? { type: 'action_pending_confirmation', tool: action.toolName, actionId: actionResult.actionId, params: actionResult.params }
+              ? {
+                  type: 'action_pending_confirmation',
+                  tool: action.toolName,
+                  actionId: actionResult.actionId,
+                  params: actionResult.params,
+                  description: actionResult.description || `Action "${action.toolName}" requires your approval`,
+                  department: actionResult.department || action.toolName.split('_')[0] || 'workspace',
+                }
               : { type: 'action_result', tool: action.toolName, success: actionResult.success, data: actionResult.data, elapsedMs: actionResult.elapsedMs };
             try { res.write(`data: ${JSON.stringify(actionEvent)}\n\n`); } catch { /* ignore */ }
           }

@@ -16,7 +16,7 @@ import type { Template } from '@/services/api/templatesAPI';
 import DepartmentCard from './components/departments/DepartmentCard';
 import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
-import { Loader2, Inbox } from 'lucide-react';
+import { Loader2, Inbox, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // ── Default department configs (used when backend isn't wired yet) ───────
@@ -95,6 +95,7 @@ const DepartmentsPage: React.FC = () => {
   const [localDepts, setLocalDepts] = useState<Department[] | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [heartbeatLoading, setHeartbeatLoading] = useState(false);
 
   const {
     data: remoteDepts,
@@ -223,23 +224,65 @@ const DepartmentsPage: React.FC = () => {
     }
   }, [queryClient]);
 
+  const handleHeartbeat = useCallback(async () => {
+    setHeartbeatLoading(true);
+    try {
+      const result = await departmentsAPI.triggerHeartbeat();
+      if (result.skipped) {
+        toast('No new proposals — not enough data yet');
+      } else if (result.count && result.count > 0) {
+        toast(`Generated ${result.count} proposal${result.count > 1 ? 's' : ''}`);
+        await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.proposals });
+      } else {
+        toast('No new proposals — not enough data yet');
+      }
+    } catch (err) {
+      toast.error('Heartbeat check failed');
+    } finally {
+      setHeartbeatLoading(false);
+    }
+  }, [queryClient]);
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
 
       {/* Header */}
-      <h1
-        className="mb-2"
-        style={{
-          fontFamily: "'Instrument Serif', Georgia, serif",
-          fontStyle: 'italic',
-          fontSize: '28px',
-          fontWeight: 400,
-          color: 'var(--foreground)',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        Departments
-      </h1>
+      <div className="flex items-baseline justify-between mb-2">
+        <h1
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: '28px',
+            fontWeight: 400,
+            color: 'var(--foreground)',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          Departments
+        </h1>
+        {!isDemoMode && (
+          <button
+            onClick={handleHeartbeat}
+            disabled={heartbeatLoading}
+            className="flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer"
+            style={{
+              color: 'rgba(255,255,255,0.4)',
+              fontFamily: "'Inter', sans-serif",
+              background: 'none',
+              border: 'none',
+              padding: 0,
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+          >
+            {heartbeatLoading
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <RefreshCw className="w-3 h-3" />
+            }
+            Check now
+          </button>
+        )}
+      </div>
       <p
         className="text-sm mb-10"
         style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}

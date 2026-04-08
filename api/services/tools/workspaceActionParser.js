@@ -207,10 +207,11 @@ export async function executeAction(userId, action) {
  */
 async function queueWriteAction(userId, toolName, params) {
   try {
+    const description = buildActionDescription(toolName, params);
     const actionRecord = await logAgentAction(userId, {
       skillName: toolName,
       actionType: 'draft',
-      content: buildActionDescription(toolName, params),
+      content: description,
       autonomyLevel: 2, // DRAFT_CONFIRM — always requires approval
       personalityContext: null,
       platformSources: [],
@@ -218,14 +219,17 @@ async function queueWriteAction(userId, toolName, params) {
 
     const actionId = actionRecord?.id || null;
 
-    // Store tool params in outcome_data so we can execute later
+    // Store tool params in proposed_action so executeApprovedAction can find them
     if (actionId) {
       const { supabaseAdmin } = await import('../database.js');
       await supabaseAdmin
         .from('agent_actions')
-        .update({ outcome_data: { toolName, params, status: 'pending_confirmation' } })
+        .update({ proposed_action: JSON.stringify({ toolName, params }) })
         .eq('id', actionId);
     }
+
+    // Derive department from tool prefix (e.g. gmail_send -> gmail)
+    const department = toolName.split('_')[0] || 'workspace';
 
     log.info('Write action queued for confirmation', { userId, tool: toolName, actionId });
 
@@ -235,6 +239,8 @@ async function queueWriteAction(userId, toolName, params) {
       actionId,
       toolName,
       params,
+      description,
+      department,
       data: { message: `Action "${toolName}" requires your confirmation before executing.` },
       error: null,
       elapsedMs: 0,
