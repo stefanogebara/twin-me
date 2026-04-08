@@ -4480,6 +4480,28 @@ async function fetchRecentWebEvents(userId) {
  *
  * @returns {{ usersProcessed, observationsStored, reflectionsTriggered, errors }}
  */
+// Platform name -> fetch function lookup for parallel execution
+const PLATFORM_FETCHERS = {
+  spotify: fetchSpotifyObservations,
+  google_calendar: fetchCalendarObservations,
+  youtube: fetchYouTubeObservations,
+  discord: fetchDiscordObservations,
+  linkedin: fetchLinkedInObservations,
+  slack: fetchSlackObservations,
+  reddit: fetchRedditObservations,
+  whoop: fetchWhoopObservations,
+  github: fetchGitHubObservations,
+  google_gmail: fetchGmailObservations,
+  google_drive: fetchGoogleDriveObservations,
+  outlook: fetchOutlookObservations,
+  strava: fetchStravaObservations,
+  garmin: fetchGarminObservations,
+  fitbit: fetchFitbitObservations,
+  twitch: fetchTwitchObservations,
+  oura: fetchOuraObservations,
+  apple_music: fetchAppleMusicObservations,
+};
+
 async function runObservationIngestion() {
   log.info('Starting ingestion run...');
   const startTime = Date.now();
@@ -4546,8 +4568,9 @@ async function runObservationIngestion() {
     log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
 
     // Global timeout guard — stop processing before Vercel kills us (60s limit)
-    // Reduced to 42s to leave headroom for post-processing (snapshots, cache warm)
-    const GLOBAL_TIMEOUT_MS = 42_000;
+    // 50s leaves 10s headroom for response serialization. Parallel platform fetches
+    // complete in ~10-15s instead of ~50s sequential, so this is safe.
+    const GLOBAL_TIMEOUT_MS = 50_000;
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
     // Round-robin: rotate which user starts first so all users get serviced
@@ -4565,88 +4588,67 @@ async function runObservationIngestion() {
       try {
         let userObsCount = 0;
 
+        // ---- Phase 1: Parallel platform fetch (all platforms concurrently) ----
+        // Each platform gets its own 15s timeout so one slow API can't starve the rest.
+        const PER_PLATFORM_TIMEOUT_MS = 15_000;
+        const platformFetchResults = {};
+        await Promise.all(
+          platforms.map(async (platform) => {
+            const fetcher = PLATFORM_FETCHERS[platform];
+            if (!fetcher) {
+              platformFetchResults[platform] = { observations: [], error: null };
+              return;
+            }
+            try {
+              const obs = await Promise.race([
+                fetcher(userId),
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error(`${platform} fetch timeout (${PER_PLATFORM_TIMEOUT_MS / 1000}s)`)), PER_PLATFORM_TIMEOUT_MS)
+                ),
+              ]);
+              platformFetchResults[platform] = { observations: obs || [], error: null };
+            } catch (err) {
+              platformFetchResults[platform] = { observations: [], error: err };
+            }
+          })
+        );
+        log.info('Parallel fetch complete', {
+          userId: userId.slice(0, 8),
+          platforms: platforms.length,
+          elapsed: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
+        });
+
+        // Single dedup pre-fetch for ALL platforms (1 DB query instead of N)
+        const batchWindowMs = DEDUP_WINDOWS_MS.daily_summary; // 24 hours
+        const batchCutoff = new Date(Date.now() - batchWindowMs).toISOString();
+        const dedupSupabase = await getSupabase();
+        const existingHashes = new Set();
+        if (dedupSupabase) {
+          const { data: recentMems } = await dedupSupabase
+            .from('user_memories')
+            .select('content, metadata')
+            .eq('user_id', userId)
+            .eq('memory_type', 'platform_data')
+            .gte('created_at', batchCutoff)
+            .limit(2000);
+          for (const mem of (recentMems || [])) {
+            const memPlatform = mem.metadata?.source || mem.metadata?.platform || '';
+            existingHashes.add(contentHash(memPlatform, mem.content || ''));
+          }
+        }
+
+        // ---- Phase 2: Sequential dedup + store per platform ----
         for (const platform of platforms) {
           if (isTimedOut()) break;
+          const fetchResult = platformFetchResults[platform];
+          if (fetchResult?.error) {
+            const errMsg = `${platform} for user ${userId}: ${fetchResult.error.message}`;
+            log.warn('Platform fetch error', { message: errMsg });
+            stats.errors.push(errMsg);
+            continue;
+          }
           try {
-            // Fetch observations from platform
-            let observations = [];
-            switch (platform) {
-              case 'spotify':
-                observations = await fetchSpotifyObservations(userId);
-                break;
-              case 'google_calendar':
-                observations = await fetchCalendarObservations(userId);
-                break;
-              case 'youtube':
-                observations = await fetchYouTubeObservations(userId);
-                break;
-              case 'discord':
-                observations = await fetchDiscordObservations(userId);
-                break;
-              case 'linkedin':
-                observations = await fetchLinkedInObservations(userId);
-                break;
-              case 'slack':
-                observations = await fetchSlackObservations(userId);
-                break;
-              case 'reddit':
-                observations = await fetchRedditObservations(userId);
-                break;
-              case 'whoop':
-                observations = await fetchWhoopObservations(userId);
-                break;
-              case 'github':
-                observations = await fetchGitHubObservations(userId);
-                break;
-              case 'google_gmail':
-                observations = await fetchGmailObservations(userId);
-                break;
-              case 'google_drive':
-                observations = await fetchGoogleDriveObservations(userId);
-                break;
-              case 'outlook':
-                observations = await fetchOutlookObservations(userId);
-                break;
-              case 'strava':
-                observations = await fetchStravaObservations(userId);
-                break;
-              case 'garmin':
-                observations = await fetchGarminObservations(userId);
-                break;
-              case 'fitbit':
-                observations = await fetchFitbitObservations(userId);
-                break;
-              case 'twitch':
-                observations = await fetchTwitchObservations(userId);
-                break;
-              case 'oura':
-                observations = await fetchOuraObservations(userId);
-                break;
-              case 'apple_music':
-                observations = await fetchAppleMusicObservations(userId);
-                break;
-            }
-
-            // Batch de-duplication: pre-fetch recent memories once per platform
-            // instead of one DB query per observation (N+1 fix).
-            // Use a 24-hour window for the pre-fetch (covers current_state and daily_summary).
-            // weekly_summary observations fall back to isDuplicate() per-call below.
-            const batchWindowMs = DEDUP_WINDOWS_MS.daily_summary; // 24 hours
-            const batchCutoff = new Date(Date.now() - batchWindowMs).toISOString();
-            const dedupSupabase = await getSupabase();
-            const existingHashes = new Set();
-            if (dedupSupabase) {
-              const { data: recentMems } = await dedupSupabase
-                .from('user_memories')
-                .select('content')
-                .eq('user_id', userId)
-                .eq('memory_type', 'platform_data')
-                .gte('created_at', batchCutoff)
-                .limit(1000);
-              for (const mem of (recentMems || [])) {
-                existingHashes.add(contentHash(platform, mem.content || ''));
-              }
-            }
+            const observations = fetchResult?.observations || [];
 
             // Store each observation (with de-duplication)
             // Observations can be strings (legacy) or { content, contentType } objects (richer templates)
