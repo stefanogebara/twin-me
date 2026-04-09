@@ -1,63 +1,45 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useWeather, getLocalHour, formatDateInTimezone } from '@/hooks/useWeather';
 // MorningBriefingCard removed — chat empty state should be clean and minimal
 
-function getGreeting(firstName: string): string {
-  const hour = new Date().getHours();
+function getGreeting(firstName: string, hour: number): string {
   if (hour >= 5 && hour < 12) return `Good Morning, ${firstName}`;
   if (hour >= 12 && hour < 18) return `Good Afternoon, ${firstName}`;
   if (hour >= 18 && hour < 22) return `Good Evening, ${firstName}`;
   return `Good Night, ${firstName}`;
 }
 
-function formatCurrentDate(): string {
-  const now = new Date();
-  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const month = now.toLocaleDateString('en-US', { month: 'long' });
-  const day = now.getDate();
-
-  const suffix =
-    day % 10 === 1 && day !== 11
-      ? 'st'
-      : day % 10 === 2 && day !== 12
-        ? 'nd'
-        : day % 10 === 3 && day !== 13
-          ? 'rd'
-          : 'th';
-
-  return `${dayName}, ${month} ${day}${suffix}`;
-}
-
+// NO EMOJIS per CLAUDE.md — chips use plain text only
 const TIME_BASED_CHIPS: Record<string, string[]> = {
   morning: [
-    '\u{1F4E7} Check my emails',
-    '\u{1F4C5} What\'s on my calendar?',
-    '\u{2600}\u{FE0F} Morning briefing',
-    '\u{1F9E0} What patterns do you see?',
+    'Check my emails',
+    "What's on my calendar?",
+    'Morning briefing',
+    'What patterns do you see?',
   ],
   afternoon: [
-    '\u{1F3B5} What does my music say about me?',
-    '\u{1F4AA} How\'s my recovery?',
-    '\u{1F4E7} Check my emails',
-    '\u{270F}\u{FE0F} Draft an email for me',
+    'What does my music say about me?',
+    "How's my recovery?",
+    'Check my emails',
+    'Draft an email for me',
   ],
   evening: [
-    '\u{1F4A4} How\'s my sleep been?',
-    '\u{1F3B5} What does my music say about me?',
-    '\u{1F9E0} What patterns do you see?',
-    '\u{1F4C5} What\'s tomorrow look like?',
+    "How's my sleep been?",
+    'What does my music say about me?',
+    'What patterns do you see?',
+    "What's tomorrow look like?",
   ],
   night: [
-    '\u{1F4A4} How\'s my sleep been?',
-    '\u{1F9E0} What patterns do you see?',
-    '\u{1F3B5} What does my music say about me?',
-    '\u{1F4DD} Tell me something surprising about myself',
+    "How's my sleep been?",
+    'What patterns do you see?',
+    'What does my music say about me?',
+    'Tell me something surprising about myself',
   ],
 };
 
-function getTimeSlot(): string {
-  const hour = new Date().getHours();
+function getTimeSlot(hour: number): string {
   if (hour >= 6 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 18) return 'afternoon';
   if (hour >= 18 && hour < 24) return 'evening';
@@ -91,16 +73,21 @@ export const ChatEmptyState = ({
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const weather = useWeather();
   const firstName = user?.firstName || 'there';
-  const greeting = getGreeting(firstName);
-  const dateStr = formatCurrentDate();
+
+  // Use location-derived timezone for greeting and date (falls back to browser local)
+  const timezone = weather?.timezone;
+  const localHour = getLocalHour(timezone);
+  const greeting = getGreeting(firstName, localHour);
+  const dateStr = formatDateInTimezone(timezone);
 
   const platformCount = connectedPlatforms.length;
 
   const chips = useMemo(() => {
-    const slot = getTimeSlot();
+    const slot = getTimeSlot(localHour);
     return TIME_BASED_CHIPS[slot];
-  }, []);
+  }, [localHour]);
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-4 sm:px-6 min-h-[40vh] sm:min-h-[60vh]">

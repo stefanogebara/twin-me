@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Mail, Calendar as CalendarIcon, X } from 'lucide-react';
-import { useWeather } from '../../hooks/useWeather';
+import { useWeather, getLocalHour, formatDateInTimezone } from '../../hooks/useWeather';
 
 const COLLAPSED_KEY = 'chat_sidebar_collapsed';
 
-function getTimeGradient(): string {
-  const hour = new Date().getHours();
+function getTimeGradient(hour: number): string {
   if (hour >= 6 && hour < 12) {
     return 'linear-gradient(165deg, #4a6fa5 0%, #2d4a7a 30%, #1e3560 60%, #151825 100%)';
   } else if (hour >= 12 && hour < 18) {
@@ -54,24 +53,6 @@ interface ChatContextSidebarProps {
   /** Mobile overlay mode */
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
-}
-
-function formatCurrentDate(): string {
-  const now = new Date();
-  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const month = now.toLocaleDateString('en-US', { month: 'long' });
-  const day = now.getDate();
-
-  const suffix =
-    day % 10 === 1 && day !== 11
-      ? 'st'
-      : day % 10 === 2 && day !== 12
-        ? 'nd'
-        : day % 10 === 3 && day !== 13
-          ? 'rd'
-          : 'th';
-
-  return `${dayName}, ${month} ${day}${suffix}`;
 }
 
 /** Shared sidebar content rendered inside both desktop and mobile wrappers */
@@ -334,9 +315,10 @@ export const ChatContextSidebar = ({
   mobileOpen = false,
   onCloseMobile,
 }: ChatContextSidebarProps) => {
-  const dateStr = formatCurrentDate();
   const weather = useWeather();
-  const [gradient, setGradient] = useState(getTimeGradient);
+  const timezone = weather?.timezone;
+  const dateStr = formatDateInTimezone(timezone);
+  const [gradient, setGradient] = useState(() => getTimeGradient(getLocalHour(timezone)));
   const [collapsed, setCollapsed] = useState(loadCollapsed);
 
   const toggleCollapsed = useCallback(() => {
@@ -351,13 +333,14 @@ export const ChatContextSidebar = ({
     });
   }, []);
 
-  // Update gradient every 60 seconds
+  // Update gradient every 60 seconds using location-aware hour
   useEffect(() => {
+    setGradient(getTimeGradient(getLocalHour(timezone)));
     const interval = setInterval(() => {
-      setGradient(getTimeGradient());
+      setGradient(getTimeGradient(getLocalHour(timezone)));
     }, 60_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timezone]);
 
   const contentProps = {
     weather,
