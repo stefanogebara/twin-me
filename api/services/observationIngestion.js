@@ -1409,6 +1409,8 @@ async function fetchDiscordObservations(userId) {
       const now = new Date().toISOString();
       const upserts = [];
 
+      const today = new Date().toISOString().slice(0, 10);
+
       if (guildsData && guildsData.length > 0) {
         // Extract role-like signal: owner count
         const ownedServers = guildsData.filter(g => g.owner).map(g => ({ id: g.id, name: g.name }));
@@ -1416,6 +1418,7 @@ async function fetchDiscordObservations(userId) {
           user_id: userId,
           platform: 'discord',
           data_type: 'guilds',
+          source_url: `discord:guilds:${today}`,
           raw_data: {
             items: guildsData.map(g => ({
               id: g.id,
@@ -1439,6 +1442,7 @@ async function fetchDiscordObservations(userId) {
           user_id: userId,
           platform: 'discord',
           data_type: 'profile',
+          source_url: `discord:profile:${today}`,
           raw_data: {
             id: profileData.id,
             username: profileData.username,
@@ -1453,7 +1457,7 @@ async function fetchDiscordObservations(userId) {
 
       if (upserts.length > 0) {
         const { error: upsertErr } = await supabase.from('user_platform_data').upsert(upserts, {
-          onConflict: 'user_id,platform,data_type'
+          onConflict: 'user_id,platform,data_type,source_url'
         });
         if (upsertErr) {
           log.warn('Discord user_platform_data upsert error', { error: upsertErr.message });
@@ -1603,13 +1607,15 @@ async function fetchLinkedInObservations(userId) {
         profilePicture: true, // assume exists (we got profile data)
       };
 
+      const today = new Date().toISOString().slice(0, 10);
       const { error: upsertErr } = await supabase.from('user_platform_data').upsert({
         user_id: userId,
         platform: 'linkedin',
         data_type: 'profile',
+        source_url: `linkedin:profile:${today}`,
         raw_data: profileData,
         extracted_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,platform,data_type' });
+      }, { onConflict: 'user_id,platform,data_type,source_url' });
       if (upsertErr) {
         log.warn('LinkedIn user_platform_data upsert error', { error: upsertErr.message });
       } else {
@@ -3212,12 +3218,15 @@ async function _storeTwitchPlatformData(supabase, userId, profileData, channelsD
     const now = new Date().toISOString();
     const upserts = [];
 
+    const today = new Date().toISOString().slice(0, 10);
+
     if (profileData?.id) {
       const broadcastType = profileData.broadcaster_type || '';
       upserts.push({
         user_id: userId,
         platform: 'twitch',
         data_type: 'profile',
+        source_url: `twitch:profile:${today}`,
         raw_data: {
           id: profileData.id,
           login: profileData.login,
@@ -3236,6 +3245,7 @@ async function _storeTwitchPlatformData(supabase, userId, profileData, channelsD
         user_id: userId,
         platform: 'twitch',
         data_type: 'followed_channels',
+        source_url: `twitch:followed_channels:${today}`,
         raw_data: {
           items: channelsData.map(c => ({
             broadcaster_id: c.broadcaster_id,
@@ -3251,7 +3261,7 @@ async function _storeTwitchPlatformData(supabase, userId, profileData, channelsD
 
     if (upserts.length > 0) {
       const { error: upsertErr } = await supabase.from('user_platform_data').upsert(upserts, {
-        onConflict: 'user_id,platform,data_type'
+        onConflict: 'user_id,platform,data_type,source_url'
       });
       if (upsertErr) {
         log.warn('Twitch user_platform_data upsert error', { error: upsertErr.message });
