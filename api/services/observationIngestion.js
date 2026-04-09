@@ -1452,11 +1452,14 @@ async function fetchDiscordObservations(userId) {
       }
 
       if (upserts.length > 0) {
-        supabase.from('user_platform_data').upsert(upserts, {
+        const { error: upsertErr } = await supabase.from('user_platform_data').upsert(upserts, {
           onConflict: 'user_id,platform,data_type'
-        }).then(({ error }) => {
-          if (error) log.warn('Discord user_platform_data upsert error', { error: error.message });
         });
+        if (upsertErr) {
+          log.warn('Discord user_platform_data upsert error', { error: upsertErr.message });
+        } else {
+          log.info('Discord structured data stored', { userId: userId.slice(0, 8), entries: upserts.length });
+        }
       }
     }
   } catch (e) {
@@ -1599,15 +1602,18 @@ async function fetchLinkedInObservations(userId) {
         profilePicture: true, // assume exists (we got profile data)
       };
 
-      supabase.from('user_platform_data').upsert({
+      const { error: upsertErr } = await supabase.from('user_platform_data').upsert({
         user_id: userId,
         platform: 'linkedin',
         data_type: 'profile',
         raw_data: profileData,
         extracted_at: new Date().toISOString(),
-      }, { onConflict: 'user_id,platform,data_type' }).then(({ error }) => {
-        if (error) log.warn('LinkedIn user_platform_data upsert error', { error: error.message });
-      });
+      }, { onConflict: 'user_id,platform,data_type' });
+      if (upsertErr) {
+        log.warn('LinkedIn user_platform_data upsert error', { error: upsertErr.message });
+      } else {
+        log.info('LinkedIn structured data stored', { userId: userId.slice(0, 8), hasHeadline: !!headline, hasIndustry: !!industry, connections: connectionCount });
+      }
     }
   } catch (e) {
     log.warn('LinkedIn structured data storage failed (non-fatal)', { error: e.message });
@@ -3243,11 +3249,14 @@ async function _storeTwitchPlatformData(supabase, userId, profileData, channelsD
     }
 
     if (upserts.length > 0) {
-      supabase.from('user_platform_data').upsert(upserts, {
+      const { error: upsertErr } = await supabase.from('user_platform_data').upsert(upserts, {
         onConflict: 'user_id,platform,data_type'
-      }).then(({ error }) => {
-        if (error) log.warn('Twitch user_platform_data upsert error', { error: error.message });
       });
+      if (upsertErr) {
+        log.warn('Twitch user_platform_data upsert error', { error: upsertErr.message });
+      } else {
+        log.info('Twitch structured data stored', { userId: userId.slice(0, 8), entries: upserts.length });
+      }
     }
   } catch (e) {
     log.warn('Twitch structured data storage failed (non-fatal)', { error: e.message });
