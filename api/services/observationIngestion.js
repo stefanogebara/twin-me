@@ -4682,8 +4682,9 @@ const PLATFORM_FETCHERS = {
   apple_music: fetchAppleMusicObservations,
 };
 
-async function runObservationIngestion() {
-  log.info('Starting ingestion run...');
+async function runObservationIngestion(options = {}) {
+  const { targetUserIds = null } = options;
+  log.info('Starting ingestion run...', targetUserIds ? { targetUserIds } : {});
   const startTime = Date.now();
 
   const stats = {
@@ -4726,7 +4727,14 @@ async function runObservationIngestion() {
     const nangoResult = nangoRes.data || [];
     const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
 
-    const allConnections = [...pcResult, ...nangoResult, ...githubResult];
+    let allConnections = [...pcResult, ...nangoResult, ...githubResult];
+
+    // Scope to specific users if targetUserIds provided (for manual testing)
+    if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
+      const targetSet = new Set(targetUserIds);
+      allConnections = allConnections.filter(c => targetSet.has(c.user_id));
+    }
+
     if (allConnections.length === 0) {
       log.info('No active platform connections found');
       return stats;

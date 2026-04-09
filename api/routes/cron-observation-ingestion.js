@@ -33,7 +33,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await runObservationIngestion();
+    // Allow scoping to specific users via query/body param for manual testing
+    // e.g. POST /api/cron/ingest-observations?userIds=uid1,uid2
+    const userIdsParam = req.query?.userIds || req.body?.userIds;
+    const targetUserIds = userIdsParam
+      ? (typeof userIdsParam === 'string' ? userIdsParam.split(',').map(s => s.trim()).filter(Boolean) : userIdsParam)
+      : null;
+
+    const result = await runObservationIngestion(targetUserIds ? { targetUserIds } : {});
 
     // Auto-snapshot users who had new observations stored
     if (result.observationsStored > 0 && Array.isArray(result.processedUserIds)) {
