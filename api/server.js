@@ -244,6 +244,8 @@ app.use((req, res, next) => {
     : req.path.includes('/whatsapp-twin/webhook') ? 90000
     : req.path.includes('/telegram-webhook') ? 90000
     : req.path.includes('/discovery/scan') ? 55000
+    : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
+    : req.path.includes('/templates/') && req.method === 'POST' ? 45000  // Template apply does multiple DB writes
     : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
   res.setTimeout(timeout, () => {
