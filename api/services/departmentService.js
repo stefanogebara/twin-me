@@ -640,21 +640,50 @@ GO. Return only the JSON array, no other text:`;
     }
     if (!Array.isArray(suggestions) || suggestions.length === 0) return { proposals: [], count: 0 };
 
+    log.info('Heartbeat parsed suggestions', {
+      userId: userId.slice(0, 8),
+      count: suggestions.length,
+      departments: suggestions.map(s => s.department)
+    });
+
     const createdProposals = [];
+    const skipped = [];
     for (const s of suggestions.slice(0, 3)) {
-      if (!DEPARTMENT_NAMES.includes(s.department)) continue;
-      if (!activeDepts.find(d => d.department === s.department)) continue;
+      if (!DEPARTMENT_NAMES.includes(s.department)) {
+        skipped.push({ reason: 'unknown_department', department: s.department });
+        continue;
+      }
+      if (!activeDepts.find(d => d.department === s.department)) {
+        skipped.push({ reason: 'department_inactive', department: s.department });
+        continue;
+      }
 
       // toolName is required by proposeDepartmentAction; use 'suggest' for observation-only proposals
       const toolName = s.toolName || 'suggest';
-      const result = await proposeDepartmentAction(userId, s.department, {
-        toolName,
-        params: s.params || {},
-        context: s.description,
-        priority: s.priority || 5,
-      });
-      createdProposals.push({ ...result, department: s.department, description: s.description });
+      try {
+        const result = await proposeDepartmentAction(userId, s.department, {
+          toolName,
+          params: s.params || {},
+          context: s.description,
+          priority: s.priority || 5,
+        });
+        if (result.actionId) {
+          createdProposals.push({ ...result, department: s.department, description: s.description });
+        } else {
+          skipped.push({ reason: result.status || 'no_action_id', department: s.department });
+        }
+      } catch (err) {
+        log.warn('Heartbeat proposal creation failed', { department: s.department, error: err.message });
+        skipped.push({ reason: err.message, department: s.department });
+      }
     }
+
+    log.info('Heartbeat proposals processed', {
+      userId: userId.slice(0, 8),
+      created: createdProposals.length,
+      skipped: skipped.length,
+      skipReasons: skipped
+    });
 
     // 8. Set cooldown (2 hours = 7200 seconds)
     await cacheSet(cooldownKey, Date.now(), 7200);
