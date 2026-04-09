@@ -17,7 +17,7 @@ import { queueActionForApproval, getAutonomyBySkillName, AUTONOMY_LEVELS } from 
 import { checkDepartmentBudget } from './departmentBudgetService.js';
 import { supabaseAdmin } from './database.js';
 import { get as cacheGet, set as cacheSet } from './redisClient.js';
-import { complete, TIER_EXTRACTION } from './llmGateway.js';
+import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('DepartmentService');
@@ -562,64 +562,62 @@ export async function checkDepartmentHeartbeats(userId, options = {}) {
 
     const obsText = recentObs.slice(0, 20).map(o => `- ${o.content}`).join('\n');
 
-    const prompt = `You are an AI department coordinator analyzing a user's recent activity to suggest helpful actions.
+    const prompt = `You are the AI chief of staff for a user. Your departments are ready to take action on their behalf. Your job: look at their recent activity and propose 2-3 HELPFUL, SPECIFIC actions their departments should take RIGHT NOW.
 
-ACTIVE DEPARTMENTS:
+ACTIVE DEPARTMENTS (pick from these keys): ${activeDepts.map(d => d.department).join(', ')}
+
 ${deptDescriptions}
 
 RECENT USER ACTIVITY (last 6 hours):
 ${obsText}
 ${crossDeptContext}${signalContext}${goalPromptSection}
 
-CROSS-DEPARTMENT OPPORTUNITIES:
-When you see patterns that span multiple departments, suggest coordinated actions. Examples:
-- Health data (low recovery) + Scheduling (packed calendar) → suggest lighter schedule
-- Communications (unread emails from colleague) + Scheduling (meeting tomorrow) → suggest prep email
-- Content (user posted about topic X) + Research (trending articles on X) → suggest content idea
+EXISTING PENDING PROPOSALS: ${pending.length}/5
 
-EXISTING PENDING PROPOSALS: ${pending.length}
+YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposals. Be PROACTIVE, not conservative. If the user has a huge email backlog, propose a triage plan. If they've been listening to the same artist, propose a content idea. If their schedule looks packed, propose blocking focus time.
 
-Based on this activity, suggest 0-3 concrete actions that departments could take. Only suggest actions where:
-1. The department has tools to execute it (or it's an observation/suggestion)
-2. The action is clearly valuable based on the data (not generic advice)
-3. There isn't already a similar pending proposal
+OUTPUT FORMAT (must be valid JSON):
+[
+  {"department":"communications","description":"Draft a weekend email triage plan for the 37k unread inbox","toolName":"gmail_draft","params":{"subject":"Inbox triage strategy"},"priority":3,"reasoning":"User has 37k unread emails, 92% unread rate indicates severe backlog"},
+  {"department":"scheduling","description":"Block 90 minutes of deep work tomorrow morning","toolName":"calendar_create","params":{"title":"Deep work block"},"priority":4,"reasoning":"No focus blocks visible in recent calendar data"},
+  {"department":"social","description":"Review relationship with top email senders — 3 are Substack newsletters","toolName":"suggest","params":{},"priority":6,"reasoning":"Most frequent senders are newsletters, not real people"}
+]
 
-Return JSON array (empty array if no good suggestions):
-[{"department":"<key>","description":"Brief action description","toolName":"tool_name or null","params":{},"priority":1-10,"reasoning":"Why now","goalId":"goal text snippet or null"}]
+RULES:
+1. department MUST be one of: ${activeDepts.map(d => d.department).join(', ')}
+2. For Health/Finance/Social/Research → toolName: "suggest" (these are observation departments)
+3. For Communications → toolName: "gmail_draft" for drafts, "gmail_reply" for replies
+4. For Scheduling → toolName: "calendar_create" or "calendar_modify_event"
+5. For Content → toolName: "suggest" or "docs_create"
+6. Description should be ONE sentence, specific to the data
+7. reasoning should cite the specific observation that triggered the suggestion
+8. Return an EMPTY array [] ONLY if there is genuinely no signal in the data
 
-Rules:
-- Be HELPFUL — if the data shows a clear pattern or problem, propose an action
-- Max 3 suggestions per heartbeat
-- Match department to the right tool (gmail_draft for communications, calendar_create for scheduling, suggest for observations)
-- For observation-only departments (Health, Finance, Social), use toolName: "suggest"
-- If a proposal helps achieve a specific active goal, include goalId with the goal title snippet
+GO. Return only the JSON array, no other text:`;
 
-EXAMPLES of good proposals:
-- Communications: "Draft a triage plan for 37k unread emails" (if backlog is huge)
-- Communications: "Draft reply to Sarah about meeting" (if there's recent activity)
-- Scheduling: "Block 2 hours of focus time tomorrow morning" (if calendar is packed)
-- Scheduling: "Suggest declining non-essential meetings" (if recovery < 50%)
-- Health: "Flag sleep debt pattern — 3 nights under 7h" (pattern observation)
-- Content: "Draft social post about [recent topic user engaged with]"
-- Research: "Deep dive on [topic that appeared multiple times in data]"
-- Social: "Catch up with [person mentioned recently]"
-
-Prefer specific, data-grounded suggestions over generic advice.`;
-
-    // 6. Call LLM (cheapest tier)
+    // 6. Call LLM (TIER_ANALYSIS — DeepSeek is much better than Mistral at structured output)
     const response = await complete({
       messages: [{ role: 'user', content: prompt }],
-      tier: TIER_EXTRACTION,
-      maxTokens: 500,
-      temperature: 0.3,
+      tier: TIER_ANALYSIS,
+      maxTokens: 800,
+      temperature: 0.5,
       userId,
       serviceName: 'department-heartbeat',
     });
 
     // 7. Parse response and create proposals (robust JSON extraction)
     const text = response?.content || '';
-    const jsonMatch = text.match(/\[[\s\S]*?\]/);
-    if (!jsonMatch) { log.debug('No proposals generated', { textLen: text.length }); return { proposals: [], count: 0 }; }
+    log.info('Heartbeat LLM response', {
+      userId: userId.slice(0, 8),
+      textLen: text.length,
+      preview: text.slice(0, 300)
+    });
+    // Try greedy match first (captures full array even with nested objects)
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      log.warn('No JSON array in LLM response', { userId: userId.slice(0, 8), textPreview: text.slice(0, 200) });
+      return { proposals: [], count: 0 };
+    }
 
     let suggestions;
     try {
