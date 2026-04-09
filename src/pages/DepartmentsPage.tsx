@@ -18,7 +18,7 @@ import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
 import ActivityFeed from './components/departments/ActivityFeed';
 import InboxSummary from './components/departments/InboxSummary';
-import { Loader2, Inbox, RefreshCw, X as XIcon } from 'lucide-react';
+import { Loader2, Inbox, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // ── Default department configs (used when backend isn't wired yet) ───────
@@ -100,15 +100,7 @@ const DepartmentsPage: React.FC = () => {
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [heartbeatLoading, setHeartbeatLoading] = useState(false);
   const [showAllProposals, setShowAllProposals] = useState(false);
-  const [explainerDismissed, setExplainerDismissed] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('departments_explainer_dismissed') === 'true';
-  });
-
-  const dismissExplainer = useCallback(() => {
-    localStorage.setItem('departments_explainer_dismissed', 'true');
-    setExplainerDismissed(true);
-  }, []);
+  // Explainer replaced with inline subtitle under page title — no dismiss state needed
 
   const {
     data: remoteDepts,
@@ -176,15 +168,7 @@ const DepartmentsPage: React.FC = () => {
     total: acc.total + d.budget.total,
   }), { spent: 0, total: 0 });
 
-  const budgetPercent = totalBudget.total > 0
-    ? Math.min((totalBudget.spent / totalBudget.total) * 100, 100)
-    : 0;
-
-  const enabledDepartmentCount = departments.filter(
-    (d) => d.isEnabled && d.autonomyLevel > 0
-  ).length;
-
-  const showExplainer = !explainerDismissed && enabledDepartmentCount < 3;
+  // showExplainer removed — explainer is now a permanent subtitle under the page title
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -324,141 +308,75 @@ const DepartmentsPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
 
-      {/* Header */}
-      <div className="flex items-baseline justify-between mb-2">
-        <h1
-          style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontStyle: 'italic',
-            fontSize: '28px',
-            fontWeight: 400,
-            color: 'var(--foreground)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Departments
-        </h1>
-        {!isDemoMode && (
-          <button
-            onClick={handleHeartbeat}
-            disabled={heartbeatLoading}
-            title="Scan recent data and generate new proposals"
-            className="flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer px-3 py-1.5 rounded-[8px]"
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between mb-1">
+        <div>
+          <h1
             style={{
-              color: 'rgba(255,255,255,0.5)',
-              fontFamily: "'Inter', sans-serif",
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
-              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontStyle: 'italic',
+              fontSize: '28px',
+              fontWeight: 400,
+              color: 'var(--foreground)',
+              letterSpacing: '-0.02em',
+              lineHeight: '1.2',
             }}
           >
-            {heartbeatLoading
-              ? <Loader2 className="w-3 h-3 animate-spin" />
-              : <RefreshCw className="w-3 h-3" />
-            }
-            Check now
-          </button>
-        )}
-      </div>
-      <p
-        className="text-sm mb-6"
-        style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
-      >
-        Your AI team, working for you
-      </p>
-
-      {/* What are departments? explainer */}
-      {showExplainer && (
-        <div
-          className="mb-6 p-4 relative"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: '16px',
-          }}
-        >
+            Departments
+          </h1>
           <p
-            className="text-[13px] pr-7 leading-relaxed"
-            style={{ color: 'rgba(255,255,255,0.65)', fontFamily: "'Inter', sans-serif" }}
+            className="text-[13px] mt-1"
+            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
           >
-            Departments are AI agents that watch your data and propose actions for you to approve — emails, calendar blocks, health nudges, and more.
+            AI agents that watch your data and propose actions for you to approve
           </p>
-          <button
-            onClick={dismissExplainer}
-            aria-label="Dismiss explainer"
-            title="Dismiss"
-            className="absolute top-3 right-3 rounded-[6px] p-1 transition-colors cursor-pointer"
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'rgba(255,255,255,0.35)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
-              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.35)';
-              e.currentTarget.style.background = 'none';
-            }}
-          >
-            <XIcon className="w-3.5 h-3.5" />
-          </button>
         </div>
-      )}
 
-      {/* Total monthly budget bar */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3 flex-shrink-0 pt-1">
+          {/* Budget summary */}
           <span
-            className="text-[11px] font-medium tracking-[0.12em] uppercase"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
-            title="Monthly cost of running your AI team. Free tier includes $0.60/month of API usage."
+            className="hidden sm:inline text-[12px]"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+            title="Monthly cost of running your AI team"
           >
-            Monthly API cost
+            ${totalBudget.spent.toFixed(2)} / ${totalBudget.total.toFixed(2)} monthly
           </span>
-          <span
-            className="text-[11px]"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
-          >
-            ${totalBudget.spent.toFixed(2)} / ${totalBudget.total.toFixed(2)}
-          </span>
+
+          {/* Check now button */}
+          {!isDemoMode && (
+            <button
+              onClick={handleHeartbeat}
+              disabled={heartbeatLoading}
+              title="Scan recent data and generate new proposals"
+              className="flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer px-3 py-1.5 rounded-[8px]"
+              style={{
+                color: 'rgba(255,255,255,0.5)',
+                fontFamily: "'Inter', sans-serif",
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+              }}
+            >
+              {heartbeatLoading
+                ? <Loader2 className="w-3 h-3 animate-spin" />
+                : <RefreshCw className="w-3 h-3" />
+              }
+              Check now
+            </button>
+          )}
         </div>
-        <div
-          className="h-[4px] rounded-full overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${budgetPercent}%`,
-              backgroundColor:
-                budgetPercent < 50
-                  ? 'rgba(34,197,94,0.5)'
-                  : budgetPercent < 80
-                    ? 'rgba(245,158,11,0.5)'
-                    : 'rgba(239,68,68,0.5)',
-            }}
-          />
-        </div>
-        <p
-          className="text-[10px] mt-1.5"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Monthly cost of running your AI team. Free tier includes $0.60/month of API usage.
-        </p>
       </div>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
+      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }} className="mt-6 mb-8" />
 
-      {/* Onboarding banner — shown when all departments are at autonomy 0 */}
+      {/* ── Onboarding banner ─────────────────────────────────────────────── */}
       {!isLoading && departments.every(d => d.autonomyLevel === 0) && (
         <DepartmentOnboarding
           onSelectTemplate={handleApplyTemplate}
@@ -466,16 +384,17 @@ const DepartmentsPage: React.FC = () => {
         />
       )}
 
-      {/* Life Operating Systems — compact horizontal strip */}
+      {/* ── Life Operating Systems — tile grid ────────────────────────────── */}
       {!isLoading && templates.length > 0 && (
         <section className="mb-10">
-          <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase mb-3"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+          <div
+            className="text-[11px] font-medium tracking-[0.1em] uppercase mb-4"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
           >
             Life Operating Systems
-          </h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-thin">
+          </div>
+          {/* 2×N tile grid, horizontal scroll on mobile */}
+          <div className="flex flex-wrap gap-3">
             {templates.map((t: Template) => (
               <TemplateCard
                 key={t.id}
@@ -492,27 +411,28 @@ const DepartmentsPage: React.FC = () => {
               />
             ))}
           </div>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mt-6 mb-2" />
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }} className="mt-8 mb-2" />
         </section>
       )}
 
-      {/* Loading state */}
+      {/* ── Loading state ─────────────────────────────────────────────────── */}
       {isLoading && (
         <div className="flex items-center justify-center h-40">
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
       )}
 
-      {/* Department list */}
+      {/* ── Department list ───────────────────────────────────────────────── */}
       {!isLoading && (
         <section className="mb-10">
-          <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-3"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
+          <div
+            className="text-[11px] font-medium tracking-[0.1em] uppercase mb-4"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
           >
             Your Departments
-          </h2>
-          <div className="flex flex-col gap-2">
+          </div>
+          {/* Hairline-border rows — no gap between them */}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             {departments.map((dept) => (
               <DepartmentCard
                 key={dept.name}
@@ -532,29 +452,32 @@ const DepartmentsPage: React.FC = () => {
         </section>
       )}
 
-      {/* Recent activity */}
+      {/* ── Recent activity ───────────────────────────────────────────────── */}
       {!isLoading && (
         <section className="mb-10">
-          <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-3"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
+          <div
+            className="text-[11px] font-medium tracking-[0.1em] uppercase mb-4"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
           >
             Recent Activity
-          </h2>
-          <ActivityFeed items={activityItems} />
+          </div>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <ActivityFeed items={activityItems} />
+          </div>
         </section>
       )}
 
-      {/* Pending proposals */}
+      {/* ── Pending proposals ─────────────────────────────────────────────── */}
       {!isLoading && (
         <section>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-6" />
-          <h2
-            className="text-[11px] font-medium tracking-[0.12em] uppercase block mb-3"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif", lineHeight: 'normal' }}
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
+          <div
+            className="text-[11px] font-medium tracking-[0.1em] uppercase mb-4"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
           >
             Pending Proposals
-          </h2>
+          </div>
+
           {proposals.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 space-y-3">
               <Inbox className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.08)' }} />
@@ -566,15 +489,7 @@ const DepartmentsPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div
-              className="rounded-[16px] px-4 py-3"
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                backdropFilter: 'blur(42px)',
-                WebkitBackdropFilter: 'blur(42px)',
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               {(() => {
                 let rendered = 0;
                 return Object.entries(groupedProposals).map(([deptKey, deptProposals]) => {
@@ -587,11 +502,21 @@ const DepartmentsPage: React.FC = () => {
                   });
                   if (visible.length === 0) return null;
                   return (
-                    <div key={deptKey} className="mb-2 last:mb-0">
-                      <div className="flex items-center gap-2 pt-2 pb-1">
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: deptColor }} />
-                        <span className="text-[10px] font-medium uppercase tracking-[0.08em]" style={{ color: deptColor }}>
-                          {deptKey} ({deptProposals.length})
+                    <div key={deptKey} className="mb-1">
+                      {/* Department group label */}
+                      <div className="flex items-center gap-2 pt-4 pb-2">
+                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: deptColor }} />
+                        <span
+                          className="text-[11px] font-medium uppercase tracking-[0.08em]"
+                          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+                        >
+                          {deptKey}
+                        </span>
+                        <span
+                          className="text-[11px]"
+                          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+                        >
+                          {deptProposals.length}
                         </span>
                       </div>
                       {visible.map((proposal) => (
@@ -614,8 +539,13 @@ const DepartmentsPage: React.FC = () => {
               {!showAllProposals && proposals.length > VISIBLE_LIMIT && (
                 <button
                   onClick={() => setShowAllProposals(true)}
-                  className="w-full text-center py-2 mt-1 text-[11px] font-medium transition-opacity hover:opacity-80"
-                  style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+                  className="w-full text-center py-3 text-[11px] font-medium transition-opacity hover:opacity-80"
+                  style={{
+                    color: 'rgba(255,255,255,0.3)',
+                    fontFamily: "'Inter', sans-serif",
+                    background: 'none',
+                    border: 'none',
+                  }}
                 >
                   Show {proposals.length - VISIBLE_LIMIT} more
                 </button>

@@ -1,10 +1,10 @@
 /**
  * DepartmentCard
  *
- * Compact single-row glass card for a department.
- * Shows icon + name + description on left, autonomy dropdown + toggle on right.
- * Budget bar as a barely-visible thin line at bottom.
- * Expands on click to reveal full autonomy selector.
+ * Hairline-border row design (dimension.dev style).
+ * Left: colored dot + icon + name/description.
+ * Right: autonomy label + budget cost + toggle.
+ * Expands inline (no card) to reveal full autonomy selector + budget bar.
  */
 
 import React, { useState } from 'react';
@@ -65,6 +65,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Search,
 };
 
+const AUTONOMY_LABELS: Record<number, string> = {
+  0: 'Observe',
+  1: 'Suggest',
+  2: 'Draft',
+  3: 'Act',
+  4: 'Auto',
+};
+
 const DepartmentCard: React.FC<DepartmentCardProps> = ({
   config,
   autonomyLevel,
@@ -82,87 +90,81 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
     ? Math.min((budget.spent / budget.total) * 100, 100)
     : 0;
 
-  const formatCost = (value: number): string =>
-    `$${value.toFixed(2)}`;
+  const formatCost = (value: number): string => `$${value.toFixed(2)}`;
+
+  const budgetBarColor =
+    budgetPercent < 50
+      ? 'rgba(34,197,94,0.5)'
+      : budgetPercent < 80
+        ? 'rgba(245,158,11,0.5)'
+        : 'rgba(239,68,68,0.5)';
 
   return (
     <div
-      className="transition-all duration-200 hover:border-[rgba(255,255,255,0.14)]"
       style={{
-        borderRadius: '16px',
-        background: 'rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        opacity: isEnabled ? 1 : 0.5,
-        cursor: 'pointer',
-        overflow: 'hidden',
+        opacity: isEnabled ? 1 : 0.55,
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
       }}
-      onClick={() => setIsExpanded((prev) => !prev)}
     >
-      {/* Main row: icon + name/desc | autonomy dropdown + budget + toggle */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        {/* Left: icon + text */}
+      {/* Main row */}
+      <div
+        className="flex items-center justify-between gap-3 py-4 cursor-pointer transition-colors duration-150"
+        style={{ fontFamily: "'Inter', sans-serif" }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.025)'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+        onClick={() => setIsExpanded((prev) => !prev)}
+      >
+        {/* Left: dot + icon + name/description */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Colored status dot */}
           <div
-            className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
-            style={{ background: `${config.color}1A` }}
-          >
-            <Icon className="w-4 h-4" style={{ color: config.color }} />
-          </div>
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{
+              backgroundColor: isEnabled ? config.color : 'rgba(255,255,255,0.15)',
+            }}
+          />
+          {/* 18px icon, no background */}
+          <Icon
+            className="w-[18px] h-[18px] flex-shrink-0"
+            style={{ color: isEnabled ? config.color : 'rgba(255,255,255,0.3)' }}
+          />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3
-                className="text-sm font-medium leading-snug truncate"
-                style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
-              >
-                {config.name}
-              </h3>
-              <div
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                style={{
-                  backgroundColor: isEnabled ? config.color : 'rgba(255,255,255,0.15)',
-                }}
-              />
-            </div>
+            <span
+              className="text-[14px] font-medium leading-snug"
+              style={{ color: 'var(--foreground)' }}
+            >
+              {config.name}
+            </span>
             <p
-              className="text-[11px] mt-0.5 truncate"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+              className="text-[12px] mt-0.5 truncate"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
             >
               {config.description}
             </p>
           </div>
         </div>
 
-        {/* Right: autonomy label + budget text + toggle */}
-        <div className="flex items-center gap-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-          {/* Compact autonomy dropdown */}
-          <AutonomySelector
-            level={autonomyLevel}
-            color={config.color}
-            onChange={onAutonomyChange}
-            disabled={!isEnabled}
-            compact
-          />
+        {/* Right rail */}
+        <div
+          className="flex items-center gap-4 flex-shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Autonomy label */}
+          <span
+            className="hidden sm:inline text-[12px]"
+            style={{ color: 'rgba(255,255,255,0.35)' }}
+          >
+            {AUTONOMY_LABELS[autonomyLevel] ?? 'Observe'}
+          </span>
 
-          {/* Budget inline */}
-          <div
-            className="hidden sm:flex flex-col items-end leading-tight"
+          {/* Budget */}
+          <span
+            className="hidden sm:inline text-[12px]"
+            style={{ color: 'rgba(255,255,255,0.25)' }}
             title="Monthly API cost for this department"
           >
-            <span
-              className="text-[8px] uppercase tracking-[0.08em]"
-              style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
-            >
-              API cost
-            </span>
-            <span
-              className="text-[10px]"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {formatCost(budget.spent)}/{formatCost(budget.total)}
-            </span>
-          </div>
+            {formatCost(budget.spent)}/{formatCost(budget.total)}
+          </span>
 
           {/* Toggle switch */}
           <button
@@ -183,70 +185,81 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
         </div>
       </div>
 
-      {/* Budget bar */}
-      <div
-        className="h-[4px] overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.06)' }}
-      >
-        <div
-          className="h-full transition-all duration-500"
-          style={{
-            backgroundColor: budgetPercent < 50
-              ? 'rgba(34,197,94,0.5)'
-              : budgetPercent < 80
-                ? 'rgba(245,158,11,0.5)'
-                : 'rgba(239,68,68,0.5)',
-            width: `${budgetPercent}%`,
-          }}
-        />
-      </div>
-
-      {/* Department stats line */}
-      {stats && stats.totalProposals > 0 && (
-        <div
-          className="px-4 py-1.5"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}
-        >
-          <span
-            className="text-[11px]"
-            style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
-          >
-            {stats.totalProposals} proposal{stats.totalProposals !== 1 ? 's' : ''}
-            {' | '}
-            {stats.approved} approved
-            {' | '}
-            {formatCost(budget.spent)} spent
-          </span>
-        </div>
-      )}
-
-      {/* Expanded: full autonomy selector */}
+      {/* Expanded section — clean indented panel, no card */}
       {isExpanded && (
         <div
-          className="px-4 py-3"
+          className="pb-4 pl-7"
           style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
           onClick={(e) => e.stopPropagation()}
         >
-          <span
-            className="text-[10px] block mb-2"
-            style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Autonomy Level
-          </span>
-          <AutonomySelector
-            level={autonomyLevel}
-            color={config.color}
-            onChange={onAutonomyChange}
-            disabled={!isEnabled}
-          />
-          {expandedContent && (
-            <div
-              className="mt-3 pt-3"
-              style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
-            >
-              {expandedContent}
+          <div className="pt-4 space-y-4">
+            {/* Autonomy selector */}
+            <div>
+              <span
+                className="text-[11px] font-medium tracking-[0.08em] uppercase block mb-2"
+                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+              >
+                Autonomy Level
+              </span>
+              <AutonomySelector
+                level={autonomyLevel}
+                color={config.color}
+                onChange={onAutonomyChange}
+                disabled={!isEnabled}
+              />
             </div>
-          )}
+
+            {/* Budget bar */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span
+                  className="text-[11px] font-medium tracking-[0.08em] uppercase"
+                  style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  Budget
+                </span>
+                <span
+                  className="text-[11px]"
+                  style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {formatCost(budget.spent)} / {formatCost(budget.total)}
+                </span>
+              </div>
+              <div
+                className="h-[3px] rounded-full overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${budgetPercent}%`, backgroundColor: budgetBarColor }}
+                />
+              </div>
+            </div>
+
+            {/* Stats line */}
+            {stats && stats.totalProposals > 0 && (
+              <p
+                className="text-[11px]"
+                style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+              >
+                {stats.totalProposals} proposal{stats.totalProposals !== 1 ? 's' : ''}
+                {' · '}
+                {stats.approved} approved
+                {' · '}
+                {formatCost(budget.spent)} spent
+              </p>
+            )}
+
+            {/* Special department content (e.g. InboxSummary) */}
+            {expandedContent && (
+              <div
+                className="pt-3"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+              >
+                {expandedContent}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

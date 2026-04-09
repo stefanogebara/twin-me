@@ -1,8 +1,9 @@
 /**
  * ProposalCard
  *
- * Displays a pending proposal from a department.
- * Approve = filled pill, Reject = ghost button.
+ * Clean hairline-border row for a pending proposal.
+ * Dept dot + description + approve/dismiss on the right.
+ * No glass card — just a bottom-border row.
  */
 
 import React from 'react';
@@ -21,7 +22,6 @@ interface ProposalCardProps {
 
 const ProposalCard: React.FC<ProposalCardProps> = ({
   id,
-  department,
   departmentColor,
   description,
   estimatedCost,
@@ -43,58 +43,51 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
 
   return (
     <div
-      className="flex items-start gap-3 py-3"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      className="flex items-start gap-3 py-3 transition-colors duration-150"
+      style={{
+        borderBottom: '1px solid rgba(255,255,255,0.04)',
+        fontFamily: "'Inter', sans-serif",
+      }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)'; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
     >
       {/* Department color dot */}
       <div
-        className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+        className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
         style={{ backgroundColor: departmentColor }}
       />
 
-      {/* Content */}
+      {/* Description + meta */}
       <div className="flex-1 min-w-0">
         <p
-          className="text-sm leading-snug"
-          style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
+          className="text-[13px] leading-snug"
+          style={{ color: 'var(--foreground)' }}
         >
           {description}
         </p>
         <div className="flex items-center gap-2 mt-1">
-          <span
-            className="text-[10px]"
-            style={{ color: departmentColor, fontFamily: "'Inter', sans-serif" }}
-          >
-            {department}
-          </span>
           {estimatedCost > 0 && (
             <span
-              className="text-[10px]"
-              style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+              className="text-[11px]"
+              style={{ color: 'rgba(255,255,255,0.3)' }}
             >
               ~${estimatedCost.toFixed(2)}
             </span>
           )}
           <span
-            className="text-[10px]"
-            style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+            className="text-[11px]"
+            style={{ color: 'rgba(255,255,255,0.2)' }}
           >
             {timeAgo}
           </span>
         </div>
-        <p
-          className="text-[10px] mt-1.5"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-        >
-          Click Approve &amp; Run to execute this action now
-        </p>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <button
           onClick={() => onApprove(id)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.97]"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-[100px] text-[11px] font-medium transition-opacity duration-150 hover:opacity-90 active:scale-[0.97]"
           style={{
             backgroundColor: '#F5F5F4',
             color: '#110f0f',
@@ -103,19 +96,20 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
           title="Execute this action now"
         >
           <Check className="w-3 h-3" />
-          Approve &amp; Run
+          Approve
         </button>
         <button
           onClick={() => onReject(id)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
+          className="p-1.5 rounded-[6px] text-[11px] transition-opacity duration-150 hover:opacity-70 active:scale-[0.97]"
           style={{
-            color: 'rgba(255,255,255,0.5)',
+            color: 'rgba(255,255,255,0.35)',
+            background: 'none',
+            border: 'none',
           }}
           aria-label="Dismiss proposal"
           title="Dismiss this proposal"
         >
-          <X className="w-3 h-3" />
-          Dismiss
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

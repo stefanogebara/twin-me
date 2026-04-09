@@ -1,9 +1,9 @@
 /**
  * TemplateCard
  *
- * Compact glass pill for a Life Operating System template.
- * Renders as a small horizontal chip: icon + name + tagline + apply link.
- * Uses same dark glass styling as department cards.
+ * Selectable tile card for a Life Operating System template.
+ * 140px tall, clean border, icon + name + tagline + apply/active.
+ * No glass blur — flat dark surface with hairline border.
  */
 
 import React, { useState } from 'react';
@@ -62,48 +62,55 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
   return (
     <div
-      className="flex items-center gap-2.5 px-3 py-2.5 flex-shrink-0 transition-all duration-200 hover:border-[rgba(255,255,255,0.14)]"
+      className="flex flex-col justify-between p-3.5 flex-shrink-0 transition-all duration-200 cursor-pointer"
       style={{
-        borderRadius: '14px',
-        background: 'rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
+        width: '160px',
+        height: '140px',
+        borderRadius: '12px',
+        background: isActive ? `${color}0D` : 'transparent',
         border: isActive
           ? `1px solid ${color}40`
           : '1px solid rgba(255,255,255,0.08)',
-        maxWidth: '280px',
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) {
+          (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(255,255,255,0.15)';
+          (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) {
+          (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(255,255,255,0.08)';
+          (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+        }
       }}
     >
-      {/* Icon */}
-      <div
-        className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0"
-        style={{ background: `${color}1A` }}
-      >
-        <Icon className="w-3.5 h-3.5" style={{ color }} />
-      </div>
-
-      {/* Name + tagline */}
-      <div className="min-w-0 flex-1">
+      {/* Top: icon + name */}
+      <div>
+        <Icon
+          className="w-6 h-6 mb-2"
+          style={{ color }}
+        />
         <h3
-          className="text-[12px] font-medium leading-snug truncate"
+          className="text-[14px] font-semibold leading-snug"
           style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
         >
           {name}
         </h3>
         <p
-          className="text-[10px] truncate"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+          className="text-[12px] mt-0.5 line-clamp-1"
+          style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
         >
           {tagline}
         </p>
       </div>
 
-      {/* Apply / Active */}
+      {/* Bottom: apply / active */}
       {isActive ? (
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5">
           <Check className="w-3 h-3" style={{ color }} />
           <span
-            className="text-[10px] font-medium"
+            className="text-[12px] font-medium"
             style={{ color, fontFamily: "'Inter', sans-serif" }}
           >
             Active
@@ -113,7 +120,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         <button
           onClick={handleApply}
           disabled={isApplying}
-          className="text-[10px] font-medium transition-colors duration-150 flex-shrink-0 disabled:opacity-50"
+          className="text-[12px] font-medium transition-colors duration-150 disabled:opacity-50 text-left"
           style={{
             color: 'rgba(255,255,255,0.4)',
             fontFamily: "'Inter', sans-serif",
@@ -122,7 +129,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
             cursor: 'pointer',
             padding: 0,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
         >
           {isApplying ? (

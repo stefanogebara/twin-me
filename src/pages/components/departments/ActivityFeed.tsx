@@ -1,24 +1,30 @@
 /**
  * ActivityFeed
  *
- * Compact list of recent department activities.
- * Displays timestamp + department color dot + description + status badge.
+ * Hairline-border row list of recent department activities.
+ * No glass card wrapper — raw rows with bottom borders.
+ * Status shown as a small text label (no pill badges).
  */
 
 import React, { useState } from 'react';
 import type { ActivityItem } from '@/services/api/departmentsAPI';
 
 const DEPT_COLORS: Record<string, string> = {
-  communications: '#3B82F6', scheduling: '#8B5CF6', health: '#EF4444',
-  content: '#F59E0B', finance: '#10B981', research: '#6366F1', social: '#EC4899',
+  communications: '#3B82F6',
+  scheduling: '#8B5CF6',
+  health: '#EF4444',
+  content: '#F59E0B',
+  finance: '#10B981',
+  research: '#6366F1',
+  social: '#EC4899',
 };
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  proposal:   { bg: 'rgba(245,158,11,0.12)', text: '#F59E0B', label: 'Proposed' },
-  approved:   { bg: 'rgba(34,197,94,0.12)',  text: '#22C55E', label: 'Approved' },
-  rejected:   { bg: 'rgba(239,68,68,0.12)',  text: '#EF4444', label: 'Rejected' },
-  executed:   { bg: 'rgba(59,130,246,0.12)', text: '#3B82F6', label: 'Executed' },
-  suggestion: { bg: 'rgba(255,255,255,0.06)', text: 'rgba(255,255,255,0.4)', label: 'Suggestion' },
+const STATUS_LABEL: Record<string, { text: string; color: string }> = {
+  proposal:   { text: 'Proposed',   color: '#F59E0B' },
+  approved:   { text: 'Approved',   color: '#22C55E' },
+  rejected:   { text: 'Rejected',   color: '#EF4444' },
+  executed:   { text: 'Executed',   color: '#3B82F6' },
+  suggestion: { text: 'Suggestion', color: 'rgba(255,255,255,0.35)' },
 };
 
 function relativeTime(iso: string): string {
@@ -40,27 +46,74 @@ const ActivityFeed: React.FC<Props> = ({ items }) => {
 
   if (items.length === 0) {
     return (
-      <p className="text-[13px] py-6 text-center" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
-        No activity yet. Your departments will start working once they have enough data.
+      <p
+        className="text-[13px] py-6 text-center"
+        style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+      >
+        No activity yet. Departments will start logging once they have enough data.
       </p>
     );
   }
 
   return (
-    <div className="rounded-[16px] px-4 py-2" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(42px)', WebkitBackdropFilter: 'blur(42px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div>
       {visible.map((item) => {
-        const s = STATUS_STYLES[item.type] || STATUS_STYLES.suggestion;
+        const s = STATUS_LABEL[item.type] || STATUS_LABEL.suggestion;
         return (
-          <div key={item.id} className="flex items-center gap-2.5 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <span className="text-[10px] w-12 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}>{relativeTime(item.createdAt)}</span>
-            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: DEPT_COLORS[item.department] || '#6366F1' }} />
-            <span className="text-[13px] flex-1 min-w-0 truncate" style={{ color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}>{item.description}</span>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium" style={{ background: s.bg, color: s.text }}>{s.label}</span>
+          <div
+            key={item.id}
+            className="flex items-center gap-3 py-3 transition-colors duration-150"
+            style={{
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              fontFamily: "'Inter', sans-serif",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.02)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+          >
+            {/* Timestamp */}
+            <span
+              className="text-[11px] w-14 flex-shrink-0 tabular-nums"
+              style={{ color: 'rgba(255,255,255,0.2)' }}
+            >
+              {relativeTime(item.createdAt)}
+            </span>
+
+            {/* Dept dot */}
+            <div
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: DEPT_COLORS[item.department] || '#6366F1' }}
+            />
+
+            {/* Description */}
+            <span
+              className="text-[13px] flex-1 min-w-0 truncate"
+              style={{ color: 'var(--foreground)' }}
+            >
+              {item.description}
+            </span>
+
+            {/* Status text label — no badge */}
+            <span
+              className="text-[11px] flex-shrink-0"
+              style={{ color: s.color }}
+            >
+              {s.text}
+            </span>
           </div>
         );
       })}
+
       {!showAll && items.length > 10 && (
-        <button onClick={() => setShowAll(true)} className="text-[11px] py-2 w-full text-center cursor-pointer" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif", background: 'none', border: 'none' }}>
+        <button
+          onClick={() => setShowAll(true)}
+          className="text-[11px] py-3 w-full text-center cursor-pointer transition-opacity hover:opacity-80"
+          style={{
+            color: 'rgba(255,255,255,0.3)',
+            fontFamily: "'Inter', sans-serif",
+            background: 'none',
+            border: 'none',
+          }}
+        >
           Show {items.length - 10} more
         </button>
       )}
