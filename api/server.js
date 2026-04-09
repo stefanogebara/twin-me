@@ -358,6 +358,7 @@ import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
+import debugPlatformFetchHandler from './routes/debug-platform-fetch.js';
 import soulSignatureRoutes from './routes/soul-signature.js';
 import soulInsightsRoutes from './routes/soul-insights.js';
 import testExtractionRoutes from './routes/test-extraction.js';
@@ -654,6 +655,7 @@ app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for dige
 app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
+app.use('/api/debug/platform-fetch', debugPlatformFetchHandler); // Diagnostic: direct fetcher call
 
 app.use('/api/finetuning', finetuningRoutes); // Behavioral finetuning (together.ai personality oracle)
 app.use('/api/chat', finetuningRoutes); // Chat feedback endpoint (POST /api/chat/feedback) — shared router
