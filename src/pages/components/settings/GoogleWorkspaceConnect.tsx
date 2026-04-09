@@ -82,18 +82,15 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
   return (
     <>
       <div
-        className="rounded-2xl p-5 mb-4"
+        className="rounded-[8px] p-4 mb-4"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid rgba(255,255,255,0.06)',
         }}
       >
         {/* Header */}
         <div className="flex items-center gap-3 mb-3">
-          <div
-            className="flex items-center justify-center w-9 h-9 rounded-lg"
-            style={{ background: 'rgba(66,133,244,0.1)', border: '1px solid rgba(66,133,244,0.15)' }}
-          >
+          <div className="flex items-center justify-center w-7 h-7">
             <PlatformLogo platform="google" size={20} />
           </div>
           <div>
@@ -242,8 +239,8 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
             {/* Visual hint */}
             <div
-              className="rounded-xl p-4 mb-5"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="rounded-[8px] p-4 mb-5"
+              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <p className="text-[11px] font-medium mb-3" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 On the Google consent screen:
