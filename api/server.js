@@ -367,7 +367,6 @@ import spotifyOAuthRoutes from './routes/spotify-oauth.js';
 import intelligentTwinRoutes from './routes/intelligent-twin.js';
 import testPatternLearningRoutes from './routes/test-pattern-learning.js';
 import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
-import personalityAssessmentRoutes from './routes/personality-assessment.js';
 import bigFiveRoutes from './routes/big-five.js';
 import platformInsightsRoutes from './routes/platform-insights.js';
 import twinPipelineRoutes from './routes/twin-pipeline.js';
@@ -404,13 +403,13 @@ import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMemorySaliencyReplayRoutes from './routes/cron-memory-saliency-replay.js';
-import cronPersonalityEvalRoutes from './routes/cron-personality-eval.js';
 import memoryHealthRoutes from './routes/memory-health.js';
 import memoriesRoutes from './routes/memories.js';
 import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
+import featureFlagsRoutes from './routes/feature-flags.js';
 import twinIdentityRoutes from './routes/twin-identity.js';
 import locationRoutes from './routes/location.js';
 import billingRoutes from './routes/billing.js';
@@ -444,7 +443,6 @@ import cronIntelligentTriggersRoutes from './routes/cron-intelligent-triggers.js
 import cronMorningBriefingRoutes from './routes/cron-morning-briefing.js';
 import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
-import cronPersonalityValidationRoutes from './routes/cron-personality-validation.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
@@ -561,7 +559,6 @@ app.use('/api/privacy-settings', privacySettingsRoutes); // Privacy spectrum das
 app.use('/api/soul-signature', soulSignaturePublicRoutes); // Public share + visibility toggle
 app.use('/api/portfolio', portfolioPublicRoutes); // Public portfolio page aggregated endpoint
 if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
-app.use('/api/personality', personalityAssessmentRoutes); // Big Five personality assessment with 16personalities archetypes
 app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment with T-score normalization
 app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // AI cost dashboard
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
@@ -579,12 +576,12 @@ app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron s
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/memory-saliency-replay', cronMemorySaliencyReplayRoutes); // Daily saliency replay (CL1-inspired)
-app.use('/api/cron/personality-eval', cronPersonalityEvalRoutes);   // Weekly personality assessment (Sunday 4am)
 app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 if (process.env.NODE_ENV === 'development') {
   app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags (dev-only)
+  app.use('/api/feature-flags', featureFlagsRoutes); // User-facing personality engine flags
 }
 app.use('/api/personality-profile', personalityProfileRoutes); // Soul Signature voting layer — OCEAN, stylometrics, sampling params
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
@@ -628,7 +625,6 @@ app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Dai
 app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
 app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
-app.use('/api/cron/personality-validation', cronPersonalityValidationRoutes); // Weekly personality drift check (Sun 3am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals

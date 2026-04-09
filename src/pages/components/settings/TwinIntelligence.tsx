@@ -28,7 +28,7 @@ interface ReadinessData {
 }
 
 async function fetchFidelity(): Promise<FidelityData | null> {
-  const res = await authFetch('/tribe/fidelity');
+  const res = await authFetch('/twin/fidelity');
   if (!res.ok) return null;
   const json = await res.json();
   return json.data;
@@ -42,7 +42,7 @@ async function fetchReadiness(): Promise<ReadinessData | null> {
 }
 
 async function triggerFidelityMeasurement(): Promise<FidelityData | null> {
-  const res = await authFetch('/tribe/fidelity', { method: 'POST' });
+  const res = await authFetch('/twin/fidelity', { method: 'POST' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || 'Measurement failed');

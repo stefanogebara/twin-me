@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
-import { Download, Trash2, Info, Shield, ArrowRight, Sparkles, Send, ExternalLink, Check } from 'lucide-react';
+import { Download, Info, ArrowRight, Send, ExternalLink, Check } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
@@ -27,15 +27,15 @@ const getAuthHeaders = () => {
 
 const SectionLabel: React.FC<{ label: string }> = ({ label }) => (
   <h2
-    className="text-[11px] font-medium tracking-widest uppercase block mb-5"
-    style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+    className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
+    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
   >
     {label}
   </h2>
 );
 
 const Divider: React.FC = () => (
-  <div className="my-10" style={{ borderTop: '1px solid var(--border-glass)' }} />
+  <div className="my-8" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
 );
 
 const SettingsRow: React.FC<{
@@ -44,11 +44,13 @@ const SettingsRow: React.FC<{
   children: React.ReactNode;
 }> = ({ label, description, children }) => (
   <div
-    className="flex items-center justify-between gap-3 py-4"
-    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+    className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
+    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
   >
     <div className="min-w-0 flex-1">
-      <span className="text-sm" style={{ color: 'var(--foreground)' }}>{label}</span>
+      <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>{label}</span>
       {description && (
         <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
       )}
@@ -120,7 +122,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }} onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Send className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
           <div className="min-w-0">
@@ -156,7 +158,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
       </div>
 
       {linkCode && !status?.linked && (
-        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="py-4 space-y-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div className="flex items-center justify-center gap-3 p-4 rounded-xl"
             style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
             <span className="text-xl sm:text-2xl font-mono tracking-[0.2em] sm:tracking-[0.3em] font-semibold" style={{ color: 'var(--foreground)' }}>
@@ -195,12 +197,12 @@ const Settings = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  // Feature toggles — read from localStorage
+  // Feature toggles — persisted in DB via /api/feature-flags (not localStorage)
   const [featureToggles, setFeatureToggles] = useState({
-    personality_oracle: localStorage.getItem('feature_personality_oracle') === 'true',
-    neurotransmitter_modes: localStorage.getItem('feature_neurotransmitter_modes') !== 'false',
-    connectome_neuropils: localStorage.getItem('feature_connectome_neuropils') !== 'false',
-    graph_retrieval: localStorage.getItem('feature_graph_retrieval') === 'true',
+    personality_oracle: false,
+    neurotransmitter_modes: true,
+    connectome_neuropils: true,
+    graph_retrieval: false,
   });
 
   const {
@@ -214,7 +216,7 @@ const Settings = () => {
 
   const error = statusError?.message || null;
 
-  // Fetch memory count + subscription in parallel
+  // Fetch memory count + subscription + feature flags in parallel
   useEffect(() => {
     if (!user?.id) return;
     const headers = getAuthHeaders();
@@ -227,6 +229,13 @@ const Settings = () => {
     fetch(`${API_URL}/billing/subscription`, { headers })
       .then(res => res.ok ? res.json() : null)
       .then(data => { if (data?.subscription) setSubscription(data.subscription); })
+      .catch(() => {});
+    // Feature flags — source of truth is DB, not localStorage
+    fetch(`${API_URL}/feature-flags`, { headers })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.flags) setFeatureToggles(prev => ({ ...prev, ...data.flags }));
+      })
       .catch(() => {});
   }, [user?.id]);
 
@@ -262,10 +271,19 @@ const Settings = () => {
     }
   };
 
-  const handleToggleFeature = (key: keyof typeof featureToggles) => {
+  const handleToggleFeature = async (key: keyof typeof featureToggles) => {
     const newValue = !featureToggles[key];
     setFeatureToggles(prev => ({ ...prev, [key]: newValue }));
-    localStorage.setItem(`feature_${key}`, String(newValue));
+    try {
+      await fetch(`${API_URL}/feature-flags`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ flag: key, value: newValue }),
+      });
+    } catch {
+      // Revert on network failure
+      setFeatureToggles(prev => ({ ...prev, [key]: !newValue }));
+    }
   };
 
   const handleExportData = async () => {
@@ -331,27 +349,19 @@ const Settings = () => {
 
       {/* ── SECTION 1: ACCOUNT ── */}
       <SectionLabel label="Account" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div className="mb-8">
         <SettingsRow label="Email">
-          <span className="text-sm truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {user?.email ?? 'Not set'}
           </span>
         </SettingsRow>
         <SettingsRow label="Display Name">
-          <span className="text-sm truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px] truncate max-w-[140px] sm:max-w-none inline-block" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
           </span>
         </SettingsRow>
         <SettingsRow label="Authentication" description="Managed via Google OAuth">
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Google
           </span>
         </SettingsRow>
@@ -376,34 +386,23 @@ const Settings = () => {
       {!isDemoMode && <TwinIntelligence />}
 
       {/* ── SECTION 2: PLAN ── */}
-      <SectionLabel label="Plan" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0"
-              style={{ background: 'rgba(196,162,101,0.1)', border: '1px solid rgba(196,162,101,0.2)' }}
-            >
-              <Sparkles className="w-5 h-5" style={{ color: '#C4A265' }} />
-            </div>
-            <div>
-              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
-                {PLAN_NAMES[subscription?.plan || 'free'] || 'Free'}
-              </span>
-              {subscription?.cancelAtPeriodEnd && (
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(239,68,68,0.6)' }}>
-                  Cancels at end of period
-                </p>
-              )}
-            </div>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Plan" />
+        <div
+          className="flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          <div className="min-w-0 flex-1">
+            <span className="text-[14px] font-medium" style={{ color: 'var(--foreground)' }}>
+              {PLAN_NAMES[subscription?.plan || 'free'] || 'Free'}
+            </span>
+            {subscription?.cancelAtPeriodEnd && (
+              <p className="text-[12px] mt-0.5" style={{ color: 'rgba(239,68,68,0.6)' }}>
+                Cancels at end of period
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {subscription?.plan && subscription.plan !== 'free' ? (
@@ -411,7 +410,7 @@ const Settings = () => {
                 onClick={handleManageBilling}
                 disabled={managingBilling || isDemoMode}
                 className="text-[12px] px-3 py-1.5 rounded-[100px] transition-opacity hover:opacity-60 disabled:opacity-30"
-                style={{ border: '1px solid var(--border)', color: 'rgba(255,255,255,0.5)' }}
+                style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
               >
                 {managingBilling ? '...' : 'Manage'}
               </button>
@@ -430,16 +429,8 @@ const Settings = () => {
       </div>
 
       {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
-      <SectionLabel label="Connected Platforms" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
           isDemoMode={isDemoMode}
           connectorStatus={connectorStatus}
@@ -453,150 +444,94 @@ const Settings = () => {
       </div>
 
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
-      <SectionLabel label="Personality Engine" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Personality Engine" />
         <SettingsRow
-          label="Personality Oracle"
-          description="Fine-tuned model for behavioral compass"
+          label="Enhanced Personality"
+          description="Use your fine-tuned model to make responses more authentically you (requires training data)"
         >
           <ToggleSwitch
             enabled={featureToggles.personality_oracle}
             onChange={() => handleToggleFeature('personality_oracle')}
-            label="Enable Personality Oracle"
+            label="Enable Enhanced Personality"
           />
         </SettingsRow>
         <SettingsRow
-          label="Neurotransmitter Modes"
-          description="Context-dependent response modulation"
+          label="Mood-Aware Responses"
+          description="Twin adjusts its tone based on the emotional context of your message"
         >
           <ToggleSwitch
             enabled={featureToggles.neurotransmitter_modes}
             onChange={() => handleToggleFeature('neurotransmitter_modes')}
-            label="Enable Neurotransmitter Modes"
+            label="Enable Mood-Aware Responses"
           />
         </SettingsRow>
         <SettingsRow
-          label="Connectome Routing"
-          description="Domain-specific memory retrieval"
+          label="Domain Memory Routing"
+          description="Twin searches different memory categories depending on what you're asking about"
         >
           <ToggleSwitch
             enabled={featureToggles.connectome_neuropils}
             onChange={() => handleToggleFeature('connectome_neuropils')}
-            label="Enable Connectome Routing"
+            label="Enable Domain Memory Routing"
           />
         </SettingsRow>
         <SettingsRow
-          label="Graph Retrieval"
-          description="Associative memory traversal"
+          label="Associative Memory"
+          description="Twin follows memory connections — surfacing related memories you haven't explicitly mentioned (experimental)"
         >
           <ToggleSwitch
             enabled={featureToggles.graph_retrieval}
             onChange={() => handleToggleFeature('graph_retrieval')}
-            label="Enable Graph Retrieval"
+            label="Enable Associative Memory"
           />
         </SettingsRow>
       </div>
 
       {/* ── SECTION 5: TWIN AUTONOMY ── */}
-      <SectionLabel label="Twin Autonomy" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Twin Autonomy" />
         <AutonomySettings isDemoMode={isDemoMode} />
       </div>
 
       {/* ── SECTION 5B: USER RULES ── */}
-      <SectionLabel label="Twin Rules" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Twin Rules" />
         <UserRulesSettings isDemoMode={isDemoMode} />
       </div>
 
       {/* ── SECTION 6: MESSAGING CHANNELS ── */}
-      <SectionLabel label="Messaging" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Messaging" />
         <TelegramConnect isDemoMode={isDemoMode} />
         <WhatsAppConnect isDemoMode={isDemoMode} />
       </div>
 
       {/* ── SECTION 6B: NOTIFICATIONS ── */}
-      <SectionLabel label="Notifications" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Notifications" />
         <NotificationSettings userId={user?.id || ''} />
       </div>
 
       {/* ── SECTION 7: DATA & PRIVACY ── */}
-      <SectionLabel label="Data & Privacy" />
-      <div
-        className="rounded-[20px] px-4 sm:px-5 py-4 mb-10"
-        style={{
-          background: 'var(--glass-surface-bg)',
-          backdropFilter: 'blur(42px)',
-          WebkitBackdropFilter: 'blur(42px)',
-          border: '1px solid var(--glass-surface-border)',
-        }}
-      >
-        {/* Privacy Spectrum — prominent card */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+        <SectionLabel label="Data & Privacy" />
+
+        {/* Privacy Spectrum — row with nav arrow */}
         <button
           onClick={() => navigate('/privacy-spectrum')}
-          className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 mb-4 rounded-[20px] transition-colors"
-          style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid var(--border)',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)')}
-          onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+          className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
-          <div
-            className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0"
-            style={{ background: 'rgba(16,183,127,0.1)', border: '1px solid rgba(16,183,127,0.2)' }}
-          >
-            <Shield className="w-5 h-5" style={{ color: 'var(--accent-vibrant)' }} />
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <div className="min-w-0 flex-1">
+            <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Privacy Spectrum</span>
+            <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
               Control what your twin knows and shares
             </p>
           </div>
-          <ArrowRight className="w-4 h-4 shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
         </button>
 
         <SettingsRow label="Export My Data">
@@ -611,49 +546,56 @@ const Settings = () => {
           </button>
         </SettingsRow>
         <SettingsRow label="Memory Count">
-          <span className="text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {memoryCount != null ? `${memoryCount.toLocaleString()} memories` : '--'}
           </span>
         </SettingsRow>
-        <SettingsRow label="Delete Account">
-          {!showDeleteConfirm ? (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-[12px] transition-opacity hover:opacity-60"
-              style={{ color: '#c1452c' }}
-              disabled={isDemoMode}
-            >
-              Delete everything
-            </button>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                type="text"
-                placeholder='Type "DELETE"'
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                aria-label="Type DELETE to confirm account deletion"
-                className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
-                style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
-              />
+
+        {/* Danger zone — subtle red border, no heavy card */}
+        <div
+          className="mt-4 p-4 rounded-[8px]"
+          style={{ border: '1px solid rgba(255,100,100,0.1)' }}
+        >
+          <SettingsRow label="Delete Account">
+            {!showDeleteConfirm ? (
               <button
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirmText !== 'DELETE' || deleting}
-                className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
-                style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#c1452c' }}
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-[12px] transition-opacity hover:opacity-60"
+                style={{ color: '#c1452c' }}
+                disabled={isDemoMode}
               >
-                {deleting ? '...' : 'Confirm'}
+                Delete everything
               </button>
-              <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
-                className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </SettingsRow>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder='Type "DELETE"'
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  aria-label="Type DELETE to confirm account deletion"
+                  className="text-sm px-2 py-1 rounded w-24 sm:w-28 bg-transparent focus:outline-none"
+                  style={{ border: '1px solid rgba(193,69,44,0.3)', color: '#c1452c' }}
+                />
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirmText !== 'DELETE' || deleting}
+                  className="text-[12px] px-3 py-1 rounded transition-opacity disabled:opacity-30 flex-shrink-0"
+                  style={{ backgroundColor: 'rgba(193,69,44,0.15)', color: '#c1452c' }}
+                >
+                  {deleting ? '...' : 'Confirm'}
+                </button>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(''); }}
+                  className="text-[12px] transition-opacity hover:opacity-60 flex-shrink-0"
+                  style={{ color: 'rgba(255,255,255,0.3)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </SettingsRow>
+        </div>
       </div>
 
       {/* Footer */}
