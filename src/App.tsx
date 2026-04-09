@@ -33,6 +33,7 @@ const BrainPage = lazy(() => import("./pages/BrainPage"));
 const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
+const AdminBetaPage = lazy(() => import("./pages/AdminBetaPage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
@@ -368,8 +369,19 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Admin: Beta Invite Dashboard */}
+            {/* Admin: Beta Monitoring Dashboard (overview metrics, usage, cost) */}
             <Route path="/admin/beta" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <AdminBetaPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Admin: Beta Invite Management (codes, waitlist, feedback) */}
+            <Route path="/admin/beta/invites" element={
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>

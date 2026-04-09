@@ -384,6 +384,7 @@ import nangoWebhooksRoutes from './routes/nango-webhooks.js';
 import extensionDataRoutes from './routes/extension-data.js';
 import journalRoutes from './routes/journal.js';
 import adminLlmCostsRoutes from './routes/admin-llm-costs.js';
+import adminBetaRoutes from './routes/admin-beta.js';
 import onboardingCalibrationRoutes from './routes/onboarding-calibration.js';
 import onboardingVoiceRoutes from './routes/onboarding-voice.js';
 import onboardingSoulSignatureRoutes from './routes/onboarding-soul-signature.js';
@@ -600,6 +601,10 @@ app.use('/api/admin', (req, res, next) => {
   if (!req.headers.authorization) return res.status(404).json({ error: 'NOT_FOUND', message: 'Endpoint not found' });
   next();
 }, adminLlmCostsRoutes);
+app.use('/api/admin/beta', (req, res, next) => {
+  if (!req.headers.authorization) return res.status(404).json({ error: 'NOT_FOUND', message: 'Endpoint not found' });
+  next();
+}, adminBetaRoutes);
 app.use('/api/beta', betaPublicRoutes); // Beta invite validation + waitlist (public, no auth)
 app.use('/api/beta', betaSignupRoutes); // Beta signup + status + activate (public signup, auth for status)
 app.use('/api/beta', betaFeedbackRouter); // Beta feedback submission (auth required, not admin)
