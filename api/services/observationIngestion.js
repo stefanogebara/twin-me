@@ -1399,10 +1399,10 @@ async function fetchDiscordObservations(userId) {
     log.warn('Discord profile error', { error: e.message });
   }
 
-  // ── Store structured Discord data in user_platform_data (fire-and-forget) ──
+  // ── Store structured Discord data in user_platform_data ──
   // The feature extractor (discordExtractor.js) reads from user_platform_data
-  // with data_types: guilds, guild_membership, profile. Without this,
-  // all feature calculations return null.
+  // with data_types: guilds, guild_membership, profile.
+  log.info('Discord upsert check', { userId: userId.slice(0, 8), hasGuilds: !!guildsData, hasProfile: !!profileData, hasConnections: !!connectionsData });
   try {
     const supabase = await getSupabase();
     if (supabase && (guildsData || profileData || connectionsData)) {
@@ -1579,9 +1579,10 @@ async function fetchLinkedInObservations(userId) {
     // Connection count requires specific scope — non-fatal
   }
 
-  // ── Store structured LinkedIn data in user_platform_data (fire-and-forget) ──
+  // ── Store structured LinkedIn data in user_platform_data ──
   // The feature extractor (linkedinExtractor.js) reads from user_platform_data
   // with data_type='profile'. Without this, all feature calculations return null.
+  log.info('LinkedIn upsert check', { userId: userId.slice(0, 8), hasHeadline: !!headline, hasIndustry: !!industry, hasConnections: connectionCount !== null });
   try {
     const supabase = await getSupabase();
     if (supabase && (headline || industry || connectionCount)) {
