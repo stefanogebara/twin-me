@@ -606,39 +606,48 @@ GO. Return only the JSON array, no other text:`;
     });
 
     // 7. Parse response and create proposals (robust JSON extraction)
-    const text = response?.content || '';
-    log.info('Heartbeat LLM response', {
+    const rawText = response?.content || '';
+    log.info('Heartbeat LLM response RAW', {
       userId: userId.slice(0, 8),
-      textLen: text.length,
-      preview: text.slice(0, 300)
+      textLen: rawText.length,
+      fullText: rawText  // Log full text for debugging
     });
-    // Try greedy match first (captures full array even with nested objects)
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
+
+    // Strip markdown code fences if present (```json ... ``` or ``` ... ```)
+    let text = rawText.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+
+    // Try greedy match for array
+    let jsonMatch = text.match(/\[[\s\S]*\]/);
+    // If no array found, try to find a single object and wrap it
     if (!jsonMatch) {
-      log.warn('No JSON array in LLM response', { userId: userId.slice(0, 8), textPreview: text.slice(0, 200) });
+      const objMatch = text.match(/\{[\s\S]*\}/);
+      if (objMatch) {
+        log.info('Heartbeat found single object, wrapping in array', { userId: userId.slice(0, 8) });
+        jsonMatch = [`[${objMatch[0]}]`];
+      }
+    }
+    if (!jsonMatch) {
+      log.warn('No JSON array or object in LLM response', {
+        userId: userId.slice(0, 8),
+        textPreview: text.slice(0, 500)
+      });
       return { proposals: [], count: 0 };
     }
 
     let suggestions;
     try {
-      // Clean common LLM JSON issues: trailing commas, single quotes, unquoted keys
-      const cleaned = jsonMatch[0]
-        .replace(/,\s*([}\]])/g, '$1')           // trailing commas
-        .replace(/'/g, '"')                        // single quotes
-        .replace(/(\w+)\s*:/g, '"$1":')            // unquoted keys
-        .replace(/""/g, '"');                       // double-double quotes from key fix
+      // Clean only trailing commas (most common LLM issue)
+      const cleaned = jsonMatch[0].replace(/,\s*([}\]])/g, '$1');
       suggestions = JSON.parse(cleaned);
     } catch (parseErr) {
-      log.warn('Heartbeat JSON parse failed, attempting line-by-line', { error: parseErr.message });
-      // Fallback: try to extract individual objects
-      try {
-        const objects = text.match(/\{[^{}]+\}/g) || [];
-        suggestions = objects.map(o => {
-          try { return JSON.parse(o.replace(/'/g, '"')); } catch { return null; }
-        }).filter(Boolean);
-      } catch { suggestions = []; }
+      log.warn('Heartbeat JSON parse failed', {
+        error: parseErr.message,
+        jsonPreview: jsonMatch[0].slice(0, 300)
+      });
+      return { proposals: [], count: 0 };
     }
-    if (!Array.isArray(suggestions) || suggestions.length === 0) return { proposals: [], count: 0 };
+    if (!Array.isArray(suggestions)) suggestions = [suggestions]; // Single object → array
+    if (suggestions.length === 0) return { proposals: [], count: 0 };
 
     log.info('Heartbeat parsed suggestions', {
       userId: userId.slice(0, 8),
