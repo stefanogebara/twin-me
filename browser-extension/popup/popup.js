@@ -243,6 +243,20 @@ async function autoDetectUser() {
   manualFallback.classList.add('hidden');
 
   try {
+    // First: check chrome.storage (content script may have already synced it)
+    const stored = await chrome.storage.local.get(['userId', 'auth_token']);
+    if (stored.userId) {
+      userId = stored.userId;
+      detectStatus.textContent = 'Connected as ' + userId.substring(0, 8);
+      detectStatus.style.color = '#34d399';
+      chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
+        if (r?.success) setTimeout(() => showConnectedState(), 500);
+      });
+      autoDetectBtn.textContent = 'Detect My Account';
+      autoDetectBtn.disabled = false;
+      return;
+    }
+
     const tabs = await chrome.tabs.query({});
     let appTab = tabs.find(t => {
       try { return t.url && new URL(t.url).origin === APP_URL; } catch { return false; }
