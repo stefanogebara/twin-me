@@ -1268,6 +1268,11 @@ function detectDiscordCategories(serverNames) {
 async function fetchDiscordObservations(userId) {
   const observations = [];
 
+  // Collected structured data for user_platform_data (consumed by discordExtractor.js)
+  let guildsData = null;
+  let profileData = null;
+  let connectionsData = null;
+
   const tokenResult = await getValidAccessToken(userId, 'discord');
   if (!tokenResult.success || !tokenResult.accessToken) {
     log.warn('Discord: no valid token', { userId });
@@ -1283,6 +1288,7 @@ async function fetchDiscordObservations(userId) {
       { headers, timeout: 10000 }
     );
     const guilds = guildsRes.data || [];
+    guildsData = guilds;
     if (guilds.length > 0) {
       const names = guilds.map(g => sanitizeExternal(g.name, 60)).filter(Boolean);
 
@@ -1353,6 +1359,7 @@ async function fetchDiscordObservations(userId) {
   try {
     const connRes = await axios.get('https://discord.com/api/v10/users/@me/connections', { headers, timeout: 8000 });
     const connections = connRes.data || [];
+    connectionsData = connections;
     if (connections.length > 0) {
       const platforms = connections.map(c => sanitizeExternal(c.type, 30)).filter(Boolean);
       observations.push({
@@ -1368,6 +1375,7 @@ async function fetchDiscordObservations(userId) {
   try {
     const profileRes = await axios.get('https://discord.com/api/v10/users/@me', { headers, timeout: 8000 });
     const profile = profileRes.data;
+    profileData = profile;
     if (profile?.id) {
       // Extract account creation date from Discord Snowflake ID
       const snowflake = BigInt(profile.id);
@@ -1389,6 +1397,70 @@ async function fetchDiscordObservations(userId) {
     }
   } catch (e) {
     log.warn('Discord profile error', { error: e.message });
+  }
+
+  // ── Store structured Discord data in user_platform_data (fire-and-forget) ──
+  // The feature extractor (discordExtractor.js) reads from user_platform_data
+  // with data_types: guilds, guild_membership, profile. Without this,
+  // all feature calculations return null.
+  try {
+    const supabase = await getSupabase();
+    if (supabase && (guildsData || profileData || connectionsData)) {
+      const now = new Date().toISOString();
+      const upserts = [];
+
+      if (guildsData && guildsData.length > 0) {
+        // Extract role-like signal: owner count
+        const ownedServers = guildsData.filter(g => g.owner).map(g => ({ id: g.id, name: g.name }));
+        upserts.push({
+          user_id: userId,
+          platform: 'discord',
+          data_type: 'guilds',
+          raw_data: {
+            items: guildsData.map(g => ({
+              id: g.id,
+              name: g.name,
+              owner: g.owner || false,
+              member_count: g.approximate_member_count || null,
+              permissions: g.permissions || null,
+            })),
+            total_count: guildsData.length,
+            owned_count: ownedServers.length,
+          },
+          extracted_at: now,
+        });
+      }
+
+      if (profileData?.id) {
+        const snowflake = BigInt(profileData.id);
+        const discordEpoch = BigInt(1420070400000);
+        const createdMs = Number((snowflake >> BigInt(22)) + discordEpoch);
+        upserts.push({
+          user_id: userId,
+          platform: 'discord',
+          data_type: 'profile',
+          raw_data: {
+            id: profileData.id,
+            username: profileData.username,
+            account_created_at: new Date(createdMs).toISOString(),
+            premium_type: profileData.premium_type || 0,
+            has_nitro: (profileData.premium_type || 0) > 0,
+            connections: connectionsData ? connectionsData.map(c => c.type) : [],
+          },
+          extracted_at: now,
+        });
+      }
+
+      if (upserts.length > 0) {
+        supabase.from('user_platform_data').upsert(upserts, {
+          onConflict: 'user_id,platform,data_type'
+        }).then(({ error }) => {
+          if (error) log.warn('Discord user_platform_data upsert error', { error: error.message });
+        });
+      }
+    }
+  } catch (e) {
+    log.warn('Discord structured data storage failed (non-fatal)', { error: e.message });
   }
 
   return observations;
@@ -2993,6 +3065,10 @@ function _buildTwitchChannelObservations(observations, channels) {
 async function fetchTwitchObservations(userId) {
   const observations = [];
 
+  // Collected structured data for user_platform_data (consumed by twitchExtractor.js)
+  let userProfileData = null;
+  let followedChannelsData = null;
+
   const supabase = await getSupabase();
   if (!supabase) return observations;
 
@@ -3023,6 +3099,7 @@ async function fetchTwitchObservations(userId) {
     try {
       const userResult = await nangoService.twitch.getUser(userId);
       const userData = userResult.success ? userResult.data?.data?.[0] : null;
+      userProfileData = userData;
       twitchUserId = userData?.id || null;
 
       const broadcastType = userData?.broadcaster_type;
@@ -3045,11 +3122,13 @@ async function fetchTwitchObservations(userId) {
     try {
       const followResult = await nangoService.twitch.getFollowedChannels(userId, twitchUserId);
       const channels = followResult.success ? (followResult.data?.data || []) : [];
+      followedChannelsData = channels;
       _buildTwitchChannelObservations(observations, channels);
     } catch (e) {
       log.warn('Twitch Nango getFollowedChannels error', { error: e });
     }
 
+    await _storeTwitchPlatformData(supabase, userId, userProfileData, followedChannelsData);
     return observations;
   }
 
@@ -3078,6 +3157,7 @@ async function fetchTwitchObservations(userId) {
       headers: twitchHeaders, timeout: 10000,
     });
     const userData = userRes.data?.data?.[0];
+    userProfileData = userData;
     twitchUserId = userData?.id || null;
 
     const broadcastType = userData?.broadcaster_type;
@@ -3104,12 +3184,74 @@ async function fetchTwitchObservations(userId) {
       { headers: twitchHeaders, timeout: 10000 }
     );
     const channels = followRes.data?.data || [];
+    followedChannelsData = channels;
     _buildTwitchChannelObservations(observations, channels);
   } catch (e) {
     log.warn('Twitch getFollowedChannels error', { error: e });
   }
 
+  await _storeTwitchPlatformData(supabase, userId, userProfileData, followedChannelsData);
   return observations;
+}
+
+/**
+ * Store structured Twitch data in user_platform_data for the feature extractor.
+ * The extractor (twitchExtractor.js) reads from user_platform_data with
+ * data_types: followed_channels, streams, gaming_preferences, profile.
+ */
+async function _storeTwitchPlatformData(supabase, userId, profileData, channelsData) {
+  if (!supabase || (!profileData && !channelsData)) return;
+  try {
+    const now = new Date().toISOString();
+    const upserts = [];
+
+    if (profileData?.id) {
+      const broadcastType = profileData.broadcaster_type || '';
+      upserts.push({
+        user_id: userId,
+        platform: 'twitch',
+        data_type: 'profile',
+        raw_data: {
+          id: profileData.id,
+          login: profileData.login,
+          display_name: profileData.display_name,
+          broadcaster_type: broadcastType,
+          is_streamer: broadcastType === 'affiliate' || broadcastType === 'partner',
+          view_count: profileData.view_count || 0,
+          created_at: profileData.created_at,
+        },
+        extracted_at: now,
+      });
+    }
+
+    if (channelsData && channelsData.length > 0) {
+      upserts.push({
+        user_id: userId,
+        platform: 'twitch',
+        data_type: 'followed_channels',
+        raw_data: {
+          items: channelsData.map(c => ({
+            broadcaster_id: c.broadcaster_id,
+            broadcaster_name: c.broadcaster_name || c.broadcaster_login,
+            broadcaster_login: c.broadcaster_login,
+            followed_at: c.followed_at,
+          })),
+          total_count: channelsData.length,
+        },
+        extracted_at: now,
+      });
+    }
+
+    if (upserts.length > 0) {
+      supabase.from('user_platform_data').upsert(upserts, {
+        onConflict: 'user_id,platform,data_type'
+      }).then(({ error }) => {
+        if (error) log.warn('Twitch user_platform_data upsert error', { error: error.message });
+      });
+    }
+  } catch (e) {
+    log.warn('Twitch structured data storage failed (non-fatal)', { error: e.message });
+  }
 }
 
 async function fetchOuraObservations(userId) {
