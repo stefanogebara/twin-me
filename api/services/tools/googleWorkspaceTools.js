@@ -12,8 +12,39 @@
 
 import { registerTool } from '../toolRegistry.js';
 import { createLogger } from '../logger.js';
+import { draftEmailInUserVoice } from '../departmentExecutors/communicationsExecutor.js';
+import { getAutonomyBySkillName } from '../autonomyService.js';
+import { supabaseAdmin } from '../database.js';
+import { draftEmail } from '../googleWorkspaceActions.js';
 
 const log = createLogger('GoogleWorkspaceTools');
+
+/**
+ * Check if the user has a personality profile populated enough to drive
+ * personality-aware drafting. Requires at least one non-null OCEAN dimension
+ * OR a stylometric fingerprint. Returns false on any error (safe fallback).
+ */
+async function hasUserPersonalityProfile(userId) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('user_personality_profiles')
+      .select('ocean_openness, ocean_conscientiousness, ocean_extraversion, ocean_agreeableness, ocean_neuroticism, stylometric_fingerprint')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) return false;
+
+    const hasOcean = data.ocean_openness != null
+      || data.ocean_conscientiousness != null
+      || data.ocean_extraversion != null
+      || data.ocean_agreeableness != null
+      || data.ocean_neuroticism != null;
+
+    return hasOcean || !!data.stylometric_fingerprint;
+  } catch {
+    return false;
+  }
+}
 
 export function registerGoogleWorkspaceTools() {
   // ========================================================================
@@ -85,27 +116,34 @@ export function registerGoogleWorkspaceTools() {
     minAutonomyLevel: 2,
     skillName: 'google_gmail_actions',
     executor: async (userId, params) => {
-      // Try personality-aware draft from Communications department executor
+      // Try personality-aware draft from Communications department executor.
+      // Only attempt if: autonomy level permits AND user has a personality profile.
       try {
-        const { getAutonomyBySkillName } = await import('../autonomyService.js');
         const level = await getAutonomyBySkillName(userId, 'google_gmail_actions');
         if (level >= 2) {
-          const { draftEmailInUserVoice } = await import('../departmentExecutors/communicationsExecutor.js');
-          const personalizedDraft = await draftEmailInUserVoice(userId, {
-            to: params.to,
-            subject: params.subject,
-            context: params.body || '',
-          });
-          if (personalizedDraft) {
-            return { draft: personalizedDraft, personalized: true };
+          const hasProfile = await hasUserPersonalityProfile(userId);
+          if (hasProfile) {
+            const personalizedDraft = await draftEmailInUserVoice(userId, {
+              to: params.to,
+              subject: params.subject,
+              context: params.body || '',
+            });
+            if (personalizedDraft) {
+              log.info('gmail_draft: used personality-aware draft', { userId, to: params.to });
+              return { draft: personalizedDraft, personalized: true };
+            }
+          } else {
+            log.info('gmail_draft: no personality profile, using generic draft', { userId });
           }
         }
       } catch (err) {
-        log.debug('Personality-aware draft unavailable, falling back to generic', { error: err.message });
+        log.warn('gmail_draft: personality-aware draft failed, falling back to generic', { error: err.message });
       }
+
       // Fall back to generic draft
-      const { draftEmail } = await import('../googleWorkspaceActions.js');
-      return draftEmail(userId, params);
+      log.info('gmail_draft: using generic draft (fallback)', { userId, to: params.to });
+      const result = await draftEmail(userId, params);
+      return { draft: result, personalized: false };
     },
   });
 

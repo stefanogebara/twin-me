@@ -482,11 +482,15 @@ export async function checkDepartmentHeartbeats(userId, options = {}) {
     const activeDepts = departments.filter(d => d.autonomyLevel > 0);
     if (activeDepts.length === 0) return { proposals: [], skipped: 'no_active_departments' };
 
-    // 1. Cooldown — max 1 heartbeat per user per 2 hours
+    // 1. Cooldown — max 1 heartbeat per user per 2 hours.
+    //    Set the cooldown IMMEDIATELY after the check (before the expensive LLM call)
+    //    to close the race window where two concurrent calls both pass the check.
     const cooldownKey = `dept_heartbeat:${userId}`;
     if (!skipCooldown) {
       const lastRun = await cacheGet(cooldownKey);
       if (lastRun) return { proposals: [], skipped: 'cooldown' };
+      // Claim the slot now — subsequent concurrent calls will see this and bail.
+      await cacheSet(cooldownKey, Date.now(), 7200);
     }
 
     // 2. Fetch recent observations (last 6 hours, max 30)
@@ -694,8 +698,11 @@ GO. Return only the JSON array, no other text:`;
       skipReasons: skipped
     });
 
-    // 8. Set cooldown (2 hours = 7200 seconds)
-    await cacheSet(cooldownKey, Date.now(), 7200);
+    // 8. Refresh cooldown for the skipCooldown manual path (normal path claimed it earlier).
+    //    For the normal path this is a harmless no-op that keeps the TTL fresh.
+    if (skipCooldown) {
+      await cacheSet(cooldownKey, Date.now(), 7200);
+    }
 
     // 9. Health correlation analysis (24h cooldown, non-fatal)
     const healthDept = activeDepts.find(d => d.department === 'health');

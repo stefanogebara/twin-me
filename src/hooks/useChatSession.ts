@@ -57,25 +57,39 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
     const checkInterview = async () => {
       // Demo mode: skip interview check entirely
       if (isDemoMode()) { setInterviewChecked(true); return; }
+
+      // Failsafe: always mark checked after 3 seconds even if fetch hangs.
+      // Prevents the chat page from getting stuck on a loading spinner forever.
+      const failsafe = setTimeout(() => setInterviewChecked(true), 3000);
+
       try {
         const token = getAccessToken() || localStorage.getItem('auth_token');
-        if (!token) { setInterviewChecked(true); return; }
+        if (!token) { clearTimeout(failsafe); setInterviewChecked(true); return; }
         const payload = JSON.parse(atob(token.split('.')[1]));
         const id = payload.id || payload.userId;
-        if (!id) { setInterviewChecked(true); return; }
+        if (!id) { clearTimeout(failsafe); setInterviewChecked(true); return; }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
         const res = await fetch(`${API_BASE}/onboarding/calibration-data/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         });
+        clearTimeout(timeoutId);
+
         if (res.ok) {
           const { data } = await res.json();
           if (data && !data.completed_at) {
+            clearTimeout(failsafe);
+            setInterviewChecked(true); // Mark checked BEFORE navigating so chat doesn't hang
             navigate('/interview');
             return;
           }
         }
       } catch {
-        // Non-fatal
+        // Non-fatal — fallthrough to setInterviewChecked(true)
       }
+      clearTimeout(failsafe);
       setInterviewChecked(true);
     };
     checkInterview();

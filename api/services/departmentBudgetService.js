@@ -143,7 +143,9 @@ export async function checkDepartmentBudget(userId, department, estimatedCost = 
 
 /**
  * Record the cost of a single tool execution.
- * Inserts into action_cost_log and invalidates the budget cache.
+ * 1. Inserts into action_cost_log (authoritative per-action ledger)
+ * 2. Increments department_budgets.spent_this_month_usd (fast read for admin/dashboard)
+ * 3. Invalidates the budget cache
  */
 export async function recordActionCost(userId, department, toolName, cost) {
   if (!userId || !department || cost == null) {
@@ -151,7 +153,8 @@ export async function recordActionCost(userId, department, toolName, cost) {
   }
 
   try {
-    const { error } = await supabaseAdmin
+    // 1. Insert into the authoritative cost log
+    const { error: logError } = await supabaseAdmin
       .from('action_cost_log')
       .insert({
         user_id: userId,
@@ -161,12 +164,36 @@ export async function recordActionCost(userId, department, toolName, cost) {
         created_at: new Date().toISOString(),
       });
 
-    if (error) {
-      log.error('Failed to record action cost', { userId, department, toolName, error });
+    if (logError) {
+      log.error('Failed to insert action cost log', { userId, department, toolName, error: logError });
       return;
     }
 
-    // Invalidate budget cache so next read is fresh
+    // 2. Increment the denormalized spent_this_month_usd column on department_budgets.
+    //    Ensures the budget record exists first (creates default if missing).
+    try {
+      const budgetRecord = await getDepartmentBudget(userId, department);
+      const newSpent = Number(budgetRecord.spent_this_month_usd || 0) + Number(cost);
+
+      const { error: updateError } = await supabaseAdmin
+        .from('department_budgets')
+        .update({
+          spent_this_month_usd: newSpent,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('department', department);
+
+      if (updateError) {
+        log.warn('Failed to update department_budgets.spent_this_month_usd', {
+          userId, department, error: updateError.message,
+        });
+      }
+    } catch (incErr) {
+      log.warn('spent_this_month_usd increment failed', { userId, department, error: incErr.message });
+    }
+
+    // 3. Invalidate budget cache so next read is fresh
     try {
       await cacheDel(budgetCacheKey(userId, department));
     } catch (cacheErr) {

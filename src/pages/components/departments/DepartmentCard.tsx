@@ -146,12 +146,23 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
           />
 
           {/* Budget inline */}
-          <span
-            className="text-[10px] hidden sm:inline"
-            style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+          <div
+            className="hidden sm:flex flex-col items-end leading-tight"
+            title="Monthly API cost for this department"
           >
-            {formatCost(budget.spent)}/{formatCost(budget.total)}
-          </span>
+            <span
+              className="text-[8px] uppercase tracking-[0.08em]"
+              style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+            >
+              API cost
+            </span>
+            <span
+              className="text-[10px]"
+              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+            >
+              {formatCost(budget.spent)}/{formatCost(budget.total)}
+            </span>
+          </div>
 
           {/* Toggle switch */}
           <button

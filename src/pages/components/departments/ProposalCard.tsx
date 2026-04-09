@@ -82,6 +82,12 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
             {timeAgo}
           </span>
         </div>
+        <p
+          className="text-[10px] mt-1.5"
+          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+        >
+          Click Approve &amp; Run to execute this action now
+        </p>
       </div>
 
       {/* Actions */}
@@ -93,20 +99,23 @@ const ProposalCard: React.FC<ProposalCardProps> = ({
             backgroundColor: '#F5F5F4',
             color: '#110f0f',
           }}
-          aria-label="Approve proposal"
+          aria-label="Approve and run proposal"
+          title="Execute this action now"
         >
           <Check className="w-3 h-3" />
-          Approve
+          Approve &amp; Run
         </button>
         <button
           onClick={() => onReject(id)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
+          className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] text-[11px] font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97]"
           style={{
-            color: 'rgba(255,255,255,0.4)',
+            color: 'rgba(255,255,255,0.5)',
           }}
-          aria-label="Reject proposal"
+          aria-label="Dismiss proposal"
+          title="Dismiss this proposal"
         >
           <X className="w-3 h-3" />
+          Dismiss
         </button>
       </div>
     </div>

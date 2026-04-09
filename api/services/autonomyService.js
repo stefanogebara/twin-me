@@ -303,11 +303,24 @@ export async function executeApprovedAction(userId, actionId) {
   const { executeTool } = await import('./toolRegistry.js');
   const result = await executeTool(userId, toolName, params);
 
-  // Record the outcome
+  // Record the outcome (throws on DB failure — data integrity requirement)
   await recordActionResponse(actionId, 'accepted', {
     executionResult: result,
     executedAt: new Date().toISOString()
   });
+
+  // Record department cost AFTER successful tool execution so the budget reflects reality.
+  // Cost recording is non-fatal — tool already ran, we don't want to fail the caller.
+  if (action.department) {
+    try {
+      const { recordActionCost } = await import('./departmentBudgetService.js');
+      const { TOOL_COST_ESTIMATES } = await import('../config/departmentConfig.js');
+      const estimatedCost = action.estimated_cost_usd || TOOL_COST_ESTIMATES[action.action_type] || TOOL_COST_ESTIMATES[toolName] || 0.001;
+      await recordActionCost(userId, action.department, action.action_type || toolName, estimatedCost);
+    } catch (costErr) {
+      log.warn('Failed to record action cost', { actionId, error: costErr.message });
+    }
+  }
 
   log.info('Approved action executed', { userId, actionId, toolName });
   return result;
@@ -317,14 +330,24 @@ export async function executeApprovedAction(userId, actionId) {
  * Record user response to an agent action.
  */
 export async function recordActionResponse(actionId, response, outcomeData = null) {
+  if (!actionId) {
+    throw new Error('actionId is required to record action response');
+  }
+
   // First, get the action to know the skill_name and user_id
-  const { data: action } = await supabaseAdmin
+  const { data: action, error: fetchError } = await supabaseAdmin
     .from('agent_actions')
     .select('user_id, skill_name')
     .eq('id', actionId)
     .single();
 
-  const { error } = await supabaseAdmin
+  if (fetchError) {
+    log.error('Failed to fetch action for response recording', { actionId, error: fetchError });
+    throw fetchError;
+  }
+
+  // Main action response write MUST throw on failure — data integrity requirement
+  const { error: updateError } = await supabaseAdmin
     .from('agent_actions')
     .update({
       user_response: response,
@@ -333,12 +356,12 @@ export async function recordActionResponse(actionId, response, outcomeData = nul
     })
     .eq('id', actionId);
 
-  if (error) {
-    log.error('Failed to record action response', { actionId, error });
-    return;
+  if (updateError) {
+    log.error('Failed to record action response', { actionId, error: updateError });
+    throw updateError;
   }
 
-  // Hebbian update: strengthen/weaken procedural memory based on feedback
+  // Hebbian update: strengthen/weaken procedural memory based on feedback (non-critical)
   if (action?.user_id && action?.skill_name) {
     try {
       const { strengthenProcedure, weakenProcedure } = await import('./proceduralMemoryService.js');

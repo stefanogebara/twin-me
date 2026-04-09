@@ -166,6 +166,12 @@ export function parseDepartmentSuggestions(text: string): {
   for (const s of suggestions) {
     cleanText = cleanText.replace(s.fullMatch, '');
   }
+
+  // Hide incomplete tags during streaming (tag started but not yet closed)
+  // e.g., during SSE streaming, text may contain "[DEPT_SUGGEST: department=\"communi"
+  // without the closing bracket yet. We hide it until the tag completes.
+  cleanText = cleanText.replace(/\[DEPT_SUGGEST:[^\]]*$/g, '');
+
   // Clean up any triple+ newlines left behind
   cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim();
 

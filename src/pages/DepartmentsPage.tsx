@@ -18,7 +18,7 @@ import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
 import ActivityFeed from './components/departments/ActivityFeed';
 import InboxSummary from './components/departments/InboxSummary';
-import { Loader2, Inbox, RefreshCw } from 'lucide-react';
+import { Loader2, Inbox, RefreshCw, X as XIcon } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // ── Default department configs (used when backend isn't wired yet) ───────
@@ -100,6 +100,15 @@ const DepartmentsPage: React.FC = () => {
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [heartbeatLoading, setHeartbeatLoading] = useState(false);
   const [showAllProposals, setShowAllProposals] = useState(false);
+  const [explainerDismissed, setExplainerDismissed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('departments_explainer_dismissed') === 'true';
+  });
+
+  const dismissExplainer = useCallback(() => {
+    localStorage.setItem('departments_explainer_dismissed', 'true');
+    setExplainerDismissed(true);
+  }, []);
 
   const {
     data: remoteDepts,
@@ -170,6 +179,12 @@ const DepartmentsPage: React.FC = () => {
   const budgetPercent = totalBudget.total > 0
     ? Math.min((totalBudget.spent / totalBudget.total) * 100, 100)
     : 0;
+
+  const enabledDepartmentCount = departments.filter(
+    (d) => d.isEnabled && d.autonomyLevel > 0
+  ).length;
+
+  const showExplainer = !explainerDismissed && enabledDepartmentCount < 3;
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -247,15 +262,45 @@ const DepartmentsPage: React.FC = () => {
 
   const handleApplyTemplate = useCallback(async (templateId: string) => {
     try {
-      await applyTemplateAPI(templateId);
+      const result = await applyTemplateAPI(templateId);
       setActiveTemplateId(templateId);
       setLocalDepts(null);
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments });
-      toast.success('Template applied successfully.');
+
+      // Find the template for a pretty name
+      const template = templates.find((t: Template) => t.id === templateId);
+      const templateName = template?.name || templateId;
+
+      // Map level numbers to human labels
+      const LEVEL_NAMES: Record<number, string> = {
+        0: 'Observe',
+        1: 'Suggest',
+        2: 'Draft',
+        3: 'Act',
+        4: 'Auto',
+      };
+
+      // Format each enabled department as "Name (Level)"
+      const enabledDepts = (result?.departments ?? [])
+        .filter((d) => d.success && typeof d.autonomy === 'number' && d.autonomy > 0)
+        .map((d) => {
+          const name = d.department.charAt(0).toUpperCase() + d.department.slice(1);
+          const level = LEVEL_NAMES[d.autonomy as number] ?? 'On';
+          return `${name} (${level})`;
+        });
+
+      const descriptionText = enabledDepts.length > 0
+        ? `${enabledDepts.join(', ')}. You can adjust individual departments below.`
+        : 'You can adjust individual departments below.';
+
+      toast.success(`${templateName} applied`, {
+        description: descriptionText,
+        duration: 8000,
+      });
     } catch (err) {
       toast.error('Failed to apply template.');
     }
-  }, [queryClient]);
+  }, [queryClient, templates]);
 
   const handleHeartbeat = useCallback(async () => {
     setHeartbeatLoading(true);
@@ -297,16 +342,22 @@ const DepartmentsPage: React.FC = () => {
           <button
             onClick={handleHeartbeat}
             disabled={heartbeatLoading}
-            className="flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer"
+            title="Scan recent data and generate new proposals"
+            className="flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer px-3 py-1.5 rounded-[8px]"
             style={{
-              color: 'rgba(255,255,255,0.4)',
+              color: 'rgba(255,255,255,0.5)',
               fontFamily: "'Inter', sans-serif",
-              background: 'none',
-              border: 'none',
-              padding: 0,
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+            }}
           >
             {heartbeatLoading
               ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -317,11 +368,51 @@ const DepartmentsPage: React.FC = () => {
         )}
       </div>
       <p
-        className="text-sm mb-8"
+        className="text-sm mb-6"
         style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
       >
         Your AI team, working for you
       </p>
+
+      {/* What are departments? explainer */}
+      {showExplainer && (
+        <div
+          className="mb-6 p-4 relative"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '16px',
+          }}
+        >
+          <p
+            className="text-[13px] pr-7 leading-relaxed"
+            style={{ color: 'rgba(255,255,255,0.65)', fontFamily: "'Inter', sans-serif" }}
+          >
+            Departments are AI agents that watch your data and propose actions for you to approve — emails, calendar blocks, health nudges, and more.
+          </p>
+          <button
+            onClick={dismissExplainer}
+            aria-label="Dismiss explainer"
+            title="Dismiss"
+            className="absolute top-3 right-3 rounded-[6px] p-1 transition-colors cursor-pointer"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'rgba(255,255,255,0.35)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'rgba(255,255,255,0.35)';
+              e.currentTarget.style.background = 'none';
+            }}
+          >
+            <XIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Total monthly budget bar */}
       <div className="mb-8">
@@ -329,8 +420,9 @@ const DepartmentsPage: React.FC = () => {
           <span
             className="text-[11px] font-medium tracking-[0.12em] uppercase"
             style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+            title="Monthly cost of running your AI team. Free tier includes $0.60/month of API usage."
           >
-            Monthly Budget
+            Monthly API cost
           </span>
           <span
             className="text-[11px]"
@@ -356,6 +448,12 @@ const DepartmentsPage: React.FC = () => {
             }}
           />
         </div>
+        <p
+          className="text-[10px] mt-1.5"
+          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
+        >
+          Monthly cost of running your AI team. Free tier includes $0.60/month of API usage.
+        </p>
       </div>
 
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />

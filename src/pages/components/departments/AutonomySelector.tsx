@@ -25,11 +25,19 @@ const LEVEL_LABELS: Record<number, string> = {
 };
 
 const LEVEL_DESCRIPTIONS: Record<number, string> = {
-  0: 'Watches and learns, never acts',
-  1: 'Suggests actions in chat for you to decide',
-  2: 'Prepares drafts, waits for your approval',
-  3: 'Acts on your behalf, then notifies you',
-  4: 'Acts silently, surfaces outcomes only',
+  0: 'Watches only — never acts',
+  1: 'Mentions ideas in chat (you decide)',
+  2: 'Prepares actions, waits for approval',
+  3: 'Takes action, then tells you',
+  4: 'Works silently in background',
+};
+
+const LEVEL_TOOLTIPS: Record<number, string> = {
+  0: 'Observe: The department watches your data and learns patterns but never takes any action or surfaces suggestions.',
+  1: 'Suggest: You\'ll see ideas mentioned casually in chat. Nothing is prepared or executed — you decide what to do.',
+  2: 'Draft: The department prepares concrete actions (emails, calendar blocks, etc.) and queues them as proposals for your approval.',
+  3: 'Act: The department executes low-risk actions on your behalf, then notifies you afterwards so you can review.',
+  4: 'Auto: The department operates silently in the background. You only see outcomes in the activity feed — no confirmations.',
 };
 
 const AutonomySelector: React.FC<AutonomySelectorProps> = ({
@@ -98,6 +106,7 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
                     onChange(lvl);
                     setIsOpen(false);
                   }}
+                  title={LEVEL_TOOLTIPS[lvl]}
                   className="w-full text-left px-3 py-1.5 text-[11px] transition-colors duration-100 flex items-center gap-2"
                   style={{
                     fontFamily: "'Inter', sans-serif",
@@ -142,6 +151,7 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
             key={lvl}
             onClick={() => !disabled && onChange(lvl)}
             disabled={disabled}
+            title={LEVEL_TOOLTIPS[lvl]}
             className="px-2 py-1 text-[10px] font-medium transition-all duration-150 rounded-md"
             style={{
               backgroundColor: isActive ? `${color}18` : 'transparent',
