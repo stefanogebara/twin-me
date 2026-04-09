@@ -416,11 +416,17 @@
       <div class="setup-card">
         <div class="icon"><img src="../icons/icon48.png" alt="TwinMe"></div>
         <h3>Connect to TwinMe</h3>
-        <p>Sign into TwinMe first, then click below to auto-detect your account.</p>
+        <p>Sign in to TwinMe, then we'll detect your account automatically.</p>
         <button class="btn btn-primary" id="auto-detect-btn">Detect My Account</button>
         <div id="detect-status" class="hidden" style="margin-top:10px;font-size:12px;color:rgba(193,192,182,0.5);"></div>
-        <div id="manual-fallback" class="hidden" style="margin-top:12px;">
-          <p style="font-size:11px;color:rgba(193,192,182,0.4);margin-bottom:8px;">Or enter your User ID manually:</p>
+        <div id="open-app-fallback" class="hidden" style="margin-top:12px;">
+          <button class="btn btn-accent btn-sm" id="open-app-btn">Open TwinMe to sign in</button>
+        </div>
+        <div id="manual-fallback" class="hidden" style="margin-top:12px;text-align:left;">
+          <p style="font-size:11px;color:rgba(193,192,182,0.5);margin-bottom:6px;">Paste your User ID:</p>
+          <p style="font-size:10px;color:rgba(193,192,182,0.35);margin-bottom:8px;line-height:1.4;">
+            Find it in TwinMe: <strong style="color:rgba(255,255,255,0.6);">Settings → Account → User ID</strong> (click to copy)
+          </p>
           <input type="text" id="user-id-input" placeholder="Paste your User ID here">
           <button class="btn btn-secondary btn-sm" id="connect-btn">Connect Manually</button>
         </div>

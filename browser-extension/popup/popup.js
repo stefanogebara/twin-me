@@ -69,6 +69,8 @@ async function initialize() {
 function setupEventListeners() {
   connectBtn.addEventListener('click', handleConnect);
   autoDetectBtn.addEventListener('click', autoDetectUser);
+  const openAppBtn = document.getElementById('open-app-btn');
+  if (openAppBtn) openAppBtn.addEventListener('click', handleOpenApp);
 
   // Tracking toggle
   const trackingToggle = document.getElementById('tracking-toggle');
@@ -232,7 +234,13 @@ async function autoDetectUser() {
   autoDetectBtn.textContent = 'Detecting...';
   autoDetectBtn.disabled = true;
   detectStatus.classList.remove('hidden');
+  detectStatus.style.color = 'rgba(193,192,182,0.5)';
   detectStatus.textContent = 'Checking TwinMe app...';
+
+  // Hide any previous fallback UI
+  const openAppFallback = document.getElementById('open-app-fallback');
+  if (openAppFallback) openAppFallback.classList.add('hidden');
+  manualFallback.classList.add('hidden');
 
   try {
     const tabs = await chrome.tabs.query({});
@@ -240,12 +248,17 @@ async function autoDetectUser() {
       try { return t.url && new URL(t.url).origin === APP_URL; } catch { return false; }
     });
 
+    // No TwinMe tab open -> show "Open TwinMe" button
     if (!appTab) {
-      detectStatus.textContent = 'Opening TwinMe to check login...';
-      appTab = await chrome.tabs.create({ url: APP_URL, active: false });
-      await new Promise(r => setTimeout(r, 2000));
+      detectStatus.textContent = 'TwinMe is not open. Please sign in first.';
+      detectStatus.style.color = 'rgba(193,192,182,0.6)';
+      if (openAppFallback) openAppFallback.classList.remove('hidden');
+      autoDetectBtn.textContent = 'Detect My Account';
+      autoDetectBtn.disabled = false;
+      return;
     }
 
+    // Read auth from the open tab
     const results = await chrome.scripting.executeScript({
       target: { tabId: appTab.id },
       func: () => {
@@ -254,13 +267,13 @@ async function autoDetectUser() {
         if (raw) {
           try {
             const u = JSON.parse(raw);
-            return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email };
+            return { userId: u.id, name: u.name || u.given_name || u.email, email: u.email, token };
           } catch { return null; }
         }
         if (token && token.split('.').length === 3) {
           try {
             const p = JSON.parse(atob(token.split('.')[1]));
-            return { userId: p.id || p.userId || p.sub, name: p.name || p.email, email: p.email };
+            return { userId: p.id || p.userId || p.sub, name: p.name || p.email, email: p.email, token };
           } catch { return null; }
         }
         return null;
@@ -270,34 +283,35 @@ async function autoDetectUser() {
     const userData = results?.[0]?.result;
     if (userData?.userId) {
       userId = userData.userId;
-      detectStatus.textContent = 'Found: ' + (userData.name || userData.email || userId.substring(0, 8) + '...');
+      detectStatus.textContent = 'Connected as ' + (userData.name || userData.email || userId.substring(0, 8));
       detectStatus.style.color = '#34d399';
 
       chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, (r) => {
         if (r?.success) setTimeout(() => showConnectedState(), 500);
       });
-      // Also extract and send auth token for API sync
-      const tokenResult = await chrome.scripting.executeScript({
-        target: { tabId: appTab.id },
-        func: () => localStorage.getItem('auth_token'),
-      }).catch(() => null);
-      const token = tokenResult?.[0]?.result;
-      if (token) {
-        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token });
+      if (userData.token) {
+        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token: userData.token });
       }
     } else {
-      detectStatus.textContent = 'Not logged in. Sign into TwinMe first, or enter ID manually.';
-      detectStatus.style.color = '#f87171';
-      manualFallback.classList.remove('hidden');
+      // Tab exists but not signed in
+      detectStatus.textContent = 'Please sign in to TwinMe in the open tab.';
+      detectStatus.style.color = 'rgba(239,68,68,0.8)';
+      if (openAppFallback) openAppFallback.classList.remove('hidden');
     }
   } catch (err) {
-    detectStatus.textContent = 'Auto-detect failed. Please enter ID manually.';
-    detectStatus.style.color = '#f87171';
+    detectStatus.textContent = 'Could not read TwinMe. Try opening it first.';
+    detectStatus.style.color = 'rgba(239,68,68,0.8)';
+    if (openAppFallback) openAppFallback.classList.remove('hidden');
     manualFallback.classList.remove('hidden');
   }
 
   autoDetectBtn.textContent = 'Detect My Account';
   autoDetectBtn.disabled = false;
+}
+
+function handleOpenApp() {
+  chrome.tabs.create({ url: APP_URL + '/auth', active: true });
+  window.close();
 }
 
 // ─────────────────────────────────────────────

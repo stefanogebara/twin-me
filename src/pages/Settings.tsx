@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import { getAccessToken } from '@/services/api/apiBase';
@@ -353,6 +354,21 @@ const Settings = () => {
           <span className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Google
           </span>
+        </SettingsRow>
+        <SettingsRow label="User ID" description="Used by the browser extension">
+          <button
+            onClick={() => {
+              if (user?.id) {
+                navigator.clipboard.writeText(user.id);
+                toast.success('User ID copied');
+              }
+            }}
+            className="text-xs font-mono truncate max-w-[140px] sm:max-w-[240px] inline-block hover:opacity-80 transition-opacity cursor-pointer"
+            style={{ color: 'rgba(255,255,255,0.5)' }}
+            title="Click to copy"
+          >
+            {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}
+          </button>
         </SettingsRow>
       </div>
 
