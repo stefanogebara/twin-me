@@ -129,7 +129,8 @@ async function fetchRecentEmails(userId) {
  * Returns { calendarEvents, recentEmails } — each section fails independently.
  * Cached for 2 minutes per user.
  */
-router.get('/', authenticateUser, async (req, res) => {
+// Support both GET /api/sidebar and GET /api/sidebar/context
+router.get(['/', '/context'], authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const cacheKey = `sidebar-ctx:${userId}`;
