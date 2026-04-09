@@ -588,10 +588,23 @@ Return JSON array (empty array if no good suggestions):
 [{"department":"<key>","description":"Brief action description","toolName":"tool_name or null","params":{},"priority":1-10,"reasoning":"Why now","goalId":"goal text snippet or null"}]
 
 Rules:
-- Be conservative — only suggest actions with clear evidence in the data
-- Max 3 suggestions. If nothing is clearly actionable, return []
-- Match department to the right tool (gmail_send for communications, calendar_create for scheduling, etc.)
-- If a proposal helps achieve a specific active goal, include goalId with the goal title snippet`;
+- Be HELPFUL — if the data shows a clear pattern or problem, propose an action
+- Max 3 suggestions per heartbeat
+- Match department to the right tool (gmail_draft for communications, calendar_create for scheduling, suggest for observations)
+- For observation-only departments (Health, Finance, Social), use toolName: "suggest"
+- If a proposal helps achieve a specific active goal, include goalId with the goal title snippet
+
+EXAMPLES of good proposals:
+- Communications: "Draft a triage plan for 37k unread emails" (if backlog is huge)
+- Communications: "Draft reply to Sarah about meeting" (if there's recent activity)
+- Scheduling: "Block 2 hours of focus time tomorrow morning" (if calendar is packed)
+- Scheduling: "Suggest declining non-essential meetings" (if recovery < 50%)
+- Health: "Flag sleep debt pattern — 3 nights under 7h" (pattern observation)
+- Content: "Draft social post about [recent topic user engaged with]"
+- Research: "Deep dive on [topic that appeared multiple times in data]"
+- Social: "Catch up with [person mentioned recently]"
+
+Prefer specific, data-grounded suggestions over generic advice.`;
 
     // 6. Call LLM (cheapest tier)
     const response = await complete({
