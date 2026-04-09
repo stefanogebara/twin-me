@@ -184,6 +184,7 @@ router.get('/', authenticateUser, async (req, res) => {
           .select('id, insight, category')
           .eq('user_id', userId)
           .eq('delivered', false)
+          .not('category', 'in', '("email_notification_sent","briefing_email")')
           .order('urgency', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(1)
@@ -282,7 +283,8 @@ router.get('/', authenticateUser, async (req, res) => {
           .from('proactive_insights')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .eq('delivered', false);
+          .eq('delivered', false)
+          .not('category', 'in', '("email_notification_sent","briefing_email")');
         return count || 0;
       }),
     ]);
@@ -376,6 +378,7 @@ router.get('/timeline', authenticateUser, async (req, res) => {
         .select('id, insight, category, urgency, delivered, created_at')
         .eq('user_id', userId)
         .gte('created_at', todayISO)
+        .not('category', 'in', '("email_notification_sent","briefing_email")')
         .order('created_at', { ascending: false })
         .limit(20),
       supabaseAdmin
