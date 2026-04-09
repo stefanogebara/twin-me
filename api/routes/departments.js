@@ -72,6 +72,21 @@ router.get('/budgets', authenticateUser, async (req, res) => {
 });
 
 // ========================================================================
+// GET /api/departments/health/correlations — Whoop + Calendar cross-correlation
+// ========================================================================
+
+router.get('/health/correlations', authenticateUser, async (req, res) => {
+  try {
+    const { analyzeHealthPatterns } = await import('../services/departmentExecutors/healthCorrelationAnalyzer.js');
+    const result = await analyzeHealthPatterns(req.user.id);
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    log.error('Health correlation analysis failed', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ========================================================================
 // POST /api/departments/proposals/:id/approve — Approve a proposal
 // ========================================================================
 

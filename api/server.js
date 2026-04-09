@@ -419,6 +419,7 @@ import healthRoutes from './routes/health.js';
 import testEvidencePipelineRoutes from './routes/test-evidence-pipeline.js';
 import finetuningRoutes from './routes/finetuning.js';
 import betaPublicRoutes from './routes/beta-public.js';
+import betaSignupRoutes from './routes/beta.js';
 import { betaFeedbackRouter, betaAdminRouter } from './routes/beta-admin.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
@@ -458,6 +459,7 @@ import multimodalRoutes from './routes/multimodal.js';
 import morningBriefingRoutes from './routes/morning-briefing.js';
 import sidebarContextRoutes from './routes/sidebar-context.js';
 import soulInterviewRoutes from './routes/soul-interview.js';
+import inboxSummaryRoutes from './routes/inbox-summary.js';
 // personality-axes + in-silico routes merged into twin-scaling.js
 
 import { sanitizeInput, validateContentType } from './middleware/sanitization.js';
@@ -599,6 +601,7 @@ app.use('/api/admin', (req, res, next) => {
   next();
 }, adminLlmCostsRoutes);
 app.use('/api/beta', betaPublicRoutes); // Beta invite validation + waitlist (public, no auth)
+app.use('/api/beta', betaSignupRoutes); // Beta signup + status + activate (public signup, auth for status)
 app.use('/api/beta', betaFeedbackRouter); // Beta feedback submission (auth required, not admin)
 app.use('/api/beta/admin', betaAdminRouter); // Beta admin: invite CRUD, waitlist, feedback list
 app.use('/api/location', locationRoutes); // Location clusters — privacy-first lifestyle signals
@@ -608,6 +611,7 @@ app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
 app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum settings
 app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
 app.use('/api/departments', departmentsRoutes); // SoulOS department management + proposals
+app.use('/api/inbox', inboxSummaryRoutes); // Inbox summary for Communications department
 app.use('/api/templates', templatesRoutes); // Life Operating System templates (one-click department setups)
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
 app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)

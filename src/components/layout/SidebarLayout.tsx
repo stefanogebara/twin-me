@@ -2,6 +2,7 @@ import React, { ReactNode, useState, useEffect } from 'react';
 import { CollapsibleSidebar } from './CollapsibleSidebar';
 import { BottomNav } from './BottomNav';
 import BetaFeedbackWidget from '../BetaFeedbackWidget';
+import PWAInstallPrompt from '../PWAInstallPrompt';
 import { Menu } from 'lucide-react';
 
 interface SidebarLayoutProps {
@@ -89,6 +90,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
       {/* Beta feedback widget -- floating on all authenticated pages */}
       <BetaFeedbackWidget />
+
+      {/* PWA install prompt -- subtle bottom banner */}
+      <PWAInstallPrompt />
     </div>
   );
 };

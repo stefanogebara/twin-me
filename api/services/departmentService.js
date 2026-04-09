@@ -36,11 +36,12 @@ export async function getDepartmentStatus(userId, department) {
   }
 
   try {
-    // Fetch autonomy, budget, and recent action count in parallel
-    const [autonomyLevel, budgetStatus, recentCount] = await Promise.all([
+    // Fetch autonomy, budget, recent action count, and proposal stats in parallel
+    const [autonomyLevel, budgetStatus, recentCount, stats] = await Promise.all([
       resolveAutonomyLevel(userId, department, config),
       checkDepartmentBudget(userId, department, 0),
       countRecentActions(userId, department),
+      getDepartmentStats(userId, department),
     ]);
 
     return {
@@ -49,6 +50,7 @@ export async function getDepartmentStatus(userId, department) {
       autonomyLevel,
       budget: budgetStatus,
       recentActionsCount: recentCount,
+      stats,
     };
   } catch (err) {
     log.error('getDepartmentStatus failed', { userId, department, error: err.message });
@@ -436,6 +438,38 @@ async function countRecentActions(userId, department) {
 }
 
 /**
+ * Get aggregate proposal stats for a department (total, approved, rejected, approval rate).
+ * Uses a single query with client-side counting to keep it cheap.
+ */
+async function getDepartmentStats(userId, department) {
+  const skillName = `${department}_actions`;
+  const defaultStats = { totalProposals: 0, approved: 0, rejected: 0, approvalRate: 0 };
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('agent_actions')
+      .select('user_response')
+      .eq('user_id', userId)
+      .eq('skill_name', skillName);
+
+    if (error || !data) {
+      log.warn('getDepartmentStats query failed', { department, error: error?.message });
+      return defaultStats;
+    }
+
+    const totalProposals = data.length;
+    const approved = data.filter(r => r.user_response === 'approved').length;
+    const rejected = data.filter(r => r.user_response === 'rejected').length;
+    const approvalRate = totalProposals > 0 ? Math.round((approved / totalProposals) * 100) : 0;
+
+    return { totalProposals, approved, rejected, approvalRate };
+  } catch (err) {
+    log.warn('getDepartmentStats failed', { department, error: err.message });
+    return defaultStats;
+  }
+}
+
+/**
  * Heartbeat check — called from observation ingestion cron after new data arrives.
  * Analyzes recent observations via LLM and generates department action proposals.
  * Cost-controlled: 2-hour cooldown per user, TIER_EXTRACTION (cheapest model).
@@ -613,6 +647,33 @@ Rules:
 
     // 8. Set cooldown (2 hours = 7200 seconds)
     await cacheSet(cooldownKey, Date.now(), 7200);
+
+    // 9. Health correlation analysis (24h cooldown, non-fatal)
+    const healthDept = activeDepts.find(d => d.department === 'health');
+    if (healthDept) {
+      const corrCooldownKey = `health_correlation:${userId}`;
+      const lastCorr = await cacheGet(corrCooldownKey);
+      if (!lastCorr) {
+        try {
+          const { analyzeHealthPatterns } = await import('./departmentExecutors/healthCorrelationAnalyzer.js');
+          const { correlations } = await analyzeHealthPatterns(userId);
+          if (correlations.length > 0) {
+            const { emitSignal } = await import('./departmentSignalService.js');
+            for (const corr of correlations) {
+              if (corr.departments?.includes('scheduling')) {
+                await emitSignal(userId, 'health', 'scheduling', 'health_pattern', {
+                  pattern: corr.pattern,
+                  recommendation: corr.recommendation,
+                });
+              }
+            }
+          }
+          await cacheSet(corrCooldownKey, Date.now(), 86400); // 24h cooldown
+        } catch (corrErr) {
+          log.debug('Health correlation failed (non-fatal)', { error: corrErr.message });
+        }
+      }
+    }
 
     log.info('Department heartbeat complete', { userId, proposalsCreated: createdProposals.length });
     return { proposals: createdProposals, count: createdProposals.length };

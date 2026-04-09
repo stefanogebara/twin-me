@@ -17,6 +17,7 @@ import DepartmentOnboarding from './components/departments/DepartmentOnboarding'
 import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
 import ActivityFeed from './components/departments/ActivityFeed';
+import InboxSummary from './components/departments/InboxSummary';
 import { Loader2, Inbox, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
@@ -423,6 +424,8 @@ const DepartmentsPage: React.FC = () => {
                 budget={dept.budget}
                 actionsThisWeek={dept.actionsThisWeek}
                 isEnabled={dept.isEnabled}
+                stats={dept.stats}
+                expandedContent={dept.name === 'communications' ? <InboxSummary /> : undefined}
                 onAutonomyChange={(level) => handleAutonomyChange(dept.name, level)}
                 onToggle={(enabled) => handleToggle(dept.name, enabled)}
               />

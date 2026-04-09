@@ -5,6 +5,7 @@ import { useDashboardContext, useDashboardHeatmap } from '@/hooks/useDashboardCo
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { WelcomeGuide } from './components/dashboard-v2/WelcomeGuide';
+import { BetaOnboardingChecklist } from './components/dashboard-v2/BetaOnboardingChecklist';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
@@ -89,6 +90,8 @@ export function DashboardV2() {
       {showWelcome && (
         <WelcomeGuide firstName={data.greeting.firstName} onDismiss={handleDismissWelcome} />
       )}
+
+      <BetaOnboardingChecklist />
 
       {data.heroInsight && (
         <HeroInsight

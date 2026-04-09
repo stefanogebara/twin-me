@@ -1,0 +1,13 @@
+{
+  "name": "TwinMe",
+  "short_name": "TwinMe",
+  "description": "Your AI twin that acts for you",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#13121a",
+  "theme_color": "#13121a",
+  "icons": [
+    { "src": "/images/backgrounds/flower-hero.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/backgrounds/flower-hero.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

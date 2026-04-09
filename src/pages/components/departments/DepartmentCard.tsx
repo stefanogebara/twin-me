@@ -25,6 +25,13 @@ import {
 } from 'lucide-react';
 import AutonomySelector from './AutonomySelector';
 
+interface DepartmentStats {
+  totalProposals: number;
+  approved: number;
+  rejected: number;
+  approvalRate: number;
+}
+
 interface DepartmentCardProps {
   name: string;
   config: {
@@ -37,6 +44,8 @@ interface DepartmentCardProps {
   budget: { spent: number; total: number };
   actionsThisWeek: number;
   isEnabled: boolean;
+  stats?: DepartmentStats;
+  expandedContent?: React.ReactNode;
   onAutonomyChange: (level: number) => void;
   onToggle: (enabled: boolean) => void;
 }
@@ -61,6 +70,8 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
   autonomyLevel,
   budget,
   isEnabled,
+  stats,
+  expandedContent,
   onAutonomyChange,
   onToggle,
 }) => {
@@ -179,6 +190,25 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
         />
       </div>
 
+      {/* Department stats line */}
+      {stats && stats.totalProposals > 0 && (
+        <div
+          className="px-4 py-1.5"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.03)' }}
+        >
+          <span
+            className="text-[11px]"
+            style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+          >
+            {stats.totalProposals} proposal{stats.totalProposals !== 1 ? 's' : ''}
+            {' | '}
+            {stats.approved} approved
+            {' | '}
+            {formatCost(budget.spent)} spent
+          </span>
+        </div>
+      )}
+
       {/* Expanded: full autonomy selector */}
       {isExpanded && (
         <div
@@ -198,6 +228,14 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
             onChange={onAutonomyChange}
             disabled={!isEnabled}
           />
+          {expandedContent && (
+            <div
+              className="mt-3 pt-3"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              {expandedContent}
+            </div>
+          )}
         </div>
       )}
     </div>

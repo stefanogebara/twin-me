@@ -16,6 +16,13 @@ export interface DepartmentConfig {
   color: string;
 }
 
+export interface DepartmentStats {
+  totalProposals: number;
+  approved: number;
+  rejected: number;
+  approvalRate: number;
+}
+
 export interface Department {
   name: string;
   config: DepartmentConfig;
@@ -23,6 +30,7 @@ export interface Department {
   budget: { spent: number; total: number };
   actionsThisWeek: number;
   isEnabled: boolean;
+  stats?: DepartmentStats;
 }
 
 export interface Proposal {
@@ -78,6 +86,7 @@ export const departmentsAPI = {
       },
       actionsThisWeek: d.recentActionsCount ?? 0,
       isEnabled: (d.autonomyLevel ?? 0) > 0,
+      stats: d.stats ?? { totalProposals: 0, approved: 0, rejected: 0, approvalRate: 0 },
     }));
   },
 
