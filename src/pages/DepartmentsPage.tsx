@@ -5,7 +5,7 @@
  * Compact department list, horizontal template strip, pending proposals.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
@@ -92,6 +92,11 @@ const QUERY_KEYS = {
 const DepartmentsPage: React.FC = () => {
   useDocumentTitle('Departments');
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    document.body.classList.add('page-departments');
+    return () => document.body.classList.remove('page-departments');
+  }, []);
   const isDemoMode = localStorage.getItem('demo_mode') === 'true';
 
   // Local optimistic state for department changes

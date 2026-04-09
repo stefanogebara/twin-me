@@ -85,6 +85,17 @@
     --body-gradient-3: rgba(160, 95, 55, 0.34);
     --body-gradient-4: rgba(55, 45, 140, 0.28);
 
+    /* Departments page: dim the ambient gradient for cleaner settings-panel feel */
+  }
+
+  body.page-departments {
+    --body-gradient-1: rgba(210, 145, 55, 0.12);
+    --body-gradient-2: rgba(180, 110, 65, 0.09);
+    --body-gradient-3: rgba(160, 95, 55, 0.10);
+    --body-gradient-4: rgba(55, 45, 140, 0.08);
+  }
+
+  :root {
     /* Gradient orb positions/sizes (sun-driven overrides via SunContext) */
     --bg-pos-1: 5% 0%;
     --bg-size-1: 120% 80%;
