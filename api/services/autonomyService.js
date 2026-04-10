@@ -299,6 +299,17 @@ export async function executeApprovedAction(userId, actionId) {
     throw new Error('Stored action is missing toolName');
   }
 
+  // 'suggest' is a placeholder for text-only proposals (no actual tool execution).
+  // Approving them simply acknowledges the suggestion — no API call needed.
+  if (toolName === 'suggest') {
+    await recordActionResponse(actionId, 'accepted', {
+      executionResult: { success: true, type: 'suggestion_acknowledged' },
+      executedAt: new Date().toISOString()
+    });
+    log.info('Suggestion acknowledged', { userId, actionId });
+    return { success: true, type: 'suggestion_acknowledged' };
+  }
+
   // Execute via tool registry
   const { executeTool } = await import('./toolRegistry.js');
   const result = await executeTool(userId, toolName, params);

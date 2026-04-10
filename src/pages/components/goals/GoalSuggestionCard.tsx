@@ -53,128 +53,82 @@ const GoalSuggestionCard = React.forwardRef<HTMLDivElement, GoalSuggestionCardPr
   return (
     <div
       ref={ref}
-      className="p-5 mb-4"
-      style={{
-        borderRadius: '20px',
-        background: 'rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(42px)',
-        WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.10)',
-        boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 var(--border-glass)',
-      }}
+      className="-mx-1 px-1 py-3 rounded-[4px] transition-colors"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
     >
       <div className="flex items-start gap-3">
         {/* Category icon */}
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-          style={{
-            background: PILL_STYLE.bg,
-            border: `1px solid ${PILL_STYLE.border}`,
-          }}
-        >
-          <CategoryIcon className="w-4 h-4" style={{ color: PILL_STYLE.text }} />
-        </div>
+        <CategoryIcon className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: PILL_STYLE.text }} />
 
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* Title */}
-          <h3
-            className="text-sm font-medium leading-snug"
-            style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
-          >
-            {goal.title}
-          </h3>
+        <div className="flex-1 min-w-0">
+          {/* Title + actions row */}
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              className="text-sm font-medium leading-snug"
+              style={{ color: TEXT_PRIMARY, fontFamily: "'Inter', sans-serif" }}
+            >
+              {goal.title}
+            </h3>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                onClick={() => onAccept(goal.id)}
+                disabled={isLoading}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.96] disabled:opacity-40"
+                style={{
+                  background: 'rgba(120,200,170,0.12)',
+                  border: '1px solid rgba(120,200,170,0.2)',
+                  color: 'rgba(120,200,170,0.9)',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {isAccepting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                Accept
+              </button>
+              <button
+                onClick={() => onDismiss(goal.id)}
+                disabled={isLoading}
+                className="flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.96] disabled:opacity-40"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.35)',
+                }}
+              >
+                {isDismissing ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+              </button>
+            </div>
+          </div>
 
           {/* Description */}
           {goal.description && (
-            <p
-              className="text-sm leading-relaxed"
-              style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
-            >
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
               {goal.description}
             </p>
           )}
 
-          {/* Source observation */}
-          {goal.source_observation && (
-            <p
-              className="text-[11px] italic"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
-            >
-              Based on: {goal.source_observation}
-            </p>
-          )}
-
-          {/* Goal details pills */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-2 mt-1.5">
             {goal.target_value != null && goal.target_unit && (
-              <span
-                className="px-2 py-0.5 rounded-full text-[10px]"
-                style={{
-                  background: PILL_STYLE.bg,
-                  color: PILL_STYLE.text,
-                  border: `1px solid ${PILL_STYLE.border}`,
-                }}
-              >
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
                 Target: {goal.target_operator === '>=' ? '' : goal.target_operator + ' '}
                 {goal.target_value} {goal.target_unit === 'ms' ? 'HRV ms' : goal.target_unit}
               </span>
             )}
-            <span
-              className="px-2 py-0.5 rounded-full text-[10px]"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                color: TEXT_SECONDARY,
-                border: `1px solid ${BORDER_COLOR}`,
-              }}
-            >
-              {goal.duration_days} days
+            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              {goal.duration_days}d
             </span>
             {goal.source_platform && (
-              <span
-                className="px-2 py-0.5 rounded-full text-[10px] capitalize"
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  color: TEXT_SECONDARY,
-                  border: `1px solid ${BORDER_COLOR}`,
-                }}
-              >
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
                 via {formatPlatformName(goal.source_platform)}
               </span>
             )}
-          </div>
-
-          {/* Accept / Dismiss buttons */}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={() => onAccept(goal.id)}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-[100px] text-xs font-medium transition-all duration-150 ease-out hover:opacity-90 active:scale-[0.96] disabled:opacity-40"
-              style={{
-                backgroundColor: 'var(--accent-vibrant)',
-                color: '#0a0f0a',
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              {isAccepting ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Check className="w-3.5 h-3.5" />
-              )}
-              Accept
-            </button>
-            <button
-              onClick={() => onDismiss(goal.id)}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.96] disabled:opacity-40"
-              style={{ color: TEXT_SECONDARY }}
-            >
-              {isDismissing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <X className="w-3.5 h-3.5" />
-              )}
-              Dismiss
-            </button>
+            {goal.source_observation && (
+              <span className="text-[10px] italic" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                {goal.source_observation}
+              </span>
+            )}
           </div>
         </div>
       </div>

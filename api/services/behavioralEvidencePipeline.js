@@ -10,13 +10,10 @@
  * This service should be called after any platform data sync.
  */
 
-import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
-import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
 // Gmail, Outlook, LinkedIn, Whoop, Twitch extractors removed
 const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
 const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
-import youtubeFeatureExtractor from './featureExtractors/youtubeFeatureExtractor.js';
 import {
   generateAllEvidence,
   calculateConfidenceScores,
@@ -30,16 +27,7 @@ const log = createLogger('BehavioralEvidence');
 
 class BehavioralEvidencePipeline {
   constructor() {
-    this.extractors = {
-      spotify: spotifyFeatureExtractor,
-      google_calendar: calendarFeatureExtractor,
-      calendar: calendarFeatureExtractor, // alias
-      gmail: gmailFeatureExtractor,
-      google_gmail: gmailFeatureExtractor, // alias for Nango DB key
-      outlook: outlookFeatureExtractor,
-      linkedin: linkedinFeatureExtractor,
-      youtube: youtubeFeatureExtractor,
-    };
+    this.extractors = {};
   }
 
   /**

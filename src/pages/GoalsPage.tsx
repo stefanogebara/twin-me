@@ -284,8 +284,8 @@ const GoalsPage: React.FC = () => {
       {!isLoading && suggestions.length > 0 && (
         <section className="mb-10">
           <h2
-            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+            className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
           >
             Your Twin Suggests
           </h2>
@@ -309,12 +309,12 @@ const GoalsPage: React.FC = () => {
       {!isLoading && activeGoals.length > 0 && (
         <section className="mb-10">
           <h2
-            className="text-[11px] font-medium tracking-widest uppercase block mb-4"
-            style={{ color: 'var(--accent-vibrant)', fontFamily: 'Inter, sans-serif', fontSize: '11px', lineHeight: 'normal' }}
+            className="text-[11px] font-medium tracking-[0.1em] uppercase block mb-4"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif', lineHeight: 'normal' }}
           >
             Active Goals
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
             {activeGoals.map((goal, i) => (
               <div
                 key={goal.id}
@@ -368,7 +368,7 @@ const GoalsPage: React.FC = () => {
                   Nothing finished yet — you've got this though.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
                   {completedGoals.map((goal, i) => (
                     <div
                       key={goal.id}

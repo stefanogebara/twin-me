@@ -8,16 +8,12 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateToken } from '../middleware/auth.js';
-import spotifyFeatureExtractor from '../services/featureExtractors/spotifyExtractor.js';
-import calendarFeatureExtractor from '../services/featureExtractors/calendarExtractor.js';
 // Gmail, Outlook, LinkedIn, Whoop extractors removed
 const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
 const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
-import personalityAnalyzerService from '../services/personalityAnalyzerService.js';
 import soulSignatureGenerator from '../services/soulSignatureGenerator.js';
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
-import { ARCHETYPES } from '../services/personalityAssessmentService.js';
 import { generateSoulSignature } from '../services/soulSignatureService.js';
 import { createLogger } from '../services/logger.js';
 
@@ -26,13 +22,7 @@ const log = createLogger('SoulSignature');
 const router = express.Router();
 
 // Platform extractors map
-const platformExtractors = {
-  spotify: spotifyFeatureExtractor,
-  calendar: calendarFeatureExtractor,
-  gmail: gmailFeatureExtractor,
-  outlook: outlookFeatureExtractor,
-  linkedin: linkedinFeatureExtractor
-};
+const platformExtractors = {};
 
 // ====================================================================
 // GET /api/soul-signature
@@ -277,21 +267,15 @@ router.get('/archetype', authenticateToken, async (req, res) => {
       .single();
 
     if (estimates?.archetype_code) {
-      const archetype = ARCHETYPES[estimates.archetype_code];
-      log.info(`Using personality assessment archetype: ${estimates.archetype_code} - ${archetype?.name}`);
-
-      // Generate a narrative based on Big Five scores
-      const narrative = generateArchetypeNarrative(estimates.archetype_code, archetype, estimates);
-
       return res.json({
         success: true,
         data: {
           user_id: userId,
-          archetype_name: archetype?.name || estimates.archetype_code,
+          archetype_name: estimates.archetype_code,
           archetype_code: estimates.archetype_code,
-          archetype_subtitle: `${archetype?.group || 'Personality'} Type`,
-          narrative: narrative,
-          color_scheme: { primary: archetype?.color || '#6366f1' },
+          archetype_subtitle: 'Soul Signature Type',
+          narrative: '',
+          color_scheme: { primary: '#6366f1' },
           source: 'assessment',
           questions_answered: estimates.total_questions_answered
         }
@@ -612,7 +596,6 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     // Step 3: Analyze personality
     log.info(`Step 3: Analyzing personality...`);
-    const analysisResult = await personalityAnalyzerService.analyzePersonality(userId);
 
     if (!analysisResult.success) {
       return res.status(400).json({

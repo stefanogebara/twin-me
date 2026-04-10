@@ -9,8 +9,6 @@ import { supabaseAdmin } from './database.js';
 import { extractSpotifyData } from './spotifyExtraction.js';
 // Discord/GitHub now use observation-based extraction (observationIngestion.js)
 // MVP Feature Extractors
-import spotifyFeatureExtractor from './featureExtractors/spotifyExtractor.js';
-import calendarFeatureExtractor from './featureExtractors/calendarExtractor.js';
 // Gmail, Outlook, LinkedIn now use observation-based extraction (observationIngestion.js)
 // Pattern Learning Bridge
 import patternLearningBridge from './patternLearningBridge.js';
@@ -161,35 +159,12 @@ class ExtractionOrchestrator {
           // Use both data extraction and feature extraction
           result = await extractSpotifyData(userId);
           itemsExtracted = result.itemsExtracted || 0;
-          // Also extract behavioral features for personality
-          try {
-            const features = await spotifyFeatureExtractor.extractFeatures(userId);
-            if (features.length > 0) {
-              await spotifyFeatureExtractor.saveFeatures(features);
-              log.info('Extracted Spotify behavioral features', { count: features.length });
-            }
-          } catch (featureError) {
-            log.error('Spotify feature extraction error', { error: featureError });
-          }
+          // Feature extraction removed (OCEAN pipeline removed)
           break;
 
         case 'calendar':
         case 'google_calendar':
-          // Use MVP feature extractor for Calendar
-          try {
-            const features = await calendarFeatureExtractor.extractFeatures(userId);
-            if (features.length > 0) {
-              await calendarFeatureExtractor.saveFeatures(features);
-              itemsExtracted = features.length;
-              result = { success: true, itemsExtracted };
-              log.info('Extracted Calendar behavioral features', { count: features.length });
-            } else {
-              result = { success: true, itemsExtracted: 0, message: 'No Calendar data available' };
-            }
-          } catch (calendarError) {
-            log.error('Calendar extraction error', { error: calendarError });
-            result = { success: false, error: calendarError.message };
-          }
+          result = { success: true, itemsExtracted: 0, message: 'Calendar feature extraction removed' };
           break;
 
         case 'discord':

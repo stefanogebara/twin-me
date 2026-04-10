@@ -12,8 +12,6 @@
  */
 
 import { supabaseAdmin } from './database.js';
-import personalityAggregator from './personalityAggregator.js';
-import { mapToArchetype, generatePersonalityInsights, ARCHETYPES } from './personalityAssessmentService.js';
 import { generateChatResponse } from './anthropicService.js';
 import { createLogger } from './logger.js';
 
@@ -29,28 +27,15 @@ class TwinFormationService {
    */
   async formTwin(userId) {
     try {
-      // Step 1: Get aggregated personality profile
-      const profileResult = await personalityAggregator.getPersonalityProfile(userId);
-
-      if (!profileResult.success) {
-        return {
-          success: false,
-          error: 'Insufficient data to form twin',
-          details: profileResult.error
-        };
-      }
-
-      const { profile } = profileResult;
-
-      // Check if we have enough data
-      if (profile.featureCount < this.MIN_FEATURES_FOR_FORMATION) {
-        return {
-          success: false,
-          error: 'Not enough behavioral data yet',
-          required: this.MIN_FEATURES_FOR_FORMATION,
-          current: profile.featureCount
-        };
-      }
+      // Stub profile - OCEAN removed, soul signature layers used instead
+      const profile = {
+        scores: {},
+        confidence: {},
+        featureCount: this.MIN_FEATURES_FOR_FORMATION,
+        platformCoverage: { platforms: {} },
+        dominantTraits: [],
+        profileStrength: 0
+      };
 
       // Step 2: Map to MBTI archetype
       const archetype = this.generateArchetype(profile.scores);
@@ -104,23 +89,14 @@ class TwinFormationService {
   /**
    * Generate MBTI archetype from personality scores
    */
-  generateArchetype(scores) {
-    // Convert Big Five scores to format expected by mapToArchetype
-    const scoreValues = {};
-    for (const [dimension, data] of Object.entries(scores)) {
-      scoreValues[dimension] = data.score;
-    }
-
-    // Use existing archetype mapping
-    const archetype = mapToArchetype(scoreValues);
-
-    // Add additional archetype metadata
-    const archetypeInfo = ARCHETYPES[archetype.code];
-
+  generateArchetype(_scores) {
     return {
-      ...archetype,
-      description: this.getArchetypeDescription(archetype.code),
-      motto: this.getArchetypeMotto(archetype.code)
+      code: 'AUTHENTIC',
+      name: 'Authentic Soul',
+      fullCode: 'AUTHENTIC',
+      group: 'Soul Signature',
+      description: 'A unique soul shaped by your experiences and patterns.',
+      motto: 'Be yourself.'
     };
   }
 
@@ -300,12 +276,6 @@ What does this reveal about their personality or habits?`;
         if (reflectionErr) log.warn('Failed to upsert reflection history:', reflectionErr.message);
       }
 
-      // Also update personality_scores table
-      await personalityAggregator.savePersonalityScores(
-        userId,
-        twinData.scores,
-        twinData.confidence
-      );
 
       return { success: true, data };
 

@@ -637,8 +637,9 @@ app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
 app.use('/api/whatsapp-link', whatsappLinkRoutes); // WhatsApp self-serve phone linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
 app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
-app.use('/api/tribe', twinScalingRoutes); // TRIBE v2: scaling, fidelity, ICA axes, in-silico
-// personality-axes + in-silico routes are in twinScalingRoutes (merged)
+app.use('/api/twin', twinScalingRoutes); // Twin scaling + fidelity canonical endpoints
+app.use('/api/tribe', twinScalingRoutes); // TRIBE v2: ICA axes, in-silico, and scaling aliases
+// personality-axes + in-silico routes are in twinScalingRoutes
 app.use('/api/twin', multimodalRoutes); // Multimodal personality fusion (TRIBE v2 Phase C)
 app.use('/api/morning-briefing', morningBriefingRoutes); // On-demand morning briefing (GET /api/morning-briefing/generate)
 app.use('/api/sidebar', sidebarContextRoutes); // Sidebar context: calendar events + recent emails

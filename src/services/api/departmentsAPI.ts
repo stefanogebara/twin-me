@@ -54,6 +54,32 @@ export interface ActivityItem {
   outcome: string | null;
 }
 
+interface RawDepartment {
+  department?: string;
+  name?: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  autonomyLevel?: number;
+  defaultAutonomy?: number;
+  budget?: { spent?: number; budget?: number };
+  defaultMonthlyBudget?: number;
+  recentActionsCount?: number;
+  stats?: DepartmentStats;
+}
+
+interface RawProposal {
+  id: string;
+  department?: string;
+  skill_name?: string;
+  departmentColor?: string;
+  display_description?: string;
+  context_summary?: string;
+  description?: string;
+  estimated_cost_usd?: number;
+  created_at?: string;
+}
+
 // --- API Methods ---
 
 export const departmentsAPI = {
@@ -71,7 +97,7 @@ export const departmentsAPI = {
     const raw = data.departments ?? data.data ?? [];
 
     // Transform backend shape to frontend Department interface
-    return raw.map((d: any) => ({
+    return (raw as RawDepartment[]).map((d) => ({
       name: d.department || d.name,
       config: {
         name: d.name || d.department,
@@ -100,7 +126,10 @@ export const departmentsAPI = {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to update autonomy: ${response.statusText}`);
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body.message || body.error || `Failed to update autonomy: ${response.statusText}`) as Error & { code?: string };
+      err.code = body.error;
+      throw err;
     }
 
     return response.json();
@@ -131,7 +160,7 @@ export const departmentsAPI = {
     }
 
     const data = await response.json();
-    return (data.proposals ?? data.data ?? []).map((p: any) => ({
+    return ((data.proposals ?? data.data ?? []) as RawProposal[]).map((p) => ({
       id: p.id,
       department: p.department || p.skill_name?.split('_')[0] || 'general',
       departmentColor: p.departmentColor || '#6366F1',
@@ -171,7 +200,7 @@ export const departmentsAPI = {
   /**
    * Trigger a manual heartbeat check (bypasses 2-hour cooldown)
    */
-  triggerHeartbeat: async (): Promise<{ success: boolean; proposals: any[]; count?: number; skipped?: string }> => {
+  triggerHeartbeat: async (): Promise<{ success: boolean; proposals: Proposal[]; count?: number; skipped?: string }> => {
     const response = await authFetch('/departments/heartbeat', { method: 'POST' });
     if (!response.ok) throw new Error('Heartbeat failed');
     return response.json();

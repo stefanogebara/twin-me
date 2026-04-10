@@ -17,7 +17,6 @@
  */
 
 import { generateEmbedding } from './embeddingService.js';
-import { getPersonalityVector } from './icaPersonalityService.js';
 import { cosineSimilarity, dotProduct, spearmanCorrelation } from './statsUtils.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
@@ -120,8 +119,14 @@ export async function predictEngagement(userId, stimuli) {
       return { error: 'too_many_stimuli', message: `Maximum ${MAX_STIMULI} stimuli per request` };
     }
 
-    // Get personality vector (axes + centroid)
-    const { axes, centroid } = await getPersonalityVector(userId);
+    // Get personality embedding centroid from DB (ICA axes removed)
+    const { data: profileRow } = await supabaseAdmin
+      .from('user_personality_profiles')
+      .select('personality_embedding')
+      .eq("user_id", userId)
+      .maybeSingle();
+    const axes = [];
+    const centroid = profileRow?.personality_embedding ?? null;
 
     log.info('Scoring stimuli', {
       userId,
