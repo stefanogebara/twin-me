@@ -197,7 +197,14 @@ const DepartmentsPage: React.FC = () => {
       }
       await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.departments });
     } catch (err) {
-      toast.error('Failed to update autonomy level.');
+      const error = err as Error & { code?: string };
+      if (error.code === 'reauth_required') {
+        toast.error(error.message || 'Re-authentication required for this autonomy level.', {
+          action: { label: 'Sign in', onClick: () => window.location.href = '/auth' },
+        });
+      } else {
+        toast.error(error.message || 'Failed to update autonomy level.');
+      }
       setLocalDepts(null);
     }
   }, [departments, queryClient]);

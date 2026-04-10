@@ -100,7 +100,10 @@ export const departmentsAPI = {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to update autonomy: ${response.statusText}`);
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(body.message || body.error || `Failed to update autonomy: ${response.statusText}`) as Error & { code?: string };
+      err.code = body.error;
+      throw err;
     }
 
     return response.json();
