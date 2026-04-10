@@ -31,7 +31,7 @@ router.get('/pages', async (req, res) => {
     res.json({ success: true, data: pages });
   } catch (error) {
     log.error('Failed to fetch wiki pages', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -64,7 +64,7 @@ router.get('/pages/:domain', async (req, res) => {
     res.json({ success: true, data: page });
   } catch (error) {
     log.error('Failed to fetch wiki page', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -81,7 +81,7 @@ router.get('/logs', async (req, res) => {
     res.json({ success: true, data: logs });
   } catch (error) {
     log.error('Failed to fetch wiki logs', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -115,7 +115,7 @@ router.post('/compile', async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('Manual wiki compilation failed', { error: error.message });
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

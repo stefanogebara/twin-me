@@ -483,7 +483,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Build personalized system prompt with structured context layers
     // Core memory blocks are passed through to be injected as FIRST dynamic element
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, twinSummary, proactiveInsights, userLocation, coreBlockText, departmentProposals, twinContext.wikiPages);
+    // Gate wiki pages behind explicit opt-in flag — prevents injection for non-flagged users
+    const wikiPagesForPrompt = featureFlags.llm_wiki === true ? twinContext.wikiPages : null;
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, twinSummary, proactiveInsights, userLocation, coreBlockText, departmentProposals, wikiPagesForPrompt);
 
     // Hard rule: never use emojis (user preference)
     systemPrompt.push({ type: 'text', text: '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead.' });
