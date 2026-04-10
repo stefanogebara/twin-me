@@ -1,23 +1,95 @@
 /**
  * Twin Scaling & Fidelity API Routes
  * ====================================
- * POST /api/twin/scaling-metrics — Trigger scaling measurement
- * GET  /api/twin/scaling-metrics — Get historical metrics + fit
- * POST /api/twin/fidelity        — Trigger fidelity measurement (rate-limited: 1/day)
- * GET  /api/twin/fidelity        — Get latest fidelity score
+ * Mounted under /api/twin and /api/tribe.
+ *
+ * POST /scaling-metrics — Trigger scaling measurement
+ * GET  /scaling-metrics — Get historical metrics + fit
+ * POST /fidelity        — Trigger fidelity measurement (rate-limited: 1/day)
+ * GET  /fidelity        — Get latest fidelity score
+ * GET  /ica-axes        — Get latest cached ICA axes, never rebuilds on read
+ * POST /ica-axes        — Retired rebuild endpoint
+ * POST /in-silico       — Score hypothetical stimuli
  */
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { measureScalingPoint, getScalingHistory } from '../services/scalingMetricsService.js';
 import { measureTwinFidelity, getLatestFidelity } from '../services/twinFidelityService.js';
-import { getPersonalityAxes, rebuildPersonalityAxes } from '../services/icaPersonalityService.js';
 import { predictEngagement } from '../services/inSilicoEngine.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
 const router = Router();
 const log = createLogger('TwinScaling');
+
+async function getCachedPersonalityAxes(userId) {
+  const { data: cache, error: cacheError } = await supabaseAdmin
+    .from('personality_axes_cache')
+    .select('generated_at, n_components, n_memories_used, total_variance_explained')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (cacheError) {
+    log.warn('Personality axes cache lookup failed', { userId, error: cacheError.message });
+  }
+
+  let generatedAt = cache?.generated_at || null;
+  if (!generatedAt) {
+    const { data: latestAxis, error: latestError } = await supabaseAdmin
+      .from('personality_axes')
+      .select('generated_at')
+      .eq('user_id', userId)
+      .order('generated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestError) {
+      log.warn('Latest personality axis lookup failed', { userId, error: latestError.message });
+    }
+
+    generatedAt = latestAxis?.generated_at || null;
+  }
+
+  if (!generatedAt) {
+    return {
+      axes: [],
+      cached: true,
+      generated_at: null,
+      n_components: 0,
+      n_memories_used: 0,
+      total_variance_explained: null,
+    };
+  }
+
+  const { data: axes, error: axesError } = await supabaseAdmin
+    .from('personality_axes')
+    .select('axis_index, label, description, variance_explained, top_memory_contents, generated_at')
+    .eq('user_id', userId)
+    .eq('generated_at', generatedAt)
+    .order('axis_index', { ascending: true });
+
+  if (axesError) {
+    log.warn('Personality axes fetch failed', { userId, error: axesError.message });
+    return {
+      axes: [],
+      cached: true,
+      generated_at: generatedAt,
+      n_components: cache?.n_components || 0,
+      n_memories_used: cache?.n_memories_used || 0,
+      total_variance_explained: cache?.total_variance_explained || null,
+    };
+  }
+
+  return {
+    axes: axes || [],
+    cached: true,
+    generated_at: generatedAt,
+    n_components: cache?.n_components || axes?.length || 0,
+    n_memories_used: cache?.n_memories_used || 0,
+    total_variance_explained: cache?.total_variance_explained || null,
+  };
+}
 
 // ─── Scaling Metrics ──────────────────────────────────────────────────
 
@@ -88,10 +160,7 @@ router.get('/fidelity', authenticateUser, async (req, res) => {
 
 router.get('/ica-axes', authenticateUser, async (req, res) => {
   try {
-    const result = await getPersonalityAxes(req.user.id);
-    if (result?.error) {
-      return res.status(422).json({ success: false, error: result.error, message: result.message });
-    }
+    const result = await getCachedPersonalityAxes(req.user.id);
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('Personality axes fetch failed', { error: error.message });
@@ -100,24 +169,11 @@ router.get('/ica-axes', authenticateUser, async (req, res) => {
 });
 
 router.post('/ica-axes', authenticateUser, async (req, res) => {
-  try {
-    const { data: cache } = await supabaseAdmin
-      .from('personality_axes_cache')
-      .select('generated_at')
-      .eq('user_id', req.user.id)
-      .maybeSingle();
-    if (cache?.generated_at) {
-      const hoursSince = (Date.now() - new Date(cache.generated_at).getTime()) / (1000 * 60 * 60);
-      if (hoursSince < 6) {
-        return res.status(429).json({ success: false, error: `Rebuild available in ${Math.ceil(6 - hoursSince)} hours.` });
-      }
-    }
-    const result = await rebuildPersonalityAxes(req.user.id);
-    res.json({ success: true, data: result });
-  } catch (error) {
-    log.error('Personality axes rebuild failed', { error: error.message });
-    res.status(500).json({ success: false, error: 'Failed to rebuild personality axes' });
-  }
+  return res.status(410).json({
+    success: false,
+    error: 'personality_axes_rebuild_retired',
+    message: 'ICA axes are read-only cached artifacts. Use soul signature layers for live personality updates.',
+  });
 });
 
 // --- In-Silico Experimentation (Phase B) ---
