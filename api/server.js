@@ -446,6 +446,7 @@ import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
+import wikiRoutes from './routes/wiki.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
@@ -563,6 +564,7 @@ app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment wit
 app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // AI cost dashboard
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
+app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
 app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job history

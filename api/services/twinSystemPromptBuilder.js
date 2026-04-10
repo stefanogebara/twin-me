@@ -251,7 +251,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -295,8 +295,19 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   }
   dynamicContext += `\n${temporalLine}`;
 
+  // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
+  // When wiki pages are available, they subsume the twin summary with richer structured context.
+  const hasWikiPages = wikiPages && wikiPages.length > 0;
+  if (hasWikiPages) {
+    dynamicContext += '\n\n=== MY KNOWLEDGE BASE ===';
+    for (const page of wikiPages) {
+      dynamicContext += `\n\n### ${page.title}\n${page.content_md}`;
+    }
+  }
+
   // === DYNAMIC TWIN SUMMARY (Primary Identity - from memory stream) ===
-  if (twinSummary) {
+  // Skipped when wiki pages are present (wiki subsumes it with richer context)
+  if (twinSummary && !hasWikiPages) {
     dynamicContext += `\n\nWho I am (based on everything I've shared and experienced):\n${twinSummary}`;
   }
 

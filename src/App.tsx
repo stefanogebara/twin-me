@@ -55,6 +55,7 @@ const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
+const WikiPage = lazy(() => import("./pages/WikiPage"));
 
 // Prototype pages (Sundust design system)
 const PrototypeLanding    = lazy(() => import('./prototype/pages/PrototypeLanding'));
@@ -246,6 +247,17 @@ const App = () => {
               </ProtectedRoute>
             } />
 
+
+            {/* LLM Wiki Knowledge Base */}
+            <Route path="/wiki" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <WikiPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
 
             {/* Platform Connection / Get Started */}
             <Route path="/get-started" element={

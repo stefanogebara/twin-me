@@ -29,6 +29,7 @@ import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveIns
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
+import { compileWikiPages } from './wikiCompilationService.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
@@ -4996,9 +4997,22 @@ async function runObservationIngestion(options = {}) {
             if (shouldReflect) {
               log.info('Triggering reflections', { userId });
               // Run in background — don't block the ingestion loop
-              generateReflections(userId).catch(err =>
-                log.warn('Reflection error', { userId, error: err })
-              );
+              generateReflections(userId)
+                .then(count => {
+                  // Chain wiki compilation after reflections settle (60s delay)
+                  // Wiki pages use reflections as input, so they must complete first
+                  if (count > 0) {
+                    const wikiTimer = setTimeout(() => {
+                      compileWikiPages(userId).catch(err =>
+                        log.warn('Wiki compilation error', { userId, error: err })
+                      );
+                    }, 60000);
+                    wikiTimer.unref(); // Don't prevent process exit
+                  }
+                })
+                .catch(err =>
+                  log.warn('Reflection error', { userId, error: err })
+                );
               stats.reflectionsTriggered++;
             }
           } catch (reflErr) {
@@ -5327,9 +5341,20 @@ async function runPostOnboardingIngestion(userId) {
       try {
         const shouldReflect = await shouldTriggerReflection(userId);
         if (shouldReflect) {
-          generateReflections(userId).catch(err =>
-            log.warn('Post-onboarding reflection error', { error: err })
-          );
+          generateReflections(userId)
+            .then(count => {
+              if (count > 0) {
+                const wikiTimer = setTimeout(() => {
+                  compileWikiPages(userId).catch(err =>
+                    log.warn('Post-onboarding wiki compilation error', { error: err })
+                  );
+                }, 60000);
+                wikiTimer.unref();
+              }
+            })
+            .catch(err =>
+              log.warn('Post-onboarding reflection error', { error: err })
+            );
         }
       } catch { /* non-critical */ }
 
