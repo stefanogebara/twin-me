@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'departments',  label: 'Departments',     icon: LayoutGrid,    path: '/departments' },
+  { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/get-started' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 

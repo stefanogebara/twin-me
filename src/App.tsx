@@ -49,7 +49,6 @@ const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsP
 const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
 const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsPage"));
 const LinkedInInsightsPage = lazy(() => import("./pages/insights/LinkedInInsightsPage"));
-const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
 const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
@@ -320,17 +319,6 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <DepartmentsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-
-            {/* Goal Tracking */}
-            <Route path="/goals" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <GoalsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

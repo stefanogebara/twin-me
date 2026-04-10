@@ -50,23 +50,6 @@ export interface MemoryStats {
   };
 }
 
-export interface Goal {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  metric_type: string;
-  target_value: number;
-  status: 'suggested' | 'active' | 'completed' | 'abandoned';
-  duration_days: number;
-  total_days_tracked: number;
-  total_days_met: number;
-  current_streak: number;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
-}
-
 export interface PlatformSummary {
   [platform: string]: {
     latestAt: string;
@@ -104,7 +87,6 @@ export interface TwinPortraitData {
   reflections: ExpertReflection[];
   insights: ProactiveInsight[];
   memoryStats: MemoryStats;
-  goals: Goal[];
   platformData: PlatformSummary | null;
   personalityScores: PersonalityScoresData | null;
   connectedPlatforms: ConnectedPlatform[];
