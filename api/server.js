@@ -457,6 +457,7 @@ import whatsappLinkRoutes from './routes/whatsapp-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
 import twinScalingRoutes from './routes/twin-scaling.js';
+import twinIntelligenceRoutes from './routes/twin-intelligence.js';
 import multimodalRoutes from './routes/multimodal.js';
 import morningBriefingRoutes from './routes/morning-briefing.js';
 import sidebarContextRoutes from './routes/sidebar-context.js';
@@ -637,6 +638,8 @@ app.use('/api/telegram', telegramLinkRoutes); // Telegram account linking
 app.use('/api/whatsapp-link', whatsappLinkRoutes); // WhatsApp self-serve phone linking
 app.use('/api/inngest', inngestRoutes); // Inngest durable execution endpoint
 app.use('/api/skills', skillsRoutes); // Twin skill definitions + execution
+app.use('/api/twin', twinIntelligenceRoutes); // Twin Intelligence compatibility: fidelity
+app.use('/api/tribe', twinIntelligenceRoutes); // TRIBE compatibility: ICA axes
 app.use('/api/tribe', twinScalingRoutes); // TRIBE v2: scaling, fidelity, ICA axes, in-silico
 // personality-axes + in-silico routes are in twinScalingRoutes (merged)
 app.use('/api/twin', multimodalRoutes); // Multimodal personality fusion (TRIBE v2 Phase C)
