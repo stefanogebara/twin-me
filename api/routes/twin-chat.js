@@ -51,7 +51,7 @@ import { runCitationPipeline } from '../services/citationExtractionService.js';
 import { strengthenCoCitedLinks } from '../services/memoryLinksService.js';
 import { computeAlpha } from '../services/memoryStreamService.js';
 import { lzComplexity } from '../utils/lzComplexity.js';
-import { getProfile } from '../services/personalityProfileService.js';
+import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
@@ -384,6 +384,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     let twinContext;
     let userLocation = null;
     let personalityProfile = null;
+    let soulLayers = null;
     let oracleDraft = null;
     let workspaceBlock = null;
     try {
@@ -416,6 +417,9 @@ router.post('/message', authenticateUser, async (req, res) => {
         getProfile(userId)
           .then(p => { personalityProfile = p; })
           .catch(err => { log.warn('Personality profile fetch failed', { error: err }); }),
+        getSoulSignatureLayers(userId)
+          .then(layers => { soulLayers = layers; })
+          .catch(err => { log.warn('Soul signature layers fetch failed', { error: err }); }),
         // Personality Oracle: finetuned model generates behavioral compass draft (800ms budget)
         ...(usePersonalityOracle ? [
           getOracleDraft(userId, message)
@@ -490,8 +494,8 @@ router.post('/message', authenticateUser, async (req, res) => {
       log.debug('Persona block built', { chars: personaBlock.length });
     }
 
-    // Inject personality calibration block (OCEAN-derived behavioral instructions, zero LLM cost)
-    const personalityPromptBlock = buildPersonalityPrompt(personalityProfile);
+    // Inject personality calibration block (soul-layer + stylometric instructions, zero LLM cost)
+    const personalityPromptBlock = buildPersonalityPrompt(personalityProfile, soulLayers);
     if (personalityPromptBlock) {
       systemPrompt.push({ type: 'text', text: `\n${personalityPromptBlock}` });
       log.debug('Personality calibration', { chars: personalityPromptBlock.length, confidence: personalityProfile?.confidence?.toFixed(2) });

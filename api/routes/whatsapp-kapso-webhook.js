@@ -24,7 +24,7 @@ import { classifyMessageTier, CHAT_TIER_MODELS } from '../services/chatRouter.js
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
-import { getProfile } from '../services/personalityProfileService.js';
+import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
 
@@ -266,10 +266,11 @@ router.post('/webhook', async (req, res) => {
 // ====================================================================
 async function processTwinMessage(userId, message) {
   // Build context in parallel
-  const [twinContext, coreBlocks, personalityProfile] = await Promise.all([
+  const [twinContext, coreBlocks, personalityProfile, soulLayers] = await Promise.all([
     fetchTwinContext(userId, message).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
     getProfile(userId).catch(() => null),
+    getSoulSignatureLayers(userId).catch(() => null),
   ]);
 
   // Build system prompt
@@ -284,9 +285,9 @@ async function processTwinMessage(userId, message) {
     systemParts.push(`WHO YOU ARE:\n${twinContext.twinSummary}`);
   }
 
-  // OCEAN personality prompt
-  if (personalityProfile) {
-    const personalityBlock = buildPersonalityPrompt(personalityProfile);
+  // Soul-layer personality prompt
+  if (personalityProfile || soulLayers) {
+    const personalityBlock = buildPersonalityPrompt(personalityProfile, soulLayers);
     if (personalityBlock) systemParts.push(personalityBlock);
   }
 

@@ -4,9 +4,8 @@
  * Core service for the Soul Signature Voting Layer.
  *
  * Derives structured personality signals from a user's memory stream:
- * - OCEAN Big Five scores via LLM analysis (DeepSeek / TIER_ANALYSIS)
  * - Stylometrics computed purely from conversation text (no LLM)
- * - LLM sampling params derived from OCEAN scores
+ * - LLM sampling params derived from soul signature layers
  * - Personality embedding as weighted average of memory vectors
  *
  * Profiles are cached in user_personality_profiles and rebuilt at most
@@ -19,7 +18,6 @@
 
 import { supabaseAdmin } from './database.js';
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
-import { retrieveMemories } from './memoryStreamService.js';
 import { generateEmbedding, vectorToString } from './embeddingService.js';
 import { createLogger } from './logger.js';
 
@@ -120,7 +118,37 @@ export async function extractOCEAN(userId) {
 }
 
 // ---------------------------------------------------------------------------
-// 2. computeStylometrics
+// 2. getSoulSignatureLayers
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch the cached five-layer soul signature portrait for a user.
+ *
+ * @param {string} userId
+ * @returns {Promise<Object|null>}
+ */
+export async function getSoulSignatureLayers(userId) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('soul_signature_layers')
+      .select('layers')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      log.warn('getSoulSignatureLayers fetch error', { error });
+      return null;
+    }
+
+    return data?.layers ?? null;
+  } catch (err) {
+    log.warn('getSoulSignatureLayers error', { error: err });
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 3. computeStylometrics
 // ---------------------------------------------------------------------------
 
 const FORMAL_MARKERS = new Set([
@@ -234,11 +262,17 @@ export async function computeStylometrics(userId) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. deriveSamplingParams
+// 4. deriveSamplingParamsFrom5Layers
 // ---------------------------------------------------------------------------
 
 /**
- * Map OCEAN scores to LLM sampling parameters for the twin's voice.
+ * Map soul signature layers to LLM sampling parameters for the twin's voice.
+ *
+ * Mapping rationale:
+ *   taste.diversity       → temperature (eclectic taste = more varied output)
+ *   connections.style     → presence_penalty (social butterfly = explores more topics)
+ *   growthEdges.isStable  → lower temperature delta (stable person = steadier output)
+ *   top value strengths   → frequency_penalty (high Achievement/Power = more precise vocab)
  *
  * Clamping ranges:
  *   temperature:       0.4 – 0.95
@@ -246,44 +280,75 @@ export async function computeStylometrics(userId) {
  *   frequency_penalty: 0.0 – 0.30
  *   presence_penalty:  0.0 – 0.30
  *
- * @param {{ openness, conscientiousness, extraversion, agreeableness, neuroticism }} ocean
+ * @param {Object} soulLayers - Layers object from soul_signature_layers.layers
  * @returns {{ temperature, top_p, frequency_penalty, presence_penalty }}
  */
-export function deriveSamplingParams(ocean) {
-  const temperature = clamp(
-    0.5 + ocean.openness * 0.25 - ocean.conscientiousness * 0.15 + ocean.neuroticism * 0.05,
-    0.4,
-    0.95,
-  );
+export function deriveSamplingParamsFrom5Layers(soulLayers) {
+  // Defaults — neutral mid-range
+  let temperature = 0.7;
+  let top_p = 0.9;
+  let frequency_penalty = 0.1;
+  let presence_penalty = 0.1;
 
-  const top_p = clamp(
-    0.85 + ocean.openness * 0.08 - ocean.conscientiousness * 0.05,
-    0.8,
-    0.98,
-  );
+  if (!soulLayers) {
+    return { temperature, top_p, frequency_penalty, presence_penalty };
+  }
 
-  const frequency_penalty = clamp(
-    ocean.extraversion * 0.2 - ocean.agreeableness * 0.1,
-    0.0,
-    0.3,
-  );
+  // Taste diversity → temperature (eclectic = more creative output)
+  const diversity = soulLayers.taste?.diversity ?? 0.5;
+  temperature += (diversity - 0.5) * 0.2; // ±0.1 swing
 
-  const presence_penalty = clamp(
-    ocean.extraversion * 0.2,
-    0.0,
-    0.3,
-  );
+  // Connection style → presence_penalty (outward people explore more topics)
+  const connectionStyle = soulLayers.connections?.style ?? '';
+  const outwardStyles = ['social_butterfly', 'community_builder'];
+  const inwardStyles = ['lone_wolf', 'selective_engager'];
+  if (outwardStyles.includes(connectionStyle)) {
+    presence_penalty += 0.1;
+  } else if (inwardStyles.includes(connectionStyle)) {
+    presence_penalty -= 0.05;
+  }
+
+  // Growth edges: stable → steadier output; many growth shifts → more exploratory
+  const isStable = soulLayers.growthEdges?.isStable ?? false;
+  const shiftCount = soulLayers.growthEdges?.shifts?.length ?? 0;
+  if (isStable) {
+    temperature -= 0.05;
+  } else if (shiftCount >= 2) {
+    temperature += 0.05;
+    top_p += 0.02;
+  }
+
+  // Top values: goal-focused values → more precise output
+  const values = soulLayers.values?.values ?? [];
+  const goalValues = new Set(['Achievement', 'Power', 'Security', 'Conformity']);
+  const exploratoryValues = new Set(['Curiosity', 'Stimulation', 'Self-Direction', 'Creativity', 'Freedom']);
+  let goalStrength = 0;
+  let exploratoryStrength = 0;
+  for (const v of values) {
+    if (goalValues.has(v.name)) goalStrength += v.strength ?? 0;
+    if (exploratoryValues.has(v.name)) exploratoryStrength += v.strength ?? 0;
+  }
+  frequency_penalty += goalStrength * 0.05;       // precise vocabulary
+  temperature += exploratoryStrength * 0.03;      // more open-ended
 
   return {
-    temperature: round3(temperature),
-    top_p: round3(top_p),
-    frequency_penalty: round3(frequency_penalty),
-    presence_penalty: round3(presence_penalty),
+    temperature: round3(clamp(temperature, 0.4, 0.95)),
+    top_p: round3(clamp(top_p, 0.8, 0.98)),
+    frequency_penalty: round3(clamp(frequency_penalty, 0.0, 0.3)),
+    presence_penalty: round3(clamp(presence_penalty, 0.0, 0.3)),
   };
 }
 
+/**
+ * @deprecated Use deriveSamplingParamsFrom5Layers instead.
+ * Kept for backward compatibility — returns neutral defaults.
+ */
+export function deriveSamplingParams(_ocean) {
+  return deriveSamplingParamsFrom5Layers(null);
+}
+
 // ---------------------------------------------------------------------------
-// 4. buildPersonalityEmbedding
+// 5. buildPersonalityEmbedding
 // ---------------------------------------------------------------------------
 
 const DECAY_RATE = Math.log(2) / 7; // 7-day half-life ≈ 0.099
@@ -369,32 +434,35 @@ export async function buildPersonalityEmbedding(userId) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. buildProfile
+// 6. buildProfile
 // ---------------------------------------------------------------------------
 
 /**
  * Orchestrate all personality signals and upsert to user_personality_profiles.
- * Runs extractOCEAN, computeStylometrics, and buildPersonalityEmbedding in parallel.
- * Returns null if OCEAN extraction fails (not enough memories).
+ * Fetches soul_signature_layers (5-layer portrait) and derives sampling params from them.
+ * Also computes stylometrics and personality embedding.
+ *
+ * Returns null if fewer than 20 memories exist (insufficient data for stylometrics).
  *
  * @param {string} userId
  * @returns {Promise<Object|null>}
  */
 export async function buildProfile(userId) {
   try {
-    // All three heavy operations run in parallel
-    const [ocean, stylometrics, personalityEmbedding] = await Promise.all([
-      extractOCEAN(userId),
+    // Fetch soul layers + stylometrics + embedding in parallel
+    const [soulLayers, stylometrics, personalityEmbedding] = await Promise.all([
+      getSoulSignatureLayers(userId),
       computeStylometrics(userId),
       buildPersonalityEmbedding(userId),
     ]);
 
-    if (!ocean) {
-      log.info('buildProfile: OCEAN null, not enough memories', { userId });
+    // Check we have enough conversation data for stylometrics
+    if (!stylometrics) {
+      log.info('buildProfile: insufficient memories for stylometrics', { userId });
       return null;
     }
 
-    const samplingParams = deriveSamplingParams(ocean);
+    const samplingParams = deriveSamplingParamsFrom5Layers(soulLayers);
 
     // Count total memories for confidence
     const { count: memoryCount } = await supabaseAdmin
@@ -407,23 +475,17 @@ export async function buildProfile(userId) {
 
     const embeddingString = personalityEmbedding ? vectorToString(personalityEmbedding) : null;
 
-    const styl = stylometrics ?? {};
+    const styl = stylometrics;
     const profile = {
       user_id: userId,
-      // OCEAN Big Five
-      openness: ocean.openness,
-      conscientiousness: ocean.conscientiousness,
-      extraversion: ocean.extraversion,
-      agreeableness: ocean.agreeableness,
-      neuroticism: ocean.neuroticism,
-      // Stylometrics
+      // Stylometrics (pure computation from conversation text)
       avg_sentence_length: styl.avg_sentence_length ?? null,
       vocabulary_richness: styl.vocabulary_richness ?? null,
       formality_score: styl.formality_score ?? null,
       emotional_expressiveness: styl.emotional_expressiveness ?? null,
       humor_markers: styl.humor_markers ?? null,
       punctuation_style: styl.punctuation_style ?? {},
-      // Sampling params
+      // Sampling params (derived from soul layers)
       temperature: samplingParams.temperature,
       top_p: samplingParams.top_p,
       frequency_penalty: samplingParams.frequency_penalty,
@@ -452,7 +514,7 @@ export async function buildProfile(userId) {
 }
 
 // ---------------------------------------------------------------------------
-// 6. getProfile
+// 7. getProfile
 // ---------------------------------------------------------------------------
 
 const PROFILE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
