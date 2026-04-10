@@ -114,11 +114,10 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
 
   if (skills.length === 0) {
     return (
-      <div className="py-6 text-center">
-        <Bot className="w-5 h-5 mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.2)' }} />
-        <span className="text-[12px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          No agentic skills available yet
-        </span>
+      <div className="py-4">
+        <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif' }}>
+          Agentic skills unlock as your twin builds a picture of your routines. Check back once you have a few days of platform data.
+        </p>
       </div>
     );
   }

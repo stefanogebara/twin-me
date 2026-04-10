@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Brain, Activity, Loader2, RefreshCw, Zap } from 'lucide-react';
+import { Brain, Activity, Loader2, RefreshCw, Zap, Sparkles } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 
 interface FidelityData {
@@ -41,6 +41,14 @@ async function fetchReadiness(): Promise<ReadinessData | null> {
   return json.data;
 }
 
+async function triggerTraining(): Promise<void> {
+  const res = await authFetch('/finetuning/train', { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Training failed to start');
+  }
+}
+
 async function triggerFidelityMeasurement(): Promise<FidelityData | null> {
   const res = await authFetch('/twin/fidelity', { method: 'POST' });
   if (!res.ok) {
@@ -54,6 +62,18 @@ async function triggerFidelityMeasurement(): Promise<FidelityData | null> {
 const TwinIntelligence: React.FC = () => {
   const queryClient = useQueryClient();
   const [measureError, setMeasureError] = useState<string | null>(null);
+  const [trainError, setTrainError] = useState<string | null>(null);
+
+  const trainMutation = useMutation({
+    mutationFn: triggerTraining,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['finetuning', 'readiness'] });
+      setTrainError(null);
+    },
+    onError: (err: Error) => {
+      setTrainError(err.message);
+    },
+  });
 
   const { data: fidelity, isLoading: loadingFidelity } = useQuery({
     queryKey: ['twin', 'fidelity'],
@@ -167,6 +187,23 @@ const TwinIntelligence: React.FC = () => {
           </div>
           {loadingReadiness ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          ) : readiness?.eligible && !readiness?.model ? (
+            <button
+              onClick={() => trainMutation.mutate()}
+              disabled={trainMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97] disabled:opacity-40"
+              style={{
+                background: 'rgba(120,200,170,0.12)',
+                border: '1px solid rgba(120,200,170,0.2)',
+                color: 'rgba(120,200,170,0.9)',
+              }}
+            >
+              {trainMutation.isPending ? (
+                <><Loader2 className="w-3 h-3 animate-spin" /> Starting...</>
+              ) : (
+                <><Sparkles className="w-3 h-3" /> Train model</>
+              )}
+            </button>
           ) : (
             <span
               className="text-xs px-2 py-1 rounded-full"
@@ -178,10 +215,14 @@ const TwinIntelligence: React.FC = () => {
                 fontFamily: 'Inter, sans-serif',
               }}
             >
-              {readiness?.model ? 'Active' : readiness?.eligible ? 'Ready to train' : 'Collecting data'}
+              {readiness?.model ? 'Active' : 'Collecting data'}
             </span>
           )}
         </div>
+
+        {trainError && (
+          <p className="text-xs py-2" style={{ color: 'rgba(255,140,160,0.8)' }}>{trainError}</p>
+        )}
 
         {/* Training Progress */}
         <div className="flex items-center justify-between py-3 -mx-1 px-1 rounded-[4px] transition-colors" onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')} onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}>

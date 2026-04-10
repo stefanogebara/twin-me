@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bell, BellOff, Mail, Moon, AlertCircle } from 'lucide-react';
+import { Bell, BellOff, Mail, AlertCircle } from 'lucide-react';
 import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
@@ -192,6 +192,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
               ? 'Blocked by browser — enable in browser settings'
               : 'Browser notifications for real-time insights'
         }
+        isLast
       >
         <ToggleSwitch
           enabled={pushEnabled}
@@ -201,23 +202,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
         />
       </SettingRow>
 
-      {/* ── Quiet Hours ── */}
-      <SettingRow
-        icon={<Moon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />}
-        label="Quiet Hours"
-        description="No notifications between 11 PM and 8 AM"
-        isLast
-      >
-        <span
-          className="text-[12px] px-2.5 py-1 rounded-full"
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            color: 'rgba(255,255,255,0.4)',
-          }}
-        >
-          Always on
-        </span>
-      </SettingRow>
     </div>
   );
 };
