@@ -16,7 +16,7 @@ import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
-import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, SoulSignatureLayers } from '@/utils/archetypeEngine';
+import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
