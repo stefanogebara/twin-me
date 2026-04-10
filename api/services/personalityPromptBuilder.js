@@ -1,76 +1,105 @@
 /**
  * personalityPromptBuilder.js
  *
- * Translates OCEAN Big Five scores + stylometric fingerprint into natural language
+ * Translates soul signature layers + stylometric fingerprint into natural language
  * behavioral instructions for the twin's system prompt. Pure function, zero LLM cost.
  */
 
-const HIGH = 0.65;
-const LOW = 0.35;
-
 /**
- * Build OCEAN-based behavioral instruction strings.
- * Only emits instructions for traits with notably high or low scores.
+ * Build soul-signature-layer-based behavioral instruction strings.
+ * Maps the 5 layers (values, rhythms, taste, connections, growthEdges) to
+ * concrete behavioral calibrations for the twin's voice.
  *
- * @param {Object} profile - Personality profile
+ * @param {Object|null} soulLayers - Soul signature layers object
  * @returns {string[]} Array of instruction strings
  */
-function buildOceanInstructions(profile) {
+function buildSoulSigInstructions(soulLayers) {
+  if (!soulLayers) return [];
+
   const instructions = [];
 
-  const { openness, conscientiousness, extraversion, agreeableness, neuroticism } = profile;
+  // --- Values layer → communication priorities ---
+  const values = soulLayers.values?.values ?? [];
+  const topValues = values.filter(v => (v.strength ?? 0) >= 0.65).map(v => v.name);
 
-  if (openness > HIGH) {
+  if (topValues.includes('Curiosity') || topValues.includes('Stimulation')) {
     instructions.push(
-      "Be creative and exploratory in your responses. Offer unusual perspectives and make unexpected connections between ideas."
+      'Be intellectually curious and exploratory. Offer unexpected angles and connections between ideas.'
     );
-  } else if (openness < LOW) {
+  }
+  if (topValues.includes('Achievement') || topValues.includes('Power')) {
     instructions.push(
-      "Be practical and concrete. Stick to what's directly relevant and avoid abstract tangents."
+      'Be direct and results-focused. They value clear, actionable thinking — skip filler.'
+    );
+  }
+  if (topValues.includes('Benevolence') || topValues.includes('Universalism')) {
+    instructions.push(
+      'Lead with warmth and genuine care. Acknowledge feelings before jumping to solutions.'
+    );
+  }
+  if (topValues.includes('Security') || topValues.includes('Conformity')) {
+    instructions.push(
+      'Be reliable and grounded. Avoid unnecessary risk-taking in tone or suggestions.'
+    );
+  }
+  if (topValues.includes('Creativity') || topValues.includes('Self-Direction') || topValues.includes('Freedom')) {
+    instructions.push(
+      'Be open-ended and non-prescriptive. They dislike being boxed in — offer possibilities, not mandates.'
     );
   }
 
-  if (conscientiousness > HIGH) {
+  // --- Taste layer → aesthetic calibration ---
+  const tasteStatement = soulLayers.taste?.statement;
+  const diversity = soulLayers.taste?.diversity ?? 0.5;
+  if (tasteStatement) {
     instructions.push(
-      "Be precise and organized in your responses. Use structured thinking and clear, actionable advice."
+      `Match their aesthetic sensibility: ${tasteStatement}`
     );
-  } else if (conscientiousness < LOW) {
+  } else if (diversity > 0.7) {
+    instructions.push('Their taste is eclectic — embrace range and avoid clichés.');
+  } else if (diversity < 0.3) {
+    instructions.push('Their taste runs deep in specific areas — lean into those spaces.');
+  }
+
+  // --- Connections layer → social calibration ---
+  const connectionStyle = soulLayers.connections?.style;
+  if (connectionStyle === 'social_butterfly' || connectionStyle === 'community_builder') {
     instructions.push(
-      "Keep things casual and flexible. Don't over-structure your responses or give rigid plans."
+      'They thrive on connection — be warm, enthusiastic, and willing to range across topics.'
+    );
+  } else if (connectionStyle === 'lone_wolf') {
+    instructions.push(
+      'They value space and independence — be present without being needy. Don\'t over-share.'
+    );
+  } else if (connectionStyle === 'selective_engager' || connectionStyle === 'deep_connector') {
+    instructions.push(
+      'They prefer depth over breadth — go deep on what matters, skip small talk.'
     );
   }
 
-  if (extraversion > HIGH) {
+  // --- Growth edges layer → awareness of change ---
+  const isStable = soulLayers.growthEdges?.isStable;
+  const shifts = soulLayers.growthEdges?.shifts ?? [];
+  const growthShifts = shifts.filter(s => s.type === 'growth');
+  if (growthShifts.length > 0) {
     instructions.push(
-      "Be energetic and enthusiastic. Use varied vocabulary, explore multiple angles, and don't hold back."
+      `They\'re actively evolving — acknowledge their growth, don\'t anchor them to who they were.`
     );
-  } else if (extraversion < LOW) {
+  } else if (isStable) {
     instructions.push(
-      "Be measured and thoughtful. Give space for reflection. Don't overwhelm with energy."
-    );
-  }
-
-  if (agreeableness > HIGH) {
-    instructions.push(
-      "Be warm and supportive. Validate feelings before offering alternatives. Use a collaborative tone."
-    );
-  } else if (agreeableness < LOW) {
-    instructions.push(
-      "Be direct and straightforward. Don't sugarcoat. They appreciate honest, no-BS communication."
-    );
-  }
-
-  if (neuroticism > HIGH) {
-    instructions.push(
-      "Be emotionally attuned and validating. Acknowledge complexity in feelings. Show you understand nuance."
-    );
-  } else if (neuroticism < LOW) {
-    instructions.push(
-      "Be steady and grounded. Don't over-dramatize or catastrophize. Keep an even keel."
+      'They\'re in a stable, consistent phase — honor their equilibrium rather than pushing for change.'
     );
   }
 
   return instructions;
+}
+
+/**
+ * @deprecated Use buildSoulSigInstructions instead. Kept for callers
+ * that still pass a profile object — returns empty array (OCEAN removed).
+ */
+function buildOceanInstructions(_profile) {
+  return [];
 }
 
 /**
@@ -118,24 +147,24 @@ function buildStyleInstructions(profile) {
 }
 
 /**
- * Translates an OCEAN Big Five profile + stylometric fingerprint into a natural language
+ * Translates soul signature layers + stylometric fingerprint into a natural language
  * personality calibration block for injection into the twin system prompt.
  *
- * @param {Object|null} profile - Personality profile object with fields:
- *   openness, conscientiousness, extraversion, agreeableness, neuroticism,
- *   avg_sentence_length, vocabulary_richness, formality_score,
- *   emotional_expressiveness, humor_markers, confidence
- * @returns {string} Formatted personality calibration block, or empty string if profile
- *   is null or confidence is below 0.2
+ * @param {Object|null} profile - Personality profile (stylometrics + confidence)
+ * @param {Object|null} soulLayers - Soul signature layers (values, rhythms, taste, connections, growthEdges)
+ * @returns {string} Formatted personality calibration block, or empty string
  */
-export function buildPersonalityPrompt(profile) {
-  if (!profile || profile.confidence < 0.2) {
+export function buildPersonalityPrompt(profile, soulLayers) {
+  const hasSoulLayers = soulLayers && Object.keys(soulLayers).length > 0;
+  const hasProfile = profile && (profile.confidence ?? 0) >= 0.2;
+
+  if (!hasSoulLayers && !hasProfile) {
     return '';
   }
 
   const instructions = [
-    ...buildOceanInstructions(profile),
-    ...buildStyleInstructions(profile),
+    ...buildSoulSigInstructions(soulLayers),
+    ...(hasProfile ? buildStyleInstructions(profile) : []),
   ];
 
   if (instructions.length === 0) {

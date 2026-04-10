@@ -19,7 +19,7 @@ import { classifyMessageTier, CHAT_TIER_MODELS } from '../services/chatRouter.js
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
-import { getProfile } from '../services/personalityProfileService.js';
+import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
@@ -359,10 +359,11 @@ async function handleLinkCode(ctx, chatId, code) {
  */
 async function processTwinMessage(userId, message) {
   // Build context (reuse existing pipeline)
-  const [twinContext, coreBlocks, personalityProfile] = await Promise.all([
+  const [twinContext, coreBlocks, personalityProfile, soulLayers] = await Promise.all([
     fetchTwinContext(userId, message).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
     getProfile(userId).catch(() => null),
+    getSoulSignatureLayers(userId).catch(() => null),
   ]);
 
   // Build system prompt
@@ -379,9 +380,9 @@ async function processTwinMessage(userId, message) {
     systemParts.push(`WHO YOU ARE:\n${twinContext.twinSummary}`);
   }
 
-  // Personality prompt (OCEAN-derived behavioral instructions)
-  if (personalityProfile) {
-    const personalityBlock = buildPersonalityPrompt(personalityProfile);
+  // Personality prompt (soul-layer + stylometric behavioral instructions)
+  if (personalityProfile || soulLayers) {
+    const personalityBlock = buildPersonalityPrompt(personalityProfile, soulLayers);
     if (personalityBlock) systemParts.push(personalityBlock);
   }
 
