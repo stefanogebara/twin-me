@@ -3,7 +3,7 @@
  * =======================
  * Registers an Expo background-fetch task that fires every 6 hours.
  * On each run it:
- *  1. Reads the stored auth token from SecureStore
+ *  1. Checks for a stored mobile session in SecureStore
  *  2. Collects real app-usage data via UsageStatsModule (native Android module)
  *     and notification patterns via NotificationListenerModule.
  *     Falls back to empty payload gracefully on Expo Go / iOS.
@@ -33,8 +33,12 @@ import { NotificationListenerModule } from '../native/NotificationListenerModule
 
 TaskManager.defineTask(USAGE_SYNC_TASK, async () => {
   try {
-    const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-    if (!token) {
+    const [token, refreshToken] = await Promise.all([
+      SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+      SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
+    ]);
+
+    if (!token && !refreshToken) {
       return BackgroundFetch.BackgroundFetchResult.NoData;
     }
 
@@ -82,8 +86,11 @@ async function collectUsageData(): Promise<AndroidUsageData> {
 // ---------------------------------------------------------------------------
 
 export async function runSyncNow(): Promise<{ observationsCreated: number }> {
-  const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-  if (!token) throw new Error('Not authenticated');
+  const [token, refreshToken] = await Promise.all([
+    SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+    SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
+  ]);
+  if (!token && !refreshToken) throw new Error('Not authenticated');
 
   const data = await collectUsageData();
   const [result] = await Promise.all([

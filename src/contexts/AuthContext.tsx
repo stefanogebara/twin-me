@@ -12,7 +12,7 @@ import { setAccessToken, getAccessToken, authFetch } from '../services/api/apiBa
  * - All API calls should check isDemoMode before making real requests
  *
  * REAL AUTH:
- * - Uses JWT tokens stored in localStorage ('auth_token')
+ * - Uses short-lived access tokens plus refresh-cookie recovery
  * - Supports email/password and OAuth (Google) authentication
  * - Validates tokens on mount via /api/auth/verify endpoint
  */
@@ -24,6 +24,8 @@ interface User {
   lastName?: string;
   fullName?: string;
   profileImageUrl?: string;
+  createdAt?: string;
+  created_at?: string;
 }
 
 interface AuthContextType {
@@ -85,15 +87,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const verifyInFlightRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const resetAuthState = () => {
+    setAccessToken(null);
+    localStorage.removeItem('auth_user');
+    setUser(null);
+    setAuthToken(null);
+    setNeedsOnboarding(false);
+  };
+
+  const verifyTokenWithServer = (token: string, signal: AbortSignal) =>
+    fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      credentials: 'include',
+      signal,
+    });
+
   useEffect(() => {
-    // Page reload recovery: if no in-memory token, try cookie-based refresh first
+    // Page reload recovery: prefer refresh-cookie recovery whenever we have a cached session.
     const initAuth = async () => {
-      if (!getAccessToken() && !localStorage.getItem('auth_token')) {
-        // Only attempt cookie-based refresh if we've had a previous session on this device
-        // (auth_user exists = user logged in before, refresh cookie may still be valid)
-        if (localStorage.getItem('auth_user')) {
-          await refreshAccessToken();
-        }
+      if (!getAccessToken() && localStorage.getItem('auth_user')) {
+        await refreshAccessToken();
       }
       checkAuth();
     };
@@ -173,15 +188,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Token verification - must complete before isLoaded is set
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        credentials: 'include',
-        signal: abortController.signal,
-      });
+      let tokenToVerify = token;
+      let response = await verifyTokenWithServer(tokenToVerify, abortController.signal);
 
       // If this request was aborted (component unmounted), bail out silently
+      if (abortController.signal.aborted) return;
+
+      // Expired persisted access tokens can be recovered via the refresh cookie.
+      if (response.status === 401 && localStorage.getItem('auth_user')) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+          const refreshedToken = getAccessToken() || localStorage.getItem('auth_token');
+          if (refreshedToken) {
+            tokenToVerify = refreshedToken;
+            setAuthToken(refreshedToken);
+            response = await verifyTokenWithServer(refreshedToken, abortController.signal);
+          }
+        }
+      }
+
       if (abortController.signal.aborted) return;
 
       if (response.ok) {
@@ -190,12 +215,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Cache user data for next load
         localStorage.setItem('auth_user', JSON.stringify(userData.user));
         // Store account creation date for welcome guide auto-dismiss
-        if (userData.user?.createdAt) {
-          localStorage.setItem('twinme_account_created', userData.user.createdAt);
+        const createdAt = userData.user?.createdAt || userData.user?.created_at;
+        if (createdAt) {
+          localStorage.setItem('twinme_account_created', createdAt);
         }
         // Non-blocking: check if new user needs onboarding
         fetch(`${import.meta.env.VITE_API_URL}/onboarding/new-user-check`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { 'Authorization': `Bearer ${tokenToVerify}` }
         })
           .then(r => r.ok ? r.json() : null)
           .then(data => { if (data?.isNew) setNeedsOnboarding(true); })
@@ -211,11 +237,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } else {
         // Token is invalid - clear auth state
-        setAccessToken(null);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        setUser(null);
-        setAuthToken(null);
+        resetAuthState();
       }
     } catch (error: unknown) {
       // Aborted fetch — component unmounted, don't touch state
@@ -226,11 +248,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // This prevents logout on temporary network issues
       if (!cachedUser) {
         // No cached user and network error - clear everything
-        setAccessToken(null);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('auth_user');
-        setUser(null);
-        setAuthToken(null);
+        resetAuthState();
       }
       // If we have cached user, keep them logged in despite network error
     } finally {
@@ -255,13 +273,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }).catch(() => {});
     }
 
-    setAccessToken(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    resetAuthState();
     localStorage.removeItem('demo_mode'); // Also exit demo mode
-    setUser(null);
-    setAuthToken(null);
-    setNeedsOnboarding(false);
   };
 
   const clearAuth = () => {
@@ -275,11 +288,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }).catch(() => {});
     }
 
-    setAccessToken(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    setUser(null);
-    setAuthToken(null);
+    resetAuthState();
   };
 
   // Refresh access token using httpOnly refresh token cookie
@@ -295,7 +304,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
-        // Store access token in memory (not localStorage — XSS protection)
+        // Sync the rotated access token into the shared auth store.
         setAccessToken(data.accessToken);
         setAuthToken(data.accessToken);
         if (data.user) {

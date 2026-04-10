@@ -383,17 +383,17 @@ test.describe('4. Talk to Twin (/talk-to-twin)', () => {
     }
   });
 
-  test('API: twin chat endpoint responds (direct)', async ({ page }) => {
+  test('API: twin chat endpoint validates direct requests', async ({ page }) => {
     const response = await page.request.post(`${API_URL}/chat/message`, {
       headers: {
         Authorization: `Bearer ${TEST_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      data: { message: 'Hello, quick test', conversationId: null },
+      data: { message: '', conversationId: null },
+      timeout: 15000,
     });
     console.log('[Twin Chat API] Status:', response.status());
-    // SSE endpoint may return 503 when called without streaming client — accept any non-500 or 503
-    expect(response.status()).toBeLessThanOrEqual(503);
+    expect(response.status()).toBe(400);
   });
 });
 
@@ -402,13 +402,15 @@ test.describe('4. Talk to Twin (/talk-to-twin)', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('5. Soul Signature (/soul-signature)', () => {
-  test('page loads with data sections', async ({ page }) => {
+  test('legacy route redirects to identity and loads data sections', async ({ page }) => {
     const consoleErrors = collectConsoleErrors(page);
     const notFounds = collect404s(page);
 
     await injectAuthToken(page);
     await page.goto(`${BASE_URL}/soul-signature`);
+    await page.waitForURL('**/identity', { timeout: 5000 }).catch(() => {});
     await waitForPageLoad(page, 10000);
+    await page.locator('h1, h2, h3').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     await screenshot(page, '05-soul-signature-initial');
 
     const currentUrl = page.url();
@@ -416,6 +418,7 @@ test.describe('5. Soul Signature (/soul-signature)', () => {
       test.skip(true, 'Auth redirect');
       return;
     }
+    expect(currentUrl).toContain('/identity');
 
     const headingCount = await page.locator('h1, h2, h3').count();
     expect(headingCount).toBeGreaterThan(0);

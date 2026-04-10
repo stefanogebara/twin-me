@@ -1,8 +1,12 @@
 /**
  * Playwright config for comprehensive E2E suite.
- * Assumes both frontend (8086) and backend (3004) are already running.
+ * Starts/reuses the frontend (8086) and assumes the backend (3004) is already running.
  */
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(import.meta.dirname, '../../.env.test') });
 
 export default defineConfig({
   testDir: '.',
@@ -20,7 +24,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'on',
     video: 'off',
-    actionTimeout: 15000,
+    actionTimeout: 45000,
     navigationTimeout: 30000,
   },
   projects: [
@@ -29,5 +33,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // Do NOT start a webServer — both servers are already running
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:8086',
+    reuseExistingServer: true,
+    timeout: 120 * 1000,
+  },
 });

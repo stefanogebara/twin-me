@@ -2,15 +2,33 @@ import { useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { STORAGE_KEYS, API_URL, OAUTH_API_URL } from '../constants';
-import { login as apiLogin, register as apiRegister, claimAuthCode, verifyToken } from '../services/api';
+import { STORAGE_KEYS, OAUTH_API_URL } from '../constants';
+import {
+  authFetch,
+  claimAuthCode,
+  clearStoredSession,
+  login as apiLogin,
+  refreshSession,
+  register as apiRegister,
+  verifyToken,
+} from '../services/api';
 import type { User, AuthState } from '../types';
 
 WebBrowser.maybeCompleteAuthSession();
 
-async function saveSession(token: string, user: User) {
-  await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token);
-  await SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user));
+async function saveSession(token: string, user: User, refreshToken?: string | null) {
+  const writes: Promise<void>[] = [
+    SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token),
+    SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user)),
+  ];
+
+  if (typeof refreshToken === 'string' && refreshToken.length > 0) {
+    writes.push(SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken));
+  } else if (refreshToken === null) {
+    writes.push(SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN));
+  }
+
+  await Promise.all(writes);
 }
 
 export function useAuth() {
@@ -23,42 +41,57 @@ export function useAuth() {
   // On mount: load cached session immediately, then verify in background
   useEffect(() => {
     (async () => {
-      const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-      if (!token) {
+      const [token, refreshToken, cachedUserJson] = await Promise.all([
+        SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN),
+        SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
+        SecureStore.getItemAsync(STORAGE_KEYS.USER),
+      ]);
+
+      if (!token && !refreshToken) {
         setState({ token: null, user: null, isLoading: false });
         return;
       }
+
       // Load cached user immediately — no network wait
-      const cachedUserJson = await SecureStore.getItemAsync(STORAGE_KEYS.USER);
       const cachedUser = cachedUserJson ? JSON.parse(cachedUserJson) as User : null;
       if (cachedUser) {
         setState({ token, user: cachedUser, isLoading: false });
       }
-      // Verify in background — clear session on 401, keep on network error
-      verifyToken().then(user => {
+
+      // Verify in background — auto-refresh on expired access tokens, clear session only on auth failure
+      verifyToken().then(async user => {
         if (user) {
-          setState({ token, user, isLoading: false });
-        } else if (!cachedUser) {
-          SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+          const latestToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+          setState({ token: latestToken, user, isLoading: false });
+          return;
+        }
+
+        if (refreshToken) {
+          const refreshed = await refreshSession();
+          if (refreshed) {
+            setState({ token: refreshed.token, user: refreshed.user, isLoading: false });
+            return;
+          }
+        }
+
+        if (!cachedUser) {
+          await clearStoredSession();
           setState({ token: null, user: null, isLoading: false });
         }
-      }).catch((err: Error) => {
+      }).catch(async (err: Error) => {
         if (err?.message === 'UNAUTHORIZED') {
-          // Token expired/invalid — force re-login
-          SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-          SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
+          await clearStoredSession();
           setState({ token: null, user: null, isLoading: false });
-        } else {
-          // Network error — keep cached session
-          if (!cachedUser) setState({ token: null, user: null, isLoading: false });
+        } else if (!cachedUser) {
+          setState({ token: null, user: null, isLoading: false });
         }
       });
     })();
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { token, user } = await apiLogin(email, password);
-    await saveSession(token, user);
+    const { token, user, refreshToken } = await apiLogin(email, password);
+    await saveSession(token, user, refreshToken ?? null);
     setState({ token, user, isLoading: false });
   }, []);
 
@@ -68,8 +101,8 @@ export function useAuth() {
     firstName: string,
     lastName: string,
   ) => {
-    const { token, user } = await apiRegister(email, password, firstName, lastName);
-    await saveSession(token, user);
+    const { token, user, refreshToken } = await apiRegister(email, password, firstName, lastName);
+    await saveSession(token, user, refreshToken ?? null);
     setState({ token, user, isLoading: false });
   }, []);
 
@@ -93,20 +126,28 @@ export function useAuth() {
       throw new Error('No auth code received from Google sign-in.');
     }
 
-    const { token } = await claimAuthCode(authCode);
+    const { token, refreshToken } = await claimAuthCode(authCode);
     await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token);
+    if (typeof refreshToken === 'string' && refreshToken.length > 0) {
+      await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken);
+    }
 
     // Verify to get user object
     const user = await verifyToken();
     if (!user) throw new Error('Failed to verify session after Google sign-in.');
 
-    await SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user));
-    setState({ token, user, isLoading: false });
+    await saveSession(token, user, refreshToken ?? null);
+    const latestToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+    setState({ token: latestToken, user, isLoading: false });
   }, []);
 
   const logout = useCallback(async () => {
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-    await SecureStore.deleteItemAsync(STORAGE_KEYS.USER);
+    try {
+      await authFetch('/auth/logout', { method: 'POST' });
+    } catch {
+      // Best-effort server logout; local session is still cleared below.
+    }
+    await clearStoredSession();
     setState({ token: null, user: null, isLoading: false });
   }, []);
 

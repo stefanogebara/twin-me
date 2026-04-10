@@ -10,6 +10,7 @@ import * as betaInviteService from '../services/betaInviteService.js';
 import { sendWelcomeEmail } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
+import { authenticateUser } from '../middleware/auth.js';
 
 const log = createLogger('Auth');
 
@@ -172,6 +173,28 @@ function setRefreshCookie(res, refreshToken) {
   });
 }
 
+function shouldExposeRefreshToken(req) {
+  const clientHeader = req.get('x-twin-client')?.toLowerCase();
+  const bodyClient = typeof req.body?.client === 'string' ? req.body.client.toLowerCase() : null;
+  const queryClient = typeof req.query?.client === 'string' ? req.query.client.toLowerCase() : null;
+
+  return clientHeader === 'mobile' || bodyClient === 'mobile' || queryClient === 'mobile';
+}
+
+function buildAuthUser(user) {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.first_name,
+    lastName: user.last_name,
+    fullName: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email,
+    createdAt: user.created_at || null,
+    created_at: user.created_at || null,
+    emailVerified: user.email_verified ?? undefined,
+    email_verified: user.email_verified ?? undefined,
+  };
+}
+
 // Sign up
 router.post('/signup', authLimiter, async (req, res) => {
   try {
@@ -315,13 +338,8 @@ router.post('/signup', authLimiter, async (req, res) => {
     res.json({
       success: true,
       token: accessToken,
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        firstName: newUser.first_name,
-        lastName: newUser.last_name,
-        fullName: `${newUser.first_name} ${newUser.last_name}`.trim()
-      }
+      refreshToken: shouldExposeRefreshToken(req) ? refreshToken : undefined,
+      user: buildAuthUser(newUser),
     });
   } catch (error) {
     log.error('Signup error', { error });
@@ -348,7 +366,7 @@ router.post('/signin', authLimiter, async (req, res) => {
     // Get user
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name, password_hash')
+      .select('id, email, first_name, last_name, password_hash, created_at, email_verified')
       .eq('email', normalizedEmail)
       .single();
 
@@ -390,13 +408,8 @@ router.post('/signin', authLimiter, async (req, res) => {
     res.json({
       success: true,
       token: accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: `${user.first_name} ${user.last_name}`.trim()
-      }
+      refreshToken: shouldExposeRefreshToken(req) ? refreshToken : undefined,
+      user: buildAuthUser(user),
     });
   } catch (error) {
     log.error('Signin error', { error });
@@ -404,22 +417,13 @@ router.post('/signin', authLimiter, async (req, res) => {
   }
 });
 
-// Verify token
-router.get('/verify', async (req, res) => {
+// Verify token under the same auth policy as the rest of the API
+router.get('/verify', authenticateUser, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Get user data
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name')
-      .eq('id', decoded.id)
+      .select('id, email, first_name, last_name, created_at, email_verified')
+      .eq('id', req.user.id)
       .single();
 
     if (fetchError || !user) {
@@ -428,13 +432,7 @@ router.get('/verify', async (req, res) => {
 
     res.json({
       success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: `${user.first_name} ${user.last_name}`.trim()
-      }
+      user: buildAuthUser(user),
     });
   } catch (error) {
     log.error('Token verification error', { error });
@@ -457,7 +455,7 @@ router.post('/refresh', authLimiter, async (req, res) => {
     // Find user by refresh token hash
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name')
+      .select('id, email, first_name, last_name, created_at, email_verified')
       .eq('refresh_token_hash', tokenHash)
       .single();
 
@@ -484,13 +482,8 @@ router.post('/refresh', authLimiter, async (req, res) => {
     res.json({
       success: true,
       accessToken: newAccessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        fullName: `${user.first_name} ${user.last_name}`.trim()
-      }
+      refreshToken: shouldExposeRefreshToken(req) ? newRefreshToken : undefined,
+      user: buildAuthUser(user),
     });
   } catch (error) {
     log.error('Token refresh error', { error });
@@ -1242,6 +1235,7 @@ router.get('/oauth/claim', async (req, res) => {
   return res.json({
     success: true,
     token: session.access_token,
+    refreshToken: shouldExposeRefreshToken(req) ? session.refresh_token : undefined,
     provider: session.provider,
     redirectAfterAuth: session.redirect_after_auth || null,
   });

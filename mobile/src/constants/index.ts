@@ -7,6 +7,7 @@ export const OAUTH_API_URL = process.env.EXPO_PUBLIC_OAUTH_API_URL ?? 'https://t
 // Storage keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'twinme_auth_token',
+  AUTH_REFRESH_TOKEN: 'twinme_auth_refresh_token',
   USER: 'twinme_user',
   LAST_SYNC: 'twinme_last_sync',
   PERMISSIONS_SHOWN: 'twinme_permissions_shown',

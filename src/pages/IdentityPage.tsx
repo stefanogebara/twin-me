@@ -16,10 +16,9 @@ import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
-import { determineArchetype, generateTraitBadges } from '@/utils/archetypeEngine';
+import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, SoulSignatureLayers } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
-import PersonalityDNA from './components/identity/PersonalityDNA';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
 
@@ -363,17 +362,19 @@ const IdentityPage: React.FC = () => {
   });
 
   const isLoading = identityLoading || soulLoading;
+  const summary = data?.data?.summary ?? null;
+  const layers = soulData?.data?.layers ?? soulData?.data ?? null;
+  const hasLayers = !!(layers?.values?.values?.length || layers?.rhythms || layers?.taste || layers?.connections);
 
   // ── First-time reveal check ────────────────────────────────────────────
 
   const pp = personalityData?.profile ?? null;
-  const hasOcean = pp?.openness != null;
 
   useEffect(() => {
-    if (hasOcean && !localStorage.getItem(REVEAL_KEY)) {
+    if (hasLayers && !localStorage.getItem(REVEAL_KEY)) {
       setShowReveal(true);
     }
-  }, [hasOcean]);
+  }, [hasLayers]);
 
   const dismissReveal = useCallback(() => {
     setShowReveal(false);
@@ -411,25 +412,20 @@ const IdentityPage: React.FC = () => {
     );
   }
 
-  const summary = data?.data?.summary ?? null;
-  const layers = soulData?.data?.layers ?? soulData?.data ?? null;
-  const hasLayers = !!(layers?.values?.values?.length || layers?.rhythms || layers?.taste || layers?.connections);
-
-  const hasAnyData = !!(summary || hasOcean || hasLayers);
+  const hasAnyData = !!(summary || hasLayers);
 
   if (!hasAnyData) return <EmptyState />;
 
-  // If we have OCEAN but no soul layers yet, show a "still learning" state for the layers
   const showStillLearning = !hasLayers;
 
-  // ── Archetype computation ──────────────────────────────────────────────
+  // ── Archetype computation from 5-layer Soul Signature ─────────────────
 
-  const archetypeResult = hasOcean
-    ? determineArchetype(pp!.openness, pp!.conscientiousness, pp!.extraversion, pp!.agreeableness, pp!.neuroticism)
+  const archetypeResult = hasLayers && layers
+    ? determineArchetypeFromSoulLayers(layers as SoulSignatureLayers)
     : null;
 
-  const traitBadges = hasOcean
-    ? generateTraitBadges(pp!.openness, pp!.conscientiousness, pp!.extraversion, pp!.agreeableness, pp!.neuroticism)
+  const traitBadges = hasLayers && layers
+    ? generateTraitBadgesFromSoulLayers(layers as SoulSignatureLayers)
     : [];
 
   // ── Share handler ──────────────────────────────────────────────────────
@@ -582,16 +578,7 @@ const IdentityPage: React.FC = () => {
       {/* ── Identity Quote ─────────────────────────────────────────── */}
       <IdentityQuote />
 
-      {/* ── Personality DNA (OCEAN Sliders) ─────────────────────────── */}
-      <PersonalityDNA
-        ocean={personalityData?.profile ? {
-          openness: (personalityData.profile as any).openness ?? 0.5,
-          conscientiousness: (personalityData.profile as any).conscientiousness ?? 0.5,
-          extraversion: (personalityData.profile as any).extraversion ?? 0.5,
-          agreeableness: (personalityData.profile as any).agreeableness ?? 0.5,
-          neuroticism: (personalityData.profile as any).neuroticism ?? 0.5,
-        } : undefined}
-      />
+      {/* PersonalityDNA (OCEAN sliders) removed — replaced by 5-layer Soul Signature */}
 
       {/* ── Values ─────────────────────────────────────────────────── */}
       {layers?.values?.values && layers.values.values.length > 0 && (
