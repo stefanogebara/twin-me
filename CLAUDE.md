@@ -273,6 +273,32 @@ Closes the sensorimotor loop: twin suggests micro-action → user acts → twin 
 **Feature flag**: `embodied_feedback_loop` (default: enabled)
 **Migration**: `20260309_add_nudge_feedback_columns` — adds nudge_action, nudge_followed, nudge_outcome, nudge_checked_at to proactive_insights
 
+### LLM Wiki (Compiled Knowledge Base)
+Inspired by Karpathy's LLM Wiki pattern. Instead of re-deriving knowledge from raw memories on every chat, the system compiles structured, cross-referenced wiki pages that compound over time.
+
+**Three layers** (maps to Karpathy's architecture):
+- **Raw sources** = `user_memories` table (observations, facts, platform_data)
+- **Wiki** = `user_wiki_pages` table (5 compiled domain pages per user)
+- **Schema** = CLAUDE.md + expert personas (conventions for compilation)
+
+**Five domain pages** (one per neuropil/expert):
+1. **Personality Profile** (personality_psychologist) -- traits, stress responses, emotional patterns
+2. **Lifestyle Patterns** (lifestyle_analyst) -- routines, sleep, exercise, health
+3. **Cultural Identity** (cultural_identity) -- music taste, content preferences, aesthetics
+4. **Social Dynamics** (social_dynamics) -- communication style, relationships
+5. **Motivation & Drive** (motivation_analyst) -- work patterns, goals, productivity
+
+**Compilation trigger**: Chained after `generateReflections()` in `observationIngestion.js` with 60s delay. No dedicated cron. Max 2 domains compiled in parallel. Uses TIER_ANALYSIS (DeepSeek, ~$0.004/cycle).
+
+**Twin chat integration**: Wiki pages fetched in `twinContextBuilder.js` (parallel with other context), injected as `=== MY KNOWLEDGE BASE ===` in system prompt via `twinSystemPromptBuilder.js`. When wiki is present, twinSummary is skipped (wiki subsumes it).
+
+**Cross-references**: Pages use `[[domain:X]]` syntax. Frontend renders these as clickable links that scroll to the target domain card.
+
+**Feature flag**: `llm_wiki` (default: disabled, requires explicit opt-in)
+**Tables**: `user_wiki_pages` (UNIQUE on user_id+domain, pgvector embedding), `user_wiki_logs` (change audit)
+**RPC**: `match_wiki_pages(user_id, embedding, limit)` -- vector search across wiki pages
+**Frontend**: `/wiki` route, `WikiPage.tsx`, `WikiDomainCard.tsx`
+
 ### Key Architecture Files
 - `api/services/memoryStreamService.js` - Write/read path for memory stream (per-utterance storage)
 - `api/services/reflectionEngine.js` - Reflection generation pipeline (recursive, depth 3)
@@ -297,6 +323,8 @@ Closes the sensorimotor loop: twin suggests micro-action → user acts → twin 
 - `api/routes/cron-memory-forgetting.js` - Weekly memory quality: soft-delete, STDP decay, link pruning
 - `api/services/neurotransmitterService.js` - Context-dependent sampling parameter modulation (3 pure functions)
 - `api/services/neuropilRouter.js` - Domain-specific memory retrieval routing (5 neuropils)
+- `api/services/wikiCompilationService.js` - LLM Wiki: compiles 5 domain knowledge pages from reflections + memories
+- `api/routes/wiki.js` - Wiki API endpoints (GET pages, GET page/:domain, GET logs, POST compile)
 
 ## Tech Stack
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion, shadcn/ui

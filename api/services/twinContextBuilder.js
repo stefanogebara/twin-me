@@ -19,6 +19,7 @@ import { getActiveGoalContext } from './goalTrackingService.js';
 import { getTopPatterns } from './twinPatternService.js';
 import { inferIdentityContext } from './identityContextService.js';
 import { getPendingProposals } from './departmentService.js';
+import { getRelevantWikiPages } from './wikiCompilationService.js';
 import axios from 'axios';
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
@@ -85,7 +86,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // Uses individual tracked promises so the circuit breaker preserves already-resolved results
   const CONTEXT_TIMEOUT_MS = 7000;
 
-  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], []];
+  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], []];
 
   const fetchPromises = [
     fetchSoul
@@ -176,6 +177,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       log.warn('Department proposals fetch failed:', err.message);
       return [];
     })),
+
+    // LLM Wiki: compiled knowledge pages (vector search by query)
+    timed('wikiPages', getRelevantWikiPages(userId, contextVector, 3).catch(err => {
+      log.warn('Wiki pages fetch failed:', err.message);
+      return [];
+    })),
   ];
 
   let contextResults;
@@ -215,6 +222,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     calibrationContext,
     nudgeHistory,
     departmentProposals,
+    wikiPages,
   ] = contextResults;
 
   ctxLog('All parallel fetches complete');
@@ -261,6 +269,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     calibrationContext,
     nudgeHistory,
     departmentProposals,
+    wikiPages,
     timings,
   };
 }
