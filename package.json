@@ -144,6 +144,7 @@
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@vitest/coverage-v8": "^4.0.18",
     "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.10.17",
     "concurrently": "^9.2.1",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
