@@ -218,6 +218,8 @@ async function getPersonalityScores(userId) {
 router.post('/message', authenticateUser, async (req, res) => {
   const chatStartTime = Date.now();
   const chatLog = (label) => log.debug(label, { elapsedMs: Date.now() - chatStartTime });
+  let timeoutTimer;
+  let responseTimedOut = false;
   try {
     const userId = req.user.id;
     const { message: rawMessage, conversationId: rawConversationId, context } = req.body;
@@ -335,8 +337,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     // connection (maxDuration=60s). 50s budget leaves 10s safety margin.
     // ================================================================
     const RESPONSE_TIMEOUT_MS = 50000;
-    let responseTimedOut = false;
-    const timeoutTimer = setTimeout(() => {
+    timeoutTimer = setTimeout(() => {
       responseTimedOut = true;
       if (!res.headersSent) {
         log.error('Chat endpoint timed out', { userId, elapsedMs: Date.now() - chatStartTime });

@@ -12,7 +12,6 @@ import { authenticateToken } from '../middleware/auth.js';
 const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
 const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
-import soulSignatureGenerator from '../services/soulSignatureGenerator.js';
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
 import { generateSoulSignature } from '../services/soulSignatureService.js';
 import { createLogger } from '../services/logger.js';
@@ -606,7 +605,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     // Step 4: Generate soul signature
     log.info(`Step 4: Generating soul signature...`);
-    const signatureResult = await soulSignatureGenerator.generateSoulSignature(userId);
+    const signatureResult = await generateSoulSignature(userId);
 
     if (!signatureResult.success) {
       return res.status(500).json({

@@ -431,20 +431,7 @@ async function syncToPersonalityEstimates(userId, scores) {
     updated_at: new Date().toISOString()
   };
 
-  // Calculate archetype from the scores
-  try {
-    const { mapToArchetype } = await import('./personalityAssessmentService.js');
-    const archetype = mapToArchetype({
-      extraversion: estimateRecord.extraversion,
-      openness: estimateRecord.openness,
-      conscientiousness: estimateRecord.conscientiousness,
-      agreeableness: estimateRecord.agreeableness,
-      neuroticism: estimateRecord.neuroticism
-    });
-    estimateRecord.archetype_code = archetype.code;
-  } catch (err) {
-    log.warn('Could not calculate archetype:', err.message);
-  }
+  // Archetype calculation removed (OCEAN removed)
 
   const { error } = await supabaseAdmin
     .from('personality_estimates')

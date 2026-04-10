@@ -5054,13 +5054,6 @@ async function runObservationIngestion(options = {}) {
             log.warn('Activity metrics update failed', { userId, error: err })
           );
 
-          // Check for personality drift (non-blocking)
-          import('./personalityDriftService.js').then(({ checkDrift }) =>
-            checkDrift(userId).catch(err =>
-              log.warn('Personality drift check failed', { userId, error: err })
-            )
-          ).catch(() => { /* module load failure — non-fatal */ });
-
           // Regenerate twin summary after a delay to allow reflections to complete
           // Reflections have priority, so wait 45s before summarizing.
           // unref() ensures this timer doesn't prevent graceful process shutdown.

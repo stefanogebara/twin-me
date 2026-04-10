@@ -12,8 +12,6 @@
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { getProfile, buildProfile } from '../services/personalityProfileService.js';
-import { checkDrift } from '../services/personalityDriftService.js';
-import { getPersonalityHistory } from '../services/personalityEvaluationService.js';
 import { getPreferenceStats } from '../services/finetuning/preferenceCollector.js';
 import { exportDPOTrainingData } from '../services/finetuning/dpoDataExporter.js';
 import { createFinetune } from '../services/finetuning/finetuneManager.js';
@@ -66,26 +64,14 @@ router.post('/rebuild', authenticateUser, async (req, res) => {
   }
 });
 
-// GET /api/personality-profile/drift — check for personality drift
-router.get('/drift', authenticateUser, async (req, res) => {
-  try {
-    const result = await checkDrift(req.user.id);
-    res.json({ success: true, ...result });
-  } catch (err) {
-    log.error('drift check error', { error: err });
-    res.status(500).json({ success: false, error: 'Failed to check personality drift.' });
-  }
+// GET /api/personality-profile/drift — removed (OCEAN drift removed)
+router.get('/drift', authenticateUser, (_req, res) => {
+  res.status(410).json({ success: false, error: 'Personality drift removed — use soul signature layers instead.' });
 });
 
-// GET /api/personality-profile/history — assessment history
-router.get('/history', authenticateUser, async (req, res) => {
-  try {
-    const history = await getPersonalityHistory(req.user.id, parseInt(req.query.limit) || 12);
-    res.json({ success: true, assessments: history });
-  } catch (err) {
-    log.error('History fetch error', { error: err });
-    res.status(500).json({ success: false, error: 'Failed to fetch personality history' });
-  }
+// GET /api/personality-profile/history — removed (OCEAN history removed)
+router.get('/history', authenticateUser, (_req, res) => {
+  res.status(410).json({ success: false, error: 'Personality history removed — use soul signature layers instead.' });
 });
 
 // GET /api/personality-profile/preference-stats — preference pair statistics

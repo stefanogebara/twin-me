@@ -79,23 +79,6 @@ export default async function handler(req, res) {
         log.warn('Auto-retrain setup failed', { error: e.message });
       }
 
-      // Extract behavioral features for personality scoring (non-blocking)
-      try {
-        const { extractFeaturesForUser } = await import('../services/featureExtractionRunner.js');
-        for (const uid of result.processedUserIds) {
-          extractFeaturesForUser(uid).then(featureResult => {
-            if (featureResult.extracted > 0) {
-              log.info('Auto-extracted behavioral features', { userId: uid.slice(0, 8), extracted: featureResult.extracted });
-            }
-            if (featureResult.errors.length > 0) {
-              log.warn('Some feature extractions failed', { userId: uid.slice(0, 8), errors: featureResult.errors });
-            }
-          }).catch(e => log.warn('Feature extraction failed', { userId: uid.slice(0, 8), error: e.message }));
-        }
-      } catch (e) {
-        log.warn('Feature extraction setup failed', { error: e.message });
-      }
-
       // Check if departments should propose actions (SoulOS heartbeat)
       try {
         const { checkDepartmentHeartbeats } = await import('../services/departmentService.js');

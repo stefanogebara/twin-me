@@ -648,16 +648,7 @@ export async function updateFromBehavior(userId, platform, features) {
     updates.last_behavioral_update_at = new Date().toISOString();
     updates.updated_at = new Date().toISOString();
 
-    // Calculate new archetype
-    const { mapToArchetype } = await import('./personalityAssessmentService.js');
-    const archetype = mapToArchetype({
-      extraversion: updates.extraversion,
-      openness: updates.openness,
-      conscientiousness: updates.conscientiousness,
-      agreeableness: updates.agreeableness,
-      neuroticism: updates.neuroticism
-    });
-    updates.archetype_code = archetype.code;
+    // Archetype removed (OCEAN removed)
 
     // Save updated estimate
     const { data: updatedEstimate, error: updateError } = await supabase

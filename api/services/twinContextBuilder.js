@@ -194,6 +194,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     soulSignature,
     platformData,
 
+    writingProfile,
     memories,
     twinSummary,
     proactiveInsights,
@@ -238,7 +239,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   return {
     soulSignature,
     platformData,
-
+    writingProfile,
     memories,
     twinSummary,
     proactiveInsights,
