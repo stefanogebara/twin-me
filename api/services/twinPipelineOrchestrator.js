@@ -15,7 +15,6 @@
 
 import { supabaseAdmin } from './database.js';
 import extractionOrchestrator from './extractionOrchestrator.js';
-import personalityAggregator from './personalityAggregator.js';
 import twinFormationService from './twinFormationService.js';
 import twinEvolutionService from './twinEvolutionService.js';
 import behavioralEvidencePipeline from './behavioralEvidencePipeline.js';
@@ -318,21 +317,8 @@ class TwinPipelineOrchestrator {
   /**
    * Aggregate personality from behavioral features
    */
-  async aggregatePersonality(userId) {
-    const result = await personalityAggregator.aggregateFeatures(userId);
-
-    if (!result.success) {
-      return result;
-    }
-
-    // Save the aggregated scores
-    await personalityAggregator.savePersonalityScores(
-      userId,
-      result.scores,
-      result.confidence
-    );
-
-    return result;
+  async aggregatePersonality(_userId) {
+    return { success: true, scores: {}, confidence: {}, featureCount: 0 };
   }
 
   /**
@@ -394,9 +380,6 @@ class TwinPipelineOrchestrator {
       // Get evolution summary
       const evolutionResult = await twinEvolutionService.getEvolutionSummary(userId);
 
-      // Get platform coverage
-      const profileResult = await personalityAggregator.getPersonalityProfile(userId);
-
       return {
         success: true,
         pipeline: pipelineStatus,
@@ -404,11 +387,7 @@ class TwinPipelineOrchestrator {
         twin: twinResult.success ? twinResult.twin : null,
         hasTwin: twinResult.success,
         evolution: evolutionResult.success ? evolutionResult.summary : null,
-        personality: profileResult.success ? {
-          scores: profileResult.profile.scores,
-          confidence: profileResult.profile.confidence,
-          profileStrength: profileResult.profile.profileStrength
-        } : null,
+        personality: null,
         lastUpdated: twinResult.twin?.updated_at || null
       };
 

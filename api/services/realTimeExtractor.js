@@ -5,7 +5,6 @@
  * personality insights. This is where we discover the roots, not just the branches.
  */
 
-import PersonalityAnalyzer from './personalityAnalyzer.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { createLogger } from './logger.js';
 
@@ -13,7 +12,7 @@ const log = createLogger('RealTimeExtractor');
 
 export class RealTimeExtractor {
   constructor() {
-    this.analyzer = new PersonalityAnalyzer();
+    this.analyzer = null;
     this.extractionCache = new Map();
     this.rateLimits = new Map();
   }

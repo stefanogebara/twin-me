@@ -19,7 +19,6 @@
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
-import personalityAnalyzerService from './personalityAnalyzerService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('SoulSignatureGenerator');
@@ -43,7 +42,6 @@ class SoulSignatureGenerator {
       if (scoresError && scoresError.code === 'PGRST116') {
         // No scores exist, run personality analysis first
         log.info('No personality scores found, running analysis...');
-        const analysisResult = await personalityAnalyzerService.analyzePersonality(userId);
 
         if (!analysisResult.success) {
           return {
