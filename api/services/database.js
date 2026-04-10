@@ -16,6 +16,13 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 let supabaseAdmin = null;
 
 if (!supabaseUrl || !supabaseServiceKey) {
+  const missingConfigMessage = 'Missing Supabase configuration. Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY';
+
+  if (process.env.NODE_ENV === 'production') {
+    log.error(missingConfigMessage);
+    throw new Error(missingConfigMessage);
+  }
+
   log.warn('Missing Supabase configuration. Database operations will not be available.');
   log.warn('Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
   log.warn(`Current values: URL=${supabaseUrl ? 'SET' : 'MISSING'}, KEY=${supabaseServiceKey ? 'SET' : 'MISSING'}`);

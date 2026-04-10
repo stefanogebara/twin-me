@@ -264,10 +264,10 @@ let supabaseClient: SupabaseClient | null = null;
 export function getSupabaseClient(): SupabaseClient {
   if (!supabaseClient) {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !key) {
-      throw new Error('Missing Supabase credentials');
+      throw new Error('Missing Supabase service credentials. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.');
     }
 
     supabaseClient = createClient(url, key);
@@ -1136,9 +1136,13 @@ Your personality:
     }
 
     // Add defining traits with evidence
-    if ('defining_traits' in enhancedSoul && (enhancedSoul.defining_traits as any[])?.length) {
+    const definingTraits = 'defining_traits' in enhancedSoul && Array.isArray(enhancedSoul.defining_traits)
+      ? enhancedSoul.defining_traits
+      : [];
+
+    if (definingTraits.length > 0) {
       prompt += `\nDefining Traits:\n`;
-      (enhancedSoul.defining_traits as any[]).forEach((trait: { name: string; description: string; evidence?: string[]; confidence?: number }) => {
+      definingTraits.forEach((trait) => {
         prompt += `- ${trait.name}: ${trait.description}`;
         if (trait.confidence) {
           prompt += ` (${Math.round(trait.confidence * 100)}% confidence)`;

@@ -34,14 +34,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Admin client with service role key for bypassing RLS
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-export const supabaseAdmin = supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
-  : supabase;
-log.info('supabaseAdmin configured', { keyType: supabaseServiceKey ? 'SERVICE_ROLE_KEY (bypasses RLS)' : 'ANON_KEY (RLS-compliant)' });
+if (!supabaseServiceKey) {
+  log.error('Missing SUPABASE_SERVICE_ROLE_KEY for admin Supabase client');
+  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY for admin Supabase client');
+}
+
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+log.info('supabaseAdmin configured', { keyType: 'SERVICE_ROLE_KEY (bypasses RLS)' });
 
 export default supabase;
