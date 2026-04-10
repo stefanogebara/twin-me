@@ -161,6 +161,108 @@ export function generateTraitBadges(
   return badges.slice(0, 8);
 }
 
+export interface SoulSignatureLayers {
+  values?: {
+    values?: Array<{
+      name?: string;
+      evidence?: string;
+      strength?: number;
+    }>;
+  };
+  rhythms?: {
+    chronotype?: string;
+    peakHours?: string;
+    summary?: string;
+    distribution?: {
+      morning?: number;
+      afternoon?: number;
+      evening?: number;
+      night?: number;
+    };
+  };
+  taste?: {
+    statement?: string;
+    topSignals?: string[];
+    diversity?: number;
+  };
+  connections?: {
+    style?: string;
+    summary?: string;
+    patterns?: string[];
+  };
+  growth_edges?: {
+    shifts?: Array<{
+      domain?: string;
+      description?: string;
+      type?: 'exploration' | 'growth' | 'stress_response';
+    }>;
+    isStable?: boolean;
+  };
+}
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+
+/**
+ * Estimate an OCEAN-like profile from the 5-layer soul signature and reuse the
+ * existing archetype matcher. This keeps the identity page stable when only
+ * layered soul data is available.
+ */
+export function determineArchetypeFromSoulLayers(layers: SoulSignatureLayers): ArchetypeResult {
+  const values = layers.values?.values ?? [];
+  const avgValueStrength = values.length
+    ? values.reduce((sum, value) => sum + (value.strength ?? 0.6), 0) / values.length
+    : 0.6;
+
+  const growthShifts = layers.growth_edges?.shifts ?? [];
+  const connectionText = `${layers.connections?.style ?? ''} ${layers.connections?.summary ?? ''}`.toLowerCase();
+  const valuesText = values.map((value) => `${value.name ?? ''} ${value.evidence ?? ''}`).join(' ').toLowerCase();
+  const tasteDiversity = layers.taste?.diversity ?? 0.65;
+
+  const socialSignals = ['community', 'social', 'people', 'connection', 'collaboration', 'friends'];
+  const empathySignals = ['empathy', 'care', 'kind', 'support', 'listen', 'help'];
+  const structureSignals = ['discipline', 'focus', 'routine', 'planning', 'structure', 'reliable'];
+
+  const countSignals = (text: string, signals: string[]) =>
+    signals.reduce((count, signal) => count + (text.includes(signal) ? 1 : 0), 0);
+
+  const openness = clamp01(0.45 + tasteDiversity * 0.35 + Math.min(growthShifts.length, 3) * 0.07);
+  const conscientiousness = clamp01(0.45 + avgValueStrength * 0.35 + countSignals(valuesText, structureSignals) * 0.06);
+  const extraversion = clamp01(0.35 + countSignals(connectionText, socialSignals) * 0.12);
+  const agreeableness = clamp01(0.45 + countSignals(`${valuesText} ${connectionText}`, empathySignals) * 0.08);
+  const neuroticism = clamp01(layers.growth_edges?.isStable === false ? 0.58 : 0.38);
+
+  return determineArchetype(openness, conscientiousness, extraversion, agreeableness, neuroticism);
+}
+
+/**
+ * Generate concise badges directly from soul layers for the identity hero.
+ */
+export function generateTraitBadgesFromSoulLayers(layers: SoulSignatureLayers): string[] {
+  const badges = new Set<string>();
+
+  for (const value of layers.values?.values ?? []) {
+    if (value.name) badges.add(value.name);
+  }
+
+  if (layers.rhythms?.chronotype) badges.add(layers.rhythms.chronotype);
+  if (layers.connections?.style) badges.add(layers.connections.style);
+
+  for (const signal of layers.taste?.topSignals ?? []) {
+    if (signal) badges.add(signal);
+  }
+
+  if (layers.growth_edges?.isStable) {
+    badges.add('Stable Core');
+  } else if ((layers.growth_edges?.shifts?.length ?? 0) > 0) {
+    badges.add('Evolving Edge');
+  }
+
+  return Array.from(badges)
+    .map((badge) => badge.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 /**
  * Extract the best 1-liner from an array of expert insight paragraphs.
  * Takes the first sentence of the first insight, cleaned up.
