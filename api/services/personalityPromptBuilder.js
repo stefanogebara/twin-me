@@ -95,14 +95,6 @@ function buildSoulSigInstructions(soulLayers) {
 }
 
 /**
- * @deprecated Use buildSoulSigInstructions instead. Kept for callers
- * that still pass a profile object — returns empty array (OCEAN removed).
- */
-function buildOceanInstructions(_profile) {
-  return [];
-}
-
-/**
  * Build stylometric instruction strings from writing fingerprint data.
  *
  * @param {Object} profile - Personality profile

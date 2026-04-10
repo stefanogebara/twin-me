@@ -17,7 +17,6 @@
  */
 
 import { supabaseAdmin } from './database.js';
-import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { generateEmbedding, vectorToString } from './embeddingService.js';
 import { createLogger } from './logger.js';
 
@@ -34,87 +33,6 @@ function clamp(value, min, max) {
 
 function round3(value) {
   return Math.round(value * 1000) / 1000;
-}
-
-// ---------------------------------------------------------------------------
-// 1. extractOCEAN
-// ---------------------------------------------------------------------------
-
-/**
- * Analyze a user's top 50 memories and extract Big Five OCEAN scores (0.0-1.0).
- * Uses TIER_ANALYSIS (DeepSeek) with temperature 0.3 for consistency.
- *
- * @param {string} userId
- * @returns {Promise<{openness, conscientiousness, extraversion, agreeableness, neuroticism}|null>}
- *   Returns null if fewer than 20 memories exist.
- */
-export async function extractOCEAN(userId) {
-  try {
-    const { data: memories, error } = await supabaseAdmin
-      .from('user_memories')
-      .select('content, memory_type, importance_score')
-      .eq('user_id', userId)
-      .in('memory_type', ['reflection', 'conversation', 'fact'])
-      .order('importance_score', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      log.warn('extractOCEAN fetch error', { error });
-      return null;
-    }
-
-    if (!memories || memories.length < 20) {
-      log.info('extractOCEAN: insufficient memories, skipping', { count: memories?.length ?? 0, required: 20 });
-      return null;
-    }
-
-    const memoryBlock = memories
-      .map((m, i) => `${i + 1}. [${m.memory_type}] ${m.content}`)
-      .join('\n');
-
-    const systemPrompt =
-      'You are a psychologist scoring a person on the Big Five personality traits (OCEAN) ' +
-      'based on their memories, thoughts, and conversations. Score each trait from 0.0 (very low) ' +
-      'to 1.0 (very high). Output ONLY valid JSON with exactly these 5 keys: openness, ' +
-      'conscientiousness, extraversion, agreeableness, neuroticism. ' +
-      'No explanation, no markdown, no extra keys.';
-
-    const userPrompt =
-      `Here are ${memories.length} memories from this person. ` +
-      `Analyze them and return Big Five OCEAN scores as JSON.\n\nMEMORIES:\n${memoryBlock}\n\nReturn JSON only:`;
-
-    const response = await complete({
-      tier: TIER_ANALYSIS,
-      serviceName: SERVICE,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-      temperature: 0.3,
-      max_tokens: 200,
-    });
-
-    const raw = (response?.content || response || '').trim();
-
-    // Strip markdown code fences if present
-    const jsonText = raw
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/, '')
-      .trim();
-
-    const parsed = JSON.parse(jsonText);
-
-    const clampScore = (v) => clamp(Number(v) || 0, 0.0, 1.0);
-
-    return {
-      openness: clampScore(parsed.openness),
-      conscientiousness: clampScore(parsed.conscientiousness),
-      extraversion: clampScore(parsed.extraversion),
-      agreeableness: clampScore(parsed.agreeableness),
-      neuroticism: clampScore(parsed.neuroticism),
-    };
-  } catch (err) {
-    log.warn('extractOCEAN error', { error: err });
-    return null;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -337,14 +255,6 @@ export function deriveSamplingParamsFrom5Layers(soulLayers) {
     frequency_penalty: round3(clamp(frequency_penalty, 0.0, 0.3)),
     presence_penalty: round3(clamp(presence_penalty, 0.0, 0.3)),
   };
-}
-
-/**
- * @deprecated Use deriveSamplingParamsFrom5Layers instead.
- * Kept for backward compatibility — returns neutral defaults.
- */
-export function deriveSamplingParams(_ocean) {
-  return deriveSamplingParamsFrom5Layers(null);
 }
 
 // ---------------------------------------------------------------------------

@@ -495,11 +495,28 @@ Rules:
  * ~10x faster than 4 parallel calls, fits within Vercel 60s timeout.
  */
 async function generateAllLlmLayers(memories, userId) {
-  // Use top 25 most important memories — keep input small so output has room
-  const sorted = [...memories].sort((a, b) => (b.importance_score || 0) - (a.importance_score || 0));
-  const memoryText = sorted
-    .slice(0, 25)
-    .map(m => `- ${m.content.substring(0, 150)}`)
+  // Stratified sample: guarantee platform/taste/social data reaches the LLM.
+  // Sorting top-25 by importance lets reflections (score 7-9) crowd out platform_data,
+  // leaving taste and connections layers with no input to work from.
+  const byType = {};
+  for (const m of memories) {
+    const t = m.memory_type || 'other';
+    if (!byType[t]) byType[t] = [];
+    byType[t].push(m);
+  }
+  const topN = (arr = [], n) =>
+    [...arr].sort((a, b) => (b.importance_score || 0) - (a.importance_score || 0)).slice(0, n);
+
+  const sample = [
+    ...topN(byType.platform_data, 10),  // cultural/taste/social signals
+    ...topN(byType.reflection, 8),       // synthesised personality insights
+    ...topN(byType.fact, 5),             // stated facts about the user
+    ...topN(byType.conversation, 4),     // communication style
+    ...topN(byType.observation, 3),      // raw observations
+  ];
+
+  const memoryText = sample
+    .map(m => `[${m.memory_type}] ${m.content.substring(0, 150)}`)
     .join('\n');
 
   try {
