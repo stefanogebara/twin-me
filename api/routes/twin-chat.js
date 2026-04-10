@@ -220,9 +220,27 @@ router.post('/message', authenticateUser, async (req, res) => {
   const chatLog = (label) => log.debug(label, { elapsedMs: Date.now() - chatStartTime });
   try {
     const userId = req.user.id;
-    const { message, conversationId: rawConversationId, context } = req.body;
+    const { message: rawMessage, conversationId: rawConversationId, context } = req.body;
+    const message = typeof rawMessage === 'string' ? rawMessage : '';
     let conversationId = rawConversationId;
-    chatLog(`Message received from ${userId}: "${message?.substring(0, 50)}..."`);
+
+    if (!message.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required'
+      });
+    }
+
+    // Cap message length to prevent LLM API failures from oversized payloads
+    const MAX_MESSAGE_LENGTH = 8000;
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        error: `Message too long (${message.length} chars). Maximum is ${MAX_MESSAGE_LENGTH} characters.`
+      });
+    }
+
+    chatLog(`Message received from ${userId}: "${message.substring(0, 50)}..."`);
 
     // Auto-create conversation on first message (no conversationId from client)
     if (!conversationId) {
@@ -275,22 +293,6 @@ router.post('/message', authenticateUser, async (req, res) => {
           requiredPlan: 'pro',
         });
       }
-    }
-
-    if (!message || !message.trim()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Message is required'
-      });
-    }
-
-    // Cap message length to prevent LLM API failures from oversized payloads
-    const MAX_MESSAGE_LENGTH = 8000;
-    if (message.length > MAX_MESSAGE_LENGTH) {
-      return res.status(400).json({
-        success: false,
-        error: `Message too long (${message.length} chars). Maximum is ${MAX_MESSAGE_LENGTH} characters.`
-      });
     }
 
     // Freemium quota check (plan-aware: Free=50, Plus=500, Pro=unlimited)
