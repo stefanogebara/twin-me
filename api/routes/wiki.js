@@ -76,7 +76,7 @@ router.get('/pages/:domain', async (req, res) => {
 router.get('/logs', async (req, res) => {
   try {
     const userId = req.user.id;
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const logs = await getWikiLogs(userId, limit);
     res.json({ success: true, data: logs });
   } catch (error) {
@@ -88,10 +88,27 @@ router.get('/logs', async (req, res) => {
 /**
  * POST /api/wiki/compile
  * Manually trigger wiki compilation (for testing/debug).
+ * Rate limited: max 3 compiles per hour per user.
  */
+const compileCooldowns = new Map(); // userId -> lastCompileTimestamp
+const COMPILE_COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes between manual compiles
+
 router.post('/compile', async (req, res) => {
   try {
     const userId = req.user.id;
+
+    // Rate limit: prevent spam
+    const lastCompile = compileCooldowns.get(userId);
+    if (lastCompile && Date.now() - lastCompile < COMPILE_COOLDOWN_MS) {
+      const remainingMs = COMPILE_COOLDOWN_MS - (Date.now() - lastCompile);
+      const remainingMin = Math.ceil(remainingMs / 60000);
+      return res.status(429).json({
+        success: false,
+        error: `Compilation rate limited. Try again in ${remainingMin} minutes.`,
+      });
+    }
+
+    compileCooldowns.set(userId, Date.now());
     log.info('Manual wiki compilation triggered', { userId });
 
     const result = await compileWikiPages(userId);

@@ -140,27 +140,41 @@ export async function compileWikiDomain(userId, domainId) {
 
   const lastCompiled = existingPage?.compiled_at || new Date(0).toISOString();
 
-  // 2. Fetch new reflections since last compilation for this domain's expert
-  const { data: newReflections, error: reflErr } = await supabaseAdmin
+  // 2. Fetch new reflections since last compilation, filtered by domain expert
+  // PostgREST supports ->> for JSONB text extraction: metadata->>'expert' matches expert ID
+  const expertIds = domain.expertIds;
+  const { data: reflections, error: reflErr } = await supabaseAdmin
     .from('user_memories')
-    .select('id, content, created_at, importance_score')
+    .select('id, content, created_at, importance_score, metadata')
     .eq('user_id', userId)
     .eq('memory_type', 'reflection')
+    .in('metadata->>expert', expertIds)
     .gt('created_at', lastCompiled)
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(20);
 
   if (reflErr) {
-    log.warn('Failed to fetch reflections', { userId, domainId, error: reflErr.message });
-    return null;
+    // Fallback: fetch all reflections if expert filter fails (metadata may vary)
+    log.warn('Expert-filtered reflection query failed, falling back to all', {
+      userId, domainId, error: reflErr.message,
+    });
   }
 
-  // Filter reflections by expert ID (stored in metadata)
-  const domainReflections = (newReflections || []).filter(r => {
-    // Reflections from the matching expert, or generic reflections
-    // We check via a separate query or accept all if metadata isn't filterable via postgrest
-    return true; // Accept all new reflections -- the LLM will pick domain-relevant ones
-  });
+  // If expert filter failed or returned nothing, try broader fetch as fallback
+  let reflections = reflections || [];
+  if (reflections.length === 0 && !reflErr) {
+    // No domain-specific reflections found -- skip
+  } else if (reflErr) {
+    const { data: allReflections } = await supabaseAdmin
+      .from('user_memories')
+      .select('id, content, created_at, importance_score')
+      .eq('user_id', userId)
+      .eq('memory_type', 'reflection')
+      .gt('created_at', lastCompiled)
+      .order('created_at', { ascending: false })
+      .limit(15);
+    reflections = allReflections || [];
+  }
 
   // 3. Fetch recent domain-specific memories for evidence
   const { data: domainMemories } = await supabaseAdmin
@@ -173,16 +187,16 @@ export async function compileWikiDomain(userId, domainId) {
     .limit(15);
 
   // 4. Skip if no new data
-  const totalNew = domainReflections.length + (domainMemories?.length || 0);
+  const totalNew = reflections.length + (domainMemories?.length || 0);
   if (totalNew === 0) {
     log.info('Wiki domain skip (no new data)', { userId, domainId });
     return null;
   }
 
   // First compilation needs minimum reflections
-  if (!existingPage && domainReflections.length < MIN_REFLECTIONS_FOR_FIRST_COMPILE) {
+  if (!existingPage && reflections.length < MIN_REFLECTIONS_FOR_FIRST_COMPILE) {
     log.info('Wiki domain skip (insufficient reflections for first compile)', {
-      userId, domainId, reflections: domainReflections.length,
+      userId, domainId, reflections: reflections.length,
     });
     return null;
   }
@@ -191,7 +205,7 @@ export async function compileWikiDomain(userId, domainId) {
   const prompt = buildCompilationPrompt(
     domain.title,
     existingPage?.content_md || '',
-    domainReflections,
+    reflections,
     domainMemories || [],
   );
 
@@ -249,7 +263,7 @@ export async function compileWikiDomain(userId, domainId) {
   }
 
   // 8. Insert compilation log (simple template -- no LLM call needed)
-  const changeSummary = `v${newVersion}: compiled from ${domainReflections.length} reflections + ${domainMemories?.length || 0} memories`;
+  const changeSummary = `v${newVersion}: compiled from ${reflections.length} reflections + ${domainMemories?.length || 0} memories`;
 
   await supabaseAdmin
     .from('user_wiki_logs')
@@ -258,7 +272,7 @@ export async function compileWikiDomain(userId, domainId) {
       domain: domainId,
       version: newVersion,
       change_summary: changeSummary,
-      reflections_used: domainReflections.length,
+      reflections_used: reflections.length,
       memories_used: domainMemories?.length || 0,
     })
     .then(({ error }) => {
@@ -268,7 +282,7 @@ export async function compileWikiDomain(userId, domainId) {
   const elapsed = Date.now() - compilationStart;
   log.info('Wiki domain compiled', {
     userId, domainId, version: newVersion,
-    reflections: domainReflections.length,
+    reflections: reflections.length,
     memories: domainMemories?.length || 0,
     contentLen: compiledContent.length,
     elapsedMs: elapsed,
@@ -407,9 +421,10 @@ export async function getWikiPage(userId, domain) {
 export async function getRelevantWikiPages(userId, queryEmbedding, limit = 3) {
   if (!userId) return [];
 
-  // If no embedding provided, return all pages (sorted by domain)
+  // If no embedding provided, return all pages capped at limit
   if (!queryEmbedding) {
-    return getWikiPages(userId);
+    const all = await getWikiPages(userId);
+    return all.slice(0, limit);
   }
 
   // Vector search using pgvector cosine distance
@@ -421,9 +436,9 @@ export async function getRelevantWikiPages(userId, queryEmbedding, limit = 3) {
   });
 
   if (error) {
-    // Fallback: return all pages if RPC doesn't exist yet
-    log.warn('Wiki vector search failed, falling back to all pages', { error: error.message });
-    return getWikiPages(userId);
+    // Fallback: return empty (let twinSummary take over) rather than dumping all pages
+    log.warn('Wiki vector search failed, returning empty', { error: error.message });
+    return [];
   }
 
   return data || [];

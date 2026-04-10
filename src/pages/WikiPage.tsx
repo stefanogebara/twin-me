@@ -8,11 +8,12 @@
  * that compounds over time.
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useAuth } from '@/contexts/AuthContext';
 import { getWikiPages, type WikiPage as WikiPageType } from '@/services/api/wikiAPI';
 import WikiDomainCard from './components/wiki/WikiDomainCard';
 
@@ -21,14 +22,24 @@ const DOMAIN_ORDER = ['personality', 'lifestyle', 'cultural', 'social', 'motivat
 
 const WikiPageView: React.FC = () => {
   useDocumentTitle('Knowledge Base');
+  const { user } = useAuth();
 
   const domainRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up highlight timer on unmount
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, []);
 
   const { data: pages, isLoading, error } = useQuery({
-    queryKey: ['wiki-pages'],
+    queryKey: ['wiki-pages', user?.id],
     queryFn: getWikiPages,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
+    enabled: !!user?.id,
   });
 
   // Handle cross-reference clicks -- scroll to the target domain card
@@ -36,11 +47,13 @@ const WikiPageView: React.FC = () => {
     const ref = domainRefs.current[domain];
     if (ref) {
       ref.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // Brief highlight flash
+      // Brief highlight flash via CSS class (no direct DOM mutation)
       ref.style.outline = '1px solid rgba(255,132,0,0.4)';
       ref.style.outlineOffset = '4px';
-      setTimeout(() => {
-        ref.style.outline = 'none';
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = setTimeout(() => {
+        if (ref) ref.style.outline = 'none';
+        highlightTimerRef.current = null;
       }, 1500);
     }
   }, []);
@@ -66,7 +79,35 @@ const WikiPageView: React.FC = () => {
     );
   }
 
-  if (error || !pages || pages.length === 0) {
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
+        <BookOpen
+          className="mx-auto mb-4 opacity-30"
+          size={40}
+          style={{ color: 'var(--text-muted)' }}
+        />
+        <h2
+          className="text-[18px] font-semibold tracking-tight mb-2"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Something went wrong
+        </h2>
+        <p className="text-[14px] mb-4" style={{ color: 'var(--text-muted)' }}>
+          Could not load your knowledge base. Please try again.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-[13px] px-3 py-1.5 rounded-[100px]"
+          style={{ background: 'var(--glass-surface-bg)', border: '1px solid var(--glass-surface-border)', color: 'var(--text-primary)' }}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!pages || pages.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
         <BookOpen

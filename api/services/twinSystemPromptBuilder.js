@@ -297,11 +297,17 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
   // When wiki pages are available, they subsume the twin summary with richer structured context.
-  const hasWikiPages = wikiPages && wikiPages.length > 0;
+  const MAX_WIKI_CHARS_PER_PAGE = 3000;
+  const MAX_WIKI_PAGES = 3;
+  const wikiSlice = (wikiPages || []).slice(0, MAX_WIKI_PAGES);
+  const hasWikiPages = wikiSlice.length > 0;
   if (hasWikiPages) {
     dynamicContext += '\n\n=== MY KNOWLEDGE BASE ===';
-    for (const page of wikiPages) {
-      dynamicContext += `\n\n### ${page.title}\n${page.content_md}`;
+    for (const page of wikiSlice) {
+      const content = page.content_md?.length > MAX_WIKI_CHARS_PER_PAGE
+        ? page.content_md.slice(0, MAX_WIKI_CHARS_PER_PAGE) + '\n[...truncated]'
+        : page.content_md;
+      dynamicContext += `\n\n### ${page.title}\n${content}`;
     }
   }
 
