@@ -17,21 +17,20 @@ const MAX_PERSONA_BLOCK_CHARS = 2000;
  * Build the complete persona block from all available personality data.
  *
  * @param {object} params
- * @param {object|null} params.personalityScores - Big Five scores + confidence
  * @param {object|null} params.soulSignature - Soul signature (archetype, traits, narrative)
  * @param {string|null} params.twinSummary - Dynamic twin summary text
  * @param {object|null} params.writingProfile - Writing style analysis
  * @param {object|null} params.platformData - Live platform data (spotify, calendar, whoop)
  * @returns {string} Persona block text, or empty string if no meaningful data
  */
-export function buildPersonaBlock({ personalityScores = null, soulSignature = null, twinSummary = null, writingProfile = null, platformData = null } = {}) {
+export function buildPersonaBlock({ soulSignature = null, twinSummary = null, writingProfile = null, platformData = null } = {}) {
   const sections = [];
 
   const identity = buildIdentityStatement(twinSummary, soulSignature);
   if (identity) sections.push(identity);
 
-  const styleRules = buildCommunicationStyleRules(personalityScores, writingProfile);
-  const unique = buildUniqueRules(personalityScores, soulSignature, writingProfile);
+  const styleRules = buildCommunicationStyleRules(writingProfile);
+  const unique = buildUniqueRules(soulSignature, writingProfile);
 
   if (styleRules && unique) {
     sections.push(styleRules + ' ' + unique);
@@ -87,61 +86,11 @@ export function buildIdentityStatement(twinSummary, soulSignature) {
  * Only includes traits with confidence > 40%.
  * Writing profile overrides when available.
  *
- * @param {object|null} personalityScores
  * @param {object|null} writingProfile
  * @returns {string}
  */
-export function buildCommunicationStyleRules(personalityScores, writingProfile) {
+export function buildCommunicationStyleRules(writingProfile) {
   const rules = [];
-
-  if (personalityScores) {
-    const p = personalityScores;
-
-    // Openness
-    if (hasConfidence(p, 'openness')) {
-      if (p.openness >= 70) {
-        rules.push('Explore tangents freely, use metaphors, ask "what if" questions');
-      } else if (p.openness <= 35) {
-        rules.push('Stay concrete and factual, avoid abstract tangents');
-      }
-    }
-
-    // Conscientiousness
-    if (hasConfidence(p, 'conscientiousness')) {
-      if (p.conscientiousness >= 70) {
-        rules.push('I appreciate plans and follow-through — reference them');
-      } else if (p.conscientiousness <= 35) {
-        rules.push('Keep it loose — topic-jumping is fine');
-      }
-    }
-
-    // Extraversion
-    if (hasConfidence(p, 'extraversion')) {
-      if (p.extraversion >= 70) {
-        rules.push('Be enthusiastic and expressive, high energy');
-      } else if (p.extraversion <= 35) {
-        rules.push('Go deep rather than wide, think before reacting');
-      }
-    }
-
-    // Agreeableness
-    if (hasConfidence(p, 'agreeableness')) {
-      if (p.agreeableness >= 70) {
-        rules.push('Lead with warmth, soften any criticism');
-      } else if (p.agreeableness <= 35) {
-        rules.push('Be direct and honest, no sugarcoating');
-      }
-    }
-
-    // Neuroticism
-    if (hasConfidence(p, 'neuroticism')) {
-      if (p.neuroticism >= 70) {
-        rules.push("Let things land — don't rush to fix");
-      } else if (p.neuroticism <= 35) {
-        rules.push('Stay calm and steady, even-keeled tone');
-      }
-    }
-  }
 
   // Writing profile overrides add specificity
   if (writingProfile) {
@@ -217,33 +166,12 @@ export function buildEmotionalState(platformData) {
 /**
  * Generate 2-3 distinctive behavioral rules from personality combinations.
  *
- * @param {object|null} personalityScores
  * @param {object|null} soulSignature
  * @param {object|null} writingProfile
  * @returns {string}
  */
-export function buildUniqueRules(personalityScores, soulSignature, writingProfile) {
+export function buildUniqueRules(soulSignature, writingProfile) {
   const rules = [];
-
-  if (personalityScores) {
-    const p = personalityScores;
-
-    // Humor style
-    if (p.openness >= 65 && p.agreeableness <= 40) {
-      rules.push('Use dry wit and irony');
-    } else if (p.openness >= 65 && p.agreeableness >= 65) {
-      rules.push('Be playful and lighthearted');
-    } else if (p.openness <= 40) {
-      rules.push('Minimal humor - keep it straightforward');
-    }
-
-    // Opinion style
-    if (p.agreeableness <= 40 && writingProfile?.personalityIndicators?.assertiveness > 0.6) {
-      rules.push('Take clear positions, don\'t hedge');
-    } else if (p.agreeableness >= 65) {
-      rules.push('Offer gentle suggestions rather than strong opinions');
-    }
-  }
 
   // Topics from soul signature defining_traits
   if (soulSignature) {

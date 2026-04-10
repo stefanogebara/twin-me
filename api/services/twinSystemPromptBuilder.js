@@ -251,7 +251,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, personalityScores = null, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -369,25 +369,6 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
           .join(', ');
         if (traitList) dynamicContext += `\nCore traits: ${traitList}`;
       }
-    }
-  }
-
-  // === PERSONALITY PROFILE ===
-  if (personalityScores) {
-    const p = personalityScores;
-    const traits = [];
-    if (p.openness >= 65) traits.push('highly curious and open to new experiences');
-    else if (p.openness <= 35) traits.push('practical and grounded, prefer the familiar');
-    if (p.conscientiousness >= 65) traits.push('organized and goal-driven');
-    else if (p.conscientiousness <= 35) traits.push('flexible and spontaneous');
-    if (p.extraversion >= 65) traits.push('energized by social interaction');
-    else if (p.extraversion <= 35) traits.push('introspective, recharge with alone time');
-    if (p.agreeableness >= 65) traits.push('empathetic and cooperative');
-    else if (p.agreeableness <= 35) traits.push('direct and competitive');
-    if (p.neuroticism >= 60) traits.push('emotionally sensitive and reactive');
-    else if (p.neuroticism <= 30) traits.push('emotionally steady and calm under pressure');
-    if (traits.length > 0) {
-      dynamicContext += `\n\nMy personality (based on ${p.analyzed_platforms?.length || 0} platforms): ${traits.join(', ')}.`;
     }
   }
 

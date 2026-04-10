@@ -443,7 +443,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
     const contextBuildMs = Date.now() - chatStartTime;
-    const { soulSignature, platformData, personalityScores, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals } = twinContext;
+    const { soulSignature, platformData, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals } = twinContext;
 
     // Inject platform activity priorities into platformData for system prompt
     try {
@@ -482,13 +482,13 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Build personalized system prompt with structured context layers
     // Core memory blocks are passed through to be injected as FIRST dynamic element
     // Returns array format for Anthropic prompt caching: [cached_base, dynamic_context]
-    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, personalityScores, twinSummary, proactiveInsights, userLocation, coreBlockText, departmentProposals);
+    let systemPrompt = buildTwinSystemPrompt(soulSignature, platformData, twinSummary, proactiveInsights, userLocation, coreBlockText, departmentProposals);
 
     // Hard rule: never use emojis (user preference)
     systemPrompt.push({ type: 'text', text: '\nCRITICAL STYLE RULE: NEVER use emojis in your responses. No emoji characters whatsoever. Use plain text, markdown bold, and line breaks for structure instead.' });
 
     // Inject persona block: translates personality data into prescriptive behavioral rules
-    const personaBlock = buildPersonaBlock({ personalityScores, soulSignature, twinSummary, writingProfile, platformData });
+    const personaBlock = buildPersonaBlock({ soulSignature, twinSummary, writingProfile, platformData });
     if (personaBlock) {
       systemPrompt.splice(1, 0, { type: 'text', text: `\n${personaBlock}` });
       log.debug('Persona block built', { chars: personaBlock.length });

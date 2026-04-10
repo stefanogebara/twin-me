@@ -51,7 +51,6 @@ function setCache(key, data) {
  * @param {string[]} [options.platforms] - Platform slugs to fetch data for (default: ['spotify', 'calendar', 'whoop', 'web'])
  * @param {boolean} [options.getSoulSignature] - Whether to fetch soul signature (default: true)
  * @param {boolean} [options.getPlatformData] - Whether to fetch platform data (default: true)
- * @param {boolean} [options.getPersonalityScores] - Whether to fetch personality scores (default: true)
  * @returns {Promise<TwinContext>}
  */
 async function fetchTwinContext(userId, userMessage, options = {}) {
@@ -59,7 +58,6 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     platforms = ['spotify', 'calendar', 'whoop', 'web'],
     getSoulSignature: fetchSoul = true,
     getPlatformData: fetchPlatforms = true,
-    getPersonalityScores: fetchPersonality = true,
     memoryBudgets = {},
     memoryWeights = 'identity',
     contextVector = null,
@@ -85,7 +83,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // Uses individual tracked promises so the circuit breaker preserves already-resolved results
   const CONTEXT_TIMEOUT_MS = 7000;
 
-  const defaults = [null, {}, null, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], []];
+  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], []];
 
   const fetchPromises = [
     fetchSoul
@@ -101,13 +99,6 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
           return {};
         }))
       : Promise.resolve({}),
-
-    fetchPersonality
-      ? timed('personalityScores', _fetchPersonalityScores(userId).catch(err => {
-          log.warn('Personality scores fetch failed:', err.message);
-          return null;
-        }))
-      : Promise.resolve(null),
 
     timed('writingProfile', _fetchWritingProfile(userId).catch(err => {
       log.warn('Writing profile fetch failed:', err.message);
@@ -202,8 +193,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   const [
     soulSignature,
     platformData,
-    personalityScores,
-    writingProfile,
+
     memories,
     twinSummary,
     proactiveInsights,
@@ -248,8 +238,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   return {
     soulSignature,
     platformData,
-    personalityScores,
-    writingProfile,
+
     memories,
     twinSummary,
     proactiveInsights,
@@ -273,7 +262,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
  * @returns {object} contextSources metadata
  */
 function buildContextSourcesMeta(context) {
-  const { soulSignature, platformData, personalityScores, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = context;
+  const { soulSignature, platformData, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals } = context;
 
   return {
     soulSignature: !!soulSignature,
@@ -288,7 +277,6 @@ function buildContextSourcesMeta(context) {
     })) || [],
     voiceExamples: voiceExamples?.length || 0,
     platformData: Object.keys(platformData || {}),
-    personalityProfile: !!personalityScores,
     enrichmentFallback: !!enrichmentContext,
     activeGoals: !!activeGoals,
   };
