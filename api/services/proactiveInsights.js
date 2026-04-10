@@ -196,16 +196,23 @@ async function isInsightDuplicate(userId, insightText, category = null) {
  */
 async function generateProactiveInsights(userId) {
   try {
-    // 0. Cleanup delivered insights older than 30 days to keep the table lean
+    // 0. Cleanup: delivered insights older than 30 days + junk system/notification categories
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     supabaseAdmin
       .from('proactive_insights')
       .delete()
       .eq('user_id', userId)
       .eq('delivered', true)
-      .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-      .then(({ error }) => {
-        if (error) log.warn('Cleanup error', { error });
-      });
+      .lt('created_at', thirtyDaysAgo)
+      .then(({ error }) => { if (error) log.warn('Cleanup error', { error }); });
+
+    // Purge undelivered junk categories that should never appear in chat
+    supabaseAdmin
+      .from('proactive_insights')
+      .delete()
+      .eq('user_id', userId)
+      .in('category', ['briefing_email', 'briefing', 'system', 'email_notification_sent'])
+      .then(({ error }) => { if (error) log.warn('Junk category cleanup error', { error }); });
 
     // 1. Fetch 200 memories to find enough platform signals (reflections dominate recent stream ~90%)
     const recentMemories = await getRecentMemories(userId, MEMORIES_TO_SCAN || 300);
@@ -406,6 +413,7 @@ async function getUndeliveredInsights(userId, limit = 3) {
       .select('id, insight, urgency, category, department, created_at')
       .eq('user_id', userId)
       .eq('delivered', false)
+      .not('category', 'in', '("briefing_email","briefing","system")')
       .order('created_at', { ascending: false })
       .limit(limit * 2); // Fetch extra so we can re-sort by urgency
 
