@@ -99,6 +99,8 @@ enrichment-test-screenshots/
 
 # Supabase temp files
 supabase/.temp/
+.env.supabase-token
+.supabase-access-token
 
 # Figma design extraction artifacts
 figma-*.png
@@ -147,12 +149,20 @@ investigate-*.mjs
 trigger-reflections.mjs
 tests/liquid-glass-screenshots.mjs
 scripts/google-signin.mjs
+tmp-*.cjs
+tmp_*.sql
+tmp_*.txt
 
 # One-off test/debug scripts in tests/e2e
 tests/e2e/audit-*.cjs
 tests/e2e/audit-*.js
 tests/e2e/dashboard-v2-*.mjs
 tests/e2e/playwright.design.config.ts
+tests/e2e/check-*.cjs
+tests/e2e/deep-checks.cjs
+tests/e2e/detail-audit.cjs
+tests/e2e/flow-tests.cjs
+tests/e2e/*-results.json
 
 # Playwright audit artifacts
 playwright.audit.config.ts
