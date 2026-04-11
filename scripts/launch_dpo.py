@@ -110,42 +110,44 @@ def main():
         f.write("\n".join(train_lines) + "\n")
     print(f"  Written to {train_path}")
 
-    # Upload via Python SDK (REST upload is broken on together.ai)
-    print("\nUploading training file via together SDK...")
-    from pathlib import Path
-    client = together.Together(api_key=TOGETHER_API_KEY)
-    resp = client.files.upload(file=Path(train_path), check=False)
-    file_id = resp.id
-    print(f"  File uploaded: {file_id}")
+    try:
+        # Upload via Python SDK (REST upload is broken on together.ai)
+        print("\nUploading training file via together SDK...")
+        from pathlib import Path
+        client = together.Together(api_key=TOGETHER_API_KEY)
+        resp = client.files.upload(file=Path(train_path), check=False)
+        file_id = resp.id
+        print(f"  File uploaded: {file_id}")
 
-    # Launch DPO fine-tuning job
-    print("\nLaunching DPO fine-tuning job...")
-    suffix = f"twinme-dpo-{USER_ID[:8]}"
-    job = client.fine_tuning.create(
-        training_file=file_id,
-        model=BASE_MODEL,
-        n_epochs=N_EPOCHS,
-        batch_size=BATCH_SIZE,
-        learning_rate=LEARNING_RATE,
-        suffix=suffix,
-        lora=True,
-        n_checkpoints=1,
-        training_method={"method": "dpo", "dpo_beta": DPO_BETA},
-    )
+        # Launch DPO fine-tuning job
+        print("\nLaunching DPO fine-tuning job...")
+        suffix = f"twinme-dpo-{USER_ID[:8]}"
+        job = client.fine_tuning.create(
+            training_file=file_id,
+            model=BASE_MODEL,
+            n_epochs=N_EPOCHS,
+            batch_size=BATCH_SIZE,
+            learning_rate=LEARNING_RATE,
+            suffix=suffix,
+            lora=True,
+            n_checkpoints=1,
+            training_method="dpo",
+            dpo_beta=DPO_BETA,
+        )
 
-    job_id = job.id
-    status = job.status
-    print(f"\nDPO job launched!")
-    print(f"  Job ID : {job_id}")
-    print(f"  Status : {status}")
-    print(f"  Model  : {BASE_MODEL}")
-    print(f"  Pairs  : {len(train_lines)} train / {len(eval_lines)} eval")
-    print(f"  Suffix : {suffix}")
-    print(f"\nSave this job ID — use it to poll status:")
-    print(f"  python scripts/check_dpo_status.py {job_id}")
-
-    # Clean up
-    os.unlink(train_path)
+        job_id = job.id
+        status = job.status
+        print(f"\nDPO job launched!")
+        print(f"  Job ID : {job_id}")
+        print(f"  Status : {status}")
+        print(f"  Model  : {BASE_MODEL}")
+        print(f"  Pairs  : {len(train_lines)} train / {len(eval_lines)} eval")
+        print(f"  Suffix : {suffix}")
+        print(f"\nSave this job ID — use it to poll status:")
+        print(f"  python scripts/check_dpo_status.py {job_id}")
+    finally:
+        if os.path.exists(train_path):
+            os.unlink(train_path)
 
 if __name__ == "__main__":
     main()

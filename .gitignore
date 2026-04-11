@@ -112,6 +112,8 @@ data/training/
 
 # Shell crash dumps
 *.stackdump
+__pycache__/
+*.pyc
 
 # Spotify data imports
 StreamingHistory*.json
