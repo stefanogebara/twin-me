@@ -3,7 +3,7 @@ DPO Job Status Checker
 ======================
 Usage: python scripts/check_dpo_status.py [job_id]
 
-If no job_id given, uses the latest known job.
+If no job_id is passed, reads DPO_JOB_ID from the environment.
 """
 
 import os
