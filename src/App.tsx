@@ -58,7 +58,7 @@ const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
-const WikiPage = lazy(() => import("./pages/WikiPage"));
+const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 
 // Prototype pages (Sundust design system)
 const PrototypeLanding    = lazy(() => import('./prototype/pages/PrototypeLanding'));
