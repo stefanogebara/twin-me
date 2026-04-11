@@ -36,13 +36,25 @@ function resolveAppUrl(req) {
 // Rate limiting for auth endpoints — prevents brute force attacks
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15, // 15 attempts per IP per window
+  max: 15, // 15 attempts per IP per window (signin/signup brute-force protection)
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' },
   handler: (req, res) => {
     log.warn('Auth rate limit exceeded', { ip: req.ip, path: req.path });
     res.status(429).json({ success: false, error: 'Too many authentication attempts. Please try again in 15 minutes.' });
+  },
+});
+
+// Separate higher limit for token refresh — not brute-force sensitive (requires valid httpOnly cookie)
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 refreshes per IP (normal navigation won't trip this)
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    log.warn('Refresh rate limit exceeded', { ip: req.ip });
+    res.status(429).json({ success: false, error: 'Too many token refresh attempts. Please try again later.' });
   },
 });
 
@@ -441,7 +453,7 @@ router.get('/verify', authenticateUser, async (req, res) => {
 });
 
 // Refresh access token
-router.post('/refresh', authLimiter, async (req, res) => {
+router.post('/refresh', refreshLimiter, async (req, res) => {
   try {
     // Read refresh token from httpOnly cookie first, fall back to body for backward compat
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;

@@ -143,11 +143,11 @@
     --expert-motivation: #EF4444;
     --expert-motivation-bg: rgba(239, 68, 68, 0.08);
 
-    /* Vibrant Accent for CTAs — Soft Warm White */
-    --accent-vibrant: #E8E0D4;
-    --accent-vibrant-hover: #F5EDE1;
-    --accent-vibrant-glow: rgba(232, 224, 212, 0.12);
-    --accent-amber: #C9B99A;
+    /* Vibrant Accent for CTAs — Orange */
+    --accent-vibrant: #ff8400;
+    --accent-vibrant-hover: #ff9a2e;
+    --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
+    --accent-amber: #c17e2c;
     --accent-purple: #5d5cae;
 
     /* Narrative Text — Sesame-inspired 60% opacity hierarchy */

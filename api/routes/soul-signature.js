@@ -593,34 +593,27 @@ router.post('/generate', authenticateToken, async (req, res) => {
     log.info(`Step 2: Detecting unique patterns...`);
     await uniquePatternDetector.detectUniquePatterns(userId);
 
-    // Step 3: Analyze personality
-    log.info(`Step 3: Analyzing personality...`);
-
-    if (!analysisResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: analysisResult.error
-      });
-    }
-
-    // Step 4: Generate soul signature
+    // Step 3: Generate soul signature (includes personality analysis)
     log.info(`Step 4: Generating soul signature...`);
     const signatureResult = await generateSoulSignature(userId);
 
-    if (!signatureResult.success) {
-      return res.status(500).json({
+    if (signatureResult.insufficient) {
+      return res.status(422).json({
         success: false,
-        error: signatureResult.error
+        error: 'Insufficient data',
+        message: `Need more memories to generate soul signature (have ${signatureResult.memoryCount}, need more)`,
+        memoryCount: signatureResult.memoryCount,
       });
     }
 
-    log.info(`Generation complete: "${signatureResult.soulSignature.archetype_name}"`);
+    log.info('Generation complete', { cached: signatureResult.cached, userId });
 
     res.json({
       success: true,
       message: 'Soul signature generated successfully',
-      soulSignature: signatureResult.soulSignature,
-      personalityScores: signatureResult.personalityScores
+      layers: signatureResult.layers,
+      generatedAt: signatureResult.generatedAt,
+      cached: signatureResult.cached,
     });
 
   } catch (error) {

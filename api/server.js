@@ -221,7 +221,7 @@ app.use('/api/', apiLimiter);
 // Stricter rate limiting for AI endpoints
 const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // limit each IP to 50 AI requests per 15 minutes
+  max: isDevelopment ? 1000 : 50, // avoid throttling local dev/test runs
   message: {
     error: 'AI request limit exceeded. Please try again later.',
     retryAfter: 15 * 60 * 1000
@@ -229,7 +229,11 @@ const aiLimiter = rateLimit({
 });
 
 app.use('/api/ai/', aiLimiter);
-app.use('/api/chat/', aiLimiter); // Twin chat is the most expensive AI endpoint
+// Only rate-limit the actual LLM endpoints, not cheap DB reads like /chat/usage,
+// /chat/history, /chat/conversations, /chat/context. The old broad /api/chat/ rule
+// burned the 50-req budget on page-load prefetches before users could send messages.
+app.post('/api/chat/message', aiLimiter);
+app.get('/api/chat/intro', aiLimiter);    // Generates a personalised first message (LLM)
 app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 
 // Global request timeout to prevent hanging on DB outages

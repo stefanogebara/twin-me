@@ -14,12 +14,10 @@
 import express from 'express';
 import { complete, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { authenticateUser } from '../middleware/auth.js';
-import {
-  fetchSpotifyObservations,
-  fetchCalendarObservations,
-  fetchDiscordObservations,
-  fetchLinkedInObservations,
-} from '../services/observationIngestion.js';
+import { fetchSpotifyObservations } from '../services/observationFetchers/spotify.js';
+import { fetchCalendarObservations } from '../services/observationFetchers/calendar.js';
+import { fetchDiscordObservations } from '../services/observationFetchers/discord.js';
+import { fetchLinkedInObservations } from '../services/observationFetchers/linkedin.js';
 import { addPlatformObservation } from '../services/memoryStreamService.js';
 import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import axios from 'axios';

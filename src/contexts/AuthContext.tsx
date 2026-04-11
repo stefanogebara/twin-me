@@ -105,9 +105,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
   useEffect(() => {
-    // Page reload recovery: prefer refresh-cookie recovery whenever we have a cached session.
+    // Page reload recovery: only use cookie refresh when there is no stored access token.
+    // If auth_token exists in localStorage, checkAuth() will verify it directly — no need to
+    // hit /auth/refresh on every page load (avoids burning the rate limit on navigations).
     const initAuth = async () => {
-      if (!getAccessToken() && localStorage.getItem('auth_user')) {
+      const storedToken = localStorage.getItem('auth_token');
+      if (!getAccessToken() && !storedToken && localStorage.getItem('auth_user')) {
         await refreshAccessToken();
       }
       checkAuth();

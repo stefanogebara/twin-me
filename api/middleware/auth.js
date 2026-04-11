@@ -65,7 +65,7 @@ function setCachedEmailVerification(userId, value) {
 // JWT secret from environment (required)
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+  log.error('FATAL: JWT_SECRET environment variable is not set — all auth will fail');
 }
 
 // Authentication middleware for JWT tokens
@@ -91,6 +91,11 @@ export const authenticateUser = async (req, res, next) => {
         error: 'Unauthorized',
         message: 'Missing or invalid authorization header'
       });
+    }
+
+    if (!JWT_SECRET) {
+      log.error('JWT_SECRET missing — cannot verify token', { path: req.path });
+      return res.status(500).json({ error: 'Authentication service misconfigured' });
     }
 
     try {
@@ -180,7 +185,7 @@ export const optionalAuth = async (req, res, next) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
 
-      if (token) {
+      if (token && JWT_SECRET) {
         try {
           const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
 

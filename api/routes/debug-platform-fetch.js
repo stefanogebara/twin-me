@@ -14,11 +14,9 @@
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import {
-  fetchLinkedInObservations,
-  fetchDiscordObservations,
-  fetchTwitchObservations,
-} from '../services/observationIngestion.js';
+import { fetchLinkedInObservations } from '../services/observationFetchers/linkedin.js';
+import { fetchDiscordObservations } from '../services/observationFetchers/discord.js';
+import { fetchTwitchObservations } from '../services/observationFetchers/twitch.js';
 import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';

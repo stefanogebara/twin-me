@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
   { id: 'departments',  label: 'Departments',     icon: LayoutGrid,    path: '/departments' },
-  { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/get-started' },
+  { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 
@@ -137,6 +137,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           <div className="overflow-y-auto flex-1 flex flex-col sidebar-scroll">
             {/* Close button for mobile */}
             <button
+              type="button"
               onClick={onClose}
               aria-label="Close navigation menu"
               className="absolute top-4 right-4 p-2 hover:bg-[rgba(255,255,255,0.08)] rounded-lg transition-colors lg:hidden"
@@ -150,6 +151,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               isCollapsed ? "justify-center p-3 pb-3" : "justify-center p-5 pb-4"
             )}>
               <button
+                type="button"
                 onClick={() => handleNavigate('/dashboard')}
                 className="hover:opacity-80 transition-all duration-200 flex items-center gap-2.5"
                 aria-label="Go to dashboard"
@@ -196,6 +198,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
                 return (
                   <button
+                    type="button"
                     key={item.id}
                     onClick={() => handleNavigate(item.path)}
                     aria-label={`Navigate to ${item.label}`}
@@ -208,7 +211,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                         : "rounded-full hover:bg-[rgba(255,255,255,0.08)]"
                     )}
                     style={active ? {
-                      background: 'rgba(255, 255, 255, 0.08)',
+                      background: 'var(--accent-vibrant-glow)',
                     } : {
                       background: 'transparent',
                     }}
@@ -216,7 +219,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                   >
                     <Icon
                       className="w-5 h-5 flex-shrink-0"
-                      style={{ color: active ? '#F5F5F4' : 'rgba(255, 255, 255, 0.45)' }}
+                      style={{ color: active ? 'var(--accent-vibrant)' : 'rgba(255, 255, 255, 0.45)' }}
                       aria-hidden="true"
                     />
                     {!isCollapsed && (
@@ -240,6 +243,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
             <div className={cn("border-t border-[rgba(255,255,255,0.08)] space-y-1", isCollapsed ? "p-2" : "p-3")}>
               {/* Sign Out button */}
               <button
+                type="button"
                 onClick={handleSignOut}
                 className={cn(
                   "w-full flex items-center rounded-full opacity-70 hover:opacity-100 hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out active:scale-[0.97]",
@@ -265,6 +269,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
               {/* User profile */}
               <button
+                type="button"
                 onClick={() => handleNavigate('/settings')}
                 className={cn(
                   "w-full flex items-center rounded-full hover:bg-[rgba(255,255,255,0.08)] transition-colors",
@@ -302,6 +307,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
 
               {/* Collapse/Expand toggle — desktop only */}
               <button
+                type="button"
                 onClick={toggleCollapse}
                 className="hidden lg:flex w-full items-center justify-center py-2 rounded-full hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out"
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}

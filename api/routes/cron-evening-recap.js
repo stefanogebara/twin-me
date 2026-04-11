@@ -12,7 +12,7 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
 import { supabaseAdmin } from '../services/database.js';
-import { logCronExecution } from '../services/cronLogger.js';
+import { logCronExecution, wasRecentlyRun } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronEveningRecap');
@@ -24,6 +24,11 @@ router.all('/', async (req, res) => {
     const authResult = verifyCronSecret(req);
     if (!authResult.authorized) {
       return res.status(authResult.status).json({ error: authResult.error });
+    }
+
+    // Early-exit: skip if already ran successfully within the last 20h (prevents double-fire)
+    if (await wasRecentlyRun('evening-recap')) {
+      return res.json({ success: true, triggered: 0, reason: 'cooldown' });
     }
 
     // Get all active users (users who have sent a message in the last 7 days)

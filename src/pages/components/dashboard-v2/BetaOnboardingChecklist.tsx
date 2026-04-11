@@ -43,10 +43,12 @@ function useConnectedPlatformCount(): number {
         if (!res.ok) return 0;
         const json = await res.json();
         if (!json.success) return 0;
-        const statuses = json.connectors || json.data || [];
-        return statuses.filter(
-          (c: { status?: string }) => c.status === 'connected'
-        ).length;
+        // API returns data as a platform-keyed object — convert to array
+        const raw = json.connectors || json.data || [];
+        const statuses: { connected?: boolean; status?: string }[] = Array.isArray(raw)
+          ? raw
+          : Object.values(raw);
+        return statuses.filter(c => c.connected === true).length;
       } catch {
         return 0;
       }

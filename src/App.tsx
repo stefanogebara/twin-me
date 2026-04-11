@@ -26,11 +26,14 @@ import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 
 // Lazy-loaded pages (code-split into separate chunks)
-const DashboardV2 = lazy(() => import("./pages/DashboardV2"));
+const loadDashboardV2 = () => import("./pages/DashboardV2");
+const loadTalkToTwin = () => import("./pages/TalkToTwin");
+
+const DashboardV2 = lazy(loadDashboardV2);
 const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
-const TalkToTwin = lazy(() => import("./pages/TalkToTwin"));
+const TalkToTwin = lazy(loadTalkToTwin);
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
 const AdminBetaPage = lazy(() => import("./pages/AdminBetaPage"));
@@ -94,6 +97,18 @@ const PostHogPageTracker = () => {
 const App = () => {
   // Automatically sync auth tokens to browser extension
   useExtensionSync();
+
+  useEffect(() => {
+    // Warm the two heaviest authenticated routes after boot so route navigation
+    // doesn't block on first-time dev transforms.
+    const prefetchHeavyRoutes = () => {
+      void loadDashboardV2();
+      void loadTalkToTwin();
+    };
+
+    const timer = window.setTimeout(prefetchHeavyRoutes, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <ThemeProvider defaultTheme="dark">
@@ -259,17 +274,18 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Platform Connection / Get Started */}
-            <Route path="/get-started" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <InstantTwinOnboarding />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/connect" element={<Navigate to="/get-started" replace />} />
+            {/* Platform Connection — accessible at both /connect (nav) and /get-started (legacy) */}
+            {["/connect", "/get-started"].map(path => (
+              <Route key={path} path={path} element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <ErrorBoundary>
+                      <InstantTwinOnboarding />
+                    </ErrorBoundary>
+                  </SidebarLayout>
+                </ProtectedRoute>
+              } />
+            ))}
             <Route path="/connect-data" element={<Navigate to="/get-started" replace />} />
             <Route path="/connections" element={<Navigate to="/get-started" replace />} />
             <Route path="/memory-explorer" element={<Navigate to="/brain" replace />} />
