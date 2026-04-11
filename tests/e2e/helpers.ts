@@ -14,8 +14,8 @@ import { Page, ConsoleMessage } from '@playwright/test';
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const BASE_URL = 'http://localhost:8086';
-export const API_URL = 'http://127.0.0.1:3004/api';
+export const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:8086';
+export const API_URL = process.env.TEST_API_URL || 'http://127.0.0.1:3004/api';
 export const TEST_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 export const TEST_USER_EMAIL = 'stefanogebara@gmail.com';
 export const SCREENSHOT_DIR = 'tests/e2e/screenshots';
