@@ -28,6 +28,7 @@ export function SoulSummaryCard() {
     staleTime: 12 * 60 * 60 * 1000,
     retry: false,
     enabled: !!user?.id,
+    gcTime: 12 * 60 * 60 * 1000,
   });
 
   const layers = data?.layers;
