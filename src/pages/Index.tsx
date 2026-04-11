@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { ArrowRight, Music, Brain, Database, Bell, Shield, Menu, X, Mail, Calendar, HeartPulse, PenLine, Wallet, Search, Users } from 'lucide-react';
+import { ArrowRight, Brain, Database, Bell, Shield, Menu, X, MessageCircle, Target, BookOpen, Sparkles } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 
@@ -12,6 +12,11 @@ import {
   YoutubeLogo,
   DiscordLogo,
   LinkedinLogo,
+  GithubLogo,
+  GmailLogo,
+  RedditLogo,
+  TwitchLogo,
+  WhoopLogo,
 } from '../components/PlatformLogos';
 import '../styles/landing.css';
 
@@ -20,8 +25,13 @@ const PLATFORMS = [
   { id: 'spotify',   name: 'Spotify',            Icon: SpotifyLogo,         color: '#1DB954' },
   { id: 'calendar',  name: 'Google Calendar',     Icon: GoogleCalendarLogo,  color: '#4285F4' },
   { id: 'youtube',   name: 'YouTube',             Icon: YoutubeLogo,         color: '#FF0000' },
+  { id: 'github',    name: 'GitHub',              Icon: GithubLogo,          color: '#E5E5E5' },
+  { id: 'gmail',     name: 'Gmail',               Icon: GmailLogo,           color: '#EA4335' },
   { id: 'discord',   name: 'Discord',             Icon: DiscordLogo,         color: '#5865F2' },
   { id: 'linkedin',  name: 'LinkedIn',            Icon: LinkedinLogo,        color: '#0A66C2' },
+  { id: 'reddit',    name: 'Reddit',              Icon: RedditLogo,          color: '#FF4500' },
+  { id: 'twitch',    name: 'Twitch',              Icon: TwitchLogo,          color: '#9147FF' },
+  { id: 'whoop',     name: 'Whoop',               Icon: WhoopLogo,           color: '#C5F135' },
 ];
 
 /* ── Card images from Gemini ── */
@@ -52,11 +62,11 @@ const SERVICES = [
     img: CARD_IMAGES.discover,
   },
   {
-    id: 'delegate',
-    title: 'Delegate',
+    id: 'chat',
+    title: 'Twin Chat',
     num: '03',
-    heading: 'Delegate',
-    desc: 'Seven AI departments work for you -- drafting emails in your voice, optimizing your calendar, tracking your health. You approve, they execute.',
+    heading: 'Twin Chat',
+    desc: 'Talk to a twin that actually knows you — your memory, your patterns, your voice. Ask anything, get answers grounded in your real data.',
     img: CARD_IMAGES.share,
   },
   {
@@ -69,16 +79,6 @@ const SERVICES = [
   },
 ];
 
-/* ── Department showcase data ── */
-const DEPARTMENTS = [
-  { name: 'Communications', icon: Mail, color: '#3B82F6', desc: 'Emails in your voice' },
-  { name: 'Scheduling', icon: Calendar, color: '#8B5CF6', desc: 'Calendar optimization' },
-  { name: 'Health', icon: HeartPulse, color: '#EF4444', desc: 'Recovery tracking' },
-  { name: 'Content', icon: PenLine, color: '#F59E0B', desc: 'Content in your style' },
-  { name: 'Finance', icon: Wallet, color: '#10B981', desc: 'Spending patterns' },
-  { name: 'Research', icon: Search, color: '#6366F1', desc: 'Deep topic research' },
-  { name: 'Social', icon: Users, color: '#EC4899', desc: 'Relationship upkeep' },
-];
 
 const Index = () => {
   useLenis();
@@ -211,14 +211,14 @@ const Index = () => {
           <h1
             className="text-[48px] md:text-[80px] font-heading font-normal mb-8"
           >
-            Your Twin Doesn't Just Know You — It Acts For You
+            Your digital footprint reveals who you really are.
           </h1>
 
           {/* One paragraph — narrative voice, 60% opacity */}
           <p
             className="narrative-voice mb-10 text-lg max-w-[460px]"
           >
-            Connect your platforms. Your AI twin learns your personality, then manages your email, calendar, health, and content — all in your authentic voice.
+            Connect Spotify, GitHub, Calendar, and more. TwinMe builds your Soul Signature — a 5-layer personality portrait from your real data — and creates an AI twin that truly knows you.
           </p>
 
           {/* Single earned CTA — not loud, not multiple */}
@@ -281,7 +281,7 @@ const Index = () => {
             </div>
             <div className="lg:w-1/2 flex items-end">
               <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
-                TwinMe goes beyond your public persona. It learns your patterns, embodies your personality, and acts on your behalf — so you can focus on what matters.
+                TwinMe goes beyond your public persona. It reads your Spotify, GitHub, Calendar, and health data to build a Soul Signature — a deep personality portrait that powers an AI twin that genuinely knows you.
               </p>
             </div>
           </div>
@@ -291,8 +291,8 @@ const Index = () => {
             className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
             {[
-              { value: '7', label: 'AI departments', sub: 'Working for you' },
-              { value: '5+', label: 'Platform integrations', sub: 'And growing' },
+              { value: '10', label: 'Platform integrations', sub: 'Spotify, GitHub, Calendar & more' },
+              { value: '5-layer', label: 'Personality portrait', sub: 'From your real data' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (
               <div key={i} className="glass-stat-standalone bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 text-center relative overflow-hidden">
@@ -375,64 +375,44 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ────────────── DEPARTMENTS — Horizontal Showcase ────────────── */}
-      <section className="px-6 lg:px-16 py-20 border-t border-white/[0.06]">
-        <div className="max-w-[1200px] mx-auto">
-          <div className="text-center mb-10">
-            <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Your AI Team</span>
-            <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
-              Seven departments, one <span className="font-heading font-normal italic">you.</span>
-            </h2>
-            <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[480px] mx-auto mt-4">
-              Each department specializes in a different part of your life. All of them speak in your voice.
-            </p>
-          </div>
-
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-            {DEPARTMENTS.map((dept) => {
-              const DeptIcon = dept.icon;
-              return (
-                <div
-                  key={dept.name}
-                  className="flex-shrink-0 snap-center w-[160px] bg-[rgba(255,255,255,0.06)] backdrop-blur-[42px] border border-[rgba(255,255,255,0.10)] rounded-[20px] py-6 px-5 flex flex-col items-center text-center transition-all duration-150 hover:border-[rgba(255,255,255,0.20)] hover:bg-white/[0.08]"
-                >
-                  <div
-                    className="mb-3 flex items-center justify-center w-10 h-10 rounded-[12px]"
-                    style={{ backgroundColor: `${dept.color}15`, borderColor: `${dept.color}30`, borderWidth: '1px', borderStyle: 'solid' }}
-                  >
-                    <DeptIcon className="w-5 h-5" style={{ color: dept.color }} />
-                  </div>
-                  <h4 className="font-sans text-sm font-semibold text-[#F5F0EB] leading-[1.4] mb-1">
-                    {dept.name}
-                  </h4>
-                  <p className="font-sans text-xs text-[var(--text-secondary)] leading-[1.5]">
-                    {dept.desc}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ────────────── FEATURES — 2x2 Grid ────────────── */}
+      {/* ────────────── FEATURES — 2x4 Grid ────────────── */}
       <section id="features" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1200px] mx-auto relative z-10">
           <div className="mb-14">
             <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Features</span>
             <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
-              Everything your twin needs to <span className="font-heading font-normal italic">act for you.</span>
+              Built to know you <span className="font-heading font-normal italic">deeply.</span>
             </h2>
           </div>
 
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 gap-5"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {([
+              {
+                icon: Sparkles,
+                title: 'Soul Signature',
+                desc: 'A 5-layer personality portrait built from your real data — taste, values, chronotype, and more.',
+                evidence: {
+                  variant: 'insight' as const,
+                  category: 'Soul Layer',
+                  text: 'Intellectually driven, aesthetically attuned. Finds deep meaning in creative work done in solitude.',
+                },
+              },
+              {
+                icon: MessageCircle,
+                title: 'Twin Chat',
+                desc: 'An AI that has your full context — your memories, your patterns, your personality. Not ChatGPT.',
+                evidence: {
+                  variant: 'conversation' as const,
+                  lines: [
+                    { role: 'user' as const, text: 'Why do I always feel drained on Tuesdays?' },
+                    { role: 'twin' as const, text: 'Your calendar shows back-to-back meetings every Tuesday afternoon. Your Spotify shifts to ambient music right after — a recovery pattern.' },
+                  ],
+                },
+              },
               {
                 icon: Database,
                 title: 'Memory Stream',
-                desc: 'Your complete digital footprint, unified and searchable',
+                desc: 'Every observation from every platform, unified into a searchable memory that compounds over time.',
                 evidence: {
                   variant: 'memory' as const,
                   type: 'Observation',
@@ -443,19 +423,17 @@ const Index = () => {
               {
                 icon: Brain,
                 title: 'Expert Reflections',
-                desc: 'AI-powered insights from multiple analytical perspectives',
+                desc: 'Five AI experts analyze your data from different lenses: personality, lifestyle, culture, social, motivation.',
                 evidence: {
-                  variant: 'conversation' as const,
-                  lines: [
-                    { role: 'user' as const, text: 'Why do I always feel drained on Tuesdays?' },
-                    { role: 'twin' as const, text: 'Your calendar shows back-to-back meetings every Tuesday afternoon. Your Spotify shifts to ambient music right after — a recovery pattern.' },
-                  ],
+                  variant: 'insight' as const,
+                  category: 'Lifestyle Analyst',
+                  text: 'Your recovery scores peak on days you exercise before 9am. Whoop data shows 23% better HRV on those mornings.',
                 },
               },
               {
                 icon: Bell,
                 title: 'Proactive Insights',
-                desc: 'Personalized recommendations delivered at the right moment',
+                desc: 'Your twin notices patterns and brings them to you — before you even ask.',
                 evidence: {
                   variant: 'insight' as const,
                   category: 'Energy Pattern',
@@ -463,27 +441,46 @@ const Index = () => {
                 },
               },
               {
+                icon: BookOpen,
+                title: 'Knowledge Wiki',
+                desc: 'A compiled knowledge base about you — personality, lifestyle, cultural identity — that grows smarter every day.',
+                evidence: {
+                  variant: 'memory' as const,
+                  type: 'Wiki',
+                  text: 'Cultural Identity: Drawn to melancholic jazz and minimalist design. Peak creative output in late evening silence.',
+                  source: 'Compiled · today',
+                },
+              },
+              {
+                icon: Target,
+                title: 'Goals Tracking',
+                desc: 'Your twin suggests goals based on your patterns and tracks progress automatically from your platform data.',
+                evidence: {
+                  variant: 'insight' as const,
+                  category: 'Goal Progress',
+                  text: 'Exercise before 9am: 4 of 5 days this week. Whoop strain score averaged 14.2 — above your target of 12.',
+                },
+              },
+              {
                 icon: Shield,
                 title: 'Privacy Spectrum',
-                desc: 'Full control over what your twin knows and shares',
+                desc: 'Full control over what your twin knows and can share. Adjust depth per platform and per topic.',
                 evidence: {
                   variant: 'conversation' as const,
                   lines: [
                     { role: 'user' as const, text: 'What do you know about my health data?' },
-                    { role: 'twin' as const, text: "Only what you've shared: sleep patterns from Whoop. Your medical records are not connected and I can't access them." },
+                    { role: 'twin' as const, text: "Only what you've shared: sleep patterns from Whoop. Medical records are not connected." },
                   ],
                 },
               },
-            ] as const).map((feature, idx) => {
+            ] as const).map((feature) => {
               const FeatureIcon = feature.icon;
               return (
                 <div
                   key={feature.title}
                   className="glass-feature-card bg-white/[0.06] backdrop-blur-[42px] border border-white/[0.10] rounded-[20px] py-8 px-7 relative overflow-hidden transition-all duration-150 hover:border-[rgba(232,160,80,0.25)] hover:bg-white/[0.08]"
                 >
-                  <div
-                    className="mb-4 flex items-center justify-center w-12 h-12 rounded-[14px] bg-[rgba(232,160,80,0.08)] border border-[rgba(232,160,80,0.18)]"
-                  >
+                  <div className="mb-4 flex items-center justify-center w-12 h-12 rounded-[14px] bg-[rgba(232,160,80,0.08)] border border-[rgba(232,160,80,0.18)]">
                     <FeatureIcon className="w-5 h-5 text-[#E8A050]" />
                   </div>
                   <h4 className="font-sans text-base font-semibold text-[#F5F0EB] leading-[1.65] mb-2">
@@ -508,7 +505,7 @@ const Index = () => {
               Getting you results <span className="font-heading font-normal italic">without</span> the complexity.
             </h2>
             <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] mb-8 max-w-[440px]">
-              Connect your platforms, let your twin learn who you are, then hand off the tasks you don't want to do yourself.
+              Connect your platforms, let your twin learn who you really are, then have conversations that reveal patterns you never noticed.
             </p>
             <div className="flex items-center gap-4 flex-wrap">
               {isLoaded && isSignedIn ? (
@@ -530,7 +527,7 @@ const Index = () => {
             {[
               { num: '01', title: 'Connect Your Platforms', badge: 'Step 1', desc: 'Link your Spotify, Google Calendar, YouTube and more. We securely pull your data without storing passwords.' },
               { num: '02', title: 'Your Twin Learns You', badge: 'Step 2', desc: 'AI analyzes your cross-platform data -- personality traits, daily rhythms, communication style, and hidden patterns.' },
-              { num: '03', title: 'Delegate and Approve', badge: 'Ongoing', desc: 'Your twin drafts emails, optimizes your calendar, and tracks your health. You set the autonomy level -- suggest, draft, or act.' },
+              { num: '03', title: 'Talk to Your Twin', badge: 'Ongoing', desc: 'Chat with a twin that has your full context. Ask questions, explore patterns, get proactive insights before you even ask.' },
             ].map((step, idx) => (
               <div
                 key={step.num}
@@ -556,7 +553,7 @@ const Index = () => {
       <section className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
-            Stop managing everything <span className="font-heading font-normal italic">yourself.</span>
+            Meet the twin that finally knows <span className="font-heading font-normal italic">you.</span>
           </h2>
 
           {/* Standalone flower image */}
@@ -571,7 +568,7 @@ const Index = () => {
           </div>
 
           <p className="font-sans text-sm font-medium text-[var(--text-secondary)] leading-[1.65] max-w-[520px]">
-            Start free and let your twin learn who you are. Then hand off the tasks you never wanted to do yourself.
+            Start free. Connect your platforms. Your Soul Signature builds itself — and your twin starts knowing you within 60 seconds.
           </p>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">

@@ -20,8 +20,8 @@ test.describe('Homepage', () => {
   test('should have navigation menu', async ({ page }) => {
     await page.goto('/');
 
-    // Check for navigation links
-    const nav = page.locator('nav');
+    // Check for navigation — app has sidebar nav + bottom nav, use first()
+    const nav = page.locator('nav').first();
     await expect(nav).toBeVisible();
   });
 

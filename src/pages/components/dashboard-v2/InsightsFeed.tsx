@@ -59,7 +59,7 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
         className="text-[11px] uppercase tracking-[0.15em] font-medium mb-4"
         style={{ color: 'var(--text-narrative-muted)' }}
       >
-        More from your twin
+        What your twin noticed
       </h2>
 
       <div className="flex flex-col gap-3">

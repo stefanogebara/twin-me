@@ -8,11 +8,11 @@ import { test, expect } from '@playwright/test';
 test.describe('Navigation', () => {
   const routes = [
     '/',
-    '/login',
-    '/signup',
+    '/auth',          // login/signup lives at /auth
+    '/discover',      // cold-start discovery page
     '/soul-signature',
     '/get-started',
-    '/contact',
+    '/connect',       // replaced /get-started redirect
   ];
 
   for (const route of routes) {
@@ -41,27 +41,25 @@ test.describe('Navigation', () => {
   }
 
   test('should navigate between pages', async ({ page }) => {
+    // Navigate from home → discover to verify routing works
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('body')).toBeVisible();
 
-    // Click on any link
-    const links = page.getByRole('link');
-    const linkCount = await links.count();
+    await page.goto('/discover');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('body')).toBeVisible();
 
-    if (linkCount > 0) {
-      await links.first().click();
-      await page.waitForLoadState('networkidle');
-
-      // Should navigate somewhere
-      const body = page.locator('body');
-      await expect(body).toBeVisible();
-    }
+    // Verify we ended up somewhere meaningful (not a blank page)
+    const text = await page.textContent('body');
+    expect(text?.length).toBeGreaterThan(50);
   });
 
   test('should handle back button', async ({ page }) => {
     await page.goto('/');
     const firstUrl = page.url();
 
-    await page.goto('/contact');
+    await page.goto('/discover');
     await page.waitForLoadState('networkidle');
 
     await page.goBack();
@@ -72,7 +70,7 @@ test.describe('Navigation', () => {
   });
 
   test('should have working logo link', async ({ page }) => {
-    await page.goto('/contact');
+    await page.goto('/discover');
 
     // Try to find logo or brand link
     const logoLink = page.locator('a[href="/"]').or(page.locator('nav a').first());
