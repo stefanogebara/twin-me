@@ -36,6 +36,7 @@ function getTimeAgo(timestamp: string): string {
 function renderWikiMarkdown(
   content: string,
   onDomainClick: (domain: string) => void,
+  domainLabel?: string,
 ): React.ReactNode[] {
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
@@ -43,15 +44,23 @@ function renderWikiMarkdown(
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // ## Headers
+    // ## Headers — prefix id + sr-only label with domain for uniqueness across cards
     if (line.startsWith('## ')) {
+      const headingText = line.slice(3);
+      const headingId = domainLabel
+        ? `${domainLabel.toLowerCase()}-${headingText.toLowerCase().replace(/\s+/g, '-')}`
+        : undefined;
       elements.push(
         <h3
           key={`h-${i}`}
+          id={headingId}
           className="text-[15px] font-semibold tracking-tight mt-5 mb-2"
           style={{ color: 'var(--text-primary)' }}
         >
-          {line.slice(3)}
+          {domainLabel && (
+            <span className="sr-only">{domainLabel}: </span>
+          )}
+          {headingText}
         </h3>,
       );
       continue;
@@ -161,8 +170,8 @@ interface WikiDomainCardProps {
 const WikiDomainCard: React.FC<WikiDomainCardProps> = ({ page, onDomainClick, index = 0 }) => {
   const meta = DOMAIN_META[page.domain] ?? { label: page.domain, color: '#999' };
   const renderedContent = useMemo(
-    () => renderWikiMarkdown(page.content_md, onDomainClick),
-    [page.content_md, onDomainClick],
+    () => renderWikiMarkdown(page.content_md, onDomainClick, meta.label),
+    [page.content_md, onDomainClick, meta.label],
   );
 
   return (

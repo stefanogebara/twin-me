@@ -111,3 +111,40 @@
 3. Training data quality > quantity — 212 clean > 2,736 contaminated
 4. Oracle timeout needs 8s budget (DB ~400ms + together.ai cold start ~3s)
 5. Feature flag must be `=== true` (opt-in) since oracle requires trained model
+
+---
+
+# Full Platform Audit — 2026-04-11
+
+## CRITICAL
+
+- [x] **C1. Twin chat 504 / rate limiter** — Fixed: `api/server.js` now scopes aiLimiter to POST /chat/message + GET /chat/intro only (not all /api/chat/*). 25s timeout pending profiling.
+- [x] **C2. Memory routing 500** — FALSE POSITIVE: `/api/memories` and `/api/memory-health` work; audit tested wrong paths.
+- [x] **C3. cron maxDuration missing** — FALSE POSITIVE: Express app uses `vercel.json` global `maxDuration: 60`, not per-route exports.
+
+## HIGH
+
+- [x] **H1. Identity page shows "stefanogebara" not "Stefano"** — Fixed: `user?.firstName` fallback added in `IdentityPage.tsx`.
+- [x] **H2. Auth refresh rate limit too low** — Fixed: `initAuth()` now skips refresh when `auth_token` exists in localStorage. `/auth/refresh` gets its own `refreshLimiter` (100/15min) instead of sharing the brute-force `authLimiter` (15/15min).
+- [x] **H3. Admin LLM costs has no auth guard** — FALSE POSITIVE: `admin-llm-costs.js` already has `router.use(authenticateUser, requireProfessor)`.
+- [x] **H4. Accent color tokens wrong** — Fixed: `--accent-vibrant: #ff8400`, `--accent-vibrant-glow: rgba(255,132,0,0.12)`, `--accent-amber: #c17e2c` in `src/index.css`.
+- [x] **H5. Sidebar active state colors wrong** — Fixed: active bg → `var(--accent-vibrant-glow)`, icon → `var(--accent-vibrant)` in `CollapsibleSidebar.tsx`.
+- [x] **H6. Soul signature stale** — Fixed: `POST /api/soul-signature/generate` had dead code checking `signatureResult.success` (which doesn't exist — service returns `{layers, generatedAt, cached}`). Removed dead check + `soul_signatures` table guard. Now correctly regenerates and returns `{success: true, layers, generatedAt, cached}`.
+- [x] **H7. Daily crons lack early-exit LLM guards** — FALSE POSITIVE: All 7 crons already have `wasRecentlyRun()` / per-user cooldown checks. Inngest workflows have additional `hard-cooldown-check` steps before any LLM call.
+
+## MEDIUM
+
+- [x] **M1. Dashboard checklist shows "0 connected" despite 9 platforms connected** — Fixed: API returns `data` as platform-keyed object, not array. `BetaOnboardingChecklist.tsx` now converts via `Object.values()` and checks `c.connected === true`.
+- [x] **M2. /connect redirects to /get-started** — Fixed: `/connect` now renders `InstantTwinOnboarding` directly (no redirect). Nav item updated to `path: '/connect'`.
+- [x] **M3. Privacy spectrum sliders non-interactive** — FALSE POSITIVE: Radix UI `SliderPrimitive` renders `role="slider"` divs (not `<input type="range">`). Sliders are fully interactive.
+- [x] **M4. Sidebar nav buttons use type="submit"** — Fixed: Added `type="button"` to all 6 buttons in `CollapsibleSidebar.tsx`.
+- [x] **M5. Returning users locked out without invite code** — Fixed: Hint text "Enter invite code to unlock sign-in" now only shows when no `auth_user` cached (new users only).
+- [x] **M6. Proactive insights endpoint missing** — FALSE POSITIVE: `/api/insights/proactive` already works. Frontend hook uses correct path.
+- [x] **M7. card.tsx glass surface too subtle** — Fixed: `rgba(0.06)` bg, `backdrop-blur-[42px]`, `glass-surface-border`, `box-shadow` added to `card.tsx`.
+
+## LOW
+
+- [x] **L1. Wiki section headings repeat without domain prefix** — Fixed: `WikiDomainCard.tsx` now prefixes h3 `id` attrs with domain label (e.g. `personality-communication-style`) for accessibility uniqueness.
+- [x] **L2. Identity page twin text not using Instrument Serif** — Fixed: taste statement paragraph in `IdentityPage.tsx` now uses `className="narrative-voice"`.
+- [x] **L3. observationIngestion.js is 5,578 lines** — Split into modules: `observationUtils.js` (utilities) + `observationFetchers/{spotify,calendar,youtube,discord,gmail,github,whoop}.js`. Main file reduced 5,578 → 3,063 lines. `ingestWebObservations` re-implemented as export.
+- [x] **L4. auth/refresh called on every page load** — Fixed as part of H2: `initAuth()` now skips refresh when `auth_token` is in localStorage.

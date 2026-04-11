@@ -454,7 +454,7 @@ const IdentityPage: React.FC = () => {
     return 'Good Evening';
   };
 
-  const firstName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? '';
+  const firstName = user?.firstName ?? user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? '';
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -599,7 +599,7 @@ const IdentityPage: React.FC = () => {
                   <h3 className="text-sm font-medium mb-1" style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}>
                     {value.name}
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                  <p className="narrative-voice text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
                     {value.evidence}
                   </p>
                 </div>
@@ -627,7 +627,7 @@ const IdentityPage: React.FC = () => {
                     Peak hours: {layers.rhythms.peakHours}
                   </p>
                 )}
-                <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="narrative-voice text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   {layers.rhythms.summary}
                 </p>
                 {layers.rhythms.distribution && (
@@ -654,14 +654,8 @@ const IdentityPage: React.FC = () => {
               <>
                 <SectionLabel>Your Taste</SectionLabel>
                 <p
-                  className="mb-4 leading-relaxed"
-                  style={{
-                    fontFamily: "'Instrument Serif', Georgia, serif",
-                    fontStyle: 'italic',
-                    fontSize: '16px',
-                    color: 'rgba(255,255,255,0.8)',
-                    lineHeight: 1.6,
-                  }}
+                  className="narrative-voice mb-4"
+                  style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)' }}
                 >
                   {layers.taste.statement}
                 </p>
@@ -697,7 +691,7 @@ const IdentityPage: React.FC = () => {
                 >
                   {formatConnectionStyle(layers.connections.style)}
                 </span>
-                <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                <p className="narrative-voice text-sm mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
                   {layers.connections.summary}
                 </p>
                 {layers.connections.patterns && layers.connections.patterns.length > 0 && (
@@ -734,7 +728,7 @@ const IdentityPage: React.FC = () => {
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
                           {shift.domain}
                         </span>
-                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                        <p className="narrative-voice text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
                           {shift.description}
                         </p>
                       </div>
