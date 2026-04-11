@@ -54,10 +54,6 @@
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/personality-eval",
-      "schedule": "0 4 * * 0"
-    },
-    {
       "path": "/api/cron/prospective-check",
       "schedule": "*/15 * * * *"
     },
@@ -84,10 +80,6 @@
     {
       "path": "/api/cron/action-reflection",
       "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/personality-validation",
-      "schedule": "0 3 * * 0"
     },
     {
       "path": "/api/cron/calendar-optimization",
