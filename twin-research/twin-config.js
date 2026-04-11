@@ -126,7 +126,7 @@ export const MEMORY_CONTEXT_BUDGETS = {
   reflections:   3,
   platform_data: 6,
   facts:         5,
-  conversations: 6,
+  conversations: 10,
 };
 
 // ─── LLM Memory Reranker ─────────────────────────────────────────────────────

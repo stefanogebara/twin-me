@@ -336,12 +336,13 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
     ]);
 
-    // Floor: platform_data gets importance 6 (ensures surfacing alongside reflections 7-9)
-    // Conversations keep floor 4 (protects from early archival)
+    // Importance floors: conversations floor at 7 (same minimum as reflections) so
+    // they're not crushed during min-max normalisation in SQL. Platform data floors
+    // at 6 (directly observed, high confidence but lower synthesis value).
     if (memoryType === 'platform_data' && importanceScore < 6) {
       importanceScore = 6;
-    } else if (memoryType === 'conversation' && importanceScore < 4) {
-      importanceScore = 4;
+    } else if (memoryType === 'conversation' && importanceScore < 7) {
+      importanceScore = 7;
     }
 
     // S5.1: Proposition revision — for reflection/fact types, prefer UPDATE over INSERT
@@ -787,6 +788,9 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
       p_weight_recency: w.recency,
       p_weight_importance: w.importance,
       p_weight_relevance: w.relevance,
+      // Type filter: when set, normalization is scoped to this type pool so
+      // memories don't compete against higher-importance types (e.g. reflections).
+      ...(options.memoryTypes ? { p_memory_types: options.memoryTypes } : {}),
     };
 
     // Run vector search with query embedding (+ HyDE embedding if available)
@@ -1139,15 +1143,20 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     return cached.data;
   }
   const {
-    reflections: maxReflections = 15,
+    reflections: maxReflections = 12,
     facts: maxFacts = MEMORY_CONTEXT_BUDGETS.facts,
     platformData: maxPlatformData = MEMORY_CONTEXT_BUDGETS.platform_data ?? 4,
     conversations: maxConversations = MEMORY_CONTEXT_BUDGETS.conversations
   } = budgets;
 
+  // Split conversation budget: 60% semantic (relevance-matched), 40% recency (thread continuity).
+  // Recency track ensures the twin always knows what was just discussed even if off-topic.
+  const semanticConvBudget = Math.max(1, Math.round(maxConversations * 0.6));
+  const recentConvBudget = maxConversations - semanticConvBudget;
+
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
-  const [reflectionResults, factResults, platformResults, conversationResults] = await Promise.all([
+  const [reflectionResults, factResults, platformResults, semanticConvResults, recentConvResults] = await Promise.all([
     // Reflections: semantic search over-fetches, then we cap at maxReflections
     retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, options).catch(err => {
       log.warn('Diverse reflections fetch failed', { error: err });
@@ -1180,45 +1189,35 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
         return data || [];
       }),
 
-    // P3: Conversation memories — hybrid semantic + direct retrieval
-    // Semantic search was dominated by reflections, so we use a mixed approach:
-    //   60% semantic (via retrieveMemories, post-filtered to conversations)
-    //   40% direct by importance (most significant exchanges)
-    maxConversations > 0
-      ? (async () => {
-          const semanticBudget = Math.ceil(maxConversations * 0.6);
-          const directBudget = maxConversations - semanticBudget;
+    // Semantic track: type-scoped vector search within conversations only.
+    // Normalization happens within the conversation pool so they're not
+    // outranked by reflections during min-max scoring.
+    semanticConvBudget > 0
+      ? retrieveMemories(userId, query, semanticConvBudget * 2, 'default', {
+          memoryTypes: ['conversation'],
+          skipHyDE: true,
+        })
+          .then(results => results.filter(m => m.memory_type === 'conversation').slice(0, semanticConvBudget))
+          .catch(err => {
+            log.warn('Semantic conversation fetch failed', { error: err });
+            return [];
+          })
+      : Promise.resolve([]),
 
-          const [semanticRes, directRes] = await Promise.all([
-            // Semantic: over-fetch and filter to conversation type
-            retrieveMemories(userId, query, semanticBudget * 4, 'default')
-              .then(results => results.filter(m => m.memory_type === 'conversation').slice(0, semanticBudget))
-              .catch(err => {
-                log.warn('Semantic conversation fetch failed', { error: err });
-                return [];
-              }),
-            // Direct: top by importance
-            supabaseAdmin
-              .from('user_memories')
-              .select(SELECT_COLS)
-              .eq('user_id', userId)
-              .eq('memory_type', 'conversation')
-              .order('importance_score', { ascending: false })
-              .limit(directBudget)
-              .then(({ data, error }) => {
-                if (error) log.warn('Direct conversation fetch failed', { error });
-                return data || [];
-              }),
-          ]);
-
-          // Merge and dedup
-          const seen = new Set();
-          const merged = [];
-          for (const m of [...semanticRes, ...directRes]) {
-            if (!seen.has(m.id)) { seen.add(m.id); merged.push(m); }
-          }
-          return merged.slice(0, maxConversations);
-        })()
+    // Recency track: most recent conversations by created_at regardless of topic.
+    // Gives the twin thread continuity — it always knows what was just discussed.
+    recentConvBudget > 0
+      ? supabaseAdmin
+          .from('user_memories')
+          .select(SELECT_COLS)
+          .eq('user_id', userId)
+          .eq('memory_type', 'conversation')
+          .order('created_at', { ascending: false })
+          .limit(recentConvBudget)
+          .then(({ data, error }) => {
+            if (error) log.warn('Recent conversation fetch failed', { error });
+            return data || [];
+          })
       : Promise.resolve([]),
   ]);
 
@@ -1226,6 +1225,17 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
   const topReflections = reflectionResults
     .filter(m => m.memory_type === 'reflection')
     .slice(0, maxReflections);
+
+  // Merge semantic + recency conversation tracks, dedup by id, cap at budget
+  const convSeen = new Set();
+  const conversationResults = [];
+  for (const m of [...semanticConvResults, ...recentConvResults]) {
+    if (!convSeen.has(m.id)) {
+      convSeen.add(m.id);
+      conversationResults.push(m);
+    }
+  }
+  conversationResults.splice(maxConversations);
 
   const combined = [...topReflections, ...factResults, ...platformResults, ...conversationResults];
 
@@ -1241,6 +1251,8 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     facts: factResults.length,
     platformData: platformResults.length,
     conversations: conversationResults.length,
+    semanticConv: semanticConvResults.length,
+    recentConv: recentConvResults.length,
     graphLinked: expanded.length - combined.length,
   });
 

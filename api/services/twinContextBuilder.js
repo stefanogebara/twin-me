@@ -845,12 +845,12 @@ async function routeMemoryContext(userId, userMessage, memoryDomains = null) {
     // Non-fatal, use default
   }
 
-  const baseBudgets = { reflections: 15, facts: 6, platformData: platformBudget, conversations: 4 };
+  const baseBudgets = { reflections: 12, facts: 6, platformData: platformBudget, conversations: 10 };
   const memoryBudgets = {
     reflections: Math.max(1, Math.round(baseBudgets.reflections * (weights.reflections || 0.6))),
     facts: Math.max(1, Math.round(baseBudgets.facts * (weights.facts || 0.6))),
     platformData: Math.max(1, Math.round(baseBudgets.platformData * (weights.platform_data || 0.5))),
-    conversations: Math.max(1, Math.round(baseBudgets.conversations * (weights.conversations || 0.5))),
+    conversations: Math.max(3, Math.round(baseBudgets.conversations * (weights.conversations || 0.8))),
   };
 
   // Choose retrieval weight preset based on domain
