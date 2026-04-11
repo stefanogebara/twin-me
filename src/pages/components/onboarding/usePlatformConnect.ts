@@ -21,6 +21,7 @@ interface UsePlatformConnectOptions {
   setConnectingProvider: (provider: DataProvider | null) => void;
   setDisconnectingProvider: (provider: DataProvider | null) => void;
   setDemoModalPlatform: (platform: string | null) => void;
+  setGarminModalOpen?: (open: boolean) => void;
 }
 
 export function usePlatformConnect({
@@ -32,6 +33,7 @@ export function usePlatformConnect({
   setConnectingProvider,
   setDisconnectingProvider,
   setDemoModalPlatform,
+  setGarminModalOpen,
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
@@ -62,8 +64,19 @@ export function usePlatformConnect({
 
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
+      // Garmin uses direct credential login (no OAuth developer approval available)
+      if (provider === 'garmin') {
+        setConnectingProvider(null);
+        if (setGarminModalOpen) {
+          setGarminModalOpen(true);
+        } else {
+          toast({ title: 'Garmin', description: 'Open Settings > Platforms to connect Garmin.', variant: 'default' });
+        }
+        return;
+      }
+
       const googlePlatforms = ['google_calendar', 'google_gmail'];
-      const nangoPlatforms = ['fitbit', 'garmin', 'microsoft_outlook', 'whoop', 'twitch'];
+      const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
 
       let apiUrl: string;
       let fetchOptions: RequestInit;
@@ -123,7 +136,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform]);
+  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen]);
 
   const handleNangoPopup = useCallback((provider: DataProvider, connectUrl: string) => {
     const width = 600, height = 700;

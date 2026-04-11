@@ -1,10 +1,13 @@
 /**
  * Garmin observation fetcher.
  * Extracted from observationIngestion.js — do not change function signatures.
+ *
+ * Uses garminDirectService (reverse-engineered web SSO) because the official
+ * Garmin Connect Developer Program requires business approval.
  */
 
 import { createLogger } from '../logger.js';
-import { sanitizeExternal, getSupabase, _hasNangoMapping } from '../observationUtils.js';
+import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -22,25 +25,24 @@ async function fetchGarminObservations(userId) {
   const supabase = await getSupabase();
   if (!supabase) return observations;
 
-  const isNangoManaged = await _hasNangoMapping(supabase, userId, 'garmin');
-  if (!isNangoManaged) {
-    log.warn('Garmin: no Nango connection', { userId });
+  let garmin;
+  try {
+    garmin = await import('../garminDirectService.js');
+  } catch (e) {
+    log.warn('Garmin: garminDirectService import failed', { error: e.message });
     return observations;
   }
 
-  let nangoService;
-  try {
-    nangoService = await import('../nangoService.js');
-  } catch (e) {
-    log.warn('Garmin: nangoService import failed', { error: e });
+  const connected = await garmin.hasCredentials(userId);
+  if (!connected) {
+    log.warn('Garmin: no credentials stored', { userId });
     return observations;
   }
 
   // ── 1. Daily summary ──────────────────────────────────────────────────────
   try {
-    const summaryResult = await nangoService.garmin.getDailySummary(userId);
+    const summaryResult = await garmin.getDailySummary(userId);
     if (summaryResult.success && summaryResult.data) {
-      // Garmin Wellness API may return an array or a single object
       const summary = Array.isArray(summaryResult.data)
         ? summaryResult.data[0]
         : summaryResult.data;
@@ -54,8 +56,11 @@ async function fetchGarminObservations(userId) {
         if (steps !== null && steps > 0) parts.push(`${steps.toLocaleString()} steps`);
         if (activeCalories !== null && activeCalories > 0) parts.push(`${activeCalories} active calories`);
         if (stressScore !== null && stressScore > 0) {
-          const stressLabel = stressScore < 26 ? 'low stress' : stressScore < 51 ? 'moderate stress' : stressScore < 76 ? 'high stress' : 'very high stress';
-          parts.push(`stress level ${stressScore} (${stressLabel})`);
+          const label =
+            stressScore < 26 ? 'low stress' :
+            stressScore < 51 ? 'moderate stress' :
+            stressScore < 76 ? 'high stress' : 'very high stress';
+          parts.push(`stress level ${stressScore} (${label})`);
         }
 
         if (parts.length > 0) {
@@ -67,38 +72,47 @@ async function fetchGarminObservations(userId) {
       }
     }
   } catch (e) {
-    log.warn('Garmin daily summary error', { error: e });
+    log.warn('Garmin daily summary error', { error: e.message });
   }
 
   // ── 2. Sleep data ─────────────────────────────────────────────────────────
   try {
-    const sleepResult = await nangoService.garmin.getSleepData(userId);
+    const sleepResult = await garmin.getSleepData(userId);
     if (sleepResult.success && sleepResult.data) {
       const sleepRecord = Array.isArray(sleepResult.data)
         ? sleepResult.data[0]
         : sleepResult.data;
 
       if (sleepRecord) {
-        // Duration in seconds is common in Garmin responses
-        const durationSec = sleepRecord.sleepTimeSeconds ?? sleepRecord.durationInSeconds ?? null;
-        const sleepScore = sleepRecord.overallSleepScore ?? sleepRecord.sleepScore ?? null;
+        const durationSec =
+          sleepRecord.sleepTimeSeconds ??
+          sleepRecord.durationInSeconds ??
+          sleepRecord.dailySleepDTO?.sleepTimeSeconds ??
+          null;
+        const sleepScore =
+          sleepRecord.overallSleepScore ??
+          sleepRecord.sleepScore ??
+          sleepRecord.dailySleepDTO?.sleepScores?.overall?.value ??
+          null;
 
         if (durationSec !== null && durationSec > 0) {
           const hours = durationSec / 3600;
-          const sleepLabel = hours >= 7.5 ? 'well-rested' : hours >= 6 ? 'moderate sleep' : 'under-slept';
-          let obs = `Garmin sleep: ${hours.toFixed(1)} hours (${sleepLabel})`;
+          const label =
+            hours >= 7.5 ? 'well-rested' :
+            hours >= 6 ? 'moderate sleep' : 'under-slept';
+          let obs = `Garmin sleep: ${hours.toFixed(1)} hours (${label})`;
           if (sleepScore !== null && sleepScore > 0) obs += ` — sleep score ${sleepScore}`;
           observations.push({ content: obs, contentType: 'daily_summary' });
         }
       }
     }
   } catch (e) {
-    log.warn('Garmin sleep error', { error: e });
+    log.warn('Garmin sleep error', { error: e.message });
   }
 
   // ── 3. Recent activities ──────────────────────────────────────────────────
   try {
-    const activitiesResult = await nangoService.garmin.getActivities(userId);
+    const activitiesResult = await garmin.getActivities(userId);
     if (activitiesResult.success) {
       const activities = Array.isArray(activitiesResult.data)
         ? activitiesResult.data
@@ -107,7 +121,10 @@ async function fetchGarminObservations(userId) {
       if (activities.length > 0) {
         const typeCounts = {};
         for (const act of activities.slice(0, 10)) {
-          const type = sanitizeExternal(act.activityType?.typeKey || act.activityTypePK || act.activityType || 'unknown', 30);
+          const type = sanitizeExternal(
+            act.activityType?.typeKey || act.activityTypePK || act.activityType || 'unknown',
+            30
+          );
           const normalType = type.replace(/_/g, ' ').toLowerCase();
           if (normalType) typeCounts[normalType] = (typeCounts[normalType] || 0) + 1;
         }
@@ -122,7 +139,7 @@ async function fetchGarminObservations(userId) {
       }
     }
   } catch (e) {
-    log.warn('Garmin activities error', { error: e });
+    log.warn('Garmin activities error', { error: e.message });
   }
 
   return observations;

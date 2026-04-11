@@ -1502,4 +1502,56 @@ router.post('/test-add-connection', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/connectors/garmin/credentials
+ * Save Garmin credentials (email + password) for direct web-session access.
+ * Validates immediately by attempting auth before storing.
+ */
+router.post('/garmin/credentials', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'email and password are required' });
+    }
+
+    const garmin = await import('../services/garminDirectService.js');
+    await garmin.saveCredentials(userId, email, password);
+
+    res.json({ success: true, message: 'Garmin connected' });
+  } catch (err) {
+    log.error('Garmin credential save failed', { error: err.message });
+    const userMsg = err.message?.includes('Invalid sign in') || err.message?.includes('auth failed')
+      ? 'Invalid Garmin credentials'
+      : 'Failed to connect Garmin';
+    res.status(400).json({ success: false, error: userMsg });
+  }
+});
+
+/**
+ * DELETE /api/connectors/garmin/credentials
+ * Disconnect Garmin (mark inactive).
+ */
+router.delete('/garmin/credentials', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { getSupabase } = await import('../services/observationUtils.js');
+    const db = await getSupabase();
+    if (!db) {
+      return res.status(503).json({ success: false, error: 'Database unavailable' });
+    }
+
+    await db.from('platform_connections')
+      .update({ is_active: false })
+      .eq('user_id', userId)
+      .eq('platform', 'garmin');
+
+    res.json({ success: true });
+  } catch (err) {
+    log.error('Garmin credential disconnect failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to disconnect Garmin' });
+  }
+});
+
 export default router;

@@ -26,6 +26,7 @@ import {
   usePlatformConnect,
 } from './components/onboarding';
 import type { RevealedArchetype } from './components/onboarding';
+import { GarminCredentialsModal } from './components/settings/GarminCredentialsModal';
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
 
 const InstantTwinOnboarding = () => {
@@ -72,6 +73,7 @@ const InstantTwinOnboarding = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
+  const [garminModalOpen, setGarminModalOpen] = useState(false);
   const [revealedArchetype, setRevealedArchetype] = useState<RevealedArchetype | null>(null);
 
   const connectedServices = connectedProviders as DataProvider[];
@@ -131,6 +133,7 @@ const InstantTwinOnboarding = () => {
     setConnectingProvider,
     setDisconnectingProvider,
     setDemoModalPlatform,
+    setGarminModalOpen,
   });
 
   // --- Twin generation ---
@@ -276,6 +279,12 @@ const InstantTwinOnboarding = () => {
           setDemoModalPlatform(null);
           navigate('/auth');
         }}
+      />
+
+      <GarminCredentialsModal
+        open={garminModalOpen}
+        onClose={() => setGarminModalOpen(false)}
+        onSuccess={() => refetchPlatformStatus()}
       />
     </>
   );
