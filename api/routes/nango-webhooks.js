@@ -272,23 +272,23 @@ async function ingestPlatformObservations(userId, platform, providerConfigKey) {
   const { addPlatformObservation } = await import('../services/memoryStreamService.js');
   const { checkConditionTriggered } = await import('../services/prospectiveMemoryService.js');
 
-  // Platform fetcher map — import only the one we need
+  // Platform fetcher map — import from sub-files (observationIngestion no longer re-exports these)
   const fetcherMap = {
-    spotify: () => import('../services/observationIngestion.js').then(m => m.fetchSpotifyObservations),
-    google_calendar: () => import('../services/observationIngestion.js').then(m => m.fetchCalendarObservations),
-    youtube: () => import('../services/observationIngestion.js').then(m => m.fetchYouTubeObservations),
-    whoop: () => import('../services/observationIngestion.js').then(m => m.fetchWhoopObservations),
-    discord: () => import('../services/observationIngestion.js').then(m => m.fetchDiscordObservations),
-    github: () => import('../services/observationIngestion.js').then(m => m.fetchGitHubObservations),
-    linkedin: () => import('../services/observationIngestion.js').then(m => m.fetchLinkedInObservations),
-    reddit: () => import('../services/observationIngestion.js').then(m => m.fetchRedditObservations),
-    google_gmail: () => import('../services/observationIngestion.js').then(m => m.fetchGmailObservations),
-    twitch: () => import('../services/observationIngestion.js').then(m => m.fetchTwitchObservations),
-    outlook: () => import('../services/observationIngestion.js').then(m => m.fetchOutlookObservations),
-    garmin: () => import('../services/observationIngestion.js').then(m => m.fetchGarminObservations),
-    strava: () => import('../services/observationIngestion.js').then(m => m.fetchStravaObservations),
-    fitbit: () => import('../services/observationIngestion.js').then(m => m.fetchFitbitObservations),
-    oura: () => import('../services/observationIngestion.js').then(m => m.fetchOuraObservations),
+    spotify: () => import('../services/observationFetchers/spotify.js').then(m => m.fetchSpotifyObservations),
+    google_calendar: () => import('../services/observationFetchers/calendar.js').then(m => m.fetchCalendarObservations),
+    youtube: () => import('../services/observationFetchers/youtube.js').then(m => m.fetchYouTubeObservations),
+    whoop: () => import('../services/observationFetchers/whoop.js').then(m => m.fetchWhoopObservations),
+    discord: () => import('../services/observationFetchers/discord.js').then(m => m.fetchDiscordObservations),
+    github: () => import('../services/observationFetchers/github.js').then(m => m.fetchGitHubObservations),
+    linkedin: () => import('../services/observationFetchers/linkedin.js').then(m => m.fetchLinkedInObservations),
+    reddit: () => import('../services/observationFetchers/reddit.js').then(m => m.fetchRedditObservations),
+    google_gmail: () => import('../services/observationFetchers/gmail.js').then(m => m.fetchGmailObservations),
+    twitch: () => import('../services/observationFetchers/twitch.js').then(m => m.fetchTwitchObservations),
+    outlook: () => import('../services/observationFetchers/outlook.js').then(m => m.fetchOutlookObservations),
+    garmin: () => import('../services/observationFetchers/garmin.js').then(m => m.fetchGarminObservations),
+    strava: () => import('../services/observationFetchers/strava.js').then(m => m.fetchStravaObservations),
+    fitbit: () => import('../services/observationFetchers/fitbit.js').then(m => m.fetchFitbitObservations),
+    oura: () => import('../services/observationFetchers/oura.js').then(m => m.fetchOuraObservations),
   };
 
   const fetcherFactory = fetcherMap[platform];

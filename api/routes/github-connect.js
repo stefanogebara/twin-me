@@ -102,7 +102,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
     if (error) throw error;
 
     // Trigger immediate ingestion (non-blocking)
-    import('../services/observationIngestion.js').then(({ fetchGitHubObservations }) => {
+    import('../services/observationFetchers/github.js').then(({ fetchGitHubObservations }) => {
       fetchGitHubObservations(userId).catch(err =>
         log.warn('Initial ingestion failed:', err.message)
       );
