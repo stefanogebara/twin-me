@@ -1,20 +1,26 @@
 /**
  * Garmin Connect Direct Service
  *
- * Reverse-engineered integration using Garmin's web SSO flow.
+ * Reverse-engineered integration using Garmin's legacy SSO flow.
  * The official Garmin Connect Developer Program requires business approval,
  * so this service authenticates via the same flow the web app uses.
  *
- * Auth flow:
- *   1. GET /sso/signin         -> SESSION cookie
- *   2. POST /sso/signin        -> redirect with ticket (302) or 401 + new CSRF
- *   3. If 401: re-POST with CSRF from body
- *   4. Follow redirect to connect.garmin.com -> SESSIONID cookie
+ * Auth flow (confirmed via browser network capture):
+ *   1. GET  sso.garmin.com/sso/signin   -> CSRF token + SESSION cookies
+ *   2. POST sso.garmin.com/sso/signin   -> 200 "Success" page with `response_url`
+ *                                           containing `?ticket=ST-...`
+ *   3. GET  connect.garmin.com/modern/?ticket=ST-...
+ *                                       -> 302 + SESSIONID cookie
+ *   4. Follow until SESSIONID obtained
+ *
+ * Note: new portal (sso.garmin.com/portal/api/login) is Cloudflare-protected
+ * in Node.js. The legacy sso/signin endpoint is NOT Cloudflare-protected and
+ * works for all account types including Google-OAuth accounts.
  *
  * Storage: platform_connections table
  *   access_token_encrypted  = encrypted SESSIONID
  *   refresh_token_encrypted = encrypted JSON { email, password }
- *   expires_at              = session expiry (~24h from login)
+ *   expires_at              = session expiry (~23h from login)
  */
 
 import { createLogger } from './logger.js';
@@ -23,27 +29,22 @@ import { getSupabase } from './observationUtils.js';
 
 const log = createLogger('GarminDirect');
 
-const SSO_BASE = 'https://sso.garmin.com';
+const SSO_SIGNIN = 'https://sso.garmin.com/sso/signin';
 const CONNECT_BASE = 'https://connect.garmin.com';
 const API_BASE = `${CONNECT_BASE}/modern/proxy`;
+const SERVICE_URL = `${CONNECT_BASE}/modern/`;
 
 const DEFAULT_UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function parseCookies(headers) {
+function getSetCookies(headers) {
   const cookies = [];
   headers.forEach((v, k) => {
-    if (k.toLowerCase() === 'set-cookie') {
-      cookies.push(v.split(';')[0]);
-    }
+    if (k.toLowerCase() === 'set-cookie') cookies.push(v.split(';')[0]);
   });
   return cookies;
-}
-
-function cookieString(arr) {
-  return arr.join('; ');
 }
 
 function todayStr() {
@@ -53,114 +54,103 @@ function todayStr() {
 // ── Authentication ─────────────────────────────────────────────────────────
 
 /**
- * Authenticate with Garmin Connect and return the SESSIONID cookie value.
- * Handles 2-step flow: initial POST may fail with CSRF, retry with CSRF.
+ * Authenticate via Garmin's legacy SSO and return the SESSIONID value.
+ *
+ * The flow returns a 200 "Success" page (not a 302) on the POST step.
+ * The ticket URL lives in the JS variable `response_url` in that page.
  */
 async function authenticate(email, password) {
-  const signinUrl = `${SSO_BASE}/sso/signin`;
-
-  // Step 1: GET signin page -> SESSION cookie
+  // Step 1: GET signin page to obtain CSRF token + session cookies
   log.info('Garmin auth: fetching signin page');
-  const r1 = await fetch(signinUrl, {
+  const r1 = await fetch(`${SSO_SIGNIN}?service=${encodeURIComponent(SERVICE_URL)}&clientId=GarminConnect`, {
+    headers: { 'User-Agent': DEFAULT_UA, Accept: 'text/html,application/xhtml+xml' },
+  });
+
+  if (!r1.ok) throw new Error(`Garmin signin page failed: HTTP ${r1.status}`);
+
+  const initCookies = getSetCookies(r1.headers);
+  const html1 = await r1.text();
+  const csrf = html1.match(/name="_csrf"\s+value="([^"]+)"/)?.[1] || '';
+
+  // Step 2: POST credentials (CSRF from step 1)
+  log.info('Garmin auth: posting credentials');
+  const r2 = await fetch(SSO_SIGNIN, {
+    method: 'POST',
     headers: {
       'User-Agent': DEFAULT_UA,
-      Accept: 'text/html,application/xhtml+xml',
-      'NK': 'NT',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Cookie: initCookies.join('; '),
+      Origin: 'https://sso.garmin.com',
+      Referer: SSO_SIGNIN,
     },
-  });
-
-  const cookies1 = parseCookies(r1.headers);
-  const sessionCookie = cookies1.find(c => c.startsWith('SESSION='));
-  if (!sessionCookie) {
-    throw new Error('Garmin: no SESSION cookie from signin page');
-  }
-
-  // Step 2: POST credentials
-  async function postCredentials(extraCookies = [], csrf = '') {
-    const form = new URLSearchParams({
+    body: new URLSearchParams({
       username: email,
       password,
-      embed: 'false',
       _csrf: csrf,
-      _eventId: 'submit',
-      displayNameRequired: 'false',
-    });
-
-    const cookieJar = cookieString([sessionCookie, ...extraCookies]);
-
-    return fetch(signinUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: cookieJar,
-        'User-Agent': DEFAULT_UA,
-        Referer: signinUrl,
-        Origin: SSO_BASE,
-        'NK': 'NT',
-      },
-      body: form.toString(),
-      redirect: 'manual',
-    });
-  }
-
-  log.info('Garmin auth: posting credentials (attempt 1)');
-  const r2 = await postCredentials();
-  const status2 = r2.status;
-  const location2 = r2.headers.get('location');
-
-  let ticketUrl = null;
-
-  if (status2 === 302 && location2) {
-    ticketUrl = location2;
-  } else if (status2 === 200 || status2 === 401) {
-    // Extract CSRF from response body and retry
-    const body2 = await r2.text();
-    const csrfMatch = body2.match(/name="_csrf"[^>]*value="([^"]+)"/i);
-    const csrf2 = csrfMatch ? csrfMatch[1] : '';
-
-    if (!csrf2) {
-      // Check for explicit error
-      const errMatch = body2.match(/class="[^"]*error[^"]*"[^>]*>\s*([^<]+)/i);
-      const errMsg = errMatch ? errMatch[1].trim() : 'Authentication failed';
-      throw new Error(`Garmin: ${errMsg}`);
-    }
-
-    log.info('Garmin auth: retrying with CSRF token');
-    const cookies2 = parseCookies(r2.headers);
-    const r3 = await postCredentials(cookies2, csrf2);
-    const status3 = r3.status;
-    const location3 = r3.headers.get('location');
-
-    if (status3 === 302 && location3) {
-      ticketUrl = location3;
-    } else {
-      const body3 = await r3.text();
-      const errMatch = body3.match(/class="[^"]*error[^"]*"[^>]*>\s*([^<]+)/i);
-      const errMsg = errMatch ? errMatch[1].trim() : `Unexpected status ${status3}`;
-      throw new Error(`Garmin auth failed: ${errMsg}`);
-    }
-  } else {
-    throw new Error(`Garmin: unexpected signin status ${status2}`);
-  }
-
-  // Step 3: Exchange ticket for SESSIONID on connect.garmin.com
-  log.info('Garmin auth: exchanging ticket');
-  const ticketFullUrl = ticketUrl.startsWith('http') ? ticketUrl : `${CONNECT_BASE}${ticketUrl}`;
-
-  const r4 = await fetch(ticketFullUrl, {
-    headers: { 'User-Agent': DEFAULT_UA },
-    redirect: 'follow',
+      embed: 'false',
+      service: SERVICE_URL,
+    }).toString(),
+    redirect: 'manual',
   });
 
-  const connectCookies = parseCookies(r4.headers);
-  const sessionIdCookie = connectCookies.find(c => c.startsWith('SESSIONID='));
+  const body2 = await r2.text();
 
-  if (!sessionIdCookie) {
+  // On success: 200 with <title>Success</title> and JS var `response_url`
+  // On error:  200 with error text or 429 rate-limit
+  if (r2.status === 429) {
+    throw new Error('Garmin: too many login attempts — wait a few minutes and try again');
+  }
+
+  // Extract the ticket URL from the JS variable in the success page
+  const responseUrlMatch = body2.match(/var\s+response_url\s*=\s*"([^"]+)"/);
+  if (!responseUrlMatch) {
+    // Look for an inline error message
+    const errMatch = body2.match(/class="[^"]*error[^"]*"[^>]*>\s*([^<]+)/i)
+      || body2.match(/<p[^>]*class="[^"]*alert[^"]*"[^>]*>([\s\S]*?)<\/p>/i);
+    const errMsg = errMatch
+      ? errMatch[1].replace(/<[^>]+>/g, '').trim().substring(0, 120)
+      : 'Credentials rejected or account requires Garmin-native password';
+    throw new Error(`Garmin auth failed: ${errMsg}`);
+  }
+
+  // Unescape the \/ sequences Garmin puts in the JS string
+  const ticketUrl = responseUrlMatch[1].replace(/\\\//g, '/');
+  log.info('Garmin auth: ticket obtained, exchanging');
+
+  // Step 3: Exchange ticket for SESSIONID — follow redirects, collect cookies
+  let currentUrl = ticketUrl;
+  let connectCookies = [];
+  let sessionId = null;
+
+  for (let hop = 0; hop < 8; hop++) {
+    const r = await fetch(currentUrl, {
+      headers: { 'User-Agent': DEFAULT_UA, Cookie: connectCookies.join('; ') },
+      redirect: 'manual',
+    });
+
+    const newCookies = getSetCookies(r.headers);
+    connectCookies.push(...newCookies);
+
+    const sid = newCookies.find(c => c.startsWith('SESSIONID='));
+    if (sid) {
+      sessionId = sid.replace('SESSIONID=', '');
+      break;
+    }
+
+    if ((r.status === 301 || r.status === 302) && r.headers.get('location')) {
+      let loc = r.headers.get('location');
+      if (loc.startsWith('/')) loc = CONNECT_BASE + loc;
+      currentUrl = loc;
+    } else {
+      break;
+    }
+  }
+
+  if (!sessionId) {
     throw new Error('Garmin: no SESSIONID cookie after ticket exchange');
   }
 
-  const sessionId = sessionIdCookie.replace('SESSIONID=', '');
-  log.info('Garmin auth: success');
+  log.info('Garmin auth: session established');
   return sessionId;
 }
 
@@ -175,9 +165,13 @@ async function garminGet(path, sessionId) {
       'NK': 'NT',
       Accept: 'application/json, text/javascript, */*; q=0.01',
       'X-Requested-With': 'XMLHttpRequest',
+      'x-app-ver': '4.69.2.0',
     },
   });
 
+  if (r.status === 401 || r.status === 403) {
+    throw new Error(`Garmin session expired (${r.status}) for ${path}`);
+  }
   if (!r.ok) {
     throw new Error(`Garmin API ${r.status} for ${path}`);
   }
@@ -191,7 +185,7 @@ async function getDisplayName(sessionId) {
 
 // ── Session management ─────────────────────────────────────────────────────
 
-async function getOrRefreshSession(userId) {
+async function getOrRefreshSession(userId, { forceRefresh = false } = {}) {
   const supabase = await getSupabase();
   if (!supabase) throw new Error('Supabase unavailable');
 
@@ -207,20 +201,19 @@ async function getOrRefreshSession(userId) {
 
   // Check if session is still valid (with 10-min buffer)
   const expiresAt = conn.expires_at ? new Date(conn.expires_at) : null;
-  const needsRefresh = !expiresAt || expiresAt <= new Date(Date.now() + 10 * 60 * 1000);
+  const isExpired = !expiresAt || expiresAt <= new Date(Date.now() + 10 * 60 * 1000);
 
-  if (!needsRefresh && conn.access_token_encrypted) {
+  if (!forceRefresh && !isExpired && conn.access_token_encrypted) {
     return decryptToken(conn.access_token_encrypted);
   }
 
   // Re-authenticate using stored credentials
-  log.info('Garmin: refreshing session', { userId });
+  log.info('Garmin: refreshing session', { userId, forceRefresh });
   const credsJson = decryptToken(conn.refresh_token_encrypted);
   const creds = JSON.parse(credsJson);
 
   const newSessionId = await authenticate(creds.email, creds.password);
 
-  // Store new session (24h TTL)
   const newExpiry = new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString();
   await supabase
     .from('platform_connections')
@@ -232,6 +225,21 @@ async function getOrRefreshSession(userId) {
     .eq('id', conn.id);
 
   return newSessionId;
+}
+
+/** Run an API call with automatic session refresh on 401/403. */
+async function garminGetWithRetry(path, userId) {
+  const sessionId = await getOrRefreshSession(userId);
+  try {
+    return await garminGet(path, sessionId);
+  } catch (err) {
+    if (err.message.includes('session expired')) {
+      // One retry with a fresh session
+      const freshSession = await getOrRefreshSession(userId, { forceRefresh: true });
+      return garminGet(path, freshSession);
+    }
+    throw err;
+  }
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
@@ -276,9 +284,9 @@ export async function getDailySummary(userId, date = todayStr()) {
     const displayName = await getDisplayName(sessionId);
     if (!displayName) throw new Error('Could not resolve display name');
 
-    const data = await garminGet(
+    const data = await garminGetWithRetry(
       `usersummary-service/usersummary/daily/${encodeURIComponent(displayName)}?calendarDate=${date}`,
-      sessionId
+      userId
     );
     return { success: true, data };
   } catch (err) {
@@ -296,9 +304,9 @@ export async function getSleepData(userId, date = todayStr()) {
     const displayName = await getDisplayName(sessionId);
     if (!displayName) throw new Error('Could not resolve display name');
 
-    const data = await garminGet(
+    const data = await garminGetWithRetry(
       `wellness-service/wellness/dailySleepData/${encodeURIComponent(displayName)}?date=${date}`,
-      sessionId
+      userId
     );
     return { success: true, data };
   } catch (err) {
@@ -312,10 +320,9 @@ export async function getSleepData(userId, date = todayStr()) {
  */
 export async function getActivities(userId, limit = 20) {
   try {
-    const sessionId = await getOrRefreshSession(userId);
-    const data = await garminGet(
+    const data = await garminGetWithRetry(
       `activitylist-service/activities/search/activities?start=0&limit=${limit}`,
-      sessionId
+      userId
     );
     return { success: true, data };
   } catch (err) {
