@@ -658,6 +658,37 @@ function stripEmbedding({ embedding: _emb, _idx, ...rest }) { return rest; }
 // Simple LRU cache for HyDE results (avoids duplicate LLM calls for same query)
 const hydeCache = new Map();
 const HYDE_CACHE_MAX = 100;
+const MEMORY_DB_BACKOFF_MS = 30 * 1000;
+let memoryDbBackoffUntil = 0;
+
+function isTransientDbError(errorLike) {
+  const message = String(errorLike?.message || errorLike || '').toLowerCase();
+  return (
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('connection') ||
+    message.includes('fetch failed') ||
+    message.includes('failed to fetch') ||
+    message.includes('terminated') ||
+    message.includes('522') ||
+    message.includes('502') ||
+    message.includes('503')
+  );
+}
+
+function memoryDbInBackoff() {
+  return Date.now() < memoryDbBackoffUntil;
+}
+
+function startMemoryDbBackoff(error, context) {
+  if (!isTransientDbError(error)) return;
+  memoryDbBackoffUntil = Date.now() + MEMORY_DB_BACKOFF_MS;
+  log.warn('Memory DB backoff enabled', {
+    context,
+    retryAfterMs: MEMORY_DB_BACKOFF_MS,
+    error: error?.message || String(error),
+  });
+}
 
 /**
  * Generate a hypothetical memory that would answer the query.
@@ -723,6 +754,7 @@ async function generateHypotheticalMemory(query) {
  */
 async function retrieveMemories(userId, query, limit = 10, weights = 'default', options = {}) {
   if (!userId || !query) return [];
+  if (memoryDbInBackoff()) return [];
 
   // Resolve weight preset
   const w = typeof weights === 'string'
@@ -792,8 +824,11 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
 
     // Check for errors
     if (searchResults[0].error) {
+      startMemoryDbBackoff(searchResults[0].error, 'search_memory_stream');
       log.error('Vector search failed', { error: searchResults[0].error });
-      return fallbackKeywordSearch(userId, query, limit);
+      return isTransientDbError(searchResults[0].error)
+        ? []
+        : fallbackKeywordSearch(userId, query, limit);
     }
 
     // Merge results: interleave query + HyDE + fact-only results, dedup by ID
@@ -1005,8 +1040,9 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     log.info('Retrieved memories', { count: reranked.length, weights: weightLabel, candidates: data.length, graphLinked: graphCount, topScore: reranked[0]?.score?.toFixed(3) });
     return reranked;
   } catch (error) {
+    startMemoryDbBackoff(error, 'retrieveMemories');
     log.error('retrieveMemories error', { error });
-    return fallbackKeywordSearch(userId, query, limit);
+    return isTransientDbError(error) ? [] : fallbackKeywordSearch(userId, query, limit);
   }
 }
 
@@ -1015,6 +1051,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
  * Same logic as the original mem0Service.searchMemories.
  */
 async function fallbackKeywordSearch(userId, query, limit = 10) {
+  if (memoryDbInBackoff()) return [];
   try {
     const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     if (keywords.length === 0) return [];
@@ -1026,7 +1063,10 @@ async function fallbackKeywordSearch(userId, query, limit = 10) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error || !data) return [];
+    if (error || !data) {
+      startMemoryDbBackoff(error, 'fallbackKeywordSearch');
+      return [];
+    }
 
     return data
       .map(mem => {
@@ -1038,6 +1078,7 @@ async function fallbackKeywordSearch(userId, query, limit = 10) {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   } catch (error) {
+    startMemoryDbBackoff(error, 'fallbackKeywordSearch');
     log.error('Fallback search failed', { error });
     return [];
   }

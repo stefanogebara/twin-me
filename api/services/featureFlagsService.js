@@ -18,9 +18,39 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('FeatureFlags');
 
-// In-memory cache: userId → { flags, fetchedAt }
+// In-memory cache: userId → { flags, fetchedAt, ttlMs }
 const cache = new Map();
+const pendingFetches = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const DB_BACKOFF_MS = 30 * 1000;
+let dbBackoffUntil = 0;
+
+function isTransientDbError(errorLike) {
+  const message = String(errorLike?.message || errorLike || '').toLowerCase();
+  return (
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('connection') ||
+    message.includes('fetch failed') ||
+    message.includes('failed to fetch') ||
+    message.includes('terminated') ||
+    message.includes('522') ||
+    message.includes('502') ||
+    message.includes('503')
+  );
+}
+
+function getCachedFlags(userId) {
+  const cached = cache.get(userId);
+  if (cached && Date.now() - cached.fetchedAt < (cached.ttlMs || CACHE_TTL_MS)) {
+    return cached.flags;
+  }
+  return null;
+}
+
+function cacheFlags(userId, flags, ttlMs = CACHE_TTL_MS) {
+  cache.set(userId, { flags, fetchedAt: Date.now(), ttlMs });
+}
 
 /**
  * Get all feature flags for a user.
@@ -30,33 +60,48 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 export async function getFeatureFlags(userId) {
   if (!userId) return {};
 
-  const cached = cache.get(userId);
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-    return cached.flags;
-  }
+  const cachedFlags = getCachedFlags(userId);
+  if (cachedFlags) return cachedFlags;
+  if (Date.now() < dbBackoffUntil) return {};
+  if (pendingFetches.has(userId)) return pendingFetches.get(userId);
 
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('feature_flags')
-      .select('flag_name, enabled')
-      .eq('user_id', userId);
+  const fetchPromise = (async () => {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('feature_flags')
+        .select('flag_name, enabled')
+        .eq('user_id', userId);
 
-    if (error) {
-      log.warn('DB error:', error.message);
+      if (error) {
+        if (isTransientDbError(error)) {
+          dbBackoffUntil = Date.now() + DB_BACKOFF_MS;
+        }
+        log.warn('DB error:', error.message);
+        cacheFlags(userId, {}, DB_BACKOFF_MS);
+        return {};
+      }
+
+      const flags = {};
+      for (const row of (data || [])) {
+        flags[row.flag_name] = row.enabled;
+      }
+
+      cacheFlags(userId, flags);
+      return flags;
+    } catch (err) {
+      if (isTransientDbError(err)) {
+        dbBackoffUntil = Date.now() + DB_BACKOFF_MS;
+      }
+      log.warn('Unexpected error:', err.message);
+      cacheFlags(userId, {}, DB_BACKOFF_MS);
       return {};
+    } finally {
+      pendingFetches.delete(userId);
     }
+  })();
 
-    const flags = {};
-    for (const row of (data || [])) {
-      flags[row.flag_name] = row.enabled;
-    }
-
-    cache.set(userId, { flags, fetchedAt: Date.now() });
-    return flags;
-  } catch (err) {
-    log.warn('Unexpected error:', err.message);
-    return {};
-  }
+  pendingFetches.set(userId, fetchPromise);
+  return fetchPromise;
 }
 
 /**

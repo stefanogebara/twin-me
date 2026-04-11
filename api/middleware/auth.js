@@ -10,6 +10,8 @@ dotenv.config();
 // Token blacklist helpers (Redis-backed, in-memory fallback)
 const TOKEN_BLACKLIST_PREFIX = 'jwt:revoked:';
 const inMemoryBlacklist = new Map();
+const EMAIL_VERIFICATION_CACHE_TTL_MS = 60 * 1000;
+const emailVerificationCache = new Map();
 
 function tokenFingerprint(token) {
   return crypto.createHash('sha256').update(token).digest('hex').slice(0, 16);
@@ -41,6 +43,23 @@ async function isTokenBlacklisted(token) {
   if (!expiry) return false;
   if (Date.now() > expiry) { inMemoryBlacklist.delete(key); return false; }
   return true;
+}
+
+function getCachedEmailVerification(userId) {
+  const cached = emailVerificationCache.get(userId);
+  if (!cached) return null;
+  if (Date.now() - cached.fetchedAt > EMAIL_VERIFICATION_CACHE_TTL_MS) {
+    emailVerificationCache.delete(userId);
+    return null;
+  }
+  return cached.value;
+}
+
+function setCachedEmailVerification(userId, value) {
+  emailVerificationCache.set(userId, {
+    value,
+    fetchedAt: Date.now(),
+  });
 }
 
 // JWT secret from environment (required)
@@ -100,12 +119,19 @@ export const authenticateUser = async (req, res, next) => {
 
       if (shouldCheckVerification) {
         try {
-          const { supabaseAdmin } = await import('../services/database.js');
-          const { data: dbUser } = await supabaseAdmin
-            .from('users')
-            .select('email_verified, created_at')
-            .eq('id', req.user.id)
-            .single();
+          let dbUser = getCachedEmailVerification(req.user.id);
+          if (!dbUser) {
+            const { supabaseAdmin } = await import('../services/database.js');
+            const result = await supabaseAdmin
+              .from('users')
+              .select('email_verified, created_at')
+              .eq('id', req.user.id)
+              .single();
+            dbUser = result.data;
+            if (dbUser) {
+              setCachedEmailVerification(req.user.id, dbUser);
+            }
+          }
 
           if (dbUser && !dbUser.email_verified) {
             const accountAgeMs = Date.now() - new Date(dbUser.created_at).getTime();

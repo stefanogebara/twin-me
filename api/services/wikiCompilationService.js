@@ -160,11 +160,9 @@ export async function compileWikiDomain(userId, domainId) {
     });
   }
 
-  // If expert filter failed or returned nothing, try broader fetch as fallback
-  let reflections = reflections || [];
-  if (reflections.length === 0 && !reflErr) {
-    // No domain-specific reflections found -- skip
-  } else if (reflErr) {
+  // If expert filter failed, fall back to all reflections for this domain
+  let domainReflections = reflections || [];
+  if (reflErr) {
     const { data: allReflections } = await supabaseAdmin
       .from('user_memories')
       .select('id, content, created_at, importance_score')
@@ -173,7 +171,7 @@ export async function compileWikiDomain(userId, domainId) {
       .gt('created_at', lastCompiled)
       .order('created_at', { ascending: false })
       .limit(15);
-    reflections = allReflections || [];
+    domainReflections = allReflections || [];
   }
 
   // 3. Fetch recent domain-specific memories for evidence
@@ -187,16 +185,16 @@ export async function compileWikiDomain(userId, domainId) {
     .limit(15);
 
   // 4. Skip if no new data
-  const totalNew = reflections.length + (domainMemories?.length || 0);
+  const totalNew = domainReflections.length + (domainMemories?.length || 0);
   if (totalNew === 0) {
     log.info('Wiki domain skip (no new data)', { userId, domainId });
     return null;
   }
 
   // First compilation needs minimum reflections
-  if (!existingPage && reflections.length < MIN_REFLECTIONS_FOR_FIRST_COMPILE) {
+  if (!existingPage && domainReflections.length < MIN_REFLECTIONS_FOR_FIRST_COMPILE) {
     log.info('Wiki domain skip (insufficient reflections for first compile)', {
-      userId, domainId, reflections: reflections.length,
+      userId, domainId, reflections: domainReflections.length,
     });
     return null;
   }
@@ -205,7 +203,7 @@ export async function compileWikiDomain(userId, domainId) {
   const prompt = buildCompilationPrompt(
     domain.title,
     existingPage?.content_md || '',
-    reflections,
+    domainReflections,
     domainMemories || [],
   );
 
@@ -263,7 +261,7 @@ export async function compileWikiDomain(userId, domainId) {
   }
 
   // 8. Insert compilation log (simple template -- no LLM call needed)
-  const changeSummary = `v${newVersion}: compiled from ${reflections.length} reflections + ${domainMemories?.length || 0} memories`;
+  const changeSummary = `v${newVersion}: compiled from ${domainReflections.length} reflections + ${domainMemories?.length || 0} memories`;
 
   await supabaseAdmin
     .from('user_wiki_logs')
@@ -272,7 +270,7 @@ export async function compileWikiDomain(userId, domainId) {
       domain: domainId,
       version: newVersion,
       change_summary: changeSummary,
-      reflections_used: reflections.length,
+      reflections_used: domainReflections.length,
       memories_used: domainMemories?.length || 0,
     })
     .then(({ error }) => {
@@ -282,7 +280,7 @@ export async function compileWikiDomain(userId, domainId) {
   const elapsed = Date.now() - compilationStart;
   log.info('Wiki domain compiled', {
     userId, domainId, version: newVersion,
-    reflections: reflections.length,
+    reflections: domainReflections.length,
     memories: domainMemories?.length || 0,
     contentLen: compiledContent.length,
     elapsedMs: elapsed,

@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(import.meta.dirname, '../../.env.test') });
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'twinme-comprehensive.spec.ts',
+  testMatch: process.env.TEST_MATCH || 'twinme-comprehensive.spec.ts',
   fullyParallel: false,
   retries: 1,
   workers: 1,

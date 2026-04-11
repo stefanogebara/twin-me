@@ -425,6 +425,7 @@ const App = () => {
             <Route path="/landing" element={<Navigate to="/" replace />} />
             <Route path="/portfolio" element={<Navigate to="/" replace />} />
             <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
+            <Route path="/goals" element={<Navigate to="/dashboard" replace />} />
 
             {/* Sundust Prototype */}
             <Route path="/prototype" element={<PrototypeLanding />} />
