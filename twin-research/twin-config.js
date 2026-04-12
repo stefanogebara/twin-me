@@ -91,7 +91,7 @@ export const TYPE_DIVERSITY_WEIGHT = 0.65;
 // Generate a hypothetical memory that answers the query, embed THAT alongside
 // the raw query. Dual-embedding retrieval surfaces diverse memory types.
 // Cost: ~$0.0001 per query (1 EXTRACTION_TIER LLM call).
-export const HYDE_ENABLED = true;
+export const HYDE_ENABLED = false;
 
 // ─── Semantic Diversity ───────────────────────────────────────────────────────
 // Penalize selecting memories with high cosine similarity to already-selected

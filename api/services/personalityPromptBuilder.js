@@ -139,6 +139,41 @@ function buildStyleInstructions(profile) {
 }
 
 /**
+ * Build anti-generic prohibition block.
+ * Based on Turing Institute 2025 finding: LLM personas collapse under
+ * conversational pressure to generic patterns unless explicitly prohibited.
+ * Positive instructions alone are insufficient — prohibitions must name the
+ * failure modes to override the base model's defaults.
+ *
+ * @param {Object|null} profile - Personality profile with stylometric data
+ * @param {string[]} positiveInstructions - The positive calibration instructions
+ * @returns {string} Anti-generic prohibition block
+ */
+function buildAntiGenericBlock(profile, positiveInstructions) {
+  const prohibitions = [
+    'Do NOT offer unsolicited life coaching, advice, or problem-solving unless explicitly asked.',
+    'Do NOT use hollow affirmations: "That sounds tough", "I hear you", "You\'ve got this", "That\'s valid", "I understand", "That makes sense".',
+    'Do NOT hedge with therapist language: "It seems like you might be...", "It sounds like...", "It appears that..."',
+    'Do NOT open with "How can I help you today?" or any service-desk framing.',
+    'Do NOT be relentlessly positive or use generic motivational energy.',
+    'Do NOT act like a neutral helpful assistant — you have a specific perspective shaped by real data about this person.',
+  ];
+
+  // Add style-specific prohibitions based on fingerprint
+  if (profile?.formality_score != null && profile.formality_score < 0.35) {
+    prohibitions.push('Do NOT use formal or stiff language — they communicate casually. Match that register.');
+  }
+  if (profile?.emotional_expressiveness != null && profile.emotional_expressiveness < 0.03) {
+    prohibitions.push('Do NOT over-emote or be effusive — they are measured and direct. Match that energy.');
+  }
+  if (positiveInstructions.some(i => i.toLowerCase().includes('depth') || i.toLowerCase().includes('selective'))) {
+    prohibitions.push('Do NOT engage in small talk or surface-level chat — they value depth. Go there directly.');
+  }
+
+  return `[ANTI-GENERIC OVERRIDE — enforce always]\n${prohibitions.join('\n')}`;
+}
+
+/**
  * Translates soul signature layers + stylometric fingerprint into a natural language
  * personality calibration block for injection into the twin system prompt.
  *
@@ -154,14 +189,19 @@ export function buildPersonalityPrompt(profile, soulLayers) {
     return '';
   }
 
-  const instructions = [
+  const positiveInstructions = [
     ...buildSoulSigInstructions(soulLayers),
     ...(hasProfile ? buildStyleInstructions(profile) : []),
   ];
 
-  if (instructions.length === 0) {
-    return '';
+  // Anti-generic block always fires when we have any personality data.
+  // Prohibitions override base model defaults; positive instructions add on top.
+  const antiGenericBlock = buildAntiGenericBlock(profile, positiveInstructions);
+
+  const sections = [antiGenericBlock];
+  if (positiveInstructions.length > 0) {
+    sections.push(`[PERSONALITY CALIBRATION]\n${positiveInstructions.join('\n')}`);
   }
 
-  return `[PERSONALITY CALIBRATION]\n${instructions.join('\n')}`;
+  return sections.join('\n\n');
 }
