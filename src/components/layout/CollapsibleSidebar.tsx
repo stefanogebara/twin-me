@@ -5,7 +5,6 @@ import {
   Home,
   MessageCircle,
   Sparkles,
-  LayoutGrid,
   Link2,
   X,
   Settings,
@@ -38,7 +37,6 @@ const navItems: NavItem[] = [
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'brain',        label: 'Memories',        icon: Brain,         path: '/brain' },
   { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
-  { id: 'departments',  label: 'Departments',     icon: LayoutGrid,    path: '/departments' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];

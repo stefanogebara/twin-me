@@ -9,6 +9,7 @@ import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
+import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import { useWebPush } from '@/hooks/useWebPush';
 
@@ -99,6 +100,8 @@ export function DashboardV2() {
       <ExpiredTokenBanner />
 
       <SoulSummaryCard />
+
+      <DepartmentWidget />
 
       {data.heroInsight && (
         <HeroInsight

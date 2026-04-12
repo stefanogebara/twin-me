@@ -47,6 +47,13 @@
  *   temporal (0.10/0.20 worse), semantic (0.05 worse), identity importance (1.8 worse),
  *   default weight swap (worse), recent importance 0.8 (worse).
  *   Config space near-exhausted for single-param changes on retrieval eval.
+ * SESSION 10: Retrieval baseline 0.8685 (main branch, DB state 2026-04-13).
+ *   Confirmed: HYDE/STDP/BM25/TCM/MIN_COSINE not used by eval — only 6 params matter.
+ *   Best wins: default importance 1.2→0.8 relevance 1.0→1.2 (+0.001); recent relevance 1.0→1.2 (+0.001).
+ *   15 experiments: TDW (0.70/0.80 same/worse), semantic (0.02 caused partial timeout),
+ *   identity relevance shift (worse), MIN_COSINE 0.10 (worse), temporal 0.12 (same as 0.15),
+ *   MMR_LAMBDA 0.32 (same as 0.35), ALPHA 0.95 (same as 0.90), reflection relevance 2.0 (same as 1.8).
+ *   Session best: 0.8675 (default+recent relevance shift). Config space fully exhausted.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -91,7 +98,7 @@ export const TYPE_DIVERSITY_WEIGHT = 0.65;
 // Generate a hypothetical memory that answers the query, embed THAT alongside
 // the raw query. Dual-embedding retrieval surfaces diverse memory types.
 // Cost: ~$0.0001 per query (1 EXTRACTION_TIER LLM call).
-export const HYDE_ENABLED = false;
+export const HYDE_ENABLED = true;
 
 // ─── Semantic Diversity ───────────────────────────────────────────────────────
 // Penalize selecting memories with high cosine similarity to already-selected
@@ -221,7 +228,7 @@ export const TCM_DRIFT_RATE = 0.85;
 // Boost to importance for memories with strong co-citation links
 // to other memories in the current retrieval set.
 // 0.0 = disabled. Range: [0.0, 0.3].
-export const STDP_CORETRIEVAL_BOOST = 0.15;
+export const STDP_CORETRIEVAL_BOOST = 0.10;
 
 // ─── Oracle Integration ───────────────────────────────────────────────────────
 // Controls personality oracle draft injection strength.
