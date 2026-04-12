@@ -123,8 +123,14 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
               <div
                 className="px-4 py-3 rounded-[16px] transition-all duration-150"
                 style={{
-                  background: isExpanded ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)'}`,
+                  background: isExpanded
+                    ? 'rgba(255,255,255,0.07)'
+                    : isTop
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(255,255,255,0.025)',
+                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.12)' : isTop ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.05)'}`,
+                  borderLeft: isTop ? `2px solid ${color}` : '1px solid rgba(255,255,255,0.05)',
+                  opacity: isTop ? 1 : 0.75,
                 }}
               >
                 <div className="flex items-center gap-2.5">
