@@ -221,7 +221,7 @@ export const TCM_DRIFT_RATE = 0.85;
 // Boost to importance for memories with strong co-citation links
 // to other memories in the current retrieval set.
 // 0.0 = disabled. Range: [0.0, 0.3].
-export const STDP_CORETRIEVAL_BOOST = 0.10;
+export const STDP_CORETRIEVAL_BOOST = 0.15;
 
 // ─── Oracle Integration ───────────────────────────────────────────────────────
 // Controls personality oracle draft injection strength.
