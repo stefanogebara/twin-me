@@ -241,7 +241,7 @@ app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 const DEFAULT_TIMEOUT = process.env.USE_CURL_FETCH === 'true' ? 120000 : 30000;
 app.use((req, res, next) => {
   // Chat and cron endpoints need extra time; default 30s for all others
-  const timeout = req.path.includes('/chat/message') ? 300000
+  const timeout = req.path.includes('/chat/message') ? 60000
     : req.path.includes('/cron/') ? 115000
     : req.path.includes('/soul-signature/layers') ? 90000
     : req.path.includes('/onboarding/calibration') ? 90000
@@ -585,9 +585,9 @@ app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 if (process.env.NODE_ENV === 'development') {
-  app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags (dev-only)
-  app.use('/api/feature-flags', featureFlagsRoutes); // User-facing personality engine flags
+  app.use('/api/eval', evalRoutes); // Twin eval rubric (dev-only)
 }
+app.use('/api/feature-flags', featureFlagsRoutes); // User-facing personality engine flags (all envs)
 app.use('/api/personality-profile', personalityProfileRoutes); // Soul Signature voting layer — OCEAN, stylometrics, sampling params
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph

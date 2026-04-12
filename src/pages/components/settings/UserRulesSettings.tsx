@@ -36,7 +36,10 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
     }
   }, []);
 
-  useEffect(() => { fetchRules(); }, [fetchRules]);
+  useEffect(() => {
+    if (!isDemoMode) fetchRules();
+    else setLoading(false);
+  }, [fetchRules, isDemoMode]);
 
   const handleAdd = async () => {
     if (!newRule.trim() || isDemoMode) return;

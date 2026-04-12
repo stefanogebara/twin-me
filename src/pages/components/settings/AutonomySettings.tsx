@@ -68,8 +68,9 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
   }, []);
 
   useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+    if (!isDemoMode) fetchSettings();
+    else setLoading(false);
+  }, [fetchSettings, isDemoMode]);
 
   const handleLevelChange = async (skillId: string, level: number) => {
     if (isDemoMode) return;

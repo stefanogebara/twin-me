@@ -218,7 +218,7 @@ const Settings = () => {
 
   // Fetch memory count + subscription + feature flags in parallel
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isDemoMode) return;
     const headers = getAuthHeaders();
     // Memory count
     fetch(`${API_URL}/dashboard/context`, { headers })

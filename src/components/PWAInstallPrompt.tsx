@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { X, Download } from 'lucide-react';
 
 const DISMISSED_KEY = 'pwa_install_dismissed';
@@ -14,8 +15,12 @@ const VISIT_COUNT_KEY = 'pwa_visit_count';
 const MIN_VISITS_DESKTOP = 3;
 
 const PWAInstallPrompt: React.FC = () => {
+  const location = useLocation();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [visible, setVisible] = useState(false);
+
+  // Don't show on chat page — overlaps the message input
+  if (location.pathname === '/talk-to-twin') return null;
 
   useEffect(() => {
     // Don't show if already dismissed
@@ -71,7 +76,7 @@ const PWAInstallPrompt: React.FC = () => {
 
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 px-4 py-3 max-w-md mx-auto"
+      className="fixed bottom-20 lg:bottom-4 left-4 right-4 z-50 flex items-center justify-between gap-3 px-4 py-3 max-w-md mx-auto"
       style={{
         borderRadius: '16px',
         background: 'rgba(255,255,255,0.06)',

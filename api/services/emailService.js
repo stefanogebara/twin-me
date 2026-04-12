@@ -96,7 +96,8 @@ const S = {
  * Generate a signed unsubscribe token for a user.
  */
 export function generateUnsubscribeToken(userId) {
-  const secret = process.env.CRON_SECRET || process.env.JWT_SECRET || 'fallback';
+  const secret = process.env.CRON_SECRET || process.env.JWT_SECRET;
+  if (!secret) throw new Error('CRON_SECRET or JWT_SECRET required for unsubscribe token generation');
   return crypto.createHmac('sha256', secret).update(userId).digest('hex');
 }
 
