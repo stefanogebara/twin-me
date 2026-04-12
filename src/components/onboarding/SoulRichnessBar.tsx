@@ -1,9 +1,19 @@
 // src/components/onboarding/SoulRichnessBar.tsx
 import React from 'react';
 
+// Weights reflect data richness per platform (active integrations only).
+// Unknown/future platforms default to 5. Bar caps at 100%.
 const WEIGHTS: Record<string, number> = {
-  spotify: 20, google_calendar: 15, youtube: 15,
-  discord: 10, linkedin: 10, whoop: 15, oura: 15, github: 10, whatsapp: 5,
+  spotify: 20,
+  google_calendar: 15,
+  youtube: 15,
+  whoop: 15,
+  google_gmail: 10,
+  discord: 10,
+  linkedin: 10,
+  github: 10,
+  reddit: 8,
+  twitch: 8,
 };
 
 const label = (s: number) =>

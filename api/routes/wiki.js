@@ -95,14 +95,14 @@ router.get('/graph', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get connected platforms for this user
+    // Get connected platforms for this user (platform_connections is the primary source)
     let connectedPlatforms = [];
     try {
       const { data: connections } = await supabaseAdmin
-        .from('nango_connection_mappings')
+        .from('platform_connections')
         .select('platform')
         .eq('user_id', userId)
-        .eq('status', 'active');
+        .eq('status', 'connected');
       connectedPlatforms = (connections || []).map(c => c.platform);
     } catch {
       // Non-fatal -- graph still works without platform nodes

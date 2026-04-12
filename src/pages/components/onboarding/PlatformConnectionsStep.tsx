@@ -8,7 +8,6 @@ import { DataProvider } from '@/types/data-integration';
 import { PlatformStatusData } from './onboardingTypes';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { PlatformTile } from '../../onboarding/components/PlatformTile';
-import { DataVerification } from '../../../components/DataVerification';
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
@@ -96,19 +95,24 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           <div className="space-y-2">
             {sort(availableConnectors)
               .filter(c => connectedServices.includes(c.provider))
-              .map(c => (
-                <PlatformTile
-                  key={c.provider}
-                  name={c.name}
-                  description={c.description}
-                  icon={c.icon}
-                  color={c.color}
-                  connected={true}
-                  syncing={connectingProvider === c.provider}
-                  onConnect={() => connectService(c.provider)}
-                  onManage={() => disconnectService(c.provider)}
-                />
-              ))}
+              .map(c => {
+                const status = platformStatusData[c.provider];
+                const needsReconnect = status?.tokenExpired || status?.status === 'token_expired';
+                return (
+                  <PlatformTile
+                    key={c.provider}
+                    name={c.name}
+                    description={c.description}
+                    icon={c.icon}
+                    color={c.color}
+                    connected={true}
+                    needsReconnect={needsReconnect}
+                    syncing={connectingProvider === c.provider}
+                    onConnect={() => connectService(c.provider)}
+                    onManage={() => disconnectService(c.provider)}
+                  />
+                );
+              })}
           </div>
           <Divider />
         </>
@@ -176,13 +180,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
             {renderUnconnectedTiles([...professionalConnectors, ...browsingConnectors])}
           </div>
         </>
-      )}
-
-      {connectedServices.length > 0 && (
-        <DataVerification
-          userId={userId || 'demo-user'}
-          connectedServices={connectedServices}
-        />
       )}
 
       {/* Upload historical data */}

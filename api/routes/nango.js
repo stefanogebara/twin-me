@@ -78,9 +78,10 @@ router.post('/connect-session', authenticateUser, async (req, res) => {
         connectUrl: result.connectLink || `https://connect.nango.dev?session_token=${result.token}`
       });
     } else {
-      res.status(400).json({
+      res.status(result.statusCode || 400).json({
         success: false,
-        error: result.error
+        error: result.error,
+        ...(result.code ? { code: result.code } : {})
       });
     }
   } catch (error) {

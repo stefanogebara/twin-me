@@ -1084,6 +1084,8 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       // AND set isTokenExpired to true
       // Also handle 'error' with 'auth_error' sync status — means token was rejected (401)
       if (connection.status === 'expired' || connection.status === 'token_expired' || connection.status === 'needs_reauth'
+        || connection.status === 'requires_reauth'
+        || connection.last_sync_status === 'requires_reauth'
         || (connection.status === 'error' && connection.last_sync_status === 'auth_error')) {
         status = 'token_expired';
         isTokenExpired = true;  // Force token expired flag when status indicates expired

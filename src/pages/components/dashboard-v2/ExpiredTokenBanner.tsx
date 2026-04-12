@@ -3,7 +3,7 @@
  * Displays a compact glass card with the expired platforms and a reconnect CTA.
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 
@@ -21,9 +21,11 @@ const PLATFORM_NAMES: Record<string, string> = {
   strava: 'Strava',
 };
 
-export function ExpiredTokenBanner() {
+export function ExpiredTokenBanner({ userId }: { userId?: string } = {}) {
   const navigate = useNavigate();
-  const { data: platformStatus } = usePlatformStatus();
+  const location = useLocation();
+  const onConnectPage = location.pathname === '/connect' || location.pathname === '/get-started';
+  const { data: platformStatus } = usePlatformStatus(userId);
 
   const expired = Object.entries(platformStatus || {})
     .filter(([, v]) => v.connected && (v.tokenExpired || v.status === 'expired' || v.status === 'token_expired'))
@@ -47,17 +49,19 @@ export function ExpiredTokenBanner() {
       <p className="flex-1 text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
         {names} {expired.length === 1 ? 'needs' : 'need'} reconnecting to keep your twin up to date.
       </p>
-      <button
-        onClick={() => navigate('/get-started')}
-        className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
-        style={{
-          backgroundColor: 'rgba(251,191,36,0.15)',
-          color: '#FBBF24',
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        Reconnect
-      </button>
+      {!onConnectPage && (
+        <button
+          onClick={() => navigate('/connect')}
+          className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
+          style={{
+            backgroundColor: 'rgba(251,191,36,0.15)',
+            color: '#FBBF24',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
+          Reconnect
+        </button>
+      )}
     </div>
   );
 }

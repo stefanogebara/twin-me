@@ -49,6 +49,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   // Parent re-renders on hover were causing the glitch.
   const selectedIdRef = useRef<string | null>(null);
   const hoveredIdRef = useRef<string | null>(null);
+  const entranceRef = useRef(0); // 0 to 1 over ~1 second for entrance animation
 
   // Sync selected prop to ref (only selected comes from parent -- hover is fully internal)
   useEffect(() => { selectedIdRef.current = selectedNode?.id ?? null; needsRenderRef.current = true; }, [selectedNode]);
@@ -121,6 +122,18 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       .on('tick', () => { needsRenderRef.current = true; });
 
     simRef.current = sim;
+    // Reset entrance animation on new data
+    entranceRef.current = 0;
+    const entranceStart = Date.now();
+    const entranceDuration = 800; // ms
+    const advanceEntrance = () => {
+      const elapsed = Date.now() - entranceStart;
+      entranceRef.current = Math.min(elapsed / entranceDuration, 1);
+      if (entranceRef.current < 1) {
+        needsRenderRef.current = true;
+      }
+    };
+    sim.on('tick', () => { advanceEntrance(); needsRenderRef.current = true; });
     return () => { sim.stop(); };
   }, [data]);
 
@@ -165,6 +178,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   // ── Draw one frame ───────────────────────────────────────────────────
   const drawFrame = useCallback((ctx: CanvasRenderingContext2D) => {
     const { width, height, dpr } = sizeRef.current;
+    const entrance = entranceRef.current; // 0-1 entrance animation progress
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
@@ -173,6 +187,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     const hovered = hoveredIdRef.current;
     const selected = selectedIdRef.current;
     const connectedIds = hovered ? getConnectedIds(hovered) : null;
+    ctx.globalAlpha = entrance; // entrance fade-in
 
     // ── Edges ──
     for (const link of links) {
@@ -232,13 +247,15 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         ctx.fill();
       }
 
-      // Node circle
+      // Node circle -- entities get a stronger fill to make category colors visible
+      const fillOpacity = node.type === 'entity' ? 0.35 : 0.18;
+      const strokeOpacity = node.type === 'entity' ? (isHovered ? 0.9 : 0.65) : (isHovered ? 0.8 : 0.5);
       ctx.beginPath();
       ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
-      ctx.fillStyle = hexToRgba(node.color, 0.18 * alpha);
+      ctx.fillStyle = hexToRgba(node.color, fillOpacity * alpha);
       ctx.fill();
-      ctx.strokeStyle = hexToRgba(node.color, (isHovered ? 0.8 : 0.5) * alpha);
-      ctx.lineWidth = isSelected ? 2.5 : 1.5;
+      ctx.strokeStyle = hexToRgba(node.color, strokeOpacity * alpha);
+      ctx.lineWidth = isSelected ? 2.5 : node.type === 'entity' ? 1 : 1.5;
       ctx.stroke();
 
       // Inner bright dot for domain nodes
@@ -249,8 +266,9 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         ctx.fill();
       }
 
-      // Label (entity labels hidden unless hovered/selected to prevent clutter)
-      const showLabel = node.type !== 'entity' || isHovered || isSelected;
+      // Label: entity labels shown for bridge entities (multi-domain) or on hover/select
+      const isBridgeEntity = node.type === 'entity' && node.size > 10;
+      const showLabel = node.type !== 'entity' || isBridgeEntity || isHovered || isSelected;
       if (showLabel) {
         const fontSize = node.type === 'domain' ? 12 : node.type === 'entity' ? 9 : 10;
         ctx.font = `${isHovered ? 600 : 500} ${fontSize}px Geist, Inter, system-ui, sans-serif`;
@@ -266,6 +284,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         ctx.fillText(node.label, node.x, node.y + r + 5);
       }
     }
+    ctx.globalAlpha = 1; // reset after entrance animation
   }, [getConnectedIds]);
 
   // ── Hit testing ──────────────────────────────────────────────────────
