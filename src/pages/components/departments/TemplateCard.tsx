@@ -65,7 +65,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       className="flex flex-col justify-between p-3.5 flex-shrink-0 transition-all duration-200 cursor-pointer"
       style={{
         width: '160px',
-        height: '140px',
+        minHeight: '140px',
         borderRadius: '12px',
         background: isActive ? `${color}0D` : 'transparent',
         border: isActive
@@ -98,7 +98,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
           {name}
         </h3>
         <p
-          className="text-[12px] mt-0.5 line-clamp-1"
+          className="text-[12px] mt-0.5 line-clamp-2"
           style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
         >
           {tagline}
