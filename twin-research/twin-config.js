@@ -68,7 +68,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 1.5, relevance: 1.2 },
+  identity: { recency: 0.0, importance: 0.0, relevance: 1.5 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
