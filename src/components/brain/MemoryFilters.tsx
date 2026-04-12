@@ -32,7 +32,7 @@ const MemoryFilters: React.FC<MemoryFiltersProps> = ({
             <button
               key={label}
               onClick={() => onExpertChange(key)}
-              className="rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-all"
+              className="rounded-full px-3 py-1.5 text-xs font-medium cursor-pointer transition-all min-h-[44px]"
               style={{
                 background: isActive ? 'rgba(232,224,212,0.12)' : 'transparent',
                 color: isActive ? 'var(--accent-vibrant)' : '#86807b',
@@ -54,7 +54,7 @@ const MemoryFilters: React.FC<MemoryFiltersProps> = ({
               <button
                 key={label}
                 onClick={() => onTypeChange(key)}
-                className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5"
+                className="rounded-full px-3 py-1.5 text-[11px] font-medium cursor-pointer transition-all inline-flex items-center gap-1.5 min-h-[44px]"
                 style={{
                   background: isActive ? 'rgba(232,224,212,0.12)' : 'transparent',
                   color: isActive ? 'var(--accent-vibrant)' : '#86807b',

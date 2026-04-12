@@ -817,7 +817,7 @@ const IdentityPage: React.FC = () => {
               <button
                 onClick={handleShare}
                 aria-label="Share your soul signature"
-                className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
+                className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97] min-h-[44px]"
                 style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
               >
                 <Share2 className="w-3.5 h-3.5" />
