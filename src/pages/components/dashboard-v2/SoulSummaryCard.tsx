@@ -3,15 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 
-interface SoulLayer {
-  taste_statement?: string;
-  core_values?: string[];
-  chronotype?: string;
+interface SoulLayers {
+  taste?: { statement?: string; topSignals?: string[] };
+  values?: { values?: { name: string; strength: number }[] };
+  rhythms?: { chronotype?: string; peakHours?: string; summary?: string };
+  connections?: { style?: string; summary?: string };
+  growthEdges?: { summary?: string };
 }
 
 interface SoulSignatureResponse {
   success: boolean;
-  layers?: SoulLayer;
+  data?: {
+    layers?: SoulLayers;
+    generatedAt?: string;
+    cached?: boolean;
+  };
 }
 
 export function SoulSummaryCard() {
@@ -31,10 +37,13 @@ export function SoulSummaryCard() {
     gcTime: 12 * 60 * 60 * 1000,
   });
 
-  const layers = data?.layers;
-  const tasteStatement = layers?.taste_statement;
-  const topValues = (layers?.core_values ?? []).slice(0, 3);
-  const chronotype = layers?.chronotype;
+  const layers = data?.data?.layers;
+  const tasteStatement = layers?.taste?.statement;
+  const topValues = (layers?.values?.values ?? []).slice(0, 3).map(v => v.name);
+  const rawChronotype = layers?.rhythms?.chronotype;
+  const chronotype = rawChronotype
+    ? rawChronotype.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : undefined;
 
   if (isLoading) {
     return (

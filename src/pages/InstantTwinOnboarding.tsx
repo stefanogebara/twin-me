@@ -25,6 +25,7 @@ import {
   DemoValueModal,
   usePlatformConnect,
 } from './components/onboarding';
+import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import type { RevealedArchetype } from './components/onboarding';
 import { GarminCredentialsModal } from './components/settings/GarminCredentialsModal';
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
@@ -227,6 +228,10 @@ const InstantTwinOnboarding = () => {
   return (
     <>
       <div className="max-w-[680px] mx-auto px-6 py-16">
+        {!isDemoMode && expiredConnections.length > 0 && (
+          <ExpiredTokenBanner userId={user?.id} />
+        )}
+
         <OnboardingHeader
           isDemoMode={isDemoMode}
           connectedServices={connectedServices}

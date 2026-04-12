@@ -21,9 +21,9 @@ const PLATFORM_NAMES: Record<string, string> = {
   strava: 'Strava',
 };
 
-export function ExpiredTokenBanner() {
+export function ExpiredTokenBanner({ userId }: { userId?: string } = {}) {
   const navigate = useNavigate();
-  const { data: platformStatus } = usePlatformStatus();
+  const { data: platformStatus } = usePlatformStatus(userId);
 
   const expired = Object.entries(platformStatus || {})
     .filter(([, v]) => v.connected && (v.tokenExpired || v.status === 'expired' || v.status === 'token_expired'))

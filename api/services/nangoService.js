@@ -37,6 +37,11 @@ if (process.env.NANGO_SECRET_KEY) {
   log.warn('NANGO_SECRET_KEY not configured - Nango integrations disabled');
 }
 
+let configuredIntegrationCache = {
+  ids: null,
+  fetchedAt: 0
+};
+
 // Fallback connection IDs (for backwards compatibility during migration)
 // These are the actual connection IDs for the stefanogebara@gmail.com user
 const FALLBACK_CONNECTION_IDS = {
@@ -317,6 +322,29 @@ function requireNango() {
   return nango;
 }
 
+async function listConfiguredIntegrationIds() {
+  requireNango();
+
+  const now = Date.now();
+  if (configuredIntegrationCache.ids && now - configuredIntegrationCache.fetchedAt < 60_000) {
+    return configuredIntegrationCache.ids;
+  }
+
+  const { configs = [] } = await nango.listIntegrations();
+  const ids = new Set(
+    configs
+      .map((config) => config.unique_key || config.provider_config_key || config.id)
+      .filter(Boolean)
+  );
+
+  configuredIntegrationCache = {
+    ids,
+    fetchedAt: now
+  };
+
+  return ids;
+}
+
 export async function createConnectSession(userId, userEmail, options = {}) {
   try {
     requireNango();
@@ -326,6 +354,19 @@ export async function createConnectSession(userId, userEmail, options = {}) {
       : (options.allowedIntegrations || Object.keys(PLATFORM_CONFIGS));
 
     const displayName = userEmail ? userEmail.split('@')[0] : userId.slice(0, 8);
+    const configuredIntegrationIds = await listConfiguredIntegrationIds();
+    const missingIntegrations = allowedIntegrations.filter((integrationId) => !configuredIntegrationIds.has(integrationId));
+
+    if (missingIntegrations.length > 0) {
+      const integrationList = missingIntegrations.join(', ');
+      return {
+        success: false,
+        error: `Nango integration not configured: ${integrationList}`,
+        code: 'INTEGRATION_NOT_CONFIGURED',
+        statusCode: 503
+      };
+    }
+
     const sessionParams = {
       end_user: {
         id: userId,
@@ -347,8 +388,21 @@ export async function createConnectSession(userId, userEmail, options = {}) {
     log.info(`Created connect session for user ${userId}, token: ${token?.substring(0, 20)}...`);
     return { success: true, token, connectLink };
   } catch (error) {
-    log.error('Error creating connect session:', error.message, error.response?.data || '');
-    return { success: false, error: error.message };
+    const responseData = error.response?.data;
+    const upstreamMessage =
+      (typeof responseData === 'string' && responseData) ||
+      responseData?.error ||
+      responseData?.message ||
+      responseData?.details ||
+      error.message;
+
+    log.error('Error creating connect session:', upstreamMessage, responseData || '');
+    return {
+      success: false,
+      error: upstreamMessage,
+      code: responseData?.code,
+      statusCode: error.response?.status || 400
+    };
   }
 }
 

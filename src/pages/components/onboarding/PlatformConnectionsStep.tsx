@@ -96,19 +96,24 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           <div className="space-y-2">
             {sort(availableConnectors)
               .filter(c => connectedServices.includes(c.provider))
-              .map(c => (
-                <PlatformTile
-                  key={c.provider}
-                  name={c.name}
-                  description={c.description}
-                  icon={c.icon}
-                  color={c.color}
-                  connected={true}
-                  syncing={connectingProvider === c.provider}
-                  onConnect={() => connectService(c.provider)}
-                  onManage={() => disconnectService(c.provider)}
-                />
-              ))}
+              .map(c => {
+                const status = platformStatusData[c.provider];
+                const needsReconnect = status?.tokenExpired || status?.status === 'token_expired';
+                return (
+                  <PlatformTile
+                    key={c.provider}
+                    name={c.name}
+                    description={c.description}
+                    icon={c.icon}
+                    color={c.color}
+                    connected={true}
+                    needsReconnect={needsReconnect}
+                    syncing={connectingProvider === c.provider}
+                    onConnect={() => connectService(c.provider)}
+                    onManage={() => disconnectService(c.provider)}
+                  />
+                );
+              })}
           </div>
           <Divider />
         </>

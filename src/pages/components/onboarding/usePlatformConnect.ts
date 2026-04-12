@@ -12,6 +12,19 @@ import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfi
 import { NANGO_PROVIDER_MAP } from './onboardingHelpers';
 import { CONNECTION_INSIGHT_MESSAGES } from './connectionInsights';
 
+type ConnectResult = {
+  success?: boolean;
+  authUrl?: string;
+  connectUrl?: string;
+  error?: string;
+  code?: string;
+};
+
+type ConnectError = Error & {
+  status?: number;
+  code?: string;
+};
+
 interface UsePlatformConnectOptions {
   userId: string | undefined;
   isDemoMode: boolean;
@@ -22,6 +35,21 @@ interface UsePlatformConnectOptions {
   setDisconnectingProvider: (provider: DataProvider | null) => void;
   setDemoModalPlatform: (platform: string | null) => void;
   setGarminModalOpen?: (open: boolean) => void;
+}
+
+function createConnectError(message: string, status?: number, code?: string): ConnectError {
+  const error = new Error(message) as ConnectError;
+  error.status = status;
+  error.code = code;
+  return error;
+}
+
+async function readConnectResult(response: Response): Promise<ConnectResult | null> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
 }
 
 export function usePlatformConnect({
@@ -37,106 +65,6 @@ export function usePlatformConnect({
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
-
-  const connectService = useCallback(async (provider: DataProvider) => {
-    if (isDemoMode) {
-      trackFunnel('demo_mode_platform_click', { platform: provider });
-      setDemoModalPlatform(provider);
-      return;
-    }
-
-    // Handle external URL connectors (e.g. Browser Extension -> Chrome Web Store)
-    const connector = AVAILABLE_CONNECTORS.find(c => c.provider === provider);
-    if (connector?.externalUrl) {
-      trackFunnel('platform_external_link', { platform: provider });
-      window.open(connector.externalUrl, '_blank');
-      setConnectingProvider(null);
-      return;
-    }
-
-    setConnectingProvider(provider);
-    try {
-      const effectiveUserId = userId || 'demo-user';
-      toast({
-        title: "Connecting...",
-        description: `Redirecting to ${connector?.name || provider}`,
-      });
-
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
-
-      // Garmin uses direct credential login (no OAuth developer approval available)
-      if (provider === 'garmin') {
-        setConnectingProvider(null);
-        if (setGarminModalOpen) {
-          setGarminModalOpen(true);
-        } else {
-          toast({ title: 'Garmin', description: 'Open Settings > Platforms to connect Garmin.', variant: 'default' });
-        }
-        return;
-      }
-
-      const googlePlatforms = ['google_calendar', 'google_gmail'];
-      const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
-
-      let apiUrl: string;
-      let fetchOptions: RequestInit;
-      const authHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`,
-      };
-
-      if (nangoPlatforms.includes(provider as string)) {
-        const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
-        apiUrl = `${baseUrl}/nango/connect-session`;
-        fetchOptions = {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({ integrationId: nangoIntegrationId }),
-        };
-      } else {
-        apiUrl = `${baseUrl}/entertainment/connect/${provider}`;
-        fetchOptions = {
-          method: 'POST',
-          headers: authHeaders,
-          body: JSON.stringify({ userId: effectiveUserId }),
-        };
-      }
-
-      const response = await fetch(apiUrl, fetchOptions);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.authUrl) {
-        trackFunnel('platform_connect_initiated', { platform: provider });
-        sessionStorage.setItem('connecting_provider', provider);
-        window.location.href = result.authUrl;
-      } else if (result.success && result.connectUrl) {
-        handleNangoPopup(provider, result.connectUrl);
-      } else if (result.success) {
-        await refetchPlatformStatus();
-        toast({
-          title: "Connected",
-          description: CONNECTION_INSIGHT_MESSAGES[provider] || `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
-          variant: "default",
-        });
-      } else {
-        throw new Error(result.error || 'Connection failed');
-      }
-    } catch (error: unknown) {
-      const errorMsg = error instanceof Error ? error.message : 'Connection failed';
-      toast({
-        title: "Connection failed",
-        description: errorMsg,
-        variant: "destructive"
-      });
-    } finally {
-      setConnectingProvider(null);
-    }
-  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen]);
 
   const handleNangoPopup = useCallback((provider: DataProvider, connectUrl: string) => {
     const width = 600, height = 700;
@@ -229,6 +157,163 @@ export function usePlatformConnect({
       setConnectingProvider(null);
     }, 120000);
   }, [toast, trackFunnel, refetchPlatformStatus, setConnectingProvider]);
+
+  const connectService = useCallback(async (provider: DataProvider) => {
+    if (isDemoMode) {
+      trackFunnel('demo_mode_platform_click', { platform: provider });
+      setDemoModalPlatform(provider);
+      return;
+    }
+
+    // Handle external URL connectors (e.g. Browser Extension -> Chrome Web Store)
+    const connector = AVAILABLE_CONNECTORS.find(c => c.provider === provider);
+    if (connector?.externalUrl) {
+      trackFunnel('platform_external_link', { platform: provider });
+      window.open(connector.externalUrl, '_blank');
+      setConnectingProvider(null);
+      return;
+    }
+
+    setConnectingProvider(provider);
+    try {
+      const effectiveUserId = userId || 'demo-user';
+      toast({
+        title: "Connecting...",
+        description: `Redirecting to ${connector?.name || provider}`,
+      });
+
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+
+      // Garmin uses direct credential login (no OAuth developer approval available)
+      if (provider === 'garmin') {
+        setConnectingProvider(null);
+        if (setGarminModalOpen) {
+          setGarminModalOpen(true);
+        } else {
+          toast({ title: 'Garmin', description: 'Open Settings > Platforms to connect Garmin.', variant: 'default' });
+        }
+        return;
+      }
+
+      const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
+
+      const authHeaders = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`,
+      };
+
+      const runConnectionRequest = async (apiUrl: string, fetchOptions: RequestInit): Promise<ConnectResult> => {
+        const response = await fetch(apiUrl, fetchOptions);
+        const result = await readConnectResult(response);
+
+        if (!response.ok) {
+          throw createConnectError(
+            result?.error || `HTTP ${response.status}: ${response.statusText}`,
+            response.status,
+            result?.code
+          );
+        }
+
+        if (!result?.success) {
+          throw createConnectError(result?.error || 'Connection failed', response.status, result?.code);
+        }
+
+        return result;
+      };
+
+      const runStravaConnection = async (): Promise<ConnectResult> => {
+        const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
+        const attempts = [
+          {
+            apiUrl: `${baseUrl}/nango/connect-session`,
+            fetchOptions: {
+              method: 'POST',
+              headers: authHeaders,
+              body: JSON.stringify({ integrationId: nangoIntegrationId }),
+            },
+          },
+          {
+            apiUrl: `${baseUrl}/entertainment/connect/${provider}`,
+            fetchOptions: {
+              method: 'POST',
+              headers: authHeaders,
+              body: JSON.stringify({ userId: effectiveUserId }),
+            },
+          },
+        ];
+
+        const failures: ConnectError[] = [];
+
+        for (const attempt of attempts) {
+          try {
+            return await runConnectionRequest(attempt.apiUrl, attempt.fetchOptions);
+          } catch (error) {
+            failures.push(error as ConnectError);
+          }
+        }
+
+        const notConfigured = failures.every((error) =>
+          error.code === 'INTEGRATION_NOT_CONFIGURED' ||
+          /not configured/i.test(error.message)
+        );
+
+        if (notConfigured) {
+          throw createConnectError(
+            'Strava is not configured on this server yet. Configure the Strava Nango integration or STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET.',
+            failures[failures.length - 1]?.status,
+            'STRAVA_NOT_CONFIGURED'
+          );
+        }
+
+        throw failures[failures.length - 1] || createConnectError('Connection failed');
+      };
+
+      let result: ConnectResult;
+
+      if (provider === 'strava') {
+        result = await runStravaConnection();
+      } else if (nangoPlatforms.includes(provider as string)) {
+        const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
+        result = await runConnectionRequest(`${baseUrl}/nango/connect-session`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ integrationId: nangoIntegrationId }),
+        });
+      } else {
+        result = await runConnectionRequest(`${baseUrl}/entertainment/connect/${provider}`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ userId: effectiveUserId }),
+        });
+      }
+
+      if (result.success && result.authUrl) {
+        trackFunnel('platform_connect_initiated', { platform: provider });
+        sessionStorage.setItem('connecting_provider', provider);
+        window.location.href = result.authUrl;
+      } else if (result.success && result.connectUrl) {
+        handleNangoPopup(provider, result.connectUrl);
+      } else if (result.success) {
+        await refetchPlatformStatus();
+        toast({
+          title: "Connected",
+          description: CONNECTION_INSIGHT_MESSAGES[provider] || `${AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name} is now connected`,
+          variant: "default",
+        });
+      } else {
+        throw new Error(result.error || 'Connection failed');
+      }
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : 'Connection failed';
+      toast({
+        title: "Connection failed",
+        description: errorMsg,
+        variant: "destructive"
+      });
+    } finally {
+      setConnectingProvider(null);
+    }
+  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen, handleNangoPopup]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;
