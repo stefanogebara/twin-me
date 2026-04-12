@@ -21,6 +21,7 @@ import { supabaseAdmin } from './database.js';
 import { complete, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
 import { generateEmbedding } from './embeddingService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
+import { classifyNeuropil } from './neuropilRouter.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('WikiCompilation');
@@ -682,6 +683,145 @@ export async function detectWikiLints(userId) {
   });
 
   return { findings: lintFindings.length, stored, details: lintFindings };
+}
+
+// ====================================================================
+// Query Filing (Phase 5 -- chat answers compound in wiki)
+// ====================================================================
+
+const QUERY_FILING_PROMPT = `Extract the single most important insight about this person from the twin's response below. Write it as a concise factual statement in second person ("You...").
+
+TWIN'S RESPONSE:
+{response}
+
+Rules:
+- One sentence, max 150 chars
+- Must be a specific, actionable insight (not generic)
+- Second person ("You...")
+- No emojis
+
+Return ONLY the fact statement, nothing else.`;
+
+/**
+ * Evaluate if a twin chat response is valuable enough to file back into the wiki.
+ * Valuable = cited 2+ memories with avg importance >= 7 (cross-source synthesis).
+ * Filed as a high-importance fact that feeds into the next wiki compilation.
+ *
+ * @param {string} userId
+ * @param {string[]} citedIds - Memory IDs the twin cited in its response
+ * @param {string} twinResponse - The twin's response text
+ * @param {Array} memoriesInContext - Memories that were in the twin's context
+ * @returns {{ filed: boolean, domain?: string, insight?: string }}
+ */
+export async function fileQueryInsightIfValuable(userId, citedIds, twinResponse, memoriesInContext = []) {
+  if (!userId || !citedIds || citedIds.length < 2 || !twinResponse) {
+    return { filed: false };
+  }
+
+  // Check feature flag
+  try {
+    const flags = await getFeatureFlags(userId);
+    if (flags.llm_wiki !== true) return { filed: false };
+  } catch {
+    return { filed: false };
+  }
+
+  // Step 1: Compute average importance of cited memories
+  const citedMemories = memoriesInContext.filter(m => citedIds.includes(m.id));
+  if (citedMemories.length < 2) return { filed: false };
+
+  const avgImportance = citedMemories.reduce((sum, m) => sum + (m.importance_score || 0), 0) / citedMemories.length;
+  if (avgImportance < 7) {
+    log.info('Query filing skipped (low importance)', { userId, avgImportance, cited: citedMemories.length });
+    return { filed: false };
+  }
+
+  // Step 2: Classify to domain
+  const { neuropilId: domain } = classifyNeuropil(twinResponse);
+
+  // Step 3: Extract insight via LLM
+  let insight;
+  try {
+    const prompt = QUERY_FILING_PROMPT.replace('{response}', twinResponse.slice(0, 800));
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      maxTokens: 100,
+      userId,
+      purpose: 'query_filing',
+    });
+    insight = result.content?.trim();
+  } catch (err) {
+    log.warn('Query filing LLM failed', { userId, error: err.message });
+    return { filed: false };
+  }
+
+  if (!insight || insight.length < 10 || insight.length > 300) {
+    return { filed: false };
+  }
+
+  // Step 4: Dedup against existing facts
+  try {
+    const insightEmbedding = await generateEmbedding(insight);
+    if (insightEmbedding) {
+      const { data: similar } = await supabaseAdmin.rpc('search_memory_stream', {
+        p_user_id: userId,
+        p_embedding: `[${insightEmbedding.join(',')}]`,
+        p_match_count: 3,
+        p_recency_weight: 0,
+        p_importance_weight: 0,
+        p_relevance_weight: 1,
+      });
+
+      const isDuplicate = (similar || []).some(m => {
+        const sim = m.similarity || 0;
+        return sim > 0.85 && m.memory_type === 'fact';
+      });
+
+      if (isDuplicate) {
+        log.info('Query filing skipped (duplicate)', { userId, insight: insight.slice(0, 60) });
+        return { filed: false };
+      }
+
+      // Step 5: Store as fact memory
+      const { error: insertErr } = await supabaseAdmin
+        .from('user_memories')
+        .insert({
+          user_id: userId,
+          memory_type: 'fact',
+          content: insight,
+          importance_score: 8,
+          confidence: 0.75,
+          embedding: `[${insightEmbedding.join(',')}]`,
+          metadata: {
+            source: 'query_filing',
+            domain: domain || 'general',
+            cited_memory_ids: citedIds,
+            avg_cited_importance: avgImportance,
+          },
+        });
+
+      if (insertErr) {
+        log.warn('Query filing insert failed', { error: insertErr.message });
+        return { filed: false };
+      }
+
+      log.info('Query insight filed to wiki', {
+        userId,
+        domain: domain || 'general',
+        insight: insight.slice(0, 80),
+        citedCount: citedIds.length,
+        avgImportance,
+      });
+
+      return { filed: true, domain: domain || 'general', insight };
+    }
+  } catch (err) {
+    log.warn('Query filing dedup/store failed', { userId, error: err.message });
+  }
+
+  return { filed: false };
 }
 
 /**

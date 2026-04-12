@@ -49,6 +49,7 @@ import { getFeatureFlags } from '../services/featureFlagsService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { runCitationPipeline } from '../services/citationExtractionService.js';
 import { strengthenCoCitedLinks } from '../services/memoryLinksService.js';
+import { fileQueryInsightIfValuable } from '../services/wikiCompilationService.js';
 import { computeAlpha } from '../services/memoryStreamService.js';
 import { lzComplexity } from '../utils/lzComplexity.js';
 import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
@@ -1296,6 +1297,10 @@ RULES:
           // STDP: memories cited together wire together
           strengthenCoCitedLinks(userId, citedIds).catch(err =>
             log.warn('STDP co-citation failed', { error: err })
+          );
+          // Phase 5: File valuable twin insights back into wiki knowledge base
+          fileQueryInsightIfValuable(userId, citedIds, assistantMessage, memoriesInContext).catch(err =>
+            log.warn('Query filing failed', { error: err })
           );
         }
       }).catch(err => log.warn('Citation pipeline failed', { error: err }));
