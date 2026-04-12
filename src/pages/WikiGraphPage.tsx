@@ -119,7 +119,7 @@ const WikiGraphPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Detail Panel -- Right 40% (hidden on mobile) */}
+      {/* Detail Panel -- Right 40% (desktop) */}
       <div className="hidden lg:block flex-[2] min-w-[320px] max-w-[440px]">
         <GraphDetailPanel
           selectedNode={selectedNode}
@@ -127,6 +127,42 @@ const WikiGraphPage: React.FC = () => {
           onDomainClick={handleDomainClick}
         />
       </div>
+
+      {/* Mobile Bottom Sheet -- slides up when a node is selected */}
+      {selectedNode && (
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-30 max-h-[70vh] overflow-y-auto rounded-t-[20px]"
+          style={{
+            background: 'rgba(19,18,26,0.95)',
+            backdropFilter: 'blur(42px)',
+            WebkitBackdropFilter: 'blur(42px)',
+            border: '1px solid var(--glass-surface-border)',
+            borderBottom: 'none',
+          }}
+        >
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-white/20" />
+          </div>
+          {/* Close button */}
+          <button
+            onClick={() => setSelectedNode(null)}
+            className="absolute top-3 right-4 text-[13px] px-2 py-1 rounded"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Close
+          </button>
+          <GraphDetailPanel
+            selectedNode={selectedNode}
+            stats={stats}
+            onDomainClick={handleDomainClick}
+          />
+        </motion.div>
+      )}
     </div>
   );
 };
