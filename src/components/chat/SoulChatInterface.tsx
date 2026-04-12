@@ -258,7 +258,7 @@ export function SoulChatInterface({
                 'Show me my coding activity'
               ].map((suggestion, index) => (
                 <button
-                  key={index}
+                  key={`suggestion-${index}`}
                   onClick={() => sendMessage(suggestion)}
                   className="px-4 py-2 rounded-full text-sm transition-colors hover:brightness-125"
                   style={{

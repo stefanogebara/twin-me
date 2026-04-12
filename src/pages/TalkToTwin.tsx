@@ -641,6 +641,7 @@ const TalkToTwin = () => {
           onToggleContext={() => setShowContext(!showContext)}
           onToggleConversationList={() => setShowConversationList(prev => !prev)}
           onToggleRightSidebar={() => setShowRightSidebar(prev => !prev)}
+          onBack={() => navigate(-1)}
         />
 
         {/* InsightsBanner removed — insights are already on the dashboard */}

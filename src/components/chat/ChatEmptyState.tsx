@@ -185,7 +185,7 @@ export const ChatEmptyState = ({
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
           {chips.slice(0, 3).map((chip, idx) => (
             <button
-              key={idx}
+              key={`chip-${chip.slice(0, 20)}-${idx}`}
               onClick={() => onQuickAction(chip)}
               className="px-3 sm:px-4 py-2 rounded-full text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
               style={{

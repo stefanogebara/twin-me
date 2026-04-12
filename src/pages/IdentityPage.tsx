@@ -9,7 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle } from 'lucide-react';
+import { Share2, Sparkles, ArrowRight, Fingerprint, AlertCircle, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
@@ -509,6 +509,19 @@ const IdentityPage: React.FC = () => {
 
   const mainContent = (
     <div className="space-y-5">
+      {/* ── Mobile back button ────────────────────────────────────── */}
+      <div className="lg:hidden -mb-2">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 transition-opacity hover:opacity-70 active:scale-95"
+          style={{ color: 'rgba(255,255,255,0.35)' }}
+          aria-label="Go back"
+        >
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+          <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Back</span>
+        </button>
+      </div>
+
       {/* ── Hero card: Greeting + Archetype + Badges ──────────────── */}
       {heroCard(
         <>

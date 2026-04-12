@@ -23,6 +23,10 @@ import { crossPlatformInferenceService } from '../services/crossPlatformInferenc
 import purposeLearningService from '../services/purposeLearningService.js';
 import { createLogger } from '../services/logger.js';
 
+// Simple in-process cache for /twin/insights (15-min TTL reduces 13s LLM calls)
+const INSIGHTS_CACHE_TTL_MS = 15 * 60 * 1000;
+const insightsCache = new Map();
+
 const log = createLogger('IntelligentTwin');
 
 // Initialize Supabase for feedback persistence
@@ -212,6 +216,13 @@ router.get('/insights', authenticateUser, async (req, res) => {
 
     log.info(`Getting insights for user ${userId}`);
 
+    // Return cached result if fresh (avoids 13s LLM call on every request)
+    const cached = insightsCache.get(userId);
+    if (cached && Date.now() - cached.ts < INSIGHTS_CACHE_TTL_MS) {
+      log.info(`Returning cached insights for user ${userId}`);
+      return res.json(cached.payload);
+    }
+
     const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
       includeMusic: false
     });
@@ -223,12 +234,15 @@ router.get('/insights', authenticateUser, async (req, res) => {
       });
     }
 
-    res.json({
+    const payload = {
       success: true,
       insights: insights.insights,
       context: insights.context,
       generatedAt: insights.generatedAt
-    });
+    };
+    insightsCache.set(userId, { ts: Date.now(), payload });
+
+    res.json(payload);
   } catch (error) {
     log.error('Insights error:', error);
     res.status(500).json({

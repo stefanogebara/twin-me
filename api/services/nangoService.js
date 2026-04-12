@@ -69,9 +69,12 @@ async function getConnectionId(platform, userId) {
 
   // Fall back to hardcoded IDs for the dev/test user ONLY — never for other users
   // (prevents IDOR: other users would otherwise get the dev user's OAuth credentials)
-  const DEV_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
-  if (userId === DEV_USER_ID && FALLBACK_CONNECTION_IDS[platform]) {
-    return FALLBACK_CONNECTION_IDS[platform];
+  // Only active in development to avoid shipping test account data to production
+  if (process.env.NODE_ENV !== 'production') {
+    const DEV_USER_ID = process.env.DEV_USER_ID || '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
+    if (userId === DEV_USER_ID && FALLBACK_CONNECTION_IDS[platform]) {
+      return FALLBACK_CONNECTION_IDS[platform];
+    }
   }
 
   // No connection found — return null so callers can fail gracefully

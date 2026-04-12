@@ -1,4 +1,4 @@
-import { Layers, Trash2, History, PanelRight } from 'lucide-react';
+import { ChevronLeft, Layers, Trash2, History, PanelRight } from 'lucide-react';
 
 interface ChatHeaderProps {
   hasMessages: boolean;
@@ -9,6 +9,7 @@ interface ChatHeaderProps {
   onToggleContext: () => void;
   onToggleConversationList?: () => void;
   onToggleRightSidebar?: () => void;
+  onBack?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -20,14 +21,28 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onToggleContext,
   onToggleConversationList,
   onToggleRightSidebar,
+  onBack,
 }) => (
   <header
-    className="flex items-center justify-end px-6 py-2"
+    className="flex items-center justify-between px-3 py-2"
     style={{
       borderBottom: '1px solid rgba(255,255,255,0.04)',
     }}
   >
-    <div className="flex items-center gap-1">
+    {/* Back button — mobile only */}
+    <div className="lg:hidden flex items-center">
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="p-1.5 rounded-lg transition-all duration-150 ease-out hover:opacity-70 active:scale-90"
+          style={{ color: 'rgba(255,255,255,0.35)' }}
+          aria-label="Go back"
+        >
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+    <div className="flex items-center gap-1 ml-auto">
       {onToggleConversationList && (
         <button
           onClick={onToggleConversationList}

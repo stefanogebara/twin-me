@@ -68,10 +68,10 @@ export const DemoValueModal: React.FC<DemoValueModalProps> = ({
             </p>
 
             <div className="space-y-3 mb-6">
-              {getDemoInsights(platform).map((insight, i) => (
+              {getDemoInsights(platform).map((text, i) => (
                 <motion.div
                   key={i}
-                  className="flex items-start gap-3 px-4 py-3 rounded-[16px]"
+                  className="px-4 py-3 rounded-[16px]"
                   style={{
                     background: 'rgba(255,255,255,0.05)',
                     border: '1px solid rgba(255,255,255,0.08)',
@@ -80,9 +80,8 @@ export const DemoValueModal: React.FC<DemoValueModalProps> = ({
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.15 + i * 0.12, duration: 0.4, ease: 'easeOut' }}
                 >
-                  <span className="text-base mt-0.5 flex-shrink-0">{insight.emoji}</span>
                   <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
-                    {insight.text}
+                    {text}
                   </p>
                 </motion.div>
               ))}
