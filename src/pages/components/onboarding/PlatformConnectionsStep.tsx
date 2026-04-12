@@ -8,7 +8,6 @@ import { DataProvider } from '@/types/data-integration';
 import { PlatformStatusData } from './onboardingTypes';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { PlatformTile } from '../../onboarding/components/PlatformTile';
-import { DataVerification } from '../../../components/DataVerification';
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
@@ -181,13 +180,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
             {renderUnconnectedTiles([...professionalConnectors, ...browsingConnectors])}
           </div>
         </>
-      )}
-
-      {connectedServices.length > 0 && (
-        <DataVerification
-          userId={userId || 'demo-user'}
-          connectedServices={connectedServices}
-        />
       )}
 
       {/* Upload historical data */}
