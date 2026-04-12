@@ -9,8 +9,7 @@
  *   GET /api/admin/beta/users        — Per-user activity + spend
  *   GET /api/admin/beta/departments  — Department adoption + flow
  *
- * Admin check: req.user.email must be in ADMIN_EMAILS env (comma-separated)
- * OR equal the hardcoded owner email (fallback for local/dev).
+ * Admin check: req.user.email must be in ADMIN_EMAILS env (comma-separated).
  */
 
 import express from 'express';
@@ -30,12 +29,10 @@ function requireAdminEmail(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const ownerEmail = process.env.OWNER_EMAIL || 'stefanogebara@gmail.com';
   const allowlist = (process.env.ADMIN_EMAILS || '')
     .split(',')
     .map(e => e.trim().toLowerCase())
     .filter(Boolean);
-  if (!allowlist.includes(ownerEmail)) allowlist.push(ownerEmail);
 
   if (!allowlist.includes(email)) {
     return res.status(403).json({ error: 'Forbidden' });
