@@ -52,7 +52,7 @@ const SettingsRow: React.FC<{
     <div className="min-w-0 flex-1">
       <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>{label}</span>
       {description && (
-        <p className="text-[12px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
+        <p className="text-[12px] mt-0.5 line-clamp-2 sm:truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{description}</p>
       )}
     </div>
     <div className="flex-shrink-0">
