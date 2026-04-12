@@ -123,6 +123,7 @@ const CATEGORY_COOLDOWN_HOURS = {
   briefing: 20,
   evening_recap: 20,
   email_triage: 6,
+  wiki_lint: 24, // Wiki lint findings: max 1 per 24h
 };
 const DEFAULT_CATEGORY_COOLDOWN = 4;
 

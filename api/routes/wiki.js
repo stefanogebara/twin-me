@@ -11,7 +11,7 @@
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { getWikiPages, getWikiPage, getWikiLogs, compileWikiPages, buildWikiGraphData } from '../services/wikiCompilationService.js';
+import { getWikiPages, getWikiPage, getWikiLogs, compileWikiPages, buildWikiGraphData, detectWikiLints } from '../services/wikiCompilationService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
@@ -112,6 +112,22 @@ router.get('/graph', async (req, res) => {
     res.json({ success: true, data: graphData });
   } catch (error) {
     log.error('Failed to build graph data', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/wiki/lint
+ * Run wiki lint on-demand and return findings.
+ */
+router.get('/lint', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    log.info('Wiki lint requested', { userId });
+    const result = await detectWikiLints(userId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    log.error('Wiki lint failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

@@ -354,11 +354,13 @@ export async function compileWikiPages(userId) {
     elapsedMs: Date.now() - startTime,
   });
 
-  // After compilation, extract entities for the knowledge graph
+  // After compilation, extract entities then run lint (fire-and-forget chain)
   if (results.compiled.length > 0) {
-    extractWikiEntities(userId).catch(err =>
-      log.warn('Entity extraction failed (non-fatal)', { userId, error: err.message })
-    );
+    extractWikiEntities(userId)
+      .then(() => detectWikiLints(userId))
+      .catch(err =>
+        log.warn('Entity extraction or lint failed (non-fatal)', { userId, error: err.message })
+      );
   }
 
   return results;
@@ -469,6 +471,217 @@ export async function getWikiEntities(userId) {
     .order('mention_count', { ascending: false });
   if (error) { log.warn('Failed to fetch entities', { error: error.message }); return []; }
   return data || [];
+}
+
+// ====================================================================
+// Wiki Lint (Phase 4 -- knowledge health detection)
+// ====================================================================
+
+const LINT_CONTRADICTION_PROMPT = `Compare these 5 domain wiki pages about a person. Find contradictions or inconsistencies BETWEEN domains (not within a single domain).
+
+DOMAINS:
+{domains}
+
+Look for:
+- Conflicting personality descriptions (e.g., one domain says introvert, another says social butterfly)
+- Inconsistent habits (e.g., one says early riser, another says stays up late)
+- Contradictory energy/mood patterns across domains
+- Claims that don't align with each other
+
+Return ONLY a JSON array of findings. If no contradictions, return [].
+Each finding: {"domains":["domain1","domain2"],"claim1":"what domain1 says","claim2":"what domain2 says","suggestion":"how to reconcile"}
+No markdown, no explanation.`;
+
+/**
+ * Detect wiki lint issues: contradictions, stale pages, gaps, orphans.
+ * Findings are stored as proactive insights (category: wiki_lint).
+ *
+ * @param {string} userId
+ * @returns {{ findings: number }}
+ */
+export async function detectWikiLints(userId) {
+  if (!userId) return { findings: 0 };
+
+  const [pages, entities] = await Promise.all([
+    getWikiPages(userId),
+    getWikiEntities(userId),
+  ]);
+
+  if (pages.length === 0) return { findings: 0 };
+
+  const lintFindings = [];
+
+  // ── Step 1: Cross-domain contradiction check (LLM) ──────────────────
+  try {
+    const domainSummaries = pages.map(p =>
+      `### ${p.title} (${p.domain})\n${p.content_md.slice(0, 300)}`
+    ).join('\n\n');
+
+    const prompt = LINT_CONTRADICTION_PROMPT.replace('{domains}', domainSummaries);
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.1,
+      maxTokens: 800,
+      userId,
+      purpose: 'wiki_lint_contradictions',
+    });
+
+    let jsonStr = result.content?.trim() || '[]';
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    }
+    // Extract JSON array even if surrounded by text
+    const arrayMatch = jsonStr.match(/\[[\s\S]*\]/);
+    if (arrayMatch) jsonStr = arrayMatch[0];
+    let contradictions;
+    try {
+      contradictions = JSON.parse(jsonStr);
+    } catch {
+      // LLM may produce broken JSON -- try to salvage individual objects
+      const objMatches = [...jsonStr.matchAll(/\{[^{}]+\}/g)];
+      contradictions = objMatches.map(m => { try { return JSON.parse(m[0]); } catch { return null; } }).filter(Boolean);
+    }
+
+    if (Array.isArray(contradictions)) {
+      for (const c of contradictions.slice(0, 3)) {
+        lintFindings.push({
+          type: 'contradiction',
+          severity: 'high',
+          insight: `Your ${c.domains?.[0] || 'one'} page and ${c.domains?.[1] || 'another'} page seem to disagree: "${c.claim1}" vs "${c.claim2}". ${c.suggestion || ''}`.trim(),
+          nudge_action: `Review ${c.domains?.join(' and ') || 'domain'} pages for consistency`,
+        });
+      }
+    }
+  } catch (err) {
+    log.warn('Wiki lint contradiction check failed', { userId, error: err.message });
+  }
+
+  // ── Step 2: Staleness check (pure computation) ──────────────────────
+  for (const page of pages) {
+    const compiledAt = new Date(page.compiled_at).getTime();
+    const ageMs = Date.now() - compiledAt;
+    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+
+    if (ageDays > 7) {
+      // Check if there are new reflections since last compilation
+      const { count } = await supabaseAdmin
+        .from('user_memories')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('memory_type', 'reflection')
+        .gt('created_at', page.compiled_at);
+
+      if ((count || 0) >= 5) {
+        lintFindings.push({
+          type: 'stale_page',
+          severity: 'medium',
+          insight: `Your ${page.title} page hasn't been updated in ${Math.floor(ageDays)} days, but ${count} new reflections are available. A recompilation would capture recent changes.`,
+          nudge_action: `Recompile ${page.domain} wiki page`,
+        });
+      }
+    }
+  }
+
+  // ── Step 3: Cross-reference gap check (pure computation) ────────────
+  if (entities.length > 0) {
+    const bridgeEntities = entities.filter(e => e.domains?.length >= 2);
+    for (const entity of bridgeEntities.slice(0, 10)) {
+      // Check if the domains that share this entity cross-reference each other
+      for (let i = 0; i < entity.domains.length; i++) {
+        for (let j = i + 1; j < entity.domains.length; j++) {
+          const domA = entity.domains[i];
+          const domB = entity.domains[j];
+          const pageA = pages.find(p => p.domain === domA);
+          const pageB = pages.find(p => p.domain === domB);
+
+          if (pageA && pageB) {
+            const hasRefAtoB = pageA.content_md.includes(`[[domain:${domB}]]`);
+            const hasRefBtoA = pageB.content_md.includes(`[[domain:${domA}]]`);
+
+            if (!hasRefAtoB && !hasRefBtoA) {
+              lintFindings.push({
+                type: 'missing_crossref',
+                severity: 'low',
+                insight: `"${entity.name}" appears in both ${WIKI_DOMAINS[domA]?.title} and ${WIKI_DOMAINS[domB]?.title}, but these pages don't cross-reference each other.`,
+                nudge_action: `Add cross-references between ${domA} and ${domB}`,
+              });
+              break; // One finding per entity pair is enough
+            }
+          }
+        }
+        if (lintFindings.filter(f => f.type === 'missing_crossref').length >= 3) break;
+      }
+    }
+  }
+
+  // ── Step 4: Domain balance check (pure computation) ─────────────────
+  const lengths = pages.map(p => p.content_md?.length || 0);
+  const avgLength = lengths.reduce((s, l) => s + l, 0) / lengths.length;
+
+  for (const page of pages) {
+    const pageLen = page.content_md?.length || 0;
+    if (pageLen < avgLength * 0.4 && avgLength > 500) {
+      lintFindings.push({
+        type: 'thin_domain',
+        severity: 'low',
+        insight: `Your ${page.title} page is significantly shorter (${pageLen} chars) compared to the average (${Math.round(avgLength)} chars). It may need more data from connected platforms.`,
+        nudge_action: `Connect more platforms or chat about ${page.domain} topics`,
+      });
+    }
+  }
+
+  // ── Step 5: Entity health check (pure computation) ──────────────────
+  if (entities.length > 0) {
+    const orphans = entities.filter(e => e.domains?.length === 1);
+    if (orphans.length > entities.length * 0.6) {
+      lintFindings.push({
+        type: 'orphan_entity',
+        severity: 'low',
+        insight: `${orphans.length} of ${entities.length} entities only appear in one domain. Cross-domain connections make the knowledge graph more insightful.`,
+        nudge_action: 'Chat with your twin about how different areas of your life connect',
+      });
+    }
+  }
+
+  // ── Store findings as proactive insights ─────────────────────────────
+  let stored = 0;
+  for (const finding of lintFindings.slice(0, 5)) {
+    try {
+      // Dedup: check if similar insight exists recently
+      const { count: existing } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('category', 'wiki_lint')
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      if ((existing || 0) >= 3) break; // Max 3 lint insights per 24h
+
+      const { error: insertErr } = await supabaseAdmin
+        .from('proactive_insights')
+        .insert({
+          user_id: userId,
+          insight: finding.insight.slice(0, 500),
+          urgency: finding.severity === 'high' ? 'high' : finding.severity === 'medium' ? 'medium' : 'low',
+          category: 'wiki_lint',
+          nudge_action: finding.nudge_action || null,
+        });
+
+      if (!insertErr) stored++;
+    } catch (err) {
+      log.warn('Wiki lint finding insert failed', { error: err.message });
+    }
+  }
+
+  log.info('Wiki lint complete', {
+    userId,
+    totalFindings: lintFindings.length,
+    stored,
+    types: lintFindings.map(f => f.type),
+  });
+
+  return { findings: lintFindings.length, stored, details: lintFindings };
 }
 
 /**
