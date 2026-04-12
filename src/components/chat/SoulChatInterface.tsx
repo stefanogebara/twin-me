@@ -10,8 +10,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from './ChatMessage';
 import { ConversationControls } from './ConversationControls';
-import { Send, Loader, Sparkles } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Send, Loader } from 'lucide-react';
 import { getAccessToken } from '@/services/api/apiBase';
 
 interface Message {

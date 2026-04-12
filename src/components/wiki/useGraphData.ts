@@ -29,17 +29,17 @@ export function useGraphData(userId: string | undefined): {
     enabled: !!userId,
   });
 
-  if (!data || !data.nodes || data.nodes.length === 0) {
-    return {
-      graphData: { nodes: [], edges: [] },
-      stats: { domainCount: 0, platformCount: 0, entityCount: 0, crossrefCount: 0, totalCompilations: 0 },
-      isLoading,
-      error: error as Error | null,
-    };
-  }
-
-  // Memoize transform so it doesn't re-run on every parent re-render
+  // useMemo must be called unconditionally (Rules of Hooks) — handle empty data inside
   const result = useMemo(() => {
+    const emptyResult = {
+      graphData: { nodes: [] as GraphNode[], edges: [] as GraphEdge[] } as GraphData,
+      stats: { domainCount: 0, platformCount: 0, entityCount: 0, crossrefCount: 0, totalCompilations: 0 } as GraphStats,
+    };
+
+    if (!data || !data.nodes || data.nodes.length === 0) {
+      return emptyResult;
+    }
+
     const nodes: GraphNode[] = data.nodes.map(n => {
       if (n.type === 'domain') {
         const config = DOMAIN_CONFIG[n.domain as string];
