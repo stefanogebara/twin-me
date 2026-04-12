@@ -1,7 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDemo } from '@/contexts/DemoContext';
 import { authFetch } from '@/services/api/apiBase';
+
+const DEMO_LAYERS = {
+  tasteStatement: "Creative synthesizer who finds meaning at the intersection of music, technology, and human connection.",
+  topValues: ["Curious Generalist", "Rhythmic Thinker", "Intentional Planner"],
+  chronotype: "Morning Focus",
+};
 
 interface SoulLayers {
   taste?: { statement?: string; topSignals?: string[] };
@@ -22,6 +29,7 @@ interface SoulSignatureResponse {
 
 export function SoulSummaryCard() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const { data, isLoading } = useQuery<SoulSignatureResponse>({
@@ -33,9 +41,58 @@ export function SoulSummaryCard() {
     },
     staleTime: 12 * 60 * 60 * 1000,
     retry: false,
-    enabled: !!user?.id,
+    enabled: !!user?.id && !isDemoMode,
     gcTime: 12 * 60 * 60 * 1000,
   });
+
+  // Demo mode: bypass API and show representative soul data
+  if (isDemoMode) {
+    return (
+      <div
+        className="rounded-[20px] px-5 py-5 backdrop-blur-[42px]"
+        style={{
+          background: 'var(--glass-surface-bg)',
+          border: '1px solid var(--glass-surface-border)',
+          boxShadow: '0 4px 4px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
+        <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
+          Soul Signature
+        </p>
+        <p
+          className="narrative-voice text-[15px] leading-[1.6] mb-4"
+          style={{ fontStyle: 'italic', color: 'rgba(245,245,244,0.88)' }}
+        >
+          {DEMO_LAYERS.tasteStatement}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {DEMO_LAYERS.topValues.map((value) => (
+            <span
+              key={value}
+              className="text-xs font-medium px-3 py-1 rounded-[46px]"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              {value}
+            </span>
+          ))}
+          <span
+            className="text-xs font-medium px-3 py-1 rounded-[46px]"
+            style={{
+              background: 'rgba(193,126,44,0.12)',
+              border: '1px solid rgba(193,126,44,0.25)',
+              color: 'var(--accent-amber)',
+            }}
+          >
+            {DEMO_LAYERS.chronotype}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const layers = data?.data?.layers;
   const tasteStatement = layers?.taste?.statement;

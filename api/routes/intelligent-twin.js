@@ -22,10 +22,11 @@ import specialistOrchestrator from '../services/specialists/SpecialistOrchestrat
 import { crossPlatformInferenceService } from '../services/crossPlatformInferenceService.js';
 import purposeLearningService from '../services/purposeLearningService.js';
 import { createLogger } from '../services/logger.js';
+import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
 
-// Simple in-process cache for /twin/insights (15-min TTL reduces 13s LLM calls)
-const INSIGHTS_CACHE_TTL_MS = 15 * 60 * 1000;
-const insightsCache = new Map();
+// Cache TTL for insights: 15 min (reduces 13s LLM call on every request)
+// Uses Redis (persists across Vercel cold starts) with in-memory fallback when Redis unavailable
+const INSIGHTS_CACHE_TTL_S = 15 * 60;
 
 const log = createLogger('IntelligentTwin');
 
@@ -217,10 +218,12 @@ router.get('/insights', authenticateUser, async (req, res) => {
     log.info(`Getting insights for user ${userId}`);
 
     // Return cached result if fresh (avoids 13s LLM call on every request)
-    const cached = insightsCache.get(userId);
-    if (cached && Date.now() - cached.ts < INSIGHTS_CACHE_TTL_MS) {
+    // Redis-backed: survives Vercel cold starts. Falls back to in-memory when Redis unavailable.
+    const cacheKey = `insights:${userId}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
       log.info(`Returning cached insights for user ${userId}`);
-      return res.json(cached.payload);
+      return res.json(cached);
     }
 
     const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
@@ -240,7 +243,7 @@ router.get('/insights', authenticateUser, async (req, res) => {
       context: insights.context,
       generatedAt: insights.generatedAt
     };
-    insightsCache.set(userId, { ts: Date.now(), payload });
+    await cacheSet(cacheKey, payload, INSIGHTS_CACHE_TTL_S);
 
     res.json(payload);
   } catch (error) {
