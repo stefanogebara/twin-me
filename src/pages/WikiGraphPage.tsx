@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
@@ -77,9 +77,9 @@ const WikiGraphPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden relative">
-      {/* Graph Canvas -- Left 60% */}
-      <div className="flex-[3] relative min-w-0">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] overflow-hidden relative">
+      {/* Graph Canvas -- Left 60% on desktop, full width on mobile */}
+      <div className="flex-[3] relative min-w-0 w-full overflow-hidden">
         <KnowledgeGraph
           data={graphData}
           selectedNode={selectedNode}
@@ -129,8 +129,10 @@ const WikiGraphPage: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Sheet -- slides up when a node is selected */}
+      <AnimatePresence>
       {selectedNode && (
         <motion.div
+          key="mobile-sheet"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
@@ -163,6 +165,7 @@ const WikiGraphPage: React.FC = () => {
           />
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

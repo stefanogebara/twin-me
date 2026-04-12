@@ -119,7 +119,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                             }
                           }}
                           disabled={disconnectingService === connector.id}
-                          className="text-[11px] transition-opacity hover:opacity-60"
+                          className="text-[11px] min-h-[44px] px-2 transition-opacity hover:opacity-60"
                           style={{ color: 'rgba(255,255,255,0.3)' }}
                         >
                           {disconnectingService === connector.id ? '...' : 'Disconnect'}
@@ -134,7 +134,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                       <AlertCircle className="w-3.5 h-3.5" style={{ color: '#C9B99A' }} />
                       <button
                         onClick={() => navigate('/get-started')}
-                        className="text-[11px]"
+                        className="text-[11px] min-h-[44px] px-2"
                         style={{ color: '#C9B99A' }}
                       >
                         Reconnect

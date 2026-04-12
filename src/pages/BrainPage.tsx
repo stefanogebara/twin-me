@@ -14,7 +14,6 @@ import { authFetch } from '@/services/api/apiBase';
 import { ChevronDown } from 'lucide-react';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
-import { DriftAlert } from '@/components/brain/DriftAlert';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import MemoryFilters from '@/components/brain/MemoryFilters';
 import FeaturedMemory from '@/components/brain/FeaturedMemory';
@@ -217,8 +216,6 @@ const BrainPage: React.FC = () => {
   return (
     <div className="max-w-[720px] mx-auto px-4 sm:px-6 py-10 sm:py-16" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Drift Alert — always at top */}
-      <DriftAlert />
 
       {/* ===== Section 1: Page Header ===== */}
       <div className="mb-6">

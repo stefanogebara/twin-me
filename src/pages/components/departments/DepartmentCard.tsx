@@ -136,7 +136,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
               {config.name}
             </span>
             <p
-              className="text-[12px] mt-0.5 truncate"
+              className="text-[12px] mt-0.5 line-clamp-2 sm:truncate"
               style={{ color: 'rgba(255,255,255,0.4)' }}
             >
               {config.description}
@@ -166,21 +166,24 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
             {formatCost(budget.spent)}/{formatCost(budget.total)}
           </span>
 
-          {/* Toggle switch */}
+          {/* Toggle switch — min-h-[44px] wrapper gives adequate touch target */}
           <button
             role="switch"
             aria-checked={isEnabled}
             aria-label={`${isEnabled ? 'Disable' : 'Enable'} ${config.name}`}
             onClick={() => onToggle(!isEnabled)}
-            className="relative w-9 h-[18px] rounded-full transition-colors duration-200 ease-out flex-shrink-0"
-            style={{
-              backgroundColor: isEnabled ? config.color : 'rgba(255,255,255,0.10)',
-            }}
+            className="relative flex items-center justify-center min-h-[44px] min-w-[44px] flex-shrink-0"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             <div
-              className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all duration-200 ease-out"
-              style={{ left: isEnabled ? '20px' : '2px' }}
-            />
+              className="relative w-9 h-[18px] rounded-full transition-colors duration-200 ease-out"
+              style={{ backgroundColor: isEnabled ? config.color : 'rgba(255,255,255,0.10)' }}
+            >
+              <div
+                className="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white transition-all duration-200 ease-out"
+                style={{ left: isEnabled ? '20px' : '2px' }}
+              />
+            </div>
           </button>
         </div>
       </div>

@@ -237,19 +237,23 @@ export function determineArchetypeFromSoulLayers(layers: SoulSignatureLayers): A
 /**
  * Generate concise badges directly from soul layers for the identity hero.
  */
+function formatBadgeLabel(raw: string): string {
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function generateTraitBadgesFromSoulLayers(layers: SoulSignatureLayers): string[] {
   const badges = new Set<string>();
 
+  // Core values — abstract trait names only
   for (const value of layers.values?.values ?? []) {
     if (value.name) badges.add(value.name);
   }
 
-  if (layers.rhythms?.chronotype) badges.add(layers.rhythms.chronotype);
-  if (layers.connections?.style) badges.add(layers.connections.style);
+  // Chronotype and connection style — format snake_case → Title Case
+  if (layers.rhythms?.chronotype) badges.add(formatBadgeLabel(layers.rhythms.chronotype));
+  if (layers.connections?.style) badges.add(formatBadgeLabel(layers.connections.style));
 
-  for (const signal of layers.taste?.topSignals ?? []) {
-    if (signal) badges.add(signal);
-  }
+  // Skip topSignals — these are artist/content names (e.g. "Drake"), not identity traits
 
   if (layers.growth_edges?.isStable) {
     badges.add('Stable Core');

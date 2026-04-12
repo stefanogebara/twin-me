@@ -14,6 +14,7 @@ import { MessageCircle, ArrowRight, Clock, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authFetch } from '@/services/api/apiBase';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import SoulScore from './SoulScore';
 import InsightCards from './InsightCards';
 import SidebarTabs, { type SidebarTab } from './SidebarTabs';
@@ -34,6 +35,9 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
   const [activeTab, setActiveTab] = useState<SidebarTab>('soul');
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const { connectedProviders } = usePlatformStatus(user?.id);
+  const activeCount = connectedProviders.length;
 
   const { data: activityData } = useQuery<{ memories?: { content: string; memory_type: string; created_at: string }[] }>({
     queryKey: ['sidebar-activity'],
@@ -76,7 +80,9 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
                 className="text-xs text-center py-3"
                 style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
               >
-                Connect more platforms to deepen your soul signature
+                {activeCount >= 3
+                  ? `Your twin is learning from ${activeCount} active source${activeCount !== 1 ? 's' : ''}`
+                  : 'Connect more platforms to deepen your soul signature'}
               </p>
             </motion.div>
           )}

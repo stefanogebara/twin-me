@@ -93,7 +93,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
           )}
         </div>
         <span
-          className="text-[12px] leading-relaxed truncate block mt-0.5"
+          className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
           style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
           {description}

@@ -21,8 +21,6 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('AdminBeta');
 const router = express.Router();
 
-const OWNER_EMAIL = 'stefanogebara@gmail.com';
-
 // ─────────────────────────────────────────────────────────────
 // Admin check: email allowlist
 // ─────────────────────────────────────────────────────────────
@@ -36,11 +34,6 @@ function requireAdminEmail(req, res, next) {
     .split(',')
     .map(e => e.trim().toLowerCase())
     .filter(Boolean);
-
-  // Always allow owner email as fallback
-  if (!allowlist.includes(OWNER_EMAIL)) {
-    allowlist.push(OWNER_EMAIL);
-  }
 
   if (!allowlist.includes(email)) {
     return res.status(403).json({ error: 'Forbidden' });

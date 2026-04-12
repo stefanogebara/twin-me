@@ -558,26 +558,33 @@ export async function detectWikiLints(userId) {
     log.warn('Wiki lint contradiction check failed', { userId, error: err.message });
   }
 
-  // ── Step 2: Staleness check (pure computation) ──────────────────────
-  for (const page of pages) {
-    const compiledAt = new Date(page.compiled_at).getTime();
-    const ageMs = Date.now() - compiledAt;
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  // ── Step 2: Staleness check (single query, not N+1) ──────────────────
+  const stalePages = pages.filter(p => {
+    const ageDays = (Date.now() - new Date(p.compiled_at).getTime()) / 86400000;
+    return ageDays > 7;
+  });
+  if (stalePages.length > 0) {
+    // Single query: count reflections newer than the oldest stale page
+    const oldestStaleDate = stalePages.reduce(
+      (min, p) => p.compiled_at < min ? p.compiled_at : min,
+      stalePages[0].compiled_at,
+    );
+    const { data: recentReflections } = await supabaseAdmin
+      .from('user_memories')
+      .select('created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'reflection')
+      .gt('created_at', oldestStaleDate)
+      .limit(50);
 
-    if (ageDays > 7) {
-      // Check if there are new reflections since last compilation
-      const { count } = await supabaseAdmin
-        .from('user_memories')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('memory_type', 'reflection')
-        .gt('created_at', page.compiled_at);
-
-      if ((count || 0) >= 5) {
+    for (const page of stalePages) {
+      const ageDays = Math.floor((Date.now() - new Date(page.compiled_at).getTime()) / 86400000);
+      const newReflCount = (recentReflections || []).filter(r => r.created_at > page.compiled_at).length;
+      if (newReflCount >= 5) {
         lintFindings.push({
           type: 'stale_page',
           severity: 'medium',
-          insight: `Your ${page.title} page hasn't been updated in ${Math.floor(ageDays)} days, but ${count} new reflections are available. A recompilation would capture recent changes.`,
+          insight: `Your ${page.title} page hasn't been updated in ${ageDays} days, but ${newReflCount} new reflections are available. A recompilation would capture recent changes.`,
           nudge_action: `Recompile ${page.domain} wiki page`,
         });
       }
@@ -647,18 +654,21 @@ export async function detectWikiLints(userId) {
 
   // ── Store findings as proactive insights ─────────────────────────────
   let stored = 0;
+  // Single count query outside the loop (not repeated per finding)
+  let remaining = 3;
+  try {
+    const { count: existingCount } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('category', 'wiki_lint')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+    remaining = 3 - (existingCount || 0);
+  } catch { /* fail open */ }
+
   for (const finding of lintFindings.slice(0, 5)) {
+    if (remaining <= 0) break;
     try {
-      // Dedup: check if similar insight exists recently
-      const { count: existing } = await supabaseAdmin
-        .from('proactive_insights')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('category', 'wiki_lint')
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-
-      if ((existing || 0) >= 3) break; // Max 3 lint insights per 24h
-
       const { error: insertErr } = await supabaseAdmin
         .from('proactive_insights')
         .insert({
@@ -669,7 +679,7 @@ export async function detectWikiLints(userId) {
           nudge_action: finding.nudge_action || null,
         });
 
-      if (!insertErr) stored++;
+      if (!insertErr) { stored++; remaining--; }
     } catch (err) {
       log.warn('Wiki lint finding insert failed', { error: err.message });
     }
