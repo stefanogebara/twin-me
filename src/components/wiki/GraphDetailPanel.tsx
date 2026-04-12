@@ -5,8 +5,8 @@
 
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { SelectedNode, DomainNode, PlatformNode, GraphStats } from './graphTypes';
-import { DOMAIN_CONFIG, PLATFORM_CONFIG } from './graphConstants';
+import type { SelectedNode, DomainNode, PlatformNode, EntityNode, GraphStats } from './graphTypes';
+import { DOMAIN_CONFIG, PLATFORM_CONFIG, ENTITY_CATEGORY_CONFIG } from './graphConstants';
 import { renderWikiMarkdown } from './wikiMarkdownRenderer';
 
 function getTimeAgo(timestamp: string): string {
@@ -45,6 +45,8 @@ const GraphDetailPanel: React.FC<GraphDetailPanelProps> = ({
           <OverviewState key="overview" stats={stats} />
         ) : selectedNode.type === 'domain' ? (
           <DomainState key={`domain-${selectedNode.id}`} node={selectedNode as DomainNode} onDomainClick={onDomainClick} />
+        ) : selectedNode.type === 'entity' ? (
+          <EntityState key={`entity-${selectedNode.id}`} node={selectedNode as EntityNode} onDomainClick={onDomainClick} />
         ) : (
           <PlatformState key={`platform-${selectedNode.id}`} node={selectedNode as PlatformNode} />
         )}
@@ -75,8 +77,8 @@ const OverviewState: React.FC<{ stats: GraphStats }> = ({ stats }) => (
     <div className="grid grid-cols-2 gap-3">
       <StatCard label="Domains" value={stats.domainCount} />
       <StatCard label="Platforms" value={stats.platformCount} />
+      <StatCard label="Entities" value={stats.entityCount ?? 0} />
       <StatCard label="Connections" value={stats.crossrefCount} />
-      <StatCard label="Compilations" value={stats.totalCompilations} />
     </div>
 
     <div className="mt-8">
@@ -181,6 +183,67 @@ const PlatformState: React.FC<{ node: PlatformNode }> = ({ node }) => {
         Observations from {config?.label ?? node.platformId} are analyzed by the
         reflection engine and compiled into your domain pages.
       </p>
+    </motion.div>
+  );
+};
+
+const EntityState: React.FC<{ node: EntityNode; onDomainClick: (domain: string) => void }> = ({ node, onDomainClick }) => {
+  const catConfig = ENTITY_CATEGORY_CONFIG[node.category];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 12 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -12 }}
+      transition={{ duration: 0.2 }}
+      className="p-6"
+    >
+      <div className="flex items-center gap-2.5 mb-1">
+        <div className="w-3 h-3 rounded-full" style={{ background: catConfig?.color ?? '#888' }} />
+        <h2 className="text-[18px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          {node.label}
+        </h2>
+      </div>
+
+      <span
+        className="inline-block text-[10px] px-2 py-0.5 rounded-full mb-4"
+        style={{ background: 'rgba(255,255,255,0.06)', color: catConfig?.color ?? 'var(--text-muted)' }}
+      >
+        {node.category}
+      </span>
+
+      <p className="text-[13px] leading-relaxed mb-5" style={{ color: 'var(--text-narrative-secondary)' }}>
+        This entity appears across {node.domains?.length ?? 0} domain{(node.domains?.length ?? 0) !== 1 ? 's' : ''} in your knowledge graph,
+        connecting patterns from different areas of your life.
+      </p>
+
+      {node.domains && node.domains.length > 0 && (
+        <div>
+          <h3 className="text-[12px] font-medium mb-2 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            Referenced in
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {node.domains.map(domain => {
+              const dConfig = DOMAIN_CONFIG[domain];
+              return (
+                <button
+                  key={domain}
+                  onClick={() => onDomainClick(domain)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors hover:opacity-80"
+                  style={{
+                    background: `${dConfig?.color ?? '#888'}15`,
+                    border: `1px solid ${dConfig?.color ?? '#888'}30`,
+                    color: dConfig?.color ?? 'var(--text-secondary)',
+                  }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: dConfig?.color }} />
+                  {dConfig?.label ?? domain}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

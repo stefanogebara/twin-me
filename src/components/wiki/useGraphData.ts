@@ -1,148 +1,91 @@
 /**
  * useGraphData Hook
- * Transforms wiki pages + platform connections into graph nodes + edges.
- * All computation is client-side -- no additional API calls.
+ * Fetches pre-computed graph data from the server API (GET /api/wiki/graph).
+ * Includes domain nodes, platform nodes, entity nodes, and all edge types.
+ *
+ * Falls back to client-side wiki page parsing if the graph API fails.
  */
 
-import { useMemo } from 'react';
-import type { WikiPage } from '@/services/api/wikiAPI';
-import type { GraphData, DomainNode, PlatformNode, GraphEdge } from './graphTypes';
-import { DOMAIN_CONFIG, PLATFORM_CONFIG, PLATFORM_KEYWORDS, NODE_SIZE } from './graphConstants';
+import { useQuery } from '@tanstack/react-query';
+import { getWikiGraph } from '@/services/api/wikiAPI';
+import type { GraphData, GraphNode, GraphEdge, GraphStats } from './graphTypes';
+import { DOMAIN_CONFIG, PLATFORM_CONFIG, ENTITY_CATEGORY_CONFIG, NODE_SIZE } from './graphConstants';
 
 /**
- * Parse [[domain:X]] cross-references from markdown content.
- * Returns deduplicated edges with strength based on mention count.
+ * Fetch and transform graph data from the server API.
  */
-function parseCrossRefs(sourceDomain: string, contentMd: string): GraphEdge[] {
-  const counts = new Map<string, number>();
-  const regex = /\[\[domain:(\w+)(?:\|[^\]]+)?\]\]/g;
-  let match;
+export function useGraphData(userId: string | undefined): {
+  graphData: GraphData;
+  stats: GraphStats;
+  isLoading: boolean;
+  error: Error | null;
+} {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['wiki-graph', userId],
+    queryFn: getWikiGraph,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    enabled: !!userId,
+  });
 
-  while ((match = regex.exec(contentMd)) !== null) {
-    const target = match[1];
-    if (target !== sourceDomain && DOMAIN_CONFIG[target]) {
-      counts.set(target, (counts.get(target) || 0) + 1);
-    }
+  if (!data || !data.nodes || data.nodes.length === 0) {
+    return {
+      graphData: { nodes: [], edges: [] },
+      stats: { domainCount: 0, platformCount: 0, entityCount: 0, crossrefCount: 0, totalCompilations: 0 },
+      isLoading,
+      error: error as Error | null,
+    };
   }
 
-  return Array.from(counts.entries()).map(([target, count]) => ({
-    source: sourceDomain,
-    target,
-    type: 'crossref' as const,
-    strength: Math.min(count / 5, 1.0),
-  }));
-}
-
-/**
- * Infer platform-to-domain edges by scanning wiki content for platform keywords.
- */
-function inferPlatformEdges(
-  domainId: string,
-  contentMd: string,
-  connectedPlatforms: string[],
-): GraphEdge[] {
-  const lower = contentMd.toLowerCase();
-  const edges: GraphEdge[] = [];
-
-  for (const platform of connectedPlatforms) {
-    const keywords = PLATFORM_KEYWORDS[platform];
-    if (!keywords) continue;
-
-    const matchCount = keywords.reduce(
-      (sum, kw) => sum + (lower.includes(kw) ? 1 : 0),
-      0,
-    );
-
-    if (matchCount > 0) {
-      edges.push({
-        source: platform,
-        target: domainId,
-        type: 'platform',
-        strength: Math.min(matchCount / 4, 1.0),
-      });
-    }
-  }
-
-  return edges;
-}
-
-/**
- * Build complete graph data from wiki pages + connected platforms.
- */
-export function useGraphData(
-  wikiPages: WikiPage[] | undefined,
-  connectedProviders: string[],
-): GraphData {
-  return useMemo(() => {
-    if (!wikiPages || wikiPages.length === 0) {
-      return { nodes: [], edges: [] };
-    }
-
-    const nodes: (DomainNode | PlatformNode)[] = [];
-    const edges: GraphEdge[] = [];
-    const edgeSet = new Set<string>();
-
-    // 1. Build domain nodes
-    for (const page of wikiPages) {
-      const config = DOMAIN_CONFIG[page.domain];
-      if (!config) continue;
-
-      nodes.push({
-        id: page.domain,
-        type: 'domain',
-        label: config.label,
-        color: config.color,
+  // Transform server nodes into typed GraphNodes with colors/sizes
+  const nodes: GraphNode[] = data.nodes.map(n => {
+    if (n.type === 'domain') {
+      const config = DOMAIN_CONFIG[n.domain as string];
+      return {
+        ...n,
+        color: config?.color ?? '#888',
         size: NODE_SIZE.domain,
-        domain: page.domain,
-        contentMd: page.content_md,
-        version: page.version,
-        compiledAt: page.compiled_at,
-        crossrefCount: 0,
-      });
+      } as GraphNode;
     }
-
-    // 2. Parse cross-reference edges (deduplicate bidirectional)
-    for (const page of wikiPages) {
-      const crossRefs = parseCrossRefs(page.domain, page.content_md);
-      for (const edge of crossRefs) {
-        const key = [String(edge.source), String(edge.target)].sort().join('->');
-        if (!edgeSet.has(key)) {
-          edgeSet.add(key);
-          edges.push(edge);
-
-          const sourceNode = nodes.find(n => n.id === edge.source) as DomainNode | undefined;
-          if (sourceNode) sourceNode.crossrefCount++;
-        }
-      }
-    }
-
-    // 3. Build platform nodes (only connected ones)
-    for (const provider of connectedProviders) {
-      const config = PLATFORM_CONFIG[provider];
-      if (!config) continue;
-
-      nodes.push({
-        id: provider,
-        type: 'platform',
-        label: config.label,
-        color: config.color,
+    if (n.type === 'platform') {
+      const config = PLATFORM_CONFIG[n.id];
+      return {
+        ...n,
+        label: config?.label ?? n.label,
+        color: config?.color ?? '#666',
         size: NODE_SIZE.platform,
-        platformId: provider,
-      });
+        platformId: n.id,
+      } as GraphNode;
     }
-
-    // 4. Infer platform-to-domain edges
-    for (const page of wikiPages) {
-      const platformEdges = inferPlatformEdges(page.domain, page.content_md, connectedProviders);
-      for (const edge of platformEdges) {
-        const key = `${String(edge.source)}->${String(edge.target)}`;
-        if (!edgeSet.has(key)) {
-          edgeSet.add(key);
-          edges.push(edge);
-        }
-      }
+    if (n.type === 'entity') {
+      const domains = (n.domains as string[]) || [];
+      const catConfig = ENTITY_CATEGORY_CONFIG[n.category as string];
+      return {
+        ...n,
+        color: catConfig?.color ?? '#888',
+        size: domains.length > 1 ? NODE_SIZE.entityBridge : NODE_SIZE.entity,
+      } as GraphNode;
     }
+    return { ...n, color: '#888', size: 10 } as GraphNode;
+  });
 
-    return { nodes, edges };
-  }, [wikiPages, connectedProviders]);
+  const edges: GraphEdge[] = data.edges.map(e => ({
+    source: e.source,
+    target: e.target,
+    type: e.type as GraphEdge['type'],
+    strength: e.strength,
+  }));
+
+  return {
+    graphData: { nodes, edges },
+    stats: data.stats ?? {
+      domainCount: nodes.filter(n => n.type === 'domain').length,
+      platformCount: nodes.filter(n => n.type === 'platform').length,
+      entityCount: nodes.filter(n => n.type === 'entity').length,
+      crossrefCount: edges.filter(e => e.type === 'crossref').length,
+      totalCompilations: 0,
+    },
+    isLoading,
+    error: error as Error | null,
+  };
 }

@@ -61,6 +61,20 @@ export async function getWikiLogs(limit = 20): Promise<WikiLog[]> {
 }
 
 /**
+ * Fetch full knowledge graph data (domains + platforms + entities + edges).
+ */
+export async function getWikiGraph(): Promise<{
+  nodes: Array<{ id: string; type: string; label: string; [key: string]: unknown }>;
+  edges: Array<{ source: string; target: string; type: string; strength: number }>;
+  stats: { domainCount: number; platformCount: number; entityCount: number; crossrefCount: number; totalCompilations: number };
+}> {
+  const response = await authFetch('/wiki/graph');
+  if (!response.ok) throw new Error(`Wiki graph fetch failed: ${response.statusText}`);
+  const json = await response.json();
+  return json.data;
+}
+
+/**
  * Manually trigger wiki compilation (debug/testing).
  */
 export async function triggerWikiCompile(): Promise<{ compiled: string[]; skipped: string[]; errors: string[] }> {

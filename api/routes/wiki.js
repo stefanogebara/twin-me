@@ -11,7 +11,8 @@
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { getWikiPages, getWikiPage, getWikiLogs, compileWikiPages } from '../services/wikiCompilationService.js';
+import { getWikiPages, getWikiPage, getWikiLogs, compileWikiPages, buildWikiGraphData } from '../services/wikiCompilationService.js';
+import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('WikiRoute');
@@ -81,6 +82,36 @@ router.get('/logs', async (req, res) => {
     res.json({ success: true, data: logs });
   } catch (error) {
     log.error('Failed to fetch wiki logs', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/wiki/graph
+ * Returns full knowledge graph data: domain nodes + platform nodes + entity nodes + all edges.
+ * Used by the WikiGraphPage frontend component.
+ */
+router.get('/graph', async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get connected platforms for this user
+    let connectedPlatforms = [];
+    try {
+      const { data: connections } = await supabaseAdmin
+        .from('nango_connection_mappings')
+        .select('platform')
+        .eq('user_id', userId)
+        .eq('status', 'active');
+      connectedPlatforms = (connections || []).map(c => c.platform);
+    } catch {
+      // Non-fatal -- graph still works without platform nodes
+    }
+
+    const graphData = await buildWikiGraphData(userId, connectedPlatforms);
+    res.json({ success: true, data: graphData });
+  } catch (error) {
+    log.error('Failed to build graph data', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

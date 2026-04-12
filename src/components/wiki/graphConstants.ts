@@ -46,17 +46,32 @@ export const PLATFORM_KEYWORDS: Record<string, string[]> = {
   whoop:           ['whoop', 'recovery', 'strain', 'hrv', 'sleep score'],
 };
 
+// Entity category colors
+export const ENTITY_CATEGORY_CONFIG: Record<string, { color: string }> = {
+  person:   { color: '#e879a0' },
+  artist:   { color: '#c084fc' },
+  habit:    { color: '#34d399' },
+  concept:  { color: '#93c5fd' },
+  activity: { color: '#fbbf24' },
+  place:    { color: '#a78bfa' },
+  value:    { color: '#f9a8d4' },
+};
+
 // Node sizes
 export const NODE_SIZE = {
   domain: 28,
   platform: 13,
+  entity: 9,
+  entityBridge: 12, // entities that span multiple domains
 } as const;
 
 // d3-force physics config
 export const PHYSICS = {
   chargeStrength: -280,
+  entityCharge: -40,
   linkDistanceCrossref: 130,
   linkDistancePlatform: 170,
+  linkDistanceEntity: 75,
   collisionPadding: 10,
   alphaDecay: 0.02,
   velocityDecay: 0.3,

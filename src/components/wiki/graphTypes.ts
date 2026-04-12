@@ -2,8 +2,8 @@
  * Knowledge Graph Type Definitions
  */
 
-export type GraphNodeType = 'domain' | 'platform';
-export type GraphEdgeType = 'crossref' | 'platform';
+export type GraphNodeType = 'domain' | 'platform' | 'entity';
+export type GraphEdgeType = 'crossref' | 'platform' | 'entity';
 
 export interface GraphNode {
   id: string;
@@ -33,6 +33,14 @@ export interface PlatformNode extends GraphNode {
   platformId: string;
 }
 
+export interface EntityNode extends GraphNode {
+  type: 'entity';
+  category: string;
+  domains: string[];
+  confidence: number;
+  mentionCount: number;
+}
+
 export interface GraphEdge {
   source: string | GraphNode;
   target: string | GraphNode;
@@ -45,11 +53,12 @@ export interface GraphData {
   edges: GraphEdge[];
 }
 
-export type SelectedNode = DomainNode | PlatformNode | null;
+export type SelectedNode = DomainNode | PlatformNode | EntityNode | null;
 
 export interface GraphStats {
   domainCount: number;
   platformCount: number;
+  entityCount: number;
   crossrefCount: number;
   totalCompilations: number;
 }

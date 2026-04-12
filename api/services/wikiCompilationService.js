@@ -18,7 +18,7 @@
  */
 
 import { supabaseAdmin } from './database.js';
-import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { complete, TIER_ANALYSIS, TIER_EXTRACTION } from './llmGateway.js';
 import { generateEmbedding } from './embeddingService.js';
 import { getFeatureFlags } from './featureFlagsService.js';
 import { createLogger } from './logger.js';
@@ -354,7 +354,218 @@ export async function compileWikiPages(userId) {
     elapsedMs: Date.now() - startTime,
   });
 
+  // After compilation, extract entities for the knowledge graph
+  if (results.compiled.length > 0) {
+    extractWikiEntities(userId).catch(err =>
+      log.warn('Entity extraction failed (non-fatal)', { userId, error: err.message })
+    );
+  }
+
   return results;
+}
+
+// ====================================================================
+// Entity Extraction (Phase 2 -- knowledge graph enrichment)
+// ====================================================================
+
+const ENTITY_EXTRACTION_PROMPT = `Analyze these wiki domain pages about a person and extract key entities mentioned.
+
+DOMAINS:
+{domains}
+
+Extract 20-40 distinct entities. For each entity, provide:
+- name: short label (2-4 words max)
+- category: one of: person, artist, habit, concept, activity, place, value
+- domains: array of which domains mention this entity (e.g. ["cultural", "lifestyle"])
+
+Rules:
+- Extract real names (artists, people), specific habits, recurring concepts, activities, places
+- Do NOT extract generic terms like "music" or "sleep" -- be specific ("late-night jazz", "morning routine")
+- Prefer entities that appear across multiple domains (cross-domain connections)
+- Include emotional patterns and coping mechanisms as "concept" category
+- No duplicates, no emojis
+
+Return ONLY a JSON array, no markdown, no explanation:
+[{"name":"...","category":"...","domains":["..."]},...]`;
+
+/**
+ * Extract key entities from compiled wiki pages using LLM.
+ * @param {string} userId
+ * @returns {{ extracted: number }}
+ */
+export async function extractWikiEntities(userId) {
+  if (!userId) return { extracted: 0 };
+
+  const pages = await getWikiPages(userId);
+  if (pages.length === 0) return { extracted: 0 };
+
+  const domainSummaries = pages.map(p =>
+    `### ${p.title} (${p.domain})\n${p.content_md.slice(0, 600)}`
+  ).join('\n\n');
+
+  const prompt = ENTITY_EXTRACTION_PROMPT.replace('{domains}', domainSummaries);
+
+  let entities;
+  try {
+    const result = await complete({
+      tier: TIER_EXTRACTION,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      maxTokens: 2000,
+      userId,
+      purpose: 'wiki_entity_extraction',
+    });
+
+    let jsonStr = result.content?.trim() || '[]';
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+    }
+    entities = JSON.parse(jsonStr);
+  } catch (err) {
+    log.warn('Entity extraction LLM failed', { userId, error: err.message });
+    return { extracted: 0 };
+  }
+
+  if (!Array.isArray(entities) || entities.length === 0) return { extracted: 0 };
+
+  const validCategories = new Set(['person', 'artist', 'habit', 'concept', 'activity', 'place', 'value']);
+  const validEntities = entities
+    .filter(e => e.name && e.category && validCategories.has(e.category) && Array.isArray(e.domains))
+    .map(e => ({
+      user_id: userId,
+      name: String(e.name).slice(0, 100),
+      category: e.category,
+      domains: e.domains.filter(d => ALL_DOMAIN_IDS.includes(d)),
+      mention_count: e.domains?.length || 1,
+      confidence: 0.8,
+      updated_at: new Date().toISOString(),
+    }))
+    .slice(0, 50);
+
+  if (validEntities.length === 0) return { extracted: 0 };
+
+  const { error: upsertErr } = await supabaseAdmin
+    .from('wiki_entity_extractions')
+    .upsert(validEntities, { onConflict: 'user_id,name' });
+
+  if (upsertErr) {
+    log.warn('Entity upsert failed', { userId, error: upsertErr.message });
+    return { extracted: 0 };
+  }
+
+  log.info('Wiki entities extracted', { userId, count: validEntities.length });
+  return { extracted: validEntities.length };
+}
+
+/**
+ * Get extracted entities for a user.
+ */
+export async function getWikiEntities(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabaseAdmin
+    .from('wiki_entity_extractions')
+    .select('name, category, domains, mention_count, confidence')
+    .eq('user_id', userId)
+    .order('mention_count', { ascending: false });
+  if (error) { log.warn('Failed to fetch entities', { error: error.message }); return []; }
+  return data || [];
+}
+
+/**
+ * Build full graph data (nodes + edges) server-side.
+ * @param {string} userId
+ * @param {string[]} connectedPlatforms
+ */
+export async function buildWikiGraphData(userId, connectedPlatforms = []) {
+  const [pages, entities] = await Promise.all([
+    getWikiPages(userId),
+    getWikiEntities(userId),
+  ]);
+
+  const nodes = [];
+  const edges = [];
+  const edgeSet = new Set();
+
+  // Domain nodes
+  for (const page of pages) {
+    const config = WIKI_DOMAINS[page.domain];
+    if (!config) continue;
+    nodes.push({
+      id: page.domain, type: 'domain', label: config.title,
+      domain: page.domain, contentMd: page.content_md,
+      version: page.version, compiledAt: page.compiled_at,
+    });
+  }
+
+  // Cross-ref edges
+  for (const page of pages) {
+    const counts = new Map();
+    const regex = /\[\[domain:(\w+)(?:\|[^\]]+)?\]\]/g;
+    let match;
+    while ((match = regex.exec(page.content_md)) !== null) {
+      const target = match[1];
+      if (target !== page.domain && WIKI_DOMAINS[target]) {
+        counts.set(target, (counts.get(target) || 0) + 1);
+      }
+    }
+    for (const [target, count] of counts) {
+      const key = [page.domain, target].sort().join('->');
+      if (!edgeSet.has(key)) {
+        edgeSet.add(key);
+        edges.push({ source: page.domain, target, type: 'crossref', strength: Math.min(count / 5, 1.0) });
+      }
+    }
+  }
+
+  // Platform nodes + edges
+  const platformKw = {
+    spotify: ['spotify', 'playlist', 'listening', 'track', 'artist'],
+    youtube: ['youtube', 'video', 'watch'],
+    google_calendar: ['calendar', 'schedule', 'meeting'],
+    discord: ['discord', 'server', 'community'],
+    linkedin: ['linkedin', 'career'],
+    github: ['github', 'repo', 'code'],
+    reddit: ['reddit', 'subreddit'],
+    gmail: ['gmail', 'email', 'inbox'],
+    twitch: ['twitch', 'stream'],
+    whoop: ['whoop', 'recovery', 'strain', 'hrv'],
+  };
+  for (const platform of connectedPlatforms) {
+    nodes.push({ id: platform, type: 'platform', label: platform });
+    const kws = platformKw[platform] || [];
+    for (const page of pages) {
+      const lower = page.content_md.toLowerCase();
+      const cnt = kws.reduce((s, k) => s + (lower.includes(k) ? 1 : 0), 0);
+      if (cnt > 0) {
+        const key = `${platform}->${page.domain}`;
+        if (!edgeSet.has(key)) { edgeSet.add(key); edges.push({ source: platform, target: page.domain, type: 'platform', strength: Math.min(cnt / 4, 1.0) }); }
+      }
+    }
+  }
+
+  // Entity nodes + edges
+  for (const entity of entities) {
+    const entityId = `entity_${entity.name.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+    nodes.push({
+      id: entityId, type: 'entity', label: entity.name,
+      category: entity.category, domains: entity.domains,
+      confidence: entity.confidence, mentionCount: entity.mention_count,
+    });
+    for (const domain of entity.domains) {
+      const key = `${entityId}->${domain}`;
+      if (!edgeSet.has(key)) { edgeSet.add(key); edges.push({ source: entityId, target: domain, type: 'entity', strength: entity.confidence * 0.7 }); }
+    }
+  }
+
+  return {
+    nodes, edges,
+    stats: {
+      domainCount: pages.length, platformCount: connectedPlatforms.length,
+      entityCount: entities.length,
+      crossrefCount: edges.filter(e => e.type === 'crossref').length,
+      totalCompilations: pages.reduce((s, p) => s + p.version, 0),
+    },
+  };
 }
 
 // ====================================================================

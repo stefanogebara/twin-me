@@ -25,9 +25,7 @@ import { PHYSICS } from './graphConstants';
 interface KnowledgeGraphProps {
   data: GraphData;
   selectedNode: SelectedNode;
-  hoveredNode: string | null;
   onNodeClick: (node: GraphNode) => void;
-  onNodeHover: (nodeId: string | null) => void;
 }
 
 type SimNode = GraphNode & SimulationNodeDatum;
@@ -36,9 +34,7 @@ type SimLink = SimulationLinkDatum<SimNode> & { type: string; strength: number }
 const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   data,
   selectedNode,
-  hoveredNode,
   onNodeClick,
-  onNodeHover,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,13 +45,13 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   const dragRef = useRef<{ node: SimNode } | null>(null);
   const sizeRef = useRef({ width: 800, height: 600, dpr: 1 });
   const needsRenderRef = useRef(true);
-  // Track interactive state via refs (avoids React re-renders killing the rAF loop)
+  // All interactive state lives in refs -- NEVER in React state.
+  // Parent re-renders on hover were causing the glitch.
   const selectedIdRef = useRef<string | null>(null);
   const hoveredIdRef = useRef<string | null>(null);
 
-  // Sync props to refs (no re-render, just mark dirty)
+  // Sync selected prop to ref (only selected comes from parent -- hover is fully internal)
   useEffect(() => { selectedIdRef.current = selectedNode?.id ?? null; needsRenderRef.current = true; }, [selectedNode]);
-  useEffect(() => { hoveredIdRef.current = hoveredNode; needsRenderRef.current = true; }, [hoveredNode]);
 
   // ── Canvas sizing (only on mount + resize, NOT every frame) ──────────
   const updateCanvasSize = useCallback(() => {
@@ -112,13 +108,13 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     if (simRef.current) simRef.current.stop();
 
     const sim = forceSimulation<SimNode>(simNodes)
-      .force('charge', forceManyBody().strength(PHYSICS.chargeStrength))
+      .force('charge', forceManyBody().strength(d => (d as SimNode).type === 'entity' ? PHYSICS.entityCharge : PHYSICS.chargeStrength))
       .force('center', forceCenter(width / 2, height / 2))
       .force('collision', forceCollide<SimNode>().radius(d => d.size + PHYSICS.collisionPadding))
       .force('link', forceLink<SimNode, SimLink>(simLinks)
         .id(d => d.id)
-        .distance(d => d.type === 'crossref' ? PHYSICS.linkDistanceCrossref : PHYSICS.linkDistancePlatform)
-        .strength(d => d.strength * 0.4)
+        .distance(d => d.type === 'entity' ? PHYSICS.linkDistanceEntity : d.type === 'crossref' ? PHYSICS.linkDistanceCrossref : PHYSICS.linkDistancePlatform)
+        .strength(d => d.strength * (d.type === 'entity' ? 0.6 : 0.4))
       )
       .alphaDecay(PHYSICS.alphaDecay)
       .velocityDecay(PHYSICS.velocityDecay)
@@ -198,6 +194,12 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
           ? 'rgba(255,255,255,0.35)'
           : connectedIds ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.10)';
         ctx.lineWidth = isHighlighted ? 1.5 : 1;
+      } else if (link.type === 'entity') {
+        ctx.setLineDash([2, 3]);
+        ctx.strokeStyle = isHighlighted
+          ? 'rgba(255,255,255,0.20)'
+          : connectedIds ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = isHighlighted ? 0.8 : 0.4;
       } else {
         ctx.setLineDash([]);
         ctx.strokeStyle = isHighlighted
@@ -247,19 +249,22 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         ctx.fill();
       }
 
-      // Label
-      const fontSize = node.type === 'domain' ? 12 : 10;
-      ctx.font = `${isHovered ? 600 : 500} ${fontSize}px Geist, Inter, system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = isDimmed
-        ? 'rgba(245,245,244,0.12)'
-        : isHovered
-          ? 'rgba(245,245,244,0.95)'
-          : node.type === 'domain'
-            ? 'rgba(245,245,244,0.75)'
-            : 'rgba(168,162,158,0.6)';
-      ctx.fillText(node.label, node.x, node.y + r + 6);
+      // Label (entity labels hidden unless hovered/selected to prevent clutter)
+      const showLabel = node.type !== 'entity' || isHovered || isSelected;
+      if (showLabel) {
+        const fontSize = node.type === 'domain' ? 12 : node.type === 'entity' ? 9 : 10;
+        ctx.font = `${isHovered ? 600 : 500} ${fontSize}px Geist, Inter, system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = isDimmed
+          ? 'rgba(245,245,244,0.12)'
+          : isHovered
+            ? 'rgba(245,245,244,0.95)'
+            : node.type === 'domain'
+              ? 'rgba(245,245,244,0.75)'
+              : 'rgba(168,162,158,0.6)';
+        ctx.fillText(node.label, node.x, node.y + r + 5);
+      }
     }
   }, [getConnectedIds]);
 
@@ -274,7 +279,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     return null;
   }, []);
 
-  // ── Mouse handlers (mutate refs directly, no setState on hover) ──────
+  // ── Mouse handlers (hover is ref-only, NEVER triggers parent re-render) ──
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -292,12 +297,13 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     const hit = getNodeAtPoint(x, y);
     const newId = hit?.id ?? null;
 
-    // Only update if changed (avoids unnecessary renders)
+    // Update hover via ref only -- no setState, no parent re-render
     if (newId !== hoveredIdRef.current) {
+      hoveredIdRef.current = newId;
       canvas.style.cursor = hit ? 'pointer' : 'default';
-      onNodeHover(newId);
+      needsRenderRef.current = true; // mark dirty for next paint
     }
-  }, [getNodeAtPoint, onNodeHover]);
+  }, [getNodeAtPoint]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -344,8 +350,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       dragRef.current.node.fy = null;
       dragRef.current = null;
     }
-    onNodeHover(null);
-  }, [onNodeHover]);
+    if (hoveredIdRef.current !== null) {
+      hoveredIdRef.current = null;
+      needsRenderRef.current = true;
+    }
+  }, []);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
