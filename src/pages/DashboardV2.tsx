@@ -127,7 +127,7 @@ export function DashboardV2() {
         <button
           type="button"
           onClick={() => navigate('/wiki')}
-          className="w-full flex items-center gap-3 px-5 py-4 rounded-[20px] text-left transition-all duration-150 hover:opacity-80 active:scale-[0.99]"
+          className="w-full flex items-center gap-3 px-5 py-4 rounded-[46px] text-left transition-all duration-150 hover:opacity-80 active:scale-[0.99]"
           style={{
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.08)',

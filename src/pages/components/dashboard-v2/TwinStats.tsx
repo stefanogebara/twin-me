@@ -12,7 +12,7 @@ function formatMemoryCount(n: number): string {
   if (n > 9999) {
     return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K`;
   }
-  return n.toLocaleString();
+  return n.toLocaleString('en-US');
 }
 
 function heatmapColor(count: number): string {
@@ -62,7 +62,7 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
   return (
     <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
       <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
-        YOUR TWIN
+        Your Twin
       </h2>
 
       <div className="grid grid-cols-3 gap-3 sm:gap-6">
