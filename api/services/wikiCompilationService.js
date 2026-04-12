@@ -934,12 +934,85 @@ export async function buildWikiGraphData(userId, connectedPlatforms = []) {
     }
   }
 
+  // Memory links as edges (top co-citation links between memories)
+  // These represent STDP "neurons that fire together wire together" connections
+  try {
+    const { data: topLinks } = await supabaseAdmin
+      .from('memory_links')
+      .select('source_memory_id, target_memory_id, link_type, strength')
+      .eq('user_id', userId)
+      .eq('link_type', 'co_citation')
+      .gte('strength', 0.3)
+      .order('strength', { ascending: false })
+      .limit(30);
+
+    if (topLinks && topLinks.length > 0) {
+      // Fetch the memory types/metadata for linked memories to determine domain assignment
+      const memoryIds = new Set();
+      for (const link of topLinks) {
+        memoryIds.add(link.source_memory_id);
+        memoryIds.add(link.target_memory_id);
+      }
+
+      const { data: memories } = await supabaseAdmin
+        .from('user_memories')
+        .select('id, memory_type, metadata')
+        .eq('user_id', userId)
+        .in('id', Array.from(memoryIds));
+
+      const memoryMap = new Map((memories || []).map(m => [m.id, m]));
+
+      // Map memory to its expert domain (for reflections) or 'general'
+      const getDomain = (memId) => {
+        const mem = memoryMap.get(memId);
+        if (!mem) return null;
+        const expert = mem.metadata?.expert || '';
+        if (expert.includes('personality')) return 'personality';
+        if (expert.includes('lifestyle')) return 'lifestyle';
+        if (expert.includes('cultural')) return 'cultural';
+        if (expert.includes('social')) return 'social';
+        if (expert.includes('motivation')) return 'motivation';
+        return null;
+      };
+
+      // Aggregate links by domain pair
+      const domainPairStrengths = new Map();
+      for (const link of topLinks) {
+        const srcDomain = getDomain(link.source_memory_id);
+        const tgtDomain = getDomain(link.target_memory_id);
+        if (srcDomain && tgtDomain && srcDomain !== tgtDomain) {
+          const key = [srcDomain, tgtDomain].sort().join('->');
+          const existing = domainPairStrengths.get(key) || { count: 0, totalStrength: 0 };
+          existing.count++;
+          existing.totalStrength += link.strength;
+          domainPairStrengths.set(key, existing);
+        }
+      }
+
+      // Add as memory_link edges (only pairs with 2+ links to reduce noise)
+      for (const [key, { count, totalStrength }] of domainPairStrengths) {
+        if (count >= 2 && !edgeSet.has(`ml_${key}`)) {
+          const [src, tgt] = key.split('->');
+          edgeSet.add(`ml_${key}`);
+          edges.push({
+            source: src, target: tgt,
+            type: 'memory_link',
+            strength: Math.min(totalStrength / count, 1.0),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    log.warn('Memory links fetch failed (non-fatal)', { error: err.message });
+  }
+
   return {
     nodes, edges,
     stats: {
       domainCount: pages.length, platformCount: connectedPlatforms.length,
       entityCount: entities.length,
       crossrefCount: edges.filter(e => e.type === 'crossref').length,
+      memoryLinkCount: edges.filter(e => e.type === 'memory_link').length,
       totalCompilations: pages.reduce((s, p) => s + p.version, 0),
     },
   };

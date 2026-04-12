@@ -199,7 +199,14 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
       ctx.moveTo(src.x, src.y);
       ctx.lineTo(tgt.x, tgt.y);
 
-      if (link.type === 'crossref') {
+      if (link.type === 'memory_link') {
+        // STDP co-citation links -- warm amber, thicker, prominent
+        ctx.setLineDash([]);
+        ctx.strokeStyle = isHighlighted
+          ? 'rgba(255,132,0,0.40)'
+          : connectedIds ? 'rgba(255,132,0,0.04)' : 'rgba(255,132,0,0.15)';
+        ctx.lineWidth = isHighlighted ? 2.5 : 1.5;
+      } else if (link.type === 'crossref') {
         ctx.setLineDash([4, 4]);
         ctx.strokeStyle = isHighlighted
           ? 'rgba(255,255,255,0.35)'

@@ -3,7 +3,7 @@
  */
 
 export type GraphNodeType = 'domain' | 'platform' | 'entity';
-export type GraphEdgeType = 'crossref' | 'platform' | 'entity';
+export type GraphEdgeType = 'crossref' | 'platform' | 'entity' | 'memory_link';
 
 export interface GraphNode {
   id: string;
