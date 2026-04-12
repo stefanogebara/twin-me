@@ -34,3 +34,4 @@ fa19637	0.849	-	-	-	discard	chat: temp -0.05->-0.10 → chat=0.849 (too cold, pe
 2026-03-26T17:12:20Z	default_weights	importance=1.2/relevance=1.0	importance=1.0/relevance=1.2	0.862	-0.022	discarded
 2026-03-26T17:14:38Z	TEMPORAL_DIVERSITY_WEIGHT	0.15	0.20	0.870	-0.014	discarded
 2026-03-26T17:19:31Z	recent_importance	0.5	0.8	0.868	-0.008	discarded
+829da6b5	0.8696	0.878	1.000	0.655	keep	default weights importance 1.2->0.8 relevance 1.0->1.2 (+0.001 marginal)

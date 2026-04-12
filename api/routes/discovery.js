@@ -16,54 +16,31 @@ const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW_S = 15 * 60; // 15 minutes in seconds
 const MIN_RESPONSE_DELAY_MS = 800; // Prevent timing attacks / email enumeration
 
-// In-memory fallback (resets on cold start — Redis is the primary store)
-const fallbackAttempts = new Map();
-
 /**
  * Check rate limit for discovery/scan endpoint.
  * Uses Redis INCR with TTL for cross-instance persistence.
- * Falls back to in-memory Map if Redis is unavailable.
+ * Fails CLOSED when Redis is unavailable — no in-memory fallback that resets on cold start.
  * @param {string} ip - Client IP address
- * @returns {Promise<boolean>} true if allowed, false if rate limited
+ * @returns {Promise<boolean>} true if allowed, false if rate limited or Redis unavailable
  */
 async function rateLimit(ip) {
-  // Try Redis first (survives Vercel cold starts)
   try {
     const client = getRedisClient();
-    if (client && isRedisAvailable()) {
-      const key = `ratelimit:scan:${ip}`;
-      const count = await client.incr(key);
-      // Set TTL only on first request (when count becomes 1)
-      if (count === 1) {
-        await client.expire(key, RATE_LIMIT_WINDOW_S);
-      }
-      return count <= RATE_LIMIT_MAX;
+    if (!client || !isRedisAvailable()) {
+      log.warn('Redis unavailable — rate limiting scan endpoint (fail-closed)');
+      return false;
     }
+    const key = `ratelimit:scan:${ip}`;
+    const count = await client.incr(key);
+    if (count === 1) {
+      await client.expire(key, RATE_LIMIT_WINDOW_S);
+    }
+    return count <= RATE_LIMIT_MAX;
   } catch (redisErr) {
-    log.warn('Redis rate limit failed, using in-memory fallback:', redisErr.message);
+    log.warn('Redis rate limit error — failing closed:', redisErr.message);
+    return false;
   }
-
-  // Fallback: in-memory Map (resets on cold start)
-  const now = Date.now();
-  const windowMs = RATE_LIMIT_WINDOW_S * 1000;
-  const entry = fallbackAttempts.get(ip) || { count: 0, resetAt: now + windowMs };
-  if (now > entry.resetAt) {
-    fallbackAttempts.set(ip, { count: 1, resetAt: now + windowMs });
-    return true;
-  }
-  if (entry.count >= RATE_LIMIT_MAX) return false;
-  entry.count++;
-  fallbackAttempts.set(ip, entry);
-  return true;
 }
-
-// Prune expired in-memory entries every 30 min
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of fallbackAttempts) {
-    if (now > entry.resetAt) fallbackAttempts.delete(ip);
-  }
-}, 30 * 60 * 1000).unref();
 
 // POST /api/discovery/scan — public endpoint with rate limiting
 router.post('/scan', async (req, res) => {

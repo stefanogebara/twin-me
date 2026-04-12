@@ -15,6 +15,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   BookOpen,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ const navItems: NavItem[] = [
   { id: 'chat',         label: 'Talk to Twin',    icon: MessageCircle, path: '/talk-to-twin' },
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
+  { id: 'brain',        label: 'Memories',        icon: Brain,         path: '/brain' },
   { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
   { id: 'departments',  label: 'Departments',     icon: LayoutGrid,    path: '/departments' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
