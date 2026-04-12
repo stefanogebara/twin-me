@@ -359,7 +359,6 @@ import dataSourcesRoutes from './routes/data-sources.js';
 import webhookRoutes from './routes/webhooks.js';
 import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
-import cronPlatformPollingHandler from './routes/cron-platform-polling.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
 import debugPlatformFetchHandler from './routes/debug-platform-fetch.js';
@@ -655,7 +654,6 @@ app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for dige
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
 // Token refresh is on-demand only (no cron) — see tokenRefreshService.js
-app.use('/api/cron/platform-polling', cronPlatformPollingHandler); // Every 30 minutes
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 if (process.env.NODE_ENV === 'development') {

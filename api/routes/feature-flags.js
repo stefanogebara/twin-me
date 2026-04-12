@@ -18,7 +18,7 @@ const log = createLogger('FeatureFlagsUser');
 const router = express.Router();
 
 /** Flags shown in the Settings → Personality Engine section */
-const USER_FLAGS = ['personality_oracle', 'neurotransmitter_modes', 'connectome_neuropils', 'graph_retrieval'];
+const USER_FLAGS = ['personality_oracle', 'neurotransmitter_modes', 'connectome_neuropils', 'graph_retrieval', 'llm_wiki'];
 
 /** Defaults match twin-chat.js behaviour (absent row = enabled, except opt-in flags) */
 const FLAG_DEFAULTS = {
@@ -26,6 +26,7 @@ const FLAG_DEFAULTS = {
   neurotransmitter_modes: true, // on by default
   connectome_neuropils: true,   // on by default
   graph_retrieval: false,       // opt-in — experimental
+  llm_wiki: false,              // opt-in — compiled wiki injected into twin context
 };
 
 /**

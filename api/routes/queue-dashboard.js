@@ -58,13 +58,9 @@ const bullBoard = initializeBullBoard();
 if (bullBoard) {
   router.use('/dashboard', authenticateUser, requireProfessor, serverAdapter.getRouter());
 } else {
-  // Fallback route if Bull Board not available
-  router.get('/dashboard', (req, res) => {
-    res.status(503).json({
-      success: false,
-      error: 'Queue dashboard not available',
-      message: 'Redis is not configured. Background jobs run synchronously.',
-    });
+  // Fallback — return 404 to avoid leaking Redis configuration state
+  router.get('/dashboard', authenticateUser, requireProfessor, (req, res) => {
+    res.status(404).json({ success: false, error: 'Not found' });
   });
 }
 
