@@ -66,7 +66,7 @@ export const RETRIEVAL_WEIGHTS = {
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
   // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
-  recent: { recency: 0.0, importance: 0.5, relevance: 1.0 },
+  recent: { recency: 0.0, importance: 0.5, relevance: 1.2 },
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
