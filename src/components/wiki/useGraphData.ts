@@ -6,6 +6,7 @@
  * Falls back to client-side wiki page parsing if the graph API fails.
  */
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getWikiGraph } from '@/services/api/wikiAPI';
 import type { GraphData, GraphNode, GraphEdge, GraphStats } from './graphTypes';
@@ -37,55 +38,41 @@ export function useGraphData(userId: string | undefined): {
     };
   }
 
-  // Transform server nodes into typed GraphNodes with colors/sizes
-  const nodes: GraphNode[] = data.nodes.map(n => {
-    if (n.type === 'domain') {
-      const config = DOMAIN_CONFIG[n.domain as string];
-      return {
-        ...n,
-        color: config?.color ?? '#888',
-        size: NODE_SIZE.domain,
-      } as GraphNode;
-    }
-    if (n.type === 'platform') {
-      const config = PLATFORM_CONFIG[n.id];
-      return {
-        ...n,
-        label: config?.label ?? n.label,
-        color: config?.color ?? '#666',
-        size: NODE_SIZE.platform,
-        platformId: n.id,
-      } as GraphNode;
-    }
-    if (n.type === 'entity') {
-      const domains = (n.domains as string[]) || [];
-      const catConfig = ENTITY_CATEGORY_CONFIG[n.category as string];
-      return {
-        ...n,
-        color: catConfig?.color ?? '#888',
-        size: domains.length > 1 ? NODE_SIZE.entityBridge : NODE_SIZE.entity,
-      } as GraphNode;
-    }
-    return { ...n, color: '#888', size: 10 } as GraphNode;
-  });
+  // Memoize transform so it doesn't re-run on every parent re-render
+  const result = useMemo(() => {
+    const nodes: GraphNode[] = data.nodes.map(n => {
+      if (n.type === 'domain') {
+        const config = DOMAIN_CONFIG[n.domain as string];
+        return { ...n, color: config?.color ?? '#888888', size: NODE_SIZE.domain } as GraphNode;
+      }
+      if (n.type === 'platform') {
+        const config = PLATFORM_CONFIG[n.id];
+        return { ...n, label: config?.label ?? n.label, color: config?.color ?? '#666666', size: NODE_SIZE.platform, platformId: n.id } as GraphNode;
+      }
+      if (n.type === 'entity') {
+        const domains = (n.domains as string[]) || [];
+        const catConfig = ENTITY_CATEGORY_CONFIG[n.category as string];
+        return { ...n, color: catConfig?.color ?? '#888888', size: domains.length > 1 ? NODE_SIZE.entityBridge : NODE_SIZE.entity } as GraphNode;
+      }
+      return { ...n, color: '#888888', size: 10 } as GraphNode;
+    });
 
-  const edges: GraphEdge[] = data.edges.map(e => ({
-    source: e.source,
-    target: e.target,
-    type: e.type as GraphEdge['type'],
-    strength: e.strength,
-  }));
+    const edges: GraphEdge[] = data.edges.map(e => ({
+      source: e.source, target: e.target,
+      type: e.type as GraphEdge['type'],
+      strength: e.strength,
+    }));
 
-  return {
-    graphData: { nodes, edges },
-    stats: data.stats ?? {
+    const stats: GraphStats = data.stats ?? {
       domainCount: nodes.filter(n => n.type === 'domain').length,
       platformCount: nodes.filter(n => n.type === 'platform').length,
       entityCount: nodes.filter(n => n.type === 'entity').length,
       crossrefCount: edges.filter(e => e.type === 'crossref').length,
       totalCompilations: 0,
-    },
-    isLoading,
-    error: error as Error | null,
-  };
+    };
+
+    return { graphData: { nodes, edges } as GraphData, stats };
+  }, [data]);
+
+  return { ...result, isLoading, error: error as Error | null };
 }

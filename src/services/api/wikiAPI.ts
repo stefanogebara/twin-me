@@ -71,7 +71,7 @@ export async function getWikiGraph(): Promise<{
   const response = await authFetch('/wiki/graph');
   if (!response.ok) throw new Error(`Wiki graph fetch failed: ${response.statusText}`);
   const json = await response.json();
-  return json.data;
+  return json.data ?? { nodes: [], edges: [], stats: { domainCount: 0, platformCount: 0, entityCount: 0, crossrefCount: 0, totalCompilations: 0 } };
 }
 
 /**

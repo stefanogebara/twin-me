@@ -129,8 +129,10 @@ const WikiGraphPage: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Sheet -- slides up when a node is selected */}
+      <AnimatePresence>
       {selectedNode && (
         <motion.div
+          key="mobile-sheet"
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
@@ -163,6 +165,7 @@ const WikiGraphPage: React.FC = () => {
           />
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 };

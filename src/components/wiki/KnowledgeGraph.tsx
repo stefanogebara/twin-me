@@ -42,7 +42,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
   const nodesRef = useRef<SimNode[]>([]);
   const linksRef = useRef<SimLink[]>([]);
   const animFrameRef = useRef<number>(0);
-  const dragRef = useRef<{ node: SimNode } | null>(null);
+  const dragRef = useRef<{ node: SimNode; startX: number; startY: number } | null>(null);
   const sizeRef = useRef({ width: 800, height: 600, dpr: 1 });
   const needsRenderRef = useRef(true);
   // All interactive state lives in refs -- NEVER in React state.
@@ -118,22 +118,18 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         .strength(d => d.strength * (d.type === 'entity' ? 0.6 : 0.4))
       )
       .alphaDecay(PHYSICS.alphaDecay)
-      .velocityDecay(PHYSICS.velocityDecay)
-      .on('tick', () => { needsRenderRef.current = true; });
+      .velocityDecay(PHYSICS.velocityDecay);
 
     simRef.current = sim;
-    // Reset entrance animation on new data
+    // Entrance animation (single tick handler -- do NOT register a second one)
     entranceRef.current = 0;
     const entranceStart = Date.now();
-    const entranceDuration = 800; // ms
-    const advanceEntrance = () => {
+    const entranceDuration = 800;
+    sim.on('tick', () => {
       const elapsed = Date.now() - entranceStart;
       entranceRef.current = Math.min(elapsed / entranceDuration, 1);
-      if (entranceRef.current < 1) {
-        needsRenderRef.current = true;
-      }
-    };
-    sim.on('tick', () => { advanceEntrance(); needsRenderRef.current = true; });
+      needsRenderRef.current = true;
+    });
     return () => { sim.stop(); };
   }, [data]);
 
@@ -324,44 +320,49 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
     }
   }, [getNodeAtPoint]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCanvasPoint = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const hit = getNodeAtPoint(e.clientX - rect.left, e.clientY - rect.top);
+    const clientX = 'touches' in e ? e.touches[0]?.clientX ?? e.changedTouches[0]?.clientX ?? 0 : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY ?? e.changedTouches[0]?.clientY ?? 0 : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  }, []);
 
+  const handlePointerDown = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCanvasPoint(e);
+    const hit = getNodeAtPoint(x, y);
     if (hit) {
-      dragRef.current = { node: hit };
+      dragRef.current = { node: hit, startX: x, startY: y };
       hit.fx = hit.x;
       hit.fy = hit.y;
-      canvas.style.cursor = 'grabbing';
+      if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
     }
-  }, [getNodeAtPoint]);
+  }, [getCanvasPoint, getNodeAtPoint]);
 
-  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handlePointerUp = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCanvasPoint(e);
 
     if (dragRef.current) {
-      const { node } = dragRef.current;
+      const { node, startX, startY } = dragRef.current;
+      const dragDist = Math.hypot(x - startX, y - startY);
       node.fx = null;
       node.fy = null;
       dragRef.current = null;
-      canvas.style.cursor = 'default';
+      if (canvasRef.current) canvasRef.current.style.cursor = 'default';
       simRef.current?.alpha(0.05).restart();
 
-      // Click detection: if mouse didn't move far, treat as click
-      const hit = getNodeAtPoint(x, y);
-      if (hit) onNodeClick(hit);
+      // Only treat as click if drag distance was small
+      if (dragDist < 8) {
+        const hit = getNodeAtPoint(x, y);
+        if (hit) onNodeClick(hit);
+      }
       return;
     }
 
     const hit = getNodeAtPoint(x, y);
     if (hit) onNodeClick(hit);
-  }, [getNodeAtPoint, onNodeClick]);
+  }, [getCanvasPoint, getNodeAtPoint, onNodeClick]);
 
   const handleMouseLeave = useCallback(() => {
     if (dragRef.current) {
@@ -382,9 +383,11 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         className="w-full h-full block"
         style={{ touchAction: 'none' }}
         onMouseMove={handleMouseMove}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
+        onMouseDown={handlePointerDown}
+        onMouseUp={handlePointerUp}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handlePointerDown}
+        onTouchEnd={handlePointerUp}
         role="img"
         aria-label={`Knowledge graph with ${data.nodes.filter(n => n.type === 'domain').length} domains and ${data.nodes.filter(n => n.type === 'platform').length} platforms`}
       />
@@ -393,9 +396,12 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
 };
 
 function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  if (h.length !== 6) return `rgba(128,128,128,${alpha})`;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
