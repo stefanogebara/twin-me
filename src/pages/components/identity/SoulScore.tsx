@@ -30,17 +30,6 @@ interface SoulScoreProps {
   compact?: boolean;
 }
 
-interface MultimodalProfile {
-  platforms?: string[];
-  multimodal_types?: string[];
-}
-
-interface ScalingMetrics {
-  platform_count?: number;
-  memory_count?: number;
-  axes_count?: number;
-}
-
 interface ContributorDomain {
   id: string;
   label: string;
@@ -282,14 +271,16 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
 const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }) => {
   const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true';
 
-  const { data: multimodal } = useQuery({
-    queryKey: ['twin', 'multimodal-profile'],
+  // Real memory count — the only reliable data source
+  const { data: memorySummary } = useQuery({
+    queryKey: ['memories', 'summary'],
     queryFn: async () => {
-      const res = await authFetch('/twin/multimodal-profile');
+      const res = await authFetch('/memories?limit=1');
       if (!res.ok) return null;
-      return (await res.json()).data as MultimodalProfile;
+      const json = await res.json();
+      return { total: json.total ?? 0 } as { total: number };
     },
-    staleTime: 60 * 60 * 1000,
+    staleTime: 15 * 60 * 1000,
     enabled: !isDemoMode,
   });
 
@@ -298,7 +289,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
     ? JSON.parse(localStorage.getItem('auth_user') || '{}')?.id
     : null;
 
-  // Fetch connected platforms directly (more reliable than scaling-metrics)
+  // Connected platforms
   const { data: connectors } = useQuery({
     queryKey: ['connectors', 'status', userId],
     queryFn: async () => {
@@ -369,14 +360,15 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   const connectedPlatforms = Object.entries(connectors || {})
     .filter(([, v]: [string, any]) => v?.connected)
     .map(([k]) => k.toLowerCase());
-  const modalitiesPresent = (multimodal as any)?.modalities_present || [];
-  const platformCount = connectedPlatforms.length || modalitiesPresent.length;
-  const memoryCount = (multimodal as any)?.memory_count || 0;
-  const axesCount = modalitiesPresent.length > 0 ? 1 : 0; // proxy: if multimodal exists, axes likely exist
-  const multimodalCount = modalitiesPresent.length;
+  const platformCount = connectedPlatforms.length;
+  const memoryCount = memorySummary?.total ?? 0;
+  // Axes: assume present if user has connected platforms (ICA runs after extraction)
+  const axesCount = platformCount > 0 ? 1 : 0;
+  // Multimodal: count distinct platform categories (proxy by platform count, cap at 4)
+  const multimodalCount = Math.min(platformCount, 4);
 
   const score = computeSoulScore(platformCount, memoryCount, axesCount, multimodalCount);
-  const connectedSet = new Set([...connectedPlatforms, ...modalitiesPresent.map((m: string) => m.toLowerCase())]);
+  const connectedSet = new Set(connectedPlatforms);
 
   return (
     <motion.section

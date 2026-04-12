@@ -8,9 +8,9 @@
  * authentic than survey-based personality scores.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronRight, Loader2 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
 
@@ -35,8 +35,11 @@ interface PersonalityAxesProps {
   delay?: number;
 }
 
+const VISIBLE_DEFAULT = 5;
+
 const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay = 0.38 }) => {
   const [expandedAxis, setExpandedAxis] = React.useState<number | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const { data: axes = [], isLoading } = useQuery({
     queryKey: ['personality', 'ica-axes'],
@@ -90,12 +93,6 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
         >
           Personality Dimensions
         </span>
-        <span
-          className="text-[10px] px-1.5 py-0.5 rounded-full"
-          style={{ color: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.06)' }}
-        >
-          ICA
-        </span>
       </div>
 
       {/* Subtitle */}
@@ -106,102 +103,98 @@ const PersonalityAxes: React.FC<PersonalityAxesProps> = ({ className = '', delay
         {axes.length} behavioral patterns discovered from your data
       </p>
 
-      {/* Axes grid */}
-      <div className="space-y-2">
-        {axes.slice(0, 12).map((axis, idx) => {
+      {/* Axes list — top 5 prominent, rest collapsed */}
+      <div className="space-y-1.5">
+        {axes.slice(0, showAll ? axes.length : VISIBLE_DEFAULT).map((axis, idx) => {
           const isExpanded = expandedAxis === axis.axis_index;
+          const isTop = idx < VISIBLE_DEFAULT;
           const color = axisColors[idx % axisColors.length];
 
           return (
             <motion.div
               key={axis.axis_index}
               layout
-              className="cursor-pointer group"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: idx * 0.03 }}
+              className="cursor-pointer"
               onClick={() => setExpandedAxis(isExpanded ? null : axis.axis_index)}
             >
               <div
-                className="px-5 py-4 rounded-[20px] transition-all duration-200"
+                className="px-4 py-3 rounded-[16px] transition-all duration-150"
                 style={{
-                  background: isExpanded ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.06)',
-                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                  background: isExpanded ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${isExpanded ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.07)'}`,
                 }}
               >
-                {/* Axis header */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: color }}
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: isTop ? color : 'rgba(255,255,255,0.18)' }}
                   />
                   <span
-                    className="text-sm font-medium flex-1"
+                    className="text-[13px] flex-1 leading-snug"
                     style={{
-                      color: 'var(--foreground)',
+                      color: isTop ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.50)',
                       fontFamily: "'Inter', sans-serif",
-                      opacity: 0.85,
+                      fontWeight: isTop ? 500 : 400,
                     }}
                   >
                     {axis.label}
                   </span>
                   <ChevronRight
-                    className="w-3.5 h-3.5 transition-transform duration-200 flex-shrink-0"
+                    className="w-3 h-3 transition-transform duration-200 flex-shrink-0"
                     style={{
-                      color: 'rgba(255,255,255,0.2)',
+                      color: 'rgba(255,255,255,0.18)',
                       transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
                     }}
                   />
                 </div>
 
-                {/* Expanded description */}
-                {isExpanded && axis.description && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="mt-2 ml-5"
-                  >
-                    <p
-                      className="text-xs leading-relaxed"
-                      style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+                <AnimatePresence>
+                  {isExpanded && axis.description && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-2 ml-4"
                     >
-                      {axis.description}
-                    </p>
-                    {axis.top_memory_contents && axis.top_memory_contents.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                          Evidence
-                        </span>
-                        {axis.top_memory_contents.slice(0, 3).map((mem, midx) => (
-                          <p
-                            key={midx}
-                            className="text-[11px] pl-2"
-                            style={{
-                              color: 'rgba(255,255,255,0.3)',
-                              fontFamily: "'Inter', sans-serif",
-                              borderLeft: `2px solid ${color}`,
-                            }}
-                          >
-                            {mem.length > 120 ? mem.slice(0, 120) + '...' : mem}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
+                      <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}>
+                        {axis.description}
+                      </p>
+                      {axis.top_memory_contents && axis.top_memory_contents.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>Evidence</span>
+                          {axis.top_memory_contents.slice(0, 2).map((mem, midx) => (
+                            <p
+                              key={midx}
+                              className="text-[11px] pl-2 leading-relaxed"
+                              style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif", borderLeft: `2px solid ${color}` }}
+                            >
+                              {mem.length > 120 ? mem.slice(0, 120) + '...' : mem}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Show more indicator */}
-      {axes.length > 12 && (
-        <p
-          className="text-xs mt-3 text-center"
-          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
+      {/* Show more / less toggle */}
+      {axes.length > VISIBLE_DEFAULT && (
+        <button
+          onClick={() => setShowAll(s => !s)}
+          className="mt-3 w-full text-xs py-2 rounded-[12px] transition-all duration-150 hover:bg-[rgba(255,255,255,0.04)]"
+          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
         >
-          +{axes.length - 12} more dimensions
-        </p>
+          {showAll ? 'Show fewer' : `+${axes.length - VISIBLE_DEFAULT} more patterns`}
+        </button>
       )}
     </motion.div>
   );

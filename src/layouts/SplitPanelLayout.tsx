@@ -38,13 +38,16 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
           {main}
         </div>
 
-        {/* Sidebar — sticky, no outer card */}
-        <div
-          className="sticky top-[80px] self-start overflow-y-auto"
-          style={{ maxHeight: 'calc(100vh - 100px)' }}
-        >
-          {sidebar}
+        {/* Sidebar — sticky within full-height column track */}
+        <div className="relative">
+          <div
+            className="sticky top-[80px] overflow-y-auto"
+            style={{ maxHeight: 'calc(100vh - 100px)' }}
+          >
+            {sidebar}
+          </div>
         </div>
+
       </div>
 
       {/* ── Tablet: drawer toggle ──────────────────────────────────── */}

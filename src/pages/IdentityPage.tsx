@@ -180,6 +180,17 @@ function formatConnectionStyle(raw: string): string {
   return labels[raw] ?? raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return 'just now';
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks}w ago`;
+}
+
 function growthTypeBadgeStyle(type: string): React.CSSProperties {
   switch (type) {
     case 'exploration':
@@ -472,7 +483,22 @@ const IdentityPage: React.FC = () => {
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
         border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  const heroCard = (children: React.ReactNode) => (
+    <div
+      className="rounded-[20px] px-5 py-5"
+      style={{
+        background: 'rgba(255,255,255,0.07)',
+        backdropFilter: 'blur(42px)',
+        WebkitBackdropFilter: 'blur(42px)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.25)',
       }}
     >
       {children}
@@ -484,7 +510,7 @@ const IdentityPage: React.FC = () => {
   const mainContent = (
     <div className="space-y-5">
       {/* ── Hero card: Greeting + Archetype + Badges ──────────────── */}
-      {glassCard(
+      {heroCard(
         <>
           <div className="mb-6">
             <h1
@@ -509,12 +535,12 @@ const IdentityPage: React.FC = () => {
           </div>
 
           {archetypeResult && (
-            <section className="relative pl-5" style={{ borderLeft: '2px solid var(--accent-vibrant)' }}>
+            <section className="relative pl-5" style={{ borderLeft: '3px solid var(--accent-vibrant)' }}>
               <h2
                 style={{
                   fontFamily: "'Instrument Serif', Georgia, serif",
                   fontStyle: 'italic',
-                  fontSize: 'clamp(28px, 5vw, 42px)',
+                  fontSize: 'clamp(32px, 6vw, 48px)',
                   fontWeight: 400,
                   color: 'var(--foreground)',
                   letterSpacing: '-0.02em',
@@ -529,6 +555,14 @@ const IdentityPage: React.FC = () => {
               >
                 {archetypeResult.archetype.tagline}
               </p>
+              {layers?.generated_at && (
+                <p
+                  className="mt-1 text-[11px]"
+                  style={{ color: 'rgba(255,255,255,0.22)', fontFamily: "'Inter', sans-serif" }}
+                >
+                  Updated {timeAgo(layers.generated_at)}
+                </p>
+              )}
             </section>
           )}
 
@@ -539,8 +573,9 @@ const IdentityPage: React.FC = () => {
                   key={badge}
                   className="px-3 py-1.5 rounded-full text-xs font-medium"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    color: 'rgba(255,255,255,0.6)',
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: 'rgba(255,255,255,0.65)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
@@ -599,7 +634,7 @@ const IdentityPage: React.FC = () => {
                   <h3 className="text-sm font-medium mb-1" style={{ color: '#E8E0D4', fontFamily: "'Inter', sans-serif" }}>
                     {value.name}
                   </h3>
-                  <p className="narrative-voice text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
                     {value.evidence}
                   </p>
                 </div>
@@ -627,19 +662,22 @@ const IdentityPage: React.FC = () => {
                     Peak hours: {layers.rhythms.peakHours}
                   </p>
                 )}
-                <p className="narrative-voice text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
                   {layers.rhythms.summary}
                 </p>
                 {layers.rhythms.distribution && (
                   <div>
-                    <div className="flex rounded-full overflow-hidden h-2 mb-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(232,224,212,0.20)' }} />
-                      <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(232,224,212,0.30)' }} />
-                      <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(232,224,212,0.50)' }} />
-                      <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(232,224,212,0.40)' }} />
+                    <div className="flex rounded-[6px] overflow-hidden h-3 mb-2 gap-px" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                      <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(251,191,36,0.55)', minWidth: layers.rhythms.distribution.morning > 0.01 ? 2 : 0 }} />
+                      <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(255,255,255,0.40)', minWidth: layers.rhythms.distribution.afternoon > 0.01 ? 2 : 0 }} />
+                      <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(199,146,234,0.60)', minWidth: layers.rhythms.distribution.evening > 0.01 ? 2 : 0 }} />
+                      <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(93,92,174,0.70)', minWidth: layers.rhythms.distribution.night > 0.01 ? 2 : 0 }} />
                     </div>
-                    <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}>
-                      <span>Morning</span><span>Afternoon</span><span>Evening</span><span>Night</span>
+                    <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                      <span>{Math.round(layers.rhythms.distribution.morning * 100)}% Morning</span>
+                      <span>{Math.round(layers.rhythms.distribution.afternoon * 100)}% Afternoon</span>
+                      <span>{Math.round(layers.rhythms.distribution.evening * 100)}% Evening</span>
+                      <span>{Math.round(layers.rhythms.distribution.night * 100)}% Night</span>
                     </div>
                   </div>
                 )}
@@ -654,8 +692,8 @@ const IdentityPage: React.FC = () => {
               <>
                 <SectionLabel>Your Taste</SectionLabel>
                 <p
-                  className="narrative-voice mb-4"
-                  style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)' }}
+                  className="text-[14px] leading-relaxed mb-4"
+                  style={{ color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter', sans-serif" }}
                 >
                   {layers.taste.statement}
                 </p>
@@ -691,7 +729,7 @@ const IdentityPage: React.FC = () => {
                 >
                   {formatConnectionStyle(layers.connections.style)}
                 </span>
-                <p className="narrative-voice text-sm mb-3" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <p className="text-sm leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
                   {layers.connections.summary}
                 </p>
                 {layers.connections.patterns && layers.connections.patterns.length > 0 && (
@@ -728,7 +766,7 @@ const IdentityPage: React.FC = () => {
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
                           {shift.domain}
                         </span>
-                        <p className="narrative-voice text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
                           {shift.description}
                         </p>
                       </div>
