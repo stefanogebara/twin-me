@@ -110,7 +110,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.20;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below

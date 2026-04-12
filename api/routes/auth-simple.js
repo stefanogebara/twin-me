@@ -432,20 +432,35 @@ router.post('/signin', authLimiter, async (req, res) => {
 // Verify token under the same auth policy as the rest of the API
 router.get('/verify', authenticateUser, async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    // Cache user profile for 5 minutes — avoid DB hit on every page load (was 572ms)
+    const cacheKey = `verify:${userId}`;
+    const redis = getRedisClient();
+    if (redis && isRedisAvailable()) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return res.json({ success: true, user: JSON.parse(cached) });
+      }
+    }
+
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
       .select('id, email, first_name, last_name, created_at, email_verified')
-      .eq('id', req.user.id)
+      .eq('id', userId)
       .single();
 
     if (fetchError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    res.json({
-      success: true,
-      user: buildAuthUser(user),
-    });
+    const builtUser = buildAuthUser(user);
+
+    if (redis && isRedisAvailable()) {
+      redis.set(cacheKey, JSON.stringify(builtUser), 'EX', 300).catch(() => {});
+    }
+
+    res.json({ success: true, user: builtUser });
   } catch (error) {
     log.error('Token verification error', { error });
     res.status(401).json({ error: 'Invalid token' });
@@ -521,6 +536,12 @@ router.post('/logout', async (req, res) => {
         const { blacklistToken } = await import('../middleware/auth.js');
         const ttl = decoded.exp ? decoded.exp - Math.floor(Date.now() / 1000) : 30 * 24 * 60 * 60;
         if (ttl > 0) await blacklistToken(token, ttl);
+
+        // Bust verify cache so next login gets a fresh profile
+        const redisClient = getRedisClient();
+        if (redisClient && isRedisAvailable()) {
+          redisClient.del(`verify:${decoded.id}`).catch(() => {});
+        }
       } catch {
         // Token expired or invalid — still clear on best effort
       }
