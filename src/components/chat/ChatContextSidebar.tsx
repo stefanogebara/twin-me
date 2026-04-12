@@ -131,7 +131,7 @@ function SidebarContent({
           ) : calendarEvents.length > 0 ? (
             calendarEvents.slice(0, 5).map((event, idx) => (
               <div
-                key={idx}
+                key={event.id ?? `cal-${idx}`}
                 className="py-2"
                 style={{
                   borderBottom:
@@ -200,7 +200,7 @@ function SidebarContent({
           ) : recentEmails.length > 0 ? (
             recentEmails.slice(0, 5).map((email, idx) => (
               <div
-                key={idx}
+                key={email.id ?? `email-${idx}`}
                 className="py-2"
                 style={{
                   borderBottom:
@@ -253,7 +253,7 @@ function SidebarContent({
           <div className="mt-2">
             {insights.slice(0, 3).map((item, idx) => (
               <p
-                key={idx}
+                key={item.id ?? `insight-${idx}`}
                 className="text-[12px] py-2"
                 style={{
                   color: 'rgba(255,255,255,0.5)',

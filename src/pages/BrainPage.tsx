@@ -290,11 +290,22 @@ const BrainPage: React.FC = () => {
 
       {/* ===== Loading / Empty ===== */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div
-            className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
-            style={{ color: 'rgba(255,255,255,0.2)' }}
-          />
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div
+              key={i}
+              className="px-4 py-3 rounded-[12px] animate-pulse"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.10)' }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 rounded" style={{ background: 'rgba(255,255,255,0.08)', width: `${60 + (i * 7) % 30}%` }} />
+                  <div className="h-3 rounded w-2/5" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : memories.length === 0 ? (
         <div className="py-16 text-center">

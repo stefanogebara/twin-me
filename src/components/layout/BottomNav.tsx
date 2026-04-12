@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, MessageCircle, User, Settings, BookOpen } from 'lucide-react';
+import { Home, MessageCircle, User, Settings, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavItem {
@@ -13,8 +13,8 @@ interface BottomNavItem {
 const bottomNavItems: BottomNavItem[] = [
   { id: 'dashboard',  label: 'Home',     icon: Home,          path: '/dashboard' },
   { id: 'chat',       label: 'Twin',     icon: MessageCircle, path: '/talk-to-twin' },
+  { id: 'connect',    label: 'Connect',  icon: Link2,         path: '/connect' },
   { id: 'identity',   label: 'You',      icon: User,          path: '/identity' },
-  { id: 'wiki',       label: 'Wiki',     icon: BookOpen,      path: '/wiki' },
   { id: 'settings',   label: 'Settings', icon: Settings,      path: '/settings' },
 ];
 

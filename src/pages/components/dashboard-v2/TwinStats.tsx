@@ -33,7 +33,7 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
     return (
       <section className="mb-10 pb-10" style={{ borderBottom: '1px solid var(--glass-surface-border)' }}>
         <h2 className={LABEL_STYLE} style={{ color: 'var(--text-muted)' }}>
-          YOUR TWIN
+          Your Twin
         </h2>
         <div
           className="rounded-[20px] px-5 py-4"
@@ -90,12 +90,14 @@ export function TwinStats({ readiness, memoryCount, memoriesThisWeek, streak, he
           </p>
         </div>
 
-        {/* Streak — tabular-nums */}
+        {/* Streak — hide when zero to avoid discouraging new users */}
         <div className="min-w-0">
-          <span className="text-2xl sm:text-[32px] font-semibold tabular-nums" style={{ color: 'var(--foreground)', fontVariantNumeric: 'tabular-nums' }}>
-            {streak}
+          <span className="text-2xl sm:text-[32px] font-semibold tabular-nums" style={{ color: streak > 0 ? 'var(--foreground)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            {streak > 0 ? streak : '—'}
           </span>
-          <p className="text-[10px] sm:text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>day streak</p>
+          <p className="text-[10px] sm:text-xs mt-1 truncate" style={{ color: 'var(--text-muted)' }}>
+            {streak > 0 ? 'day streak' : 'no streak yet'}
+          </p>
           {streak > 7 && (
             <p className="text-[10px] sm:text-xs mt-0.5" style={{ color: '#C9B99A' }}>personal best</p>
           )}

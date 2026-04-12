@@ -66,6 +66,9 @@ const MAX_CONCURRENT_COMPILATIONS = 2;
 // Minimum reflections needed before first wiki compilation
 const MIN_REFLECTIONS_FOR_FIRST_COMPILE = 3;
 
+// Minimum time between compilations for the same domain (6 hours)
+const MIN_COMPILE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
 // ====================================================================
 // Compilation Prompt
 // ====================================================================
@@ -140,6 +143,17 @@ export async function compileWikiDomain(userId, domainId) {
     .maybeSingle();
 
   const lastCompiled = existingPage?.compiled_at || new Date(0).toISOString();
+
+  // Cooldown: skip if compiled within the last 6 hours
+  if (existingPage?.compiled_at) {
+    const msSinceLastCompile = Date.now() - new Date(existingPage.compiled_at).getTime();
+    if (msSinceLastCompile < MIN_COMPILE_INTERVAL_MS) {
+      log.info('Wiki domain skip (cooldown active)', {
+        userId, domainId, msSinceLastCompile, cooldownMs: MIN_COMPILE_INTERVAL_MS,
+      });
+      return null;
+    }
+  }
 
   // 2. Fetch new reflections since last compilation, filtered by domain expert
   // PostgREST supports ->> for JSONB text extraction: metadata->>'expert' matches expert ID
