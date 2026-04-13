@@ -53,23 +53,10 @@
  *   Key insight: TDW 0.65→0.55 better with pure-semantic identity weights (+0.004 combined).
  *   27 experiments. Kept: identity { importance:0.0 relevance:1.5 }, TDW 0.55, default/recent relevance bumps.
  *   Session best: 0.8745 avg (3 runs: 0.8738/0.8760/0.8738). DB state 2026-04-13 (main branch).
- * SESSION 11: 68 experiments. Score plateau 0.874628 fully mapped. All 6 params exhausted.
- *   Simplifications: identity 1.5→1.2 (same as default/recent), reflection 1.8→1.5 (same range).
- *   Flat zones confirmed: MMR [0.30, 0.37], TDW [0.52, 0.60], TEMPORAL [0.07, 0.20].
- *   Narrow optima: ALPHA=0.90 (0.85/0.95 regress), TEMPORAL>0 required (0.0 regresses).
- *   To break plateau: new gold queries, DB state change, or eval methodology change required.
- * SESSION 12 BEST: 0.8818 (precision=0.882, recall=1.000, diversity=0.704) — DB state 2026-04-13.
- *   KEY DISCOVERIES: previous session mapped "flat zones" but missed the global optima outside those zones.
- *   Win 1: TEMPORAL 0.15→0.30 (at max defined range) → avg 0.8768 (+0.003). Later widened by new config.
- *   Win 2: MMR_LAMBDA 0.35→0.15 → avg 0.8818 (+0.005). Flat zone [0.30,0.37] was local plateau, global opt at 0.15.
- *     MMR sweep: 0.10(worse), 0.12(worse), 0.13(worse), 0.15(PEAK, flat [0.15,0.17]), 0.20(worse), 0.25(worse).
- *   Win 3: TDW 0.55→0.70 → marginal +0.0002. Flat zone [0.65, 0.75]. 0.80+ hurts (pool constraint). 0.45 worse.
- *   Simplification: reflection relevance 1.5→1.2 — with MMR=0.15, all 4 modes uniform at 1.2 (same score).
- *   Flat zones (new config MMR=0.15+TDW=0.70): MMR [0.15,0.17], TDW [0.65,0.75], TEMPORAL [~0.24,0.35].
- *   Relevance flat zone: [1.2, ~1.8]. Floor at 1.2 (1.1 and 1.0 both worse). Ceiling: 2.0 slightly worse.
- *   ALPHA=0.90 still narrow optimum (0.85/0.95 regress). SEMANTIC=0.0 best. MIN_COSINE=0.0 (no effect).
- *   Insight: lower MMR lambda (more diversity pressure) helps until floor at 0.15. Below=precision loss.
- *   To break 0.8818 plateau: new gold queries, DB state change, or eval methodology change required.
+ * SESSION 11: identity relevance 1.5→1.0 confirmed no regression (simplification win, same 0.8746).
+ *   6+ experiments all returned 0.874628 — parameter space confirmed exhausted for single-param changes.
+ *   Tested: reflection relevance (1.5/2.0), TDW (0.60), MMR_LAMBDA (0.25/0.30), TEMPORAL (0.20), identity relevance (2.0).
+ *   All within noise or regressions. Plateau at 0.874628 is structural (reflections semantically dominate).
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -79,16 +66,21 @@
 // Each weight can be [0.0, 2.0]. Values outside this range may destabilize retrieval.
 
 export const RETRIEVAL_WEIGHTS = {
-  // All general modes: pure semantic, relevance=1.2 (no recency, no importance).
-  // Identity/default/recent are all equivalent — the relevance multiplier only scales cosine
-  // similarity, which doesn't change ranking within a mode. Only reflection is special (1.8).
-  default:    { recency: 0.0, importance: 0.0, relevance: 1.5 },
-  identity:   { recency: 0.0, importance: 0.0, relevance: 1.2 },
-  recent:     { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  // Balanced weights — general conversation
+  default: { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
-  // Deep pattern analysis — reflection mode needs higher relevance than general modes.
-  // Range [1.5, 1.8] gives same score; outside this range hurts precision.
-  reflection: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  // Identity queries (who is this person?) — relevance+importance dominant, no recency.
+  // Used by: twin summary generation, personality queries
+  identity: { recency: 0.0, importance: 0.0, relevance: 1.0 },
+
+  // Recent context — counterintuitively, recency=0 works best.
+  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
+  // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
+  recent: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+
+  // Deep pattern analysis — no recency bias (Paper 2 style).
+  // Used by: reflection engine expert personas
+  reflection: { recency: 0.0, importance: 0.0, relevance: 1.8 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -96,14 +88,14 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.15;
+export const MMR_LAMBDA = 0.33;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.70;
+export const TYPE_DIVERSITY_WEIGHT = 0.55;
 
 // ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
 // Generate a hypothetical memory that answers the query, embed THAT alongside
@@ -121,7 +113,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.30;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below
