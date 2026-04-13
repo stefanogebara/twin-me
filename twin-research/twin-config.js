@@ -53,12 +53,11 @@
  *   Key insight: TDW 0.65→0.55 better with pure-semantic identity weights (+0.004 combined).
  *   27 experiments. Kept: identity { importance:0.0 relevance:1.5 }, TDW 0.55, default/recent relevance bumps.
  *   Session best: 0.8745 avg (3 runs: 0.8738/0.8760/0.8738). DB state 2026-04-13 (main branch).
- * SESSION 11: identity relevance 1.5→1.0 confirmed no regression (simplification win, same 0.8746).
- *   15 experiments — all 6 eval-relevant params exhausted. Score plateau at 0.874628 is structural.
- *   Ceiling is set by reflections semantically dominating retrieval regardless of param tuning.
- *   Confirmed optimal: default=1.2, identity=1.0, recent=1.2, reflection=1.8, MMR=0.35, TDW=0.55,
- *   ALPHA=0.90, TEMPORAL=0.15, SDW=0.0 (disabled).
- *   To improve further: new gold queries, DB state changes, or eval methodology changes required.
+ * SESSION 11: 68 experiments. Score plateau 0.874628 fully mapped. All 6 params exhausted.
+ *   Simplifications: identity 1.5→1.2 (same as default/recent), reflection 1.8→1.5 (same range).
+ *   Flat zones confirmed: MMR [0.30, 0.37], TDW [0.52, 0.60], TEMPORAL [0.07, 0.20].
+ *   Narrow optima: ALPHA=0.90 (0.85/0.95 regress), TEMPORAL>0 required (0.0 regresses).
+ *   To break plateau: new gold queries, DB state change, or eval methodology change required.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
