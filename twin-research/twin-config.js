@@ -53,6 +53,10 @@
  *   Key insight: TDW 0.65→0.55 better with pure-semantic identity weights (+0.004 combined).
  *   27 experiments. Kept: identity { importance:0.0 relevance:1.5 }, TDW 0.55, default/recent relevance bumps.
  *   Session best: 0.8745 avg (3 runs: 0.8738/0.8760/0.8738). DB state 2026-04-13 (main branch).
+ * SESSION 11: identity relevance 1.5→1.0 confirmed no regression (simplification win, same 0.8746).
+ *   6+ experiments all returned 0.874628 — parameter space confirmed exhausted for single-param changes.
+ *   Tested: reflection relevance (1.5/2.0), TDW (0.60), MMR_LAMBDA (0.25/0.30), TEMPORAL (0.20), identity relevance (2.0).
+ *   All within noise or regressions. Plateau at 0.874628 is structural (reflections semantically dominate).
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -109,7 +113,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.20;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below
