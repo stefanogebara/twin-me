@@ -11,7 +11,7 @@
 
 import express from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { authenticateUser } from '../middleware/auth.js';
+import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 import patternLearningService, { PatternLearningService } from '../services/patternLearningService.js';
 import patternLearningBridge from '../services/patternLearningBridge.js';
 import learnedTriggerGenerator from '../services/learnedTriggerGenerator.js';
@@ -66,7 +66,7 @@ router.get('/trigger/:userId', authenticateUser, async (req, res) => {
  * GET /api/test-pattern-learning/trigger-all
  * Trigger pattern learning for all users with pending feedback
  */
-router.get('/trigger-all', authenticateUser, async (req, res) => {
+router.get('/trigger-all', authenticateUser, requireProfessor, async (req, res) => {
   log.info(`\n${'='.repeat(60)}`);
   log.info(`Manual trigger for ALL users`);
   log.info(`${'='.repeat(60)}`);

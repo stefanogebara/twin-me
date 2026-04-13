@@ -446,20 +446,19 @@ async function getDepartmentStats(userId, department) {
   const defaultStats = { totalProposals: 0, approved: 0, rejected: 0, approvalRate: 0 };
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('agent_actions')
-      .select('user_response')
-      .eq('user_id', userId)
-      .eq('skill_name', skillName);
+    // Use COUNT aggregation instead of fetching all rows into memory
+    const [totalResult, acceptedResult, rejectedResult] = await Promise.all([
+      supabaseAdmin.from('agent_actions').select('id', { count: 'exact', head: true })
+        .eq('user_id', userId).eq('skill_name', skillName),
+      supabaseAdmin.from('agent_actions').select('id', { count: 'exact', head: true })
+        .eq('user_id', userId).eq('skill_name', skillName).eq('user_response', 'accepted'),
+      supabaseAdmin.from('agent_actions').select('id', { count: 'exact', head: true })
+        .eq('user_id', userId).eq('skill_name', skillName).eq('user_response', 'rejected'),
+    ]);
 
-    if (error || !data) {
-      log.warn('getDepartmentStats query failed', { department, error: error?.message });
-      return defaultStats;
-    }
-
-    const totalProposals = data.length;
-    const approved = data.filter(r => r.user_response === 'approved').length;
-    const rejected = data.filter(r => r.user_response === 'rejected').length;
+    const totalProposals = totalResult.count || 0;
+    const approved = acceptedResult.count || 0;
+    const rejected = rejectedResult.count || 0;
     const approvalRate = totalProposals > 0 ? Math.round((approved / totalProposals) * 100) : 0;
 
     return { totalProposals, approved, rejected, approvalRate };
@@ -611,10 +610,9 @@ GO. Return only the JSON array, no other text:`;
 
     // 7. Parse response and create proposals (robust JSON extraction)
     const rawText = response?.content || '';
-    log.info('Heartbeat LLM response RAW', {
+    log.info('Heartbeat LLM response', {
       userId: userId.slice(0, 8),
       textLen: rawText.length,
-      fullText: rawText  // Log full text for debugging
     });
 
     // Strip markdown code fences if present (```json ... ``` or ``` ... ```)

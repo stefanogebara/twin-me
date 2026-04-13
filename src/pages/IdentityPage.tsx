@@ -475,15 +475,17 @@ const IdentityPage: React.FC = () => {
 
   // ── Glass card wrapper ──────────────────────────────────────────────
 
-  const glassCard = (children: React.ReactNode, className = '') => (
+  const glassCard = (children: React.ReactNode, className = '', variant: 'default' | 'anchor' = 'default') => (
     <div
       className={`rounded-[20px] px-5 py-4 transition-all duration-300 hover:-translate-y-0.5 ${className}`}
       style={{
-        background: 'rgba(255,255,255,0.04)',
+        background: variant === 'anchor' ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
         backdropFilter: 'blur(42px)',
         WebkitBackdropFilter: 'blur(42px)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
+        border: variant === 'anchor' ? '1px solid rgba(255,255,255,0.09)' : '1px solid rgba(255,255,255,0.06)',
+        boxShadow: variant === 'anchor'
+          ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 6px 24px rgba(0,0,0,0.20)'
+          : 'inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.15)',
       }}
     >
       {children}
@@ -571,7 +573,7 @@ const IdentityPage: React.FC = () => {
               {layers?.generated_at && (
                 <p
                   className="mt-1 text-[11px]"
-                  style={{ color: 'rgba(255,255,255,0.22)', fontFamily: "'Inter', sans-serif" }}
+                  style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
                 >
                   Updated {timeAgo(layers.generated_at)}
                 </p>
@@ -652,7 +654,9 @@ const IdentityPage: React.FC = () => {
                   </p>
                 </div>
               ))}
-            </>
+            </>,
+            '',
+            'anchor'
           )}
         </FadeInSection>
       )}
@@ -680,11 +684,14 @@ const IdentityPage: React.FC = () => {
                 </p>
                 {layers.rhythms.distribution && (
                   <div>
-                    <div className="flex rounded-[6px] overflow-hidden h-3 mb-2 gap-px" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                      <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(251,191,36,0.55)', minWidth: layers.rhythms.distribution.morning > 0.01 ? 2 : 0 }} />
-                      <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(255,255,255,0.40)', minWidth: layers.rhythms.distribution.afternoon > 0.01 ? 2 : 0 }} />
-                      <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(199,146,234,0.60)', minWidth: layers.rhythms.distribution.evening > 0.01 ? 2 : 0 }} />
-                      <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(93,92,174,0.70)', minWidth: layers.rhythms.distribution.night > 0.01 ? 2 : 0 }} />
+                    <p className="text-[10px] uppercase tracking-[0.12em] mb-1.5" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
+                      Time of day activity
+                    </p>
+                    <div className="flex rounded-[6px] overflow-hidden h-4 mb-2 gap-px" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                      <div style={{ width: `${layers.rhythms.distribution.morning * 100}%`, backgroundColor: 'rgba(251,191,36,0.90)', minWidth: layers.rhythms.distribution.morning > 0.01 ? 2 : 0 }} />
+                      <div style={{ width: `${layers.rhythms.distribution.afternoon * 100}%`, backgroundColor: 'rgba(130,170,255,0.90)', minWidth: layers.rhythms.distribution.afternoon > 0.01 ? 2 : 0 }} />
+                      <div style={{ width: `${layers.rhythms.distribution.evening * 100}%`, backgroundColor: 'rgba(255,140,60,0.90)', minWidth: layers.rhythms.distribution.evening > 0.01 ? 2 : 0 }} />
+                      <div style={{ width: `${layers.rhythms.distribution.night * 100}%`, backgroundColor: 'rgba(130,120,220,0.90)', minWidth: layers.rhythms.distribution.night > 0.01 ? 2 : 0 }} />
                     </div>
                     <div className="flex justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
                       <span>{Math.round(layers.rhythms.distribution.morning * 100)}% Morning</span>
@@ -925,10 +932,19 @@ const LoadingSkeleton: React.FC = () => (
       </div>
     </div>
     {/* Mobile fallback */}
-    <div className="lg:hidden max-w-[680px] mx-auto px-5 py-8 animate-pulse">
-      <div className="h-10 w-64 rounded mb-2" style={{ background: 'rgba(255,255,255,0.06)' }} />
-      <div className="h-4 w-40 rounded mb-8" style={{ background: 'rgba(255,255,255,0.03)' }} />
-      <div className="h-48 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+    <div className="lg:hidden max-w-[680px] mx-auto px-5 py-8 animate-pulse space-y-5">
+      <div className="h-48 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="h-28 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="grid grid-cols-2 gap-5">
+        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      </div>
+      <div className="grid grid-cols-2 gap-5">
+        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="h-32 rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      </div>
+      <div className="h-44 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="h-20 w-full rounded-[20px]" style={{ background: 'rgba(255,255,255,0.04)' }} />
     </div>
   </div>
 );

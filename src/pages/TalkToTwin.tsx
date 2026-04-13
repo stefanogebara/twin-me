@@ -546,9 +546,9 @@ const TalkToTwin = () => {
     navigate('/departments');
   }, [navigate]);
 
-  const handleApproveDepartmentSuggestion = useCallback(async (department: string, action: string) => {
+  const handleApproveDepartmentSuggestion = useCallback(async (department: string, action: string, toolName?: string) => {
     try {
-      await departmentsAPI.propose(department, { context: action });
+      await departmentsAPI.propose(department, { toolName: toolName || undefined, context: action });
       toast({ title: 'Action queued', description: `${department.charAt(0).toUpperCase() + department.slice(1)} department will handle this.` });
     } catch (err) {
       console.error('Failed to create department suggestion proposal:', err);

@@ -18,15 +18,15 @@ const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.12em] font-medium mb-4';
 const DEFAULT_DEPT_COLOR = 'rgba(255,255,255,0.15)';
 const DISABLED_COLOR = 'rgba(255,255,255,0.08)';
 
-// Fallback departments for demo mode or when API isn't wired
+// Fallback departments matching real departmentConfig.js names
 const FALLBACK_DEPARTMENTS: Department[] = [
-  { name: 'memory', config: { name: 'Memory', description: '', icon: 'Brain', color: '#8B5CF6' }, autonomyLevel: 2, budget: { spent: 0.04, total: 0.15 }, actionsThisWeek: 12, isEnabled: true },
-  { name: 'wellbeing', config: { name: 'Wellbeing', description: '', icon: 'Heart', color: '#EC4899' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 5, isEnabled: true },
-  { name: 'growth', config: { name: 'Growth', description: '', icon: 'TrendingUp', color: '#10B981' }, autonomyLevel: 2, budget: { spent: 0.03, total: 0.12 }, actionsThisWeek: 8, isEnabled: true },
-  { name: 'schedule', config: { name: 'Schedule', description: '', icon: 'Calendar', color: '#3B82F6' }, autonomyLevel: 1, budget: { spent: 0.01, total: 0.08 }, actionsThisWeek: 3, isEnabled: true },
-  { name: 'social', config: { name: 'Social', description: '', icon: 'Users', color: '#F59E0B' }, autonomyLevel: 0, budget: { spent: 0, total: 0.10 }, actionsThisWeek: 0, isEnabled: false },
-  { name: 'privacy', config: { name: 'Privacy', description: '', icon: 'Shield', color: '#14B8A6' }, autonomyLevel: 3, budget: { spent: 0.01, total: 0.05 }, actionsThisWeek: 2, isEnabled: true },
-  { name: 'creativity', config: { name: 'Creativity', description: '', icon: 'Lightbulb', color: '#F97316' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 4, isEnabled: true },
+  { name: 'communications', config: { name: 'Communications', description: 'Email drafts in your voice', icon: 'Mail', color: '#3B82F6' }, autonomyLevel: 1, budget: { spent: 0.04, total: 0.15 }, actionsThisWeek: 12, isEnabled: true },
+  { name: 'scheduling', config: { name: 'Scheduling', description: 'Calendar optimization', icon: 'Calendar', color: '#8B5CF6' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 5, isEnabled: true },
+  { name: 'health', config: { name: 'Health', description: 'Recovery analysis', icon: 'HeartPulse', color: '#EF4444' }, autonomyLevel: 1, budget: { spent: 0.01, total: 0.05 }, actionsThisWeek: 3, isEnabled: true },
+  { name: 'content', config: { name: 'Content', description: 'Posts in your style', icon: 'PenLine', color: '#F59E0B' }, autonomyLevel: 1, budget: { spent: 0.03, total: 0.10 }, actionsThisWeek: 8, isEnabled: true },
+  { name: 'finance', config: { name: 'Finance', description: 'Spending patterns', icon: 'Wallet', color: '#10B981' }, autonomyLevel: 0, budget: { spent: 0, total: 0.05 }, actionsThisWeek: 0, isEnabled: false },
+  { name: 'research', config: { name: 'Research', description: 'Deep research', icon: 'Search', color: '#6366F1' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 4, isEnabled: true },
+  { name: 'social', config: { name: 'Social', description: 'Relationship management', icon: 'Users', color: '#EC4899' }, autonomyLevel: 0, budget: { spent: 0, total: 0.05 }, actionsThisWeek: 0, isEnabled: false },
 ];
 
 export function DepartmentWidget() {

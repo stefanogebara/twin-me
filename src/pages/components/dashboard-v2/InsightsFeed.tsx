@@ -4,6 +4,13 @@ import {
   Lightbulb, Target, Compass,
 } from 'lucide-react';
 import type { ProactiveInsight, InsightCategory } from '@/types/dashboard';
+import { useDemo } from '@/contexts/DemoContext';
+import { DEMO_TWIN_PORTRAIT } from '@/services/demo/demoSoulSignature';
+
+const DEMO_INSIGHTS: ProactiveInsight[] = DEMO_TWIN_PORTRAIT.insights.map(i => ({
+  ...i,
+  engaged: false,
+}));
 
 interface InsightsFeedProps {
   insights: ProactiveInsight[];
@@ -40,13 +47,21 @@ function relativeTime(dateStr: string): string {
 
 export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeedProps) {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemo();
 
   // Filter out the hero insight to avoid duplication, take max 5
   const feedInsights = insights
     .filter(i => i.id !== heroInsightId)
     .slice(0, 5);
 
-  if (feedInsights.length === 0) return null;
+  // In demo mode, fall back to representative demo insights when feed is empty
+  const displayInsights = feedInsights.length > 0
+    ? feedInsights
+    : isDemoMode
+      ? DEMO_INSIGHTS
+      : null;
+
+  if (!displayInsights) return null;
 
   const handleDiscuss = (insight: ProactiveInsight) => {
     onEngage(insight.id);
@@ -63,7 +78,7 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
       </h2>
 
       <div className="flex flex-col gap-3">
-        {feedInsights.map(insight => (
+        {displayInsights.map(insight => (
           <div
             key={insight.id}
             className="py-3"

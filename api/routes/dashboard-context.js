@@ -202,13 +202,23 @@ router.get('/', authenticateUser, async (req, res) => {
         const readinessCacheKey = `readiness:${userId}`;
         let readiness = await cacheGet(readinessCacheKey);
 
-        const [readinessOrNull, weekResult, streak] = await Promise.all([
+        const now = Date.now();
+        const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+        const twoWeeksAgo = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+        const [readinessOrNull, weekResult, prevWeekResult, streak] = await Promise.all([
           readiness ? null : getTwinReadinessScore(userId),
           supabaseAdmin
             .from('user_memories')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+            .gte('created_at', oneWeekAgo),
+          supabaseAdmin
+            .from('user_memories')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .gte('created_at', twoWeeksAgo)
+            .lt('created_at', oneWeekAgo),
           computeStreak(userId),
         ]);
 
@@ -217,10 +227,14 @@ router.get('/', authenticateUser, async (req, res) => {
           cacheSet(readinessCacheKey, readiness, READINESS_TTL).catch(() => {});
         }
 
+        const thisWeek = weekResult.count || 0;
+        const lastWeek = prevWeekResult.count || 0;
+        const trend = lastWeek === 0 ? 0 : Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+
         return {
-          readiness: readiness || { score: 0, label: 'Just getting started' },
+          readiness: { ...(readiness || { score: 0, label: 'Just getting started' }), trend },
           totalMemories: readiness?.total || 0,
-          memoriesThisWeek: weekResult.count || 0,
+          memoriesThisWeek: thisWeek,
           streak,
         };
       }),

@@ -24,6 +24,7 @@ const DEPARTMENT_COLORS: Record<string, string> = {
 export interface DepartmentSuggestion {
   department: string;
   action: string;
+  toolName?: string;
   fullMatch: string;
 }
 
@@ -31,7 +32,7 @@ type SuggestionState = 'idle' | 'submitting' | 'approved' | 'error';
 
 interface DepartmentSuggestionCardProps {
   suggestion: DepartmentSuggestion;
-  onApprove: (department: string, action: string) => Promise<void>;
+  onApprove: (department: string, action: string, toolName?: string) => Promise<void>;
 }
 
 export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSuggestionCardProps) {
@@ -43,7 +44,7 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
   const handleApprove = async () => {
     setState('submitting');
     try {
-      await onApprove(suggestion.department, suggestion.action);
+      await onApprove(suggestion.department, suggestion.action, suggestion.toolName);
       setState('approved');
     } catch {
       setState('error');
@@ -142,21 +143,23 @@ export function DepartmentSuggestionCard({ suggestion, onApprove }: DepartmentSu
 }
 
 /**
- * Parse [DEPT_SUGGEST: department="x" action="y"] tags from twin response text.
- * Returns an array of suggestions and the cleaned text with tags removed.
+ * Parse [DEPT_SUGGEST: department="x" toolName="z" action="y"] tags from twin response.
+ * toolName is optional for backward compatibility with old-format tags.
  */
 export function parseDepartmentSuggestions(text: string): {
   suggestions: DepartmentSuggestion[];
   cleanText: string;
 } {
-  const regex = /\[DEPT_SUGGEST:\s*department\s*=\s*"(\w+)"\s+action\s*=\s*"([^"]+)"\s*\]/g;
+  // Matches both old format (no toolName) and new format (with toolName)
+  const regex = /\[DEPT_SUGGEST:\s*department\s*=\s*"(\w+)"(?:\s+toolName\s*=\s*"([^"]*)")?\s+action\s*=\s*"([^"]+)"\s*\]/g;
   const suggestions: DepartmentSuggestion[] = [];
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(text)) !== null) {
     suggestions.push({
       department: match[1],
-      action: match[2],
+      toolName: match[2] || undefined,
+      action: match[3],
       fullMatch: match[0],
     });
   }

@@ -500,9 +500,16 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Inject personality calibration block (soul-layer + stylometric instructions, zero LLM cost)
     const personalityPromptBlock = buildPersonalityPrompt(personalityProfile, soulLayers);
+    log.info('Chat personality state', {
+      hasCalibration: !!personalityPromptBlock,
+      hasProfile: !!personalityProfile,
+      profileConfidence: personalityProfile?.confidence?.toFixed(2) ?? null,
+      hasSoulLayers: !!soulLayers,
+      soulLayerSource: soulLayers?._source ?? null,
+    });
     if (personalityPromptBlock) {
       systemPrompt.push({ type: 'text', text: `\n${personalityPromptBlock}` });
-      log.debug('Personality calibration', { chars: personalityPromptBlock.length, confidence: personalityProfile?.confidence?.toFixed(2) });
+      log.debug('Personality calibration', { chars: personalityPromptBlock.length });
     }
 
     // Inject personality oracle draft (finetuned model behavioral compass)

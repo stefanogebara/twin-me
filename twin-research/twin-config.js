@@ -47,6 +47,16 @@
  *   temporal (0.10/0.20 worse), semantic (0.05 worse), identity importance (1.8 worse),
  *   default weight swap (worse), recent importance 0.8 (worse).
  *   Config space near-exhausted for single-param changes on retrieval eval.
+ * SESSION 10: Retrieval baseline 0.866 avg (main branch, DB state 2026-04-13).
+ *   Confirmed: HYDE/STDP/BM25/TCM/MIN_COSINE not used by eval — only 6 params matter.
+ *   Key insight: importance=0.0 for identity mode = pure semantic → +0.007 diversity gain.
+ *   Key insight: TDW 0.65→0.55 better with pure-semantic identity weights (+0.004 combined).
+ *   27 experiments. Kept: identity { importance:0.0 relevance:1.5 }, TDW 0.55, default/recent relevance bumps.
+ *   Session best: 0.8745 avg (3 runs: 0.8738/0.8760/0.8738). DB state 2026-04-13 (main branch).
+ * SESSION 11: identity relevance 1.5→1.0 confirmed no regression (simplification win, same 0.8746).
+ *   6+ experiments all returned 0.874628 — parameter space confirmed exhausted for single-param changes.
+ *   Tested: reflection relevance (1.5/2.0), TDW (0.60), MMR_LAMBDA (0.25/0.30), TEMPORAL (0.20), identity relevance (2.0).
+ *   All within noise or regressions. Plateau at 0.874628 is structural (reflections semantically dominate).
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -57,20 +67,20 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 1.2, relevance: 1.0 },
+  default: { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 1.5, relevance: 1.2 },
+  identity: { recency: 0.0, importance: 0.0, relevance: 1.0 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
   // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
-  recent: { recency: 0.0, importance: 0.5, relevance: 1.0 },
+  recent: { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.5, relevance: 1.8 },
+  reflection: { recency: 0.0, importance: 0.0, relevance: 1.8 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -78,14 +88,14 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.35;
+export const MMR_LAMBDA = 0.33;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.65;
+export const TYPE_DIVERSITY_WEIGHT = 0.55;
 
 // ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
 // Generate a hypothetical memory that answers the query, embed THAT alongside

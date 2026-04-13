@@ -44,6 +44,7 @@ interface DepartmentCardProps {
   budget: { spent: number; total: number };
   actionsThisWeek: number;
   isEnabled: boolean;
+  observationOnly?: boolean; // true if department has no executable tools
   stats?: DepartmentStats;
   expandedContent?: React.ReactNode;
   onAutonomyChange: (level: number) => void;
@@ -78,6 +79,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
   autonomyLevel,
   budget,
   isEnabled,
+  observationOnly = false,
   stats,
   expandedContent,
   onAutonomyChange,
@@ -129,11 +131,21 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
             style={{ color: isEnabled ? config.color : 'rgba(255,255,255,0.3)' }}
           />
           <div className="min-w-0 flex-1">
-            <span
-              className="text-[14px] font-medium leading-snug"
-              style={{ color: 'var(--foreground)' }}
-            >
-              {config.name}
+            <span className="flex items-center gap-2">
+              <span
+                className="text-[14px] font-medium leading-snug"
+                style={{ color: 'var(--foreground)' }}
+              >
+                {config.name}
+              </span>
+              {observationOnly && (
+                <span
+                  className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ background: 'rgba(255,132,0,0.12)', color: '#f59e0b' }}
+                >
+                  Observe only
+                </span>
+              )}
             </span>
             <p
               className="text-[12px] mt-0.5 line-clamp-2 sm:truncate"
@@ -209,6 +221,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
                 color={config.color}
                 onChange={onAutonomyChange}
                 disabled={!isEnabled}
+                maxLevel={observationOnly ? 1 : 4}
               />
             </div>
 

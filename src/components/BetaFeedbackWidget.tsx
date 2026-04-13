@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageSquarePlus, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
@@ -17,6 +18,7 @@ const CATEGORY_LABELS: Record<Category, string> = {
 const BetaFeedbackWidget: React.FC = () => {
   const { isSignedIn } = useAuth();
   const { trackFunnel } = useAnalytics();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<Category>('general');
   const [message, setMessage] = useState('');
@@ -24,6 +26,7 @@ const BetaFeedbackWidget: React.FC = () => {
   const [sent, setSent] = useState(false);
 
   if (!isSignedIn) return null;
+  if (location.pathname === '/talk-to-twin') return null;
 
   const handleSubmit = async () => {
     if (!message.trim() || message.trim().length < 3) return;

@@ -385,6 +385,11 @@ ${factsText}`
       }).catch(err => log.warn('Failed to store interview summary', { error: err.message }));
     }
 
+    // Bootstrap soul layers from interview facts — gives personalityPromptBuilder
+    // something to work with before platform data accumulates.
+    bootstrapSoulLayers(userId, interviewFacts)
+      .catch(err => log.warn('Failed to bootstrap soul layers', { error: err.message }));
+
     return { summary, factsCount: interviewFacts.length };
   } catch (err) {
     log.error('Interview summary generation failed', { userId, error: err.message });
@@ -393,3 +398,97 @@ ${factsText}`
 }
 
 export { INTERVIEW_CATEGORIES };
+
+// ====================================================================
+// Bootstrap Soul Layers from Interview
+// ====================================================================
+
+/**
+ * Derive a minimal soul_signature_layers entry from interview facts.
+ * Called in background after interview summary generation.
+ * Gives personalityPromptBuilder something to work with before platform
+ * data accumulates — normally layers require extensive reflection history.
+ *
+ * Only writes if no soul_signature_layers row exists yet (don't overwrite
+ * a proper generated layer with a bootstrap approximation).
+ */
+async function bootstrapSoulLayers(userId, interviewFacts) {
+  // Check if layers already exist — don't overwrite proper data
+  const { data: existing } = await supabaseAdmin
+    .from('soul_signature_layers')
+    .select('user_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    log.info('Soul layers already exist, skipping bootstrap', { userId });
+    return;
+  }
+
+  const factsText = interviewFacts.map(f => `- ${f.content}`).join('\n');
+
+  const result = await complete({
+    tier: TIER_ANALYSIS,
+    messages: [{
+      role: 'user',
+      content: `Extract soul signature layers from these interview facts about a person.
+
+Interview facts:
+${factsText}
+
+Return ONLY valid JSON matching this exact structure (no markdown, no explanation):
+{
+  "values": {
+    "values": [
+      { "name": "<value name>", "strength": <0.5-1.0> },
+      { "name": "<value name>", "strength": <0.5-1.0> }
+    ]
+  },
+  "taste": {
+    "statement": "<one sentence describing their aesthetic sensibility>",
+    "diversity": <0.0-1.0>
+  },
+  "connections": {
+    "style": "<social_butterfly|community_builder|lone_wolf|selective_engager|deep_connector>"
+  },
+  "growthEdges": {
+    "isStable": <true|false>,
+    "shifts": []
+  }
+}
+
+Guidelines:
+- value names: choose from Curiosity, Achievement, Benevolence, Security, Creativity, Self-Direction, Freedom, Universalism, Stimulation, Power, Conformity
+- connections style: lone_wolf if they value independence/solitude, deep_connector if they prefer few deep relationships, social_butterfly if they love large social circles, selective_engager if they're choosy about who they open up to
+- growthEdges.isStable: false if they mentioned change/transition/goals, true if they seem settled
+- diversity: 0.0 means very focused taste, 1.0 means extremely eclectic`
+    }],
+    maxTokens: 400,
+    temperature: 0.3,
+    serviceName: 'soul-interview-bootstrap-layers',
+  });
+
+  const raw = (result.content || '').trim();
+  let layers;
+  try {
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    layers = JSON.parse(cleaned);
+  } catch (err) {
+    log.warn('Failed to parse bootstrap soul layers JSON', { userId, rawPreview: raw.substring(0, 200) });
+    return;
+  }
+
+  const { error } = await supabaseAdmin
+    .from('soul_signature_layers')
+    .upsert({
+      user_id: userId,
+      layers: { ...layers, _source: 'interview_bootstrap' },
+      generated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
+  if (error) {
+    log.warn('Failed to upsert bootstrap soul layers', { userId, error });
+  } else {
+    log.info('Bootstrap soul layers written', { userId });
+  }
+}

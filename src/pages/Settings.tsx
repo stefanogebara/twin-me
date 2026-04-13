@@ -93,12 +93,13 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
   const [botUsername, setBotUsername] = useState('TwinMeBot');
 
   useEffect(() => {
+    if (isDemoMode) { setLoading(false); return; }
     fetch(`${API_URL}/telegram/status`, { headers: getAuthHeaders() })
       .then(r => r.json())
       .then(d => { if (d.success) setStatus({ linked: d.linked, enabled: d.enabled }); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [isDemoMode]);
 
   const generateCode = async () => {
     if (isDemoMode) return;
@@ -212,13 +213,13 @@ const Settings = () => {
     refetch,
     optimisticDisconnect,
     revertOptimisticUpdate
-  } = usePlatformStatus(user?.id);
+  } = usePlatformStatus(user?.id, { enabled: !isDemoMode });
 
   const error = statusError?.message || null;
 
   // Fetch memory count + subscription + feature flags in parallel
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || isDemoMode) return;
     const headers = getAuthHeaders();
     // Memory count
     fetch(`${API_URL}/dashboard/context`, { headers })

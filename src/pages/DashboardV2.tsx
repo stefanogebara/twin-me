@@ -9,6 +9,7 @@ import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
+import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import { useWebPush } from '@/hooks/useWebPush';
 
@@ -100,6 +101,8 @@ export function DashboardV2() {
 
       <SoulSummaryCard />
 
+      <DepartmentWidget />
+
       {data.heroInsight && (
         <HeroInsight
           body={data.heroInsight.body}
@@ -127,7 +130,7 @@ export function DashboardV2() {
         <button
           type="button"
           onClick={() => navigate('/wiki')}
-          className="w-full flex items-center gap-3 px-5 py-4 rounded-[20px] text-left transition-all duration-150 hover:opacity-80 active:scale-[0.99]"
+          className="w-full flex items-center gap-3 px-5 py-4 rounded-[46px] text-left transition-all duration-150 hover:opacity-80 active:scale-[0.99]"
           style={{
             background: 'rgba(255,255,255,0.04)',
             border: '1px solid rgba(255,255,255,0.08)',

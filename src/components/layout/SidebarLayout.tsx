@@ -80,7 +80,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             }
           }
         `}</style>
-        <div className="min-h-full pt-16 pb-20 lg:pt-0 lg:pb-0">
+        <div className="min-h-full pt-16 pb-24 lg:pt-0 lg:pb-0">
           {children}
         </div>
       </main>

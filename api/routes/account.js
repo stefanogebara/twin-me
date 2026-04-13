@@ -159,9 +159,16 @@ router.get('/export', authenticateUser, async (req, res) => {
       messages = msgData || [];
     }
 
+    // Fallback to JWT user data if public.users row is missing
+    const userData = userResult.data || {
+      id: userId,
+      email: req.user.email,
+      name: req.user.name,
+    };
+
     const exportData = {
       exported_at: new Date().toISOString(),
-      user: userResult.data || null,
+      user: userData,
       platform_connections: platformConnectionsResult.data || [],
       platform_data: platformDataResult.data || [],
       soul_signatures: soulSignaturesResult.data || [],

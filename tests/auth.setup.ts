@@ -34,8 +34,8 @@ setup('authenticate', async ({ page }) => {
   console.log('💾 Auth token stored in localStorage');
 
   // Verify auth works by navigating to a protected page
-  await page.goto('/dashboard');
-  await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2000);
 
   const currentUrl = page.url();
   if (currentUrl.includes('/dashboard')) {

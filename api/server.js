@@ -118,8 +118,14 @@ app.use(helmet({
 }));
 
 // CORS configuration - more secure
-const allowedOrigins = [
-  process.env.VITE_APP_URL || 'http://localhost:8085',
+const productionOrigins = [
+  process.env.VITE_APP_URL,
+  'https://twin-ai-learn.vercel.app',
+  'https://twinme.me',
+  'https://www.twinme.me',
+].filter(Boolean);
+
+const devOrigins = [
   'http://localhost:8080',
   'http://localhost:8081',
   'http://localhost:8082',
@@ -128,10 +134,11 @@ const allowedOrigins = [
   'http://localhost:8085',
   'http://localhost:8086',
   'http://127.0.0.1:8086',
-  'https://twin-ai-learn.vercel.app',
-  'https://twinme.me',
-  'https://www.twinme.me',
-].filter(Boolean);
+];
+
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? productionOrigins
+  : [...productionOrigins, ...devOrigins];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -146,10 +153,10 @@ app.use(cors({
       return callback(null, false);
     }
 
-    // Allow browser extensions — auth middleware handles security via JWT
-    if (origin.startsWith('chrome-extension://') || origin.startsWith('moz-extension://')) {
-      return callback(null, true);
-    }
+    // Allow specific known browser extensions only (wildcard removed — too broad)
+    // Add specific extension IDs here if a first-party extension is ever built
+    // e.g. if (origin === 'chrome-extension://abcdef1234567890abcdef1234567890ab') ...
+
 
     // In development, allow localhost and 127.0.0.1 on any port
     if (process.env.NODE_ENV === 'development' && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
@@ -241,7 +248,7 @@ app.use('/api/soul-extraction/', aiLimiter); // LLM-powered extraction endpoints
 const DEFAULT_TIMEOUT = process.env.USE_CURL_FETCH === 'true' ? 120000 : 30000;
 app.use((req, res, next) => {
   // Chat and cron endpoints need extra time; default 30s for all others
-  const timeout = req.path.includes('/chat/message') ? 300000
+  const timeout = req.path.includes('/chat/message') ? 60000
     : req.path.includes('/cron/') ? 115000
     : req.path.includes('/soul-signature/layers') ? 90000
     : req.path.includes('/onboarding/calibration') ? 90000
@@ -585,9 +592,9 @@ app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links
 if (process.env.NODE_ENV === 'development') {
-  app.use('/api/eval', evalRoutes); // Twin eval rubric + feature flags (dev-only)
-  app.use('/api/feature-flags', featureFlagsRoutes); // User-facing personality engine flags
+  app.use('/api/eval', evalRoutes); // Twin eval rubric (dev-only)
 }
+app.use('/api/feature-flags', featureFlagsRoutes); // User-facing personality engine flags (all envs)
 app.use('/api/personality-profile', personalityProfileRoutes); // Soul Signature voting layer — OCEAN, stylometrics, sampling params
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph

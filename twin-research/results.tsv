@@ -34,3 +34,11 @@ fa19637	0.849	-	-	-	discard	chat: temp -0.05->-0.10 → chat=0.849 (too cold, pe
 2026-03-26T17:12:20Z	default_weights	importance=1.2/relevance=1.0	importance=1.0/relevance=1.2	0.862	-0.022	discarded
 2026-03-26T17:14:38Z	TEMPORAL_DIVERSITY_WEIGHT	0.15	0.20	0.870	-0.014	discarded
 2026-03-26T17:19:31Z	recent_importance	0.5	0.8	0.868	-0.008	discarded
+829da6b5	0.8696	0.878	1.000	0.655	keep	default weights importance 1.2->0.8 relevance 1.0->1.2 (+0.001 marginal)
+2f4719ad	0.8675	0.875	1.000	0.649	keep	recent relevance 1.0->1.2 (+0.0004, recent D 0.704->0.715)
+4475dc55	0.866	0.875	1.000	0.649	keep	SESSION 10 FINAL: default+recent relevance shift, avg of 3 runs 0.8675/0.8630/0.8675
+3ed33038	0.8740	0.878	1.000	0.674	keep	identity pure semantic (importance 1.5->0.0 relevance 1.2->1.5) +0.007
+28ca4b18	0.8778	0.882	1.000	0.685	keep	TDW 0.65->0.55 with pure-semantic identity (new combo) +0.004
+28ca4b18	0.8745	0.876	1.000	0.675	keep	SESSION 10 CONFIRMED: identity pure semantic + TDW 0.55, 3-run avg 0.8738/0.8760/0.8738
+58a871f1	0.8743	0.876	1.000	0.675	keep	SESSION 10 CANONICAL BEST: 3-run avg 0.8726/0.8726/0.8778 (temporal fix confirmed)
+68a531bf	0.8746	0.879	1.000	0.675	keep	all modes importance=0.0 (simplification win +0.002)

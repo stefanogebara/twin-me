@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Brain, Activity, Loader2, RefreshCw, Zap, Sparkles } from 'lucide-react';
-import { authFetch } from '@/services/api/apiBase';
+import { authFetch, isDemoMode } from '@/services/api/apiBase';
 
 interface FidelityData {
   fidelity_score: number;
@@ -80,6 +80,7 @@ const TwinIntelligence: React.FC = () => {
     queryFn: fetchFidelity,
     staleTime: 60 * 60 * 1000,
     retry: 1,
+    enabled: !isDemoMode(),
   });
 
   const { data: readiness, isLoading: loadingReadiness } = useQuery({
@@ -87,6 +88,7 @@ const TwinIntelligence: React.FC = () => {
     queryFn: fetchReadiness,
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    enabled: !isDemoMode(),
   });
 
   const measureMutation = useMutation({

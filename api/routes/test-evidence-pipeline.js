@@ -1,14 +1,15 @@
 import express from 'express';
 import behavioralEvidencePipeline from '../services/behavioralEvidencePipeline.js';
 import { createLogger } from '../services/logger.js';
+import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 
 const log = createLogger('TestEvidencePipeline');
 
 const router = express.Router();
 
 // TEMPORARY: Test endpoint to trigger evidence pipeline (for debugging)
-// Only available in development mode
-router.get('/:userId', async (req, res) => {
+// Only available in development mode, and requires admin auth
+router.get('/:userId', authenticateUser, requireProfessor, async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
     return res.status(404).json({ error: 'NOT_FOUND', message: 'Endpoint not found' });
   }

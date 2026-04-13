@@ -25,6 +25,25 @@ import CustomAuth from "./pages/CustomAuth";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 
+// Inline placeholder for removed/coming-soon routes
+const GoalsComingSoon = () => (
+  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-6 text-center">
+    <p className="text-base" style={{ color: 'var(--foreground)', fontFamily: 'Inter, sans-serif' }}>
+      Goals are being rebuilt as twin-driven suggestions.
+    </p>
+    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif' }}>
+      Your twin will propose goals based on your patterns. Check back soon.
+    </p>
+    <a
+      href="/dashboard"
+      className="mt-2 px-4 py-2 rounded-full text-sm font-medium"
+      style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--foreground)', fontFamily: 'Inter, sans-serif' }}
+    >
+      Go to Dashboard
+    </a>
+  </div>
+);
+
 // Lazy-loaded pages (code-split into separate chunks)
 const loadDashboardV2 = () => import("./pages/DashboardV2");
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
@@ -441,7 +460,7 @@ const App = () => {
             <Route path="/landing" element={<Navigate to="/" replace />} />
             <Route path="/portfolio" element={<Navigate to="/" replace />} />
             <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
-            <Route path="/goals" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/goals" element={<GoalsComingSoon />} />
 
             {/* Sundust Prototype */}
             <Route path="/prototype" element={<PrototypeLanding />} />
