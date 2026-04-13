@@ -95,6 +95,43 @@ export interface PlatformConnection {
   last_sync_at?: string;
 }
 
+export interface WikiPage {
+  domain: string;
+  title: string;
+  content_md: string;
+  version: number;
+  compiled_at: string;
+}
+
+export interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  status: 'suggested' | 'active' | 'completed' | 'abandoned';
+  category: string;
+  metric_type: string;
+  source_platform: string;
+  current_value: number;
+  target_value: number;
+  current_streak: number;
+  best_streak: number;
+  total_days_tracked: number;
+  total_days_met: number;
+  duration_days: number;
+  start_date: string;
+  end_date: string;
+}
+
+export interface ProactiveInsight {
+  id: string;
+  insight: string;
+  category: string;
+  urgency: 'high' | 'medium' | 'low';
+  created_at: string;
+  delivered: boolean;
+  nudge_action: string | null;
+}
+
 export interface AndroidUsageData {
   capturedAt: string;
   appUsage: AppUsageEntry[];

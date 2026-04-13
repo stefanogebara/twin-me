@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { API_URL, OAUTH_API_URL, STORAGE_KEYS } from '../constants';
-import type { User, MemoryStats, TwinInsight, AndroidUsageData, SoulSignatureProfile, PersonalityScores, PlatformConnection } from '../types';
+import type { User, MemoryStats, TwinInsight, AndroidUsageData, SoulSignatureProfile, PersonalityScores, PlatformConnection, WikiPage, ProactiveInsight, Goal } from '../types';
 
 const MOBILE_CLIENT_HEADERS = {
   'X-Twin-Client': 'mobile',
@@ -342,6 +342,54 @@ export async function uploadHealthConnectData(hcData: object): Promise<{
   if (!processRes.ok) throw new Error('Health Connect processing failed');
   const data = await processRes.json();
   return { importId: data.importId, observationsCreated: data.observationsCreated ?? 0 };
+}
+
+// ── Wiki pages ────────────────────────────────────────────────────────────────
+
+export async function fetchWikiPages(): Promise<WikiPage[]> {
+  try {
+    const res = await authFetch('/wiki/pages');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.data) ? data.data : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── Proactive insights ────────────────────────────────────────────────────────
+
+export async function fetchProactiveInsights(): Promise<ProactiveInsight[]> {
+  try {
+    const res = await authFetch('/insights/proactive?limit=5');
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.insights) ? data.insights : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── Goals ─────────────────────────────────────────────────────────────────────
+
+export async function fetchGoals(status?: string): Promise<Goal[]> {
+  try {
+    const qs = status ? `?status=${status}` : '';
+    const res = await authFetch(`/goals${qs}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.data) ? data.data : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function acceptGoal(id: string): Promise<void> {
+  await authFetch(`/goals/${id}/accept`, { method: 'POST' });
+}
+
+export async function dismissGoal(id: string): Promise<void> {
+  await authFetch(`/goals/${id}/abandon`, { method: 'POST' });
 }
 
 // ── Android usage import ──────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View, Text } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -24,12 +25,14 @@ import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TwinChatScreen } from './src/screens/TwinChatScreen';
 import { MeScreen } from './src/screens/MeScreen';
+import { ConnectPlatformsScreen } from './src/screens/ConnectPlatformsScreen';
 import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
 import { COLORS, STORAGE_KEYS } from './src/constants';
 import { UsageStatsModule } from './src/native/UsageStatsModule';
 import { NotificationListenerModule } from './src/native/NotificationListenerModule';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
 const TAB_ICONS: Record<string, string> = {
   Home: '⊙',
@@ -157,58 +160,67 @@ export default function App() {
     );
   }
 
+  const MainTabs = useCallback(() => (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
+        headerTitleStyle: { color: COLORS.text, fontFamily: 'InstrumentSerif_400Regular', fontSize: 18, letterSpacing: -0.5 },
+        tabBarStyle: {
+          backgroundColor: COLORS.background,
+          borderTopColor: 'rgba(0,0,0,0.06)',
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarActiveTintColor: COLORS.text,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular', letterSpacing: 0.5, textTransform: 'uppercase' },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        options={{
+          title: 'TwinMe',
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
+        }}
+      >
+        {() => <HomeScreen user={user} />}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="Chat"
+        component={TwinChatScreen}
+        options={{
+          title: 'Your Twin',
+          tabBarLabel: 'Chat',
+          tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="Me"
+        options={{
+          title: 'Me',
+          tabBarLabel: 'Me',
+          tabBarIcon: ({ focused }) => <TabIcon label="Me" focused={focused} />,
+        }}
+      >
+        {() => <MeScreen user={user} onLogout={logout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  ), [user, logout]);
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
       <NavigationContainer ref={navRef}>
-        <Tab.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
-            headerTitleStyle: { color: COLORS.text, fontFamily: 'InstrumentSerif_400Regular', fontSize: 18, letterSpacing: -0.5 },
-            tabBarStyle: {
-              backgroundColor: COLORS.background,
-              borderTopColor: 'rgba(0,0,0,0.06)',
-              borderTopWidth: 1,
-              height: 60,
-              paddingBottom: 8,
-            },
-            tabBarActiveTintColor: COLORS.text,
-            tabBarInactiveTintColor: COLORS.textMuted,
-            tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular', letterSpacing: 0.5, textTransform: 'uppercase' },
-          }}
-        >
-          <Tab.Screen
-            name="Home"
-            options={{
-              title: 'TwinMe',
-              tabBarLabel: 'Home',
-              tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
-            }}
-          >
-            {() => <HomeScreen user={user} />}
-          </Tab.Screen>
-
-          <Tab.Screen
-            name="Chat"
-            component={TwinChatScreen}
-            options={{
-              title: 'Your Twin',
-              tabBarLabel: 'Chat',
-              tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
-            }}
-          />
-
-          <Tab.Screen
-            name="Me"
-            options={{
-              title: 'Me',
-              tabBarLabel: 'Me',
-              tabBarIcon: ({ focused }) => <TabIcon label="Me" focused={focused} />,
-            }}
-          >
-            {() => <MeScreen user={user} onLogout={logout} />}
-          </Tab.Screen>
-        </Tab.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
+          <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen name="ConnectPlatforms">
+            {() => <ConnectPlatformsScreen user={user} />}
+          </Stack.Screen>
+        </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );

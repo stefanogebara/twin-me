@@ -4,37 +4,28 @@ import {
   RefreshControl, ActivityIndicator, Alert, Switch, Platform,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS, STORAGE_KEYS } from '../constants';
-import type { User, SoulSignatureProfile, TwinInsight, MemoryStats, PlatformConnection } from '../types';
+import type { User, SoulSignatureProfile, MemoryStats, PlatformConnection, Goal } from '../types';
 import {
   fetchSoulSignature,
-  fetchInsights,
   fetchMemoryStats,
   fetchPlatformConnections,
+  fetchGoals,
 } from '../services/api';
 import { SoulSignatureRevealScreen } from './SoulSignatureRevealScreen';
 import { registerBackgroundSync, unregisterBackgroundSync, runSyncNow } from '../services/backgroundSync';
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
+import { analyzeActivity, ActivityInsights } from '../services/activityAnalyzer';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const CATEGORY_COLORS: Record<string, string> = {
-  personality: '#8B5CF6',
-  lifestyle: '#10B981',
-  culturalidentity: '#C9B99A',
-  cultural_identity: '#C9B99A',
-  social: '#3B82F6',
-  socialdynamics: '#3B82F6',
-  motivation: '#EF4444',
-  health: '#06B6D4',
-  music: '#EC4899',
-  reflection: '#6B7280',
-};
 
 const PLATFORM_LABELS: Record<string, string> = {
   spotify: 'Spotify',
   google_calendar: 'Calendar',
+  google_gmail: 'Gmail',
+  gmail: 'Gmail',
   youtube: 'YouTube',
   discord: 'Discord',
   linkedin: 'LinkedIn',
@@ -42,33 +33,40 @@ const PLATFORM_LABELS: Record<string, string> = {
   twitch: 'Twitch',
   android_usage: 'Phone',
   reddit: 'Reddit',
+  github: 'GitHub',
 };
 
 const PLATFORM_ICONS: Record<string, string> = {
   spotify: '♫',
-  google_calendar: '📅',
-  youtube: '▶',
-  discord: '💬',
-  linkedin: '💼',
-  whoop: '❤',
-  android_usage: '📱',
-  reddit: '🔗',
+  google_calendar: '◻',
+  youtube: '▷',
+  discord: '◇',
+  linkedin: '◆',
+  whoop: '◉',
+  android_usage: '○',
+  reddit: '◎',
   default: '○',
 };
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function InsightCard({ insight }: { insight: TwinInsight }) {
-  const cat = insight.category?.toLowerCase().replace(/\s+/g, '') ?? 'reflection';
-  const color = CATEGORY_COLORS[cat] ?? COLORS.primary;
-  const label = insight.category?.replace(/_/g, ' ') ?? 'Reflection';
-
+function ActiveGoalRow({ goal }: { goal: Goal }) {
+  const pct = goal.target_value > 0
+    ? Math.min(100, Math.round((goal.current_value / goal.target_value) * 100))
+    : 0;
   return (
-    <View style={styles.insightCard}>
-      <View style={[styles.insightDot, { backgroundColor: color }]} />
-      <View style={styles.insightBody}>
-        <Text style={[styles.insightCategory, { color }]}>{label.toUpperCase()}</Text>
-        <Text style={styles.insightText} numberOfLines={3}>{insight.content?.replace(/\*\*/g, '')}</Text>
+    <View style={styles.goalRow}>
+      <View style={styles.goalRowHeader}>
+        <Text style={styles.goalRowTitle} numberOfLines={1}>{goal.title}</Text>
+        {goal.current_streak > 0 && (
+          <Text style={styles.goalStreak}>{goal.current_streak}d streak</Text>
+        )}
+      </View>
+      <View style={styles.goalProgressRow}>
+        <View style={styles.statBarBg}>
+          <View style={[styles.statBarFill, { width: `${pct}%` as `${number}%` }]} />
+        </View>
+        <Text style={styles.goalPct}>{pct}%</Text>
       </View>
     </View>
   );
@@ -139,11 +137,14 @@ interface Props {
 }
 
 export function MeScreen({ user, onLogout }: Props) {
+  const navigation = useNavigation();
+
   // Soul data
   const [soul, setSoul] = useState<SoulSignatureProfile | null>(null);
-  const [insights, setInsights] = useState<TwinInsight[]>([]);
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [platforms, setPlatforms] = useState<PlatformConnection[]>([]);
+  const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
+  const [activityInsights, setActivityInsights] = useState<ActivityInsights | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [revealOpen, setRevealOpen] = useState(false);
@@ -162,16 +163,16 @@ export function MeScreen({ user, onLogout }: Props) {
   // ── Load data ─────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
-    const [s, ins, st, pl] = await Promise.all([
+    const [s, st, pl, goals] = await Promise.all([
       fetchSoulSignature(),
-      fetchInsights(),
       fetchMemoryStats(),
       fetchPlatformConnections(user.id),
+      fetchGoals('active'),
     ]);
     setSoul(s);
-    setInsights(ins);
     setStats(st);
     setPlatforms(pl);
+    setActiveGoals(goals);
     setLoading(false);
     setRefreshing(false);
   }, [user.id]);
@@ -184,6 +185,12 @@ export function MeScreen({ user, onLogout }: Props) {
     SecureStore.getItemAsync(STORAGE_KEYS.LAST_SYNC).then(v => setLastSync(v));
     setHasUsagePerm(UsageStatsModule.hasUsagePermission());
     setHasNotifPerm(NotificationListenerModule.hasNotificationPermission());
+    // Load activity insights from last usage data
+    UsageStatsModule.getAndroidUsageData(24).then(data => {
+      if (data.appUsage.length > 0 || data.screenOnTimeMs > 0) {
+        setActivityInsights(analyzeActivity(data));
+      }
+    }).catch(() => {/* non-critical */});
   }, []);
 
   const onRefresh = useCallback(() => {
@@ -217,6 +224,13 @@ export function MeScreen({ user, onLogout }: Props) {
           : 'Up to date'
       );
       setSyncIsError(false);
+      // Refresh data and activity insights after successful sync
+      load();
+      UsageStatsModule.getAndroidUsageData(24).then(data => {
+        if (data.appUsage.length > 0 || data.screenOnTimeMs > 0) {
+          setActivityInsights(analyzeActivity(data));
+        }
+      }).catch(() => {/* non-critical */});
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sync failed';
       setSyncMsg(msg);
@@ -224,7 +238,7 @@ export function MeScreen({ user, onLogout }: Props) {
     } finally {
       setSyncing(false);
     }
-  }, [syncing]);
+  }, [syncing, load]);
 
   // ── Permission handlers ───────────────────────────────────────────────────
 
@@ -260,7 +274,6 @@ export function MeScreen({ user, onLogout }: Props) {
   const connectedPlatforms = platforms.filter(p => p.status === 'connected');
   const errorPlatforms = platforms.filter(p => p.status !== 'connected');
 
-  // Top platforms by memory count (sorted, top 5)
   const topPlatforms = stats
     ? Object.entries(stats.byPlatform)
         .filter(([, count]) => count > 0)
@@ -282,6 +295,7 @@ export function MeScreen({ user, onLogout }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
     >
 
@@ -301,7 +315,7 @@ export function MeScreen({ user, onLogout }: Props) {
         visible={revealOpen}
         onClose={() => setRevealOpen(false)}
       />
-      <Text style={styles.sectionLabel}>SOUL SIGNATURE</Text>
+      <Text style={styles.sectionLabel}>Soul signature</Text>
       <TouchableOpacity
         activeOpacity={0.88}
         onPress={() => setRevealOpen(true)}
@@ -328,25 +342,10 @@ export function MeScreen({ user, onLogout }: Props) {
         </View>
       </TouchableOpacity>
 
-      {/* ── Twin insights ── */}
-      {insights.length > 0 && (
-        <>
-          <Text style={styles.sectionLabel}>WHAT YOUR TWIN SEES</Text>
-          <View style={styles.card}>
-            {insights.slice(0, 3).map((insight, idx) => (
-              <React.Fragment key={insight.id}>
-                {idx > 0 && <View style={styles.divider} />}
-                <InsightCard insight={insight} />
-              </React.Fragment>
-            ))}
-          </View>
-        </>
-      )}
-
       {/* ── Memory activity ── */}
       {stats && stats.total > 0 && (
         <>
-          <Text style={styles.sectionLabel}>MEMORY COLLECTED</Text>
+          <Text style={styles.sectionLabel}>Memory collected</Text>
           <View style={styles.card}>
             <View style={styles.memoryHeader}>
               <Text style={styles.memoryTotal}>{stats.total.toLocaleString()}</Text>
@@ -368,25 +367,89 @@ export function MeScreen({ user, onLogout }: Props) {
         </>
       )}
 
-      {/* ── Connected platforms ── */}
-      {platforms.length > 0 && (
+      {/* ── Active goals ── */}
+      {activeGoals.length > 0 && (
         <>
-          <Text style={styles.sectionLabel}>CONNECTED PLATFORMS</Text>
+          <Text style={styles.sectionLabel}>Active goals</Text>
           <View style={styles.card}>
+            {activeGoals.map((goal, idx) => (
+              <React.Fragment key={goal.id}>
+                {idx > 0 && <View style={styles.divider} />}
+                <ActiveGoalRow goal={goal} />
+              </React.Fragment>
+            ))}
+          </View>
+        </>
+      )}
+
+      {/* ── Connected platforms ── */}
+      <Text style={styles.sectionLabel}>Connected platforms</Text>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => (navigation as ReturnType<typeof useNavigation> & { navigate: (screen: string) => void }).navigate('ConnectPlatforms')}
+        activeOpacity={0.85}
+      >
+        {platforms.length > 0 ? (
+          <View style={styles.platformsRow}>
             <View style={styles.badgesRow}>
-              {connectedPlatforms.map(p => (
+              {connectedPlatforms.slice(0, 6).map(p => (
                 <PlatformBadge key={p.platform} platform={p.platform} status={p.status} />
               ))}
-              {errorPlatforms.map(p => (
+              {errorPlatforms.slice(0, 3).map(p => (
                 <PlatformBadge key={p.platform} platform={p.platform} status={p.status} />
               ))}
             </View>
+            <View style={styles.platformsFooter}>
+              <Text style={styles.platformsFooterText}>
+                {connectedPlatforms.length} connected · tap to manage
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.platformsEmpty}>
+            <Text style={styles.platformsEmptyTitle}>No platforms connected</Text>
+            <Text style={styles.platformsEmptyText}>
+              Connect Spotify, YouTube, GitHub and more to train your twin.
+            </Text>
+            <Text style={styles.connectCta}>Connect platforms →</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+
+      {/* ── Phone activity insights ── */}
+      {activityInsights && activityInsights.insights.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>Phone activity</Text>
+          <View style={styles.card}>
+            <View style={styles.activityStats}>
+              <View style={styles.activityStat}>
+                <Text style={styles.activityStatValue}>{activityInsights.screenTimeH.toFixed(1)}h</Text>
+                <Text style={styles.activityStatLabel}>screen time</Text>
+              </View>
+              <View style={styles.activityStatDivider} />
+              <View style={styles.activityStat}>
+                <Text style={styles.activityStatValue}>{activityInsights.focusSessions}</Text>
+                <Text style={styles.activityStatLabel}>focus sessions</Text>
+              </View>
+              <View style={styles.activityStatDivider} />
+              <View style={styles.activityStat}>
+                <Text style={styles.activityStatValue}>{activityInsights.digitalWellnessScore}</Text>
+                <Text style={styles.activityStatLabel}>wellness score</Text>
+              </View>
+            </View>
+            <View style={styles.divider} />
+            {activityInsights.insights.slice(0, 4).map((insight, idx) => (
+              <View key={idx} style={styles.activityInsightRow}>
+                <View style={styles.activityInsightDot} />
+                <Text style={styles.activityInsightText}>{insight}</Text>
+              </View>
+            ))}
           </View>
         </>
       )}
 
       {/* ── Data & Sync ── */}
-      <Text style={styles.sectionLabel}>DATA & SYNC</Text>
+      <Text style={styles.sectionLabel}>Data & sync</Text>
       <View style={styles.card}>
 
         {/* Sync toggle */}
@@ -433,7 +496,7 @@ export function MeScreen({ user, onLogout }: Props) {
       >
         {syncing
           ? <ActivityIndicator color={COLORS.primaryFg} size="small" />
-          : <Text style={styles.syncButtonText}>SYNC NOW</Text>}
+          : <Text style={styles.syncButtonText}>Sync now</Text>}
       </TouchableOpacity>
 
       {syncMsg ? (
@@ -446,23 +509,9 @@ export function MeScreen({ user, onLogout }: Props) {
         </Text>
       ) : null}
 
-      {/* ── About ── */}
-      <Text style={[styles.sectionLabel, { marginTop: 28 }]}>ABOUT</Text>
-      <View style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>Version</Text>
-          <Text style={styles.rowValue}>1.0.0</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.row}>
-          <Text style={styles.rowTitle}>Platform</Text>
-          <Text style={styles.rowValue}>Android</Text>
-        </View>
-      </View>
-
       {/* Sign out */}
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-        <Text style={styles.logoutText}>SIGN OUT</Text>
+        <Text style={styles.logoutText}>Sign out</Text>
       </TouchableOpacity>
 
     </ScrollView>
@@ -488,10 +537,10 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 32,
     shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   avatar: {
     width: 52,
@@ -524,10 +573,9 @@ const styles = StyleSheet.create({
   // Section label
   sectionLabel: {
     fontFamily: 'Inter_500Medium',
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.textMuted,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    letterSpacing: 0.3,
     marginBottom: 10,
     marginLeft: 4,
   },
@@ -599,32 +647,37 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // Insight cards
-  insightCard: {
+  // Active goal rows
+  goalRow: { padding: 16 },
+  goalRowHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  insightDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 5,
-    flexShrink: 0,
-  },
-  insightBody: { flex: 1 },
-  insightCategory: {
+  goalRowTitle: {
     fontFamily: 'Inter_500Medium',
-    fontSize: 9,
-    letterSpacing: 1.0,
-    marginBottom: 4,
-  },
-  insightText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.text,
-    lineHeight: 19,
+    flex: 1,
+    marginRight: 8,
+  },
+  goalStreak: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  goalProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  goalPct: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: COLORS.textMuted,
+    width: 32,
+    textAlign: 'right',
   },
 
   // Memory stats
@@ -667,9 +720,9 @@ const styles = StyleSheet.create({
   },
   statBarBg: {
     flex: 1,
-    height: 3,
+    height: 5,
     backgroundColor: 'rgba(0,0,0,0.07)',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   statBarFill: {
@@ -686,12 +739,45 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
+  // Platforms card
+  platformsRow: { overflow: 'hidden' },
+  platformsFooter: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    paddingTop: 4,
+  },
+  platformsFooterText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  platformsEmpty: { padding: 20 },
+  platformsEmptyTitle: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 15,
+    color: COLORS.text,
+    marginBottom: 6,
+  },
+  platformsEmptyText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: COLORS.textMuted,
+    lineHeight: 19,
+    marginBottom: 12,
+  },
+  connectCta: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    color: COLORS.primary,
+  },
+
   // Platform badges
   badgesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     padding: 16,
+    paddingBottom: 8,
   },
   badge: {
     paddingHorizontal: 12,
@@ -788,9 +874,9 @@ const styles = StyleSheet.create({
   syncButtonBusy: { opacity: 0.6 },
   syncButtonText: {
     fontFamily: 'Inter_500Medium',
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.primaryFg,
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
   syncNote: {
     fontFamily: 'Inter_400Regular',
@@ -798,6 +884,53 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginBottom: 8,
     marginLeft: 4,
+  },
+
+  // Activity insights
+  activityStats: {
+    flexDirection: 'row',
+    padding: 16,
+    paddingBottom: 14,
+  },
+  activityStat: { flex: 1, alignItems: 'center' },
+  activityStatValue: {
+    fontFamily: 'InstrumentSerif_400Regular',
+    fontSize: 28,
+    color: COLORS.text,
+    letterSpacing: -1,
+  },
+  activityStatLabel: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 11,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  activityStatDivider: {
+    width: 1,
+    backgroundColor: COLORS.inputBorder,
+    marginVertical: 4,
+  },
+  activityInsightRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  activityInsightDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: COLORS.textMuted,
+    marginTop: 6,
+    flexShrink: 0,
+  },
+  activityInsightText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: COLORS.text,
+    lineHeight: 19,
+    flex: 1,
   },
 
   // Sign out
@@ -812,8 +945,8 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.error,
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
 });

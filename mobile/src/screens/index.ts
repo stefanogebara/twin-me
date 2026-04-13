@@ -4,3 +4,4 @@ export { TwinChatScreen } from './TwinChatScreen';
 export { SettingsScreen } from './SettingsScreen';
 export { MeScreen } from './MeScreen';
 export { SoulSignatureRevealScreen } from './SoulSignatureRevealScreen';
+export { ConnectPlatformsScreen } from './ConnectPlatformsScreen';
