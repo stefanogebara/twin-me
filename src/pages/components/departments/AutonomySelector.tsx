@@ -120,7 +120,6 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
                     color: isActive ? color : 'rgba(255,255,255,0.5)',
                     background: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
                     border: 'none',
-                    cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
