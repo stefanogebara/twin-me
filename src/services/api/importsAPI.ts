@@ -11,6 +11,28 @@
 import { API_URL, getAccessToken } from './apiBase';
 
 export type ImportPlatform = 'spotify' | 'youtube' | 'discord' | 'reddit' | 'apple_health' | 'google_search' | 'whatsapp' | 'whoop';
+export type ChatPlatform = 'whatsapp_chat' | 'telegram_chat';
+
+export interface ChatImportOpts {
+  ownerName?: string;  // WhatsApp: your display name (inferred if blank)
+  myName?: string;     // Telegram: your display name in the export
+  myId?: string;       // Telegram: your numeric user ID
+  chatName?: string;   // Optional label
+}
+
+export interface ChatImportResult {
+  memoriesStored: number;
+  observationsStored: number;
+  factsStored: number;
+  parseStats: { total: number; owner_sent: number; owner_name?: string };
+  processStats: { qa_pairs: number; my_messages: number };
+  stylometricFeatures?: {
+    avgWordsPerMessage: number;
+    capitalizationStyle: string;
+    emojiRatio: number;
+    topEmojis: string[];
+  } | null;
+}
 
 export interface DataImport {
   id: string;
@@ -89,6 +111,51 @@ export const importsAPI = {
       observationsCreated: processJson.observationsCreated,
       factsCreated: processJson.factsCreated,
     };
+  },
+
+  /**
+   * Upload a chat history export (WhatsApp .txt or Telegram result.json).
+   * Uses the same presigned-URL flow to bypass Vercel body limits.
+   */
+  uploadChatHistory: async (
+    platform: ChatPlatform,
+    file: File,
+    opts: ChatImportOpts = {}
+  ): Promise<ChatImportResult> => {
+    // Step 1 — get presigned upload URL
+    const urlRes = await fetch(`${API_URL}/imports/upload-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ platform, fileName: file.name }),
+    });
+    const urlJson = await urlRes.json();
+    if (!urlRes.ok || !urlJson.success) {
+      throw new Error(urlJson.error || `Failed to get upload URL (${urlRes.status})`);
+    }
+    const { uploadUrl, storagePath } = urlJson as { uploadUrl: string; storagePath: string };
+
+    // Step 2 — upload directly to Supabase Storage
+    const putRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'text/plain' },
+      body: file,
+    });
+    if (!putRes.ok) {
+      throw new Error(`Storage upload failed (${putRes.status})`);
+    }
+
+    // Step 3 — process via chat ingestion pipeline
+    const processRes = await fetch(`${API_URL}/imports/process-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ platform, storagePath, ...opts }),
+    });
+    const processJson = await processRes.json();
+    if (!processRes.ok || !processJson.success) {
+      throw new Error(processJson.error || `Processing failed (${processRes.status})`);
+    }
+
+    return processJson as ChatImportResult;
   },
 
   /**
