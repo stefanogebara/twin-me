@@ -23,7 +23,7 @@ const router = Router();
 
 const SUPPORTED_PLATFORMS = new Set([
   'spotify', 'youtube', 'discord', 'reddit', 'android_usage',
-  'whoop', 'apple_health', 'google_search', 'whatsapp',
+  'whoop', 'apple_health', 'google_search', 'whatsapp', 'android_health',
 ]);
 
 // ---------------------------------------------------------------------------

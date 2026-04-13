@@ -1,10 +1,12 @@
 /**
  * PermissionOnboardingScreen
  * ==========================
- * 2-step wizard shown once after login if Android permissions are missing.
+ * 4-step wizard shown once after login if Android permissions are missing.
  *
  * Step 1 — Usage Access (PACKAGE_USAGE_STATS)
  * Step 2 — Notification Access (BIND_NOTIFICATION_LISTENER_SERVICE)
+ * Step 3 — Location (foreground only, optional)
+ * Step 4 — Health Connect (wearable data: steps, sleep, HR, workouts)
  *
  * On completion: saves PERMISSIONS_SHOWN flag and calls onDone() so
  * App.tsx can trigger an immediate sync before navigating to HomeScreen.
@@ -25,6 +27,7 @@ import * as Location from 'expo-location';
 import { COLORS, STORAGE_KEYS } from '../constants';
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
+import { requestHealthPermissions } from '../services/healthConnect';
 
 const { width } = Dimensions.get('window');
 
@@ -54,6 +57,8 @@ export function PermissionOnboardingScreen({ onDone }: Props) {
       NotificationListenerModule.requestNotificationPermission();
     } else if (index === 2) {
       await Location.requestForegroundPermissionsAsync();
+    } else if (index === 3) {
+      await requestHealthPermissions();
     }
     // Advance to next step (or finish if last step)
     if (index < steps.length - 1) {
@@ -76,7 +81,7 @@ export function PermissionOnboardingScreen({ onDone }: Props) {
       title: 'Understand your notification habits',
       body:
         'We track which apps notify you and when — never the content.\n\n' +
-        'This reveals patterns like which apps interrupt your focus most and when you\'re hardest to reach.',
+        "This reveals patterns like which apps interrupt your focus most and when you're hardest to reach.",
       buttonLabel: 'Enable Notification Access',
       onEnable: () => handleEnable(1),
     },
@@ -87,6 +92,13 @@ export function PermissionOnboardingScreen({ onDone }: Props) {
         'Only anonymous cluster patterns are sent — never raw coordinates. Skip if you prefer.',
       buttonLabel: 'Allow Location',
       onEnable: () => handleEnable(2),
+    },
+    {
+      title: 'Connect your fitness data',
+      body:
+        "Health Connect is your phone's health hub — it securely aggregates data from Garmin, Fitbit, Samsung Health, and other wearables.\n\nTwinMe reads steps, sleep, heart rate, and workouts to understand your body patterns.",
+      buttonLabel: 'Connect Health Data',
+      onEnable: () => handleEnable(3),
     },
   ];
 
@@ -106,7 +118,9 @@ export function PermissionOnboardingScreen({ onDone }: Props) {
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.stepLabel}>Step {stepIndex + 1} of {steps.length}</Text>
+        <Text style={styles.stepLabel}>
+          Step {stepIndex + 1} of {steps.length}
+        </Text>
         <Text style={styles.title}>{step.title}</Text>
         <Text style={styles.body}>{step.body}</Text>
       </View>

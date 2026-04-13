@@ -63,6 +63,14 @@ const config = {
       'android.permission.FOREGROUND_SERVICE',
       'android.permission.WAKE_LOCK',
       'android.permission.ACCESS_COARSE_LOCATION',
+      // Health Connect (covers Garmin, Fitbit, Samsung Health, Google Fit, etc.)
+      'android.permission.health.READ_STEPS',
+      'android.permission.health.READ_HEART_RATE',
+      'android.permission.health.READ_SLEEP',
+      'android.permission.health.READ_EXERCISE',
+      'android.permission.health.READ_WEIGHT',
+      'android.permission.health.READ_OXYGEN_SATURATION',
+      'android.permission.health.READ_RESTING_HEART_RATE',
     ],
   },
   web: {

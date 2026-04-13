@@ -67,7 +67,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  default:    { recency: 0.0, importance: -0.1, relevance: 1.2 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
@@ -95,7 +95,7 @@ export const MMR_LAMBDA = 0.15;
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.72;
+export const TYPE_DIVERSITY_WEIGHT = 0.70;
 
 // ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
 // Generate a hypothetical memory that answers the query, embed THAT alongside
@@ -113,7 +113,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.28;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.30;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below
