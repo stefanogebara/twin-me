@@ -458,6 +458,7 @@ const DepartmentsPage: React.FC = () => {
                 budget={dept.budget}
                 actionsThisWeek={dept.actionsThisWeek}
                 isEnabled={dept.isEnabled}
+                observationOnly={['health', 'finance', 'social'].includes(dept.name)}
                 stats={dept.stats}
                 expandedContent={dept.name === 'communications' ? <InboxSummary /> : undefined}
                 onAutonomyChange={(level) => handleAutonomyChange(dept.name, level)}
