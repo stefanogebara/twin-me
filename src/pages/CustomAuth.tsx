@@ -237,7 +237,11 @@ For privacy concerns: privacy@twinme.me`
           >
             <Check className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.85)' }} />
             <span className="text-sm" style={{ color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter', sans-serif" }}>
-              Invite code: <strong style={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '1px' }}>{inviteCode}</strong>
+              {inviteCode ? (
+                <>Invite code: <strong style={{ color: 'rgba(255,255,255,0.85)', letterSpacing: '1px' }}>{inviteCode}</strong></>
+              ) : (
+                'Access granted'
+              )}
             </span>
           </div>
         ) : (

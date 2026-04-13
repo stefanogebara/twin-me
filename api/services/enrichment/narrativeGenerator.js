@@ -133,7 +133,7 @@ FORMAT: One short paragraph. Cover ONLY:
 - Location
 - One notable fact or area of expertise
 
-EXAMPLE: "Sebastian Izurieta is a finance professional currently serving as Principal Financial Analyst at NextEra Energy Resources. He holds an MBA from University of Virginia Darden School of Business and a Bachelor's from ITAM. Based in Madrid, Spain, he specializes in private investments and complex financial modeling."
+EXAMPLE: "Jane Park is a product designer currently leading the design team at a growing SaaS startup. She holds a degree in Human-Computer Interaction from Carnegie Mellon. Based in San Francisco, she specializes in user research and design systems."
 
 RULES:
 - Maximum 3-4 sentences. Be concise.

@@ -97,7 +97,7 @@ const DepartmentsPage: React.FC = () => {
   useDocumentTitle('Departments');
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const firstName = user?.email?.split('@')[0] || '';
+  const firstName = user?.firstName || user?.fullName?.split(' ')[0] || '';
   const { data: dashboardData } = useDashboardContext();
   const calendarEvents = dashboardData?.nextEvents ?? [];
 

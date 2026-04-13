@@ -366,6 +366,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       oauthUrl += `?${params.toString()}`;
     }
 
+    // Probe the endpoint before redirecting — a 429 would show raw JSON in the browser
+    // (window.location.href navigates away before React can catch the error)
+    const probe = await fetch(oauthUrl, { method: 'HEAD', redirect: 'manual' });
+    if (probe.status === 429) {
+      throw new Error('Too many sign-in attempts. Please wait a few minutes and try again.');
+    }
+
     // Redirect to OAuth provider
     window.location.href = oauthUrl;
   };
