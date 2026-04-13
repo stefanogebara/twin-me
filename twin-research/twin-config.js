@@ -71,7 +71,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 0.0, relevance: 1.0 },
+  identity:   { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
@@ -80,7 +80,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.0, relevance: 1.8 },
+  reflection: { recency: 0.0, importance: 0.0, relevance: 1.2 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -88,14 +88,14 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.33;
+export const MMR_LAMBDA = 0.15;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.55;
+export const TYPE_DIVERSITY_WEIGHT = 0.72;
 
 // ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
 // Generate a hypothetical memory that answers the query, embed THAT alongside
@@ -113,7 +113,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.28;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below
