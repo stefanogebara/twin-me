@@ -68,20 +68,15 @@
 // Each weight can be [0.0, 2.0]. Values outside this range may destabilize retrieval.
 
 export const RETRIEVAL_WEIGHTS = {
-  // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  // All general modes: pure semantic, relevance=1.2 (no recency, no importance).
+  // Identity/default/recent are all equivalent — the relevance multiplier only scales cosine
+  // similarity, which doesn't change ranking within a mode. Only reflection is special (1.8).
+  default:    { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  identity:   { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  recent:     { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
-  // Identity queries (who is this person?) — relevance+importance dominant, no recency.
-  // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 0.0, relevance: 1.2 },
-
-  // Recent context — counterintuitively, recency=0 works best.
-  // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
-  // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
-  recent: { recency: 0.0, importance: 0.0, relevance: 1.2 },
-
-  // Deep pattern analysis — no recency bias (Paper 2 style).
-  // Used by: reflection engine expert personas
+  // Deep pattern analysis — reflection mode needs higher relevance (1.8) for precise deep-pattern
+  // matching. Lower values (1.5/1.9/2.0) all hurt precision in reflection-mode queries.
   reflection: { recency: 0.0, importance: 0.0, relevance: 1.8 },
 };
 

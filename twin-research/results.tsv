@@ -58,3 +58,4 @@ a3572190	0.8720	0.874	1.000	0.675	discard	default relevance 1.2->1.5 (regression
 b007d9f3	0.8718	0.874	1.000	0.674	discard	MMR_LAMBDA 0.35->0.33 (regression)
 fdf3febe	0.8746	0.879	1.000	0.675	discard	MMR_LAMBDA 0.35->0.37 (no change, keep 0.35)
 SESSION11_END	0.8746	0.879	1.000	0.675	PLATEAU	All 6 eval params exhausted. Max score 0.8746 is structural ceiling.
+15bfc4fb	0.8746	0.879	1.000	0.675	keep	identity relevance 1.0->1.2 (simplification: all non-reflection modes now 1.2)
