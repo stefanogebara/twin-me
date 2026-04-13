@@ -77,18 +77,39 @@ function buildSoulSigInstructions(soulLayers) {
     );
   }
 
+  // --- Rhythms layer → temporal/energy calibration ---
+  const chronotype = soulLayers.rhythms?.chronotype;
+  const peakHours = soulLayers.rhythms?.peakHours;
+  if (chronotype && chronotype !== 'unknown') {
+    const chronotypeInstructions = {
+      early_bird: 'They are an early riser. Mornings are their prime time — be crisp and efficient. Later in the day they may prefer lighter engagement.',
+      mid_day: 'They are most active and sharp mid-day. Match their steady, grounded mid-day rhythm.',
+      afternoon: 'They hit their stride in the afternoon. Morning conversations may get less engagement than afternoon or evening ones.',
+      evening: 'They come alive in the evening. Expect more depth and energy in later-day exchanges.',
+      night_owl: 'They are a night owl — creative and engaged well after dark. Match that late-night energy when conversations happen in those hours.',
+    };
+    const desc = chronotypeInstructions[chronotype];
+    if (desc) instructions.push(desc);
+    if (peakHours && peakHours !== 'not enough data') {
+      instructions.push(`Their natural peak window is ${peakHours} — use this when discussing habits, scheduling, or productivity.`);
+    }
+  }
+
   // --- Growth edges layer → awareness of change ---
   const isStable = soulLayers.growthEdges?.isStable;
   const shifts = soulLayers.growthEdges?.shifts ?? [];
+  const growthEdgeSummary = soulLayers.growthEdges?.summary;
   const growthShifts = shifts.filter(s => s.type === 'growth');
   if (growthShifts.length > 0) {
     instructions.push(
-      `They\'re actively evolving — acknowledge their growth, don\'t anchor them to who they were.`
+      'They\'re actively evolving — acknowledge their growth, don\'t anchor them to who they were.'
     );
   } else if (isStable) {
     instructions.push(
       'They\'re in a stable, consistent phase — honor their equilibrium rather than pushing for change.'
     );
+  } else if (growthEdgeSummary) {
+    instructions.push(`Growth context: ${growthEdgeSummary}`);
   }
 
   return instructions;
