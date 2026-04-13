@@ -19,9 +19,11 @@ import InboxSummary from './components/departments/InboxSummary';
 import StatusHero from './components/departments/StatusHero';
 import NeedsInputSection from './components/departments/NeedsInputSection';
 import RecentActivityCards from './components/departments/RecentActivityCards';
+import TodayAgendaSidebar from './components/departments/TodayAgendaSidebar';
 import { Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDashboardContext } from '@/hooks/useDashboardContext';
 
 // ── Default department configs (used when backend isn't wired yet) ───────
 
@@ -96,6 +98,8 @@ const DepartmentsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const firstName = user?.email?.split('@')[0] || '';
+  const { data: dashboardData } = useDashboardContext();
+  const calendarEvents = dashboardData?.nextEvents ?? [];
 
   useEffect(() => {
     document.body.classList.add('page-departments');
@@ -336,22 +340,35 @@ const DepartmentsPage: React.FC = () => {
         handledAutonomously={activityItems.filter(i => i.type === 'executed').length}
       />
 
-      {/* ── Needs Your Input (proposals as cards) ────────────────────────── */}
-      <NeedsInputSection
-        proposals={proposals.map(p => ({
-          id: p.id,
-          department: p.department,
-          description: p.description,
-          toolName: p.toolName || undefined,
-          createdAt: p.createdAt,
-        }))}
-        onApprove={handleApproveProposal}
-        onReject={handleRejectProposal}
-        loadingId={actionLoadingId}
-      />
+      {/* ── Two-column layout: main content + calendar sidebar ───────────── */}
+      <div className="flex gap-6">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {/* ── Needs Your Input (proposals as cards) ──────────────────── */}
+          <NeedsInputSection
+            proposals={proposals.map(p => ({
+              id: p.id,
+              department: p.department,
+              description: p.description,
+              toolName: p.toolName || undefined,
+              createdAt: p.createdAt,
+            }))}
+            onApprove={handleApproveProposal}
+            onReject={handleRejectProposal}
+            loadingId={actionLoadingId}
+          />
 
-      {/* ── Recent Activity (cards with status badges) ───────────────────── */}
-      <RecentActivityCards items={activityItems} maxItems={6} />
+          {/* ── Recent Activity (cards with status badges) ─────────────── */}
+          <RecentActivityCards items={activityItems} maxItems={6} />
+        </div>
+
+        {/* Calendar sidebar (desktop only) */}
+        {calendarEvents.length > 0 && (
+          <div className="hidden lg:block w-[260px] flex-shrink-0">
+            <TodayAgendaSidebar events={calendarEvents} />
+          </div>
+        )}
+      </div>
 
       {/* ── Onboarding banner ─────────────────────────────────────────────── */}
       {!isLoading && departments.every(d => d.autonomyLevel === 0) && (

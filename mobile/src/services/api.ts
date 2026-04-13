@@ -313,6 +313,37 @@ export async function sendChatMessage(
   });
 }
 
+// ── Health Connect import ─────────────────────────────────────────────────────
+
+export async function uploadHealthConnectData(hcData: object): Promise<{
+  importId: string;
+  observationsCreated: number;
+}> {
+  const fileName = 'health-connect.json';
+
+  const urlRes = await authFetch('/imports/upload-url', {
+    method: 'POST',
+    body: JSON.stringify({ platform: 'android_health', fileName }),
+  });
+  if (!urlRes.ok) throw new Error('Failed to get Health Connect upload URL');
+  const { uploadUrl, storagePath } = await urlRes.json();
+
+  const putRes = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(hcData),
+  });
+  if (!putRes.ok) throw new Error(`Health Connect storage upload failed (${putRes.status})`);
+
+  const processRes = await authFetch('/imports/process', {
+    method: 'POST',
+    body: JSON.stringify({ platform: 'android_health', storagePath, fileName }),
+  });
+  if (!processRes.ok) throw new Error('Health Connect processing failed');
+  const data = await processRes.json();
+  return { importId: data.importId, observationsCreated: data.observationsCreated ?? 0 };
+}
+
 // ── Android usage import ──────────────────────────────────────────────────────
 
 export async function uploadAndroidUsage(usageData: AndroidUsageData): Promise<{

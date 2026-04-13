@@ -7,9 +7,10 @@
  *  2. Collects real app-usage data via UsageStatsModule (native Android module)
  *     and notification patterns via NotificationListenerModule.
  *     Falls back to empty payload gracefully on Expo Go / iOS.
- *  3. POSTs to /api/imports/gdpr with platform=android_usage
- *  4. Updates LAST_SYNC in SecureStore
- *  5. Clears notification counters after successful upload (no double-counting)
+ *  3. Uploads Health Connect data (steps, sleep, HR, workouts from Garmin/Fitbit/etc.)
+ *  4. POSTs to /api/imports/gdpr with platform=android_usage
+ *  5. Updates LAST_SYNC in SecureStore
+ *  6. Clears notification counters after successful upload (no double-counting)
  *
  * PERMISSIONS REQUIRED:
  *  - PACKAGE_USAGE_STATS  → Settings > Apps > Special app access > Usage access
@@ -21,11 +22,12 @@ import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import { USAGE_SYNC_TASK, STORAGE_KEYS } from '../constants';
-import { uploadAndroidUsage } from './api';
+import { uploadAndroidUsage, uploadHealthConnectData } from './api';
 import { uploadLocationClusters } from './locationClusters';
 import type { AndroidUsageData } from '../types';
 import { UsageStatsModule } from '../native/UsageStatsModule';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
+import { collectHealthConnectData, isHealthConnectAvailable } from './healthConnect';
 
 // ---------------------------------------------------------------------------
 // Task definition (must be at module top level)
@@ -44,6 +46,17 @@ TaskManager.defineTask(USAGE_SYNC_TASK, async () => {
 
     const data = await collectUsageData();
     await uploadAndroidUsage(data);
+
+    // Upload Health Connect data if available (Garmin, Fitbit, Samsung Health, etc.)
+    const hcAvailable = await isHealthConnectAvailable();
+    if (hcAvailable) {
+      const hcData = await collectHealthConnectData();
+      if (hcData.available) {
+        await uploadHealthConnectData(hcData).catch((err: Error) => {
+          console.warn('[BackgroundSync] Health Connect upload failed:', err.message);
+        });
+      }
+    }
 
     // Clear notification counters only after successful upload
     NotificationListenerModule.clearStats();
@@ -93,9 +106,18 @@ export async function runSyncNow(): Promise<{ observationsCreated: number }> {
   if (!token && !refreshToken) throw new Error('Not authenticated');
 
   const data = await collectUsageData();
+  const hcAvailable = await isHealthConnectAvailable();
+
+  const hcUpload = hcAvailable
+    ? collectHealthConnectData().then((hcData) =>
+        hcData.available ? uploadHealthConnectData(hcData) : Promise.resolve(null)
+      )
+    : Promise.resolve(null);
+
   const [result] = await Promise.all([
     uploadAndroidUsage(data),
     uploadLocationClusters(),
+    hcUpload,
   ]);
 
   NotificationListenerModule.clearStats();
@@ -114,8 +136,10 @@ const SYNC_INTERVAL_SECONDS = 6 * 60 * 60; // 6 hours
 export async function registerBackgroundSync(): Promise<void> {
   const status = await BackgroundFetch.getStatusAsync();
 
-  if (status === BackgroundFetch.BackgroundFetchStatus.Restricted
-    || status === BackgroundFetch.BackgroundFetchStatus.Denied) {
+  if (
+    status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
+    status === BackgroundFetch.BackgroundFetchStatus.Denied
+  ) {
     console.warn('[BackgroundSync] Background fetch is not available on this device.');
     return;
   }

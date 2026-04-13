@@ -57,6 +57,23 @@
  *   6+ experiments all returned 0.874628 — parameter space confirmed exhausted for single-param changes.
  *   Tested: reflection relevance (1.5/2.0), TDW (0.60), MMR_LAMBDA (0.25/0.30), TEMPORAL (0.20), identity relevance (2.0).
  *   All within noise or regressions. Plateau at 0.874628 is structural (reflections semantically dominate).
+ * SESSION 12 BEST: 0.881845 (MMR_LAMBDA 0.35→0.15, TDW 0.55→0.70, TEMPORAL 0.30, uniform relevance=1.2)
+ *   Key insight: "flat zone" [0.30,0.37] for MMR was LOCAL plateau — global optimum at MMR=0.15 (+0.005).
+ *   Key insight: TDW=0.70 gives marginal gain with new MMR=0.15 baseline. TDW flat zone [0.70, 0.75].
+ *   Key insight: reflection relevance 1.5→1.2 simplification win (uniform config, same score).
+ *   diversity=0.704, precision=0.882, recall=1.000. Structural bottleneck: D=0.300 on q01/q08/q10/q17/q18/q24.
+ * SESSION 13: Session 12 config restored after zombie merge commit. Parameter space fully exhausted.
+ *   12 experiments: relevance scale (invariant), SEMANTIC_DIVERSITY=0.05 (TDW dominates), TEMPORAL=0.35 (worse),
+ *   TDW=0.60 (flat), TDW=0.72+TEMPORAL=0.28 (flat), TDW=0.75 (flat), default importance=-0.1 (3-run avg 0.8808, discard),
+ *   default recency=0.05 (6-run avg 0.885 but typical 0.882231 vs 0.881845 — simplicity criterion discard),
+ *   recent recency=0.1 (flat), MMR=0.16 (flat — confirms peak [0.15, 0.17]).
+ *   TDW flat zone with MMR=0.15: [0.60, 0.75]. All prior TDW tests retested; same result.
+ *   D=0.300 bottleneck analysis: q01/q08/q10/q17/q18/q24 expect [platform_data,reflection] but platform_data
+ *   not in top-5 due to semantic gap (augmentation adds by importance, not query-relevance). Structural.
+ *   Plateau confirmed at 0.881845. To break: need new DB state (platform sync) or new gold queries.
+ *   Key insight: relevance weight is scale-invariant when importance=0 and recency=0 (no effect on ranking).
+ *   Key insight: SEMANTIC_DIVERSITY_WEIGHT negligible vs TDW penalty (0.02 vs 0.52+).
+ *   Key insight: D=0.300 = multi-type query, 0 expected types in top-5, typeCoverage=0, entropy≈0.75.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -67,20 +84,20 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  default:    { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
-  identity: { recency: 0.0, importance: 0.0, relevance: 1.0 },
+  identity:   { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
   // Recent context — counterintuitively, recency=0 works best.
   // Reflection decay_rate=90 makes recency bias bury platform_data/conversations.
   // Pure semantic matching surfaces diverse types. (Session 2 finding: +2pts)
-  recent: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  recent: { recency: 0.0, importance: -0.05, relevance: 1.2 },
 
   // Deep pattern analysis — no recency bias (Paper 2 style).
   // Used by: reflection engine expert personas
-  reflection: { recency: 0.0, importance: 0.0, relevance: 1.8 },
+  reflection: { recency: 0.0, importance: -0.05, relevance: 1.2 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
@@ -88,14 +105,14 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.33;
+export const MMR_LAMBDA = 0.15;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.55;
+export const TYPE_DIVERSITY_WEIGHT = 0.70;
 
 // ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
 // Generate a hypothetical memory that answers the query, embed THAT alongside
@@ -113,7 +130,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.30;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below
