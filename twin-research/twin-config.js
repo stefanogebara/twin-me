@@ -63,7 +63,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default: { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  default: { recency: 0.0, importance: 0.8, relevance: 1.2 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
@@ -109,7 +109,7 @@ export const SEMANTIC_DIVERSITY_WEIGHT = 0.0;
 // Bonus for selecting memories from underrepresented time buckets in MMR.
 // Buckets: recent (0-7d), medium (7-30d), archive (30+d).
 // 0.0 = disabled. Range: [0.0, 0.3]
-export const TEMPORAL_DIVERSITY_WEIGHT = 0.20;
+export const TEMPORAL_DIVERSITY_WEIGHT = 0.15;
 
 // ─── Post-Retrieval Cosine Filter ────────────────────────────────────────────
 // Drop candidates whose raw cosine similarity to the query embedding falls below
