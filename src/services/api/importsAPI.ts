@@ -137,7 +137,7 @@ export const importsAPI = {
     // Step 2 — upload directly to Supabase Storage
     const putRes = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': file.type || 'text/plain' },
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
       body: file,
     });
     if (!putRes.ok) {
