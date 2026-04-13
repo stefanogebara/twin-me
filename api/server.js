@@ -183,7 +183,7 @@ app.use(cors({
 const isDevelopment = process.env.NODE_ENV === 'development';
 const apiLimiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: isDevelopment ? 1000 : (parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 200), // 1000 in dev, 200 in prod
+  max: isDevelopment ? 1000 : (parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 500), // 1000 in dev, 500 in prod
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: 15 * 60 * 1000
@@ -191,8 +191,10 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for auth verification in development
-    if (isDevelopment && req.path === '/auth/verify') return true;
+    // Auth verification runs on every page load — must never be rate-limited or users get silently logged out
+    if (req.path === '/auth/verify') return true;
+    // OAuth initiation redirects to Google — must never return 429 (user would see raw JSON, not a UI error)
+    if (req.path.startsWith('/auth/oauth/')) return true;
     // Onboarding has its own dedicated limiter (18-question interview needs ~40 requests)
     if (req.path.startsWith('/onboarding/')) return true;
     return false;
