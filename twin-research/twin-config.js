@@ -82,7 +82,7 @@ export const RETRIEVAL_WEIGHTS = {
   // All general modes: pure semantic, relevance=1.2 (no recency, no importance).
   // Identity/default/recent are all equivalent — the relevance multiplier only scales cosine
   // similarity, which doesn't change ranking within a mode. Only reflection is special (1.8).
-  default:    { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  default:    { recency: 0.0, importance: 0.0, relevance: 1.5 },
   identity:   { recency: 0.0, importance: 0.0, relevance: 1.2 },
   recent:     { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
