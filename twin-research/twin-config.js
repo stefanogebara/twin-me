@@ -91,7 +91,7 @@ export const MMR_LAMBDA = 0.15;
 // Penalty = TYPE_DIVERSITY_WEIGHT * (count_same_type / selected_so_far)
 // 0.0 = no type penalty (original MMR). Higher = stronger type diversity pressure.
 // Range: [0.0, 0.5]
-export const TYPE_DIVERSITY_WEIGHT = 0.55;
+export const TYPE_DIVERSITY_WEIGHT = 0.70;
 
 // ─── HyDE (Hypothetical Document Embedding) ──────────────────────────────────
 // Generate a hypothetical memory that answers the query, embed THAT alongside
