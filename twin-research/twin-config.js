@@ -74,6 +74,13 @@
  *   Key insight: relevance weight is scale-invariant when importance=0 and recency=0 (no effect on ranking).
  *   Key insight: SEMANTIC_DIVERSITY_WEIGHT negligible vs TDW penalty (0.02 vs 0.52+).
  *   Key insight: D=0.300 = multi-type query, 0 expected types in top-5, typeCoverage=0, entropy≈0.75.
+ * SESSION 14: Fixed structural bug in eval augmentation (importance-only → cosine-similarity scoring).
+ *   Augmentation now: fetch top-20 by importance, rerank by cosine(query, embedding), threshold=0.20.
+ *   Result: 0.882231 (same as trimodal modal score) — bottleneck queries unchanged D=0.300.
+ *   Diagnostic: lowering threshold to 0.10 makes no difference — confirms platform_data entries have
+ *   cosine<0.10 for those queries. The data doesn't exist (4 expired platforms: github/discord/reddit/linkedin).
+ *   Session 13 conclusion confirmed: plateau is a data problem, not a code problem.
+ *   Action needed: reconnect 4 expired platforms to get fresh platform_data, then re-run eval.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────

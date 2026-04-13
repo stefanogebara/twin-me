@@ -217,7 +217,7 @@ async function evaluateQuery(testQuery) {
         // Score each candidate by cosine similarity to the query embedding
         const scored = typeRows
           .map(row => ({ row, sim: cosine(queryEmbedding, parseVec(row.embedding) ?? []) }))
-          .filter(({ sim }) => sim > 0.25) // minimum relevance threshold
+          .filter(({ sim }) => sim > 0.20) // minimum relevance threshold
           .sort((a, b) => b.sim - a.sim)
           .slice(0, 5); // top 5 most query-relevant
 
