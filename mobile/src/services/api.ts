@@ -359,9 +359,9 @@ export async function fetchWikiPages(): Promise<WikiPage[]> {
 
 // ── Proactive insights ────────────────────────────────────────────────────────
 
-export async function fetchProactiveInsights(): Promise<ProactiveInsight[]> {
+export async function fetchProactiveInsights(limit = 5): Promise<ProactiveInsight[]> {
   try {
-    const res = await authFetch('/insights/proactive?limit=5');
+    const res = await authFetch(`/insights/proactive?limit=${limit}`);
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data.insights) ? data.insights : [];
@@ -390,6 +390,34 @@ export async function acceptGoal(id: string): Promise<void> {
 
 export async function dismissGoal(id: string): Promise<void> {
   await authFetch(`/goals/${id}/abandon`, { method: 'POST' });
+}
+
+// ── Insight feedback ──────────────────────────────────────────────────────────
+
+export async function rateInsight(id: string, helpful: boolean): Promise<void> {
+  await authFetch('/insights/insight-feedback', {
+    method: 'POST',
+    body: JSON.stringify({ insightId: id, helpful }),
+  });
+}
+
+// ── Personality profile ───────────────────────────────────────────────────────
+
+export async function fetchPersonalityProfile(): Promise<PersonalityScores | null> {
+  try {
+    const res = await authFetch('/soul-signature/personality-scores');
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data ?? data.scores ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Manual sync trigger ───────────────────────────────────────────────────────
+
+export async function triggerSync(): Promise<void> {
+  await authFetch('/sync/trigger', { method: 'POST' });
 }
 
 // ── Android usage import ──────────────────────────────────────────────────────

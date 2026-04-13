@@ -416,6 +416,22 @@ export function MeScreen({ user, onLogout }: Props) {
         )}
       </TouchableOpacity>
 
+      {/* ── Twin knowledge base ── */}
+      <Text style={styles.sectionLabel}>Knowledge</Text>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => (navigation as ReturnType<typeof useNavigation> & { navigate: (screen: string) => void }).navigate('Wiki')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.wikiRow}>
+          <View style={styles.wikiRowContent}>
+            <Text style={styles.wikiRowTitle}>Twin's knowledge base</Text>
+            <Text style={styles.wikiRowDescription}>5 compiled domain pages</Text>
+          </View>
+          <Text style={styles.wikiRowArrow}>→</Text>
+        </View>
+      </TouchableOpacity>
+
       {/* ── Phone activity insights ── */}
       {activityInsights && activityInsights.insights.length > 0 && (
         <>
@@ -799,6 +815,31 @@ const styles = StyleSheet.create({
   },
   badgeTextConnected: { color: COLORS.text },
   badgeTextError: { color: COLORS.error },
+
+  // Wiki row
+  wikiRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  wikiRowContent: { flex: 1, marginRight: 12 },
+  wikiRowTitle: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  wikiRowDescription: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
+  },
+  wikiRowArrow: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 16,
+    color: COLORS.textMuted,
+  },
 
   // Data & Sync rows
   row: {

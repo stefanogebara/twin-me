@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, Image,
   RefreshControl, ActivityIndicator, TouchableOpacity, LayoutAnimation,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../constants';
 import {
@@ -172,6 +172,7 @@ function getGreeting() {
 }
 
 export function HomeScreen({ user }: Props) {
+  const navigation = useNavigation() as ReturnType<typeof useNavigation> & { navigate: (screen: string) => void };
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [insights, setInsights] = useState<TwinInsight[]>([]);
   const [proactiveInsights, setProactiveInsights] = useState<ProactiveInsight[]>([]);
@@ -276,7 +277,16 @@ export function HomeScreen({ user }: Props) {
       {/* Proactive insights (twin noticed something) */}
       {proactiveInsights.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Your twin noticed</Text>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>Your twin noticed</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Insights')}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.seeAll}>See all →</Text>
+            </TouchableOpacity>
+          </View>
           {proactiveInsights.map((item) => (
             <ProactiveInsightCard key={item.id} item={item} />
           ))}
@@ -415,13 +425,25 @@ const styles = StyleSheet.create({
 
   // Section
   section: { marginBottom: 20 },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    marginLeft: 2,
+    marginRight: 2,
+  },
   sectionLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 11,
     color: COLORS.textMuted,
     letterSpacing: 0.3,
-    marginBottom: 12,
-    marginLeft: 2,
+  },
+  seeAll: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: COLORS.textMuted,
+    letterSpacing: 0.1,
   },
 
   // Insight cards

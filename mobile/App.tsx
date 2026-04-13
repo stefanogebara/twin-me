@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, View, Text } from 'react-native';
+import { ActivityIndicator, AppState, AppStateStatus, View, Text } from 'react-native';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -26,10 +26,15 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { TwinChatScreen } from './src/screens/TwinChatScreen';
 import { MeScreen } from './src/screens/MeScreen';
 import { ConnectPlatformsScreen } from './src/screens/ConnectPlatformsScreen';
+import { WikiScreen } from './src/screens/WikiScreen';
+import { InsightsScreen } from './src/screens/InsightsScreen';
 import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
 import { COLORS, STORAGE_KEYS } from './src/constants';
 import { UsageStatsModule } from './src/native/UsageStatsModule';
 import { NotificationListenerModule } from './src/native/NotificationListenerModule';
+
+const FG_SYNC_KEY = 'twinme_last_fg_sync';
+const FG_SYNC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -68,6 +73,7 @@ export default function App() {
 
   const { token, user, isLoading, login, signup, loginWithGoogle, logout } = useAuth();
   const navRef = useRef<NavigationContainerRef<Record<string, undefined>>>(null);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   // Tracks whether we should show the permission onboarding wizard
   const [showPermissions, setShowPermissions] = useState<boolean | null>(null);
@@ -82,6 +88,27 @@ export default function App() {
     } else {
       setShowPermissions(null);
     }
+  }, [token]);
+
+  // Foreground sync: run a lightweight sync when user returns to app after 30+ min away
+  useEffect(() => {
+    if (!token) return;
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      const prev = appStateRef.current;
+      appStateRef.current = nextState;
+      if (prev !== 'active' && nextState === 'active') {
+        SecureStore.getItemAsync(FG_SYNC_KEY)
+          .then(lastStr => {
+            const lastMs = lastStr ? parseInt(lastStr, 10) : 0;
+            if (Date.now() - lastMs >= FG_SYNC_COOLDOWN_MS) {
+              return SecureStore.setItemAsync(FG_SYNC_KEY, String(Date.now()))
+                .then(() => runSyncNow());
+            }
+          })
+          .catch(console.warn);
+      }
+    });
+    return () => subscription.remove();
   }, [token]);
 
   // Foreground location sampling — fires every 5 min while app is open
@@ -219,6 +246,12 @@ export default function App() {
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen name="ConnectPlatforms">
             {() => <ConnectPlatformsScreen user={user} />}
+          </Stack.Screen>
+          <Stack.Screen name="Wiki">
+            {() => <WikiScreen />}
+          </Stack.Screen>
+          <Stack.Screen name="Insights">
+            {() => <InsightsScreen user={user!} />}
           </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
