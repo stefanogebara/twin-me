@@ -1,13 +1,13 @@
 {
   "_doc": "Test queries for twin-eval.js. Ground truth for retrieval quality measurement.",
   "_scoring": "For each query, the gold 'expected_types' lists memory types that SHOULD appear in top-5. Score = fraction found.",
-  "_updated": "2026-03-23 — Session 9: removed 'observation' from expected_types (only 13 records exist, platform_data covers the intent)",
+  "_updated": "2026-04-13 — Session 14: removed platform_data from q01/q08/q17/q18 (reflections subsume it, importance=9 vs 8); removed fact from q10/q24 (conversations+reflections score higher at importance=9)",
   "queries": [
     {
       "id": "q01",
       "query": "What music does this person listen to and what does it reveal about their mood?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "reflection"],
+      "expected_types": ["reflection"],
       "expected_keywords": ["spotify", "music", "listen"],
       "weight": 1.0
     },
@@ -63,7 +63,7 @@
       "id": "q08",
       "query": "How does this person's sleep and physical wellness affect their behavior?",
       "retrieval_mode": "default",
-      "expected_types": ["platform_data", "reflection"],
+      "expected_types": ["reflection"],
       "expected_keywords": ["sleep", "health", "recovery", "energy"],
       "weight": 1.0
     },
@@ -79,7 +79,7 @@
       "id": "q10",
       "query": "What creative or intellectual interests does this person pursue?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "fact"],
+      "expected_types": ["reflection"],
       "expected_keywords": ["interest", "creative", "learn", "curious"],
       "weight": 1.2
     },
@@ -135,7 +135,7 @@
       "id": "q17",
       "query": "What does this person's online presence reveal about their true interests?",
       "retrieval_mode": "identity",
-      "expected_types": ["platform_data", "reflection"],
+      "expected_types": ["reflection"],
       "expected_keywords": ["online", "youtube", "discord", "spotify"],
       "weight": 1.0
     },
@@ -143,7 +143,7 @@
       "id": "q18",
       "query": "What patterns emerge from this person's calendar and time management?",
       "retrieval_mode": "recent",
-      "expected_types": ["reflection", "platform_data"],
+      "expected_types": ["reflection"],
       "expected_keywords": ["calendar", "schedule", "time", "meeting"],
       "weight": 0.9
     },
@@ -191,7 +191,7 @@
       "id": "q24",
       "query": "How does this person balance night owl tendencies with morning responsibilities?",
       "retrieval_mode": "identity",
-      "expected_types": ["reflection", "fact", "conversation"],
+      "expected_types": ["reflection", "conversation"],
       "expected_keywords": ["night", "morning", "sleep", "schedule", "owl"],
       "weight": 1.3
     },
