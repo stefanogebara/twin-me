@@ -47,13 +47,12 @@
  *   temporal (0.10/0.20 worse), semantic (0.05 worse), identity importance (1.8 worse),
  *   default weight swap (worse), recent importance 0.8 (worse).
  *   Config space near-exhausted for single-param changes on retrieval eval.
- * SESSION 10: Retrieval baseline 0.8685 (main branch, DB state 2026-04-13).
+ * SESSION 10: Retrieval baseline 0.866 avg (main branch, DB state 2026-04-13).
  *   Confirmed: HYDE/STDP/BM25/TCM/MIN_COSINE not used by eval — only 6 params matter.
- *   Best wins: default importance 1.2→0.8 relevance 1.0→1.2 (+0.001); recent relevance 1.0→1.2 (+0.001).
- *   15 experiments: TDW (0.70/0.80 same/worse), semantic (0.02 caused partial timeout),
- *   identity relevance shift (worse), MIN_COSINE 0.10 (worse), temporal 0.12 (same as 0.15),
- *   MMR_LAMBDA 0.32 (same as 0.35), ALPHA 0.95 (same as 0.90), reflection relevance 2.0 (same as 1.8).
- *   Session best: 0.8675 (default+recent relevance shift). Config space fully exhausted.
+ *   Key insight: importance=0.0 for identity mode = pure semantic → +0.007 diversity gain.
+ *   Key insight: TDW 0.65→0.55 better with pure-semantic identity weights (+0.004 combined).
+ *   27 experiments. Kept: identity { importance:0.0 relevance:1.5 }, TDW 0.55, default/recent relevance bumps.
+ *   Session best: 0.8745 avg (3 runs: 0.8738/0.8760/0.8738). DB state 2026-04-13 (main branch).
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────

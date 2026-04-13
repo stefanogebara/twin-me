@@ -39,3 +39,4 @@ fa19637	0.849	-	-	-	discard	chat: temp -0.05->-0.10 → chat=0.849 (too cold, pe
 4475dc55	0.866	0.875	1.000	0.649	keep	SESSION 10 FINAL: default+recent relevance shift, avg of 3 runs 0.8675/0.8630/0.8675
 3ed33038	0.8740	0.878	1.000	0.674	keep	identity pure semantic (importance 1.5->0.0 relevance 1.2->1.5) +0.007
 28ca4b18	0.8778	0.882	1.000	0.685	keep	TDW 0.65->0.55 with pure-semantic identity (new combo) +0.004
+28ca4b18	0.8745	0.876	1.000	0.675	keep	SESSION 10 CONFIRMED: identity pure semantic + TDW 0.55, 3-run avg 0.8738/0.8760/0.8738
