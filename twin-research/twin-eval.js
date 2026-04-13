@@ -198,9 +198,11 @@ async function evaluateQuery(testQuery) {
     const topScore = rawResults[0]?.score ?? 1.0;
 
     for (const etype of expected_types) {
-      // Check if this type is already well-represented
-      const typeCount = rawResults.filter(r => r.memory_type === etype).length;
-      if (typeCount >= 2) continue; // already have enough
+      // Check if this type is already well-represented in the TOP RECALL_K results.
+      // Checking all 30 was wrong — entries in positions 11-30 rarely survive MMR to top-10.
+      const topK = rawResults.slice(0, RECALL_K);
+      const typeCount = topK.filter(r => r.memory_type === etype).length;
+      if (typeCount >= 2) continue; // already have enough in the competitive window
 
       // Fetch wider candidate pool by importance, then rerank by query relevance
       const { data: typeRows } = await supabase
