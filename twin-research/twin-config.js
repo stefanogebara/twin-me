@@ -78,7 +78,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default:    { recency: 0.0, importance: 0.0, relevance: 1.2 },
+  default:    { recency: 0.05, importance: 0.0, relevance: 1.2 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
