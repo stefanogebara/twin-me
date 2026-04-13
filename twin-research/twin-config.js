@@ -60,14 +60,16 @@
  *   To break plateau: new gold queries, DB state change, or eval methodology change required.
  * SESSION 12 BEST: 0.8818 (precision=0.882, recall=1.000, diversity=0.704) — DB state 2026-04-13.
  *   KEY DISCOVERIES: previous session mapped "flat zones" but missed the global optima outside those zones.
- *   Win 1: TEMPORAL 0.15→0.30 (at max of defined range) → avg 0.8768 (+0.003). Sharp peak — 0.28/0.32 both worse.
- *   Win 2: MMR_LAMBDA 0.35→0.15 → avg 0.8818 (+0.005). Flat zone [0.30,0.37] was local plateau, global optimum at 0.15.
- *     MMR sweep: 0.10(worse), 0.12(worse), 0.15(PEAK, flat [0.15,0.17]), 0.20(slight worse), 0.25(worse).
- *   Win 3: TDW 0.55→0.70 → marginal +0.0002. Flat zone [0.65, 0.75]. 0.80+ hurts diversity (pool constraint).
- *   Simplification: reflection relevance 1.5→1.2 — with MMR=0.15, all 4 modes now uniform at 1.2 (same score).
- *   TEMPORAL flat zone widened: with MMR=0.15+TDW=0.70, TEMPORAL [0.25,0.35] all give 0.8818 (was sharp peak at 0.30).
- *   ALPHA=0.90 still narrow optimum. SEMANTIC=0.0 still best. MIN_COSINE=0.0 (filter has no effect).
- *   Insight: lower MMR lambda (more diversity pressure) consistently helps until floor at 0.15. Below=precision loss.
+ *   Win 1: TEMPORAL 0.15→0.30 (at max defined range) → avg 0.8768 (+0.003). Later widened by new config.
+ *   Win 2: MMR_LAMBDA 0.35→0.15 → avg 0.8818 (+0.005). Flat zone [0.30,0.37] was local plateau, global opt at 0.15.
+ *     MMR sweep: 0.10(worse), 0.12(worse), 0.13(worse), 0.15(PEAK, flat [0.15,0.17]), 0.20(worse), 0.25(worse).
+ *   Win 3: TDW 0.55→0.70 → marginal +0.0002. Flat zone [0.65, 0.75]. 0.80+ hurts (pool constraint). 0.45 worse.
+ *   Simplification: reflection relevance 1.5→1.2 — with MMR=0.15, all 4 modes uniform at 1.2 (same score).
+ *   Flat zones (new config MMR=0.15+TDW=0.70): MMR [0.15,0.17], TDW [0.65,0.75], TEMPORAL [~0.24,0.35].
+ *   Relevance flat zone: [1.2, ~1.8]. Floor at 1.2 (1.1 and 1.0 both worse). Ceiling: 2.0 slightly worse.
+ *   ALPHA=0.90 still narrow optimum (0.85/0.95 regress). SEMANTIC=0.0 best. MIN_COSINE=0.0 (no effect).
+ *   Insight: lower MMR lambda (more diversity pressure) helps until floor at 0.15. Below=precision loss.
+ *   To break 0.8818 plateau: new gold queries, DB state change, or eval methodology change required.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
