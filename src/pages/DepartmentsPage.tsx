@@ -213,7 +213,11 @@ const DepartmentsPage: React.FC = () => {
     setLocalDepts((prev) => {
       const base = prev ?? departments;
       return base.map((d) =>
-        d.name === name ? { ...d, isEnabled: enabled } : d
+        d.name === name ? {
+          ...d,
+          isEnabled: enabled,
+          autonomyLevel: enabled ? Math.max(d.autonomyLevel, 1) : 0,
+        } : d
       );
     });
 

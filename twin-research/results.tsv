@@ -41,3 +41,4 @@ fa19637	0.849	-	-	-	discard	chat: temp -0.05->-0.10 → chat=0.849 (too cold, pe
 28ca4b18	0.8778	0.882	1.000	0.685	keep	TDW 0.65->0.55 with pure-semantic identity (new combo) +0.004
 28ca4b18	0.8745	0.876	1.000	0.675	keep	SESSION 10 CONFIRMED: identity pure semantic + TDW 0.55, 3-run avg 0.8738/0.8760/0.8738
 58a871f1	0.8743	0.876	1.000	0.675	keep	SESSION 10 CANONICAL BEST: 3-run avg 0.8726/0.8726/0.8778 (temporal fix confirmed)
+68a531bf	0.8746	0.879	1.000	0.675	keep	all modes importance=0.0 (simplification win +0.002)

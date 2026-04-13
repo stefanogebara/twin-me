@@ -44,6 +44,7 @@ interface DepartmentCardProps {
   budget: { spent: number; total: number };
   actionsThisWeek: number;
   isEnabled: boolean;
+  observationOnly?: boolean; // true if department has no executable tools
   stats?: DepartmentStats;
   expandedContent?: React.ReactNode;
   onAutonomyChange: (level: number) => void;
