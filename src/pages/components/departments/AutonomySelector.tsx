@@ -14,6 +14,8 @@ interface AutonomySelectorProps {
   disabled?: boolean;
   /** Compact inline mode: just shows the label text, click to open dropdown */
   compact?: boolean;
+  /** Max selectable level (e.g., 1 for observation-only departments) */
+  maxLevel?: number;
 }
 
 const LEVEL_LABELS: Record<number, string> = {
@@ -46,6 +48,7 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
   onChange,
   disabled = false,
   compact = false,
+  maxLevel = 4,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -99,17 +102,21 @@ const AutonomySelector: React.FC<AutonomySelectorProps> = ({
           >
             {[0, 1, 2, 3, 4].map((lvl) => {
               const isActive = lvl === level;
+              const isAboveMax = lvl > maxLevel;
               return (
                 <button
                   key={lvl}
                   onClick={() => {
+                    if (isAboveMax) return;
                     onChange(lvl);
                     setIsOpen(false);
                   }}
-                  title={LEVEL_TOOLTIPS[lvl]}
+                  title={isAboveMax ? 'Not available — this department has no executable tools' : LEVEL_TOOLTIPS[lvl]}
                   className="w-full text-left px-3 py-1.5 text-[11px] transition-colors duration-100 flex items-center gap-2"
                   style={{
                     fontFamily: "'Inter', sans-serif",
+                    opacity: isAboveMax ? 0.3 : 1,
+                    cursor: isAboveMax ? 'not-allowed' : 'pointer',
                     color: isActive ? color : 'rgba(255,255,255,0.5)',
                     background: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
                     border: 'none',
