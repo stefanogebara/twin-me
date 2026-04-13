@@ -14,15 +14,12 @@ import { getTemplates, applyTemplate as applyTemplateAPI } from '@/services/api/
 import type { Template } from '@/services/api/templatesAPI';
 import DepartmentCard from './components/departments/DepartmentCard';
 import DepartmentOnboarding from './components/departments/DepartmentOnboarding';
-import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
-import ActivityFeed from './components/departments/ActivityFeed';
 import InboxSummary from './components/departments/InboxSummary';
 import StatusHero from './components/departments/StatusHero';
 import NeedsInputSection from './components/departments/NeedsInputSection';
 import RecentActivityCards from './components/departments/RecentActivityCards';
-import TodayAgendaSidebar from './components/departments/TodayAgendaSidebar';
-import { Loader2, Inbox, RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -98,9 +95,7 @@ const DepartmentsPage: React.FC = () => {
   useDocumentTitle('Departments');
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const firstName = (user as Record<string, unknown>)?.user_metadata
-    ? ((user as Record<string, unknown>).user_metadata as Record<string, string>)?.first_name
-    : (user?.email?.split('@')[0] || '');
+  const firstName = user?.email?.split('@')[0] || '';
 
   useEffect(() => {
     document.body.classList.add('page-departments');
@@ -436,107 +431,8 @@ const DepartmentsPage: React.FC = () => {
       )}
 
       {/* ── Recent activity ───────────────────────────────────────────────── */}
-      {!isLoading && (
-        <section className="mb-10">
-          <div
-            className="text-[11px] font-medium tracking-[0.1em] uppercase mb-4"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Recent Activity
-          </div>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <ActivityFeed items={activityItems} />
-          </div>
-        </section>
-      )}
-
-      {/* ── Pending proposals ─────────────────────────────────────────────── */}
-      {!isLoading && (
-        <section>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }} className="mb-8" />
-          <div
-            className="text-[11px] font-medium tracking-[0.1em] uppercase mb-4"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-          >
-            Pending Proposals
-          </div>
-
-          {proposals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 space-y-3">
-              <Inbox className="w-5 h-5" style={{ color: 'rgba(255,255,255,0.08)' }} />
-              <p
-                className="text-[13px] text-center"
-                style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
-              >
-                No pending proposals
-              </p>
-            </div>
-          ) : (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              {(() => {
-                let rendered = 0;
-                return Object.entries(groupedProposals).map(([deptKey, deptProposals]) => {
-                  const deptConfig = departments.find(d => d.name === deptKey);
-                  const deptColor = deptConfig?.config?.color || deptProposals[0]?.departmentColor || '#6366F1';
-                  const visible = showAllProposals ? deptProposals : deptProposals.filter(() => {
-                    if (rendered >= VISIBLE_LIMIT) return false;
-                    rendered++;
-                    return true;
-                  });
-                  if (visible.length === 0) return null;
-                  return (
-                    <div key={deptKey} className="mb-1">
-                      {/* Department group label */}
-                      <div className="flex items-center gap-2 pt-4 pb-2">
-                        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: deptColor }} />
-                        <span
-                          className="text-[11px] font-medium uppercase tracking-[0.08em]"
-                          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {deptKey}
-                        </span>
-                        <span
-                          className="text-[11px]"
-                          style={{ color: 'rgba(255,255,255,0.2)', fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {deptProposals.length}
-                        </span>
-                      </div>
-                      {visible.map((proposal) => (
-                        <ProposalCard
-                          key={proposal.id}
-                          id={proposal.id}
-                          department={proposal.department}
-                          departmentColor={proposal.departmentColor}
-                          description={proposal.description}
-                          estimatedCost={proposal.estimatedCost}
-                          createdAt={proposal.createdAt}
-                          onApprove={handleApproveProposal}
-                          onReject={handleRejectProposal}
-                        />
-                      ))}
-                    </div>
-                  );
-                });
-              })()}
-              {!showAllProposals && proposals.length > VISIBLE_LIMIT && (
-                <button
-                  onClick={() => setShowAllProposals(true)}
-                  className="w-full text-center py-3 text-[11px] font-medium transition-opacity hover:opacity-80"
-                  style={{
-                    color: 'rgba(255,255,255,0.3)',
-                    fontFamily: "'Inter', sans-serif",
-                    background: 'none',
-                    border: 'none',
-                  }}
-                >
-                  Show {proposals.length - VISIBLE_LIMIT} more
-                </button>
-              )}
-            </div>
-          )}
-        </section>
-      )}
+      {/* Old Activity + Proposals sections removed — now handled by
+          StatusHero + NeedsInputSection + RecentActivityCards above */}
     </div>
   );
 };
