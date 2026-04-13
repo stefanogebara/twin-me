@@ -95,7 +95,7 @@ interface MessageListProps {
   onRejectProposal?: (proposalId: string) => void;
   onApproveAllProposals?: (messageId: string) => void;
   onReviewInDepartments?: () => void;
-  onApproveDepartmentSuggestion?: (department: string, action: string) => Promise<void>;
+  onApproveDepartmentSuggestion?: (department: string, action: string, toolName?: string) => Promise<void>;
 }
 
 /** Track which messages the user has already rated this session. */
@@ -127,7 +127,7 @@ function AssistantMessageBody({
   onApproveDepartmentSuggestion,
 }: {
   content: string;
-  onApproveDepartmentSuggestion?: (department: string, action: string) => Promise<void>;
+  onApproveDepartmentSuggestion?: (department: string, action: string, toolName?: string) => Promise<void>;
 }) {
   const { suggestions, cleanText } = useMemo(
     () => parseDepartmentSuggestions(content),

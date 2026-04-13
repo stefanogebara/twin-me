@@ -359,8 +359,9 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
     dynamicContext += '\n- User mentions a topic deeply -> "Want my Research department to dig into that?"';
     dynamicContext += '\nKeep it natural -- mention departments by name but don\'t be pushy. One suggestion per response max.';
     dynamicContext += '\n\nWhen you suggest a department action and the user agrees (or when you want to offer one inline), use this tag:';
-    dynamicContext += '\n[DEPT_SUGGEST: department="<name>" action="<short description of the action>"]';
-    dynamicContext += '\nThe frontend renders this as an interactive card the user can approve.';
+    dynamicContext += '\n[DEPT_SUGGEST: department="<name>" toolName="<tool>" action="<short description>"]';
+    dynamicContext += '\nToolName mapping: communications=gmail_draft, scheduling=calendar_create, content=docs_create, health/finance/social/research=suggest';
+    dynamicContext += '\nThe frontend renders this as an interactive card the user can approve and execute.';
     dynamicContext += '\nDo NOT use [ACTION:] tags for department suggestions -- those are for direct tool calls only.';
   }
 

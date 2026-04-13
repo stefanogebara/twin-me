@@ -147,7 +147,7 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
       >
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: 'var(--accent-vibrant)' }} />
         <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Control how much your twin can act on its own. <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Observe</strong> means it only watches. <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Autonomous</strong> means it acts without asking.
+          Fine-grained skill controls. For department-level autonomy (Communications, Scheduling, etc.), use the <a href="/departments" className="underline" style={{ color: 'var(--accent-vibrant)' }}>Departments</a> page.
         </p>
       </div>
 
