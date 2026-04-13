@@ -57,6 +57,17 @@
  *   6+ experiments all returned 0.874628 — parameter space confirmed exhausted for single-param changes.
  *   Tested: reflection relevance (1.5/2.0), TDW (0.60), MMR_LAMBDA (0.25/0.30), TEMPORAL (0.20), identity relevance (2.0).
  *   All within noise or regressions. Plateau at 0.874628 is structural (reflections semantically dominate).
+ * SESSION 12 BEST: 0.881845 (MMR_LAMBDA 0.35→0.15, TDW 0.55→0.70, TEMPORAL 0.30, uniform relevance=1.2)
+ *   Key insight: "flat zone" [0.30,0.37] for MMR was LOCAL plateau — global optimum at MMR=0.15 (+0.005).
+ *   Key insight: TDW=0.70 gives marginal gain with new MMR=0.15 baseline. TDW flat zone [0.70, 0.75].
+ *   Key insight: reflection relevance 1.5→1.2 simplification win (uniform config, same score).
+ *   diversity=0.704, precision=0.882, recall=1.000. Structural bottleneck: D=0.300 on q01/q08/q10/q17/q18/q24.
+ * SESSION 13: Session 12 config restored after zombie merge commit. Parameter space fully exhausted.
+ *   7 experiments: relevance scale (invariant), SEMANTIC_DIVERSITY=0.05 (TDW dominates), TEMPORAL=0.35 (worse),
+ *   TDW=0.72+TEMPORAL=0.28 (flat), TDW=0.75 (flat), default importance=-0.1 (3-run avg 0.8808, discard).
+ *   Plateau confirmed at 0.881845. To break: need new DB state (platform sync) or new gold queries.
+ *   Key insight: relevance weight is scale-invariant when importance=0 and recency=0 (no effect on ranking).
+ *   Key insight: SEMANTIC_DIVERSITY_WEIGHT negligible vs TDW penalty (0.02 vs 0.52+).
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────
@@ -67,7 +78,7 @@
 
 export const RETRIEVAL_WEIGHTS = {
   // Balanced weights — general conversation
-  default:    { recency: 0.0, importance: -0.1, relevance: 1.2 },
+  default:    { recency: 0.0, importance: 0.0, relevance: 1.2 },
 
   // Identity queries (who is this person?) — relevance+importance dominant, no recency.
   // Used by: twin summary generation, personality queries
