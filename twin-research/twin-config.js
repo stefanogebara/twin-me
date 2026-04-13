@@ -76,7 +76,7 @@ export const RETRIEVAL_WEIGHTS = {
 
   // Deep pattern analysis — reflection mode needs higher relevance than general modes.
   // Range [1.5, 1.8] gives same score; outside this range hurts precision.
-  reflection: { recency: 0.0, importance: 0.0, relevance: 1.5 },
+  reflection: { recency: 0.0, importance: 0.0, relevance: 1.2 },
 };
 
 // ─── MMR Diversity ───────────────────────────────────────────────────────────
