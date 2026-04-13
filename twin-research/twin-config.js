@@ -54,9 +54,11 @@
  *   27 experiments. Kept: identity { importance:0.0 relevance:1.5 }, TDW 0.55, default/recent relevance bumps.
  *   Session best: 0.8745 avg (3 runs: 0.8738/0.8760/0.8738). DB state 2026-04-13 (main branch).
  * SESSION 11: identity relevance 1.5→1.0 confirmed no regression (simplification win, same 0.8746).
- *   6+ experiments all returned 0.874628 — parameter space confirmed exhausted for single-param changes.
- *   Tested: reflection relevance (1.5/2.0), TDW (0.60), MMR_LAMBDA (0.25/0.30), TEMPORAL (0.20), identity relevance (2.0).
- *   All within noise or regressions. Plateau at 0.874628 is structural (reflections semantically dominate).
+ *   15 experiments — all 6 eval-relevant params exhausted. Score plateau at 0.874628 is structural.
+ *   Ceiling is set by reflections semantically dominating retrieval regardless of param tuning.
+ *   Confirmed optimal: default=1.2, identity=1.0, recent=1.2, reflection=1.8, MMR=0.35, TDW=0.55,
+ *   ALPHA=0.90, TEMPORAL=0.15, SDW=0.0 (disabled).
+ *   To improve further: new gold queries, DB state changes, or eval methodology changes required.
  */
 
 // ─── Retrieval Weights ────────────────────────────────────────────────────────

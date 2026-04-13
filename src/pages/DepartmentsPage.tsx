@@ -18,8 +18,13 @@ import ProposalCard from './components/departments/ProposalCard';
 import TemplateCard from './components/departments/TemplateCard';
 import ActivityFeed from './components/departments/ActivityFeed';
 import InboxSummary from './components/departments/InboxSummary';
+import StatusHero from './components/departments/StatusHero';
+import NeedsInputSection from './components/departments/NeedsInputSection';
+import RecentActivityCards from './components/departments/RecentActivityCards';
+import TodayAgendaSidebar from './components/departments/TodayAgendaSidebar';
 import { Loader2, Inbox, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ── Default department configs (used when backend isn't wired yet) ───────
 
@@ -92,6 +97,10 @@ const QUERY_KEYS = {
 const DepartmentsPage: React.FC = () => {
   useDocumentTitle('Departments');
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const firstName = (user as Record<string, unknown>)?.user_metadata
+    ? ((user as Record<string, unknown>).user_metadata as Record<string, string>)?.first_name
+    : (user?.email?.split('@')[0] || '');
 
   useEffect(() => {
     document.body.classList.add('page-departments');
@@ -324,73 +333,30 @@ const DepartmentsPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <h1
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontStyle: 'italic',
-              fontSize: '28px',
-              fontWeight: 400,
-              color: 'var(--foreground)',
-              letterSpacing: '-0.02em',
-              lineHeight: '1.2',
-            }}
-          >
-            Departments
-          </h1>
-          <p
-            className="text-[13px] mt-1"
-            style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
-          >
-            AI agents that watch your data and propose actions for you to approve
-          </p>
-        </div>
+      {/* ── Status Hero (OpenAI "Your day, handled" style) ──────────────── */}
+      <StatusHero
+        firstName={firstName}
+        actionsThisWeek={departments.reduce((s, d) => s + (d.actionsThisWeek || 0), 0)}
+        pendingCount={proposals.length}
+        handledAutonomously={activityItems.filter(i => i.type === 'executed').length}
+      />
 
-        <div className="flex items-center gap-3 flex-shrink-0 pt-1">
-          {/* Budget summary */}
-          <span
-            className="hidden sm:inline text-[12px]"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}
-            title="Monthly cost of running your AI team"
-          >
-            ${totalBudget.spent.toFixed(2)} / ${totalBudget.total.toFixed(2)} monthly
-          </span>
+      {/* ── Needs Your Input (proposals as cards) ────────────────────────── */}
+      <NeedsInputSection
+        proposals={proposals.map(p => ({
+          id: p.id,
+          department: p.department,
+          description: p.description,
+          toolName: p.toolName || undefined,
+          createdAt: p.createdAt,
+        }))}
+        onApprove={handleApproveProposal}
+        onReject={handleRejectProposal}
+        loadingId={actionLoadingId}
+      />
 
-          {/* Check now button */}
-          {!isDemoMode && (
-            <button
-              onClick={handleHeartbeat}
-              disabled={heartbeatLoading}
-              title="Scan recent data and generate new proposals"
-              className="flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer px-3 py-1.5 rounded-[8px]"
-              style={{
-                color: 'rgba(255,255,255,0.5)',
-                fontFamily: "'Inter', sans-serif",
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.9)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
-                e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
-              }}
-            >
-              {heartbeatLoading
-                ? <Loader2 className="w-3 h-3 animate-spin" />
-                : <RefreshCw className="w-3 h-3" />
-              }
-              Check now
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }} className="mt-6 mb-8" />
+      {/* ── Recent Activity (cards with status badges) ───────────────────── */}
+      <RecentActivityCards items={activityItems} maxItems={6} />
 
       {/* ── Onboarding banner ─────────────────────────────────────────────── */}
       {!isLoading && departments.every(d => d.autonomyLevel === 0) && (
