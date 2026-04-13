@@ -13,11 +13,40 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { MessageCircle, Send, Upload, CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, Send, Upload, CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import { importsAPI, type ChatImportResult } from '@/services/api/importsAPI';
 
 type Platform = 'whatsapp_chat' | 'telegram_chat';
 type Status = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
+
+const EXPORT_GUIDE: Record<Platform, { title: string; steps: string[]; note?: string }> = {
+  whatsapp_chat: {
+    title: 'How to export from WhatsApp',
+    steps: [
+      'Open WhatsApp on your phone.',
+      'Open any chat you want to import.',
+      'Tap the three dots (...) at the top right.',
+      'Tap "More" then "Export chat".',
+      'Choose "Without Media" — this keeps the file small.',
+      'Share or save the .txt file, then upload it here.',
+    ],
+    note: 'You can export multiple chats and upload them one by one. Each import adds to your twin\'s memory.',
+  },
+  telegram_chat: {
+    title: 'How to export from Telegram',
+    steps: [
+      'Open Telegram Desktop (the desktop app, not web).',
+      'Open the chat you want to export.',
+      'Click the three dots (...) at the top right of the chat.',
+      'Click "Export chat history".',
+      'Under Format, select JSON.',
+      'Uncheck photos, videos, and files to keep it small.',
+      'Click Export — this saves a folder with result.json inside.',
+      'Upload the result.json file here.',
+    ],
+    note: 'You must use Telegram Desktop (Mac, Windows, Linux) — the phone app cannot export to JSON.',
+  },
+};
 
 interface ChatImportCardProps {
   cardStyle?: string;
@@ -51,6 +80,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
   const [ownerName, setOwnerName] = useState('');
   const [myTelegramName, setMyTelegramName] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const cfg = PLATFORM_CONFIG[platform];
   const isLoading = status === 'uploading' || status === 'processing';
@@ -245,9 +275,52 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
             </div>
           )}
 
-          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.2)' }}>
-            {cfg.hint}
-          </p>
+          {/* Expandable export guide */}
+          <div className="mt-3">
+            <button
+              onClick={() => setShowGuide(v => !v)}
+              className="flex items-center gap-1.5 text-[11px] transition-opacity hover:opacity-80"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+            >
+              <HelpCircle className="w-3 h-3" />
+              {showGuide ? 'Hide guide' : `How to export from ${cfg.label}`}
+              {showGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+
+            {showGuide && (() => {
+              const guide = EXPORT_GUIDE[platform];
+              return (
+                <div
+                  className="mt-3 p-4 rounded-[12px] space-y-3"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                >
+                  <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    {guide.title}
+                  </p>
+                  <ol className="space-y-2">
+                    {guide.steps.map((step, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <span
+                          className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-semibold mt-0.5"
+                          style={{ background: `${cfg.color}20`, color: cfg.color }}
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                          {step}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                  {guide.note && (
+                    <p className="text-[11px] leading-relaxed pt-1" style={{ color: 'rgba(255,255,255,0.25)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      {guide.note}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
         </>
       )}
 
