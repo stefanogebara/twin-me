@@ -152,11 +152,14 @@ if (JWT_SECRET.length < 32) {
   throw new Error('JWT_SECRET must be at least 32 characters for security');
 }
 
-function generateTokenPair(user) {
+function generateTokenPair(user, client = 'web') {
+  // Mobile clients get a longer-lived JWT since they store it securely
+  // and use refresh tokens for re-authentication
+  const expiresIn = client === 'mobile' ? '7d' : '30m';
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
     JWT_SECRET,
-    { expiresIn: '30m' }
+    { expiresIn }
   );
 
   const refreshToken = crypto.randomBytes(64).toString('hex');
@@ -323,7 +326,8 @@ router.post('/signup', authLimiter, async (req, res) => {
     }
 
     // Generate token pair
-    const { accessToken, refreshToken } = generateTokenPair(newUser);
+    const client = req.body?.client || req.query?.client || req.get('x-twin-client') || 'web';
+    const { accessToken, refreshToken } = generateTokenPair(newUser, client);
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token hash
@@ -403,7 +407,8 @@ router.post('/signin', authLimiter, async (req, res) => {
     await clearAuthFailures(normalizedEmail);
 
     // Generate token pair
-    const { accessToken, refreshToken } = generateTokenPair(user);
+    const client = req.body?.client || req.query?.client || req.get('x-twin-client') || 'web';
+    const { accessToken, refreshToken } = generateTokenPair(user, client);
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token hash

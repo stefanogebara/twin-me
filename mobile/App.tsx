@@ -122,6 +122,57 @@ export default function App() {
 
   usePushNotifications(token ? handlePushTap : undefined);
 
+  const MainTabs = useCallback(() => (
+    <Tab.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
+        headerTitleStyle: { color: COLORS.text, fontFamily: 'InstrumentSerif_400Regular', fontSize: 18, letterSpacing: -0.5 },
+        tabBarStyle: {
+          backgroundColor: COLORS.background,
+          borderTopColor: 'rgba(0,0,0,0.06)',
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+        },
+        tabBarActiveTintColor: COLORS.text,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular', letterSpacing: 0.5, textTransform: 'uppercase' },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        options={{
+          title: 'TwinMe',
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
+        }}
+      >
+        {() => <HomeScreen user={user!} />}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="Chat"
+        component={TwinChatScreen}
+        options={{
+          title: 'Your Twin',
+          tabBarLabel: 'Chat',
+          tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
+        }}
+      />
+
+      <Tab.Screen
+        name="Me"
+        options={{
+          title: 'Me',
+          tabBarLabel: 'Me',
+          tabBarIcon: ({ focused }) => <TabIcon label="Me" focused={focused} />,
+        }}
+      >
+        {() => <MeScreen user={user!} onLogout={logout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  ), [user, logout]);
+
   if (isLoading || !fontsLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background }}>
@@ -159,57 +210,6 @@ export default function App() {
       </SafeAreaProvider>
     );
   }
-
-  const MainTabs = useCallback(() => (
-    <Tab.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: COLORS.background, elevation: 0, shadowOpacity: 0 },
-        headerTitleStyle: { color: COLORS.text, fontFamily: 'InstrumentSerif_400Regular', fontSize: 18, letterSpacing: -0.5 },
-        tabBarStyle: {
-          backgroundColor: COLORS.background,
-          borderTopColor: 'rgba(0,0,0,0.06)',
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarActiveTintColor: COLORS.text,
-        tabBarInactiveTintColor: COLORS.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontFamily: 'Inter_400Regular', letterSpacing: 0.5, textTransform: 'uppercase' },
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        options={{
-          title: 'TwinMe',
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon label="Home" focused={focused} />,
-        }}
-      >
-        {() => <HomeScreen user={user} />}
-      </Tab.Screen>
-
-      <Tab.Screen
-        name="Chat"
-        component={TwinChatScreen}
-        options={{
-          title: 'Your Twin',
-          tabBarLabel: 'Chat',
-          tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
-        }}
-      />
-
-      <Tab.Screen
-        name="Me"
-        options={{
-          title: 'Me',
-          tabBarLabel: 'Me',
-          tabBarIcon: ({ focused }) => <TabIcon label="Me" focused={focused} />,
-        }}
-      >
-        {() => <MeScreen user={user} onLogout={logout} />}
-      </Tab.Screen>
-    </Tab.Navigator>
-  ), [user, logout]);
 
   return (
     <SafeAreaProvider>

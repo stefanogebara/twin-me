@@ -80,8 +80,14 @@ export function useAuth() {
         }
       }).catch(async (err: Error) => {
         if (err?.message === 'UNAUTHORIZED') {
-          await clearStoredSession();
-          setState({ token: null, user: null, isLoading: false });
+          // Only clear session if we have no cached user to fall back to.
+          // With a cached user, stay logged in — the token will be refreshed
+          // on the next API call. This prevents logging out users just because
+          // the background verify raced with token expiry.
+          if (!cachedUser) {
+            await clearStoredSession();
+            setState({ token: null, user: null, isLoading: false });
+          }
         } else if (!cachedUser) {
           setState({ token: null, user: null, isLoading: false });
         }
