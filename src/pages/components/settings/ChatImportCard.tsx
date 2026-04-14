@@ -81,6 +81,7 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
   const [myTelegramName, setMyTelegramName] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [session, setSession] = useState({ chats: 0, conversations: 0, messages: 0 });
 
   const cfg = PLATFORM_CONFIG[platform];
   const isLoading = status === 'uploading' || status === 'processing';
@@ -101,6 +102,11 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
       );
       setResult(res);
       setStatus('success');
+      setSession(prev => ({
+        chats: prev.chats + 1,
+        conversations: prev.conversations + res.memoriesStored,
+        messages: prev.messages + (res.parseStats?.owner_sent ?? res.processStats?.my_messages ?? 0),
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed');
       setStatus('error');
@@ -327,11 +333,12 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
       {/* Success state */}
       {status === 'success' && result && (
         <div className="space-y-3">
+          {/* This import */}
           <div className="grid grid-cols-3 gap-2">
             {[
               { value: result.memoriesStored, label: 'conversations' },
-              { value: result.factsStored, label: 'style facts' },
               { value: result.parseStats?.owner_sent ?? result.processStats?.my_messages ?? 0, label: 'your messages' },
+              { value: result.factsStored, label: 'style facts' },
             ].map(({ value, label }) => (
               <div key={label} className="text-center p-3 rounded-[10px]" style={{ background: 'rgba(255,255,255,0.03)' }}>
                 <div className="text-[18px] font-semibold" style={{ color: 'var(--foreground)' }}>{value}</div>
@@ -341,12 +348,12 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
           </div>
 
           {result.stylometricFeatures && (
-            <div className="p-3 rounded-[10px] space-y-1" style={{ background: 'rgba(255,255,255,0.02)' }}>
-              <p className="text-[10px] font-medium uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-                Style fingerprint detected
+            <div className="p-3 rounded-[10px]" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <p className="text-[10px] font-medium uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
+                Style fingerprint
               </p>
               <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                Avg {result.stylometricFeatures.avgWordsPerMessage} words/message &middot; {result.stylometricFeatures.capitalizationStyle} &middot; {result.stylometricFeatures.emojiRatio}% emoji
+                Avg {result.stylometricFeatures.avgWordsPerMessage} words/msg &middot; {result.stylometricFeatures.capitalizationStyle} &middot; {result.stylometricFeatures.emojiRatio}% emoji
                 {result.stylometricFeatures.topEmojis.length > 0 && (
                   <> &middot; {result.stylometricFeatures.topEmojis.join(' ')}</>
                 )}
@@ -354,14 +361,32 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
             </div>
           )}
 
+          {/* Session totals (only after 2+ imports) */}
+          {session.chats > 1 && (
+            <div
+              className="flex items-center justify-between px-3 py-2 rounded-[10px]"
+              style={{ background: `${cfg.color}10`, border: `1px solid ${cfg.color}20` }}
+            >
+              <span className="text-[11px]" style={{ color: cfg.color }}>
+                {session.chats} chats imported this session
+              </span>
+              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                {session.conversations} total conversations
+              </span>
+            </div>
+          )}
+
           <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-            Your conversational voice is now in the twin's memory stream. It will synthesize style insights over the next few minutes.
+            {session.chats === 1
+              ? 'This chat is now in the twin\'s memory. Import more chats to build a fuller voice fingerprint — 3 to 5 chats works best.'
+              : 'Keep going — the more chats you import, the more accurately the twin captures how you really write.'}
           </p>
 
+          {/* Import another — prominent button */}
           <button
             onClick={reset}
-            className="text-[11px] underline"
-            style={{ color: 'var(--text-muted)' }}
+            className="w-full py-2.5 rounded-[10px] text-[12px] font-medium transition-opacity hover:opacity-80"
+            style={{ background: `${cfg.color}18`, border: `1px solid ${cfg.color}30`, color: cfg.color }}
           >
             Import another chat
           </button>
