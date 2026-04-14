@@ -39,18 +39,36 @@ const MAX_RAW_OBS = 500;
 
 // ── Memory content builders ──────────────────────────────────────────────────
 
-function buildConversationContent(pair) {
-  const chat = pair.chat_name ? ` (${pair.chat_name})` : '';
-  return `In a chat${chat}, someone said: "${pair.context}" — you replied: "${pair.response}"`;
+// Maps chatContext → the phrase used inside "In a chat <phrase>, someone said:"
+// Professional uses a different preposition so it gets its own full sentence prefix.
+const CONTEXT_PHRASE = {
+  close_friend:     { prefix: 'In a chat with a close friend',      withName: n => `In a chat with a close friend (${n})` },
+  family:           { prefix: 'In a chat with a family member',     withName: n => `In a chat with a family member (${n})` },
+  professional:     { prefix: 'In a professional conversation',     withName: n => `In a professional conversation (${n})` },
+  romantic_partner: { prefix: 'In a chat with your romantic partner', withName: n => `In a chat with your romantic partner (${n})` },
+};
+
+function buildConversationContent(pair, chatContext) {
+  const phrase = chatContext && CONTEXT_PHRASE[chatContext];
+  let prefix;
+  if (phrase) {
+    prefix = pair.chat_name ? phrase.withName(pair.chat_name) : phrase.prefix;
+  } else {
+    prefix = pair.chat_name ? `In a chat (${pair.chat_name})` : 'In a chat';
+  }
+  return `${prefix}, someone said: "${pair.context}" — you replied: "${pair.response}"`;
 }
 
-function buildObservationContent(msg) {
-  return `You wrote in a conversation: "${msg.msg}"`;
+function buildObservationContent(msg, chatContext) {
+  const ctx = chatContext && CONTEXT_PHRASE[chatContext]
+    ? CONTEXT_PHRASE[chatContext].prefix.toLowerCase()
+    : 'a conversation';
+  return `You wrote in ${ctx}: "${msg.msg}"`;
 }
 
 // ── Batch insert with delay ──────────────────────────────────────────────────
 
-async function batchIngest(userId, items, memoryType, metadataFn, label) {
+async function batchIngest(userId, items, memoryType, metadataFn, label, chatContext) {
   let stored = 0;
   let skipped = 0;
 
@@ -60,8 +78,8 @@ async function batchIngest(userId, items, memoryType, metadataFn, label) {
     await Promise.all(
       batch.map(async (item) => {
         const content = memoryType === 'conversation'
-          ? buildConversationContent(item)
-          : buildObservationContent(item);
+          ? buildConversationContent(item, chatContext)
+          : buildObservationContent(item, chatContext);
 
         const result = await addMemory(userId, content, memoryType, metadataFn(item));
         if (result) stored++;
@@ -93,11 +111,17 @@ async function batchIngest(userId, items, memoryType, metadataFn, label) {
  * @param {string} [opts.ownerName]  - WhatsApp: your display name (inferred if omitted)
  * @param {string} [opts.myName]     - Telegram: your display name in the export
  * @param {string} [opts.myId]       - Telegram: your numeric user ID
- * @param {string} [opts.chatName]   - Override chat label in memories
+ * @param {string} [opts.chatName]    - Override chat label in memories
+ * @param {string} [opts.chatContext] - Relationship context: 'close_friend' | 'family' | 'professional' | 'romantic_partner'
  * @returns {object} Ingestion summary
  */
+const VALID_CHAT_CONTEXTS = new Set(['close_friend', 'family', 'professional', 'romantic_partner']);
+
 export async function ingestChatHistory(userId, fileBuffer, platform, opts = {}) {
-  log.info('Chat history ingestion started', { userId, platform });
+  const chatContext = opts.chatContext && VALID_CHAT_CONTEXTS.has(opts.chatContext)
+    ? opts.chatContext
+    : null;
+  log.info('Chat history ingestion started', { userId, platform, chatContext });
 
   // ── 1. Parse ───────────────────────────────────────────────────────────────
   let parsed;
@@ -143,12 +167,13 @@ export async function ingestChatHistory(userId, fileBuffer, platform, opts = {})
   const convMetadata = (pair) => ({
     source: platform,
     chat_name: pair.chat_name,
+    chat_context: chatContext,
     imported_at: new Date().toISOString(),
     is_chat_import: true,
   });
 
   const { stored: convStored, skipped: convSkipped } = await batchIngest(
-    userId, pairs, 'conversation', convMetadata, 'Conversations'
+    userId, pairs, 'conversation', convMetadata, 'Conversations', chatContext
   );
 
   // ── 4. Ingest raw "you wrote" observations (sample for stylometrics) ───────
@@ -156,12 +181,13 @@ export async function ingestChatHistory(userId, fileBuffer, platform, opts = {})
   const obsMetadata = (msg) => ({
     source: platform,
     chat_name: msg.chat_name,
+    chat_context: chatContext,
     is_chat_import: true,
     is_voice_sample: true,
   });
 
   const { stored: obsStored } = await batchIngest(
-    userId, rawSample, 'observation', obsMetadata, 'Voice samples'
+    userId, rawSample, 'observation', obsMetadata, 'Voice samples', chatContext
   );
 
   // ── 5. Stylometric extraction → fact memories ──────────────────────────────

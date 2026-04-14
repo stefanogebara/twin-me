@@ -12,12 +12,14 @@ import { API_URL, getAccessToken } from './apiBase';
 
 export type ImportPlatform = 'spotify' | 'youtube' | 'discord' | 'reddit' | 'apple_health' | 'google_search' | 'whatsapp' | 'whoop';
 export type ChatPlatform = 'whatsapp_chat' | 'telegram_chat';
+export type ChatContext = 'close_friend' | 'family' | 'professional' | 'romantic_partner';
 
 export interface ChatImportOpts {
-  ownerName?: string;  // WhatsApp: your display name (inferred if blank)
-  myName?: string;     // Telegram: your display name in the export
-  myId?: string;       // Telegram: your numeric user ID
-  chatName?: string;   // Optional label
+  ownerName?: string;    // WhatsApp: your display name (inferred if blank)
+  myName?: string;       // Telegram: your display name in the export
+  myId?: string;         // Telegram: your numeric user ID
+  chatName?: string;     // Optional label
+  chatContext?: ChatContext; // Relationship context — shapes memory content
 }
 
 export interface ChatImportResult {

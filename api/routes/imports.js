@@ -31,6 +31,9 @@ const SUPPORTED_PLATFORMS = new Set([
 // Chat history platforms — handled by the new chatHistoryIngestion pipeline
 const CHAT_PLATFORMS = new Set(['whatsapp_chat', 'telegram_chat']);
 
+// Relationship contexts that label how memories are stored
+const VALID_CHAT_CONTEXTS = new Set(['close_friend', 'family', 'professional', 'romantic_partner']);
+
 // ---------------------------------------------------------------------------
 // POST /api/imports/upload-url
 // Returns a short-lived signed upload URL so the frontend can PUT the file
@@ -160,7 +163,7 @@ router.post('/process', authenticateUser, async (req, res) => {
 router.post('/process-chat', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { platform, storagePath, ownerName, myName, myId, chatName } = req.body;
+    const { platform, storagePath, ownerName, myName, myId, chatName, chatContext } = req.body;
 
     if (!platform || !CHAT_PLATFORMS.has(platform)) {
       return res.status(400).json({
@@ -171,6 +174,12 @@ router.post('/process-chat', authenticateUser, async (req, res) => {
     if (!storagePath || !storagePath.startsWith(`${userId}/`)) {
       return res.status(400).json({ success: false, error: 'Invalid storagePath' });
     }
+    if (chatContext !== undefined && !VALID_CHAT_CONTEXTS.has(chatContext)) {
+      return res.status(400).json({
+        success: false,
+        error: `chatContext must be one of: ${[...VALID_CHAT_CONTEXTS].join(', ')}`,
+      });
+    }
 
     // Telegram requires identity info
     if (platform === 'telegram_chat' && !myName && !myId) {
@@ -180,7 +189,7 @@ router.post('/process-chat', authenticateUser, async (req, res) => {
       });
     }
 
-    log.info(`Chat import: user=${userId} platform=${platform}`);
+    log.info(`Chat import: user=${userId} platform=${platform} context=${chatContext ?? 'none'}`);
 
     // Download from Storage
     const { data: blob, error: dlError } = await supabaseAdmin.storage
@@ -196,7 +205,7 @@ router.post('/process-chat', authenticateUser, async (req, res) => {
 
     // Ingest
     const result = await ingestChatHistory(userId, buffer, platform, {
-      ownerName, myName, myId, chatName,
+      ownerName, myName, myId, chatName, chatContext,
     });
 
     // Clean up storage
