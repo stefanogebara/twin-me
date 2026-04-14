@@ -25,20 +25,11 @@
 
 import { complete, TIER_ANALYSIS } from './llmGateway.js';
 import { getRecentMemories, retrieveMemories } from './memoryStreamService.js';
+import { supabaseAdmin } from './database.js';
 
 import { createLogger } from './logger.js';
 
 const log = createLogger('GoalTracking');
-
-// Lazy-load to avoid circular dependency
-let supabaseAdmin = null;
-async function getSupabase() {
-  if (!supabaseAdmin) {
-    const mod = await import('./database.js');
-    supabaseAdmin = mod.supabaseAdmin;
-  }
-  return supabaseAdmin;
-}
 
 // Throttle: max once per 24 hours per user
 const suggestionCooldowns = new Map();
@@ -67,7 +58,7 @@ function pruneSuggestionCooldowns() {
  *   returns `{ data, total }` instead of a plain array (backward compatible).
  */
 async function getUserGoals(userId, statusFilter = null, pagination) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
   const paginated = pagination && typeof pagination.limit === 'number';
 
   let query = supabase
@@ -102,7 +93,7 @@ async function getUserGoals(userId, statusFilter = null, pagination) {
  * Get a single goal with its progress log.
  */
 async function getGoalWithProgress(goalId, userId) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
 
   const [goalResult, progressResult] = await Promise.all([
     supabase
@@ -134,7 +125,7 @@ async function getGoalWithProgress(goalId, userId) {
  * Accept a suggested goal -> active.
  */
 async function acceptGoal(goalId, userId) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
 
   const now = new Date();
   const startDate = now.toISOString().split('T')[0];
@@ -186,7 +177,7 @@ async function acceptGoal(goalId, userId) {
  * Abandon an active goal.
  */
 async function abandonGoal(goalId, userId) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data, error } = await supabase
     .from('twin_goals')
@@ -209,7 +200,7 @@ async function abandonGoal(goalId, userId) {
  * Dismiss a suggested goal (not interested).
  */
 async function dismissGoal(goalId, userId) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
 
   // Fetch current metadata first to avoid overwriting existing fields
   const { data: existing, error: fetchError } = await supabase
@@ -271,7 +262,7 @@ async function getActiveGoalContext(userId) {
  * Get a summary of all goals for dashboard display.
  */
 async function getGoalSummary(userId) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
 
   const { data: goals, error } = await supabase
     .from('twin_goals')
@@ -308,7 +299,7 @@ async function getGoalSummary(userId) {
  * (storeWhoopPlatformData, etc.) and the goal metric extraction logic.
  */
 async function fetchStructuredPlatformData(userId) {
-  const supabase = await getSupabase();
+  const supabase = supabaseAdmin;
   if (!supabase) return null;
 
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -581,7 +572,7 @@ async function generateGoalSuggestions(userId) {
       return 0;
     }
 
-    const supabase = await getSupabase();
+    const supabase = supabaseAdmin;
 
     // Check pending suggestion count
     const { data: pending, error: pendingErr } = await supabase
@@ -709,7 +700,7 @@ async function generateGoalSuggestions(userId) {
  */
 async function trackGoalProgress(userId, platformData) {
   try {
-    const supabase = await getSupabase();
+    const supabase = supabaseAdmin;
     const activeGoals = await getUserGoals(userId, 'active');
 
     if (activeGoals.length === 0) return 0;

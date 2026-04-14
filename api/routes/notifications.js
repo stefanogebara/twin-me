@@ -5,8 +5,7 @@
  */
 
 import express from 'express';
-import { createClient } from '@supabase/supabase-js';
-import { checkExpiringTokens } from '../services/tokenExpiryNotifier.js';
+import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 
@@ -14,10 +13,9 @@ const log = createLogger('Notifications');
 
 const router = express.Router();
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Use the shared supabaseAdmin client (avoids creating a redundant connection pool
+// and ensures the correct SUPABASE_URL env var is used)
+const supabase = supabaseAdmin;
 
 /**
  * GET /api/notifications
@@ -246,6 +244,9 @@ router.post('/read-all', authenticateUser, async (req, res) => {
 router.post('/check-expiring', authenticateUser, async (req, res) => {
   try {
     log.info('Manual token expiry check triggered');
+    // Dynamic import: tokenExpiryNotifier starts a cron job at module load time.
+    // Lazy-loading here keeps it out of the cold-start path for the main notification routes.
+    const { checkExpiringTokens } = await import('../services/tokenExpiryNotifier.js');
     await checkExpiringTokens();
 
     res.json({
