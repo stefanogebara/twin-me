@@ -11,6 +11,7 @@ import { runObservationIngestion } from '../services/observationIngestion.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
+import { supabaseAdmin } from '../services/database.js';
 
 const log = createLogger('CronObservation');
 
@@ -39,6 +40,21 @@ export default async function handler(req, res) {
     const targetUserIds = userIdsParam
       ? (typeof userIdsParam === 'string' ? userIdsParam.split(',').map(s => s.trim()).filter(Boolean) : userIdsParam)
       : null;
+
+    // Early-exit: skip the full ingestion loop if no users have connected platforms.
+    // One cheap COUNT query saves the 3 parallel SELECT queries + per-user processing loop
+    // that runObservationIngestion would otherwise run against an empty result set.
+    if (!targetUserIds) {
+      const { count: connectedCount } = await supabaseAdmin
+        .from('platform_connections')
+        .select('*', { count: 'exact', head: true })
+        .not('connected_at', 'is', null);
+
+      if (!connectedCount || connectedCount === 0) {
+        log.info('No connected platform users — skipping run');
+        return res.json({ success: true, skipped: true, reason: 'no connected platforms', durationMs: Date.now() - startTime });
+      }
+    }
 
     const result = await runObservationIngestion(targetUserIds ? { targetUserIds } : {});
 

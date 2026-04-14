@@ -14,53 +14,12 @@
  * Security: Protected by CRON_SECRET environment variable
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { PatternLearningService } from '../services/patternLearningService.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronPatternLearning');
-
-// Lazy initialization to avoid crashes if env vars not loaded yet
-let supabase = null;
-function getSupabaseClient() {
-  if (!supabase) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  }
-  return supabase;
-}
-
-/**
- * Log cron execution to database for tracking and monitoring
- */
-async function logCronExecution(jobName, status, executionTimeMs, result, errorMessage = null) {
-  try {
-    const logEntry = {
-      job_name: jobName,
-      status,
-      execution_time_ms: executionTimeMs,
-      users_processed: result?.usersProcessed || 0,
-      feedback_processed: result?.totalFeedbackProcessed || 0,
-      insights_generated: result?.totalInsightsGenerated || 0,
-      error_message: errorMessage,
-      result_data: result || {},
-      executed_at: new Date().toISOString(),
-    };
-
-    const { error: logErr } = await getSupabaseClient()
-      .from('cron_executions')
-      .insert(logEntry);
-    if (logErr) throw logErr;
-
-    log.info('Execution logged to database');
-  } catch (error) {
-    // Don't fail the cron job if logging fails
-    log.error('Failed to log execution', { error: error.message });
-  }
-}
 
 /**
  * Vercel Cron Job Handler

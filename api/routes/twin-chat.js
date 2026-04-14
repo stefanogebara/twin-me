@@ -268,8 +268,21 @@ router.post('/message', authenticateUser, async (req, res) => {
       }
     }
 
-    // Feature flags: per-user A/B toggles (default all enabled)
-    const featureFlags = await getFeatureFlags(userId).catch(() => ({}));
+    // Parallelize independent pre-flight checks: feature flags, subscription, and usage quota
+    // These three are fully independent DB lookups — sequential order was adding ~200-400ms latency
+    const [featureFlags, sub, usage] = await Promise.all([
+      getFeatureFlags(userId).catch(() => ({})),
+      getUserSubscription(userId).catch(err => {
+        log.warn('Subscription check failed, defaulting to free', { error: err });
+        return { plan: 'free' };
+      }),
+      getMonthlyUsage(userId).catch(err => {
+        log.warn('Usage quota check failed, skipping limit', { error: err });
+        return null;
+      }),
+    ]);
+
+    // Derive feature flag booleans
     const useExpertRouting = featureFlags.expert_routing !== false;
     const useIdentityContext = featureFlags.identity_context !== false;
     const useEmotionalState = featureFlags.emotional_state !== false;
@@ -280,7 +293,6 @@ router.post('/message', authenticateUser, async (req, res) => {
     const useSmartRouting = featureFlags.smart_routing !== false; // default enabled: routes simple messages to cheaper models
 
     // Subscription gate: free users get 1 assistant reply, then paywall
-    const sub = await getUserSubscription(userId);
     if (sub.plan === 'free') {
       const { count } = await supabaseAdmin
         .from('twin_messages')
@@ -299,20 +311,14 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
 
     // Freemium quota check (plan-aware: Free=50, Plus=500, Pro=unlimited)
-    try {
-      const usage = await getMonthlyUsage(userId);
-      if (usage.limit !== Infinity && usage.used >= usage.limit) {
-        const displayName = PLAN_DISPLAY_NAMES[usage.tier] || usage.tier;
-        return res.status(429).json({
-          success: false,
-          error: 'monthly_limit_reached',
-          message: `You've used all ${usage.limit} ${displayName} messages this month. Upgrade for more conversations.`,
-          usage: { used: usage.used, limit: usage.limit, tier: usage.tier }
-        });
-      }
-    } catch (quotaErr) {
-      // Don't block chat if quota check fails
-      log.warn('Quota check failed, allowing message', { error: quotaErr });
+    if (usage && usage.limit !== Infinity && usage.used >= usage.limit) {
+      const displayName = PLAN_DISPLAY_NAMES[usage.tier] || usage.tier;
+      return res.status(429).json({
+        success: false,
+        error: 'monthly_limit_reached',
+        message: `You've used all ${usage.limit} ${displayName} messages this month. Upgrade for more conversations.`,
+        usage: { used: usage.used, limit: usage.limit, tier: usage.tier }
+      });
     }
 
     // Per-user hourly rate limit (50 messages/hour)
