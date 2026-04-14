@@ -60,6 +60,13 @@ router.all('/', async (req, res) => {
       userIds = candidates.map(c => c.user_id);
     }
 
+    // Cap at 10 users per run to stay within 60s maxDuration. Remaining users are handled in the next daily run.
+    const MAX_USERS_PER_RUN = 10;
+    if (userIds.length > MAX_USERS_PER_RUN) {
+      log.info('Capping users per run', { total: userIds.length, processing: MAX_USERS_PER_RUN });
+      userIds = userIds.slice(0, MAX_USERS_PER_RUN);
+    }
+
     log.info('Processing candidate users', { count: userIds.length });
 
     let usersProcessed = 0;

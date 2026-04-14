@@ -6,7 +6,7 @@ import express from 'express';
 import { supabase } from '../config/supabase.js';
 import { supabaseAdmin } from '../services/database.js';
 import { encryptToken, decryptToken, encryptState, decryptState } from '../services/encryption.js';
-import { authenticateUser } from '../middleware/auth.js';
+import { authenticateUser, requireProfessor } from '../middleware/auth.js';
 import {
   getCachedPlatformStatus,
   setCachedPlatformStatus,
@@ -1441,7 +1441,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
  * POST /api/connectors/test-add-connection
  * Test endpoint to add a connection for testing purposes
  */
-router.post('/test-add-connection', authenticateUser, async (req, res) => {
+router.post('/test-add-connection', authenticateUser, requireProfessor, async (req, res) => {
   try {
     const userId = req.user.id;
     const { provider } = req.body;

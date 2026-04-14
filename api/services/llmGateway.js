@@ -118,7 +118,7 @@ export function getCircuitBreakerStatus() {
 // ====================================================================
 const TIER_TIMEOUTS = {
   [TIER_CHAT]: 30000,
-  [TIER_ANALYSIS]: 90000,
+  [TIER_ANALYSIS]: 45000, // Must be < maxDuration (60s) so gateway can return error before Vercel kills the function
   [TIER_EXTRACTION]: 15000,
 };
 

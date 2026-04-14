@@ -246,41 +246,12 @@ export const requireProfessor = async (req, res, next) => {
   }
 };
 
-// Rate limiting middleware per user
-// TODO: Migrate to Redis-backed rate limiting for serverless resilience (see oauthRateLimiter.js pattern)
-export const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => {
-  const requests = new Map();
-
-  return (req, res, next) => {
-    if (!req.user) {
-      return next(); // Skip rate limiting for unauthenticated requests (they have global rate limiting)
-    }
-
-    const userId = req.user.id;
-    const now = Date.now();
-    const userRequests = requests.get(userId) || [];
-
-    // Filter out old requests
-    const recentRequests = userRequests.filter(timestamp => now - timestamp < windowMs);
-
-    if (recentRequests.length >= maxRequests) {
-      return res.status(429).json({
-        error: 'Too Many Requests',
-        message: `Rate limit exceeded. Maximum ${maxRequests} requests per ${Math.floor(windowMs / 60000)} minutes.`,
-        retryAfter: Math.ceil((recentRequests[0] + windowMs - now) / 1000)
-      });
-    }
-
-    // Add current request (immutable — create new array rather than mutating)
-    // Delete stale entry when window has fully lapsed to keep Map tidy
-    if (recentRequests.length === 0 && requests.has(userId)) {
-      requests.delete(userId);
-    }
-    requests.set(userId, [...recentRequests, now]);
-
-    next();
-  };
-};
+// userRateLimit: no-op on Vercel serverless.
+// In-memory counters reset on every cold start, providing zero protection across instances.
+// Left as a passthrough to avoid breaking imports in ai.js, conversations.js, etc.
+// Use the Redis-backed chatRateLimit (twin-chat.js) or global apiLimiter instead.
+// eslint-disable-next-line no-unused-vars
+export const userRateLimit = (_maxRequests = 100, _windowMs = 15 * 60 * 1000) => (req, res, next) => next();
 
 // Twin ownership validation middleware
 export const validateTwinOwnership = async (req, res, next) => {
