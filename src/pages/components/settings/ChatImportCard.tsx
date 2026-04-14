@@ -37,14 +37,13 @@ interface ContextDef {
   label: string;
   description: string;
   icon: React.ElementType;
-  optional?: boolean;
 }
 
 const CONTEXT_DEFS: ContextDef[] = [
   {
     id: 'close_friend',
     label: 'Close friend',
-    description: 'Casual, unfiltered — how you really talk when you\'re comfortable.',
+    description: 'Casual, unfiltered — how you really talk when comfortable.',
     icon: UserRound,
   },
   {
@@ -62,9 +61,8 @@ const CONTEXT_DEFS: ContextDef[] = [
   {
     id: 'romantic_partner',
     label: 'Romantic partner',
-    description: 'Your most personal voice. Optional — skip if you prefer to keep this private.',
+    description: 'Your most personal voice. Skip if you prefer to keep this private.',
     icon: Heart,
-    optional: true,
   },
 ];
 
@@ -132,6 +130,8 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
 
   const cfg = PLATFORM_CONFIG[platform];
   const completedCount = CONTEXT_DEFS.filter(d => contexts[d.id].status === 'done').length;
+  const settledCount = CONTEXT_DEFS.filter(d => contexts[d.id].status === 'done' || contexts[d.id].status === 'skipped').length;
+  const allSettled = settledCount === CONTEXT_DEFS.length;
   const totalCount = CONTEXT_DEFS.length;
 
   const updateContext = useCallback((id: ChatContext, patch: Partial<ContextState>) => {
@@ -149,11 +149,17 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
           : { myName: telegramName.trim() }),
       };
       const res = await importsAPI.uploadChatHistory(platform, file, opts);
-      updateContext(contextId, {
-        status: 'done',
-        result: res,
-        importCount: contexts[contextId].importCount + 1,
-      });
+      // Use functional update to avoid stale closure on importCount
+      setContexts(prev => ({
+        ...prev,
+        [contextId]: {
+          ...prev[contextId],
+          status: 'done',
+          result: res,
+          error: undefined,
+          importCount: prev[contextId].importCount + 1,
+        },
+      }));
     } catch (err) {
       updateContext(contextId, {
         status: 'error',
@@ -238,8 +244,25 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
       </div>
 
       <p className="text-[12px] mb-4 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-        Import chats from different relationships so the twin learns how your voice shifts — casual with friends, warm with family, professional at work.
+        Your voice changes depending on who you are talking to. Import a chat for each relationship type so the twin captures all of your registers — not just one.
+        Each context is stored separately, so your casual voice does not bleed into your professional one.
       </p>
+
+      {/* Completion banner */}
+      {allSettled && completedCount > 0 && (
+        <div
+          className="mb-4 p-3 rounded-[12px]"
+          style={{ background: `${cfg.color}08`, border: `1px solid ${cfg.color}20` }}
+        >
+          <p className="text-[12px] font-medium" style={{ color: cfg.color }}>
+            Voice capture complete
+          </p>
+          <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            The twin now has {completedCount} voice {completedCount === 1 ? 'register' : 'registers'} to draw from.
+            You can add more chats to any context at any time — each import compounds.
+          </p>
+        </div>
+      )}
 
       {/* Platform toggle */}
       <div className="flex gap-2 mb-4">
@@ -330,11 +353,6 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                   <span className="text-[13px] font-medium" style={{ color: 'var(--foreground)' }}>
                     {def.label}
                   </span>
-                  {def.optional && ctx.status === 'pending' && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>
-                      optional
-                    </span>
-                  )}
                 </div>
                 <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--text-muted)' }}>
                   {isDone && ctx.result
@@ -365,15 +383,13 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                     >
                       Import
                     </button>
-                    {def.optional && (
-                      <button
-                        onClick={() => skipContext(def.id)}
-                        className="text-[11px] transition-opacity hover:opacity-60"
-                        style={{ color: 'rgba(255,255,255,0.25)' }}
-                      >
-                        Skip
-                      </button>
-                    )}
+                    <button
+                      onClick={() => skipContext(def.id)}
+                      className="text-[11px] transition-opacity hover:opacity-60"
+                      style={{ color: 'rgba(255,255,255,0.25)' }}
+                    >
+                      Skip
+                    </button>
                   </>
                 )}
                 {isDone && (
@@ -399,8 +415,12 @@ export default function ChatImportCard({ cardStyle }: ChatImportCardProps) {
                 {isSkipped && (
                   <button
                     onClick={() => retryContext(def.id)}
-                    className="text-[11px] transition-opacity hover:opacity-80"
-                    style={{ color: 'rgba(255,255,255,0.3)' }}
+                    className="text-[11px] px-2.5 py-1 rounded-full transition-opacity hover:opacity-80"
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      color: 'rgba(255,255,255,0.45)',
+                    }}
                   >
                     Import
                   </button>

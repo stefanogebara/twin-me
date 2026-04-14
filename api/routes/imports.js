@@ -203,10 +203,14 @@ router.post('/process-chat', authenticateUser, async (req, res) => {
 
     const buffer = Buffer.from(await blob.arrayBuffer());
 
-    // Ingest
-    const result = await ingestChatHistory(userId, buffer, platform, {
-      ownerName, myName, myId, chatName, chatContext,
-    });
+    // Ingest — 55s timeout guard (Vercel maxDuration is 60s)
+    const INGEST_TIMEOUT_MS = 55_000;
+    const result = await Promise.race([
+      ingestChatHistory(userId, buffer, platform, { ownerName, myName, myId, chatName, chatContext }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Processing timed out — try a smaller chat export (fewer messages).')), INGEST_TIMEOUT_MS)
+      ),
+    ]);
 
     // Clean up storage
     supabaseAdmin.storage.from('gdpr-imports').remove([storagePath]).catch((e) => {
