@@ -358,7 +358,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   }
 
   const connectedPlatforms = Object.entries(connectors || {})
-    .filter(([, v]: [string, any]) => v?.connected)
+    .filter(([, v]: [string, any]) => v?.connected && !v?.tokenExpired)
     .map(([k]) => k.toLowerCase());
   const platformCount = connectedPlatforms.length;
   const memoryCount = memorySummary?.total ?? 0;

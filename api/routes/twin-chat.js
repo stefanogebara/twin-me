@@ -411,10 +411,17 @@ router.post('/message', authenticateUser, async (req, res) => {
         fetchTwinContext(userId, message, contextOptions),
         supabaseAdmin
           .from('users')
-          .select('last_location')
+          .select('last_location, timezone')
           .eq('id', userId)
           .single()
-          .then(({ data }) => { userLocation = data?.last_location || null; })
+          .then(({ data }) => {
+            userLocation = data?.last_location || null;
+            // Fallback: if no GPS location stored, synthesize from the always-populated
+            // users.timezone column (set by AuthContext on every login)
+            if (!userLocation && data?.timezone) {
+              userLocation = { timezone: data.timezone, source: 'browser-timezone' };
+            }
+          })
           .catch(() => { /* non-fatal */ }),
         getProfile(userId)
           .then(p => { personalityProfile = p; })

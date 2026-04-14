@@ -11,6 +11,7 @@ import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
 import WhatsAppConnect from './components/settings/WhatsAppConnect';
 import NotificationSettings from './components/settings/NotificationSettings';
+import ChatImportCard from './components/settings/ChatImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
 
@@ -443,6 +444,14 @@ const Settings = () => {
           handleDisconnectService={handleDisconnectService}
         />
       </div>
+
+      {/* ── SECTION 3B: CHAT VOICE IMPORT ── */}
+      {!isDemoMode && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+          <SectionLabel label="Chat Voice" />
+          <ChatImportCard />
+        </div>
+      )}
 
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">

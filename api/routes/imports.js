@@ -15,16 +15,21 @@ import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { processGdprImport, listUserImports } from '../services/gdprImportService.js';
+import { ingestChatHistory } from '../services/chatHistory/chatHistoryIngestion.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('Imports');
 
 const router = Router();
 
+// Platforms handled by the existing GDPR import pipeline
 const SUPPORTED_PLATFORMS = new Set([
   'spotify', 'youtube', 'discord', 'reddit', 'android_usage',
   'whoop', 'apple_health', 'google_search', 'whatsapp', 'android_health',
 ]);
+
+// Chat history platforms — handled by the new chatHistoryIngestion pipeline
+const CHAT_PLATFORMS = new Set(['whatsapp_chat', 'telegram_chat']);
 
 // ---------------------------------------------------------------------------
 // POST /api/imports/upload-url
@@ -37,10 +42,11 @@ router.post('/upload-url', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { platform, fileName } = req.body;
 
-    if (!platform || !SUPPORTED_PLATFORMS.has(platform)) {
+    const allPlatforms = new Set([...SUPPORTED_PLATFORMS, ...CHAT_PLATFORMS]);
+    if (!platform || !allPlatforms.has(platform)) {
       return res.status(400).json({
         success: false,
-        error: `platform must be one of: ${[...SUPPORTED_PLATFORMS].join(', ')}`,
+        error: `platform must be one of: ${[...allPlatforms].join(', ')}`,
       });
     }
     if (!fileName || typeof fileName !== 'string') {
@@ -136,6 +142,78 @@ router.post('/process', authenticateUser, async (req, res) => {
       success: false,
       error: 'Failed to process import',
       ...(process.env.NODE_ENV !== 'production' && { details: err.message }),
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/imports/process-chat
+// Chat history import (WhatsApp / Telegram) — uses chatHistoryIngestion pipeline.
+// Accepts same upload flow (presigned URL → Supabase Storage → process-chat).
+// Extra body fields:
+//   ownerName  — WhatsApp: your display name (inferred if omitted)
+//   myName     — Telegram: your display name as shown in the export
+//   myId       — Telegram: your numeric user ID
+//   chatName   — Optional label override for the chat
+// ---------------------------------------------------------------------------
+
+router.post('/process-chat', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { platform, storagePath, ownerName, myName, myId, chatName } = req.body;
+
+    if (!platform || !CHAT_PLATFORMS.has(platform)) {
+      return res.status(400).json({
+        success: false,
+        error: `platform must be one of: ${[...CHAT_PLATFORMS].join(', ')}`,
+      });
+    }
+    if (!storagePath || !storagePath.startsWith(`${userId}/`)) {
+      return res.status(400).json({ success: false, error: 'Invalid storagePath' });
+    }
+
+    // Telegram requires identity info
+    if (platform === 'telegram_chat' && !myName && !myId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Telegram import requires myName (your display name) or myId (your Telegram user ID)',
+      });
+    }
+
+    log.info(`Chat import: user=${userId} platform=${platform}`);
+
+    // Download from Storage
+    const { data: blob, error: dlError } = await supabaseAdmin.storage
+      .from('gdpr-imports')
+      .download(storagePath);
+
+    if (dlError || !blob) {
+      log.error('Download failed:', dlError?.message);
+      return res.status(404).json({ success: false, error: 'File not found in storage' });
+    }
+
+    const buffer = Buffer.from(await blob.arrayBuffer());
+
+    // Ingest
+    const result = await ingestChatHistory(userId, buffer, platform, {
+      ownerName, myName, myId, chatName,
+    });
+
+    // Clean up storage
+    supabaseAdmin.storage.from('gdpr-imports').remove([storagePath]).catch((e) => {
+      log.warn('Storage cleanup failed:', e.message);
+    });
+
+    return res.json({
+      success: true,
+      ...result,
+    });
+
+  } catch (err) {
+    log.error('process-chat error:', err.message);
+    return res.status(422).json({
+      success: false,
+      error: err.message || 'Failed to process chat import',
     });
   }
 });
