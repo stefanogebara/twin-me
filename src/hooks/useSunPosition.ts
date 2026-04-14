@@ -126,19 +126,20 @@ export function useSunPosition(): SunState {
   const locationRef = useRef(location);
   locationRef.current = location;
 
-  // Attempt better geolocation on mount — only if permission already granted (no popup)
+  // Attempt geolocation on mount — prompts user if permission not yet decided
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       if (!('geolocation' in navigator)) return;
 
-      // Check permission state first — never trigger a prompt
+      // Check permission state — skip only if explicitly denied
       try {
         const perm = await navigator.permissions.query({ name: 'geolocation' });
-        if (perm.state !== 'granted') return; // skip if not already granted
+        if (perm.state === 'denied') return; // skip if explicitly denied
+        // 'granted' → use immediately; 'prompt' → triggers browser permission popup
       } catch {
-        return; // permissions API not available — skip
+        // permissions API not available — try getCurrentPosition directly (will prompt)
       }
 
       try {

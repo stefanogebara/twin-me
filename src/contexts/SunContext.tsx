@@ -81,22 +81,37 @@ export function SunProvider({ children }: { children: React.ReactNode }) {
     // This fixes cases where the browser timezone is wrong (VPN, manual override).
     const tz = resolvedTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // Only post location if user is authenticated (token exists)
-    const token = getAccessToken() || localStorage.getItem('token');
-    if (!token) return;
+    // Post location to backend — retry briefly if auth token isn't ready yet
+    // (race condition on first login: SunProvider fires before token is stored)
+    const postLocation = () => {
+      const token = getAccessToken() || localStorage.getItem('token');
+      if (!token) return false;
 
-    authFetch('/location/current', {
-      method: 'POST',
-      body: JSON.stringify({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        timezone: tz,
-        sunPhase,
-        source: location.source,
-      }),
-    }).catch(() => {
-      // Non-fatal — twin chat still works without it
-    });
+      authFetch('/location/current', {
+        method: 'POST',
+        body: JSON.stringify({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          timezone: tz,
+          sunPhase,
+          source: location.source,
+        }),
+      }).catch(() => { /* Non-fatal */ });
+
+      return true;
+    };
+
+    if (!postLocation()) {
+      // Token not ready — retry up to 5 times at 2s intervals (covers first-login race)
+      let attempts = 0;
+      const retryId = setInterval(() => {
+        attempts++;
+        if (postLocation() || attempts >= 5) {
+          clearInterval(retryId);
+        }
+      }, 2000);
+      return () => clearInterval(retryId);
+    }
   }, [sunState, resolvedTimezone]);
 
   return (
