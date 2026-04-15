@@ -455,6 +455,7 @@ import cronIntelligentTriggersRoutes from './routes/cron-intelligent-triggers.js
 import cronMorningBriefingRoutes from './routes/cron-morning-briefing.js';
 import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
+import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
@@ -639,6 +640,7 @@ app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Dai
 app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
 app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
+app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals

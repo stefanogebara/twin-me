@@ -82,6 +82,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/twin-summary-refresh",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/cron/calendar-optimization",
       "schedule": "0 8 * * 1-5"
     },
