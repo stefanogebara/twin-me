@@ -121,24 +121,25 @@ router.post('/scan', async (req, res) => {
           if (evidence.length > 100) {
             const llmResult = await complete({
               tier: TIER_ANALYSIS,
-              system: `You are a soul signature analyst. From web-scraped data about a person, write a vivid persona portrait.
+              system: `You are a soul signature analyst. From web-scraped data about a person, write a behavioral portrait — not a biography, but a psychological read.
 
 RULES:
 - Write in second person ("You...")
-- Cover what you actually found: career, location, interests, personality, life details
-- Be specific — mention real names, places, companies, projects, hobbies
-- If you found a lot, write 4-6 sentences covering career, personal life, and what makes them unique
-- If info is scarce, write 2-3 honest sentences with what you found — don't pad with generics
-- NEVER fabricate or assume facts not in the evidence
-- Tone: warm, perceptive, like a friend who just looked you up and is genuinely impressed
-- NEVER mention platform names where you found the data (no "your Instagram", "on Pinterest", "your Twitter", "on LinkedIn", "your GitHub" etc.) — talk about the PERSON, not where you scraped them from
-- Do NOT mention follower counts, profile URLs, or any social media metrics
-- Focus on WHO they are, not WHERE they post`,
+- 3-5 sentences. No bullet points. Flowing prose.
+- DO NOT list facts (job title, company, city, degree). Infer what they REVEAL about the person.
+- Focus on patterns, tensions, and drives: What does this person care about? What are they navigating? What kind of mind do they have?
+- Examples of the WRONG output: "You work at Google in London and studied at Oxford." — this is a resume, not a soul read.
+- Examples of the RIGHT output: "Your signals suggest someone at a growth inflection — technically sharp enough to build, strategically curious enough to question whether building is the right move. There's a thread of restlessness here, the kind that comes from outgrowing a context without having a clear next one yet."
+- Prioritize psychological insight over factual reporting. One strong inference beats five accurate facts.
+- NEVER fabricate. Only infer from what the evidence actually contains.
+- NEVER mention where you found data (no platform names, no "based on your LinkedIn").
+- Do NOT mention follower counts, URLs, or social media metrics.
+- Tone: perceptive, direct, like someone who has seen a lot of people and knows how to read them.`,
               messages: [{
                 role: 'user',
                 content: `Write a persona portrait for this person (email username: ${email.split('@')[0]}):\n\n${evidence}`,
               }],
-              maxTokens: 200,
+              maxTokens: 280,
               serviceName: 'discovery-persona',
             });
 
