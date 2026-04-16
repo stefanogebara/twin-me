@@ -822,12 +822,87 @@ async function trackGoalProgress(userId, platformData) {
 // Exports
 // ====================================================================
 
+/**
+ * Create a manual goal (status: active, no metric tracking).
+ */
+async function createManualGoal(userId, title, description) {
+  const supabase = supabaseAdmin;
+
+  const now = new Date();
+  const startDate = now.toISOString().split('T')[0];
+  const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('twin_goals')
+    .insert({
+      user_id: userId,
+      title: title.substring(0, 200),
+      description: description?.substring(0, 500) || null,
+      category: 'balance',
+      metric_type: 'manual',
+      status: 'active',
+      start_date: startDate,
+      end_date: endDate,
+      duration_days: 30,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    log.warn('createManualGoal error', { error });
+    return { success: false, error: error.message };
+  }
+
+  log.info('Manual goal created', { title: data.title });
+  return { success: true, data };
+}
+
+/**
+ * Mark an active goal as completed.
+ */
+async function completeGoal(goalId, userId) {
+  const supabase = supabaseAdmin;
+
+  const { data: goal, error: fetchErr } = await supabase
+    .from('twin_goals')
+    .select('status')
+    .eq('id', goalId)
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchErr || !goal) {
+    return { success: false, error: 'Goal not found' };
+  }
+
+  if (goal.status !== 'active') {
+    return { success: false, error: `Cannot complete a goal with status '${goal.status}'` };
+  }
+
+  const { data, error } = await supabase
+    .from('twin_goals')
+    .update({ status: 'completed' })
+    .eq('id', goalId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    log.warn('completeGoal error', { error });
+    return { success: false, error: error.message };
+  }
+
+  log.info('Goal completed', { goalId });
+  return { success: true, data };
+}
+
 export {
   getUserGoals,
   getGoalWithProgress,
   acceptGoal,
   abandonGoal,
   dismissGoal,
+  createManualGoal,
+  completeGoal,
   getActiveGoalContext,
   getGoalSummary,
   extractMetricFromPlatformData,

@@ -389,15 +389,29 @@ export async function acceptGoal(id: string): Promise<void> {
 }
 
 export async function dismissGoal(id: string): Promise<void> {
-  await authFetch(`/goals/${id}/abandon`, { method: 'POST' });
+  await authFetch(`/goals/${id}/dismiss`, { method: 'POST' });
+}
+
+export async function completeGoal(id: string): Promise<void> {
+  await authFetch(`/goals/${id}/complete`, { method: 'POST' });
+}
+
+export async function createGoal(title: string, description?: string): Promise<Goal> {
+  const res = await authFetch('/goals', {
+    method: 'POST',
+    body: JSON.stringify({ title, description }),
+  });
+  const data = await res.json();
+  if (!data.success || !data.data) throw new Error(data.error || 'Failed to create goal');
+  return data.data as Goal;
 }
 
 // ── Insight feedback ──────────────────────────────────────────────────────────
 
 export async function rateInsight(id: string, helpful: boolean): Promise<void> {
-  await authFetch('/insights/insight-feedback', {
+  await authFetch(`/insights/${id}/feedback`, {
     method: 'POST',
-    body: JSON.stringify({ insightId: id, helpful }),
+    body: JSON.stringify({ rating: helpful ? 1 : -1 }),
   });
 }
 
@@ -412,6 +426,69 @@ export async function fetchPersonalityProfile(): Promise<PersonalityScores | nul
   } catch {
     return null;
   }
+}
+
+// ── Soul Interview ────────────────────────────────────────────────────────────
+
+export interface InterviewStatus {
+  isNew: boolean;
+  hasCalibration: boolean;
+  memoriesCount: number;
+}
+
+export interface InterviewMessage {
+  role: 'assistant' | 'user';
+  content: string;
+}
+
+export interface InterviewResponse {
+  done: boolean;
+  message: string;
+  questionNumber: number;
+  totalQuestions: number;
+  domainProgress: Record<string, { asked: number; covered: boolean }>;
+}
+
+export async function fetchInterviewStatus(): Promise<InterviewStatus> {
+  try {
+    const res = await authFetch('/onboarding/new-user-check');
+    if (!res.ok) return { isNew: false, hasCalibration: false, memoriesCount: 0 };
+    const data = await res.json();
+    return {
+      isNew: data.isNew ?? false,
+      hasCalibration: data.hasCalibration ?? false,
+      memoriesCount: data.memoriesCount ?? 0,
+    };
+  } catch {
+    return { isNew: false, hasCalibration: false, memoriesCount: 0 };
+  }
+}
+
+export async function sendInterviewMessage(opts: {
+  name: string;
+  history: InterviewMessage[];
+  questionNumber: number;
+  domainProgress: Record<string, { asked: number; covered: boolean }>;
+}): Promise<InterviewResponse> {
+  const res = await authFetch('/onboarding/calibrate', {
+    method: 'POST',
+    body: JSON.stringify({
+      enrichmentContext: { name: opts.name },
+      conversationHistory: opts.history,
+      history: opts.history,
+      questionNumber: opts.questionNumber,
+      domainProgress: opts.domainProgress,
+    }),
+  });
+  if (!res.ok) throw new Error('Interview request failed');
+  return res.json();
+}
+
+export async function completeInterview(history: InterviewMessage[]): Promise<void> {
+  await authFetch('/onboarding/calibrate', {
+    method: 'POST',
+    body: JSON.stringify({ forceComplete: true, history }),
+  }).catch(() => {});
 }
 
 // ── Manual sync trigger ───────────────────────────────────────────────────────

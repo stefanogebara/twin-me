@@ -86,7 +86,10 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
 
   return (
     <div className="space-y-8">
-      <SoulRichnessBar connectedPlatforms={activeConnections} />
+      <SoulRichnessBar connectedPlatforms={activeConnections.filter(p => {
+        const status = platformStatusData[p];
+        return !status?.tokenExpired && status?.status !== 'token_expired';
+      })} />
 
       {/* Connected Section */}
       {connectedServices.length > 0 && (

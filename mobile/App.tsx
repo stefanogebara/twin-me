@@ -28,6 +28,7 @@ import { MeScreen } from './src/screens/MeScreen';
 import { ConnectPlatformsScreen } from './src/screens/ConnectPlatformsScreen';
 import { WikiScreen } from './src/screens/WikiScreen';
 import { InsightsScreen } from './src/screens/InsightsScreen';
+import { SoulInterviewScreen } from './src/screens/SoulInterviewScreen';
 import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingScreen';
 import { COLORS, STORAGE_KEYS } from './src/constants';
 import { UsageStatsModule } from './src/native/UsageStatsModule';
@@ -43,6 +44,7 @@ const TAB_ICONS: Record<string, string> = {
   Home: '⊙',
   Chat: '◈',
   Me: '⊕',
+  Connect: '⊛',
 };
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
@@ -197,6 +199,17 @@ export default function App() {
       >
         {() => <MeScreen user={user!} onLogout={logout} />}
       </Tab.Screen>
+
+      <Tab.Screen
+        name="Connect"
+        options={{
+          title: 'Connect',
+          tabBarLabel: 'Connect',
+          tabBarIcon: ({ focused }) => <TabIcon label="Connect" focused={focused} />,
+        }}
+      >
+        {() => <ConnectPlatformsScreen user={user!} />}
+      </Tab.Screen>
     </Tab.Navigator>
   ), [user, logout]);
 
@@ -252,6 +265,9 @@ export default function App() {
           </Stack.Screen>
           <Stack.Screen name="Insights">
             {() => <InsightsScreen user={user!} />}
+          </Stack.Screen>
+          <Stack.Screen name="SoulInterview">
+            {() => <SoulInterviewScreen user={user!} />}
           </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>

@@ -30,8 +30,8 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
             Recently Playing
           </span>
           <div className="space-y-2">
-            {deduplicateTracks(insights.recentTracks).slice(0, 5).map((track, index) => (
-              <div key={index} className="py-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
+            {deduplicateTracks(insights.recentTracks).slice(0, 5).map((track) => (
+              <div key={`${track.name}-${track.artist}`} className="py-3" style={{ borderBottom: '1px solid var(--border-glass)' }}>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded flex items-center justify-center text-lg"
@@ -84,7 +84,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
               const maxPlays = insights.topArtistsWithPlays![0].plays;
               const barWidth = (artist.plays / maxPlays) * 100;
               return (
-                <div key={index} className="flex items-center gap-3">
+                <div key={artist.name} className="flex items-center gap-3">
                   <span
                     className="text-sm w-28 truncate"
                     style={{ color: colors.text }}
@@ -159,7 +159,7 @@ export const SpotifyCharts: React.FC<SpotifyChartsProps> = ({
             </div>
             <div className="flex-1 space-y-2">
               {insights.topGenres.slice(0, 5).map((genre, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div key={genre.genre} className="flex items-center gap-2">
                   <div
                     className="w-3 h-3 rounded-full"
                     style={{ backgroundColor: [colors.spotifyGreen, '#4ade80', '#60a5fa', '#a78bfa', '#fbbf24'][index % 5] }}

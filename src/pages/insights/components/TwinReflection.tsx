@@ -238,9 +238,9 @@ export const DataHighlight: React.FC<DataHighlightProps> = ({
         </span>
       </div>
       <div className="flex flex-wrap gap-2">
-        {items.slice(0, 5).map((item, index) => (
+        {items.slice(0, 5).map((item) => (
           <span
-            key={index}
+            key={item}
             className="px-3 py-1.5 rounded-full text-sm"
             style={{
               backgroundColor: colors.itemBg,
@@ -417,13 +417,13 @@ export const EventCard: React.FC<EventCardProps> = ({
   className = ''
 }) => {
   const typeConfig: Record<string, { color: string; icon: string; label: string }> = {
-    meeting: { color: '#4285F4', icon: '👥', label: 'Meeting' },
-    focus: { color: '#34A853', icon: '🎯', label: 'Focus' },
-    personal: { color: '#EA4335', icon: '✨', label: 'Personal' },
-    presentation: { color: '#FBBC04', icon: '📊', label: 'Presentation' },
-    workout: { color: '#EA4335', icon: '💪', label: 'Workout' },
-    interview: { color: '#4285F4', icon: '🎤', label: 'Interview' },
-    other: { color: '#9AA0A6', icon: '📅', label: 'Event' }
+    meeting: { color: '#4285F4', icon: 'M', label: 'Meeting' },
+    focus: { color: '#34A853', icon: 'F', label: 'Focus' },
+    personal: { color: '#EA4335', icon: 'P', label: 'Personal' },
+    presentation: { color: '#FBBC04', icon: 'PR', label: 'Presentation' },
+    workout: { color: '#EA4335', icon: 'W', label: 'Workout' },
+    interview: { color: '#4285F4', icon: 'I', label: 'Interview' },
+    other: { color: '#9AA0A6', icon: '·', label: 'Event' }
   };
 
   // Default to 'other' if type is not recognized
@@ -449,7 +449,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: `${config.color}20` }}
       >
-        <span style={{ fontSize: '18px' }}>{config.icon}</span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: config.color, fontFamily: 'Geist, Inter, sans-serif' }}>{config.icon}</span>
       </div>
 
       <div className="flex-1 min-w-0">

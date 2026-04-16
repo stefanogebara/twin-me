@@ -7,3 +7,4 @@ export { SoulSignatureRevealScreen } from './SoulSignatureRevealScreen';
 export { ConnectPlatformsScreen } from './ConnectPlatformsScreen';
 export { WikiScreen } from './WikiScreen';
 export { InsightsScreen } from './InsightsScreen';
+export { SoulInterviewScreen } from './SoulInterviewScreen';

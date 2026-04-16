@@ -21,6 +21,8 @@ import {
   acceptGoal,
   abandonGoal,
   dismissGoal,
+  createManualGoal,
+  completeGoal,
   getGoalSummary,
 } from '../services/goalTrackingService.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
@@ -163,6 +165,56 @@ router.post('/:id/dismiss', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('Dismiss error', { error });
     res.status(500).json({ success: false, error: 'Failed to dismiss goal' });
+  }
+});
+
+/**
+ * POST /api/goals - Create a manual goal (immediately active)
+ */
+router.post('/', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { title, description } = req.body;
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'title is required' });
+    }
+
+    const result = await createManualGoal(userId, title.trim(), description?.trim() || null);
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.status(201).json({ success: true, data: result.data });
+  } catch (error) {
+    log.error('Create goal error', { error });
+    res.status(500).json({ success: false, error: 'Failed to create goal' });
+  }
+});
+
+/**
+ * POST /api/goals/:id/complete - Mark an active goal as completed
+ */
+router.post('/:id/complete', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    if (!id || !UUID_RE.test(id)) {
+      return res.status(400).json({ success: false, error: 'Invalid goal ID' });
+    }
+
+    const result = await completeGoal(id, userId);
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({ success: true, data: result.data });
+  } catch (error) {
+    log.error('Complete goal error', { error });
+    res.status(500).json({ success: false, error: 'Failed to complete goal' });
   }
 });
 

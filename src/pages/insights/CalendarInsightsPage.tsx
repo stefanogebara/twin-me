@@ -339,8 +339,8 @@ const CalendarInsightsPage: React.FC = () => {
             How You Spend Your Time
           </h3>
           <div className="space-y-3">
-            {insights.eventTypeDistribution.map((item, index) => (
-              <div key={index} className="flex items-center gap-3">
+            {insights.eventTypeDistribution.map((item) => (
+              <div key={item.type} className="flex items-center gap-3">
                 <span className="text-sm w-24" style={{ color: colors.text }}>
                   {item.type}
                 </span>

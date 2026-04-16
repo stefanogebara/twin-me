@@ -432,6 +432,22 @@ export function MeScreen({ user, onLogout }: Props) {
         </View>
       </TouchableOpacity>
 
+      {/* ── Soul interview ── */}
+      <Text style={styles.sectionLabel}>Soul interview</Text>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => (navigation as ReturnType<typeof useNavigation> & { navigate: (screen: string) => void }).navigate('SoulInterview')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.wikiRow}>
+          <View style={styles.wikiRowContent}>
+            <Text style={styles.wikiRowTitle}>Tell your twin about yourself</Text>
+            <Text style={styles.wikiRowDescription}>Conversational Q&A across 5 domains</Text>
+          </View>
+          <Text style={styles.wikiRowArrow}>→</Text>
+        </View>
+      </TouchableOpacity>
+
       {/* ── Phone activity insights ── */}
       {activityInsights && activityInsights.insights.length > 0 && (
         <>
