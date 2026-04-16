@@ -17,18 +17,52 @@ const RATE_LIMIT_WINDOW_S = 15 * 60; // 15 minutes in seconds
 const MIN_RESPONSE_DELAY_MS = 800; // Prevent timing attacks / email enumeration
 
 /**
+ * In-memory rate limit fallback — used only when Redis is unavailable.
+ * Weaker than Redis (per-instance counters, resets on cold start), but fails OPEN
+ * so the scan endpoint stays functional when Redis is missing/down instead of
+ * 429-ing every caller. Abuse protection is degraded, not absent: each Vercel
+ * instance still caps at RATE_LIMIT_MAX per window.
+ */
+const memoryRateLimits = new Map(); // ip -> { count, expiresAt }
+const MEMORY_CLEANUP_THRESHOLD = 1000; // sweep expired entries when map grows past this
+let memoryFallbackWarned = false;
+
+function rateLimitInMemory(ip) {
+  const now = Date.now();
+  const entry = memoryRateLimits.get(ip);
+
+  if (!entry || entry.expiresAt < now) {
+    memoryRateLimits.set(ip, { count: 1, expiresAt: now + RATE_LIMIT_WINDOW_S * 1000 });
+
+    // Opportunistic cleanup to bound memory growth
+    if (memoryRateLimits.size > MEMORY_CLEANUP_THRESHOLD) {
+      for (const [key, val] of memoryRateLimits.entries()) {
+        if (val.expiresAt < now) memoryRateLimits.delete(key);
+      }
+    }
+    return true;
+  }
+
+  entry.count += 1;
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+/**
  * Check rate limit for discovery/scan endpoint.
- * Uses Redis INCR with TTL for cross-instance persistence.
- * Fails CLOSED when Redis is unavailable — no in-memory fallback that resets on cold start.
+ * Primary: Redis INCR with TTL for cross-instance persistence.
+ * Fallback: in-memory per-instance counter when Redis is unavailable.
  * @param {string} ip - Client IP address
- * @returns {Promise<boolean>} true if allowed, false if rate limited or Redis unavailable
+ * @returns {Promise<boolean>} true if allowed, false if rate limited
  */
 async function rateLimit(ip) {
   try {
     const client = getRedisClient();
     if (!client || !isRedisAvailable()) {
-      log.warn('Redis unavailable — rate limiting scan endpoint (fail-closed)');
-      return false;
+      if (!memoryFallbackWarned) {
+        log.warn('Redis unavailable — using in-memory rate limit fallback (weaker: per-instance, resets on cold start)');
+        memoryFallbackWarned = true;
+      }
+      return rateLimitInMemory(ip);
     }
     const key = `ratelimit:scan:${ip}`;
     const count = await client.incr(key);
@@ -37,8 +71,8 @@ async function rateLimit(ip) {
     }
     return count <= RATE_LIMIT_MAX;
   } catch (redisErr) {
-    log.warn('Redis rate limit error — failing closed:', redisErr.message);
-    return false;
+    log.warn('Redis rate limit error — using in-memory fallback:', redisErr.message);
+    return rateLimitInMemory(ip);
   }
 }
 
