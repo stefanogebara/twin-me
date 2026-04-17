@@ -19,6 +19,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { seedPatternFromInsight } from '../services/twinPatternService.js';
 import { get as redisGet, set as redisSet } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
+import { generateProactiveInsights } from '../services/proactiveInsights.js';
 
 const log = createLogger('PlatformInsights');
 
@@ -216,6 +217,54 @@ router.get('/proactive', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('GET /proactive error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch proactive insights' });
+  }
+});
+
+/**
+ * POST /api/insights/proactive/generate
+ * On-demand proactive insight generation.
+ *
+ * Called by the onboarding flow immediately after a user connects their first
+ * platform. The OAuth callback used to chain this inline, but the LLM call
+ * takes ~40s which would blow the 60s Vercel maxDuration when combined with
+ * extraction + ingestion. Moving it to a user-initiated request gives the
+ * browser a spinner to show and avoids the timeout.
+ *
+ * Idempotent with a 10-minute window: if fresh insights already exist,
+ * returns immediately without re-triggering the LLM. Prevents double-clicks,
+ * accidental page refreshes, or retry-on-slow-network from duplicating cost.
+ *
+ * Must be registered BEFORE GET /:platform to avoid being shadowed.
+ */
+router.post('/proactive/generate', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // Idempotency: skip regeneration if any insight was created in last 10 min.
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: existing, error: checkErr } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id')
+      .eq('user_id', userId)
+      .gte('created_at', tenMinutesAgo)
+      .limit(1);
+
+    if (checkErr) {
+      log.warn('Idempotency check failed, proceeding with generation', { error: checkErr.message });
+    }
+
+    if (existing && existing.length > 0) {
+      log.info('Fresh insights exist, skipping regeneration', { userId });
+      return res.json({ success: true, cached: true });
+    }
+
+    // ~40s LLM call. Client should show a spinner.
+    await generateProactiveInsights(userId);
+    log.info('On-demand insight generation complete', { userId });
+
+    res.json({ success: true, cached: false });
+  } catch (error) {
+    log.error('POST /proactive/generate error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to generate insights' });
   }
 });
 

@@ -102,6 +102,15 @@ const InstantTwinOnboarding = () => {
       });
       setConnectingProvider(null);
       setTimeout(() => refetchPlatformStatus(), 1500);
+
+      // Fire-and-forget: trigger proactive insight generation for this user.
+      // The OAuth callback handles extraction + observation ingestion inline,
+      // but insight generation (~40s LLM call) is deferred to avoid exceeding
+      // Vercel's 60s maxDuration. Endpoint is idempotent over 10 min so
+      // accidental double-invocations (page refresh, HMR) won't duplicate cost.
+      authFetch('/api/insights/proactive/generate', { method: 'POST' }).catch(() => {
+        // Non-fatal — hourly `deliver-insights` cron is the backstop.
+      });
     }
 
     const handleOAuthMessage = (event: MessageEvent) => {
@@ -117,6 +126,11 @@ const InstantTwinOnboarding = () => {
         });
         setConnectingProvider(null);
         setTimeout(() => refetchPlatformStatus(), 1500);
+
+        // Mirror of redirect-flow handling above: trigger insight generation.
+        // Idempotent 10-min window on the server prevents duplicate cost when
+        // both flows fire for the same user.
+        authFetch('/api/insights/proactive/generate', { method: 'POST' }).catch(() => {});
       }
     };
 
