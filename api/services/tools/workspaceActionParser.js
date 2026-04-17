@@ -91,6 +91,30 @@ export async function buildWorkspaceActionsPrompt(userId) {
 
   if (workspaceTools.length === 0) return null;
 
+  // Fetch user's timezone for the prompt so the LLM uses local times
+  let userTimezone = 'UTC';
+  let localNow = '';
+  let tomorrowDate = '';
+  try {
+    const { supabaseAdmin } = await import('../database.js');
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('timezone')
+      .eq('id', userId)
+      .single();
+    if (data?.timezone) {
+      userTimezone = data.timezone;
+    }
+  } catch { /* non-fatal */ }
+
+  try {
+    const now = new Date();
+    localNow = now.toLocaleString('en-CA', { timeZone: userTimezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(', ', 'T');
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrowDate = tomorrow.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD
+  } catch { /* non-fatal */ }
+
   const toolLines = workspaceTools.map(t => {
     const paramDesc = t.parameters?.properties
       ? Object.entries(t.parameters.properties)
@@ -105,6 +129,10 @@ export async function buildWorkspaceActionsPrompt(userId) {
 
   return `[AVAILABLE ACTIONS — Google Workspace]
 You have access to the user's Google Workspace. When answering questions about their emails, calendar, files, or contacts, you can look up real data.
+
+TIMEZONE CONTEXT: The user is in ${userTimezone}. Current local time: ${localNow}. Tomorrow's date: ${tomorrowDate}.
+
+CALENDAR DATETIME RULE: When creating or modifying events, ALWAYS use local time WITHOUT a Z suffix. Example for 3pm tomorrow: "${tomorrowDate}T15:00:00" (NOT "${tomorrowDate}T15:00:00Z"). The timezone (${userTimezone}) is applied automatically — never append Z or a UTC offset.
 
 To use an action, include it in your response EXACTLY like this:
 [ACTION: tool_name key="value"]
@@ -130,10 +158,10 @@ Examples:
   User: "Find that document about the project proposal"
   You: [ACTION: drive_search query="project proposal"]
 
-  User: "Create a meeting with John tomorrow at 2pm"
+  User: "Create a meeting with John tomorrow at 2pm" (user is in ${userTimezone})
   You: I'll create "Meeting with John" for tomorrow at 2:00 PM. Should I go ahead?
   User: "yes"
-  You: Done! [ACTION: calendar_create summary="Meeting with John" start="2026-03-27T14:00:00" end="2026-03-27T15:00:00"]
+  You: Done! [ACTION: calendar_create summary="Meeting with John" start="${tomorrowDate}T14:00:00" end="${tomorrowDate}T15:00:00"]
 
   User: "Draft an email to sarah@example.com about the project update"
   You: I'll draft that for you. [ACTION: gmail_draft to="sarah@example.com" subject="Project Update" body="Hi Sarah, ..."]`;

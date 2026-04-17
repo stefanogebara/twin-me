@@ -415,13 +415,26 @@ export async function archiveEmail(userId, messageId) {
 
 /**
  * Create a calendar event.
+ * @param {string} userId
+ * @param {Object} params
+ * @param {string} params.summary - Event title
+ * @param {string} [params.description]
+ * @param {string|Object} params.start - ISO 8601 datetime or Calendar event object
+ * @param {string|Object} [params.end]
+ * @param {string[]} [params.attendees]
+ * @param {string} [params.location]
+ * @param {Object} [params.reminders]
+ * @param {string} [params.userTimezone] - IANA timezone (e.g. "Europe/Paris"). Defaults to UTC.
  */
-export async function createEvent(userId, { summary, description, start, end, attendees, location, reminders }) {
+export async function createEvent(userId, { summary, description, start, end, attendees, location, reminders, userTimezone }) {
   if (!summary) return { success: false, error: 'Event summary (title) is required' };
   if (!start) return { success: false, error: 'Start time is required' };
 
   const auth = await getAuthHeaders(userId, 'google_calendar');
   if (!auth.success) return { success: false, error: auth.error };
+
+  // Use the provided timezone, or fall back to UTC
+  const tz = userTimezone || 'UTC';
 
   try {
     const event = {
@@ -429,11 +442,11 @@ export async function createEvent(userId, { summary, description, start, end, at
       description: description || undefined,
       location: location || undefined,
       start: typeof start === 'string'
-        ? (start.length <= 10 ? { date: start } : { dateTime: start, timeZone: 'UTC' })
+        ? (start.length <= 10 ? { date: start } : { dateTime: start, timeZone: tz })
         : start,
       end: end
         ? (typeof end === 'string'
-          ? (end.length <= 10 ? { date: end } : { dateTime: end, timeZone: 'UTC' })
+          ? (end.length <= 10 ? { date: end } : { dateTime: end, timeZone: tz })
           : end)
         : undefined,
     };
@@ -441,7 +454,7 @@ export async function createEvent(userId, { summary, description, start, end, at
     // Default end to 1 hour after start if not provided and start is dateTime
     if (!event.end && event.start.dateTime) {
       const endDate = new Date(new Date(event.start.dateTime).getTime() + 60 * 60 * 1000);
-      event.end = { dateTime: endDate.toISOString(), timeZone: 'UTC' };
+      event.end = { dateTime: endDate.toISOString(), timeZone: tz };
     } else if (!event.end && event.start.date) {
       event.end = { date: event.start.date };
     }
@@ -486,18 +499,21 @@ export async function modifyEvent(userId, eventId, updates) {
   const auth = await getAuthHeaders(userId, 'google_calendar');
   if (!auth.success) return { success: false, error: auth.error };
 
+  const tz = updates.userTimezone || 'UTC';
+
   try {
     // Normalize start/end if provided as strings
     const patch = { ...updates };
+    delete patch.userTimezone; // Don't send this to Google API
     if (typeof patch.start === 'string') {
       patch.start = patch.start.length <= 10
         ? { date: patch.start }
-        : { dateTime: patch.start, timeZone: 'UTC' };
+        : { dateTime: patch.start, timeZone: tz };
     }
     if (typeof patch.end === 'string') {
       patch.end = patch.end.length <= 10
         ? { date: patch.end }
-        : { dateTime: patch.end, timeZone: 'UTC' };
+        : { dateTime: patch.end, timeZone: tz };
     }
     if (patch.attendees && !Array.isArray(patch.attendees)) {
       patch.attendees = [patch.attendees].map(email =>

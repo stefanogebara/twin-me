@@ -309,17 +309,34 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   // Round minutes to 15-min intervals for KV-cache friendliness
   // (exact minute busts the cache on every call; 15-min granularity is plenty for the twin)
   const roundedMinute = Math.floor(now.getMinutes() / 15) * 15;
-  let temporalLine = `Right now: ${dayOfWeek} ${timeOfDay} (~${hour}:${String(roundedMinute).padStart(2, '0')}), ${season}`;
+
+  // Full calendar date in user's timezone (YYYY-MM-DD) — critical for correct "tomorrow" calculations
+  const tz = userLocation?.timezone || 'UTC';
+  const localDateStr = now.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+  const tomorrowDate = (() => {
+    // Compute tomorrow in the user's timezone by advancing one day from their local midnight
+    const parts = localDateStr.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  let temporalLine = `Right now: ${dayOfWeek} ${localDateStr} ${timeOfDay} (~${hour}:${String(roundedMinute).padStart(2, '0')}), ${season}. Tomorrow: ${tomorrowDate}.`;
 
   if (userLocation) {
     if (userLocation.sun_phase) {
-      temporalLine += `. Sky: ${userLocation.sun_phase}`;
+      temporalLine += ` Sky: ${userLocation.sun_phase}.`;
     }
     if (userLocation.timezone) {
       const city = userLocation.timezone.split('/').pop()?.replace(/_/g, ' ');
-      if (city) temporalLine += ` (${city} time)`;
+      if (city) temporalLine += ` Timezone: ${userLocation.timezone} (${city}).`;
     }
   }
+
+  // Scheduling hint so the LLM always uses correct timezone-aware datetimes when calling calendar tools
+  if (userLocation?.timezone) {
+    temporalLine += ` When scheduling events, use LOCAL time (no Z suffix) — e.g., "${tomorrowDate}T15:00:00" for 3pm tomorrow.`;
+  }
+
   dynamicContext += `\n${temporalLine}`;
 
   // === COMPILED KNOWLEDGE BASE (LLM Wiki — pre-compiled, cross-referenced domain pages) ===
@@ -472,7 +489,8 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       if (cal.todayEvents?.length > 0) {
         const eventCount = cal.todayEvents.length;
         dynamicContext += ` ${eventCount} thing${eventCount > 1 ? 's' : ''} left today: ${cal.todayEvents.map(e => {
-          const startTime = e.start ? new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+          // Display event times in the user's local timezone, not server time
+          const startTime = e.start ? new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }) : '';
           return startTime ? `${e.summary} at ${startTime}` : e.summary;
         }).join(', ')}.`;
         if (eventCount >= 4) dynamicContext += ` Packed day.`;

@@ -214,10 +214,46 @@ export function registerGoogleWorkspaceTools() {
     skillName: 'google_calendar_actions',
     executor: async (userId) => {
       const { getEvents } = await import('../googleWorkspaceActions.js');
+      // Compute today's boundaries in the user's local timezone
+      let userTimezone = 'UTC';
+      try {
+        const { supabaseAdmin } = await import('../database.js');
+        const { data } = await supabaseAdmin
+          .from('users')
+          .select('timezone')
+          .eq('id', userId)
+          .single();
+        if (data?.timezone) userTimezone = data.timezone;
+      } catch { /* non-fatal — falls back to UTC */ }
+
       const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
-      return getEvents(userId, { timeMin: todayStart, timeMax: todayEnd });
+      // Get the user's local date string (YYYY-MM-DD) then build midnight boundaries in that TZ
+      const localDateStr = now.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD
+      const todayStart = new Date(`${localDateStr}T00:00:00`);
+      // Shift to actual UTC by computing the timezone offset for that date
+      const todayStartUTC = new Date(
+        todayStart.toLocaleString('en-US', { timeZone: 'UTC' }) // parse as UTC
+      );
+      // Simpler: just use the local date string to build RFC3339 boundaries with the timezone offset
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: userTimezone,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        timeZoneName: 'longOffset',
+        hour12: false,
+      });
+      // Build ISO boundary strings that Google Calendar API will interpret correctly
+      // by computing the UTC offset for the user's timezone
+      const offsetMatch = formatter.format(now).match(/GMT([+-]\d{2}:\d{2})/);
+      const offset = offsetMatch ? offsetMatch[1] : '+00:00';
+      const todayStartISO = `${localDateStr}T00:00:00${offset}`;
+      const [y, m, d] = localDateStr.split('-').map(Number);
+      const tomorrowDateStr = (() => {
+        const t = new Date(y, m - 1, d + 1);
+        return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+      })();
+      const todayEndISO = `${tomorrowDateStr}T00:00:00${offset}`;
+      return getEvents(userId, { timeMin: todayStartISO, timeMax: todayEndISO });
     },
   });
 
@@ -275,14 +311,14 @@ export function registerGoogleWorkspaceTools() {
   registerTool({
     name: 'calendar_create',
     platform: 'google_calendar',
-    description: 'Create a new calendar event.',
+    description: 'Create a new calendar event. Always use the user\'s local time in datetime strings — NOT UTC. The timezone will be applied automatically.',
     category: 'schedule',
     parameters: {
       type: 'object',
       properties: {
         summary: { type: 'string', description: 'Event title' },
-        start: { type: 'string', description: 'Start time (ISO 8601, e.g., "2026-03-25T10:00:00Z")' },
-        end: { type: 'string', description: 'End time (ISO 8601, defaults to 1 hour after start)' },
+        start: { type: 'string', description: 'Start time in LOCAL time (ISO 8601 without Z, e.g., "2026-04-18T15:00:00" for 3pm local). Do NOT append Z — timezone is set automatically.' },
+        end: { type: 'string', description: 'End time in LOCAL time (ISO 8601 without Z, defaults to 1 hour after start)' },
         description: { type: 'string', description: 'Event description (optional)' },
         attendees: { type: 'string', description: 'Comma-separated attendee emails (optional)' },
         location: { type: 'string', description: 'Event location (optional)' },
@@ -294,10 +330,23 @@ export function registerGoogleWorkspaceTools() {
     skillName: 'google_calendar_actions',
     executor: async (userId, params) => {
       const { createEvent } = await import('../googleWorkspaceActions.js');
+      const { supabaseAdmin } = await import('../database.js');
       const parsed = { ...params };
       if (typeof parsed.attendees === 'string') {
         parsed.attendees = parsed.attendees.split(',').map(e => e.trim()).filter(Boolean);
       }
+      // Fetch user's timezone from the database and pass it to createEvent
+      // so Google Calendar stores the event in the correct local time zone
+      try {
+        const { data } = await supabaseAdmin
+          .from('users')
+          .select('timezone')
+          .eq('id', userId)
+          .single();
+        if (data?.timezone) {
+          parsed.userTimezone = data.timezone;
+        }
+      } catch { /* non-fatal — falls back to UTC */ }
       return createEvent(userId, parsed);
     },
   });
@@ -309,15 +358,15 @@ export function registerGoogleWorkspaceTools() {
   registerTool({
     name: 'calendar_modify_event',
     platform: 'google_calendar',
-    description: 'Modify an existing calendar event by event ID.',
+    description: 'Modify an existing calendar event by event ID. Use LOCAL time in datetime strings.',
     category: 'schedule',
     parameters: {
       type: 'object',
       properties: {
         eventId: { type: 'string', description: 'Calendar event ID to modify' },
         summary: { type: 'string', description: 'New event title (optional)' },
-        start: { type: 'string', description: 'New start time (ISO 8601, optional)' },
-        end: { type: 'string', description: 'New end time (ISO 8601, optional)' },
+        start: { type: 'string', description: 'New start time in LOCAL time (ISO 8601 without Z, optional)' },
+        end: { type: 'string', description: 'New end time in LOCAL time (ISO 8601 without Z, optional)' },
         location: { type: 'string', description: 'New location (optional)' },
       },
       required: ['eventId'],
@@ -327,7 +376,19 @@ export function registerGoogleWorkspaceTools() {
     skillName: 'google_calendar_actions',
     executor: async (userId, params) => {
       const { modifyEvent } = await import('../googleWorkspaceActions.js');
+      const { supabaseAdmin } = await import('../database.js');
       const { eventId, ...updates } = params;
+      // Fetch user's timezone and pass it through so datetimes are interpreted correctly
+      try {
+        const { data } = await supabaseAdmin
+          .from('users')
+          .select('timezone')
+          .eq('id', userId)
+          .single();
+        if (data?.timezone) {
+          updates.userTimezone = data.timezone;
+        }
+      } catch { /* non-fatal */ }
       return modifyEvent(userId, eventId, updates);
     },
   });

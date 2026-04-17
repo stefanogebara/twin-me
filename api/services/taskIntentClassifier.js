@@ -144,10 +144,27 @@ export function classifyTaskIntent(message) {
  * @param {string} message - The user's original message
  */
 export async function parseAndCreateReminder(userId, message) {
-  const today = new Date().toISOString().split('T')[0];
-  const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
+  // Fetch the user's timezone from the database for correct local-time parsing
+  let userTimezone = 'UTC';
+  try {
+    const { supabaseAdmin } = await import('./database.js');
+    const { data } = await supabaseAdmin
+      .from('users')
+      .select('timezone')
+      .eq('id', userId)
+      .single();
+    if (data?.timezone) userTimezone = data.timezone;
+  } catch { /* non-fatal — fall back to UTC */ }
 
-  const prompt = `Extract the reminder details from this message. Today is ${dayOfWeek}, ${today}.
+  const now = new Date();
+  const today = now.toLocaleDateString('en-CA', { timeZone: userTimezone }); // YYYY-MM-DD in user's TZ
+  const dayOfWeek = now.toLocaleDateString('en-US', { timeZone: userTimezone, weekday: 'long' });
+  const localHour = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: userTimezone, hour: 'numeric', hour12: false }).format(now),
+    10
+  );
+
+  const prompt = `Extract the reminder details from this message. Today is ${dayOfWeek}, ${today}. The user's timezone is ${userTimezone} (current local hour: ${localHour}).
 
 Message: "${message}"
 
@@ -156,15 +173,16 @@ Respond with VALID JSON only (no markdown):
   "what": "the thing to remember/do",
   "when_description": "human-readable time (e.g., 'Monday morning', 'in 2 hours', 'tomorrow at 9am')",
   "trigger_type": "time" or "condition",
-  "iso_datetime": "ISO 8601 datetime if time-based (e.g., 2026-03-23T09:00:00Z), or null if condition-based",
+  "iso_datetime": "ISO 8601 datetime in the user's LOCAL time (no Z suffix, e.g., 2026-04-18T09:00:00), or null if condition-based",
   "condition_keywords": ["keyword1", "keyword2"] if condition-based (e.g., "when I mention X"), or null
 }
 
 Rules:
-- If the user says "Monday" with no time, default to 09:00 local time (UTC-3 for São Paulo)
-- "tomorrow" means the next calendar day
-- "next week" means next Monday
-- "in X hours/minutes" → compute from now
+- If the user says "Monday" with no time, default to 09:00 in their local timezone (${userTimezone})
+- "tomorrow" means the next calendar day in their timezone
+- "next week" means next Monday in their timezone
+- "in X hours/minutes" → compute from now in their timezone
+- Output datetime in LOCAL time WITHOUT a Z suffix (the system will apply ${userTimezone} automatically)
 - If the trigger is "when I mention X" or "next time X comes up", use trigger_type "condition" with keywords`;
 
   try {
