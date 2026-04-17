@@ -453,7 +453,10 @@ const IdentityPage: React.FC = () => {
   // ── Suggestion pill click ──────────────────────────────────────────────
 
   const handleSuggestion = (message: string) => {
-    navigate('/talk-to-twin', { state: { prefill: message } });
+    // Use a query param rather than navigate(state) to work around a pre-existing
+    // infinite-render crash in TalkToTwin when location.state is non-null.
+    // TalkToTwin reads ?prefill= and clears the param after applying.
+    navigate(`/talk-to-twin?prefill=${encodeURIComponent(message)}`);
   };
 
   // ── Greeting ────────────────────────────────────────────────────────

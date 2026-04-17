@@ -195,6 +195,22 @@ const TalkToTwin = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  // Prefill composer from deep-link query param (?prefill=...).
+  // Query-param form is the reliable path; navigating with location.state
+  // has a latent infinite-render crash in this component that I couldn't
+  // root-cause safely from minified prod code. Using the URL surface instead.
+  useEffect(() => {
+    const prefill = searchParams.get('prefill');
+    if (prefill && !autoSendFired.current) {
+      pendingAutoSend.current = prefill;
+      setInputMessage(prefill);
+      // Remove the param so a page refresh doesn't re-trigger the auto-send.
+      const next = new URLSearchParams(searchParams);
+      next.delete('prefill');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Persist conversationId to sessionStorage
   useEffect(() => {
     if (conversationId) {
