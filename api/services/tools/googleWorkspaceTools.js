@@ -66,7 +66,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 1,
-    skillName: 'google_gmail_actions',
+    skillName: 'communications_actions',
     executor: async (userId, params) => {
       const { getEmails } = await import('../googleWorkspaceActions.js');
       return getEmails(userId, params);
@@ -87,7 +87,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 1,
-    skillName: 'google_gmail_actions',
+    skillName: 'communications_actions',
     executor: async (userId, params) => {
       const { getEmail } = await import('../googleWorkspaceActions.js');
       return getEmail(userId, params.messageId);
@@ -114,12 +114,12 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 2,
-    skillName: 'google_gmail_actions',
+    skillName: 'communications_actions',
     executor: async (userId, params) => {
       // Try personality-aware draft from Communications department executor.
       // Only attempt if: autonomy level permits AND user has a personality profile.
       try {
-        const level = await getAutonomyBySkillName(userId, 'google_gmail_actions');
+        const level = await getAutonomyBySkillName(userId, 'communications_actions');
         if (level >= 2) {
           const hasProfile = await hasUserPersonalityProfile(userId);
           if (hasProfile) {
@@ -170,7 +170,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 3,
-    skillName: 'google_gmail_actions',
+    skillName: 'communications_actions',
     executor: async (userId, params) => {
       const { sendEmail } = await import('../googleWorkspaceActions.js');
       return sendEmail(userId, params);
@@ -192,7 +192,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 3,
-    skillName: 'google_gmail_actions',
+    skillName: 'communications_actions',
     executor: async (userId, params) => {
       const { replyToEmail } = await import('../googleWorkspaceActions.js');
       return replyToEmail(userId, params.messageId, { body: params.body });
@@ -211,7 +211,7 @@ export function registerGoogleWorkspaceTools() {
     parameters: { type: 'object', properties: {} },
     requiresConnection: true,
     minAutonomyLevel: 1,
-    skillName: 'google_calendar_actions',
+    skillName: 'scheduling_actions',
     executor: async (userId) => {
       const { getEvents } = await import('../googleWorkspaceActions.js');
       // Compute today's boundaries in the user's local timezone
@@ -270,7 +270,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 1,
-    skillName: 'google_calendar_actions',
+    skillName: 'scheduling_actions',
     executor: async (userId, params) => {
       const { getEvents } = await import('../googleWorkspaceActions.js');
       const days = Math.min(params?.days || 7, 30);
@@ -297,7 +297,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 1,
-    skillName: 'google_calendar_actions',
+    skillName: 'scheduling_actions',
     executor: async (userId, params) => {
       const { findFreeSlots } = await import('../googleWorkspaceActions.js');
       return findFreeSlots(userId, params);
@@ -327,7 +327,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 2,
-    skillName: 'google_calendar_actions',
+    skillName: 'scheduling_actions',
     executor: async (userId, params) => {
       const { createEvent } = await import('../googleWorkspaceActions.js');
       const { supabaseAdmin } = await import('../database.js');
@@ -373,7 +373,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 3,
-    skillName: 'google_calendar_actions',
+    skillName: 'scheduling_actions',
     executor: async (userId, params) => {
       const { modifyEvent } = await import('../googleWorkspaceActions.js');
       const { supabaseAdmin } = await import('../database.js');
@@ -407,7 +407,7 @@ export function registerGoogleWorkspaceTools() {
     },
     requiresConnection: true,
     minAutonomyLevel: 3,
-    skillName: 'google_calendar_actions',
+    skillName: 'scheduling_actions',
     executor: async (userId, params) => {
       const { deleteEvent } = await import('../googleWorkspaceActions.js');
       return deleteEvent(userId, params.eventId);
