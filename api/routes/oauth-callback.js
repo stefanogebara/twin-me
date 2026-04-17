@@ -15,6 +15,8 @@ import {
 import { encryptToken, decryptToken, decryptState } from '../services/encryption.js';
 import { createLogger } from '../services/logger.js';
 import { enrichGoogleProfileInBackground } from '../services/enrichment/googleGaiaProvider.js';
+import { runPostOnboardingIngestion } from '../services/observationIngestion.js';
+import { generateProactiveInsights } from '../services/proactiveInsights.js';
 
 const log = createLogger('OAuthCallback');
 
@@ -518,6 +520,28 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
       SET last_sync = NOW(), last_sync_status = 'success', total_synced = total_synced + $1
       WHERE id = $2
     `, [result.itemsExtracted || 0, connectorId]);
+
+    // Chain observation ingestion (platform_data -> user_memories) so the user
+    // has something in their memory stream by the time they land on the next
+    // page, instead of waiting for the 30-minute cron.
+    // Uses runPostOnboardingIngestion which is purpose-built for single-user
+    // post-OAuth ingestion (covers both legacy platform_connections and Nango).
+    try {
+      const result = await runPostOnboardingIngestion(userId);
+      log.info(`Post-onboarding ingestion complete after ${provider} connect`, { userId, observationsStored: result?.observationsStored });
+    } catch (ingestErr) {
+      log.warn(`Inline post-onboarding ingestion failed after ${provider} connect (non-fatal):`, ingestErr.message);
+    }
+
+    // Chain proactive insight generation so the onboarding page can show
+    // 1-3 real insights immediately instead of waiting for the hourly cron.
+    // Non-fatal on failure; user still has observations in memory stream.
+    try {
+      await generateProactiveInsights(userId);
+      log.info(`Proactive insights generated inline after ${provider} connect for user ${userId}`);
+    } catch (insightErr) {
+      log.warn(`Inline insight generation failed after ${provider} connect (non-fatal):`, insightErr.message);
+    }
 
   } catch (error) {
     log.error(`Background extraction failed for ${provider}:`, error);
