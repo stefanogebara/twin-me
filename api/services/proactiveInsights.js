@@ -124,6 +124,7 @@ const CATEGORY_COOLDOWN_HOURS = {
   evening_recap: 20,
   email_triage: 6,
   wiki_lint: 24, // Wiki lint findings: max 1 per 24h
+  meeting_prep: 4, // Meeting briefings: max 1 per event per 4h
 };
 const DEFAULT_CATEGORY_COOLDOWN = 4;
 

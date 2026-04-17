@@ -14,8 +14,11 @@
 
 import { executeTool, getAvailableTools } from '../toolRegistry.js';
 import { GOOGLE_WORKSPACE_TOOL_NAMES } from './googleWorkspaceTools.js';
+import { EXTENDED_TOOL_NAMES } from './extendedTools.js';
 import { logAgentAction } from '../autonomyService.js';
 import { createLogger } from '../logger.js';
+
+const ALL_ACTION_TOOL_NAMES = [...GOOGLE_WORKSPACE_TOOL_NAMES, ...EXTENDED_TOOL_NAMES];
 
 const log = createLogger('WorkspaceActionParser');
 
@@ -36,6 +39,8 @@ const WRITE_TOOLS = Object.freeze([
   'sheets_create',
   'sheets_write',
   'drive_create_file',
+  'spotify_queue',
+  'spotify_play_track',
 ]);
 
 /**
@@ -86,7 +91,7 @@ export async function getConnectedWorkspacePlatforms(userId) {
  */
 export async function buildWorkspaceActionsPrompt(userId) {
   const allTools = await getAvailableTools(userId);
-  const workspaceTools = allTools.filter(t => GOOGLE_WORKSPACE_TOOL_NAMES.includes(t.name));
+  const workspaceTools = allTools.filter(t => ALL_ACTION_TOOL_NAMES.includes(t.name));
 
   if (workspaceTools.length === 0) return null;
 
@@ -139,12 +144,15 @@ To use an action, include it in your response EXACTLY like this:
 [ACTION: tool_name key="value"]
 
 RULES:
-- Use actions when the user asks about their emails, schedule, files, or contacts
+- MEETING PREP (HIGHEST PRIORITY): When the user says "prep me for [meeting]", "brief me on [meeting]", or "what should I know about [meeting]" — you MUST use [ACTION: meeting_prep]. NEVER search Gmail. NEVER answer from calendar context alone. Even if you see "Dimension Prep Notes" in the calendar, IGNORE it and use meeting_prep instead — it does deeper independent research.
+- Use actions when the user asks about their emails, schedule, files, contacts, GitHub, Spotify, or anything requiring real-time information
+- Use web_search for any question that requires current facts, news, or background on a person/company
 - You can use ONE action per response. After you get results, you may use another.
 - For read actions, include the action tag right away — you'll receive the results to incorporate into your response.
-- For write actions (gmail_send, gmail_reply, gmail_draft, calendar_create, calendar_modify_event, calendar_delete_event, docs_create, sheets_create), confirm with the user first. When they confirm (e.g., "yes", "go ahead", "do it"), immediately execute the action with the [ACTION] tag.
+- For write actions (gmail_send, gmail_reply, gmail_draft, calendar_create, calendar_modify_event, calendar_delete_event, docs_create, sheets_create, spotify_queue, spotify_play_track), confirm with the user first. When they confirm (e.g., "yes", "go ahead", "do it"), immediately execute the action with the [ACTION] tag.
 - Only use actions you have access to (listed below)
 - If an action fails, explain the error naturally — don't retry automatically
+- If the user asks for a multi-step task (e.g. "search my emails AND check my calendar"), chain actions — run the first, then run the next in the follow-up without asking permission again
 
 Available actions:
 ${toolLines}
@@ -183,7 +191,34 @@ Examples:
   (context shows: "Coming up this week: Tênis Segovia [eventId:vo7abc]")
   You: Delete "Tênis Segovia" tomorrow at 5 PM?
   User: "yes"
-  You: Done! [ACTION: calendar_delete_event eventId="vo7abc"]`;
+  You: Done! [ACTION: calendar_delete_event eventId="vo7abc"]
+
+  User: "What's the latest on Anthropic?"
+  You: [ACTION: web_search query="Anthropic news 2025"]
+
+  User: "Who is Paula Rezende and what company does she work for?"
+  You: [ACTION: web_search query="Paula Rezende Enter legal tech Brazil"]
+
+  User: "What PRs do I have open?"
+  You: [ACTION: github_list_prs]
+
+  User: "Queue Radiohead - Creep"
+  You: Queue "Radiohead - Creep"?
+  User: "yes"
+  You: Queued! [ACTION: spotify_queue uri="spotify:track:70LcF31zb1H0PyJoS1Sx1r"]
+
+  User: "Prep me for my meeting with Paula tonight"
+  (context shows: "Paula & Stefano [eventId:abc123] at 9 PM")
+  You: [ACTION: meeting_prep eventId="abc123" summary="Meeting with Paula & Stefano"]
+
+  User: "Brief me on the Stefano meeting"
+  (context shows: "Paula & Stefano - Dimension Prep Notes [eventId:xyz789]")
+  You: [ACTION: meeting_prep eventId="xyz789" summary="Meeting with Paula & Stefano"]
+
+  User: "Prep me for my 3pm call"
+  You: [ACTION: meeting_prep summary="3pm call"]
+
+  IMPORTANT: When the user asks to be prepped for a meeting, ALWAYS use meeting_prep — even if the calendar shows a "Dimension Prep Notes" event. Do NOT search Gmail for those notes; meeting_prep does deeper research than Dimension. ALWAYS include both eventId AND summary so the tool can fall back gracefully.`;
 }
 
 /**
@@ -200,8 +235,8 @@ export function parseActions(responseText) {
   while ((match = ACTION_REGEX.exec(responseText)) !== null) {
     const toolName = match[1];
     const rawParams = match[2] || '';
-    // Only parse workspace tools — ignore unknown tool names
-    if (!GOOGLE_WORKSPACE_TOOL_NAMES.includes(toolName)) {
+    // Only parse known tools — ignore unknown tool names
+    if (!ALL_ACTION_TOOL_NAMES.includes(toolName)) {
       log.debug('Ignoring unknown tool in action tag', { toolName });
       continue;
     }
@@ -358,6 +393,8 @@ function buildActionDescription(toolName, params) {
     sheets_create: () => `Create spreadsheet: "${params.title}"`,
     sheets_write: () => `Write to spreadsheet ${params.spreadsheetId}`,
     drive_create_file: () => `Create file: "${params.name}"`,
+    spotify_queue: () => `Queue on Spotify: ${params.uri}`,
+    spotify_play_track: () => `Play on Spotify: ${params.uri}`,
   };
 
   const builder = descriptions[toolName];

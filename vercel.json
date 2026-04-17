@@ -58,6 +58,10 @@
       "schedule": "*/15 * * * *"
     },
     {
+      "path": "/api/cron/meeting-prep",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/evening-recap",
       "schedule": "0 23 * * *"
     },

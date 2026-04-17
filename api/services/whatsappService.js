@@ -98,14 +98,49 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
 /**
  * Send a proactive insight via WhatsApp (plain text formatting).
  */
-export async function sendWhatsAppInsight(recipientPhone, insight) {
-  const emoji = {
-    briefing: '\u2615', evening_recap: '\u{1F319}', music_mood_match: '\u{1F3B5}',
-    email_triage: '\u{1F4E7}', reminder: '\u{1F514}', suggestion: '\u{1F4A1}', nudge: '\u{1F449}',
-  }[insight.category] || '\u2728';
+function formatMeetingPrepMessage(insight) {
+  const b = insight.metadata?.briefing_json;
+  if (!b) return `Meeting prep\n\n${insight.insight || ''}`;
 
-  const label = (insight.category || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-  const text = `${emoji} *${label}*\n\n${insight.insight || ''}`;
+  const lines = [];
+  lines.push(`*Meeting prep*`);
+  lines.push(b.headline || '');
+  lines.push('');
+
+  if (b.attendees?.length) {
+    for (const a of b.attendees) {
+      lines.push(`*${a.name}*${a.company ? ` (${a.company})` : ''}`);
+      if (a.whoTheyAre) lines.push(a.whoTheyAre);
+      if (a.lastTouchpoint) lines.push(`Last: ${a.lastTouchpoint}`);
+      lines.push('');
+    }
+  }
+
+  if (b.talkingPoints?.length) {
+    lines.push('*Talking points*');
+    for (const tp of b.talkingPoints) lines.push(`- ${tp}`);
+    lines.push('');
+  }
+
+  if (b.watchOuts?.length) {
+    lines.push('*Watch out*');
+    for (const wo of b.watchOuts) lines.push(`- ${wo}`);
+  }
+
+  return lines.join('\n').trim();
+}
+
+export async function sendWhatsAppInsight(recipientPhone, insight) {
+  const text = insight.category === 'meeting_prep'
+    ? formatMeetingPrepMessage(insight)
+    : (() => {
+        const emoji = {
+          briefing: '\u2615', evening_recap: '\u{1F319}', music_mood_match: '\u{1F3B5}',
+          email_triage: '\u{1F4E7}', reminder: '\u{1F514}', suggestion: '\u{1F4A1}', nudge: '\u{1F449}',
+        }[insight.category] || '\u2728';
+        const label = (insight.category || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        return `${emoji} *${label}*\n\n${insight.insight || ''}`;
+      })();
 
   return sendWhatsAppMessage(recipientPhone, text);
 }

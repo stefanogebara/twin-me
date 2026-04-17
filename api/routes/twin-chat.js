@@ -1131,6 +1131,19 @@ RULES:
       // Accumulate (role, content) pairs so each follow-up sees the full action history
       const actionHistory = [];
 
+      // Extend timeout for action chains — tool execution (e.g. meeting_prep) can take 40-50s
+      if (detectedActions.length > 0) {
+        clearTimeout(timeoutTimer);
+        timeoutTimer = setTimeout(() => {
+          responseTimedOut = true;
+          if (!res.headersSent) {
+            res.status(504).json({ success: false, error: 'Action took too long. Please try again.' });
+          } else if (isStreaming) {
+            try { res.write(`data: ${JSON.stringify({ type: 'error', error: 'Action took too long. Please try again.' })}\n\n`); res.end(); } catch { /* gone */ }
+          }
+        }, 115000); // 115s — covers meeting_prep (40s) + follow-up LLM (20s) with margin
+      }
+
       while (detectedActions.length > 0 && chainDepth < MAX_ACTION_CHAIN_DEPTH) {
         const action = detectedActions[0];
         chainDepth++;

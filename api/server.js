@@ -26,6 +26,8 @@ import { startObservationIngestion, stopObservationIngestion } from './services/
 
 // Google Workspace tools — registers Gmail, Calendar, Drive, Docs, Sheets, Contacts tools
 import { registerGoogleWorkspaceTools } from './services/tools/googleWorkspaceTools.js';
+// Extended tools — web search, GitHub, Spotify, meeting prep
+import { registerExtendedTools } from './services/tools/extendedTools.js';
 
 // Structured logging (imported early so log is available throughout server setup)
 import { createLogger } from './services/logger.js';
@@ -58,6 +60,8 @@ const PORT = process.env.PORT || 3001;
 
 // Register Google Workspace tools (Gmail, Calendar, Drive, Docs, Sheets, Contacts)
 registerGoogleWorkspaceTools();
+// Register extended tools (web search, GitHub, Spotify, meeting prep)
+registerExtendedTools();
 
 // Initialize Sentry for error tracking (only if SENTRY_DSN is configured)
 if (process.env.SENTRY_DSN) {
@@ -459,6 +463,7 @@ import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
+import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
 import wikiRoutes from './routes/wiki.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
@@ -644,6 +649,7 @@ app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Dai
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals
+app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-meeting briefings for upcoming external meetings
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)
