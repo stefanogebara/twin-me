@@ -19,10 +19,12 @@ const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [visible, setVisible] = useState(false);
 
-  // Don't show on chat page — overlaps the message input
-  if (location.pathname === '/talk-to-twin') return null;
+  const isChatPage = location.pathname === '/talk-to-twin';
 
   useEffect(() => {
+    // Don't show on chat page — overlaps the message input
+    if (isChatPage) return;
+
     // Don't show if already dismissed
     if (localStorage.getItem(DISMISSED_KEY) === 'true') return;
 
@@ -50,7 +52,7 @@ const PWAInstallPrompt: React.FC = () => {
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
     };
-  }, []);
+  }, [isChatPage]);
 
   const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return;
@@ -72,7 +74,7 @@ const PWAInstallPrompt: React.FC = () => {
     localStorage.setItem(DISMISSED_KEY, 'true');
   }, []);
 
-  if (!visible) return null;
+  if (isChatPage || !visible) return null;
 
   return (
     <div

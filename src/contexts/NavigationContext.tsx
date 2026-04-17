@@ -57,11 +57,14 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
         return prev;
       }
       // Keep only last 50 entries
-      const updated = [...prev, newItem];
-      setHistoryIndex(updated.length - 1);
-      return updated.slice(-50);
+      return [...prev, newItem].slice(-50);
     });
   }, [location.pathname]);
+
+  // Keep historyIndex in sync with history length (separate update avoids setState-inside-updater)
+  useEffect(() => {
+    setHistoryIndex(prev => (history.length > 0 ? history.length - 1 : prev));
+  }, [history.length]);
 
   // Keyboard shortcuts: Alt+Left (back), Alt+Right (forward)
   useEffect(() => {
