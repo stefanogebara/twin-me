@@ -108,7 +108,7 @@ const InstantTwinOnboarding = () => {
       // but insight generation (~40s LLM call) is deferred to avoid exceeding
       // Vercel's 60s maxDuration. Endpoint is idempotent over 10 min so
       // accidental double-invocations (page refresh, HMR) won't duplicate cost.
-      authFetch('/api/insights/proactive/generate', { method: 'POST' }).catch(() => {
+      authFetch('/insights/proactive/generate', { method: 'POST' }).catch(() => {
         // Non-fatal — hourly `deliver-insights` cron is the backstop.
       });
     }
@@ -130,7 +130,7 @@ const InstantTwinOnboarding = () => {
         // Mirror of redirect-flow handling above: trigger insight generation.
         // Idempotent 10-min window on the server prevents duplicate cost when
         // both flows fire for the same user.
-        authFetch('/api/insights/proactive/generate', { method: 'POST' }).catch(() => {});
+        authFetch('/insights/proactive/generate', { method: 'POST' }).catch(() => {});
       }
     };
 
