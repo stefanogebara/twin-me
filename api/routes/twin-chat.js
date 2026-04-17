@@ -1120,14 +1120,21 @@ RULES:
       }
     }
 
-    // Workspace action execution loop — detect [ACTION: ...] in response,
-    // execute the tool, and re-call the LLM with results so it can answer naturally.
-    // Max 1 action per turn to keep latency bounded.
+    // Workspace action chaining loop — detect [ACTION: ...] in response,
+    // execute the tool, buffer the follow-up LLM response, and repeat up to
+    // MAX_ACTION_CHAIN_DEPTH times. Buffering each follow-up prevents raw
+    // [ACTION: ...] tags from leaking to the client mid-stream.
     if (workspaceActionsEnabled && assistantMessage) {
-      const detectedActions = parseActions(assistantMessage);
-      if (detectedActions.length > 0) {
-        const action = detectedActions[0]; // One action per turn
-        chatLog(`Workspace action detected: ${action.toolName}`);
+      const MAX_ACTION_CHAIN_DEPTH = 3;
+      let chainDepth = 0;
+      let detectedActions = parseActions(assistantMessage);
+      // Accumulate (role, content) pairs so each follow-up sees the full action history
+      const actionHistory = [];
+
+      while (detectedActions.length > 0 && chainDepth < MAX_ACTION_CHAIN_DEPTH) {
+        const action = detectedActions[0];
+        chainDepth++;
+        chatLog(`Workspace action detected (chain ${chainDepth}/${MAX_ACTION_CHAIN_DEPTH}): ${action.toolName}`);
 
         try {
           if (isStreaming) {
@@ -1151,13 +1158,14 @@ RULES:
             try { res.write(`data: ${JSON.stringify(actionEvent)}\n\n`); } catch { /* ignore */ }
           }
 
-          // Re-call LLM with the action result so it can weave the data into a natural response
-          const followUpMessages = [
-            ...llmMessages,
-            { role: 'assistant', content: assistantMessage },
-            { role: 'user', content: `${resultBlock}\n\nIncorporate these results using this EXACT format:\n- Use a plain text heading for the topic (no emojis)\n- **Bold** all sender names, subjects, event titles, file names\n- Use numbered list (1. 2. 3.) for multiple items, ordered by importance\n- Keep each item to one line with the key info\n- End with "Want me to [specific action]?" offering to dig deeper\n- NEVER use emojis anywhere in the response\n\nExample:\n**Today's important emails**\n1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Christian Mauad Gebara**\n2. **BTG Pactual** — Bitcoin purchase confirmed, **R$ 4,918.41**\n3. **Meta** — WhatsApp template recategorized to MARKETING\n\nWant me to read any of these in detail?` },
-          ];
+          // Append this turn to action history so the LLM has full context
+          actionHistory.push({ role: 'assistant', content: assistantMessage });
+          actionHistory.push({ role: 'user', content: `${resultBlock}\n\nIncorporate these results using this EXACT format:\n- Use a plain text heading for the topic (no emojis)\n- **Bold** all sender names, subjects, event titles, file names\n- Use numbered list (1. 2. 3.) for multiple items, ordered by importance\n- Keep each item to one line with the key info\n- If the user's original request requires another action (e.g. they asked to read an email AND schedule something), emit the next [ACTION: ...] immediately — don't ask for permission again\n- Only offer "Want me to [specific action]?" if the user hasn't already asked for that next step\n- NEVER use emojis anywhere in the response\n\nExample:\n**Today's important emails**\n1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Christian Mauad Gebara**\n2. **BTG Pactual** — Bitcoin purchase confirmed, **R$ 4,918.41**\n3. **Meta** — WhatsApp template recategorized to MARKETING\n\nWant me to read any of these in detail?` });
 
+          const followUpMessages = [...llmMessages, ...actionHistory];
+
+          // Always buffer follow-up responses so we can check for chained actions
+          // before deciding whether to stream to the client.
           if (isStreaming) {
             const followUp = await streamLLM({
               tier: TIER_CHAT,
@@ -1168,9 +1176,7 @@ RULES:
               userId,
               serviceName: 'twin-chat:workspace-followup',
               modelOverride: routedModel,
-              onChunk: (chunk) => {
-                res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
-              },
+              onChunk: () => {}, // buffer only — stream after chain resolves
             });
             assistantMessage = followUp.content || assistantMessage;
           } else {
@@ -1186,20 +1192,25 @@ RULES:
             });
             assistantMessage = followUp.content || assistantMessage;
           }
-          chatLog('Workspace follow-up LLM call complete');
-        } catch (actionErr) {
-          log.warn('Workspace action execution failed (non-fatal)', { error: actionErr.message, tool: action.toolName });
-          // Strip the action tag and send clean text
-          assistantMessage = stripActionTags(assistantMessage);
-          if (isStreaming) {
-            try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: assistantMessage })}\n\n`); } catch { /* ignore */ }
+          chatLog(`Workspace follow-up LLM call complete (chain ${chainDepth})`);
+
+          // Write actions stop chaining after one follow-up (user must confirm first)
+          if (actionResult.pendingConfirmation) {
+            detectedActions = [];
+          } else {
+            detectedActions = parseActions(assistantMessage);
           }
+        } catch (actionErr) {
+          log.warn('Workspace action execution failed (non-fatal)', { error: actionErr.message, tool: action.toolName, chainDepth });
+          detectedActions = [];
         }
       }
-      // Always strip any remaining action tags — handles:
-      // 1. Follow-up LLM returning empty (falls back to original with tag)
-      // 2. Hallucinated unknown tool names that parseActions filtered out
+
+      // Chain resolved — strip any remaining tags and stream the final clean text
       assistantMessage = stripActionTags(assistantMessage);
+      if (isStreaming && chainDepth > 0) {
+        try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: assistantMessage })}\n\n`); } catch { /* ignore */ }
+      }
     }
 
     const llmMs = Date.now() - chatStartTime - contextBuildMs;
