@@ -418,7 +418,7 @@ const Settings = () => {
               </button>
             ) : (
               <button
-                onClick={() => navigate('/talk-to-twin')}
+                onClick={() => navigate('/pricing')}
                 disabled={isDemoMode}
                 className="text-[12px] px-3 py-1.5 rounded-[100px] font-medium transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(196,162,101,0.15)', color: '#C4A265' }}

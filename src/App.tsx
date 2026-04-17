@@ -59,6 +59,7 @@ const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 // Prototype pages (Sundust design system)
 const PrototypeLanding    = lazy(() => import('./prototype/pages/PrototypeLanding'));
@@ -297,6 +298,16 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <Settings />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/pricing" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <Suspense fallback={null}><PricingPage /></Suspense>
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
