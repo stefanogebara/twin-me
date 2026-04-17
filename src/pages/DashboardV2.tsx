@@ -11,6 +11,7 @@ import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
 import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
+import MorningBriefingCard from '@/components/chat/MorningBriefingCard';
 import { useWebPush } from '@/hooks/useWebPush';
 
 const QUICK_ACTIONS = [
@@ -98,6 +99,8 @@ export function DashboardV2() {
       />
 
       <ExpiredTokenBanner />
+
+      <MorningBriefingCard />
 
       <SoulSummaryCard />
 

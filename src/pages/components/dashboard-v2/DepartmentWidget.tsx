@@ -7,7 +7,7 @@
 
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LayoutGrid, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { departmentsAPI } from '@/services/api/departmentsAPI';
 import type { Department, Proposal } from '@/services/api/departmentsAPI';
@@ -100,29 +100,41 @@ export function DepartmentWidget() {
           border: '1px solid rgba(255,255,255,0.08)',
         }}
       >
-        {/* Department status dots */}
-        <div className="flex items-center gap-3 mb-4">
-          <LayoutGrid
-            className="w-4 h-4 flex-shrink-0"
-            style={{ color: 'rgba(255,255,255,0.25)' }}
-          />
-          <div className="flex items-center gap-2.5">
-            {departments.map((dept) => (
+        {/* Department status chips */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {departments.map((dept) => (
+            <div
+              key={dept.name}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full"
+              style={{
+                background: dept.isEnabled
+                  ? `${dept.config.color || DEFAULT_DEPT_COLOR}18`
+                  : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${dept.isEnabled ? (dept.config.color || DEFAULT_DEPT_COLOR) + '30' : 'rgba(255,255,255,0.06)'}`,
+              }}
+            >
               <div
-                key={dept.name}
-                title={`${dept.config.name}${dept.isEnabled ? '' : ' (off)'}`}
-                className="w-2.5 h-2.5 rounded-full transition-colors duration-200"
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{
                   backgroundColor: dept.isEnabled
                     ? (dept.config.color || DEFAULT_DEPT_COLOR)
                     : DISABLED_COLOR,
                 }}
               />
-            ))}
-          </div>
+              <span
+                className="text-[10px] font-medium leading-none"
+                style={{
+                  color: dept.isEnabled ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.2)',
+                  fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                }}
+              >
+                {dept.config.name}
+              </span>
+            </div>
+          ))}
           {pendingCount > 0 && (
             <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+              className="text-[10px] font-medium px-2 py-1 rounded-full"
               style={{
                 backgroundColor: 'rgba(255,132,0,0.15)',
                 color: '#ff8400',

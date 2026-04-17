@@ -95,7 +95,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   const hasSchedule = briefing.schedule_summary && !briefing.schedule_summary.includes('wide open') && !briefing.schedule_summary.includes('No schedule');
   const hasRest = !!briefing.rest;
   const hasMusic = !!briefing.music;
-  const hasInsights = briefing.patterns.length > 0 || briefing.insights.length > 0;
+  const hasInsights = (briefing.patterns?.length ?? 0) > 0 || (briefing.insights?.length ?? 0) > 0;
 
   return (
     <div
@@ -172,7 +172,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
                 Schedule
               </span>
               <div className="space-y-1">
-                {briefing.schedule.slice(0, 3).map((event, i) => (
+                {(briefing.schedule ?? []).slice(0, 3).map((event, i) => (
                   <p key={i} className="text-[13px] truncate" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                     {event}
                   </p>
@@ -221,7 +221,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
                 Patterns
               </span>
               <div className="space-y-1">
-                {(briefing.patterns.length > 0 ? briefing.patterns : briefing.insights).slice(0, 2).map((item, i) => (
+                {((briefing.patterns?.length ?? 0) > 0 ? briefing.patterns : briefing.insights ?? []).slice(0, 2).map((item, i) => (
                   <p key={i} className="text-[13px]" style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
                     {item}
                   </p>
