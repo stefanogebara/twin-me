@@ -246,12 +246,46 @@ export const requireProfessor = async (req, res, next) => {
   }
 };
 
-// userRateLimit: no-op on Vercel serverless.
-// In-memory counters reset on every cold start, providing zero protection across instances.
-// Left as a passthrough to avoid breaking imports in ai.js, conversations.js, etc.
-// Use the Redis-backed chatRateLimit (twin-chat.js) or global apiLimiter instead.
-// eslint-disable-next-line no-unused-vars
-export const userRateLimit = (_maxRequests = 100, _windowMs = 15 * 60 * 1000) => (req, res, next) => next();
+// userRateLimit: Redis-backed sliding window per user, in-memory Map fallback.
+const _rateLimitStore = new Map();
+
+export const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => async (req, res, next) => {
+  const userId = req.user?.id;
+  if (!userId) return next();
+
+  const now = Date.now();
+  const windowStart = now - windowMs;
+  const key = `rateLimit:${userId}:${maxRequests}:${windowMs}`;
+
+  try {
+    const { getRedisClient, isRedisAvailable } = await import('../services/redisClient.js');
+    const client = getRedisClient();
+    if (client && isRedisAvailable()) {
+      const pipe = client.pipeline();
+      pipe.zremrangebyscore(key, '-inf', windowStart);
+      pipe.zadd(key, now, `${now}-${Math.random()}`);
+      pipe.zcard(key);
+      pipe.expire(key, Math.ceil(windowMs / 1000));
+      const results = await pipe.exec();
+      const used = results[2][1];
+      if (used > maxRequests) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      }
+      return next();
+    }
+  } catch (rateLimitErr) {
+    log.warn('userRateLimit Redis check failed, using in-memory fallback', { error: rateLimitErr.message });
+  }
+
+  // In-memory fallback
+  const entry = _rateLimitStore.get(key);
+  const fresh = entry ? entry.filter(ts => now - ts < windowMs) : [];
+  if (fresh.length >= maxRequests) {
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  }
+  _rateLimitStore.set(key, [...fresh, now]);
+  next();
+};
 
 // Twin ownership validation middleware
 export const validateTwinOwnership = async (req, res, next) => {

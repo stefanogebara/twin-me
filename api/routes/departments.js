@@ -82,7 +82,7 @@ router.get('/health/correlations', authenticateUser, async (req, res) => {
     return res.json({ success: true, ...result });
   } catch (err) {
     log.error('Health correlation analysis failed', { userId: req.user.id, error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Health correlation analysis failed' });
   }
 });
 
@@ -98,7 +98,7 @@ router.post('/proposals/:id/approve', authenticateUser, async (req, res) => {
     return res.json({ success: true, result });
   } catch (err) {
     log.error('Failed to approve proposal', { userId: req.user.id, proposalId: req.params.id, error: err.message });
-    return res.status(500).json({ success: false, error: err.message || 'Failed to approve proposal' });
+    return res.status(500).json({ success: false, error: 'Failed to approve proposal' });
   }
 });
 
@@ -114,7 +114,7 @@ router.post('/proposals/:id/reject', authenticateUser, async (req, res) => {
     return res.json({ success: true, actionId: id, response: 'rejected' });
   } catch (err) {
     log.error('Failed to reject proposal', { userId: req.user.id, proposalId: req.params.id, error: err.message });
-    return res.status(500).json({ success: false, error: err.message || 'Failed to reject proposal' });
+    return res.status(500).json({ success: false, error: 'Failed to reject proposal' });
   }
 });
 
@@ -129,7 +129,7 @@ router.post('/heartbeat', authenticateUser, async (req, res) => {
     return res.json({ success: true, ...result });
   } catch (err) {
     log.error('Manual heartbeat failed', { userId: req.user.id, error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Heartbeat check failed' });
   }
 });
 
@@ -306,7 +306,7 @@ router.post('/:name/propose', authenticateUser, async (req, res) => {
     return res.json({ success: true, proposal });
   } catch (err) {
     log.error('Failed to trigger department proposal', { userId: req.user.id, department: req.params.name, error: err.message });
-    return res.status(500).json({ success: false, error: err.message || 'Failed to generate proposal' });
+    return res.status(500).json({ success: false, error: 'Failed to generate proposal' });
   }
 });
 

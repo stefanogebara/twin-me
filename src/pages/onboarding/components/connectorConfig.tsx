@@ -232,7 +232,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 7,
     setupTime: '5 seconds',
     privacyLevel: 'medium',
-    category: 'professional'
+    category: 'professional',
+    comingSoon: true,
   },
   {
     provider: 'reddit' as DataProvider,
@@ -244,7 +245,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 8,
     setupTime: '5 seconds',
     privacyLevel: 'low',
-    category: 'social'
+    category: 'social',
+    comingSoon: true,
   },
   {
     provider: 'github' as DataProvider,
@@ -256,7 +258,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 6,
     setupTime: '5 seconds',
     privacyLevel: 'low',
-    category: 'professional'
+    category: 'professional',
+    comingSoon: true,
   },
   {
     provider: 'slack' as DataProvider,
@@ -305,7 +308,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 8,
     setupTime: '10 seconds',
     privacyLevel: 'low',
-    category: 'health'
+    category: 'health',
+    comingSoon: true,
   },
   {
     provider: 'apple_music' as DataProvider,
@@ -354,7 +358,8 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 6,
     setupTime: '5 seconds',
     privacyLevel: 'low',
-    category: 'entertainment'
+    category: 'entertainment',
+    comingSoon: true,
   },
   {
     provider: 'microsoft_outlook' as DataProvider,

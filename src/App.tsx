@@ -30,7 +30,6 @@ const loadDashboardV2 = () => import("./pages/DashboardV2");
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
 
 const DashboardV2 = lazy(loadDashboardV2);
-const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const Settings = lazy(() => import("./pages/Settings"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
@@ -442,7 +441,6 @@ const App = () => {
             <Route path="/landing" element={<Navigate to="/" replace />} />
             <Route path="/portfolio" element={<Navigate to="/" replace />} />
             <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
-            <Route path="/goals" element={<Suspense fallback={null}><GoalsPage /></Suspense>} />
 
             {/* Sundust Prototype */}
             <Route path="/prototype" element={<PrototypeLanding />} />

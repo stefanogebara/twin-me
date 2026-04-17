@@ -78,7 +78,7 @@ router.post('/:name/apply', authenticateUser, async (req, res) => {
     return res.json({ success: true, ...result });
   } catch (err) {
     log.error('Failed to apply template', { userId: req.user.id, template: req.params.name, error: err.message });
-    return res.status(500).json({ success: false, error: err.message || 'Failed to apply template' });
+    return res.status(500).json({ success: false, error: 'Failed to apply template' });
   }
 });
 
