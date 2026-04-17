@@ -627,6 +627,7 @@ async function _fetchSinglePlatform(userId, platform) {
             });
 
             const events = calRes.data?.items?.map(e => ({
+              id: e.id,
               summary: e.summary,
               start: e.start?.dateTime || e.start?.date,
               isToday: new Date(e.start?.dateTime || e.start?.date) <= todayEnd

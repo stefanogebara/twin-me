@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Calendar, FolderSearch, FileText, Table2, Users,
-  Check, ChevronLeft, ChevronRight,
+  Check, ChevronLeft, ChevronRight, Trash2, Pencil,
 } from 'lucide-react';
 
 interface ActionEvent {
@@ -27,6 +27,8 @@ const TOOL_CONFIG: Record<string, { icon: typeof Mail; label: string; executingL
   calendar_today: { icon: Calendar, label: 'Calendar', executingLabel: 'Checking calendar...' },
   calendar_upcoming: { icon: Calendar, label: 'Calendar', executingLabel: 'Loading events...' },
   calendar_create: { icon: Calendar, label: 'Calendar', executingLabel: 'Creating event...' },
+  calendar_modify_event: { icon: Pencil, label: 'Calendar', executingLabel: 'Updating event...' },
+  calendar_delete_event: { icon: Trash2, label: 'Calendar', executingLabel: 'Deleting event...' },
   drive_search: { icon: FolderSearch, label: 'Drive Search', executingLabel: 'Searching Drive...' },
   docs_create: { icon: FileText, label: 'Docs', executingLabel: 'Creating document...' },
   sheets_create: { icon: Table2, label: 'Sheets', executingLabel: 'Creating spreadsheet...' },
@@ -60,7 +62,7 @@ function isListTool(tool: string): boolean {
 }
 
 function isWriteTool(tool: string): boolean {
-  return ['calendar_create', 'gmail_send', 'gmail_draft', 'docs_create', 'sheets_create'].includes(tool);
+  return ['calendar_create', 'calendar_modify_event', 'calendar_delete_event', 'gmail_send', 'gmail_draft', 'docs_create', 'sheets_create'].includes(tool);
 }
 
 function getResultItems(data: any): any[] {
@@ -179,18 +181,16 @@ function ResultItem({ item, tool, isLast }: { item: any; tool: string; isLast: b
 
 function WriteResult({ data, tool }: { data: any; tool: string }) {
   const title = data?.summary || data?.subject || data?.title || data?.name || 'Item';
-  const config = getToolConfig(tool);
+  const verb = tool === 'calendar_modify_event' ? 'Updated'
+    : tool === 'calendar_delete_event' ? 'Deleted'
+    : 'Created';
+  const label = tool === 'calendar_delete_event' ? 'event' : title;
   return (
     <div className="flex items-center gap-2 py-1">
       <Check className="w-4 h-4 flex-shrink-0" style={{ color: '#10b77f' }} />
       <span className="text-[13px]" style={{ color: '#F5F5F4' }}>
-        Created: {title}
+        {verb}: {label}
       </span>
-      {data?.id && (
-        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          ({config.label})
-        </span>
-      )}
     </div>
   );
 }

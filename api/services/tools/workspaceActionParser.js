@@ -140,7 +140,7 @@ RULES:
 - Use actions when the user asks about their emails, schedule, files, or contacts
 - You can use ONE action per response. After you get results, you may use another.
 - For read actions, include the action tag right away — you'll receive the results to incorporate into your response.
-- For write actions (gmail_send, gmail_reply, gmail_draft, calendar_create, docs_create, sheets_create), confirm with the user first. When they confirm (e.g., "yes", "go ahead", "do it"), immediately execute the action with the [ACTION] tag.
+- For write actions (gmail_send, gmail_reply, gmail_draft, calendar_create, calendar_modify_event, calendar_delete_event, docs_create, sheets_create), confirm with the user first. When they confirm (e.g., "yes", "go ahead", "do it"), immediately execute the action with the [ACTION] tag.
 - Only use actions you have access to (listed below)
 - If an action fails, explain the error naturally — don't retry automatically
 
@@ -163,7 +163,21 @@ Examples:
   You: Done! [ACTION: calendar_create summary="Meeting with John" start="${tomorrowDate}T14:00:00" end="${tomorrowDate}T15:00:00"]
 
   User: "Draft an email to sarah@example.com about the project update"
-  You: I'll draft that for you. [ACTION: gmail_draft to="sarah@example.com" subject="Project Update" body="Hi Sarah, ..."]`;
+  You: I'll draft that for you. [ACTION: gmail_draft to="sarah@example.com" subject="Project Update" body="Hi Sarah, ..."]
+
+  User: "Move my 3pm meeting tomorrow to 4pm"
+  You: Let me check your calendar first. [ACTION: calendar_upcoming days=2]
+  (after seeing eventId "abc123" for the 3pm event)
+  You: I'll move it to 4pm. Should I go ahead?
+  User: "yes"
+  You: Done! [ACTION: calendar_modify_event eventId="abc123" start="${tomorrowDate}T16:00:00" end="${tomorrowDate}T17:00:00"]
+
+  User: "Delete my dentist appointment next week"
+  You: Let me find it. [ACTION: calendar_upcoming days=7]
+  (after seeing eventId "xyz789" for the dentist event)
+  You: Found "Dentist" on Thursday. Delete it?
+  User: "yes"
+  You: Removed! [ACTION: calendar_delete_event eventId="xyz789"]`;
 }
 
 /**
@@ -324,8 +338,15 @@ function buildActionDescription(toolName, params) {
     gmail_reply: () => `Reply to email ${params.messageId}`,
     gmail_draft: () => `Create draft to ${params.to}: "${params.subject}"`,
     calendar_create: () => `Create event: "${params.summary}" at ${params.start}`,
-    calendar_modify_event: () => `Modify event ${params.eventId}`,
-    calendar_delete_event: () => `Delete event ${params.eventId}`,
+    calendar_modify_event: () => {
+      const parts = [];
+      if (params.summary) parts.push(`title → "${params.summary}"`);
+      if (params.start) parts.push(`start → ${params.start}`);
+      if (params.end) parts.push(`end → ${params.end}`);
+      if (params.location) parts.push(`location → "${params.location}"`);
+      return `Update event${parts.length ? ': ' + parts.join(', ') : ` ${params.eventId}`}`;
+    },
+    calendar_delete_event: () => `Delete event${params.summary ? ` "${params.summary}"` : ` ${params.eventId}`}`,
     docs_create: () => `Create document: "${params.title}"`,
     docs_append: () => `Append to document ${params.docId}`,
     sheets_create: () => `Create spreadsheet: "${params.title}"`,

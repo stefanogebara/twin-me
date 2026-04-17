@@ -489,16 +489,19 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       if (cal.todayEvents?.length > 0) {
         const eventCount = cal.todayEvents.length;
         dynamicContext += ` ${eventCount} thing${eventCount > 1 ? 's' : ''} left today: ${cal.todayEvents.map(e => {
-          // Display event times in the user's local timezone, not server time
           const startTime = e.start ? new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }) : '';
-          return startTime ? `${e.summary} at ${startTime}` : e.summary;
+          const idTag = e.id ? ` [id:${e.id}]` : '';
+          return startTime ? `${e.summary} at ${startTime}${idTag}` : `${e.summary}${idTag}`;
         }).join(', ')}.`;
         if (eventCount >= 4) dynamicContext += ` Packed day.`;
       } else {
         dynamicContext += ` Nothing left on my calendar today - free evening.`;
       }
       if (cal.upcomingEvents?.length > 0) {
-        dynamicContext += ` Coming up this week: ${cal.upcomingEvents.slice(0, 4).map(e => e.summary).join(', ')}.`;
+        dynamicContext += ` Coming up this week: ${cal.upcomingEvents.slice(0, 4).map(e => {
+          const idTag = e.id ? ` [id:${e.id}]` : '';
+          return `${e.summary}${idTag}`;
+        }).join(', ')}.`;
       }
     }
 
