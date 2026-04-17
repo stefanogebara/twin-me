@@ -1196,6 +1196,10 @@ RULES:
           }
         }
       }
+      // Always strip any remaining action tags — handles:
+      // 1. Follow-up LLM returning empty (falls back to original with tag)
+      // 2. Hallucinated unknown tool names that parseActions filtered out
+      assistantMessage = stripActionTags(assistantMessage);
     }
 
     const llmMs = Date.now() - chatStartTime - contextBuildMs;

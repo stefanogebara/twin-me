@@ -42,25 +42,24 @@ const WRITE_TOOLS = Object.freeze([
  * Regex to match [ACTION: tool_name key="value" key2="value2" ...]
  * Captures:
  *   group 1 = tool name
- *   group 2 = raw param string (key="value" pairs)
+ *   group 2 = raw param string (everything between tool name and closing ])
  */
-const ACTION_REGEX = /\[ACTION:\s*(\w+)(?:\s+((?:\w+="[^"]*"\s*)*))?\]/g;
+const ACTION_REGEX = /\[ACTION:\s*(\w+)([^\]]*)\]/g;
 
 /**
- * Parse key="value" pairs from the raw param string.
+ * Parse key="value" or key=value pairs from the raw param string.
+ * Handles both quoted strings and unquoted values (e.g. days=1).
  */
 function parseParams(rawParams) {
   if (!rawParams || !rawParams.trim()) return {};
   const params = {};
-  const paramRegex = /(\w+)="([^"]*)"/g;
+  const paramRegex = /(\w+)=(?:"([^"]*)"|([\S]+))/g;
   let match;
   while ((match = paramRegex.exec(rawParams)) !== null) {
     const key = match[1];
-    let value = match[2];
-    // Auto-coerce numbers
-    if (/^\d+$/.test(value)) {
-      value = parseInt(value, 10);
-    }
+    let value = match[2] !== undefined ? match[2] : match[3];
+    if (/^\d+$/.test(value)) value = parseInt(value, 10);
+    else if (/^\d+\.\d+$/.test(value)) value = parseFloat(value);
     params[key] = value;
   }
   return params;
