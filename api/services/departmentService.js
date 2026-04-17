@@ -592,7 +592,7 @@ YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposal
 
 OUTPUT FORMAT (must be valid JSON):
 [
-  {"department":"communications","description":"Draft a weekend email triage plan for the 37k unread inbox","toolName":"gmail_draft","params":{"subject":"Inbox triage strategy"},"priority":3,"reasoning":"User has 37k unread emails, 92% unread rate indicates severe backlog"},
+  {"department":"communications","description":"Draft a weekly triage summary email to yourself","toolName":"gmail_draft","params":{"to":"user@example.com","subject":"Weekly Inbox Triage: 37k unread","body":"Here's a plan to tackle the backlog: batch 30 min/day on oldest unread, unsubscribe from 3 Substacks first."},"priority":3,"reasoning":"User has 37k unread emails, 92% unread rate indicates severe backlog"},
   {"department":"scheduling","description":"Block 90 minutes of deep work tomorrow morning","toolName":"calendar_create","params":{"summary":"Deep work block","start":"${tomorrowDate}T09:00:00","end":"${tomorrowDate}T10:30:00"},"priority":4,"reasoning":"No focus blocks visible in recent calendar data"},
   {"department":"social","description":"Review relationship with top email senders — 3 are Substack newsletters","toolName":"suggest","params":{},"priority":6,"reasoning":"Most frequent senders are newsletters, not real people"}
 ]
@@ -601,6 +601,8 @@ RULES:
 1. department MUST be one of: ${activeDepts.map(d => d.department).join(', ')}
 2. For Health/Finance/Social/Research → toolName: "suggest" (these are observation departments)
 3. For Communications → toolName: "gmail_draft" for drafts, "gmail_reply" for replies
+   - gmail_draft params MUST include: to (recipient email address), subject (string), body (draft content string). Without all three, the action CANNOT execute.
+   - If you don't have a specific recipient email address from the observations, use toolName: "suggest" instead and put the intent in the description.
 4. For Scheduling → toolName: "calendar_create" or "calendar_modify_event"
    - calendar_create params MUST include: summary (string, event title), start (ISO local time like "${tomorrowDate}T14:00:00" — no Z suffix), end (ISO local time). Optionally: description, location.
    - Without summary + start + end, the action CANNOT execute. Emit specific times grounded in the user's observed schedule.
