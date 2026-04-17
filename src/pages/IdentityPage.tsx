@@ -524,34 +524,78 @@ const IdentityPage: React.FC = () => {
         </button>
       </div>
 
-      {/* ── Hero card: Greeting + Archetype + Badges ──────────────── */}
+      {/* ── Top utility row: greeting + date (intentionally muted so the archetype carries the hero) ── */}
+      <div
+        className="flex items-center justify-between px-1 text-[12px]"
+        style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
+      >
+        <span>{getGreeting()}, {firstName}</span>
+        <span>{formattedDate}</span>
+      </div>
+
+      {/* ── Hero card: archetype is the sole focal point above the fold ── */}
       {heroCard(
         <>
-          <div className="mb-6">
-            <h1
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontStyle: 'italic',
-                fontSize: 'clamp(28px, 5vw, 40px)',
-                fontWeight: 400,
-                color: 'var(--foreground)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-              }}
-            >
-              {getGreeting()}, {firstName}
-            </h1>
-            <p
-              className="mt-1.5 text-sm"
-              style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-            >
-              {formattedDate}
-            </p>
-          </div>
+          {archetypeResult ? (
+            <>
+              <section className="relative pl-5" style={{ borderLeft: '3px solid var(--accent-vibrant)' }}>
+                {/* Single-archetype headline — promoted from h2 to h1 so the hero has one dominant voice */}
+                <h1
+                  style={{
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontStyle: 'italic',
+                    fontSize: 'clamp(36px, 6.5vw, 56px)',
+                    fontWeight: 400,
+                    color: 'var(--foreground)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.1,
+                  }}
+                >
+                  {archetypeResult.archetype.name}
+                </h1>
+                <p
+                  className="mt-3 text-[15px] leading-relaxed"
+                  style={{ color: 'rgba(255,255,255,0.65)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
+                >
+                  {archetypeResult.archetype.tagline}
+                </p>
+                {layers?.generated_at && (
+                  <p
+                    className="mt-2 text-[10px] uppercase tracking-[0.12em]"
+                    style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    Updated {timeAgo(layers.generated_at)}
+                  </p>
+                )}
+              </section>
 
-          {archetypeResult && (
-            <section className="relative pl-5" style={{ borderLeft: '3px solid var(--accent-vibrant)' }}>
-              <h2
+              {/* Pre-filled primary CTA — opens twin chat with an archetype-specific question so the user
+                  doesn't have to compose anything. This is the "wow" bridge from identity → conversation. */}
+              <div className="mt-6 pl-5">
+                <button
+                  onClick={() =>
+                    handleSuggestion(
+                      `Tell me what "${archetypeResult.archetype.name}" actually means about how I live — the real evidence from my data, not a generic description.`
+                    )
+                  }
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.97]"
+                  style={{
+                    background: 'var(--accent-vibrant-glow)',
+                    border: '1px solid rgba(255,132,0,0.30)',
+                    color: 'var(--foreground)',
+                    fontFamily: "'Inter', sans-serif",
+                  }}
+                >
+                  Ask your twin why this fits
+                  <ArrowRight className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
+                </button>
+              </div>
+            </>
+          ) : (
+            // Fallback hero for users whose archetype hasn't been computed yet (pre-onboarding or <20 memories).
+            // Intentionally simple — the still-learning card below carries the CTA to connect platforms.
+            <div>
+              <h1
                 style={{
                   fontFamily: "'Instrument Serif', Georgia, serif",
                   fontStyle: 'italic',
@@ -562,27 +606,19 @@ const IdentityPage: React.FC = () => {
                   lineHeight: 1.15,
                 }}
               >
-                {archetypeResult.archetype.name}
-              </h2>
+                Your signal is coming together
+              </h1>
               <p
-                className="mt-2 text-sm"
-                style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif" }}
+                className="mt-3 text-[15px] leading-relaxed"
+                style={{ color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif", maxWidth: '42ch' }}
               >
-                {archetypeResult.archetype.tagline}
+                A few more observations from your connected platforms and your archetype will take shape.
               </p>
-              {layers?.generated_at && (
-                <p
-                  className="mt-1 text-[11px]"
-                  style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
-                >
-                  Updated {timeAgo(layers.generated_at)}
-                </p>
-              )}
-            </section>
+            </div>
           )}
 
           {traitBadges.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-5">
+            <div className="flex flex-wrap gap-2 mt-6">
               {traitBadges.map((badge) => (
                 <span
                   key={badge}
