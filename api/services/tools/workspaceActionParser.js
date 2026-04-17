@@ -133,6 +133,8 @@ TIMEZONE CONTEXT: The user is in ${userTimezone}. Current local time: ${localNow
 
 CALENDAR DATETIME RULE: When creating or modifying events, ALWAYS use local time WITHOUT a Z suffix. Example for 3pm tomorrow: "${tomorrowDate}T15:00:00" (NOT "${tomorrowDate}T15:00:00Z"). The timezone (${userTimezone}) is applied automatically — never append Z or a UTC offset.
 
+CALENDAR EVENT IDs: Events in your context appear with [eventId:XXXX] tags (e.g. "Tênis Segovia [eventId:abc123]"). Use the value inside [eventId:...] directly as the eventId param for calendar_modify_event or calendar_delete_event — no lookup needed.
+
 To use an action, include it in your response EXACTLY like this:
 [ACTION: tool_name key="value"]
 
@@ -166,18 +168,22 @@ Examples:
   You: I'll draft that for you. [ACTION: gmail_draft to="sarah@example.com" subject="Project Update" body="Hi Sarah, ..."]
 
   User: "Move my 3pm meeting tomorrow to 4pm"
-  You: Let me check your calendar first. [ACTION: calendar_upcoming days=2]
-  (after seeing eventId "abc123" for the 3pm event)
-  You: I'll move it to 4pm. Should I go ahead?
+  (context shows: "Meeting with John [eventId:abc123] at 3 PM")
+  You: I'll move "Meeting with John" to 4pm. Should I go ahead?
   User: "yes"
   You: Done! [ACTION: calendar_modify_event eventId="abc123" start="${tomorrowDate}T16:00:00" end="${tomorrowDate}T17:00:00"]
 
   User: "Delete my dentist appointment next week"
-  You: Let me find it. [ACTION: calendar_upcoming days=7]
-  (after seeing eventId "xyz789" for the dentist event)
-  You: Found "Dentist" on Thursday. Delete it?
+  (context shows: "Dentist [eventId:xyz789]")
+  You: Delete "Dentist"?
   User: "yes"
-  You: Removed! [ACTION: calendar_delete_event eventId="xyz789"]`;
+  You: Removed! [ACTION: calendar_delete_event eventId="xyz789"]
+
+  User: "Delete the Tênis Segovia event tomorrow"
+  (context shows: "Coming up this week: Tênis Segovia [eventId:vo7abc]")
+  You: Delete "Tênis Segovia" tomorrow at 5 PM?
+  User: "yes"
+  You: Done! [ACTION: calendar_delete_event eventId="vo7abc"]`;
 }
 
 /**

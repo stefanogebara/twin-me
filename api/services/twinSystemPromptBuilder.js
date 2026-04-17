@@ -490,7 +490,7 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
         const eventCount = cal.todayEvents.length;
         dynamicContext += ` ${eventCount} thing${eventCount > 1 ? 's' : ''} left today: ${cal.todayEvents.map(e => {
           const startTime = e.start ? new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: tz }) : '';
-          const idTag = e.id ? ` [id:${e.id}]` : '';
+          const idTag = e.id ? ` [eventId:${e.id}]` : '';
           return startTime ? `${e.summary} at ${startTime}${idTag}` : `${e.summary}${idTag}`;
         }).join(', ')}.`;
         if (eventCount >= 4) dynamicContext += ` Packed day.`;
@@ -499,7 +499,7 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       }
       if (cal.upcomingEvents?.length > 0) {
         dynamicContext += ` Coming up this week: ${cal.upcomingEvents.slice(0, 4).map(e => {
-          const idTag = e.id ? ` [id:${e.id}]` : '';
+          const idTag = e.id ? ` [eventId:${e.id}]` : '';
           return `${e.summary}${idTag}`;
         }).join(', ')}.`;
       }
