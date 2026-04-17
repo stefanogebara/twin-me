@@ -565,7 +565,18 @@ export async function checkDepartmentHeartbeats(userId, options = {}) {
 
     const obsText = recentObs.slice(0, 20).map(o => `- ${o.content}`).join('\n');
 
+    // Compute today/tomorrow dates so the LLM can emit real executable calendar times.
+    // Previously the example used `{title: "..."}` with no start/end, which produced
+    // proposals that failed at execution because `calendar_create` requires {summary, start}.
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const todayDate = now.toISOString().slice(0, 10);
+    const tomorrowDate = tomorrow.toISOString().slice(0, 10);
+
     const prompt = `You are the AI chief of staff for a user. Your departments are ready to take action on their behalf. Your job: look at their recent activity and propose 2-3 HELPFUL, SPECIFIC actions their departments should take RIGHT NOW.
+
+CURRENT DATE: ${todayDate} (tomorrow: ${tomorrowDate})
+When proposing calendar events, use these dates. All times MUST be local time (no Z suffix) — the user's timezone is applied automatically.
 
 ACTIVE DEPARTMENTS (pick from these keys): ${activeDepts.map(d => d.department).join(', ')}
 
@@ -582,7 +593,7 @@ YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposal
 OUTPUT FORMAT (must be valid JSON):
 [
   {"department":"communications","description":"Draft a weekend email triage plan for the 37k unread inbox","toolName":"gmail_draft","params":{"subject":"Inbox triage strategy"},"priority":3,"reasoning":"User has 37k unread emails, 92% unread rate indicates severe backlog"},
-  {"department":"scheduling","description":"Block 90 minutes of deep work tomorrow morning","toolName":"calendar_create","params":{"title":"Deep work block"},"priority":4,"reasoning":"No focus blocks visible in recent calendar data"},
+  {"department":"scheduling","description":"Block 90 minutes of deep work tomorrow morning","toolName":"calendar_create","params":{"summary":"Deep work block","start":"${tomorrowDate}T09:00:00","end":"${tomorrowDate}T10:30:00"},"priority":4,"reasoning":"No focus blocks visible in recent calendar data"},
   {"department":"social","description":"Review relationship with top email senders — 3 are Substack newsletters","toolName":"suggest","params":{},"priority":6,"reasoning":"Most frequent senders are newsletters, not real people"}
 ]
 
@@ -591,6 +602,8 @@ RULES:
 2. For Health/Finance/Social/Research → toolName: "suggest" (these are observation departments)
 3. For Communications → toolName: "gmail_draft" for drafts, "gmail_reply" for replies
 4. For Scheduling → toolName: "calendar_create" or "calendar_modify_event"
+   - calendar_create params MUST include: summary (string, event title), start (ISO local time like "${tomorrowDate}T14:00:00" — no Z suffix), end (ISO local time). Optionally: description, location.
+   - Without summary + start + end, the action CANNOT execute. Emit specific times grounded in the user's observed schedule.
 5. For Content → toolName: "suggest" or "docs_create"
 6. Description should be ONE sentence, specific to the data
 7. reasoning should cite the specific observation that triggered the suggestion
