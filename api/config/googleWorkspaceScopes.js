@@ -55,9 +55,12 @@ export const GOOGLE_WORKSPACE_SCOPES_READONLY = [
   'https://www.googleapis.com/auth/contacts.readonly',
 ];
 
-// Feature flag: use full scopes (with write) or read-only
-export const USE_FULL_WORKSPACE_SCOPES = process.env.GOOGLE_WORKSPACE_FULL_SCOPES === 'true';
-
+// Feature flag: read at call time so .env changes take effect without restart
 export function getGoogleWorkspaceScopes() {
-  return USE_FULL_WORKSPACE_SCOPES ? GOOGLE_WORKSPACE_SCOPES : GOOGLE_WORKSPACE_SCOPES_READONLY;
+  return process.env.GOOGLE_WORKSPACE_FULL_SCOPES === 'true'
+    ? GOOGLE_WORKSPACE_SCOPES
+    : GOOGLE_WORKSPACE_SCOPES_READONLY;
 }
+
+// Backward-compat alias
+export const USE_FULL_WORKSPACE_SCOPES = process.env.GOOGLE_WORKSPACE_FULL_SCOPES === 'true';

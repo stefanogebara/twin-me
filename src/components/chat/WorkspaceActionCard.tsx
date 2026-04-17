@@ -111,8 +111,8 @@ function CalendarItem({ item, isLast }: { item: any; isLast: boolean }) {
         {item.summary || item.title || 'Untitled event'}
       </span>
       <div className="text-[13px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        {item.start || item.time || ''}
-        {item.end ? ` - ${item.end}` : ''}
+        {(typeof item.start === 'object' ? item.start?.dateTime || item.start?.date : item.start) || item.time || ''}
+        {item.end ? ` - ${typeof item.end === 'object' ? item.end?.dateTime || item.end?.date : item.end}` : ''}
       </div>
       {item.location && (
         <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.35)' }}>

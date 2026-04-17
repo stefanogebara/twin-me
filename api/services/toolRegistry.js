@@ -119,8 +119,10 @@ export async function getAvailableTools(userId) {
 
 /**
  * Execute a tool by name with permission checking.
+ * Pass options.bypassAutonomy = true when executing a user-approved action —
+ * the user already consented explicitly, so the autonomy level check is skipped.
  */
-export async function executeTool(userId, toolName, params = {}) {
+export async function executeTool(userId, toolName, params = {}, options = {}) {
   const tool = registry.get(toolName);
   if (!tool) {
     throw new Error(`Tool not found: ${toolName}`);
@@ -137,8 +139,8 @@ export async function executeTool(userId, toolName, params = {}) {
     }
   }
 
-  // Check autonomy level for write-back tools
-  if (tool.minAutonomyLevel != null && tool.minAutonomyLevel > 0) {
+  // Check autonomy level for write-back tools (skip when user has already explicitly approved)
+  if (!options.bypassAutonomy && tool.minAutonomyLevel != null && tool.minAutonomyLevel > 0) {
     try {
       const { getAutonomyBySkillName, AUTONOMY_LEVELS } = await import('./autonomyService.js');
       // Derive skill name from tool platform or use a default

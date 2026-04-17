@@ -310,9 +310,9 @@ export async function executeApprovedAction(userId, actionId) {
     return { success: true, type: 'suggestion_acknowledged' };
   }
 
-  // Execute via tool registry
+  // Execute via tool registry — bypass autonomy check because the user explicitly approved
   const { executeTool } = await import('./toolRegistry.js');
-  const result = await executeTool(userId, toolName, params);
+  const result = await executeTool(userId, toolName, params, { bypassAutonomy: true });
 
   // Record the outcome (throws on DB failure — data integrity requirement)
   await recordActionResponse(actionId, 'accepted', {
