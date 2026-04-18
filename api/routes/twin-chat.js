@@ -370,6 +370,14 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Classify neuropil domain BEFORE context fetch so we can route retrieval (pure, microseconds)
     const neuropilResult = useConnectomeNeuropils ? classifyNeuropil(message) : { neuropilId: null, weights: null, budgets: null, confidence: 0 };
+    // Always log routing outcome (structured) so we can audit firing rate in prod.
+    log.info('Neuropil routing decision', {
+      userId,
+      neuropilId: neuropilResult.neuropilId,
+      confidence: neuropilResult.confidence,
+      featureEnabled: !!useConnectomeNeuropils,
+      messagePreview: (message || '').slice(0, 60),
+    });
     if (neuropilResult.neuropilId) {
       chatLog(`Neuropil: ${neuropilResult.neuropilId} (confidence=${neuropilResult.confidence})`);
     }
@@ -510,11 +518,18 @@ router.post('/message', authenticateUser, async (req, res) => {
     let neurotransmitterMode = { mode: 'default', confidence: 0, matchedKeywords: [] };
     if (useNeurotransmitterModes) {
       neurotransmitterMode = detectConversationMode(message);
+      // Always log detection outcome (structured) so firing rate is auditable in prod.
+      log.info('Neurotransmitter detection', {
+        userId,
+        mode: neurotransmitterMode.mode,
+        confidence: neurotransmitterMode.confidence,
+        matchedKeywords: neurotransmitterMode.matchedKeywords,
+        featureEnabled: true,
+      });
       if (neurotransmitterMode.mode !== 'default') {
         const ntBlock = buildNeurotransmitterPromptBlock(neurotransmitterMode.mode);
         if (ntBlock) {
           systemPrompt.push({ type: 'text', text: `\n${ntBlock}` });
-          log.debug('Neurotransmitter mode', { mode: neurotransmitterMode.mode, confidence: neurotransmitterMode.confidence, keywords: neurotransmitterMode.matchedKeywords });
         }
       }
     }

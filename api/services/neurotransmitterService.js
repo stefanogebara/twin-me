@@ -12,19 +12,27 @@
 
 const MODE_KEYWORDS = {
   serotonergic: [
-    'feeling', 'stressed', 'sad', 'anxious', 'overwhelmed',
-    'lonely', 'worried', 'tired', 'struggling', 'grateful',
-    'depressed', 'hurt', 'scared', 'nervous', 'happy',
+    'feel', 'feeling', 'feelings', 'stressed', 'stress', 'sad', 'anxious',
+    'anxiety', 'overwhelmed', 'overwhelm', 'lonely', 'alone', 'worried',
+    'worry', 'tired', 'exhausted', 'burnt out', 'burned out', 'struggling',
+    'struggle', 'grateful', 'depressed', 'down', 'hurt', 'hurting', 'scared',
+    'afraid', 'nervous', 'happy', 'rest', 'hard on myself', 'beat myself up',
+    'cry', 'crying', 'heavy', 'low', 'drained', 'vulnerable', 'isolated',
   ],
   dopaminergic: [
-    'analyze', 'plan', 'goal', 'strategy', 'optimize',
-    'measure', 'data', 'compare', 'decide', 'productivity',
-    'track', 'metric', 'progress', 'schedule', 'budget',
+    'analyze', 'analysis', 'plan', 'planning', 'goal', 'goals', 'strategy',
+    'strategic', 'optimize', 'optimization', 'measure', 'data', 'compare',
+    'decide', 'decision', 'productivity', 'productive', 'track', 'tracking',
+    'metric', 'metrics', 'progress', 'schedule', 'budget', 'should i',
+    'which one', 'priorit', 'efficient', 'efficiency', 'logic', 'evaluate',
+    'trade-off', 'tradeoff', 'pros and cons', 'roi', 'benchmark',
   ],
   noradrenergic: [
-    'imagine', 'what if', 'explore', 'creative', 'brainstorm',
-    'inspire', 'dream', 'wonder', 'experiment', 'idea',
-    'invent', 'design', 'vision', 'possibility', 'art',
+    'imagine', 'what if', 'explore', 'exploring', 'creative', 'creativity',
+    'brainstorm', 'brainstorming', 'inspire', 'inspiration', 'dream', 'wonder',
+    'experiment', 'idea', 'ideas', 'invent', 'design', 'vision', 'possibility',
+    'possibilities', 'art', 'create', 'make', 'build', 'write', 'story',
+    'novel idea', 'wild', 'crazy idea', 'prototype', 'sketch', 'compose',
   ],
 };
 
@@ -89,11 +97,13 @@ export function detectConversationMode(message) {
     }
   }
 
-  // Require at least 2 keyword matches to activate
-  if (bestCount < 2) {
+  // Activate on >=1 keyword match; single-match is treated as lower-confidence.
+  // Lowered from >=2 after audit found modes fired on <15% of eligible prompts.
+  if (bestCount < 1) {
     return { mode: 'default', confidence: 0, matchedKeywords: [] };
   }
 
+  // Confidence scales with match count; single match = 0.2, 5+ matches = 1.0
   const confidence = Math.min(1, bestCount / 5);
   return { mode: bestMode, confidence, matchedKeywords: bestKeywords };
 }
