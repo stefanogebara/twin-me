@@ -34,10 +34,26 @@ router.all('/', async (req, res) => {
     log.info('Starting run');
 
     // Find users with more than 5,000 memories (archive candidates)
-    const { data: candidates, error: candidatesErr } = await supabaseAdmin.rpc(
-      'get_users_with_many_memories',
-      { p_min_count: 5001 }
-    ).catch(() => ({ data: null, error: new Error('RPC not available, using fallback') }));
+    // Use try/catch around await — supabase query builders are NOT Promises and have no .catch()
+    let candidates = null;
+    let candidatesErr = null;
+    try {
+      const rpcResult = await supabaseAdmin.rpc(
+        'get_users_with_many_memories',
+        { p_min_count: 5001 }
+      );
+      candidates = rpcResult.data;
+      candidatesErr = rpcResult.error;
+    } catch (rpcThrow) {
+      // RPC threw (e.g. function missing on DB). Log with full context, then use fallback.
+      log.warn('RPC get_users_with_many_memories threw, falling back to direct query', {
+        cron: 'memory-archive',
+        minCount: 5001,
+        errorMessage: rpcThrow.message,
+        errorStack: rpcThrow.stack,
+      });
+      candidatesErr = rpcThrow;
+    }
 
     let userIds = [];
 
@@ -50,8 +66,13 @@ router.all('/', async (req, res) => {
         .lte('importance_score', 5);
 
       if (rowsErr) {
-        log.error('Failed to fetch candidates', { error: rowsErr.message });
-        return res.status(500).json({ error: 'Failed to fetch archive candidates' });
+        log.error('Failed to fetch candidates', {
+          cron: 'memory-archive',
+          error: rowsErr.message,
+          stack: rowsErr.stack,
+          code: rowsErr.code,
+        });
+        throw new Error(`memory-archive: failed to fetch candidates: ${rowsErr.message}`);
       }
 
       // Deduplicate user IDs
@@ -64,36 +85,68 @@ router.all('/', async (req, res) => {
 
     let usersProcessed = 0;
     let totalArchived = 0;
+    const userErrors = [];
 
     for (const userId of userIds) {
-      const { data: archived, error: archiveErr } = await supabaseAdmin.rpc(
-        'archive_old_memories',
-        { p_user_id: userId }
-      );
+      try {
+        const { data: archived, error: archiveErr } = await supabaseAdmin.rpc(
+          'archive_old_memories',
+          { p_user_id: userId }
+        );
 
-      if (archiveErr) {
-        log.error('Error for user', { userId, error: archiveErr.message });
-        continue;
-      }
+        if (archiveErr) {
+          log.error('archive_old_memories returned error', {
+            cron: 'memory-archive',
+            userId,
+            error: archiveErr.message,
+            code: archiveErr.code,
+            details: archiveErr.details,
+          });
+          userErrors.push({ userId, error: archiveErr.message });
+          continue;
+        }
 
-      const count = archived || 0;
-      if (count > 0) {
-        log.info('Archived memories for user', { count, userId });
-        totalArchived += count;
+        const count = archived || 0;
+        if (count > 0) {
+          log.info('Archived memories for user', { count, userId });
+          totalArchived += count;
+        }
+        usersProcessed++;
+      } catch (perUserErr) {
+        log.error('archive_old_memories threw for user', {
+          cron: 'memory-archive',
+          userId,
+          error: perUserErr.message,
+          stack: perUserErr.stack,
+        });
+        userErrors.push({ userId, error: perUserErr.message });
       }
-      usersProcessed++;
     }
 
     const durationMs = Date.now() - startTime;
-    log.info('Archive run complete', { usersProcessed, totalArchived, durationMs });
+    const errorCount = userErrors.length;
+    log.info('Archive run complete', { usersProcessed, totalArchived, errorCount, durationMs });
 
-    await logCronExecution('memory-archive', 'success', durationMs, { usersProcessed, totalArchived });
+    // If any per-user errors occurred, record as partial-success with context so it surfaces in dashboards
+    const status = errorCount > 0 ? 'error' : 'success';
+    await logCronExecution(
+      'memory-archive',
+      status,
+      durationMs,
+      { usersProcessed, totalArchived, errorCount, userErrors: userErrors.slice(0, 20) },
+      errorCount > 0 ? `memory-archive: ${errorCount} per-user failures` : null
+    );
 
-    res.json({ success: true, usersProcessed, totalArchived, durationMs });
+    res.json({ success: errorCount === 0, usersProcessed, totalArchived, errorCount, durationMs });
   } catch (err) {
     const durationMs = Date.now() - startTime;
-    await logCronExecution('memory-archive', 'error', durationMs, null, err.message);
-    log.error('Unexpected error', { error: err.message });
+    log.error('memory-archive fatal error', {
+      cron: 'memory-archive',
+      error: err.message,
+      stack: err.stack,
+      durationMs,
+    });
+    await logCronExecution('memory-archive', 'error', durationMs, null, `${err.message}\n${err.stack}`);
     res.status(500).json({ error: err.message });
   }
 });
