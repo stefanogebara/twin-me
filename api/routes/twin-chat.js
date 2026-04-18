@@ -388,7 +388,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       // Fetch twin context + user location + personality profile + oracle draft in parallel
       // Pass neuropil-routed budgets/weights if classified (otherwise defaults preserved)
       const contextOptions = {
-        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web'],
+        platforms: context?.platforms || ['spotify', 'calendar', 'whoop', 'web', 'youtube', 'gmail', 'linkedin', 'discord', 'github', 'reddit', 'twitch'],
       };
       if (neuropilResult.neuropilId && neuropilResult.budgets) {
         contextOptions.memoryBudgets = neuropilResult.budgets;

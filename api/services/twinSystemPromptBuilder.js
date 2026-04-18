@@ -499,7 +499,37 @@ export function buildTwinSystemPrompt(soulSignature, platformData, personalitySc
     }
 
     if (platformData.linkedin?.observations?.length > 0) {
-      dynamicContext += `\n\nMy professional side (from LinkedIn activity):\n${platformData.linkedin.observations.map(o => `- ${o}`).join('\n')}`;
+      dynamicContext += `\n\nMy professional side (from LinkedIn activity):\n${platformData.linkedin.observations.map(o => typeof o === 'string' ? `- ${o}` : `- ${o.content || ''}`).join('\n')}`;
+    }
+
+    // Generic per-platform observation blocks (for platforms w/o a live-API fetcher)
+    // youtube, gmail, discord, github, reddit, twitch, etc. land here.
+    const STRUCTURED_PLATFORMS = new Set(['spotify', 'calendar', 'whoop', 'web', 'linkedin', 'activityPriorities']);
+    const PLATFORM_LABELS = {
+      youtube: 'What I watch (YouTube)',
+      gmail: 'My email activity (Gmail)',
+      discord: 'My Discord activity',
+      github: 'My code life (GitHub)',
+      reddit: 'What I browse (Reddit)',
+      twitch: 'My Twitch activity',
+    };
+    let totalBackfillChars = 0;
+    const BACKFILL_CHAR_CAP = 1500; // keep the whole extra block under ~1500 tokens
+    for (const [key, val] of Object.entries(platformData)) {
+      if (STRUCTURED_PLATFORMS.has(key)) continue;
+      if (!val || typeof val !== 'object') continue;
+      const observations = Array.isArray(val) ? val : val.observations;
+      if (!observations || observations.length === 0) continue;
+      const label = PLATFORM_LABELS[key] || `My ${key} activity`;
+      const lines = observations.slice(0, 8).map(o => {
+        const text = typeof o === 'string' ? o : (o.content || o.text || '');
+        return text ? `- ${text}` : '';
+      }).filter(Boolean);
+      if (lines.length === 0) continue;
+      const block = `\n\n${label}:\n${lines.join('\n')}`;
+      if (totalBackfillChars + block.length > BACKFILL_CHAR_CAP) break;
+      dynamicContext += block;
+      totalBackfillChars += block.length;
     }
   }
 

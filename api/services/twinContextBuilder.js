@@ -541,8 +541,72 @@ async function _fetchPlatformData(userId, platforms) {
     }
   });
 
+  // Backfill: for platforms that are connected but don't have a live fetcher
+  // (e.g. youtube, gmail, linkedin, discord, github, reddit, twitch), surface
+  // recent platform_data memories so they appear in the system prompt.
+  try {
+    const LIVE_FETCH_PLATFORMS = new Set(['spotify', 'calendar', 'google_calendar', 'whoop', 'web']);
+    const backfillPlatforms = Array.from(connectedPlatforms).filter(p => !LIVE_FETCH_PLATFORMS.has(p));
+    if (backfillPlatforms.length > 0) {
+      const memObservations = await _fetchPlatformObservationsFromMemory(userId, backfillPlatforms, 10);
+      for (const [platform, observations] of Object.entries(memObservations)) {
+        if (observations?.length > 0 && !data[platform]) {
+          data[platform] = {
+            observations,
+            source: 'memory_stream',
+            fetchedAt: new Date().toISOString(),
+          };
+        }
+      }
+    }
+  } catch (backfillErr) {
+    log.warn('Platform memory backfill failed:', backfillErr.message);
+  }
+
   platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
   return data;
+}
+
+/**
+ * Fetch recent platform_data memories for platforms that don't have a live-API fetcher.
+ * Groups by metadata.platform (or metadata.source as fallback). Returns newest first.
+ * Keeps per-platform slice small so total prompt stays under ~1500 tokens.
+ */
+async function _fetchPlatformObservationsFromMemory(userId, platforms, perPlatformLimit = 10) {
+  if (!platforms || platforms.length === 0) return {};
+
+  const { data: rows, error } = await supabaseAdmin
+    .from('user_memories')
+    .select('content, metadata, created_at')
+    .eq('user_id', userId)
+    .eq('memory_type', 'platform_data')
+    .order('created_at', { ascending: false })
+    .limit(perPlatformLimit * platforms.length * 3); // oversample to survive filter
+
+  if (error || !rows) return {};
+
+  const grouped = {};
+  for (const p of platforms) grouped[p] = [];
+
+  for (const row of rows) {
+    const meta = row.metadata || {};
+    const rowPlatform = meta.platform || meta.source;
+    if (!rowPlatform) continue;
+    // Match platform identifier loosely (e.g. 'google_calendar' vs 'calendar')
+    const matched = platforms.find(p => p === rowPlatform || rowPlatform.includes(p) || p.includes(rowPlatform));
+    if (!matched) continue;
+    if (grouped[matched].length >= perPlatformLimit) continue;
+    grouped[matched].push({
+      content: (row.content || '').slice(0, 200), // cap per-row length
+      at: row.created_at,
+    });
+  }
+
+  // Drop empty platforms
+  for (const p of Object.keys(grouped)) {
+    if (grouped[p].length === 0) delete grouped[p];
+  }
+  return grouped;
 }
 
 async function _refreshPlatformData(userId, platforms, cacheKey) {
