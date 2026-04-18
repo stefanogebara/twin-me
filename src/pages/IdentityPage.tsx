@@ -149,6 +149,16 @@ const DEMO_SOUL_LAYERS: SoulSignatureLayers = {
   generated_at: new Date().toISOString(),
 };
 
+// ── Expert domain labels ─────────────────────────────────────────────────
+
+const EXPERT_LABELS: { key: string; label: string }[] = [
+  { key: 'personality_psychologist', label: 'Personality' },
+  { key: 'lifestyle_analyst',        label: 'Lifestyle' },
+  { key: 'cultural_identity',        label: 'Culture' },
+  { key: 'social_dynamics',          label: 'Social' },
+  { key: 'motivation_analyst',       label: 'Drive' },
+];
+
 // ── Suggestion pills ─────────────────────────────────────────────────────
 
 const SUGGESTION_PILLS = [
@@ -439,6 +449,23 @@ const IdentityPage: React.FC = () => {
     ? generateTraitBadgesFromSoulLayers(layers as SoulSignatureLayers)
     : [];
 
+  // ── Expert 1-liners (first sentence of first insight per domain) ─────
+
+  const rawExpertInsights = data?.data?.expertInsights ?? {};
+  const expertOneLinerEntries = EXPERT_LABELS
+    .map(({ key, label }) => {
+      const insights: string[] = rawExpertInsights[key] ?? [];
+      if (!insights.length) return null;
+      const firstSentence = insights[0].split(/\.\s/)[0].replace(/^["']|["']$/g, '').trim();
+      return { label, text: firstSentence };
+    })
+    .filter(Boolean) as { label: string; text: string }[];
+
+  // ── Drift signal ────────────────────────────────────────────────────────
+
+  const driftIsStable = !layers?.growth_edges || layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0;
+  const driftShiftCount = layers?.growth_edges?.shifts?.length ?? 0;
+
   // ── Share handler ──────────────────────────────────────────────────────
 
   const handleShare = () => {
@@ -562,6 +589,21 @@ const IdentityPage: React.FC = () => {
                 >
                   {archetypeResult.archetype.tagline}
                 </p>
+                <div className="mt-2.5 flex items-center gap-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                    style={driftIsStable
+                      ? { background: 'rgba(74,222,128,0.10)', color: 'rgba(74,222,128,0.75)' }
+                      : { background: 'rgba(255,132,0,0.12)', color: 'rgba(255,132,0,0.85)' }
+                    }
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: driftIsStable ? 'rgba(74,222,128,0.8)' : 'rgba(255,132,0,0.9)' }}
+                    />
+                    {driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
+                  </span>
+                </div>
                 {layers?.generated_at && (
                   <p
                     className="mt-2 text-[10px] uppercase tracking-[0.12em]"
@@ -667,7 +709,39 @@ const IdentityPage: React.FC = () => {
       {/* ── Identity Quote ─────────────────────────────────────────── */}
       <IdentityQuote />
 
-      {/* PersonalityDNA (OCEAN sliders) removed — replaced by 5-layer Soul Signature */}
+      {/* ── Expert 1-liners ────────────────────────────────────────── */}
+      {expertOneLinerEntries.length > 0 && (
+        <FadeInSection delay={0.12}>
+          {glassCard(
+            <>
+              <SectionLabel>What your experts see</SectionLabel>
+              <div className="space-y-3.5">
+                {expertOneLinerEntries.map(({ label, text }) => (
+                  <div key={label} className="flex items-start gap-3">
+                    <span
+                      className="text-[10px] font-medium uppercase tracking-wider flex-shrink-0 pt-0.5 w-[68px] text-right"
+                      style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {label}
+                    </span>
+                    <p
+                      style={{
+                        fontFamily: "'Instrument Serif', Georgia, serif",
+                        fontStyle: 'italic',
+                        fontSize: '14px',
+                        color: 'rgba(255,255,255,0.72)',
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {text}.
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </FadeInSection>
+      )}
 
       {/* ── Values ─────────────────────────────────────────────────── */}
       {layers?.values?.values && layers.values.values.length > 0 && (
@@ -806,36 +880,34 @@ const IdentityPage: React.FC = () => {
           </FadeInSection>
         )}
 
-        {layers?.growth_edges && (
-          <FadeInSection delay={0.35}>
-            {glassCard(
-              <>
-                <SectionLabel>What's Changing</SectionLabel>
-                {layers.growth_edges.isStable || layers.growth_edges.shifts.length === 0 ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
-                    <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
-                      Consistent — you're in a steady state
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {layers.growth_edges.shifts.map((shift) => (
-                      <div key={shift.domain} className="flex items-start gap-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
-                          {shift.domain}
-                        </span>
-                        <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
-                          {shift.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </FadeInSection>
-        )}
+        <FadeInSection delay={0.35}>
+          {glassCard(
+            <>
+              <SectionLabel>What's Changing</SectionLabel>
+              {driftIsStable ? (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'rgba(74,222,128,0.6)' }} />
+                  <p className="text-sm" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}>
+                    Consistent — your patterns have been stable recently
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {layers!.growth_edges.shifts.map((shift) => (
+                    <div key={shift.domain} className="flex items-start gap-3">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider flex-shrink-0 mt-0.5" style={growthTypeBadgeStyle(shift.type)}>
+                        {shift.domain}
+                      </span>
+                      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)', fontFamily: "'Inter', sans-serif" }}>
+                        {shift.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </FadeInSection>
       </div>
 
       {/* ── ICA Personality Axes ────────────────────────────────────── */}
