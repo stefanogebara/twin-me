@@ -456,7 +456,7 @@ const IdentityPage: React.FC = () => {
     .map(({ key, label }) => {
       const insights: string[] = rawExpertInsights[key] ?? [];
       if (!insights.length) return null;
-      const firstSentence = insights[0].split(/\.\s/)[0].replace(/^["']|["']$/g, '').trim();
+      const firstSentence = insights[0].split(/\.\s/)[0].replace(/\*\*/g, '').replace(/^["']|["']$/g, '').trim();
       return { label, text: firstSentence };
     })
     .filter(Boolean) as { label: string; text: string }[];
@@ -568,7 +568,7 @@ const IdentityPage: React.FC = () => {
         <>
           {archetypeResult ? (
             <>
-              <section className="relative pl-5" style={{ borderLeft: '3px solid var(--accent-vibrant)' }}>
+              <section className="relative pl-5" style={{ borderLeft: '3px solid rgba(255,255,255,0.20)' }}>
                 {/* Single-archetype headline — promoted from h2 to h1 so the hero has one dominant voice */}
                 <h1
                   style={{
@@ -594,12 +594,12 @@ const IdentityPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
                     style={driftIsStable
                       ? { background: 'rgba(74,222,128,0.10)', color: 'rgba(74,222,128,0.75)' }
-                      : { background: 'rgba(255,132,0,0.12)', color: 'rgba(255,132,0,0.85)' }
+                      : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.55)' }
                     }
                   >
                     <span
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ background: driftIsStable ? 'rgba(74,222,128,0.8)' : 'rgba(255,132,0,0.9)' }}
+                      style={{ background: driftIsStable ? 'rgba(74,222,128,0.8)' : 'rgba(255,255,255,0.40)' }}
                     />
                     {driftIsStable ? 'Stable signal' : `${driftShiftCount} shift${driftShiftCount !== 1 ? 's' : ''} detected`}
                   </span>
@@ -625,14 +625,14 @@ const IdentityPage: React.FC = () => {
                   }
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.97]"
                   style={{
-                    background: 'var(--accent-vibrant-glow)',
-                    border: '1px solid rgba(255,132,0,0.30)',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
                     color: 'var(--foreground)',
                     fontFamily: "'Inter', sans-serif",
                   }}
                 >
                   Ask your twin why this fits
-                  <ArrowRight className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
+                  <ArrowRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 </button>
               </div>
             </>
@@ -697,7 +697,7 @@ const IdentityPage: React.FC = () => {
               <button
                 onClick={() => navigate('/get-started')}
                 className="px-4 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-                style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
+                style={{ border: '1px solid rgba(255,255,255,0.20)', color: 'var(--foreground)', fontFamily: "'Inter', sans-serif" }}
               >
                 Connect platforms
               </button>
@@ -926,7 +926,7 @@ const IdentityPage: React.FC = () => {
                 style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter', sans-serif" }}
               >
                 {pill}
-                <ArrowRight className="w-3 h-3" style={{ color: 'var(--accent-vibrant)' }} />
+                <ArrowRight className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.35)' }} />
               </button>
             ))}
           </div>
@@ -945,7 +945,7 @@ const IdentityPage: React.FC = () => {
             <button
               onClick={() => navigate('/get-started')}
               className="flex items-center gap-1.5 text-[12px] transition-all duration-150 ease-out hover:opacity-60 active:scale-[0.97]"
-              style={{ color: 'var(--accent-vibrant)', fontFamily: "'Inter', sans-serif" }}
+              style={{ color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}
             >
               Connect more platforms
               <ArrowRight className="w-3 h-3" />
@@ -1086,7 +1086,7 @@ const EmptyState: React.FC = () => {
         <button
           onClick={() => navigate('/get-started')}
           className="px-5 py-2 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
-          style={{ border: '1px solid var(--accent-vibrant)', color: 'var(--accent-vibrant)' }}
+          style={{ border: '1px solid rgba(255,255,255,0.20)', color: 'var(--foreground)' }}
         >
           Connect platforms
         </button>
