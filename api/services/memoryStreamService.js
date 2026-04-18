@@ -330,11 +330,44 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
       }
     }
 
-    // Generate embedding and importance score in parallel
+    // Generate embedding and importance score in parallel.
+    // Embedding is REQUIRED — null-embedding rows are invisible to vector search
+    // and corrupt retrieval silently. Retry up to 3x before throwing.
+    const embedWithRetry = async () => {
+      if (options.skipEmbedding) return null;
+      const maxAttempts = 3;
+      let lastErr = null;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const vec = await generateEmbedding(content);
+          if (vec) return vec;
+          lastErr = new Error('generateEmbedding returned null');
+        } catch (err) {
+          lastErr = err;
+        }
+        log.warn('Embedding attempt failed, retrying', { attempt, maxAttempts, memoryType, userId });
+        if (attempt < maxAttempts) {
+          await new Promise(r => setTimeout(r, 250 * attempt));
+        }
+      }
+      log.error('Embedding generation failed after all retries', {
+        attempts: maxAttempts, memoryType, userId, error: lastErr?.message
+      });
+      throw new Error(`Embedding failed after ${maxAttempts} attempts for memoryType=${memoryType}: ${lastErr?.message || 'unknown'}`);
+    };
+
     let [embedding, importanceScore] = await Promise.all([
-      options.skipEmbedding ? null : generateEmbedding(content),
+      embedWithRetry(),
       options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
     ]);
+
+    // Defensive guard: refuse to insert a memory row without an embedding unless
+    // the caller explicitly opted out via options.skipEmbedding. Null-embedding
+    // rows are silently invisible to vector search and corrupt retrieval quality.
+    if (!embedding && !options.skipEmbedding) {
+      log.error('Refusing to insert null-embedding memory', { memoryType, userId });
+      throw new Error(`Cannot insert memory without embedding (memoryType=${memoryType})`);
+    }
 
     // Floor: platform_data gets importance 6 (ensures surfacing alongside reflections 7-9)
     // Conversations keep floor 4 (protects from early archival)
@@ -398,7 +431,15 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     log.info('Stored memory', { memoryType, importance: importanceScore, hasEmbedding: !!embedding, userId });
     return data;
   } catch (error) {
-    log.error('addMemory error', { error });
+    // Surface embedding-specific failures loudly — these indicate an upstream
+    // issue (API key, rate limit, provider outage) that must not be hidden.
+    const isEmbeddingFailure = typeof error?.message === 'string' &&
+      (error.message.includes('Embedding failed') || error.message.includes('null-embedding'));
+    if (isEmbeddingFailure) {
+      log.error('addMemory embedding failure — memory NOT stored', { error: error.message });
+    } else {
+      log.error('addMemory error', { error });
+    }
     return null;
   }
 }
