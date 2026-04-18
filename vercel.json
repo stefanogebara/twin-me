@@ -100,6 +100,10 @@
     {
       "path": "/api/cron/department-execute",
       "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/cron/agent-actions-cleanup",
+      "schedule": "0 2 * * *"
     }
   ]
 }

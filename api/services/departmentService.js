@@ -23,6 +23,41 @@ import { createLogger } from './logger.js';
 const log = createLogger('DepartmentService');
 
 /**
+ * Whitelist of toolNames the heartbeat may emit, plus the required param keys
+ * for each. Anything outside this table is dropped before reaching
+ * proposeDepartmentAction so we never queue a ghost proposal the cron cannot
+ * execute. Keep in sync with the RULES block in the heartbeat prompt.
+ */
+const HEARTBEAT_TOOL_WHITELIST = {
+  suggest: [],
+  gmail_draft: ['to', 'subject', 'body'],
+  calendar_create: ['summary', 'start', 'end'],
+  docs_create: ['title'],
+};
+
+/**
+ * Validate an LLM-emitted suggestion against the heartbeat whitelist.
+ * Returns { ok: true } if the proposal is safe to queue, otherwise
+ * { ok: false, reason, details } explaining why it was dropped.
+ */
+function validateHeartbeatProposal(suggestion) {
+  const toolName = suggestion.toolName || 'suggest';
+  const required = HEARTBEAT_TOOL_WHITELIST[toolName];
+  if (!required) {
+    return { ok: false, reason: 'tool_not_whitelisted', details: { toolName } };
+  }
+  const params = suggestion.params || {};
+  const missing = required.filter(key => {
+    const v = params[key];
+    return v === undefined || v === null || String(v).trim() === '';
+  });
+  if (missing.length > 0) {
+    return { ok: false, reason: 'missing_required_params', details: { toolName, missing } };
+  }
+  return { ok: true, toolName, params };
+}
+
+/**
  * Get full status for a single department: config + autonomy + budget + recent activity count.
  */
 export async function getDepartmentStatus(userId, department) {
@@ -599,17 +634,20 @@ OUTPUT FORMAT (must be valid JSON):
 
 RULES:
 1. department MUST be one of: ${activeDepts.map(d => d.department).join(', ')}
-2. For Health/Finance/Social/Research → toolName: "suggest" (these are observation departments)
-3. For Communications → toolName: "gmail_draft" for drafts, "gmail_reply" for replies
-   - gmail_draft params MUST include: to (recipient email address), subject (string), body (draft content string). Without all three, the action CANNOT execute.
-   - If you don't have a specific recipient email address from the observations, use toolName: "suggest" instead and put the intent in the description.
-4. For Scheduling → toolName: "calendar_create" or "calendar_modify_event"
+2. ALLOWED toolName values: "suggest", "gmail_draft", "calendar_create", "docs_create". Anything else will be discarded.
+   - NEVER emit "gmail_send", "gmail_reply", "calendar_modify_event", or any tool that needs an ID (messageId, threadId, eventId) you don't have from the observations. Use "suggest" instead.
+3. For Health/Finance/Social/Research → toolName: "suggest" (these are observation departments)
+4. For Communications → toolName: "gmail_draft" (only if you have a concrete recipient email from observations), else "suggest"
+   - gmail_draft params MUST include: to (recipient email address), subject (string), body (draft content string). Without ALL THREE, the action CANNOT execute — use "suggest" instead.
+5. For Scheduling → toolName: "calendar_create" (only for new events)
    - calendar_create params MUST include: summary (string, event title), start (ISO local time like "${tomorrowDate}T14:00:00" — no Z suffix), end (ISO local time). Optionally: description, location.
    - Without summary + start + end, the action CANNOT execute. Emit specific times grounded in the user's observed schedule.
-5. For Content → toolName: "suggest" or "docs_create"
-6. Description should be ONE sentence, specific to the data
-7. reasoning should cite the specific observation that triggered the suggestion
-8. Return an EMPTY array [] ONLY if there is genuinely no signal in the data
+   - For modifying existing events, use "suggest" — you don't have event IDs.
+6. For Content → toolName: "docs_create" (only if you have a concrete title), else "suggest"
+   - docs_create params MUST include: title (string). Without it, use "suggest".
+7. Description should be ONE sentence, specific to the data
+8. reasoning should cite the specific observation that triggered the suggestion
+9. Return an EMPTY array [] ONLY if there is genuinely no signal in the data
 
 GO. Return only the JSON array, no other text:`;
 
@@ -684,12 +722,19 @@ GO. Return only the JSON array, no other text:`;
         continue;
       }
 
-      // toolName is required by proposeDepartmentAction; use 'suggest' for observation-only proposals
-      const toolName = s.toolName || 'suggest';
+      // Defense-in-depth: even with the hardened prompt, validate the tool + params
+      // against the heartbeat whitelist so an off-script LLM emission never produces
+      // an unexecutable ghost proposal.
+      const validation = validateHeartbeatProposal(s);
+      if (!validation.ok) {
+        skipped.push({ reason: validation.reason, department: s.department, ...validation.details });
+        continue;
+      }
+      const { toolName, params } = validation;
       try {
         const result = await proposeDepartmentAction(userId, s.department, {
           toolName,
-          params: s.params || {},
+          params,
           context: s.description,
           priority: s.priority || 5,
         });
