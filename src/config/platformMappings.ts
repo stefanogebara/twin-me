@@ -54,13 +54,6 @@ export const platformMappings: Record<string, PlatformConfig> = {
     description: 'Family-friendly content preferences',
     docsUrl: '#'
   },
-  apple_music: {
-    name: 'Apple Music',
-    category: 'personal',
-    apiAvailable: 'Limited API',
-    description: 'Curated tastes, premium preferences',
-    docsUrl: 'https://developer.apple.com/documentation/applemusicapi'
-  },
   tiktok: {
     name: 'TikTok',
     category: 'personal',
@@ -104,13 +97,6 @@ export const platformMappings: Record<string, PlatformConfig> = {
     apiAvailable: 'Full API',
     description: 'Communication style, response patterns',
     docsUrl: 'https://developers.google.com/gmail/api'
-  },
-  teams: {
-    name: 'Microsoft Teams',
-    category: 'professional',
-    apiAvailable: 'Full API',
-    description: 'Collaboration dynamics, meeting participation',
-    docsUrl: 'https://docs.microsoft.com/en-us/graph/teams-concept-overview'
   },
   calendar: {
     name: 'Google Calendar',

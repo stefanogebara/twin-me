@@ -82,12 +82,6 @@ const WhoopLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   </svg>
 );
 
-const AppleMusicLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M23.997 6.124a9.23 9.23 0 0 0-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043A5.022 5.022 0 0 0 19.7.294a10.15 10.15 0 0 0-1.564-.15C17.327.086 16.517.065 15.693.065H8.31c-.828 0-1.638.021-2.448.079a10.15 10.15 0 0 0-1.564.15c-.89.164-1.7.497-2.378.997C.81 2.38.065 3.55.025 5.05a10.82 10.82 0 0 0-.025.8v12.304c0 .27.01.54.025.8.035 1.5.78 2.67 1.895 3.758a5.022 5.022 0 0 0 1.877.797c.516.094 1.038.148 1.564.15.81.058 1.62.079 2.448.079h7.383c.828 0 1.634-.021 2.444-.079a10.15 10.15 0 0 0 1.564-.15c.89-.164 1.7-.497 2.377-.997 1.11-1.09 1.86-2.26 1.895-3.758a9.44 9.44 0 0 0 .025-.8V6.924a9.44 9.44 0 0 0-.025-.8zM17.5 17.5a.75.75 0 0 1-.75.75h-.5a2.25 2.25 0 0 1-2.25-2.25v-5.5l-5 1.25V16a2.25 2.25 0 0 1-2.25 2.25h-.5a.75.75 0 0 1-.75-.75v-.5a2.25 2.25 0 0 1 2.25-2.25H8V8.5a1 1 0 0 1 .757-.97l6-1.5A1 1 0 0 1 16 7v7.75a2.25 2.25 0 0 1 1.5 2.25v.5z"/>
-  </svg>
-);
-
 const FitbitLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <circle cx="12" cy="4" r="2.5"/>
@@ -310,19 +304,6 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low',
     category: 'health',
     comingSoon: true,
-  },
-  {
-    provider: 'apple_music' as DataProvider,
-    name: 'Apple Music',
-    description: 'Your Apple Music library reveals genre depth, playlist curation style, and how music shapes your daily mood',
-    icon: <AppleMusicLogo className="w-6 h-6" />,
-    color: '#FC3C44',
-    dataTypes: ['Music Library', 'Recently Played', 'Playlists', 'Genre Taste'],
-    estimatedInsights: 10,
-    setupTime: '10 seconds',
-    privacyLevel: 'low',
-    category: 'entertainment',
-    comingSoon: true
   },
   {
     provider: 'fitbit' as DataProvider,

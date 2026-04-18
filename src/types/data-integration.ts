@@ -9,11 +9,11 @@
 
 export type DataProvider =
   | 'google_gmail' | 'google_calendar' | 'google_drive'
-  | 'microsoft_outlook' | 'microsoft_teams' | 'microsoft_onedrive'
+  | 'microsoft_outlook' | 'microsoft_onedrive'
   | 'slack' | 'discord' | 'linkedin' | 'twitter' | 'instagram'
   | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'reddit'
   | 'strava' | 'oura' | 'whoop'
-  | 'apple_music' | 'fitbit' | 'garmin' | 'twitch'
+  | 'fitbit' | 'garmin' | 'twitch'
   | 'browser_extension';
 
 export type DataType =
