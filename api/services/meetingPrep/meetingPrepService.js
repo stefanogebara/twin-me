@@ -89,12 +89,12 @@ async function storeAsProactiveInsight(userId, briefing, eventSummary) {
 
   const { data } = await supabaseAdmin.from('proactive_insights').insert({
     user_id: userId,
-    insight_text: text,
+    insight: text,
     category: 'meeting_prep',
     urgency: 'high',
     delivered: false,
     metadata: { briefing_json: briefing },
-  }).select('id, insight_text, category, urgency, metadata').single();
+  }).select('id, insight, category, urgency, metadata').single();
 
   return data;
 }
