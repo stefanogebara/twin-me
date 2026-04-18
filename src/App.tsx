@@ -449,6 +449,19 @@ const App = () => {
               <Route path="/prototype/brain"     element={<PrototypeBrain />} />
             </Route>
 
+            {/* Canonical aliases — wrapped in ProtectedRoute so unauthed users
+                hit /auth instead of the 404 catch-all. */}
+            <Route path="/soul" element={
+              <ProtectedRoute>
+                <Navigate to="/identity" replace />
+              </ProtectedRoute>
+            } />
+            <Route path="/privacy" element={
+              <ProtectedRoute>
+                <Navigate to="/privacy-spectrum" replace />
+              </ProtectedRoute>
+            } />
+
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
