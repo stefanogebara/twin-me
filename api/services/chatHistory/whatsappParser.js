@@ -20,10 +20,10 @@ import AdmZip from 'adm-zip';
 // ── Format regexes ──────────────────────────────────────────────────────────
 // Format A: [DD/MM/YY, H:MM:SS AM] Sender: body
 const FMT_A = /^\[(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*[AP]M)?\]\s+([^:]+):\s*(.*)$/i;
-// Format B: DD/MM/YYYY, HH:MM - Sender: body
-const FMT_B = /^(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*[AP]M)?\s+-\s+([^:]+):\s*(.*)$/i;
-// Format C: [DD/MM/YYYY, HH:MM:SS] Sender: body
-const FMT_C = /^\[(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2}):\d{2}\]\s+([^:]+):\s*(.*)$/;
+// Format B: DD/MM/YY(YY), HH:MM - Sender: body  (year can be 2 or 4 digits)
+const FMT_B = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2})(?::\d{2})?(?:\s*[AP]M)?\s+-\s+([^:]+):\s*(.*)$/i;
+// Format C: [DD/MM/YY(YY), HH:MM:SS] Sender: body  (year can be 2 or 4 digits)
+const FMT_C = /^\[(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s*(\d{1,2}):(\d{2}):\d{2}\]\s+([^:]+):\s*(.*)$/;
 
 // System messages to skip (WhatsApp generates these automatically)
 const SYSTEM_PATTERNS = [
