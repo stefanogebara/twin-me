@@ -134,6 +134,11 @@
     "xss": "^1.0.15",
     "zod": "^3.25.76"
   },
+  "overrides": {
+    "protobufjs": ">=7.5.5",
+    "picomatch": ">=2.3.2",
+    "follow-redirects": ">=1.15.9"
+  },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.55.1",
