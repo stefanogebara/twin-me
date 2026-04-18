@@ -145,7 +145,7 @@ router.all('/', async (req, res) => {
     log.error('Diagnostic endpoint error', { error: e.message, stack: e.stack });
     res.status(500).json({
       error: e.message,
-      stack: e.stack?.split('\n').slice(0, 5),
+      stack: process.env.NODE_ENV !== 'production' ? e.stack?.split('\n').slice(0, 5) : undefined,
       partialResult: result,
     });
   }

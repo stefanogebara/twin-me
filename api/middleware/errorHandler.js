@@ -99,6 +99,21 @@ const handleAuthError = (error, req, res, next) => {
 
 // General error handler
 const handleGeneralError = (error, req, res, next) => {
+  // Structured error log for observability pipelines.
+  // TODO: replace console.error with Sentry.captureException(error, { extra: structuredContext })
+  // when @sentry/node is wired up in api/server.js (package already installed).
+  const structuredContext = {
+    timestamp: new Date().toISOString(),
+    requestId: req.headers['x-request-id'] || null,
+    userId: req.user?.id || 'anonymous',
+    method: req.method,
+    path: req.originalUrl,
+    errorName: error.name,
+    errorMessage: error.message,
+    stack: error.stack,
+  };
+  console.error('[ERROR]', JSON.stringify(structuredContext));
+
   log.error(`Error ${req.method} ${req.originalUrl}`, {
     error: error.message,
     stack: error.stack,
