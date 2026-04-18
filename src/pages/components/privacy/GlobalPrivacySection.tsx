@@ -18,7 +18,7 @@ const CARD_BG = 'rgba(255,255,255,0.06)';
 const BUILT_IN_PRESETS = [
   { key: 'hidden', label: 'Hidden', level: 0, color: '#9ca3af' },
   { key: 'minimal', label: 'Minimal', level: 20, color: '#a78bfa' },
-  { key: 'balanced', label: 'Balanced', level: 50, color: '#60a5fa' },
+  { key: 'balanced', label: 'Balanced', level: 50, color: '#c17e2c' },
   { key: 'open', label: 'Open', level: 80, color: '#34d399' },
   { key: 'full', label: 'Full', level: 100, color: '#fbbf24' },
 ];

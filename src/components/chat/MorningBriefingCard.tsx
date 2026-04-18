@@ -114,7 +114,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
           className="text-[11px] tracking-[0.12em] uppercase"
           style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
         >
-          {location}{location ? ' \u2014 ' : ''}{time} \u2014 {label}
+          {location}{location ? ' \u2014 ' : ''}{time}{' \u2014 '}{label}
         </span>
         <button
           onClick={fetchBriefing}

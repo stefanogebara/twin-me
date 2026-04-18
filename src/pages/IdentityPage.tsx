@@ -312,8 +312,8 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       <motion.button
         className="relative z-10 mt-10 px-6 py-2.5 rounded-[100px] text-sm font-medium flex items-center gap-2 transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
         style={{
-          backgroundColor: 'var(--accent-vibrant)',
-          color: '#0a0909',
+          backgroundColor: '#F5F5F4',
+          color: '#110f0f',
           fontFamily: "'Inter', sans-serif",
         }}
         initial={{ opacity: 0, y: 10 }}

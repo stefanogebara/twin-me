@@ -76,7 +76,7 @@ const DEMO_STATISTICS = {
 
 const DEMO_PRESETS = [
   { id: 'p-open', name: 'Open Book', key: 'open', label: 'Open Book', level: 90, global_privacy: 90, description: 'Share almost everything', default_cluster_levels: {}, icon: 'Eye', color: '#10B981', is_system_preset: true, is_custom: false },
-  { id: 'p-balanced', name: 'Balanced', key: 'balanced', label: 'Balanced', level: 65, global_privacy: 65, description: 'A healthy middle ground', default_cluster_levels: {}, icon: 'Scale', color: '#3B82F6', is_system_preset: true, is_custom: false },
+  { id: 'p-balanced', name: 'Balanced', key: 'balanced', label: 'Balanced', level: 65, global_privacy: 65, description: 'A healthy middle ground', default_cluster_levels: {}, icon: 'Scale', color: '#c17e2c', is_system_preset: true, is_custom: false },
   { id: 'p-private', name: 'Private', key: 'private', label: 'Private', level: 30, global_privacy: 30, description: 'Share only the essentials', default_cluster_levels: {}, icon: 'Lock', color: '#EF4444', is_system_preset: true, is_custom: false },
   { id: 'p-vault', name: 'Vault', key: 'vault', label: 'Vault', level: 5, global_privacy: 5, description: 'Maximum privacy', default_cluster_levels: {}, icon: 'Shield', color: '#6B7280', is_system_preset: true, is_custom: false },
 ] as any as AudiencePreset[];

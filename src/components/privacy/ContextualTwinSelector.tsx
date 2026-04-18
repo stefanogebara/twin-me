@@ -295,8 +295,8 @@ export const ContextualTwinSelector: React.FC<ContextualTwinSelectorProps> = ({
       </div>
 
       {/* Info Banner */}
-      <div className="p-4 rounded-xl bg-blue-900/20 border border-blue-800/30">
-        <p className="text-sm text-blue-900 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="p-4 rounded-xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.10)] backdrop-blur-[42px]">
+        <p className="text-sm text-[var(--text-narrative-secondary)] leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
           <strong className="font-medium">Pro tip:</strong> Switch between twins
           based on your context. Your digital twin will automatically adjust what
           it reveals about you to match the selected audience.
