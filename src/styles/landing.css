@@ -44,3 +44,118 @@
 .landing-divider-gradient {
   background: linear-gradient(90deg, transparent, rgba(232, 160, 80, 0.4), transparent);
 }
+
+/* ── Cosmic hero typography ── */
+.cosmic-kicker {
+  font-family: 'Inter', 'Geist', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(245, 240, 235, 0.62);
+  margin-bottom: 24px;
+}
+
+.cosmic-h1 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(60px, 9.5vw, 128px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  color: #F5F0EB;
+  margin-bottom: 32px;
+  text-shadow: 0 2px 48px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.cosmic-h2 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(32px, 5vw, 64px);
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  color: #F5F0EB;
+  text-shadow: 0 2px 32px rgba(0, 0, 0, 0.5);
+}
+
+.cosmic-quote {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(13px, 1.4vw, 17px);
+  line-height: 1.5;
+  color: rgba(245, 240, 235, 0.72);
+  max-width: min(480px, 92vw);
+  margin-top: 8px;
+  padding: 0 8px;
+}
+
+.cosmic-sub {
+  font-family: 'Inter', 'Geist', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.65;
+  color: rgba(245, 240, 235, 0.75);
+  max-width: 460px;
+  text-shadow: 0 1px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .cosmic-h1, .cosmic-h2 { text-shadow: none; }
+}
+
+/* ── Continuous scroll storytelling — post-hero sections ──
+ * Each chapter has a Ghibli background fixed to the viewport so it parallaxes
+ * behind the scrolling content. A dark overlay keeps text/cards legible. */
+.chapter-bg {
+  position: relative;
+  isolation: isolate;  /* own stacking context */
+  overflow: hidden;
+}
+.chapter-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  /* scroll-attached — fixed breaks under Lenis smooth-scroll transforms */
+  z-index: 0;
+  pointer-events: none;
+}
+.chapter-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Lighter vignette so the Ghibli bg breathes through — text still legible via shadows + glass cards. */
+  background:
+    linear-gradient(180deg, rgba(19,18,26,0.55) 0%, rgba(19,18,26,0.40) 40%, rgba(19,18,26,0.55) 100%),
+    radial-gradient(ellipse at 50% 50%, transparent 20%, rgba(19,18,26,0.25) 90%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Make sure section headings have enough contrast over the bg */
+.chapter-bg h2,
+.chapter-bg h3,
+.chapter-bg h4,
+.chapter-bg h1 {
+  text-shadow: 0 2px 20px rgba(0,0,0,0.45);
+}
+
+/* Slightly bump feature/stat/service card opacity so they pop against the Ghibli bg */
+.chapter-bg .glass-feature-card,
+.chapter-bg .glass-stat-standalone {
+  background-color: rgba(19,18,26,0.42) !important;
+  border-color: rgba(255,255,255,0.14) !important;
+}
+.chapter-bg > * { position: relative; z-index: 2; }
+
+.chapter-landscape::before { background-image: url('/images/cosmic-v2/section6-landscape.jpg'); }
+.chapter-meadow::before    { background-image: url('/images/cosmic-v2/section8-meadow.jpg'); }
+.chapter-twin::before      { background-image: url('/images/cosmic-v2/section11-twin-meeting.jpg'); }
+
+
+/* Gentler overlay on CTA so the painted twin scene reads as emotional payoff */
+.chapter-twin::after {
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 50%, rgba(19,18,26,0.35) 0%, rgba(19,18,26,0.70) 90%);
+}

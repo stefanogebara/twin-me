@@ -5,6 +5,7 @@ import { useAuth, SignInButton } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 
 import { InlineEvidence } from '../components/landing/InlineEvidence';
+import CosmicHero from '../components/landing/CosmicHero';
 import { useLenis } from '../hooks/useLenis';
 import {
   SpotifyLogo,
@@ -34,13 +35,14 @@ const PLATFORMS = [
   { id: 'whoop',     name: 'Whoop',               Icon: WhoopLogo,           color: '#C5F135' },
 ];
 
-/* ── Card images from Gemini ── */
+/* ── Card images: cosmic / nature ladder tied to section meaning ──
+ * object-position is tuned per-image for landscape (1.4:1) cropping. */
 const CARD_IMAGES = {
-  connect: '/images/backgrounds/flower-card-2.jpg',
-  discover: '/images/backgrounds/flower-card-7.jpg',
-  share: '/images/backgrounds/flower-card-6.jpg',
-  control: '/images/backgrounds/flower-card-5.jpg',
-  cta: '/images/backgrounds/flower-card-4.jpg',
+  connect:  { src: '/images/cosmic/02-nebula.jpg',        pos: 'center 40%' }, // connection to vast
+  discover: { src: '/images/cosmic/aux-forest-cranes.jpg', pos: 'center 30%' }, // patterns in nature
+  share:    { src: '/images/cosmic/04-aurora.jpg',         pos: 'center 55%' }, // voice / atmosphere
+  control:  { src: '/images/cosmic/07-ocean-birds.jpg',    pos: 'center 50%' }, // choose your depth
+  cta:      { src: '/images/cosmic-v2/section11-twin-meeting.jpg', pos: 'center 40%' }, // the twin emerges
 };
 
 /* ── Service tab data ── */
@@ -51,7 +53,8 @@ const SERVICES = [
     num: '01',
     heading: 'Connect',
     desc: 'Link your platforms. Spotify, Calendar, Whoop, YouTube, and more. Your data becomes your twin\'s memory.',
-    img: CARD_IMAGES.connect,
+    img: CARD_IMAGES.connect.src,
+    imgPos: CARD_IMAGES.connect.pos,
   },
   {
     id: 'understand',
@@ -59,7 +62,8 @@ const SERVICES = [
     num: '02',
     heading: 'Understand',
     desc: 'AI maps your personality, habits, and patterns across every platform. Patterns you never noticed about yourself.',
-    img: CARD_IMAGES.discover,
+    img: CARD_IMAGES.discover.src,
+    imgPos: CARD_IMAGES.discover.pos,
   },
   {
     id: 'chat',
@@ -67,7 +71,8 @@ const SERVICES = [
     num: '03',
     heading: 'Twin Chat',
     desc: 'Talk to a twin that actually knows you — your memory, your patterns, your voice. Ask anything, get answers grounded in your real data.',
-    img: CARD_IMAGES.share,
+    img: CARD_IMAGES.share.src,
+    imgPos: CARD_IMAGES.share.pos,
   },
   {
     id: 'control',
@@ -75,7 +80,8 @@ const SERVICES = [
     num: '04',
     heading: 'Control',
     desc: 'Set autonomy levels per department. From "just suggest" to "act on my behalf." Your privacy spectrum, your rules.',
-    img: CARD_IMAGES.control,
+    img: CARD_IMAGES.control.src,
+    imgPos: CARD_IMAGES.control.pos,
   },
 ];
 
@@ -204,55 +210,17 @@ const Index = () => {
       )}
       </div>
 
-      {/* ────────────── ACT 1: EMOTIONAL HOOK ────────────── */}
-      <section className="px-6 lg:px-16 pt-24 pb-16 lg:pt-36 lg:pb-28">
-        <div className="max-w-[520px] mx-auto text-center flex flex-col items-center">
-          {/* Main heading — let it breathe */}
-          <h1
-            className="text-[48px] md:text-[80px] font-heading font-normal mb-8"
-          >
-            Your digital footprint reveals who you really are.
-          </h1>
+      {/* ────────────── ACT 1: COSMIC ORIGIN — scroll journey ────────────── */}
+      <CosmicHero
+        isSignedIn={isSignedIn}
+        isLoaded={isLoaded}
+        onDashboard={() => navigate('/dashboard')}
+        onDiscover={() => navigate('/discover')}
+        onDemo={() => { enterDemoMode(); navigate('/dashboard'); }}
+      />
 
-          {/* One paragraph — narrative voice, 60% opacity */}
-          <p
-            className="narrative-voice mb-10 text-lg max-w-[460px]"
-          >
-            Connect Spotify, GitHub, Calendar, and more. TwinMe builds your Soul Signature — a 5-layer personality portrait from your real data — and creates an AI twin that truly knows you.
-          </p>
-
-          {/* Single earned CTA — not loud, not multiple */}
-          <div className="flex flex-col items-center gap-3">
-            {isLoaded && isSignedIn ? (
-              <button onClick={() => navigate('/dashboard')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                Go to Dashboard <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <>
-                <button onClick={() => navigate('/discover')} className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5">
-                  Discover yourself <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => { enterDemoMode(); navigate('/dashboard'); }}
-                  className="text-xs bg-none border-none cursor-pointer text-[#9A9590] transition-colors hover:text-[var(--text-secondary)]"
-                >
-                  or try the demo
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Act transition — subtle breathing space ── */}
-      <div className="flex justify-center py-8">
-        <div className="w-12 h-px landing-divider-gradient" />
-      </div>
-
-      {/* ────────────── ACT 2: PRODUCT DEPTH ────────────── */}
-
-      {/* ────────────── PLATFORMS STRIP (Act 2 opens) ────────────── */}
-      <section className="px-6 lg:px-16 py-12 border-t border-b border-white/[0.06]">
+      {/* ────────────── PLATFORMS STRIP — chapter: threads of your life ────────────── */}
+      <section className="chapter-bg chapter-landscape px-6 lg:px-16 py-14 border-b border-white/[0.06]">
         <div className="max-w-[1200px] mx-auto">
           <p className="text-center mb-7 font-sans text-[11px] font-normal tracking-[0.12em] uppercase text-[#9A9590]">
             Your data, your insights — powered by
@@ -268,8 +236,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ────────────── WHO WE ARE + STATS ────────────── */}
-      <section className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
+      {/* ────────────── WHO WE ARE + STATS — continues landscape chapter ────────────── */}
+      <section className="chapter-bg chapter-landscape px-6 lg:px-16 py-24 relative">
         <div className="max-w-[1200px] mx-auto relative z-10">
           {/* Header row */}
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 mb-14">
@@ -309,8 +277,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ────────────── SERVICES — Interactive Tab + Flower Card ────────────── */}
-      <section id="services" className="px-6 lg:px-16 py-24">
+      {/* ────────────── SERVICES — chapter: the journey inward ────────────── */}
+      <section id="services" className="chapter-bg chapter-meadow px-6 lg:px-16 py-24">
         <div className="max-w-[1200px] mx-auto">
           {/* Header */}
           <div className="mb-14">
@@ -360,6 +328,17 @@ const Index = () => {
                       src={SERVICES[activeService].img}
                       alt={SERVICES[activeService].heading}
                       className="absolute inset-0 w-full h-full object-cover"
+                      style={{ objectPosition: SERVICES[activeService].imgPos }}
+                    />
+                    {/* subtle warm edge glow for brand consistency */}
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background:
+                          'radial-gradient(ellipse at 15% 10%, rgba(232,160,80,0.10) 0%, transparent 55%),' +
+                          'linear-gradient(180deg, transparent 60%, rgba(19,18,26,0.35) 100%)',
+                      }}
                     />
                   </div>
                   {/* Description */}
@@ -375,8 +354,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ────────────── FEATURES — 2x4 Grid ────────────── */}
-      <section id="features" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
+      {/* ────────────── FEATURES — continues meadow chapter ────────────── */}
+      <section id="features" className="chapter-bg chapter-meadow px-6 lg:px-16 py-24 relative">
         <div className="max-w-[1200px] mx-auto relative z-10">
           <div className="mb-14">
             <span className="font-sans bg-white/[0.04] border border-white/[0.08] rounded-lg py-1.5 px-3.5 text-xs font-normal text-[var(--text-secondary)] inline-block mb-5">Features</span>
@@ -495,8 +474,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ────────────── HOW WE WORK — 3 Steps ────────────── */}
-      <section id="how-it-works" className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
+      {/* ────────────── HOW WE WORK — end of meadow chapter ────────────── */}
+      <section id="how-it-works" className="chapter-bg chapter-meadow px-6 lg:px-16 py-24 relative">
         <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-12 lg:gap-20 relative z-10">
           {/* Left: heading + CTA */}
           <div className="lg:w-[45%]">
@@ -549,21 +528,31 @@ const Index = () => {
         </div>
       </section>
 
-      {/* ────────────── FINAL CTA ────────────── */}
-      <section className="px-6 lg:px-16 py-24 warm-glow relative overflow-hidden">
+      {/* ────────────── FINAL CTA — chapter: meet your twin ────────────── */}
+      <section className="chapter-bg chapter-twin px-6 lg:px-16 py-24 relative">
         <div className="max-w-[1072px] mx-auto text-center flex flex-col items-center gap-8">
           <h2 className="text-[36px] md:text-[56px] font-heading font-normal">
             Meet the twin that finally knows <span className="font-heading font-normal italic">you.</span>
           </h2>
 
-          {/* Standalone flower image */}
+          {/* Final earth-scale image — grounding */}
           <div
-            className="w-full max-w-[820px] overflow-hidden rounded-[28px]"
+            className="relative w-full max-w-[820px] overflow-hidden rounded-[28px] aspect-[1.6/1]"
           >
             <img
-              src={CARD_IMAGES.cta}
+              src={CARD_IMAGES.cta.src}
               alt=""
-              className="w-full h-auto block"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ objectPosition: CARD_IMAGES.cta.pos }}
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(ellipse at 50% 100%, rgba(19,18,26,0.35) 0%, transparent 55%),' +
+                  'linear-gradient(180deg, transparent 55%, rgba(19,18,26,0.35) 100%)',
+              }}
             />
           </div>
 

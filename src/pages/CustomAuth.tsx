@@ -407,25 +407,38 @@ For privacy concerns: privacy@twinme.me`
       </div>
       </div>
 
-      {/* Right panel — Figma Sundust gradient */}
+      {/* Right panel — Ghibli cosmic "arrival" still (matches hero chapter III) */}
       <div
-        className="hidden lg:flex flex-1 m-4 ml-0 flex-col items-center justify-center px-12"
+        className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, rgba(210,145,55,0.15) 0%, rgba(55,45,140,0.12) 50%, rgba(160,95,55,0.10) 100%), #13121a',
+          backgroundImage: "url('/images/cosmic-v2/stage3-arrival.jpg')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           borderRadius: '24px',
         }}
       >
+        {/* Soft grade matching hero palette */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse 80% 60% at 50% 95%, rgba(245,180,150,0.12) 0%, transparent 55%),' +
+              'linear-gradient(180deg, rgba(19,18,26,0.30) 0%, rgba(19,18,26,0.12) 50%, rgba(40,20,30,0.22) 100%)',
+          }}
+        />
         {/* Decorative ring */}
         <div
-          className="w-20 h-20 rounded-full mb-10 flex-shrink-0"
+          className="relative w-20 h-20 rounded-full mb-10 flex-shrink-0"
           style={{
-            border: '1.5px solid rgba(255,255,255,0.15)',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%)',
+            border: '1.5px solid rgba(255,255,255,0.25)',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%)',
+            boxShadow: '0 0 60px rgba(232,160,80,0.18)',
           }}
         />
 
         <h2
-          className="text-center mb-4"
+          className="relative text-center mb-4"
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
             fontStyle: 'italic',
@@ -433,7 +446,8 @@ For privacy concerns: privacy@twinme.me`
             fontWeight: 400,
             letterSpacing: '-0.72px',
             lineHeight: 1.15,
-            color: 'rgba(255,255,255,0.9)',
+            color: 'rgba(255,255,255,0.95)',
+            textShadow: '0 2px 24px rgba(0,0,0,0.4)',
           }}
         >
           Your soul signature
@@ -442,12 +456,13 @@ For privacy concerns: privacy@twinme.me`
         </h2>
 
         <p
-          className="text-center max-w-[320px]"
+          className="relative text-center max-w-[320px]"
           style={{
             fontFamily: "'Inter', sans-serif",
             fontSize: '14px',
             lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.60)',
+            color: 'rgba(255,255,255,0.75)',
+            textShadow: '0 1px 16px rgba(0,0,0,0.35)',
           }}
         >
           Connect your platforms, discover your patterns, meet your digital twin.

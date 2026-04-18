@@ -56,8 +56,42 @@ const OnboardingFlow: React.FC = () => {
   const STEPS: Step[] = ['welcome', 'interview', 'platforms', 'awakening'];
   const currentIdx = STEPS.indexOf(step);
 
+  // Ghibli narrative journey — mirrors landing page chapters
+  //   welcome    -> arrival       (hero chapter III — cosmic dust, painted dusk clouds)
+  //   interview  -> landscape     (descent to earth — teal hills, amber river)
+  //   platforms  -> meadow        (connecting — golden-hour path)
+  //   awakening  -> twin meeting  (emotional peak — silhouettes at sunset)
+  const stepBg: Record<Step, string> = {
+    welcome: '/images/cosmic-v2/stage3-arrival.jpg',
+    interview: '/images/cosmic-v2/section6-landscape.jpg',
+    platforms: '/images/cosmic-v2/section8-meadow.jpg',
+    awakening: '/images/cosmic-v2/section11-twin-meeting.jpg',
+  };
+
   return (
-    <div style={{ background: 'var(--background)', minHeight: '100vh' }}>
+    <div
+      className="relative"
+      style={{
+        minHeight: '100vh',
+        backgroundColor: 'var(--background)',
+        backgroundImage: `url(${stepBg[step]})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        transition: 'background-image 800ms ease',
+      }}
+    >
+      {/* Darken + warm-grade overlay so existing step UI stays legible */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 20% 10%, rgba(232,160,80,0.08) 0%, transparent 55%),' +
+            'linear-gradient(180deg, rgba(19,18,26,0.55) 0%, rgba(19,18,26,0.75) 100%)',
+        }}
+      />
+      <div className="relative z-10">
     <Suspense fallback={<LoadingFallback />}>
       {/* Progress dots — hidden on welcome (intro) and awakening (finale) */}
       {step !== 'welcome' && step !== 'awakening' && (
@@ -94,6 +128,7 @@ const OnboardingFlow: React.FC = () => {
         <AwakeningScreen onEnter={handleComplete} />
       )}
     </Suspense>
+      </div>
     </div>
   );
 };
