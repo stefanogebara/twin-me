@@ -102,19 +102,23 @@ router.get('/export', authenticateUser, async (req, res) => {
     }
 
     // Gather data from all user tables in parallel
+    // Schema reality (2026-04): tables `personality_scores`, `big_five_scores`,
+    // `reflection_history` do NOT exist — they were referenced from an older
+    // migration that was never applied. Reflections live in `user_memories`
+    // with memory_type='reflection'. Personality lives in
+    // `user_personality_profiles` (stylometrics + sampling, no OCEAN columns).
+    // `user_memories` has `importance_score` (not `importance`) and no `source` column.
     const [
       userResult,
       platformConnectionsResult,
       platformDataResult,
       soulSignaturesResult,
-      personalityScoresResult,
+      personalityProfileResult,
       twinConversationsResult,
       enrichedProfilesResult,
       calibrationResult,
       memoriesResult,
-      bigFiveResult,
       behavioralPatternsResult,
-      reflectionHistoryResult,
       privacySettingsResult,
     ] = await Promise.all([
       // Core profile
@@ -125,25 +129,55 @@ router.get('/export', authenticateUser, async (req, res) => {
       supabaseAdmin.from('user_platform_data').select('platform, data_type, data, extracted_at').eq('user_id', userId).order('extracted_at', { ascending: false }).limit(50000),
       // Soul signature
       supabaseAdmin.from('soul_signatures').select('archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, is_public, reveal_level, created_at, updated_at').eq('user_id', userId),
-      // Personality scores
-      supabaseAdmin.from('personality_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, data_sources, created_at').eq('user_id', userId),
+      // Personality profile (stylometrics + sampling params, real schema)
+      supabaseAdmin.from('user_personality_profiles').select('avg_sentence_length, vocabulary_richness, formality_score, emotional_expressiveness, humor_markers, punctuation_style, temperature, top_p, frequency_penalty, presence_penalty, memory_count_at_build, confidence, last_built_at, created_at').eq('user_id', userId),
       // Twin conversations
       supabaseAdmin.from('twin_conversations').select('id, title, context_type, message_count, created_at, updated_at').eq('user_id', userId).order('created_at', { ascending: false }),
       // Enriched profile
       supabaseAdmin.from('enriched_profiles').select('full_name, company, title, location, bio, interests, social_links, discovered_photo, is_confirmed, created_at').eq('user_id', userId),
       // Onboarding calibration
       supabaseAdmin.from('onboarding_calibration').select('conversation_history, insights, archetype_hint, personality_summary, completed_at').eq('user_id', userId),
-      // Memories
-      supabaseAdmin.from('user_memories').select('memory_type, content, source, importance, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50000),
-      // Big Five
-      supabaseAdmin.from('big_five_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, assessment_type, created_at').eq('user_id', userId),
+      // Memories — reflections also live here (memory_type='reflection')
+      supabaseAdmin.from('user_memories').select('memory_type, content, importance_score, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50000),
       // Behavioral patterns
       supabaseAdmin.from('behavioral_patterns').select('pattern_type, description, confidence, platforms, first_observed, last_observed').eq('user_id', userId).limit(200),
-      // Reflection history
-      supabaseAdmin.from('reflection_history').select('reflection_type, content, platforms_used, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
       // Privacy settings
       supabaseAdmin.from('privacy_settings').select('cluster_visibility, sharing_preferences, updated_at').eq('user_id', userId),
     ]);
+
+    // Fail loud on any query error — previously these were silently collapsed
+    // into empty arrays via `|| []` which masked schema drift in production.
+    const queryResults = {
+      users: userResult,
+      platform_connections: platformConnectionsResult,
+      user_platform_data: platformDataResult,
+      soul_signatures: soulSignaturesResult,
+      user_personality_profiles: personalityProfileResult,
+      twin_conversations: twinConversationsResult,
+      enriched_profiles: enrichedProfilesResult,
+      onboarding_calibration: calibrationResult,
+      user_memories: memoriesResult,
+      behavioral_patterns: behavioralPatternsResult,
+      privacy_settings: privacySettingsResult,
+    };
+    for (const [tableName, result] of Object.entries(queryResults)) {
+      if (result?.error) {
+        log.error('GDPR export: query failed', {
+          userId,
+          table: tableName,
+          code: result.error.code,
+          message: result.error.message,
+          details: result.error.details,
+          hint: result.error.hint,
+        });
+        // Do NOT swallow — return 500 so the failure is visible to the caller and logs
+        return res.status(500).json({
+          success: false,
+          error: `GDPR export failed on table ${tableName}: ${result.error.message}`,
+          code: result.error.code,
+        });
+      }
+    }
 
     // For twin messages, we need a different approach since subquery in .eq doesn't work
     // Fetch conversation IDs first, then messages
@@ -159,21 +193,25 @@ router.get('/export', authenticateUser, async (req, res) => {
       messages = msgData || [];
     }
 
+    const allMemories = memoriesResult.data || [];
     const exportData = {
       exported_at: new Date().toISOString(),
       user: userResult.data || null,
       platform_connections: platformConnectionsResult.data || [],
       platform_data: platformDataResult.data || [],
       soul_signatures: soulSignaturesResult.data || [],
-      personality_scores: personalityScoresResult.data || [],
+      // user_personality_profiles: stylometrics + sampling params (real schema,
+      // no OCEAN columns — those live only in the LLM-generated personality
+      // prompt injection, not in the table)
+      personality_profile: personalityProfileResult.data || [],
       twin_conversations: twinConversationsResult.data || [],
       twin_messages: messages,
       enriched_profiles: enrichedProfilesResult.data || [],
       onboarding_calibration: calibrationResult.data || [],
-      memories: memoriesResult.data || [],
-      big_five_scores: bigFiveResult.data || [],
+      memories: allMemories,
+      // Reflections are stored in user_memories with memory_type='reflection'
+      reflections: allMemories.filter(m => m.memory_type === 'reflection'),
       behavioral_patterns: behavioralPatternsResult.data || [],
-      reflection_history: reflectionHistoryResult.data || [],
       privacy_settings: privacySettingsResult.data || [],
     };
 

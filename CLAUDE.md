@@ -170,18 +170,27 @@ Neural-inspired personality shaping for twin responses. Based on CL1_LLM_Encoder
 3. **Best-of-N Reranking** (3x cost, feature-flagged via `ENABLE_PERSONALITY_RERANKER`) - Generate N candidates with temperature spread, embed all, select by cosine similarity to personality embedding centroid
 
 **Personality Profile** (`user_personality_profiles` table):
-- OCEAN Big Five scores (0-1) extracted via LLM analysis (TIER_ANALYSIS) of reflections + conversations + facts
-- Stylometric fingerprint: sentence length, vocabulary richness (type-token ratio), formality, emotional expressiveness, humor markers, punctuation distribution — all pure computation, no LLM
-- Derived sampling parameters from OCEAN mapping
-- Personality embedding centroid: weighted average of memory embeddings with 7-day recency half-life and importance weighting
+- Actual columns (verified 2026-04-18 against production schema):
+  `avg_sentence_length`, `vocabulary_richness`, `formality_score`,
+  `emotional_expressiveness`, `humor_markers`, `punctuation_style` (jsonb),
+  `temperature`, `top_p`, `frequency_penalty`, `presence_penalty`,
+  `personality_embedding` (vector), `memory_count_at_build`, `confidence`, `last_built_at`.
+- Stylometric fingerprint: sentence length, vocabulary richness (type-token ratio), formality, emotional expressiveness, humor markers, punctuation distribution — all pure computation, no LLM.
+- Sampling parameters (`temperature`, `top_p`, `frequency_penalty`, `presence_penalty`) are derived from stylometrics and memory content, not stored OCEAN columns.
+- Personality embedding centroid: weighted average of memory embeddings with 7-day recency half-life and importance weighting.
 - Profile TTL: 12 hours, auto-rebuild when stale. Min 20 memories required.
+- **OCEAN Big Five**: NOT persisted as columns on `user_personality_profiles`.
+  OCEAN is inferred on the fly by the LLM from reflections/memories when
+  building the personality prompt. If you need OCEAN persisted, add a
+  migration — the phantom `openness/conscientiousness/...` columns do not exist
+  (this was a doc drift from an earlier design).
 
-**OCEAN-to-Sampling Mapping:**
-- High Openness → higher temperature (more creative), wider top_p
-- High Conscientiousness → lower temperature (more precise), narrower top_p
-- High Extraversion → higher presence_penalty (explores topics), higher frequency_penalty (varied vocabulary)
-- High Agreeableness → lower frequency_penalty (comfortable with repetition for emphasis)
-- High Neuroticism → slight temperature increase (more emotional variation)
+**Stylometric-to-Sampling Mapping** (what actually runs in code):
+- Higher `vocabulary_richness` → wider `top_p` (more lexical variety)
+- Higher `formality_score` → lower `temperature` (more precise)
+- Higher `emotional_expressiveness` → slight `temperature` increase
+- Higher `humor_markers` → higher `presence_penalty` (explores tangents)
+- OCEAN dimensions (Openness/Conscientiousness/etc.) only influence the prompt-injection layer in `personalityPromptBuilder.js`, where they are re-derived from memory content per-request — they are NOT read from or written to the personality profile table.
 
 **Drift Detection** (`personalityDriftService.js`):
 - Compares recent (7-day) vs baseline (90-day) personality embedding centroids
