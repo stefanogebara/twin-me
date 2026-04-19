@@ -19,6 +19,7 @@ import {
 } from '../middleware/oauthRateLimiter.js';
 import temporalPatternDetector from '../services/temporalPatternDetector.js';
 import { createLogger } from '../services/logger.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
 
 const log = createLogger('SpotifyOAuth');
 
@@ -69,7 +70,7 @@ router.get('/connect', authenticateUser, oauthAuthorizationLimiter, async (req, 
       });
     }
 
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
     const scope = SPOTIFY_CONFIG.scopes.join(' ');
 
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)

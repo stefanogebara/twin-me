@@ -84,7 +84,7 @@ const PortfolioPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#E8D5B7' }} />
       </div>
     );
@@ -92,7 +92,7 @@ const PortfolioPage: React.FC = () => {
 
   if (notFound || !portfolio) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)] px-6">
+      <div className="min-h-screen flex flex-col items-center justify-center px-6">
         <div className="text-center max-w-sm">
           <Sparkles className="w-10 h-10 mx-auto mb-4" style={{ color: 'rgba(232, 213, 183, 0.3)' }} />
           <h1
@@ -133,7 +133,7 @@ const PortfolioPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen bg-[var(--background)] max-w-[900px] mx-auto px-6 py-16"
+      className="min-h-screen max-w-[900px] mx-auto px-6 py-16"
       style={{
         '--portfolio-primary': colorScheme.primary,
         '--portfolio-secondary': colorScheme.secondary,

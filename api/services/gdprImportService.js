@@ -3038,6 +3038,207 @@ function parseXArchive(buffer) {
 }
 
 // ---------------------------------------------------------------------------
+// Apple Music — GDPR data export CSV
+// ---------------------------------------------------------------------------
+// Users request their data from privacy.apple.com. The ZIP contains several
+// CSVs under "Apple Media Services information/Apple Music Activity/":
+//   - Apple Music - Play History Daily Tracks.csv
+//   - Apple Music - Recently Played Tracks.csv
+//   - Apple Music Likes and Dislikes.csv
+//   - Apple Music Library Activity.csv
+//   - Apple Music Library Tracks.csv
+// We prefer "Play History Daily Tracks" because it has the richest temporal
+// detail (song + album + date played + play count).
+
+function extractAppleMusicCsv(buffer) {
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
+    try {
+      const zip = new AdmZip(buffer);
+      const preferred = [
+        /Play History Daily Tracks\.csv$/i,
+        /Recently Played Tracks\.csv$/i,
+        /Library Tracks\.csv$/i,
+      ];
+      for (const re of preferred) {
+        const entry = zip.getEntries().find(e => re.test(e.entryName));
+        if (entry) return { csv: entry.getData().toString('utf8'), name: entry.entryName };
+      }
+      // Fallback: any Apple Music CSV inside the ZIP
+      const any = zip.getEntries().find(e => /Apple Music.*\.csv$/i.test(e.entryName));
+      if (any) return { csv: any.getData().toString('utf8'), name: any.entryName };
+      throw new Error('Apple Music ZIP missing a recognised Play History / Recently Played / Library Tracks CSV');
+    } catch (e) {
+      throw new Error(`Apple Music ZIP extract failed: ${e.message}`);
+    }
+  }
+  return { csv: buffer.toString('utf8'), name: 'apple_music.csv' };
+}
+
+function parseAppleMusic(buffer) {
+  const { csv, name } = extractAppleMusicCsv(buffer);
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) throw new Error('Apple Music CSV has no rows');
+
+  const MAX_OBS = 400;
+  const songStats = {};
+  const artistStats = {};
+  const albumStats = {};
+  const hourBuckets = new Array(24).fill(0);
+  let totalPlays = 0;
+
+  const hdrs = Object.keys(rows[0]).reduce((acc, h) => { acc[h.toLowerCase()] = h; return acc; }, {});
+  const colSong = hdrs['song name'] || hdrs['track description'] || hdrs['title'] || 'Song Name';
+  const colArtist = hdrs['artist name'] || hdrs['artist'] || 'Artist Name';
+  const colAlbum = hdrs['album name'] || hdrs['album'] || 'Album Name';
+  const colPlayDate = hdrs['date played'] || hdrs['last played date'] || hdrs['play date'] || hdrs['event date time'] || 'Date Played';
+  const colPlayCount = hdrs['play count'] || hdrs['total plays'] || null;
+
+  for (const r of rows) {
+    const song = (r[colSong] || '').trim();
+    if (!song) continue;
+    const artist = (r[colArtist] || '').trim();
+    const album = (r[colAlbum] || '').trim();
+    const date = (r[colPlayDate] || '').trim();
+    const pc = colPlayCount ? parseInt(r[colPlayCount] || '1', 10) || 1 : 1;
+
+    const key = `${song} — ${artist}`;
+    songStats[key] = (songStats[key] || 0) + pc;
+    if (artist) artistStats[artist] = (artistStats[artist] || 0) + pc;
+    if (album) albumStats[album] = (albumStats[album] || 0) + pc;
+    totalPlays += pc;
+
+    if (date) {
+      const d = new Date(date);
+      if (!Number.isNaN(d.getTime())) hourBuckets[d.getHours()] += pc;
+    }
+  }
+
+  const rollups = [];
+  rollups.push(`Your Apple Music export (${name.split('/').pop()}) has ${totalPlays.toLocaleString('en-US')} plays across ${Object.keys(songStats).length} distinct tracks, ${Object.keys(artistStats).length} artists, and ${Object.keys(albumStats).length} albums.`);
+
+  const topArtists = Object.entries(artistStats).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (topArtists.length > 0) {
+    rollups.push(`Your top Apple Music artists by plays: ${topArtists.map(([a, p]) => `${a} (${p})`).join(', ')}.`);
+  }
+
+  const topAlbums = Object.entries(albumStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (topAlbums.length > 0) {
+    rollups.push(`Your most-played Apple Music albums: ${topAlbums.map(([a, p]) => `${a} (${p})`).join('; ')}.`);
+  }
+
+  const peakHour = hourBuckets.reduce((max, v, i) => v > max.v ? { v, i } : max, { v: 0, i: 0 });
+  if (peakHour.v > 0) {
+    const fmtHour = h => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+    rollups.push(`Your Apple Music peak listening hour is ${fmtHour(peakHour.i)}.`);
+  }
+
+  // Per-song observations (top N by plays)
+  const topSongs = Object.entries(songStats).sort((a, b) => b[1] - a[1]).slice(0, MAX_OBS);
+  const perSong = topSongs.map(([key, plays]) =>
+    `You've played "${key}" on Apple Music ${plays} time${plays === 1 ? '' : 's'}.`
+  );
+
+  return [...rollups, ...perSong];
+}
+
+// ---------------------------------------------------------------------------
+// SoundCloud — GDPR data export ZIP
+// ---------------------------------------------------------------------------
+// SoundCloud has a CSV/XML-based export that includes your own tracks,
+// liked tracks, followings, playlists, comments. We parse the key CSVs:
+//   - likes.csv   (tracks you've liked)
+//   - followings.csv (users you follow)
+//   - playlists.csv (playlists you created)
+//   - your_tracks.csv (tracks you uploaded)
+// Fields and filenames are inconsistent across export vintages — we fuzzy-match.
+
+function parseSoundCloud(buffer) {
+  if (!(buffer[0] === 0x50 && buffer[1] === 0x4B)) {
+    throw new Error('SoundCloud export must be a ZIP (request at soundcloud.com/settings/account then download)');
+  }
+
+  let zip;
+  try { zip = new AdmZip(buffer); } catch (e) {
+    throw new Error(`SoundCloud ZIP extract failed: ${e.message}`);
+  }
+
+  const findCsv = (re) => {
+    const entry = zip.getEntries().find(e => re.test(e.entryName) && !e.isDirectory);
+    if (!entry) return null;
+    return csvToObjects(entry.getData().toString('utf8'));
+  };
+
+  const likes = findCsv(/likes?\.csv$/i) || findCsv(/favourites\.csv$/i);
+  const followings = findCsv(/followings?\.csv$/i);
+  const playlists = findCsv(/playlists?\.csv$/i);
+  const yourTracks = findCsv(/your[-_ ]tracks?\.csv$/i) || findCsv(/tracks?\.csv$/i);
+  const comments = findCsv(/comments?\.csv$/i);
+
+  const rollups = [];
+  const observations = [];
+  const MAX_OBS = 250;
+
+  // --- Likes ---
+  if (likes && likes.length > 0) {
+    rollups.push(`You've liked ${likes.length} tracks on SoundCloud.`);
+    const artistCounts = {};
+    for (const r of likes) {
+      const a = (r['Artist'] || r['User'] || r['Creator'] || '').trim();
+      if (a) artistCounts[a] = (artistCounts[a] || 0) + 1;
+    }
+    const topArtists = Object.entries(artistCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    if (topArtists.length > 0) {
+      rollups.push(`Top artists you liked on SoundCloud: ${topArtists.map(([a, c]) => `${a} (${c})`).join(', ')}.`);
+    }
+    for (const r of likes.slice(0, MAX_OBS)) {
+      const title = (r['Title'] || r['Track'] || '').trim();
+      const artist = (r['Artist'] || r['User'] || r['Creator'] || '').trim();
+      const date = (r['Date'] || r['Created At'] || r['Liked At'] || '').trim();
+      if (!title) continue;
+      const parts = [`You liked "${title}"`];
+      if (artist) parts.push(`by ${artist}`);
+      parts.push('on SoundCloud');
+      if (date) parts.push(`(${date})`);
+      observations.push(parts.join(' ') + '.');
+    }
+  }
+
+  // --- Followings ---
+  if (followings && followings.length > 0) {
+    rollups.push(`You follow ${followings.length} accounts on SoundCloud.`);
+    const names = followings.slice(0, 25).map(r => (r['Name'] || r['User'] || r['Username'] || '').trim()).filter(Boolean);
+    if (names.length > 0) rollups.push(`Accounts you follow on SoundCloud include: ${names.slice(0, 20).join(', ')}.`);
+  }
+
+  // --- Playlists ---
+  if (playlists && playlists.length > 0) {
+    rollups.push(`You have ${playlists.length} playlists on SoundCloud.`);
+    const titles = playlists.slice(0, 15).map(r => (r['Title'] || r['Name'] || '').trim()).filter(Boolean);
+    if (titles.length > 0) rollups.push(`Your SoundCloud playlist names: ${titles.slice(0, 12).map(t => `"${t}"`).join(', ')}.`);
+  }
+
+  // --- Uploads ---
+  if (yourTracks && yourTracks.length > 0) {
+    rollups.push(`You've uploaded ${yourTracks.length} tracks to SoundCloud.`);
+  }
+
+  // --- Comments ---
+  if (comments && comments.length > 0) {
+    rollups.push(`You've made ${comments.length} comments on SoundCloud.`);
+    for (const r of comments.slice(0, 20)) {
+      const txt = (r['Comment'] || r['Body'] || r['Text'] || '').trim();
+      if (txt && txt.length > 4) observations.push(`On SoundCloud you commented: "${txt.slice(0, 280)}"`);
+    }
+  }
+
+  if (rollups.length === 0 && observations.length === 0) {
+    throw new Error('SoundCloud export appears empty or has an unrecognised structure');
+  }
+
+  return [...rollups, ...observations];
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
@@ -3116,6 +3317,12 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'x_archive':
         observations = parseXArchive(fileBuffer);
+        break;
+      case 'apple_music':
+        observations = parseAppleMusic(fileBuffer);
+        break;
+      case 'soundcloud':
+        observations = parseSoundCloud(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);

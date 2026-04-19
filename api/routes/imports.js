@@ -30,6 +30,8 @@ const SUPPORTED_PLATFORMS = new Set([
   'letterboxd', 'goodreads',
   // GDPR-export-only platforms (no live API in April 2026 or too restricted)
   'netflix', 'tiktok', 'x_archive',
+  // Music GDPR exports (full history beyond what live APIs expose)
+  'apple_music', 'soundcloud',
 ]);
 
 // Chat history platforms — handled by the new chatHistoryIngestion pipeline

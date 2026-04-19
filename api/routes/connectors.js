@@ -15,6 +15,7 @@ import {
 import { ensureFreshToken } from '../services/tokenRefreshService.js';
 import { createLogger, redact } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
 
 const log = createLogger('Connectors');
 const router = express.Router();
@@ -263,7 +264,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       log.info("No existing connection found, initiating full OAuth", { provider });
 
       // Generate OAuth URL for fresh authentication
-      const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+      const redirectUri = `${getAppUrl(req)}/oauth/callback`;
       const state = encryptState({
         provider,
         userId,
@@ -404,7 +405,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
         log.error("Token refresh failed", { provider, error: refreshError });
 
         // Refresh failed, need to re-authenticate
-        const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+        const redirectUri = `${getAppUrl(req)}/oauth/callback`;
         const state = encryptState({
           provider,
           userId,
@@ -462,7 +463,7 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       // No refresh token available, need full re-authentication
       log.debug("No refresh token available, requiring re-auth", { provider });
 
-      const redirectUri = `${process.env.VITE_APP_URL || 'http://localhost:8086'}/oauth/callback`;
+      const redirectUri = `${getAppUrl(req)}/oauth/callback`;
       const state = encryptState({
         provider,
         userId,
@@ -596,13 +597,9 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     log.debug("State encrypted successfully");
 
     // Build authorization URL - Use unified callback for all platforms
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
-    const redirectUri = `${appUrl}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
 
     log.debug("OAuth URL generation", { provider });
-    log.debug("APP_URL from env", { appUrl: process.env.APP_URL });
-    log.debug("VITE_APP_URL from env", { viteAppUrl: process.env.VITE_APP_URL });
-    log.debug("Final appUrl", { appUrl });
     log.debug("Redirect URI", { redirectUri });
 
     // Slack requires 'user_scope' parameter for user tokens (not 'scope' which is for bot tokens)
@@ -743,7 +740,7 @@ router.post('/callback', async (req, res) => {
 
     // Exchange authorization code for tokens
     // Different providers need different auth methods
-    const redirectUri = `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
     let tokenResponse;
 
     log.debug("Starting token exchange", { provider });
@@ -1467,8 +1464,7 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
     const state = encryptState(stateObject);
 
     // Build authorization URL
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
-    const redirectUri = `${appUrl}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
 
     const scopeParam = platform === 'slack' ? 'user_scope' : 'scope';
     const scopeSeparator = (platform === 'slack' || platform === 'strava') ? ',' : ' ';

@@ -47,7 +47,6 @@ const WaitlistPage = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6"
-      style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="w-full max-w-[420px] text-center">
         {/* Logo */}

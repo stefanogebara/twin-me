@@ -17,6 +17,7 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SunProvider } from "./contexts/SunContext";
+import { DayNightBackground } from "./components/DayNightBackground";
 import DemoBanner from "./components/DemoBanner";
 
 // Eager-loaded (critical path: landing, auth, 404)
@@ -62,15 +63,6 @@ const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
-// Prototype pages (Sundust design system)
-const PrototypeLanding    = lazy(() => import('./prototype/pages/PrototypeLanding'));
-const PrototypeDashboard  = lazy(() => import('./prototype/pages/PrototypeDashboard'));
-const PrototypeChat       = lazy(() => import('./prototype/pages/PrototypeChat'));
-const PrototypeSettings   = lazy(() => import('./prototype/pages/PrototypeSettings'));
-const PrototypeIdentity   = lazy(() => import('./prototype/pages/PrototypeIdentity'));
-const PrototypeGoals      = lazy(() => import('./prototype/pages/PrototypeGoals'));
-const PrototypeBrain      = lazy(() => import('./prototype/pages/PrototypeBrain'));
-const PrototypeLayout     = lazy(() => import('./prototype/layouts/PrototypeLayout').then(m => ({ default: m.PrototypeLayout })));
 
 const queryClient = new QueryClient();
 
@@ -115,6 +107,8 @@ const App = () => {
   return (
     <ThemeProvider defaultTheme="dark">
     <SunProvider>
+    <DayNightBackground />
+    <div style={{ position: "relative", zIndex: 1 }}>
     <DemoProvider>
       <ErrorBoundary showHomeButton>
         <ErrorProvider>
@@ -468,16 +462,6 @@ const App = () => {
             <Route path="/portfolio" element={<Navigate to="/" replace />} />
             <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
 
-            {/* Sundust Prototype */}
-            <Route path="/prototype" element={<PrototypeLanding />} />
-            <Route element={<PrototypeLayout />}>
-              <Route path="/prototype/dashboard" element={<PrototypeDashboard />} />
-              <Route path="/prototype/chat"      element={<PrototypeChat />} />
-              <Route path="/prototype/settings"  element={<PrototypeSettings />} />
-              <Route path="/prototype/identity"  element={<PrototypeIdentity />} />
-              <Route path="/prototype/goals"     element={<PrototypeGoals />} />
-              <Route path="/prototype/brain"     element={<PrototypeBrain />} />
-            </Route>
 
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
@@ -493,6 +477,7 @@ const App = () => {
       </ErrorProvider>
     </ErrorBoundary>
     </DemoProvider>
+    </div>
     </SunProvider>
     </ThemeProvider>
   );

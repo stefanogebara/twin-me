@@ -109,7 +109,6 @@ function BetaSignupPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6 py-16"
-      style={{ backgroundColor: 'var(--background)' }}
     >
       <div className="w-full max-w-[480px]">
         {/* Logo */}
