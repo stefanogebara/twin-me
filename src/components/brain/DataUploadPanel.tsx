@@ -24,6 +24,8 @@ import {
   Heart,
   Search,
   Activity,
+  Film,
+  BookOpen,
 } from 'lucide-react';
 import { SpotifyLogo, YoutubeLogo, DiscordLogo, RedditLogo } from '@/components/PlatformLogos';
 import { importsAPI, type ImportPlatform, type DataImport } from '@/services/api/importsAPI';
@@ -151,6 +153,30 @@ const PLATFORMS: PlatformConfig[] = [
     expectedFile: '_chat.txt or WhatsApp export ZIP',
     fileAccept: '.txt,.zip,text/plain,application/zip',
     multiFile: true,
+  },
+  {
+    id: 'letterboxd',
+    label: 'Letterboxd',
+    color: '#FF8000',
+    bgColor: 'rgba(255, 128, 0, 0.07)',
+    icon: <Film size={20} color="#FF8000" />,
+    description: 'Film diary, ratings, rewatches, and tags — reveals genre affinity, decade preferences, and cinema taste.',
+    exportInstructions: 'Letterboxd → Settings → Data → Export your data. Upload the ZIP (or the diary.csv inside it).',
+    exportUrl: 'https://letterboxd.com/settings/data/',
+    expectedFile: 'letterboxd-*.zip or diary.csv',
+    fileAccept: '.zip,.csv,application/zip,text/csv',
+  },
+  {
+    id: 'goodreads',
+    label: 'Goodreads',
+    color: '#8B6D47',
+    bgColor: 'rgba(139, 109, 71, 0.07)',
+    icon: <BookOpen size={20} color="#8B6D47" />,
+    description: 'Your full library, shelves, ratings, and reviews — reading taste is one of the strongest personality signals available.',
+    exportInstructions: 'Goodreads → My Books → Import and Export → Export Library. Upload the CSV it returns.',
+    exportUrl: 'https://www.goodreads.com/review/import',
+    expectedFile: 'goodreads_library_export.csv',
+    fileAccept: '.csv,text/csv',
   },
 ];
 

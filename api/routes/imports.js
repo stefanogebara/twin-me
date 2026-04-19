@@ -26,6 +26,8 @@ const router = Router();
 const SUPPORTED_PLATFORMS = new Set([
   'spotify', 'youtube', 'discord', 'reddit', 'android_usage',
   'whoop', 'apple_health', 'google_search', 'whatsapp', 'android_health',
+  // CSV/export-only platforms with no live API (April 2026)
+  'letterboxd', 'goodreads',
 ]);
 
 // Chat history platforms — handled by the new chatHistoryIngestion pipeline
