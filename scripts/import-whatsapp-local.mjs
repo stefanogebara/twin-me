@@ -27,10 +27,16 @@ const JOBS = [
   },
   {
     file: 'C:\\Users\\stefa\\Downloads\\WhatsApp Chat with Henrique\\WhatsApp Chat with Henrique Vaz.txt',
-    chatContext: 'professional',
+    chatContext: 'close_friend',
     chatName: 'Henrique Vaz',
   },
-  // Christian (family) — add once the file path is known.
+  // Dionisio AMAZO: vendor group chat where user didn't send any messages —
+  // parser returns owner_sent: 0. Left here for reference.
+  // {
+  //   file: 'C:\\Users\\stefa\\Downloads\\WhatsApp Chat with Dionisio AMAZO\\WhatsApp Chat with Dionisio AMAZO.txt',
+  //   chatContext: 'professional',
+  //   chatName: 'Dionisio AMAZO',
+  // },
 ];
 
 async function runJob({ file, chatContext, chatName }) {
