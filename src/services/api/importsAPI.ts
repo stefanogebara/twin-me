@@ -14,7 +14,8 @@ export type ImportPlatform =
   | 'spotify' | 'youtube' | 'discord' | 'reddit' | 'apple_health'
   | 'google_search' | 'whatsapp' | 'whoop'
   // Data-export only platforms (no live API as of April 2026)
-  | 'letterboxd' | 'goodreads';
+  | 'letterboxd' | 'goodreads'
+  | 'netflix' | 'tiktok' | 'x_archive';
 export type ChatPlatform = 'whatsapp_chat' | 'telegram_chat';
 export type ChatContext = 'close_friend' | 'family' | 'professional' | 'romantic_partner';
 

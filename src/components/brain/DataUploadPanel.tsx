@@ -26,6 +26,9 @@ import {
   Activity,
   Film,
   BookOpen,
+  Tv,
+  Music2,
+  Hash,
 } from 'lucide-react';
 import { SpotifyLogo, YoutubeLogo, DiscordLogo, RedditLogo } from '@/components/PlatformLogos';
 import { importsAPI, type ImportPlatform, type DataImport } from '@/services/api/importsAPI';
@@ -177,6 +180,42 @@ const PLATFORMS: PlatformConfig[] = [
     exportUrl: 'https://www.goodreads.com/review/import',
     expectedFile: 'goodreads_library_export.csv',
     fileAccept: '.csv,text/csv',
+  },
+  {
+    id: 'netflix',
+    label: 'Netflix',
+    color: '#E50914',
+    bgColor: 'rgba(229, 9, 20, 0.07)',
+    icon: <Tv size={20} color="#E50914" />,
+    description: 'Every show and film you watched — reveals genre preferences, binge patterns, foreign film affinity, and rewatch behavior.',
+    exportInstructions: 'Netflix → Account → Privacy → Request your personal information. Upload the ZIP when it arrives (24-48h).',
+    exportUrl: 'https://www.netflix.com/account/getmyinfo',
+    expectedFile: 'Netflix ZIP or ViewingActivity.csv',
+    fileAccept: '.zip,.csv,application/zip,text/csv',
+  },
+  {
+    id: 'tiktok',
+    label: 'TikTok',
+    color: '#FF0050',
+    bgColor: 'rgba(255, 0, 80, 0.07)',
+    icon: <Music2 size={20} color="#FF0050" />,
+    description: 'Watch history, likes, follows, and search history — consumption patterns reveal interests, humor, and subculture membership.',
+    exportInstructions: 'TikTok → Settings → Privacy → Personalization and data → Download your data (JSON). Upload the ZIP (3-7 days).',
+    exportUrl: 'https://www.tiktok.com/setting/download-your-data',
+    expectedFile: 'TikTok user_data.json (or ZIP)',
+    fileAccept: '.zip,.json,application/zip,application/json',
+  },
+  {
+    id: 'x_archive',
+    label: 'X (Twitter)',
+    color: '#1DA1F2',
+    bgColor: 'rgba(29, 161, 242, 0.07)',
+    icon: <Hash size={20} color="#1DA1F2" />,
+    description: 'Your full tweet history, likes, and following list — text voice, interests, and who shapes your attention.',
+    exportInstructions: 'X → Settings → Your Account → Download an archive of your data. Upload the ZIP (24-48h).',
+    exportUrl: 'https://x.com/settings/your_account/download_an_archive',
+    expectedFile: 'twitter-archive-*.zip',
+    fileAccept: '.zip,application/zip',
   },
 ];
 

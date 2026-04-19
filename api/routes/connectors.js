@@ -192,6 +192,21 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://api.notion.com/v1/oauth/token'
   },
 
+  // Pinterest — v5 OAuth, Basic-auth token exchange, 30-day access / 365-day refresh tokens
+  pinterest: {
+    clientId: process.env.PINTEREST_APP_ID,
+    clientSecret: process.env.PINTEREST_APP_SECRET,
+    scopes: [
+      'boards:read',
+      'boards:read_secret',
+      'pins:read',
+      'pins:read_secret',
+      'user_accounts:read',
+    ],
+    authUrl: 'https://www.pinterest.com/oauth/',
+    tokenUrl: 'https://api.pinterest.com/v5/oauth/token'
+  },
+
   // Oura Ring
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
@@ -557,6 +572,13 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
           message: 'Notion integration is not configured yet. Check back soon.'
         });
       }
+      if (provider === 'pinterest') {
+        return res.status(503).json({
+          success: false,
+          error: 'not_configured',
+          message: 'Pinterest integration is not configured yet. Check back soon.'
+        });
+      }
       return res.status(500).json({
         success: false,
         error: 'OAuth not configured for this provider'
@@ -778,6 +800,21 @@ router.post('/callback', async (req, res) => {
       });
     } else if (provider === 'reddit') {
       // Reddit uses Basic Authentication like Spotify
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri
+        })
+      });
+    } else if (provider === 'pinterest') {
+      // Pinterest v5 uses Basic Auth + form-urlencoded body
+      // https://developers.pinterest.com/docs/getting-started/connect-app/
       tokenResponse = await fetch(config.tokenUrl, {
         method: 'POST',
         headers: {

@@ -19,6 +19,7 @@ interface PlatformConnectionsStepProps {
   connectedServices: DataProvider[];
   activeConnections: DataProvider[];
   platformStatusData: PlatformStatusData;
+  loadingPlatformStatus?: boolean;
   connectingProvider: DataProvider | null;
   disconnectingProvider: DataProvider | null;
   discoveredSet: Set<string>;
@@ -51,6 +52,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   connectedServices,
   activeConnections,
   platformStatusData,
+  loadingPlatformStatus = false,
   connectingProvider,
   disconnectingProvider,
   discoveredSet,
@@ -86,7 +88,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
 
   return (
     <div className="space-y-8">
-      <SoulRichnessBar connectedPlatforms={activeConnections.filter(p => {
+      <SoulRichnessBar isLoading={loadingPlatformStatus} connectedPlatforms={activeConnections.filter(p => {
         const status = platformStatusData[p];
         return !status?.tokenExpired && status?.status !== 'token_expired';
       })} />

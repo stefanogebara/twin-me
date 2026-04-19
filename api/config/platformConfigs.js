@@ -11,7 +11,7 @@
  */
 export const VALID_DEMO_PLATFORMS = [
   'spotify', 'youtube', 'discord', 'twitch', 'linkedin',
-  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion',
+  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest',
 ];
 
 export const PLATFORM_CONFIGS = {
@@ -253,6 +253,42 @@ export const PLATFORM_CONFIGS = {
 
     // API version pinned in request header
     notionVersion: '2022-06-28',
+  },
+
+  pinterest: {
+    name: 'Pinterest',
+    authUrl: 'https://www.pinterest.com/oauth/',
+    tokenUrl: 'https://api.pinterest.com/v5/oauth/token',
+    // Pinterest v5 scopes are space-separated and include read scopes for
+    // public + secret boards, pins, and the user account profile.
+    scopes: [
+      'boards:read',
+      'boards:read_secret',
+      'pins:read',
+      'pins:read_secret',
+      'user_accounts:read',
+    ],
+    // Use sandbox base for dev; production uses https://api.pinterest.com/v5
+    apiBaseUrl: process.env.PINTEREST_USE_PRODUCTION === 'true'
+      ? 'https://api.pinterest.com/v5'
+      : 'https://api-sandbox.pinterest.com/v5',
+
+    endpoints: {
+      userAccount: '/user_account',   // GET — authenticated user profile
+      boards: '/boards',              // GET — list user's boards
+      boardPins: '/boards/:id/pins',  // GET — pins on a board
+      pins: '/pins',                  // GET — user's pins
+    },
+
+    tokenType: 'Bearer',
+    // Pinterest access tokens expire after ~30 days; refresh tokens last ~365 days.
+    refreshable: true,
+
+    // Pinterest v5 rate limits: ~1000 requests/hour per user token.
+    rateLimit: {
+      requests: 1000,
+      window: 3600, // per hour
+    },
   },
 
   oura: {

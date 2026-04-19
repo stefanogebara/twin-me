@@ -2684,6 +2684,360 @@ function parseGoodreads(buffer) {
 }
 
 // ---------------------------------------------------------------------------
+// Netflix — viewing activity CSV (from account.netflix.com/YourData)
+// ---------------------------------------------------------------------------
+// Users receive a ZIP. The key file is `CONTENT_INTERACTION/ViewingActivity.csv`
+// which has columns: Profile Name, Start Time, Duration, Attributes,
+// Title, Supplemental Video Type, Device Type, Bookmark, Latest Bookmark, Country.
+// Accept either the full ZIP or a bare ViewingActivity.csv.
+
+function extractNetflixCsv(buffer) {
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
+    try {
+      const zip = new AdmZip(buffer);
+      const entry = zip.getEntries().find(e => /ViewingActivity\.csv$/i.test(e.entryName));
+      if (entry) return entry.getData().toString('utf8');
+      throw new Error('Netflix ZIP missing CONTENT_INTERACTION/ViewingActivity.csv');
+    } catch (e) {
+      throw new Error(`Netflix ZIP extract failed: ${e.message}`);
+    }
+  }
+  return buffer.toString('utf8');
+}
+
+function parseDurationSeconds(d) {
+  // Netflix durations look like "00:45:12" (HH:MM:SS). Return seconds.
+  if (!d) return 0;
+  const parts = d.split(':').map(n => parseInt(n, 10)).filter(n => Number.isFinite(n));
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return 0;
+}
+
+function parseNetflix(buffer) {
+  const csv = extractNetflixCsv(buffer);
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) throw new Error('Netflix ViewingActivity.csv has no rows');
+
+  const MAX_TITLES = 500;
+  const titleStats = {};      // title -> { count, totalSec, latest }
+  const deviceCounts = {};
+  const countryCounts = {};
+  const profileCounts = {};
+  const hourBuckets = new Array(24).fill(0);
+  const dayOfWeekBuckets = new Array(7).fill(0);
+
+  let totalSessions = 0;
+  let totalHours = 0;
+
+  // Netflix wraps a series episode title as "Show: Season N: EpTitle" — strip to the show name.
+  const showOf = t => (t || '').split(':')[0].trim();
+
+  for (const r of rows) {
+    const title = (r['Title'] || '').trim();
+    if (!title) continue;
+
+    const startStr = r['Start Time'] || r['Start time'] || '';
+    const durationSec = parseDurationSeconds(r['Duration'] || '');
+    if (durationSec < 60) continue; // skip trailers / accidental plays
+
+    totalSessions++;
+    totalHours += durationSec / 3600;
+
+    const show = showOf(title);
+    const stat = titleStats[show] || { count: 0, totalSec: 0, latest: '' };
+    stat.count += 1;
+    stat.totalSec += durationSec;
+    if (startStr > stat.latest) stat.latest = startStr;
+    titleStats[show] = stat;
+
+    const device = (r['Device Type'] || '').trim();
+    if (device) deviceCounts[device] = (deviceCounts[device] || 0) + 1;
+
+    const country = (r['Country'] || '').trim();
+    if (country) countryCounts[country] = (countryCounts[country] || 0) + 1;
+
+    const profile = (r['Profile Name'] || '').trim();
+    if (profile) profileCounts[profile] = (profileCounts[profile] || 0) + 1;
+
+    if (startStr) {
+      const d = new Date(startStr);
+      if (!Number.isNaN(d.getTime())) {
+        hourBuckets[d.getHours()] += 1;
+        dayOfWeekBuckets[d.getDay()] += 1;
+      }
+    }
+  }
+
+  const rollups = [];
+  const topShows = Object.entries(titleStats)
+    .sort((a, b) => b[1].totalSec - a[1].totalSec)
+    .slice(0, 15);
+
+  rollups.push(`Your Netflix history has ${totalSessions} sessions across ${Object.keys(titleStats).length} distinct shows/films, totaling roughly ${Math.round(totalHours)} hours watched.`);
+
+  if (topShows.length > 0) {
+    const top5 = topShows.slice(0, 5).map(([show, s]) => `${show} (${Math.round(s.totalSec / 3600)}h)`).join(', ');
+    rollups.push(`Your most-watched Netflix titles by time are: ${top5}.`);
+  }
+
+  // Peak hour
+  const peakHour = hourBuckets.reduce((max, v, i) => v > max.v ? { v, i } : max, { v: 0, i: 0 });
+  if (peakHour.v > 0) {
+    const fmtHour = h => h === 0 ? '12am' : h < 12 ? `${h}am` : h === 12 ? '12pm' : `${h - 12}pm`;
+    rollups.push(`Your Netflix peak viewing hour is ${fmtHour(peakHour.i)} (${peakHour.v} sessions).`);
+  }
+
+  // Peak day of week
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const peakDay = dayOfWeekBuckets.reduce((max, v, i) => v > max.v ? { v, i } : max, { v: 0, i: 0 });
+  if (peakDay.v > 0) {
+    rollups.push(`Your most-Netflix-heavy day of the week is ${dayNames[peakDay.i]}.`);
+  }
+
+  // Devices
+  const topDevice = Object.entries(deviceCounts).sort((a, b) => b[1] - a[1])[0];
+  if (topDevice) rollups.push(`You watch Netflix mostly on ${topDevice[0]}.`);
+
+  // Per-show observations (richer context)
+  const perShow = topShows.slice(0, MAX_TITLES).map(([show, s]) =>
+    `You watched "${show}" on Netflix — ${s.count} session${s.count === 1 ? '' : 's'}, ~${Math.round(s.totalSec / 3600)}h total${s.latest ? `, most recently ${s.latest.split(' ')[0]}` : ''}.`
+  );
+
+  return [...rollups, ...perShow];
+}
+
+// ---------------------------------------------------------------------------
+// TikTok — data export JSON (user_data.json)
+// ---------------------------------------------------------------------------
+// Users request "Download your data" at tiktok.com/setting -> Privacy ->
+// Personalization and data. They can pick JSON (recommended) or TXT format.
+// The ZIP contains a single `user_data.json` with nested "Activity" sections
+// (VideoBrowsingHistory, VideoFavoriteList, FavoriteSounds, Like, Follower,
+// Following, SearchHistory, ShareHistory, etc.).
+
+function extractTikTokJson(buffer) {
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
+    try {
+      const zip = new AdmZip(buffer);
+      const entry = zip.getEntries().find(e => /user_data\.json$/i.test(e.entryName))
+        || zip.getEntries().find(e => /\.json$/i.test(e.entryName) && !e.isDirectory);
+      if (entry) return entry.getData().toString('utf8');
+      throw new Error('TikTok ZIP missing user_data.json');
+    } catch (e) {
+      throw new Error(`TikTok ZIP extract failed: ${e.message}`);
+    }
+  }
+  return buffer.toString('utf8');
+}
+
+function parseTikTok(buffer) {
+  const raw = extractTikTokJson(buffer);
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error('Invalid TikTok JSON — expected user_data.json from TikTok data export');
+  }
+
+  // The JSON shape is deeply nested under "Activity"; find it.
+  const activity = data?.Activity
+    || data?.['App Settings']?.Activity
+    || data?.activity
+    || {};
+  const profile = data?.Profile?.['Profile Information']?.ProfileMap
+    || data?.Profile
+    || {};
+
+  const MAX_PER_SECTION = 250;
+  const rollups = [];
+  const observations = [];
+
+  // --- Watch history ---
+  const watchHistory = activity?.['Video Browsing History']?.VideoList
+    || activity?.video_browsing_history
+    || [];
+  if (Array.isArray(watchHistory) && watchHistory.length > 0) {
+    rollups.push(`Your TikTok watch history contains ${watchHistory.length} videos.`);
+    const recent = watchHistory.slice(0, MAX_PER_SECTION);
+    for (const item of recent) {
+      const date = item?.Date || item?.date;
+      const link = item?.Link || item?.VideoLink || item?.link;
+      if (link) {
+        observations.push(`You watched a TikTok${date ? ` on ${date}` : ''}: ${link}`);
+      }
+    }
+  }
+
+  // --- Likes ---
+  const likes = activity?.['Like List']?.ItemFavoriteList
+    || activity?.like_list
+    || [];
+  if (Array.isArray(likes) && likes.length > 0) {
+    rollups.push(`You've liked ${likes.length} TikTok videos.`);
+    for (const item of likes.slice(0, MAX_PER_SECTION)) {
+      const date = item?.Date || item?.date;
+      const link = item?.Link || item?.link;
+      if (link) observations.push(`You liked a TikTok${date ? ` on ${date}` : ''}: ${link}`);
+    }
+  }
+
+  // --- Favorite videos ---
+  const favorites = activity?.['Favorite Videos']?.FavoriteVideoList
+    || activity?.favorite_video_list
+    || [];
+  if (Array.isArray(favorites) && favorites.length > 0) {
+    rollups.push(`You have ${favorites.length} TikTok videos saved as favorites.`);
+  }
+
+  // --- Search history ---
+  const searches = activity?.['Search History']?.SearchList
+    || activity?.search_history
+    || [];
+  if (Array.isArray(searches) && searches.length > 0) {
+    rollups.push(`Your TikTok search history contains ${searches.length} queries.`);
+    const terms = searches.slice(0, 40).map(s => `"${s?.SearchTerm || s?.search_term || ''}"`).filter(t => t !== '""');
+    if (terms.length > 0) rollups.push(`Recent TikTok searches include: ${terms.slice(0, 20).join(', ')}.`);
+  }
+
+  // --- Following ---
+  const following = activity?.['Following List']?.Following
+    || activity?.following
+    || [];
+  if (Array.isArray(following) && following.length > 0) {
+    rollups.push(`You follow ${following.length} accounts on TikTok.`);
+    const topAccounts = following.slice(0, 25).map(f => f?.UserName || f?.user_name || '').filter(Boolean);
+    if (topAccounts.length > 0) rollups.push(`Accounts you follow on TikTok include: ${topAccounts.slice(0, 20).join(', ')}.`);
+  }
+
+  // --- Shares ---
+  const shares = activity?.['Share History']?.ShareHistoryList
+    || activity?.share_history
+    || [];
+  if (Array.isArray(shares) && shares.length > 0) {
+    rollups.push(`You've shared ${shares.length} TikToks.`);
+  }
+
+  // --- Profile info ---
+  const username = profile?.userName || profile?.['User Name'] || null;
+  const bio = profile?.profileBio || profile?.bioDescription || null;
+  if (username) rollups.push(`Your TikTok username is @${username}.`);
+  if (bio) rollups.push(`Your TikTok bio reads: "${bio}"`);
+
+  if (rollups.length === 0 && observations.length === 0) {
+    throw new Error('TikTok export appears empty or has an unrecognised structure');
+  }
+
+  return [...rollups, ...observations];
+}
+
+// ---------------------------------------------------------------------------
+// X (Twitter) — archive ZIP
+// ---------------------------------------------------------------------------
+// Users download their archive from x.com/settings/your_account/download_an_archive.
+// The ZIP contains JS files like tweets.js, like.js, following.js (each a
+// window.YTD.* = [...] assignment) plus HTML viewer. We care about tweets,
+// likes, and following list.
+
+function readXArchiveEntry(zip, name) {
+  const entry = zip.getEntries().find(e => new RegExp(`${name}\\.js$`, 'i').test(e.entryName));
+  if (!entry) return null;
+  const content = entry.getData().toString('utf8');
+  // Strip leading "window.YTD.tweets.part0 = " to leave raw JSON array
+  const eq = content.indexOf('=');
+  if (eq === -1) return null;
+  try {
+    return JSON.parse(content.slice(eq + 1).trim().replace(/;$/, ''));
+  } catch {
+    return null;
+  }
+}
+
+function parseXArchive(buffer) {
+  if (!(buffer[0] === 0x50 && buffer[1] === 0x4B)) {
+    throw new Error('X archive must be a ZIP (download from x.com/settings/your_account/download_an_archive)');
+  }
+
+  let zip;
+  try { zip = new AdmZip(buffer); } catch (e) {
+    throw new Error(`X archive extract failed: ${e.message}`);
+  }
+
+  const rollups = [];
+  const observations = [];
+  const MAX_PER_SECTION = 300;
+
+  // ----- Tweets -----
+  const tweets = readXArchiveEntry(zip, 'tweets') || readXArchiveEntry(zip, 'tweet');
+  if (Array.isArray(tweets) && tweets.length > 0) {
+    rollups.push(`Your X archive contains ${tweets.length} tweets.`);
+
+    // Compute reply/retweet/original ratios
+    let replies = 0, retweets = 0, originals = 0;
+    const perTweet = [];
+    const sorted = [...tweets].sort((a, b) => {
+      const ta = new Date(a?.tweet?.created_at || a?.created_at || 0).getTime();
+      const tb = new Date(b?.tweet?.created_at || b?.created_at || 0).getTime();
+      return tb - ta;
+    });
+
+    for (const entry of sorted) {
+      const t = entry?.tweet || entry;
+      const text = (t?.full_text || t?.text || '').replace(/\s+/g, ' ').trim();
+      if (!text) continue;
+      const isReply = !!t?.in_reply_to_status_id || text.startsWith('@');
+      const isRetweet = text.startsWith('RT @');
+      if (isRetweet) retweets++;
+      else if (isReply) replies++;
+      else originals++;
+
+      if (perTweet.length < MAX_PER_SECTION && !isRetweet) {
+        const date = t?.created_at?.slice(0, 10) || '';
+        perTweet.push(`You tweeted${date ? ` on ${date}` : ''}: "${text.slice(0, 280)}"`);
+      }
+    }
+
+    if (originals + replies + retweets > 0) {
+      const total = originals + replies + retweets;
+      rollups.push(`Of those tweets: ${Math.round(originals / total * 100)}% originals, ${Math.round(replies / total * 100)}% replies, ${Math.round(retweets / total * 100)}% retweets.`);
+    }
+    observations.push(...perTweet);
+  }
+
+  // ----- Likes -----
+  const likes = readXArchiveEntry(zip, 'like') || readXArchiveEntry(zip, 'likes');
+  if (Array.isArray(likes) && likes.length > 0) {
+    rollups.push(`Your X archive shows ${likes.length} liked tweets.`);
+    const sampleLikes = likes.slice(0, 50).map(l => (l?.like?.fullText || l?.fullText || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    for (const text of sampleLikes.slice(0, 50)) {
+      observations.push(`You liked a tweet on X: "${text.slice(0, 280)}"`);
+    }
+  }
+
+  // ----- Following -----
+  const following = readXArchiveEntry(zip, 'following') || readXArchiveEntry(zip, 'following-list');
+  if (Array.isArray(following) && following.length > 0) {
+    rollups.push(`You follow ${following.length} accounts on X.`);
+  }
+
+  // ----- Profile -----
+  const profile = readXArchiveEntry(zip, 'profile');
+  if (Array.isArray(profile) && profile[0]) {
+    const p = profile[0]?.profile || profile[0];
+    const bio = p?.description?.bio || p?.bio;
+    const loc = p?.description?.location || p?.location;
+    if (bio) rollups.push(`Your X bio reads: "${bio}"`);
+    if (loc) rollups.push(`Your X profile location is: ${loc}.`);
+  }
+
+  if (rollups.length === 0 && observations.length === 0) {
+    throw new Error('X archive appears empty or has an unrecognised structure');
+  }
+
+  return [...rollups, ...observations];
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
@@ -2693,7 +3047,8 @@ function parseGoodreads(buffer) {
  * @param {string}  userId     - The user's UUID (public.users.id)
  * @param {string}  platform   - 'spotify' | 'youtube' | 'discord' | 'reddit' | 'android_usage' |
  *                               'google_search' | 'whatsapp' | 'apple_health' |
- *                               'health_connect' | 'sms_patterns' | 'letterboxd' | 'goodreads'
+ *                               'health_connect' | 'sms_patterns' | 'letterboxd' | 'goodreads' |
+ *                               'netflix' | 'tiktok' | 'x_archive'
  * @param {Buffer}  fileBuffer - Raw file bytes
  * @param {string}  fileName   - Original file name (for logging / import record)
  * @returns {{ importId, observationsCreated, factsCreated, error? }}
@@ -2752,6 +3107,15 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'goodreads':
         observations = parseGoodreads(fileBuffer);
+        break;
+      case 'netflix':
+        observations = parseNetflix(fileBuffer);
+        break;
+      case 'tiktok':
+        observations = parseTikTok(fileBuffer);
+        break;
+      case 'x_archive':
+        observations = parseXArchive(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);

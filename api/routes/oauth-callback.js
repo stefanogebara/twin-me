@@ -143,6 +143,9 @@ async function exchangeCodeForTokens(provider, code) {
     case 'notion':
       return await exchangeNotionCode(code, redirectUri);
 
+    case 'pinterest':
+      return await exchangePinterestCode(code, redirectUri);
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -458,6 +461,45 @@ async function exchangeNotionCode(code, redirectUri) {
     workspace_icon: data.workspace_icon,
     owner: data.owner
   };
+}
+
+/**
+ * Pinterest token exchange (v5)
+ *
+ * Pinterest uses Basic Auth (app_id:app_secret base64) with an
+ * application/x-www-form-urlencoded body.
+ * Response: { access_token, refresh_token, expires_in, refresh_token_expires_in, token_type, scope }
+ * Access tokens last ~30 days; refresh tokens last ~365 days.
+ * https://developers.pinterest.com/docs/getting-started/connect-app/
+ */
+async function exchangePinterestCode(code, redirectUri) {
+  const clientId = process.env.PINTEREST_APP_ID;
+  const clientSecret = process.env.PINTEREST_APP_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Pinterest credentials not configured');
+  }
+
+  const response = await fetch('https://api.pinterest.com/v5/oauth/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Pinterest token exchange failed: ${error}`);
+  }
+
+  return await response.json();
 }
 
 /**

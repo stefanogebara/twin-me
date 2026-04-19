@@ -53,8 +53,8 @@ export const DIVERSITY_RERANKING_WEIGHT = 0.3;
 // Per-mode weight presets (mirrors twin-config.js architecture).
 // The eval selects weights based on each query's retrieval_mode field.
 export const RETRIEVAL_WEIGHTS = {
-  default:    { recency: 0.0, importance: 0.3, relevance: 2.8 },
-  identity:   { recency: 0.0, importance: 0.5, relevance: 2.8 },
+  default:    { recency: 0.0, importance: 0.0, relevance: 3.5 },
+  identity:   { recency: 0.0, importance: 0.2, relevance: 3.5 },
   recent:     { recency: 0.0, importance: 0.2, relevance: 2.8 },
   reflection: { recency: 0.0, importance: 0.2, relevance: 3.2 },
 };

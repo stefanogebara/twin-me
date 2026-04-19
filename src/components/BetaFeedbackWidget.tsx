@@ -64,7 +64,7 @@ const BetaFeedbackWidget: React.FC = () => {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-[88px] lg:bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
+          className="fixed bottom-[108px] lg:bottom-5 right-5 z-50 flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all hover:scale-105 active:scale-95"
           style={{
             backgroundColor: 'var(--accent-vibrant-glow)',
             color: 'var(--accent-vibrant)',
@@ -80,7 +80,7 @@ const BetaFeedbackWidget: React.FC = () => {
       {/* Feedback panel */}
       {open && (
         <div
-          className="fixed bottom-[88px] lg:bottom-5 right-5 z-50 w-[320px] rounded-2xl overflow-hidden"
+          className="fixed bottom-[108px] lg:bottom-5 right-5 z-50 w-[320px] rounded-2xl overflow-hidden"
           style={{
             backgroundColor: 'var(--background)',
             border: '1px solid var(--border)',

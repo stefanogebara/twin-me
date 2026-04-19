@@ -9,8 +9,13 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 const CustomAuth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { signInWithOAuth } = useAuth();
+  const { signInWithOAuth, isSignedIn, isLoaded } = useAuth();
   const { trackFunnel } = useAnalytics();
+
+  // Redirect already-signed-in users away from auth page
+  useEffect(() => {
+    if (isLoaded && isSignedIn) navigate('/dashboard', { replace: true });
+  }, [isLoaded, isSignedIn, navigate]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

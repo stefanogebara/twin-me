@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Image as ImageIcon } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 // ====================================================================
@@ -354,6 +354,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '15 seconds',
     privacyLevel: 'high',
     category: 'professional',
+  },
+  {
+    provider: 'pinterest' as DataProvider,
+    name: 'Pinterest',
+    description: 'Board names, pins, and saved aesthetic — reveals taste, aspirational lifestyle, and curated identity.',
+    icon: <ImageIcon className="w-6 h-6" />,
+    color: '#E60023',
+    dataTypes: ['Boards', 'Pins', 'Aesthetic', 'Taste'],
+    estimatedInsights: 10,
+    setupTime: '15 seconds',
+    privacyLevel: 'medium',
+    category: 'entertainment',
   },
   {
     provider: 'microsoft_outlook' as DataProvider,

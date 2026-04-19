@@ -24,6 +24,7 @@ import {
   createManualGoal,
   completeGoal,
   getGoalSummary,
+  generateGoalSuggestions,
 } from '../services/goalTrackingService.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.js';
 import { createLogger } from '../services/logger.js';
@@ -52,6 +53,7 @@ router.get('/', authenticateUser, async (req, res) => {
 
     res.json({
       success: true,
+      goals,
       data: goals,
       pagination: buildPaginationMeta(page, limit, total),
     });
@@ -69,10 +71,31 @@ router.get('/suggestions', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const suggestions = await getUserGoals(userId, 'suggested');
 
-    res.json({ success: true, data: suggestions });
+    res.json({ success: true, suggestions, data: suggestions });
   } catch (error) {
     log.error('Suggestions error', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch suggestions' });
+  }
+});
+
+/**
+ * POST /api/goals/suggestions - Trigger on-demand suggestion generation,
+ * then return the current set of pending suggestions. Used by the Goals page
+ * when the user has no active goals and nothing is pending.
+ */
+router.post('/suggestions', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    try {
+      await generateGoalSuggestions(userId);
+    } catch (genErr) {
+      log.warn('generateGoalSuggestions failed (returning existing)', { error: genErr });
+    }
+    const suggestions = await getUserGoals(userId, 'suggested');
+    res.json({ success: true, suggestions, data: suggestions });
+  } catch (error) {
+    log.error('Generate suggestions error', { error });
+    res.status(500).json({ success: false, error: 'Failed to generate suggestions' });
   }
 });
 

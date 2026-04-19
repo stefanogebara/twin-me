@@ -28,6 +28,8 @@ const SUPPORTED_PLATFORMS = new Set([
   'whoop', 'apple_health', 'google_search', 'whatsapp', 'android_health',
   // CSV/export-only platforms with no live API (April 2026)
   'letterboxd', 'goodreads',
+  // GDPR-export-only platforms (no live API in April 2026 or too restricted)
+  'netflix', 'tiktok', 'x_archive',
 ]);
 
 // Chat history platforms — handled by the new chatHistoryIngestion pipeline
