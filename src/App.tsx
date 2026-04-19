@@ -18,6 +18,8 @@ import { useExtensionSync } from "./hooks/useExtensionSync";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SunProvider } from "./contexts/SunContext";
 import { DayNightBackground } from "./components/DayNightBackground";
+import { ClassicBackground } from "./components/ClassicBackground";
+import { BackgroundModeProvider, useBackgroundMode } from "./contexts/BackgroundModeContext";
 import DemoBanner from "./components/DemoBanner";
 
 // Eager-loaded (critical path: landing, auth, 404)
@@ -106,8 +108,9 @@ const App = () => {
 
   return (
     <ThemeProvider defaultTheme="dark">
+    <BackgroundModeProvider>
     <SunProvider>
-    <DayNightBackground />
+    <AppBackground />
     <div style={{ position: "relative", zIndex: 1 }}>
     <DemoProvider>
       <ErrorBoundary showHomeButton>
@@ -479,8 +482,14 @@ const App = () => {
     </DemoProvider>
     </div>
     </SunProvider>
+    </BackgroundModeProvider>
     </ThemeProvider>
   );
+};
+
+const AppBackground: React.FC = () => {
+  const { mode } = useBackgroundMode();
+  return mode === 'natural' ? <DayNightBackground /> : <ClassicBackground />;
 };
 
 export default App;

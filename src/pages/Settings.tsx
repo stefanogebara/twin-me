@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { useBackgroundMode } from '../contexts/BackgroundModeContext';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
@@ -86,6 +87,22 @@ const ToggleSwitch: React.FC<{
     />
   </button>
 );
+
+const BackgroundToggleRow: React.FC = () => {
+  const { mode, setMode } = useBackgroundMode();
+  return (
+    <SettingsRow
+      label="Background"
+      description={mode === 'natural' ? 'Sun-driven photo backgrounds' : 'Classic dark gradient'}
+    >
+      <ToggleSwitch
+        enabled={mode === 'natural'}
+        onChange={v => setMode(v ? 'natural' : 'dark')}
+        label="Background mode"
+      />
+    </SettingsRow>
+  );
+};
 
 const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
   const [status, setStatus] = useState<{ linked: boolean; enabled: boolean } | null>(null);
@@ -527,6 +544,7 @@ const Settings = () => {
             {user?.id ? `${user.id.slice(0, 8)}...${user.id.slice(-4)}` : 'Not available'}
           </button>
         </SettingsRow>
+        <BackgroundToggleRow />
       </div>
 
       </section>
