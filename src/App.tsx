@@ -17,6 +17,7 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SunProvider } from "./contexts/SunContext";
+import { DayNightBackground } from "./components/DayNightBackground";
 import DemoBanner from "./components/DemoBanner";
 
 // Eager-loaded (critical path: landing, auth, 404)
@@ -115,6 +116,8 @@ const App = () => {
   return (
     <ThemeProvider defaultTheme="dark">
     <SunProvider>
+    <DayNightBackground />
+    <div style={{ position: "relative", zIndex: 1 }}>
     <DemoProvider>
       <ErrorBoundary showHomeButton>
         <ErrorProvider>
@@ -493,6 +496,7 @@ const App = () => {
       </ErrorProvider>
     </ErrorBoundary>
     </DemoProvider>
+    </div>
     </SunProvider>
     </ThemeProvider>
   );
