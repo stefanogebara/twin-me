@@ -6,7 +6,7 @@ import { getAccessToken, authFetch } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
-import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo } from '@/components/PlatformLogos';
+import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo, GithubLogo, RedditLogo, TwitchLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
 import { ChatEmptyState } from '@/components/chat/ChatEmptyState';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInputArea } from '@/components/chat/ChatInputArea';
@@ -124,11 +124,16 @@ const TalkToTwin = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const platforms = [
-    { name: 'Spotify', icon: <SpotifyLogo className="w-4 h-4" />, key: 'spotify', color: '#1DB954', connected: platformStatus?.spotify?.connected },
-    { name: 'Calendar', icon: <GoogleCalendarLogo className="w-4 h-4" />, key: 'calendar', color: '#4285F4', connected: platformStatus?.google_calendar?.connected },
-    { name: 'YouTube', icon: <YoutubeLogo className="w-4 h-4" />, key: 'youtube', color: '#FF0000', connected: platformStatus?.youtube?.connected },
-    { name: 'Discord', icon: <DiscordLogo className="w-4 h-4" />, key: 'discord', color: '#5865F2', connected: platformStatus?.discord?.connected },
-    { name: 'LinkedIn', icon: <LinkedinLogo className="w-4 h-4" />, key: 'linkedin', color: '#0A66C2', connected: platformStatus?.linkedin?.connected },
+    { name: 'Spotify',   icon: <SpotifyLogo className="w-4 h-4" />,         key: 'spotify',         color: '#1DB954', connected: platformStatus?.spotify?.connected },
+    { name: 'Calendar',  icon: <GoogleCalendarLogo className="w-4 h-4" />,   key: 'calendar',         color: '#4285F4', connected: platformStatus?.google_calendar?.connected },
+    { name: 'YouTube',   icon: <YoutubeLogo className="w-4 h-4" />,          key: 'youtube',          color: '#FF0000', connected: platformStatus?.youtube?.connected },
+    { name: 'Gmail',     icon: <GmailLogo className="w-4 h-4" />,            key: 'google_gmail',     color: '#EA4335', connected: platformStatus?.google_gmail?.connected },
+    { name: 'Discord',   icon: <DiscordLogo className="w-4 h-4" />,          key: 'discord',          color: '#5865F2', connected: platformStatus?.discord?.connected },
+    { name: 'LinkedIn',  icon: <LinkedinLogo className="w-4 h-4" />,         key: 'linkedin',         color: '#0A66C2', connected: platformStatus?.linkedin?.connected },
+    { name: 'GitHub',    icon: <GithubLogo className="w-4 h-4" />,           key: 'github',           color: '#FFFFFF', connected: platformStatus?.github?.connected },
+    { name: 'Reddit',    icon: <RedditLogo className="w-4 h-4" />,           key: 'reddit',           color: '#FF4500', connected: platformStatus?.reddit?.connected },
+    { name: 'Twitch',    icon: <TwitchLogo className="w-4 h-4" />,           key: 'twitch',           color: '#9146FF', connected: platformStatus?.twitch?.connected },
+    { name: 'Whoop',     icon: <WhoopLogo className="w-4 h-4" />,            key: 'whoop',            color: '#00F19F', connected: platformStatus?.whoop?.connected },
   ];
 
   const connectedPlatforms = platforms.filter(p => p.connected);
