@@ -83,7 +83,7 @@ const TwinIntelligence: React.FC = () => {
     enabled: !isDemoMode(),
   });
 
-  const { data: readiness, isLoading: loadingReadiness } = useQuery({
+  const { data: readiness, isLoading: loadingReadiness, isError: readinessError } = useQuery({
     queryKey: ['finetuning', 'readiness'],
     queryFn: fetchReadiness,
     staleTime: 5 * 60 * 1000,
@@ -187,7 +187,7 @@ const TwinIntelligence: React.FC = () => {
               </p>
             </div>
           </div>
-          {(loadingReadiness || !readiness) ? (
+          {(loadingReadiness || (!readiness && !readinessError)) ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
           ) : readiness?.eligible && !readiness?.model ? (
             <button
@@ -239,7 +239,7 @@ const TwinIntelligence: React.FC = () => {
               </p>
             </div>
           </div>
-          {(loadingReadiness || !readiness) ? (
+          {(loadingReadiness || (!readiness && !readinessError)) ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
           ) : (
             <span className="text-sm tabular-nums" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter, sans-serif' }}>

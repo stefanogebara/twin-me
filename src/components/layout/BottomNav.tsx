@@ -28,6 +28,11 @@ export const BottomNav: React.FC = () => {
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Close drawer whenever the route changes
+  React.useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
   const isActive = (path: string) => location.pathname.startsWith(path);
   const isMoreActive = MORE_NAV.some(item => isActive(item.path));
 

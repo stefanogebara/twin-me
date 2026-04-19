@@ -11,7 +11,7 @@
  */
 export const VALID_DEMO_PLATFORMS = [
   'spotify', 'youtube', 'discord', 'twitch', 'linkedin',
-  'whoop', 'calendar', 'reddit', 'github', 'gmail',
+  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion',
 ];
 
 export const PLATFORM_CONFIGS = {
@@ -223,6 +223,36 @@ export const PLATFORM_CONFIGS = {
       neuroticism: ['HRV variability', 'resting heart rate trends', 'sleep disturbances'],
       openness: ['workout variety', 'new activity exploration']
     }
+  },
+
+  notion: {
+    name: 'Notion',
+    authUrl: 'https://api.notion.com/v1/oauth/authorize',
+    tokenUrl: 'https://api.notion.com/v1/oauth/token',
+    // Notion does not use traditional OAuth scopes — users grant access on a
+    // per-page/per-database basis at auth time via Notion's consent screen.
+    scopes: [],
+    apiBaseUrl: 'https://api.notion.com/v1',
+
+    endpoints: {
+      search: '/search',                 // POST — list pages/databases shared with integration
+      blockChildren: '/blocks/:id/children', // GET — fetch a page's block content
+      userProfile: '/users/me',          // GET — bot/integration profile
+      databaseQuery: '/databases/:id/query', // POST — query rows of a database
+    },
+
+    tokenType: 'Bearer',
+    // Notion access tokens do not expire and cannot be refreshed.
+    refreshable: false,
+
+    // Notion rate limit: ~3 requests/second averaged over time.
+    rateLimit: {
+      requests: 3,
+      window: 1, // per second (average)
+    },
+
+    // API version pinned in request header
+    notionVersion: '2022-06-28',
   },
 
   oura: {

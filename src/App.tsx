@@ -378,6 +378,7 @@ const App = () => {
             } />
 
             {/* Privacy Spectrum Dashboard */}
+            <Route path="/settings/privacy" element={<Navigate to="/privacy-spectrum" replace />} />
             <Route path="/privacy-spectrum" element={
               <ProtectedRoute>
                 <SidebarLayout>

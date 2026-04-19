@@ -140,6 +140,9 @@ async function exchangeCodeForTokens(provider, code) {
     case 'strava':
       return await exchangeStravaCode(code, redirectUri);
 
+    case 'notion':
+      return await exchangeNotionCode(code, redirectUri);
+
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
@@ -404,6 +407,56 @@ async function exchangeStravaCode(code, redirectUri) {
     refresh_token: data.refresh_token,
     expires_in: data.expires_in,
     athlete: data.athlete
+  };
+}
+
+/**
+ * Notion token exchange
+ *
+ * Notion uses Basic Auth (client_id:client_secret base64) with a JSON body.
+ * Response: { access_token, bot_id, workspace_id, workspace_name, workspace_icon, owner, duplicated_template_id }
+ * Notion tokens do NOT expire and CANNOT be refreshed (no refresh_token, no expires_in).
+ * https://developers.notion.com/reference/create-a-token
+ */
+async function exchangeNotionCode(code, redirectUri) {
+  const clientId = process.env.NOTION_CLIENT_ID;
+  const clientSecret = process.env.NOTION_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Notion credentials not configured');
+  }
+
+  const response = await fetch('https://api.notion.com/v1/oauth/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    body: JSON.stringify({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Notion token exchange failed: ${error}`);
+  }
+
+  const data = await response.json();
+
+  // Normalize to the shape storeOAuthTokens expects. No refresh_token or expires_in.
+  return {
+    access_token: data.access_token,
+    refresh_token: null,
+    expires_in: null,
+    bot_id: data.bot_id,
+    workspace_id: data.workspace_id,
+    workspace_name: data.workspace_name,
+    workspace_icon: data.workspace_icon,
+    owner: data.owner
   };
 }
 

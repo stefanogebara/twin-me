@@ -52,7 +52,12 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
             const expertLabel = expert ? (EXPERT_LABELS[expert] || expert) : null;
             const typeColor = TYPE_COLORS[memory.memory_type] || '#6B7280';
             const platformLabel = getPlatformLabel(memory.metadata);
-            const displayContent = toSecondPerson(memory.content);
+            const rawContent = toSecondPerson(memory.content);
+            const displayContent = rawContent
+              .replace(/\*\*([^*]+)\*\*/g, '$1')
+              .replace(/\*([^*]+)\*/g, '$1')
+              .replace(/_{2}([^_]+)_{2}/g, '$1')
+              .replace(/_([^_]+)_/g, '$1');
             const isExpanded = expandedId === memory.id;
             const isLast = idx === memories.length - 1;
 

@@ -433,6 +433,19 @@ class ExtractionOrchestrator {
           }
           break;
 
+        case 'notion':
+          try {
+            const { extractAll: extractNotion } = await import('./extractors/notionExtractor.js');
+            const notionResult = await extractNotion(userId, null);
+            itemsExtracted = notionResult.itemsExtracted || 0;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Notion observations', { stored: itemsExtracted });
+          } catch (notionError) {
+            log.error('Notion extraction error', { error: notionError });
+            result = { success: false, error: notionError.message };
+          }
+          break;
+
         default:
           log.info('Unknown platform', { platform });
           result = { success: false, error: 'Unknown platform' };

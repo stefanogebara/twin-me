@@ -46,8 +46,10 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
   const fetchBriefing = async () => {
     setLoading(true);
     setError(false);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
-      const res = await authFetch('/morning-briefing/generate');
+      const res = await authFetch('/morning-briefing/generate', { signal: controller.signal });
       if (!res.ok) throw new Error('Failed');
       const json = await res.json();
       if (json.success && json.briefing) {
@@ -58,6 +60,7 @@ const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) 
     } catch {
       setError(true);
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   };

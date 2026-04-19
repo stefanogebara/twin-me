@@ -226,9 +226,12 @@ router.post('/process-chat', authenticateUser, async (req, res) => {
 
   } catch (err) {
     log.error('process-chat error:', err.message);
+    const safeMsg = err.message?.includes('timed out') || err.message?.includes('too large')
+      ? err.message
+      : 'Failed to process chat import';
     return res.status(422).json({
       success: false,
-      error: err.message || 'Failed to process chat import',
+      error: safeMsg,
     });
   }
 });

@@ -641,7 +641,7 @@ app.use('/api/inbox', inboxSummaryRoutes); // Inbox summary for Communications d
 app.use('/api/templates', templatesRoutes); // Life Operating System templates (one-click department setups)
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
 app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)
-app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (*/5 min)
+app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (hourly)
 app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Daily intelligent triggers (10am UTC)
 app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
 app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
