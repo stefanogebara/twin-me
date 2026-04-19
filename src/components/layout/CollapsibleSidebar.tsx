@@ -15,6 +15,7 @@ import {
   ChevronsRight,
   BookOpen,
   Brain,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'brain',        label: 'Memories',        icon: Brain,         path: '/brain' },
   { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
+  { id: 'departments',  label: 'Departments',     icon: Building2,     path: '/departments' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];

@@ -13,6 +13,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { generatePKCEParams } from '../services/pkce.js';
 import { createLogger } from '../services/logger.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
 const log = createLogger('AdditionalConnectors');
@@ -50,7 +51,7 @@ router.post('/connect/tiktok', authenticateUser, async (req, res) => {
     if (!clientKey) {
       return res.status(503).json({ error: 'TikTok integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const state = encryptState({
       platform: 'tiktok',
       userId,
@@ -82,7 +83,7 @@ router.post('/connect/discord', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Discord integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent('identify guilds activities.read');
     const state = encryptState({
       platform: 'discord',
@@ -115,7 +116,7 @@ router.post('/connect/reddit', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Reddit integration not configured' });
     }
-    const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
 
     // Generate PKCE parameters
     const pkce = generatePKCEParams();
@@ -169,7 +170,7 @@ router.post('/connect/github', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'GitHub integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
     const state = encryptState({
       platform: 'github',
@@ -202,7 +203,7 @@ router.post('/connect/instagram', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Instagram integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent('user_profile,user_media');
     const state = encryptState({
       platform: 'instagram',
@@ -235,7 +236,7 @@ router.post('/connect/twitter', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Twitter integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent('tweet.read users.read follows.read');
     const state = encryptState({
       platform: 'twitter',
@@ -270,7 +271,7 @@ router.post('/connect/medium', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Medium integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent('basicProfile listPublications');
     const state = encryptState({
       platform: 'medium',
@@ -304,7 +305,7 @@ router.post('/connect/strava', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Strava integration not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.VITE_APP_URL}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const state = encryptState({
       platform: 'strava',
       userId,
@@ -337,7 +338,7 @@ router.post('/connect/google_gmail', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'Gmail integration not configured' });
     }
-    const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
     const scope = getGoogleWorkspaceScopes().join(' ');
 
     // Generate PKCE parameters
@@ -394,7 +395,7 @@ router.post('/connect/linkedin', authenticateUser, async (req, res) => {
     if (!clientId) {
       return res.status(503).json({ error: 'LinkedIn integration not configured' });
     }
-    const redirectUri = `${process.env.VITE_APP_URL}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
     const scope = 'openid profile email';
 
     // Generate PKCE parameters

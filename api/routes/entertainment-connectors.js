@@ -22,6 +22,7 @@ import {
 
 import { createLogger } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
 
 const log = createLogger('EntertainmentConnectors');
 
@@ -90,7 +91,7 @@ router.post('/connect/spotify', authenticateUser, oauthAuthorizationLimiter, asy
     }
 
     const config = PLATFORM_CONFIGS.spotify;
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
     // Generate PKCE parameters (RFC 7636 - OAuth 2.1 mandatory)
@@ -296,7 +297,7 @@ router.post('/connect/youtube', authenticateUser, oauthAuthorizationLimiter, asy
     if (!clientId) {
       return res.status(500).json({ success: false, error: 'Google OAuth not configured' });
     }
-    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent(
       'https://www.googleapis.com/auth/youtube.readonly ' +
       'https://www.googleapis.com/auth/youtube.force-ssl'
@@ -439,7 +440,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`,
             code_verifier: codeVerifier // PKCE verification
           })
         });
@@ -479,7 +480,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             client_secret: process.env.DISCORD_CLIENT_SECRET,
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`
           })
         });
 
@@ -506,7 +507,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             client_id: process.env.GITHUB_CLIENT_ID,
             client_secret: process.env.GITHUB_CLIENT_SECRET,
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`,
             code_verifier: codeVerifier // PKCE verification
           })
         });
@@ -538,7 +539,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             code,
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: `${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`,
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`,
             grant_type: 'authorization_code',
             code_verifier: codeVerifier // PKCE verification
           })
@@ -570,7 +571,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             code,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`
           })
         });
 
@@ -596,7 +597,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             code,
             client_id: process.env.LINKEDIN_CLIENT_ID,
             client_secret: process.env.LINKEDIN_CLIENT_SECRET,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`
           })
         });
 
@@ -623,7 +624,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
             code,
             client_id: process.env.OURA_CLIENT_ID,
             client_secret: process.env.OURA_CLIENT_SECRET,
-            redirect_uri: `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`
+            redirect_uri: `${getAppUrl(req)}/oauth/callback`
           })
         });
 
@@ -1399,7 +1400,7 @@ router.post('/connect/github', authenticateUser, oauthAuthorizationLimiter, asyn
 
     // GitHub OAuth Configuration
     const clientId = process.env.GITHUB_CLIENT_ID;
-    const redirectUri = encodeURIComponent(`${process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`);
+    const redirectUri = encodeURIComponent(`${getAppUrl(req)}/oauth/callback`);
     const scope = encodeURIComponent('read:user repo read:org');
 
     // Generate PKCE parameters (RFC 7636 - recommended for GitHub)
@@ -1461,7 +1462,7 @@ router.post('/connect/discord', authenticateUser, oauthAuthorizationLimiter, asy
     // Discord OAuth Configuration
     const config = PLATFORM_CONFIGS.discord;
     const clientId = process.env.DISCORD_CLIENT_ID;
-    const redirectUri = `${process.env.VITE_APP_URL || 'http://127.0.0.1:8086'}/oauth/callback`;
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
     // Note: Discord doesn't officially support PKCE yet, but we'll use state for CSRF protection
@@ -1528,7 +1529,7 @@ router.post('/connect/gmail', authenticateUser, oauthAuthorizationLimiter, async
 
     // Gmail uses Google OAuth
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
+    const appUrl = getAppUrl(req);
     const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
     // Google Workspace scopes — centralized (feature-flagged read-only vs full)
@@ -1595,7 +1596,7 @@ router.post('/connect/google_calendar', authenticateUser, oauthAuthorizationLimi
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
+    const appUrl = getAppUrl(req);
     const redirectUri = encodeURIComponent(`${appUrl}/oauth/callback`);
 
     // Google Workspace scopes — centralized (feature-flagged read-only vs full)
@@ -1663,7 +1664,7 @@ router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async 
 
     const config = PLATFORM_CONFIGS.oura;
     const clientId = process.env.OURA_CLIENT_ID;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
+    const appUrl = getAppUrl(req);
     const redirectUri = `${appUrl}/oauth/callback`;
     const scope = config.scopes.join(' ');
 
@@ -1742,7 +1743,7 @@ router.get('/oauth/debug', authenticateUser, async (req, res) => {
     };
 
     const encryptionConfigured = !!process.env.ENCRYPTION_KEY;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://127.0.0.1:8086';
+    const appUrl = getAppUrl(req);
     const callbackUrl = `${appUrl}/oauth/callback`;
 
     res.json({

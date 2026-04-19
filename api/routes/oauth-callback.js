@@ -14,6 +14,7 @@ import {
 } from '../services/webhookReceiverService.js';
 import { encryptToken, decryptToken, decryptState } from '../services/encryption.js';
 import { createLogger } from '../services/logger.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
 import { enrichGoogleProfileInBackground } from '../services/enrichment/googleGaiaProvider.js';
 import { runPostOnboardingIngestion } from '../services/observationIngestion.js';
 
@@ -34,7 +35,7 @@ if (!ENCRYPTION_KEY) {
 router.get('/callback', async (req, res) => {
   try {
     const { code, state, error: oauthError } = req.query;
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+    const appUrl = getAppUrl(req);
 
     // Handle OAuth errors
     if (oauthError) {
@@ -68,7 +69,7 @@ router.get('/callback', async (req, res) => {
     log.info(`OAuth callback received for ${provider} - User: ${userId}`);
 
     // Exchange authorization code for access token
-    const tokens = await exchangeCodeForTokens(provider, code);
+    const tokens = await exchangeCodeForTokens(provider, code, appUrl);
 
     if (!tokens || !tokens.access_token) {
       throw new Error(`Failed to exchange code for tokens: ${provider}`);
@@ -105,8 +106,7 @@ router.get('/callback', async (req, res) => {
 /**
  * Exchange authorization code for access tokens
  */
-async function exchangeCodeForTokens(provider, code) {
-  const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
+async function exchangeCodeForTokens(provider, code, appUrl) {
   const redirectUri = `${appUrl}/oauth/callback`;
 
   switch (provider) {

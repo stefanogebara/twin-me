@@ -16,6 +16,7 @@ import { decryptToken, encryptToken, encryptState } from '../services/encryption
 import { invalidatePlatformStatusCache } from '../services/redisClient.js';
 import { clearStatusMemoryCache } from './connectors.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
+import { getAppUrl } from '../utils/oauthUtils.js';
 // Use centralized token refresh system (proactive 5-minute buffer, same as Spotify)
 import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
 import { createLogger } from '../services/logger.js';
@@ -145,8 +146,8 @@ router.get('/connect', authenticateUser, async (req, res) => {
     log.info(`Initiating connect for user: ${userId}`);
 
     // Generate OAuth URL using existing pattern
-    const appUrl = process.env.APP_URL || process.env.VITE_APP_URL || 'http://localhost:8086';
-    const redirectUri = `${appUrl}/oauth/callback`;
+    
+    const redirectUri = `${getAppUrl(req)}/oauth/callback`;
 
     const state = encryptState({
       provider: 'google_calendar',
