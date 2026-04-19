@@ -541,25 +541,21 @@ const IdentityPage: React.FC = () => {
 
   const mainContent = (
     <div className="space-y-5">
-      {/* ── Mobile back button ────────────────────────────────────── */}
-      <div className="lg:hidden -mb-2">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1 transition-opacity hover:opacity-70 active:scale-95"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
-          aria-label="Go back"
-        >
-          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-          <span className="text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>Back</span>
-        </button>
-      </div>
-
-      {/* ── Top utility row: greeting + date (intentionally muted so the archetype carries the hero) ── */}
+      {/* ── Top row: back button (mobile) + greeting + date — single row to save vertical space ── */}
       <div
         className="flex items-center justify-between px-1 text-[12px]"
         style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}
       >
-        <span>{getGreeting()}, {firstName}</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="lg:hidden flex items-center gap-1 transition-opacity hover:opacity-70 active:scale-95"
+            aria-label="Go back"
+          >
+            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+          </button>
+          <span>{getGreeting()}, {firstName}</span>
+        </div>
         <span>{formattedDate}</span>
       </div>
 
