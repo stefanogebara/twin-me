@@ -133,6 +133,20 @@ export function parseWhatsAppChat(buffer, opts = {}) {
     Object.entries(senderCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ||
     'Unknown';
 
+  // Guard: caller explicitly named an owner who never sent a message.
+  // This is a vendor/group-chat configuration error, not a parse success.
+  if (opts.ownerName && !senderCounts[opts.ownerName]) {
+    const senders = Object.keys(senderCounts).slice(0, 6).join(', ');
+    const err = new Error(
+      `Owner "${opts.ownerName}" sent 0 messages in this chat. ` +
+      `Detected senders: ${senders || '(none)'}. ` +
+      `This is likely a group/vendor chat where you did not participate.`
+    );
+    err.code = 'OWNER_SENT_ZERO';
+    err.detectedSenders = Object.keys(senderCounts);
+    throw err;
+  }
+
   // Build ChatMessage[]
   let idCounter = 0;
   const messages = [];
