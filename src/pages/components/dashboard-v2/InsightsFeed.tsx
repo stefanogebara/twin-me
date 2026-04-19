@@ -9,6 +9,7 @@ import type { ProactiveInsight, InsightCategory } from '@/types/dashboard';
 import { useDemo } from '@/contexts/DemoContext';
 import { DEMO_TWIN_PORTRAIT } from '@/services/demo/demoSoulSignature';
 import type { NudgeFeedbackPayload } from '@/hooks/useProactiveInsights';
+import { SourceChips } from './SourceChips';
 
 const DEMO_INSIGHTS: ProactiveInsight[] = DEMO_TWIN_PORTRAIT.insights.map(i => ({
   ...i,
@@ -162,6 +163,9 @@ export function InsightsFeed({
                     Discuss with twin &rarr;
                   </button>
                 </div>
+
+                {/* Provenance: platforms the twin cross-correlated for this insight */}
+                <SourceChips sources={insight.sources} />
 
                 {/* Feedback actions: archive this insight + teach the twin */}
                 {canFeedback && (

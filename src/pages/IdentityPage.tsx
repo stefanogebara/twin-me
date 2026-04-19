@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authFetch } from '@/services/api/apiBase';
 import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
@@ -159,6 +160,49 @@ const EXPERT_LABELS: { key: string; label: string }[] = [
   { key: 'social_dynamics',          label: 'Social' },
   { key: 'motivation_analyst',       label: 'Drive' },
 ];
+
+// ── Insight-page deep-link mapping ───────────────────────────────────────
+// Map lowercased keyword mentions -> { platform connector key, route, label }
+
+interface InsightLinkSpec {
+  platform: string; // connector key used by usePlatformStatus
+  route: string;
+  label: string;
+}
+
+const INSIGHT_PLATFORMS: Array<{ match: RegExp; spec: InsightLinkSpec }> = [
+  { match: /\bspotify\b/i,                spec: { platform: 'spotify',  route: '/insights/spotify',  label: 'Spotify' } },
+  { match: /\byoutube\b/i,                spec: { platform: 'youtube',  route: '/insights/youtube',  label: 'YouTube' } },
+  { match: /\b(calendar|google calendar)\b/i, spec: { platform: 'google_calendar', route: '/insights/calendar', label: 'Calendar' } },
+  { match: /\bdiscord\b/i,                spec: { platform: 'discord',  route: '/insights/discord',  label: 'Discord' } },
+  { match: /\blinkedin\b/i,               spec: { platform: 'linkedin', route: '/insights/linkedin', label: 'LinkedIn' } },
+];
+
+function detectInsightLink(text: string, connectedProviders: string[]): InsightLinkSpec | null {
+  const lowered = connectedProviders.map((p) => p.toLowerCase());
+  for (const { match, spec } of INSIGHT_PLATFORMS) {
+    if (!match.test(text)) continue;
+    // Accept either exact platform key or a fuzzy match (e.g. 'google_calendar' vs 'google')
+    const connected = lowered.some((p) =>
+      p === spec.platform ||
+      (spec.platform === 'google_calendar' && (p === 'google' || p.startsWith('google'))) ||
+      p === spec.label.toLowerCase()
+    );
+    if (connected) return spec;
+  }
+  return null;
+}
+
+// Split raw insight text into first-sentence preview + remaining body.
+function splitFirstSentence(raw: string): { first: string; rest: string } {
+  const cleaned = raw.replace(/\*/g, '').replace(/^["']|["']$/g, '').trim();
+  // Period boundary: look for ". " or end-of-string
+  const idx = cleaned.search(/\.\s/);
+  if (idx === -1) return { first: cleaned.replace(/\.$/, ''), rest: '' };
+  const first = cleaned.slice(0, idx);
+  const rest = cleaned.slice(idx + 2).trim();
+  return { first, rest };
+}
 
 // ── Suggestion pills ─────────────────────────────────────────────────────
 
@@ -453,14 +497,46 @@ const IdentityPage: React.FC = () => {
   // ── Expert 1-liners (first sentence of first insight per domain) ─────
 
   const rawExpertInsights = data?.data?.expertInsights ?? {};
-  const expertOneLinerEntries = EXPERT_LABELS
+  const { connectedProviders } = usePlatformStatus(user?.id);
+
+  const expertLensEntries = EXPERT_LABELS
     .map(({ key, label }) => {
       const insights: string[] = rawExpertInsights[key] ?? [];
       if (!insights.length) return null;
-      const firstSentence = insights[0].split(/\.\s/)[0].replace(/\*/g, '').replace(/^["']|["']$/g, '').trim();
-      return { label, text: firstSentence };
+      const full = insights[0].replace(/\*/g, '').replace(/^["']|["']$/g, '').trim();
+      const { first, rest } = splitFirstSentence(insights[0]);
+      const insightLink = detectInsightLink(full, connectedProviders);
+      return { key, label, preview: first, rest, insightLink };
     })
-    .filter(Boolean) as { label: string; text: string }[];
+    .filter(Boolean) as {
+      key: string;
+      label: string;
+      preview: string;
+      rest: string;
+      insightLink: InsightLinkSpec | null;
+    }[];
+
+  const [expandedLens, setExpandedLens] = useState<string | null>(null);
+
+  // ── Insight-page discovery pills (shown when user has connected platforms) ──
+  const availableInsightPages: InsightLinkSpec[] = (() => {
+    const lowered = connectedProviders.map((p) => p.toLowerCase());
+    const seen = new Set<string>();
+    const out: InsightLinkSpec[] = [];
+    for (const { spec } of INSIGHT_PLATFORMS) {
+      if (seen.has(spec.route)) continue;
+      const connected = lowered.some((p) =>
+        p === spec.platform ||
+        (spec.platform === 'google_calendar' && (p === 'google' || p.startsWith('google'))) ||
+        p === spec.label.toLowerCase()
+      );
+      if (connected) {
+        out.push(spec);
+        seen.add(spec.route);
+      }
+    }
+    return out;
+  })();
 
   // ── Drift signal ────────────────────────────────────────────────────────
 
@@ -726,34 +802,98 @@ const IdentityPage: React.FC = () => {
       {/* ── Identity Quote ─────────────────────────────────────────── */}
       <IdentityQuote />
 
-      {/* ── Expert 1-liners ────────────────────────────────────────── */}
-      {expertOneLinerEntries.length > 0 && (
+      {/* ── Expert lenses (expand/collapse) ────────────────────────── */}
+      {expertLensEntries.length > 0 && (
         <FadeInSection delay={0.12}>
           {glassCard(
             <>
               <SectionLabel>What your experts see</SectionLabel>
               <div className="space-y-3.5">
-                {expertOneLinerEntries.map(({ label, text }) => (
-                  <div key={label} className="flex items-start gap-3">
-                    <span
-                      className="text-[10px] font-medium uppercase tracking-wider flex-shrink-0 pt-0.5 w-[68px] text-right"
-                      style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Inter', sans-serif" }}
-                    >
-                      {label}
-                    </span>
-                    <p
-                      style={{
-                        fontFamily: "'Instrument Serif', Georgia, serif",
-                        fontStyle: 'italic',
-                        fontSize: '14px',
-                        color: 'rgba(255,255,255,0.72)',
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {text}.
-                    </p>
-                  </div>
-                ))}
+                {expertLensEntries.map(({ key, label, preview, rest, insightLink }) => {
+                  const isExpanded = expandedLens === key;
+                  const hasMore = rest.length > 0;
+                  return (
+                    <div key={key} className="flex items-start gap-3">
+                      <span
+                        className="text-[10px] font-medium uppercase tracking-wider flex-shrink-0 pt-0.5 w-[68px] text-right"
+                        style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Inter', sans-serif" }}
+                      >
+                        {label}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          style={{
+                            fontFamily: "'Instrument Serif', Georgia, serif",
+                            fontStyle: 'italic',
+                            fontSize: '14px',
+                            color: 'rgba(255,255,255,0.72)',
+                            lineHeight: 1.55,
+                          }}
+                        >
+                          {preview}
+                          {!hasMore && '.'}
+                        </p>
+                        <AnimatePresence initial={false}>
+                          {isExpanded && hasMore && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                              animate={{ opacity: 1, height: 'auto', marginTop: 6 }}
+                              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                              transition={{ duration: 0.22, ease: 'easeOut' }}
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <p
+                                style={{
+                                  fontFamily: "'Instrument Serif', Georgia, serif",
+                                  fontStyle: 'italic',
+                                  fontSize: '14px',
+                                  color: 'rgba(255,255,255,0.6)',
+                                  lineHeight: 1.55,
+                                }}
+                              >
+                                {rest}
+                              </p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {hasMore && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedLens(isExpanded ? null : key)}
+                              className="text-[11px] transition-opacity duration-150 hover:opacity-70"
+                              style={{
+                                color: 'rgba(255,255,255,0.4)',
+                                fontFamily: "'Inter', sans-serif",
+                                background: 'transparent',
+                                padding: 0,
+                              }}
+                            >
+                              {isExpanded ? 'Show less' : 'Show full analysis'}
+                            </button>
+                          )}
+                          {insightLink && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(insightLink.route)}
+                              className="text-[12px] inline-flex items-center gap-1 transition-opacity duration-150 hover:opacity-70"
+                              style={{
+                                color: 'var(--accent-vibrant)',
+                                fontFamily: "'Inter', sans-serif",
+                                background: 'transparent',
+                                padding: 0,
+                              }}
+                            >
+                              Deep dive: {insightLink.label} insights
+                              <ArrowRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
@@ -933,6 +1073,29 @@ const IdentityPage: React.FC = () => {
       {/* ── Ask Twin + Footer ──────────────────────────────────────── */}
       {glassCard(
         <>
+          {availableInsightPages.length > 0 && (
+            <div className="mb-5">
+              <SectionLabel>Deep dives</SectionLabel>
+              <div className="flex flex-wrap gap-2">
+                {availableInsightPages.map(({ platform, route, label }) => (
+                  <button
+                    key={platform}
+                    onClick={() => navigate(route)}
+                    className="px-3 py-2 rounded-[46px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97] inline-flex items-center gap-1.5"
+                    style={{
+                      background: 'rgba(255,132,0,0.08)',
+                      color: 'var(--accent-vibrant)',
+                      border: '1px solid rgba(255,132,0,0.18)',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {label} insights
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <SectionLabel>Ask your twin about you</SectionLabel>
           <div className="flex flex-wrap gap-2 mb-6">
             {SUGGESTION_PILLS.map((pill) => (

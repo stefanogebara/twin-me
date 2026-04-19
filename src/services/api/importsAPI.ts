@@ -15,7 +15,9 @@ export type ImportPlatform =
   | 'google_search' | 'whatsapp' | 'whoop'
   // Data-export only platforms (no live API as of April 2026)
   | 'letterboxd' | 'goodreads'
-  | 'netflix' | 'tiktok' | 'x_archive';
+  | 'netflix' | 'tiktok' | 'x_archive'
+  // Music export-only (live APIs cap history too aggressively)
+  | 'apple_music' | 'soundcloud';
 export type ChatPlatform = 'whatsapp_chat' | 'telegram_chat';
 export type ChatContext = 'close_friend' | 'family' | 'professional' | 'romantic_partner';
 

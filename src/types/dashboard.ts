@@ -13,6 +13,7 @@ export interface ProactiveInsight {
   engaged: boolean;
   nudge_action?: string | null;
   nudge_followed?: boolean | null;
+  sources?: string[];
 }
 
 export interface DashboardContext {
@@ -27,6 +28,7 @@ export interface DashboardContext {
     source: string;
     insightId: string;
     createdAt: string;
+    sources?: string[];
   } | null;
   twinStats: {
     readiness: { score: number; label: string; trend: number };

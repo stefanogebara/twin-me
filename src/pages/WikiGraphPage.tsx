@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGraphData } from '@/components/wiki/useGraphData';
 import KnowledgeGraph from '@/components/wiki/KnowledgeGraph';
 import GraphDetailPanel from '@/components/wiki/GraphDetailPanel';
+import WikiNodeDetailPanel from '@/components/wiki/WikiNodeDetailPanel';
 import { DOMAIN_CONFIG, DOMAIN_ORDER } from '@/components/wiki/graphConstants';
 import type { GraphNode, SelectedNode, DomainNode } from '@/components/wiki/graphTypes';
 
@@ -120,12 +121,23 @@ const WikiGraphPage: React.FC = () => {
       </div>
 
       {/* Detail Panel -- Right 40% (desktop) */}
-      <div className="hidden lg:block flex-[2] min-w-[320px] max-w-[440px]">
-        <GraphDetailPanel
-          selectedNode={selectedNode}
-          stats={stats}
-          onDomainClick={handleDomainClick}
-        />
+      <div className="hidden lg:block flex-[2] min-w-[320px] max-w-[440px] relative">
+        <AnimatePresence mode="wait">
+          {selectedNode ? (
+            <WikiNodeDetailPanel
+              key={`detail-${selectedNode.id}`}
+              selectedNode={selectedNode}
+              onClose={() => setSelectedNode(null)}
+            />
+          ) : (
+            <GraphDetailPanel
+              key="overview"
+              selectedNode={null}
+              stats={stats}
+              onDomainClick={handleDomainClick}
+            />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Mobile Bottom Sheet -- slides up when a node is selected */}
@@ -150,18 +162,9 @@ const WikiGraphPage: React.FC = () => {
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full bg-white/20" />
           </div>
-          {/* Close button */}
-          <button
-            onClick={() => setSelectedNode(null)}
-            className="absolute top-3 right-4 text-[13px] px-2 py-1 rounded"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Close
-          </button>
-          <GraphDetailPanel
+          <WikiNodeDetailPanel
             selectedNode={selectedNode}
-            stats={stats}
-            onDomainClick={handleDomainClick}
+            onClose={() => setSelectedNode(null)}
           />
         </motion.div>
       )}

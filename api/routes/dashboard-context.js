@@ -181,7 +181,7 @@ router.get('/', authenticateUser, async (req, res) => {
       safeRun(async () => {
         const { data } = await supabaseAdmin
           .from('proactive_insights')
-          .select('id, insight, category')
+          .select('id, insight, category, sources')
           .eq('user_id', userId)
           .eq('delivered', false)
           .not('category', 'in', '("email_notification_sent","briefing_email")')
@@ -191,7 +191,7 @@ router.get('/', authenticateUser, async (req, res) => {
           .maybeSingle();
 
         if (!data) return null;
-        return { body: data.insight, source: data.category, insightId: data.id };
+        return { body: data.insight, source: data.category, insightId: data.id, sources: data.sources || [] };
       }),
 
       // 3. Twin stats — readiness cached 15min, streak cached 1hr
