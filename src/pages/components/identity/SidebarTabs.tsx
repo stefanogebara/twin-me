@@ -37,8 +37,8 @@ const SidebarTabs: React.FC<SidebarTabsProps> = ({ activeTab, onTabChange }) => 
           onClick={() => onTabChange(id)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
           style={{
-            background: isActive ? 'rgba(255,132,0,0.12)' : 'transparent',
-            color: isActive ? 'var(--accent-vibrant)' : 'rgba(255,255,255,0.35)',
+            background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
+            color: isActive ? 'var(--foreground)' : 'rgba(255,255,255,0.35)',
           }}
           aria-label={label}
           aria-pressed={isActive}

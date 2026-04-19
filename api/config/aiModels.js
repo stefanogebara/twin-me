@@ -48,7 +48,7 @@ export const TIER_EXTRACTION = 'extraction';
 export const FINETUNED_MODEL = process.env.FINETUNED_TWIN_MODEL || null;
 
 export const OPENROUTER_MODELS = {
-  [TIER_CHAT]: 'anthropic/claude-sonnet-4.6', // $3.00/$15.00 per M — 1M context, better personality lock than 4.5
+  [TIER_CHAT]: 'deepseek/deepseek-v3.2', // $0.25/$0.38 per M — 12x cheaper, ~3x faster TTFT
   [TIER_CHAT_FINETUNED]: FINETUNED_MODEL,     // OpenAI finetuned model — routed directly, not via OpenRouter
   [TIER_ANALYSIS]: 'deepseek/deepseek-v3.2',          // $0.25/$0.38 per M — 90% cheaper than Haiku
   [TIER_EXTRACTION]: 'mistralai/mistral-small-creative', // $0.10/$0.30 per M — replaces deprecated gemini-2.0-flash

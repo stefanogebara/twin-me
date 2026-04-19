@@ -279,7 +279,7 @@ function CreateCodeForm({ onCreated }: { onCreated: () => void }) {
               backgroundColor: 'rgba(255,255,255,0.08)',
               border: '1px solid rgba(255,255,255,0.08)',
               color: 'var(--foreground)',
-              '--tw-ring-color': 'rgba(255,132,0,0.25)',
+              '--tw-ring-color': 'rgba(255,255,255,0.25)',
             } as React.CSSProperties}
           />
         </div>

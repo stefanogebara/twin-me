@@ -72,7 +72,7 @@ const IdentityQuote: React.FC<{ className?: string }> = ({ className = '' }) => 
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.15)',
         }}
       >
-        <div className="pl-4" style={{ borderLeft: '2px solid rgba(255,132,0,0.3)' }}>
+        <div className="pl-4" style={{ borderLeft: '2px solid rgba(255,255,255,0.18)' }}>
           <p
             className="text-lg leading-relaxed"
             style={{

@@ -213,7 +213,7 @@ export function PendingProposalsBadge({
         <div
           className="w-[6px] h-[6px] rounded-full flex-shrink-0"
           style={{
-            backgroundColor: '#ff8400',
+            backgroundColor: '#F5F5F4',
             animation: 'proposal-badge-pulse 2s ease-in-out infinite',
           }}
         />

@@ -144,9 +144,9 @@
     --expert-motivation-bg: rgba(239, 68, 68, 0.08);
 
     /* Vibrant Accent for CTAs — Orange */
-    --accent-vibrant: #ff8400;
-    --accent-vibrant-hover: #ff9a2e;
-    --accent-vibrant-glow: rgba(255, 132, 0, 0.12);
+    --accent-vibrant: #F5F5F4;
+    --accent-vibrant-hover: #E7E5E4;
+    --accent-vibrant-glow: rgba(255,255,255,0.10);
     --accent-amber: #c17e2c;
     --accent-purple: #5d5cae;
 

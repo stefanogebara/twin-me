@@ -134,16 +134,24 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     })),
 
     // Active goals: formatted context for goal accountability
-    timed('activeGoals', getActiveGoalContext(userId).catch(err => {
-      log.warn('Active goals fetch failed:', err.message);
-      return null;
-    })),
+    timed('activeGoals', (() => {
+      const agk = `goals_${userId}`;
+      const agv = getCached(agk);
+      if (agv !== undefined) return Promise.resolve(agv);
+      return getActiveGoalContext(userId)
+        .then(r => { setCache(agk, r); return r; })
+        .catch(err => { log.warn('Active goals fetch failed:', err.message); return null; });
+    })()),
 
     // Top learned patterns (EWC++ confidence-weighted topic affinities)
-    timed('patterns', getTopPatterns(userId, 5).catch(err => {
-      log.warn('Pattern fetch failed:', err.message);
-      return [];
-    })),
+    timed('patterns', (() => {
+      const pk = `patterns_${userId}`;
+      const pv = getCached(pk);
+      if (pv !== undefined) return Promise.resolve(pv);
+      return getTopPatterns(userId, 5)
+        .then(r => { setCache(pk, r); return r; })
+        .catch(err => { log.warn('Pattern fetch failed:', err.message); return []; });
+    })()),
 
     // P8: Identity context (cached 24h — near-zero on repeat calls)
     timed('identityContext', inferIdentityContext(userId).catch(err => {
@@ -152,22 +160,34 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     })),
 
     // P8: Deep interview calibration data
-    timed('calibrationContext', _fetchCalibrationContext(userId).catch(err => {
-      log.warn('Calibration context fetch failed:', err.message);
-      return null;
-    })),
+    timed('calibrationContext', (() => {
+      const ck = `calib_${userId}`;
+      const cv = getCached(ck);
+      if (cv !== undefined) return Promise.resolve(cv);
+      return _fetchCalibrationContext(userId)
+        .then(r => { setCache(ck, r); return r; })
+        .catch(err => { log.warn('Calibration context fetch failed:', err.message); return null; });
+    })()),
 
     // Nudge history: recent evaluated nudges for embodied feedback loop
-    timed('nudgeHistory', getNudgeHistory(userId, 5).catch(err => {
-      log.warn('Nudge history fetch failed:', err.message);
-      return [];
-    })),
+    timed('nudgeHistory', (() => {
+      const nk = `nudge_${userId}`;
+      const nv = getCached(nk);
+      if (nv !== undefined) return Promise.resolve(nv);
+      return getNudgeHistory(userId, 5)
+        .then(r => { setCache(nk, r); return r; })
+        .catch(err => { log.warn('Nudge history fetch failed:', err.message); return []; });
+    })()),
 
     // SoulOS: Pending department proposals for twin-as-CEO briefing
-    timed('departmentProposals', getPendingProposals(userId).catch(err => {
-      log.warn('Department proposals fetch failed:', err.message);
-      return [];
-    })),
+    timed('departmentProposals', (() => {
+      const dpk = `deptprops_${userId}`;
+      const dpv = getCached(dpk);
+      if (dpv !== undefined) return Promise.resolve(dpv);
+      return getPendingProposals(userId)
+        .then(r => { setCache(dpk, r); return r; })
+        .catch(err => { log.warn('Department proposals fetch failed:', err.message); return []; });
+    })()),
 
     // LLM Wiki: compiled knowledge pages (vector search by query)
     timed('wikiPages', getRelevantWikiPages(userId, contextVector, 3).catch(err => {
@@ -175,6 +195,14 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return [];
     })),
   ];
+
+  // Track resolved values via microtasks so circuit breaker can use them without waiting.
+  // Microtasks (Promise.then) are always processed before macrotasks (setTimeout),
+  // so resolvedValues[] is fully populated for settled promises when the timeout fires.
+  const resolvedValues = new Array(fetchPromises.length).fill(undefined);
+  fetchPromises.forEach((p, i) => {
+    p.then(v => { resolvedValues[i] = v; }).catch(() => { resolvedValues[i] = defaults[i]; });
+  });
 
   let contextResults;
   try {
@@ -187,11 +215,9 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   } catch (timeoutErr) {
     if (timeoutErr.message === 'fetchTwinContext timeout') {
       log.warn(`Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
-      // Snapshot already-resolved promises instead of discarding everything
-      const settled = await Promise.allSettled(fetchPromises);
-      contextResults = settled.map((result, i) =>
-        result.status === 'fulfilled' ? result.value : defaults[i]
-      );
+      // Use already-resolved values; fall back to defaults for still-pending promises.
+      // This avoids the prior bug of await Promise.allSettled() which waited for all promises.
+      contextResults = resolvedValues.map((v, i) => v !== undefined ? v : defaults[i]);
     } else {
       throw timeoutErr;
     }

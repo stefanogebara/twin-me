@@ -136,8 +136,8 @@ export function DepartmentWidget() {
             <span
               className="text-[10px] font-medium px-2 py-1 rounded-full"
               style={{
-                backgroundColor: 'rgba(255,132,0,0.15)',
-                color: '#ff8400',
+                backgroundColor: 'rgba(255,255,255,0.10)',
+                color: 'rgba(245,245,244,0.70)',
                 fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
               }}
             >

@@ -203,8 +203,8 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({
         // STDP co-citation links -- warm amber, thicker, prominent
         ctx.setLineDash([]);
         ctx.strokeStyle = isHighlighted
-          ? 'rgba(255,132,0,0.40)'
-          : connectedIds ? 'rgba(255,132,0,0.04)' : 'rgba(255,132,0,0.15)';
+          ? 'rgba(255,255,255,0.50)'
+          : connectedIds ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.18)';
         ctx.lineWidth = isHighlighted ? 2.5 : 1.5;
       } else if (link.type === 'crossref') {
         ctx.setLineDash([4, 4]);

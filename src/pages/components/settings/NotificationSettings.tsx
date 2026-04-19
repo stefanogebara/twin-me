@@ -164,7 +164,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
     <div>
       {/* ── Email Notifications ── */}
       <SettingRow
-        icon={<Mail className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />}
+        icon={<Mail className="w-4 h-4" style={{ color: 'rgba(245,245,244,0.45)' }} />}
         label="Email Notifications"
         description="Get notified when your twin notices something important"
         error={emailError}
@@ -181,7 +181,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
       <SettingRow
         icon={
           pushEnabled
-            ? <Bell className="w-4 h-4" style={{ color: 'var(--accent-vibrant)' }} />
+            ? <Bell className="w-4 h-4" style={{ color: 'rgba(245,245,244,0.45)' }} />
             : <BellOff className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
         }
         label="Push Notifications"
@@ -260,14 +260,14 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange, disabled
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'var(--accent-vibrant)' : 'var(--glass-surface-border)',
+      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'var(--glass-surface-border)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
   >
     <div
-      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all duration-200 ease-out"
-      style={{ left: enabled ? '22px' : '2px' }}
+      className="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 ease-out"
+      style={{ left: enabled ? '22px' : '2px', backgroundColor: enabled ? '#110f0f' : '#A8A29E' }}
     />
   </button>
 );

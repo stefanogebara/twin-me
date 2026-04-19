@@ -30,7 +30,7 @@ export const CHAT_TIER_DEEP = 'chat_deep';
 export const CHAT_TIER_MODELS = {
   [CHAT_TIER_LIGHT]: 'google/gemini-2.5-flash',
   [CHAT_TIER_STANDARD]: 'deepseek/deepseek-v3.2',
-  [CHAT_TIER_DEEP]: 'anthropic/claude-sonnet-4.6',
+  [CHAT_TIER_DEEP]: 'deepseek/deepseek-v3.2',
 };
 
 // ====================================================================

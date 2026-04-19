@@ -141,7 +141,7 @@ const DepartmentCard: React.FC<DepartmentCardProps> = ({
               {observationOnly && (
                 <span
                   className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ background: 'rgba(255,132,0,0.12)', color: '#f59e0b' }}
+                  style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(245,245,244,0.65)' }}
                 >
                   Observe only
                 </span>

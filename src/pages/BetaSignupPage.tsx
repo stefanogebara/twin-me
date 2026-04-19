@@ -249,7 +249,7 @@ function BetaSignupPage() {
                     border: '1px solid rgba(255,255,255,0.08)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
-                    '--tw-ring-color': 'rgba(255,132,0,0.25)',
+                    '--tw-ring-color': 'rgba(255,255,255,0.25)',
                   } as React.CSSProperties}
                 />
               </div>
@@ -273,7 +273,7 @@ function BetaSignupPage() {
                     border: '1px solid rgba(255,255,255,0.08)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
-                    '--tw-ring-color': 'rgba(255,132,0,0.25)',
+                    '--tw-ring-color': 'rgba(255,255,255,0.25)',
                   } as React.CSSProperties}
                 />
               </div>
@@ -334,7 +334,7 @@ function BetaSignupPage() {
                     border: '1px solid rgba(255,255,255,0.08)',
                     color: 'var(--foreground)',
                     fontFamily: "'Geist', 'Inter', sans-serif",
-                    '--tw-ring-color': 'rgba(255,132,0,0.25)',
+                    '--tw-ring-color': 'rgba(255,255,255,0.25)',
                   } as React.CSSProperties}
                 />
               </div>

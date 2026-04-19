@@ -36,10 +36,10 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
       className="relative transition-all rounded-lg p-4"
       style={{
         border: isDiscovered && !isConnected
-          ? '1px solid rgba(255,132,0,0.3)'
+          ? '1px solid rgba(255,255,255,0.18)'
           : '1px solid var(--border-glass)',
         backgroundColor: isDiscovered && !isConnected
-          ? 'rgba(255,132,0,0.04)'
+          ? 'rgba(255,255,255,0.04)'
           : 'rgba(255,255,255,0.02)',
       }}
     >
@@ -47,8 +47,8 @@ export const ConnectorCard: React.FC<ConnectorCardProps> = ({
         <span
           className="absolute top-2 right-2 text-[10px] font-medium px-2 py-0.5 rounded-full"
           style={{
-            background: 'rgba(255,132,0,0.15)',
-            color: 'var(--accent-vibrant)',
+            background: 'rgba(255,255,255,0.10)',
+            color: 'rgba(245,245,244,0.85)',
             fontFamily: "'Inter', sans-serif",
           }}
         >

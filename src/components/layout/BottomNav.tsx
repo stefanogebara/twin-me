@@ -74,7 +74,7 @@ export const BottomNav: React.FC = () => {
               onClick={() => handleNav(item.path)}
               aria-label={`Navigate to ${item.label}`}
               className="relative flex flex-1 flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all duration-150 active:scale-95"
-              style={{ backgroundColor: active ? 'rgba(255,132,0,0.12)' : 'transparent' }}
+              style={{ backgroundColor: active ? 'rgba(255,255,255,0.10)' : 'transparent' }}
             >
               <Icon
                 className="w-5 h-5"
@@ -126,7 +126,7 @@ export const BottomNav: React.FC = () => {
                 'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 mx-1 rounded-2xl transition-all duration-150 ease-out active:scale-95',
                 active ? 'opacity-100' : 'opacity-50 hover:opacity-75'
               )}
-              style={{ backgroundColor: active ? 'rgba(255,132,0,0.12)' : 'transparent' }}
+              style={{ backgroundColor: active ? 'rgba(255,255,255,0.10)' : 'transparent' }}
             >
               <Icon
                 className={cn('w-5 h-5 transition-transform duration-150 ease-out', active && 'scale-110')}
@@ -152,7 +152,7 @@ export const BottomNav: React.FC = () => {
             'relative flex flex-1 flex-col items-center justify-center gap-1 py-3 mx-1 rounded-2xl transition-all duration-150 ease-out active:scale-95',
             (drawerOpen || isMoreActive) ? 'opacity-100' : 'opacity-50 hover:opacity-75'
           )}
-          style={{ backgroundColor: (drawerOpen || isMoreActive) ? 'rgba(255,132,0,0.12)' : 'transparent' }}
+          style={{ backgroundColor: (drawerOpen || isMoreActive) ? 'rgba(255,255,255,0.10)' : 'transparent' }}
         >
           <MoreHorizontal
             className={cn('w-5 h-5 transition-transform duration-150 ease-out', (drawerOpen || isMoreActive) && 'scale-110')}
