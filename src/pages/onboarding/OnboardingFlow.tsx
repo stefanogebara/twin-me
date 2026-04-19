@@ -73,7 +73,6 @@ const OnboardingFlow: React.FC = () => {
       className="relative"
       style={{
         minHeight: '100vh',
-        backgroundColor: 'var(--background)',
         backgroundImage: `url(${stepBg[step]})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',

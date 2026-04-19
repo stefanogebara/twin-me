@@ -84,7 +84,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 export const LoadingPage: React.FC<{ text?: string }> = ({ text = "Loading..." }) => (
   <div
     className="min-h-screen flex items-center justify-center"
-    style={{ backgroundColor: 'var(--background)' }}
+    style={{ backgroundColor: 'transparent' }}
   >
     <LoadingSpinner size="xl" text={text} className="p-8" />
   </div>
