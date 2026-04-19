@@ -199,6 +199,10 @@ const Settings = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
 
+  // Timezone
+  const [timezone, setTimezone] = useState<string>('');
+  const [savingTimezone, setSavingTimezone] = useState(false);
+
   // Feature toggles — persisted in DB via /api/feature-flags (not localStorage)
   const [featureToggles, setFeatureToggles] = useState({
     personality_oracle: false,
@@ -288,6 +292,23 @@ const Settings = () => {
     }
   };
 
+  const handleAutoDetectTimezone = async () => {
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setSavingTimezone(true);
+    try {
+      const res = await fetch(`${API_URL}/account/timezone`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ timezone: detected }),
+      });
+      if (res.ok) {
+        setTimezone(detected);
+        toast.success('Timezone updated');
+      }
+    } catch { /* non-fatal */ }
+    finally { setSavingTimezone(false); }
+  };
+
   const handleExportData = async () => {
     setExporting(true);
     try {
@@ -366,6 +387,21 @@ const Settings = () => {
           <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Google
           </span>
+        </SettingsRow>
+        <SettingsRow label="Timezone" description="Used for morning briefings and greetings">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] truncate max-w-[130px] sm:max-w-none" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+            </span>
+            <button
+              onClick={handleAutoDetectTimezone}
+              disabled={savingTimezone}
+              className="text-[12px] px-2 py-1 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+            >
+              {savingTimezone ? 'Saving…' : 'Auto-detect'}
+            </button>
+          </div>
         </SettingsRow>
         <SettingsRow label="User ID" description="Used by the browser extension">
           <button
