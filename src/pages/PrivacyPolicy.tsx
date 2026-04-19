@@ -7,7 +7,7 @@ const PrivacyPolicy = () => {
   useLenis();
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
+    <div className="min-h-screen" style={{ color: 'var(--foreground)' }}>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <button
           onClick={() => navigate(-1)}
