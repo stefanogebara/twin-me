@@ -341,8 +341,116 @@ const Settings = () => {
     }
   };
 
+  // ── Section navigation config (desktop sidebar + mobile jump dropdown) ──
+  const sections: { id: string; label: string }[] = [
+    { id: 'section-account', label: 'Account' },
+    ...(!isDemoMode ? [{ id: 'section-twin-intelligence', label: 'Twin Intelligence' }] : []),
+    { id: 'section-plan', label: 'Plan' },
+    { id: 'section-platforms', label: 'Connected Platforms' },
+    ...(!isDemoMode ? [{ id: 'section-chat-voice', label: 'Chat Voice' }] : []),
+    { id: 'section-personality', label: 'Personality Engine' },
+    { id: 'section-autonomy', label: 'Twin Autonomy' },
+    { id: 'section-rules', label: 'Twin Rules' },
+    { id: 'section-messaging', label: 'Messaging' },
+    { id: 'section-notifications', label: 'Notifications' },
+    { id: 'section-privacy', label: 'Data & Privacy' },
+  ];
+
+  const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || '');
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // IntersectionObserver — highlight whichever section is closest to the top
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target.id) setActiveSection(visible[0].target.id);
+      },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 }
+    );
+    sections.forEach(s => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode]);
+
   return (
-    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+    <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
+
+      {/* Mobile jump-to-section dropdown (sticky top) — hidden on lg+ */}
+      <div
+        className="lg:hidden sticky top-2 z-20 mb-6 rounded-[12px] px-3 py-2"
+        style={{
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(42px)',
+          WebkitBackdropFilter: 'blur(42px)',
+          border: '1px solid rgba(255,255,255,0.10)',
+        }}
+      >
+        <label className="block text-[11px] mb-1 tracking-[0.1em] uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          Jump to
+        </label>
+        <select
+          value={activeSection}
+          onChange={(e) => { setActiveSection(e.target.value); scrollToSection(e.target.value); }}
+          className="w-full text-[14px] bg-transparent focus:outline-none"
+          style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+        >
+          {sections.map(s => (
+            <option key={s.id} value={s.id} style={{ background: '#1c1a23', color: '#F5F5F4' }}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex gap-10">
+        {/* Sidebar — desktop only */}
+        <aside className="hidden lg:block w-[220px] flex-shrink-0">
+          <nav
+            className="sticky top-10 py-2"
+            aria-label="Settings sections"
+          >
+            <ul className="space-y-0.5">
+              {sections.map(s => {
+                const isActive = activeSection === s.id;
+                return (
+                  <li key={s.id}>
+                    <button
+                      onClick={() => scrollToSection(s.id)}
+                      className="w-full text-left px-3 py-2 rounded-[6px] transition-colors text-[13px]"
+                      style={{
+                        color: isActive ? 'var(--accent-vibrant, #c17e2c)' : 'rgba(255,255,255,0.55)',
+                        background: isActive ? 'var(--accent-vibrant-glow, rgba(255,132,0,0.10))' : 'transparent',
+                        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                        fontWeight: isActive ? 500 : 400,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </aside>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0 max-w-[680px]">
 
       {/* Header */}
       <h1
@@ -371,6 +479,7 @@ const Settings = () => {
       )}
 
       {/* ── SECTION 1: ACCOUNT ── */}
+      <section id="section-account" className="scroll-mt-10">
       <SectionLabel label="Account" />
       <div className="mb-8">
         <SettingsRow label="Email">
@@ -420,10 +529,17 @@ const Settings = () => {
         </SettingsRow>
       </div>
 
+      </section>
+
       {/* ── SECTION 1.5: TWIN INTELLIGENCE (TRIBE v2) ── */}
-      {!isDemoMode && <TwinIntelligence />}
+      {!isDemoMode && (
+        <section id="section-twin-intelligence" className="scroll-mt-10">
+          <TwinIntelligence />
+        </section>
+      )}
 
       {/* ── SECTION 2: PLAN ── */}
+      <section id="section-plan" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Plan" />
         <div
@@ -466,7 +582,10 @@ const Settings = () => {
         </div>
       </div>
 
+      </section>
+
       {/* ── SECTION 3: CONNECTED PLATFORMS ── */}
+      <section id="section-platforms" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
@@ -481,15 +600,20 @@ const Settings = () => {
         />
       </div>
 
+      </section>
+
       {/* ── SECTION 3B: CHAT VOICE IMPORT ── */}
       {!isDemoMode && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
-          <SectionLabel label="Chat Voice" />
-          <ChatImportCard />
-        </div>
+        <section id="section-chat-voice" className="scroll-mt-10">
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+            <SectionLabel label="Chat Voice" />
+            <ChatImportCard />
+          </div>
+        </section>
       )}
 
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
+      <section id="section-personality" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Personality Engine" />
         <SettingsRow
@@ -534,32 +658,43 @@ const Settings = () => {
         </SettingsRow>
       </div>
 
+      </section>
+
       {/* ── SECTION 5: TWIN AUTONOMY ── */}
+      <section id="section-autonomy" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Autonomy" />
         <AutonomySettings isDemoMode={isDemoMode} />
       </div>
+      </section>
 
       {/* ── SECTION 5B: USER RULES ── */}
+      <section id="section-rules" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Rules" />
         <UserRulesSettings isDemoMode={isDemoMode} />
       </div>
+      </section>
 
       {/* ── SECTION 6: MESSAGING CHANNELS ── */}
+      <section id="section-messaging" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Messaging" />
         <TelegramConnect isDemoMode={isDemoMode} />
         <WhatsAppConnect isDemoMode={isDemoMode} />
       </div>
+      </section>
 
       {/* ── SECTION 6B: NOTIFICATIONS ── */}
+      <section id="section-notifications" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Notifications" />
         <NotificationSettings userId={user?.id || ''} />
       </div>
+      </section>
 
       {/* ── SECTION 7: DATA & PRIVACY ── */}
+      <section id="section-privacy" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Data & Privacy" />
 
@@ -644,11 +779,15 @@ const Settings = () => {
         </div>
       </div>
 
+      </section>
+
       {/* Footer */}
       <div className="mt-16 text-center">
         <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
           TwinMe v0.9
         </span>
+      </div>
+        </div>
       </div>
     </div>
   );

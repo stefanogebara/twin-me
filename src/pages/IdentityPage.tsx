@@ -19,6 +19,7 @@ import { IdentityData, PersonalityProfile } from './components/identity/types';
 import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
+import TemporalComparison from './components/identity/TemporalComparison';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
 
@@ -695,6 +696,10 @@ const IdentityPage: React.FC = () => {
         </>
       )}
 
+      {/* ── Temporal Comparison ("You then vs you now") ─────────────── */}
+      {/* Renders nothing unless the backend has 8+ memories in each window. */}
+      <TemporalComparison />
+
       {/* ── Still Learning State ───────────────────────────────────── */}
       {showStillLearning && (
         <FadeInSection delay={0.2}>
@@ -1002,12 +1007,7 @@ const IdentityPage: React.FC = () => {
 const LoadingSkeleton: React.FC = () => (
   <div
     className="min-h-screen w-full"
-    style={{
-      '--body-gradient-1': 'rgba(210,145,55,0.50)',
-      '--body-gradient-2': 'rgba(180,110,65,0.42)',
-      '--body-gradient-3': 'rgba(160,95,55,0.46)',
-      '--body-gradient-4': 'rgba(55,45,140,0.38)',
-    } as React.CSSProperties}
+
   >
     <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] gap-8 max-w-[1320px] mx-auto px-6 py-10">
       {/* Main panel skeleton */}
