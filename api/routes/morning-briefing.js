@@ -16,9 +16,21 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { complete, TIER_EXTRACTION } from '../services/llmGateway.js';
+import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+import { getProfile } from '../services/personalityProfileService.js';
+
+// First-party sources that contain authentic user voice (same list used by twin chat).
+// Kept local to avoid importing the full context builder for a simple DB query.
+const VOICE_SOURCES = [
+  'twin_chat',
+  'onboarding_interview',
+  'soul_interview_emotions', 'soul_interview_fears', 'soul_interview_goals',
+  'soul_interview_habits', 'soul_interview_identity', 'soul_interview_joy',
+  'soul_interview_relationships', 'soul_interview_values', 'soul_interview_work',
+  'telegram', 'whatsapp', 'whatsapp_chat',
+];
 
 const log = createLogger('MorningBriefingAPI');
 const router = express.Router();
@@ -281,7 +293,25 @@ async function composeBriefing({ firstName, greeting, calendarEvents, recentInsi
     ? recentMusic.join('\n')
     : 'No recent music data';
 
-  const prompt = `Generate a structured morning briefing for ${firstName}. Use ONLY the data provided below — never invent facts.
+  // Pull personality + voice samples in parallel so the briefing sounds like the user,
+  // not like a generic assistant. Both queries fail closed (undefined) so absent data
+  // degrades gracefully to the prior behavior.
+  const [personalityProfile, voiceSamples] = await Promise.all([
+    getProfile(userId).catch(() => null),
+    fetchVoiceSamples(userId, 6).catch(() => []),
+  ]);
+
+  const voiceBlock = voiceSamples.length > 0
+    ? `\nHOW THIS PERSON ACTUALLY TALKS (verbatim samples — mirror cadence, vocabulary, punctuation):\n${voiceSamples.map(s => `> ${s}`).join('\n')}\n`
+    : '';
+
+  const toneBlock = personalityProfile
+    ? `\nWRITING FINGERPRINT: avg sentence length ${Math.round(personalityProfile.avg_sentence_length || 14)} words, formality ${(personalityProfile.formality_score ?? 0.5).toFixed(2)}, emotional expressiveness ${(personalityProfile.emotional_expressiveness ?? 0.5).toFixed(2)}. Use contractions, lowercase starts where they would, and the same registers visible in the samples above.\n`
+    : '';
+
+  const prompt = `You are writing ${firstName}'s personal morning briefing IN THEIR OWN VOICE — as if they were narrating their day to themselves. Not a dashboard. Not a generic "perceptive friend." Their voice.
+${voiceBlock}${toneBlock}
+Use ONLY the data provided below — never invent facts. If a section has no data, return null for that field.
 
 CALENDAR DATA:
 ${calendarSection}
@@ -297,21 +327,25 @@ ${musicSection}
 
 Return a JSON object with this EXACT structure (no markdown, no code fences, pure JSON):
 {
-  "schedule_summary": "1-2 sentence summary of today's schedule, or 'Your day is wide open' if no events",
-  "patterns": ["insight 1", "insight 2"],
-  "rest_summary": "1 sentence about sleep/recovery, or null if no data",
-  "music_summary": "1 sentence about recent listening, or null if no data",
-  "suggestion": "One actionable suggestion for the day based on the data"
+  "schedule_summary": "1-2 sentence summary of today's schedule IN THEIR VOICE, or 'Your day is wide open' if no events",
+  "patterns": ["insight in their voice", "insight in their voice"],
+  "rest_summary": "1 sentence about sleep/recovery in their voice, or null if no data",
+  "music_summary": "1 sentence about recent listening in their voice, or null if no data",
+  "suggestion": "One actionable suggestion IN THEIR VOICE"
 }
 
-Be concise — max 30 words per field. Write as a perceptive close friend, not a dashboard.`;
+Be concise — max 30 words per field. Match the voice samples above. Do NOT sound like a service-desk agent or a dashboard.`;
+
+  // Use personality-derived temperature when available so the briefing's spikiness
+  // matches the user's OCEAN-derived baseline. Fall back to 0.7 otherwise.
+  const temperature = personalityProfile?.temperature ?? 0.7;
 
   try {
     const result = await complete({
-      tier: TIER_EXTRACTION,
+      tier: TIER_ANALYSIS,
       messages: [{ role: 'user', content: prompt }],
-      maxTokens: 300,
-      temperature: 0.6,
+      maxTokens: 400,
+      temperature,
       userId,
       serviceName: 'morning-briefing-api',
     });
@@ -350,6 +384,47 @@ Be concise — max 30 words per field. Write as a perceptive close friend, not a
       generatedAt: new Date().toISOString(),
     };
   }
+}
+
+/**
+ * Fetch a small set of recent user messages from authentic first-party sources
+ * (twin chat, soul interviews, messaging platforms). These act as voice samples
+ * the LLM can mirror so the briefing doesn't sound like a generic assistant.
+ */
+async function fetchVoiceSamples(userId, limit = 6) {
+  const { data } = await supabaseAdmin
+    .from('user_memories')
+    .select('content, metadata, created_at')
+    .eq('user_id', userId)
+    .eq('memory_type', 'conversation')
+    .eq('metadata->>role', 'user')
+    .in('metadata->>source', VOICE_SOURCES)
+    .order('created_at', { ascending: false })
+    .limit(limit * 4); // Pull extra so we can filter out trivial/short messages
+
+  if (!data || data.length === 0) return [];
+
+  const cleaned = data
+    .map(m => {
+      let text = (m.content || '').trim();
+      if (text.startsWith('User said: ')) text = text.slice(11);
+      if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
+      return text.trim();
+    })
+    .filter(t => t.length >= 20 && t.length <= 500 && !t.startsWith('/') && !t.startsWith('['));
+
+  // Deduplicate near-identical samples (keep first occurrence).
+  const seen = new Set();
+  const unique = [];
+  for (const t of cleaned) {
+    const key = t.slice(0, 40).toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(t);
+      if (unique.length >= limit) break;
+    }
+  }
+  return unique;
 }
 
 /**

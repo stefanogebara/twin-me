@@ -57,7 +57,7 @@ import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js'
 import { rerankByPersonality } from '../services/personalityReranker.js';
 import { getOracleDraft, formatOracleBlock } from '../services/finetuning/personalityOracle.js';
 import { collectPreferencePair } from '../services/finetuning/preferenceCollector.js';
-import { classifyMessageTier } from '../services/chatRouter.js';
+import { classifyMessageTier, CHAT_TIER_LIGHT, CHAT_TIER_DEEP } from '../services/chatRouter.js';
 import { getBlocks, formatBlocksForPrompt, initializeBlocks } from '../services/coreMemoryService.js';
 import { classifyTaskIntent, parseAndCreateReminder } from '../services/taskIntentClassifier.js';
 import { condenseIfNeeded } from '../services/contextCondenser.js';
@@ -525,9 +525,34 @@ router.post('/message', authenticateUser, async (req, res) => {
       log.debug('Personality calibration', { chars: personalityPromptBlock.length });
     }
 
+    // Inject voice examples as a pinned, high-priority block.
+    // This is the single most effective signal for "sound like me": the model mirrors
+    // concrete samples far better than abstract rules. Injected BEFORE oracle/reflections
+    // so the cadence is established before any summary text dilutes attention.
+    if (voiceExamples && voiceExamples.length > 0) {
+      // Keep each sample substantial (up to 500 chars) so full rhythm survives.
+      // Drop very short (<15c) or very long (>500c) samples cleanly — mid-range is most mimicable.
+      const samples = voiceExamples
+        .filter(m => typeof m === 'string' && m.length >= 15)
+        .slice(0, 8)
+        .map(m => m.length > 500 ? m.slice(0, 500).replace(/\s\S*$/, '') + '…' : m);
+      if (samples.length > 0) {
+        const voiceBlock = [
+          '=== HOW I LITERALLY TALK (verbatim samples — mirror this cadence, word choice, rhythm, and punctuation, not abstract rules) ===',
+          'These are real messages I have sent. Your replies should read like they came from the same person who wrote these:',
+          '',
+          ...samples.map(m => `> ${m}`),
+          '',
+          'Priority: match the register, sentence length, and lexical choices in these samples above any stylistic instructions elsewhere in this prompt.',
+        ].join('\n');
+        systemPrompt.push({ type: 'text', text: `\n${voiceBlock}` });
+        log.debug('Voice examples injected', { count: samples.length, totalChars: voiceBlock.length });
+      }
+    }
+
     // Inject personality oracle draft (finetuned model behavioral compass)
     // Skip oracle for LIGHT tier (simple/task queries) — oracle adds noise for non-personality messages
-    const skipOracle = routingTier === 'LIGHT';
+    const skipOracle = routingTier === CHAT_TIER_LIGHT;
     const oracleBlock = skipOracle ? null : formatOracleBlock(oracleDraft);
     if (oracleBlock) {
       systemPrompt.push({ type: 'text', text: `\n${oracleBlock}` });
@@ -691,11 +716,10 @@ router.post('/message', authenticateUser, async (req, res) => {
       additionalContext += ` IMPORTANT: Your responses should sound like they could have been written by me.`;
     }
 
-    // Add voice examples: actual user messages so the LLM can pattern-match their real voice
-    // This is the most impactful style signal — LLMs mirror examples far better than descriptions
-    if (voiceExamples && voiceExamples.length > 0) {
-      additionalContext += `\n\nHOW I ACTUALLY WRITE (mirror this exact style, tone, and rhythm):\n${voiceExamples.map(m => `> "${m.substring(0, 200)}"`).join('\n')}`;
-    }
+    // Voice examples are now injected as a pinned, high-priority block earlier in the
+    // system prompt (see above, near personality calibration). Keeping them out of
+    // additionalContext prevents them from being diluted by reflections/observations and
+    // ensures un-truncated samples reach the model first.
 
     // P1: Await parallelized async operations (expert routing, conversation history, creativity boost)
     const [expertResult, conversationHistory, creativityResult] = await Promise.all([
@@ -993,7 +1017,7 @@ RULES:
 
     // Message-type adaptive temperature: personality queries get cold (consistency),
     // creative/exploration gets warm (surprise), task queries stay neutral
-    const tempDeltaByTier = routingTier === 'LIGHT' ? -0.05 : routingTier === 'DEEP' ? 0.05 : 0;
+    const tempDeltaByTier = routingTier === CHAT_TIER_LIGHT ? -0.05 : routingTier === CHAT_TIER_DEEP ? 0.05 : 0;
 
     if (isStreaming) {
       try {
@@ -1059,7 +1083,7 @@ RULES:
         const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
           && personalityProfile?.personality_embedding
           && personalityProfile?.confidence > 0.3
-          && routingTier === 'deep';
+          && routingTier === CHAT_TIER_DEEP;
 
         let result;
         if (useReranker) {

@@ -309,30 +309,110 @@ async function _fetchVoiceExamples(userId) {
   const cached = getCached(cacheKey);
   if (cached !== undefined) return cached;
 
-  // Fetch real user messages from twin chat conversations (not dev/MCP logs)
-  const { data: memories, error } = await supabaseAdmin
-    .from('user_memories')
-    .select('content, metadata, created_at')
-    .eq('user_id', userId)
-    .eq('memory_type', 'conversation')
-    .eq('metadata->>role', 'user')
-    .eq('metadata->>source', 'twin_chat')
-    .order('created_at', { ascending: false })
-    .limit(40);
+  // Fetch real user messages from any first-party source that captures authentic voice.
+  // Excludes test_script / dev artifacts; includes twin_chat + soul interviews + messaging
+  // platforms (telegram, whatsapp) because those are often the richest voice samples.
+  const VOICE_SOURCES = [
+    'twin_chat',
+    'onboarding_interview',
+    'soul_interview_emotions',
+    'soul_interview_fears',
+    'soul_interview_goals',
+    'soul_interview_habits',
+    'soul_interview_identity',
+    'soul_interview_joy',
+    'soul_interview_relationships',
+    'soul_interview_values',
+    'soul_interview_work',
+    'telegram',
+    'whatsapp',
+    'whatsapp_chat',
+  ];
 
-  if (error || !memories || memories.length === 0) {
+  // Sources whose memories are stored WITHOUT role='user' metadata
+  // (chat-history imports: WhatsApp/Telegram). Their voice signal lives
+  // in two memory shapes:
+  //   - observation: "You wrote in <context>: \"<raw message>\""   (pure voice)
+  //   - conversation: "In a chat (<name>), someone said: ... — you replied: \"<reply>\""
+  const CHAT_IMPORT_SOURCES = ['whatsapp_chat', 'telegram', 'whatsapp'];
+
+  // Query in parallel: (A) role-tagged conversations (twin_chat + interviews),
+  // (B) untagged conversations from chat imports, (C) raw voice observations.
+  const [
+    { data: roleTagged, error: errA },
+    { data: chatConvos, error: errB },
+    { data: chatObs, error: errC },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from('user_memories')
+      .select('content, metadata, created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'conversation')
+      .eq('metadata->>role', 'user')
+      .in('metadata->>source', VOICE_SOURCES)
+      .order('created_at', { ascending: false })
+      .limit(60),
+    supabaseAdmin
+      .from('user_memories')
+      .select('content, metadata, created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'conversation')
+      .in('metadata->>source', CHAT_IMPORT_SOURCES)
+      .order('created_at', { ascending: false })
+      .limit(80),
+    supabaseAdmin
+      .from('user_memories')
+      .select('content, metadata, created_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'observation')
+      .in('metadata->>source', CHAT_IMPORT_SOURCES)
+      .order('created_at', { ascending: false })
+      .limit(80),
+  ]);
+
+  if (errA || errB || errC) {
+    log.warn('voice fetch partial error', { errA, errB, errC });
+  }
+
+  const rawRoleTagged = Array.isArray(roleTagged) ? roleTagged : [];
+  const rawChatConvos = Array.isArray(chatConvos) ? chatConvos : [];
+  const rawChatObs = Array.isArray(chatObs) ? chatObs : [];
+
+  if (rawRoleTagged.length + rawChatConvos.length + rawChatObs.length === 0) {
     setCache(cacheKey, []);
     return [];
   }
 
-  // Extract actual user messages, strip "User said: " prefix if present
-  const validMessages = memories
-    .map(m => {
-      let text = m.content || '';
-      if (text.startsWith('User said: ')) text = text.slice(11);
-      if (text.startsWith('"') && text.endsWith('"')) text = text.slice(1, -1);
-      return text.trim();
-    })
+  // Extract clean voice text from each shape
+  const extractRoleTagged = (m) => {
+    let t = m.content || '';
+    if (t.startsWith('User said: ')) t = t.slice(11);
+    if (t.startsWith('"') && t.endsWith('"')) t = t.slice(1, -1);
+    return t.trim();
+  };
+
+  // "In a chat (<name>), someone said: "..." — you replied: "<reply>""
+  const REPLY_RE = /you replied:\s*"([^"]+)"/i;
+  const extractChatConvo = (m) => {
+    const match = (m.content || '').match(REPLY_RE);
+    return match ? match[1].trim() : '';
+  };
+
+  // "You wrote in <context>: "<raw>""
+  const WROTE_RE = /^You wrote[^:]*:\s*"([\s\S]+)"\s*$/;
+  const extractChatObs = (m) => {
+    const match = (m.content || '').match(WROTE_RE);
+    return match ? match[1].trim() : '';
+  };
+
+  const candidates = [
+    ...rawRoleTagged.map(extractRoleTagged),
+    ...rawChatConvos.map(extractChatConvo),
+    ...rawChatObs.map(extractChatObs),
+  ];
+
+  const validMessages = candidates
+    .filter(Boolean)
     .filter(m => m.length >= 15 && !m.startsWith('/') && !m.startsWith('['));
 
   if (validMessages.length === 0) {

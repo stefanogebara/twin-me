@@ -519,11 +519,38 @@ async function generateAllLlmLayers(memories, userId) {
     .map(m => `[${m.memory_type}] ${m.content.substring(0, 150)}`)
     .join('\n');
 
+  // Also surface verbatim user messages (conversations + interviews) as a separate block.
+  // Truncating everything to 150 chars in `memoryText` strips the user's actual voice;
+  // this block preserves full phrasings so the analyst can echo them rather than paraphrase.
+  const userVoiceMessages = (byType.conversation || [])
+    .filter(m => {
+      const role = m.metadata?.role;
+      const src = m.metadata?.source;
+      return role === 'user' && (
+        src === 'twin_chat' ||
+        (typeof src === 'string' && src.startsWith('soul_interview_')) ||
+        src === 'onboarding_interview' ||
+        src === 'telegram' || src === 'whatsapp' || src === 'whatsapp_chat'
+      );
+    })
+    .slice(0, 8)
+    .map(m => {
+      let t = (m.content || '').trim();
+      if (t.startsWith('User said: ')) t = t.slice(11);
+      if (t.startsWith('"') && t.endsWith('"')) t = t.slice(1, -1);
+      return t.length > 400 ? t.slice(0, 400).replace(/\s\S*$/, '') + '…' : t;
+    })
+    .filter(t => t.length >= 20);
+
+  const voiceBlock = userVoiceMessages.length > 0
+    ? `\n\nUSER'S OWN WORDS (verbatim — echo specific phrasings in your output where natural; do not re-paraphrase):\n${userVoiceMessages.map(s => `> ${s}`).join('\n')}`
+    : '';
+
   try {
     const result = await complete({
       tier: TIER_ANALYSIS,
-      system: 'You are an expert personality analyst. Respond ONLY in valid JSON. No markdown code fences. No explanation text.',
-      messages: [{ role: 'user', content: UNIFIED_PROMPT.replace('{memories}', memoryText) }],
+      system: 'You are an expert personality analyst. When the user\'s own words are provided, preserve their specific phrasings in your output where natural rather than re-paraphrasing. Respond ONLY in valid JSON. No markdown code fences. No explanation text.',
+      messages: [{ role: 'user', content: UNIFIED_PROMPT.replace('{memories}', memoryText) + voiceBlock }],
       maxTokens: 1500,
       temperature: 0.5,
       userId,
