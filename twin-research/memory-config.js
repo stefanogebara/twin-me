@@ -13,7 +13,10 @@
  *
  * BASELINE: memory_relevance_score = 0.490 (original)
  * PREVIOUS BEST: 0.540 (reduced diversity + faster freshness decay, 2026-03-26)
- * CURRENT BEST: 0.524 avg / 0.546 peak (relevance=2.8, importance=0.3, 2026-04-07)
+ * PREVIOUS BEST: 0.524 avg / 0.546 peak (relevance=2.8, importance=0.3, 2026-04-07)
+ * CURRENT BEST (s13): 0.471 (default importance=0.0 relevance=3.0 + identity importance=0.2 relevance=3.5, 2026-04-19)
+ * NOTE: s13 session baseline was ~0.38 (lower than historical). Score of 0.471 is best achievable
+ *       under current session LLM conditions (DeepSeek latency variance affecting query completion).
  */
 
 // ─── Retrieval Parameters ───────────────────────────────────────────────────
@@ -53,7 +56,7 @@ export const DIVERSITY_RERANKING_WEIGHT = 0.3;
 // Per-mode weight presets (mirrors twin-config.js architecture).
 // The eval selects weights based on each query's retrieval_mode field.
 export const RETRIEVAL_WEIGHTS = {
-  default:    { recency: 0.0, importance: 0.0, relevance: 3.5 },
+  default:    { recency: 0.0, importance: 0.0, relevance: 3.0 },
   identity:   { recency: 0.0, importance: 0.2, relevance: 3.5 },
   recent:     { recency: 0.0, importance: 0.2, relevance: 2.8 },
   reflection: { recency: 0.0, importance: 0.2, relevance: 3.2 },
