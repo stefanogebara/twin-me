@@ -254,6 +254,18 @@ const InstantTwinOnboarding = () => {
           currentStep={currentStep}
         />
 
+        {!isDemoMode && currentStep === 1 && (
+          <div className="flex justify-end mb-4">
+            <button
+              onClick={() => navigate('/interview')}
+              className="text-[12px] transition-opacity hover:opacity-70"
+              style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', sans-serif" }}
+            >
+              Tell Your Story instead
+            </button>
+          </div>
+        )}
+
         {currentStep === 2 && (
           <ArchetypeReveal
             revealedArchetype={revealedArchetype}
