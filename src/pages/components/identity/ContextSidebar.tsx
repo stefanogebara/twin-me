@@ -42,10 +42,10 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
   const { data: activityData } = useQuery<{ memories?: { content: string; memory_type: string; created_at: string }[] }>({
     queryKey: ['sidebar-activity'],
     queryFn: async () => {
-      const res = await authFetch('/twin/identity');
+      const res = await authFetch('/memories?type=reflection,platform_data&limit=6&sort=newest');
       if (!res.ok) return { memories: [] };
       const json = await res.json();
-      return json.data ?? { memories: [] };
+      return { memories: json.data ?? [] };
     },
     staleTime: 5 * 60 * 1000,
     enabled: !!user,

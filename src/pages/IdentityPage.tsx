@@ -456,7 +456,7 @@ const IdentityPage: React.FC = () => {
     .map(({ key, label }) => {
       const insights: string[] = rawExpertInsights[key] ?? [];
       if (!insights.length) return null;
-      const firstSentence = insights[0].split(/\.\s/)[0].replace(/\*\*/g, '').replace(/^["']|["']$/g, '').trim();
+      const firstSentence = insights[0].split(/\.\s/)[0].replace(/\*/g, '').replace(/^["']|["']$/g, '').trim();
       return { label, text: firstSentence };
     })
     .filter(Boolean) as { label: string; text: string }[];
