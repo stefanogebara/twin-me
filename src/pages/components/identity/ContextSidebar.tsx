@@ -120,7 +120,7 @@ const ContextSidebar: React.FC<ContextSidebarProps> = ({ className = '' }) => {
                   >
                     <div className="mt-0.5">
                       {mem.memory_type === 'reflection' ? (
-                        <Zap className="w-3.5 h-3.5" style={{ color: 'rgba(255,132,0,0.6)' }} />
+                        <Zap className="w-3.5 h-3.5" style={{ color: 'rgba(245,245,244,0.45)' }} />
                       ) : (
                         <Clock className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.25)' }} />
                       )}

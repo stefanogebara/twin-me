@@ -52,7 +52,7 @@ const DEFAULT_LIMIT = 20;
 router.get('/', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { type, expert, platform, sort = 'newest' } = req.query;
+    const { type, expert, platform, sort = 'newest', q } = req.query;
 
     // Parse and clamp limit/offset
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || DEFAULT_LIMIT, 1), MAX_LIMIT);
@@ -106,6 +106,11 @@ router.get('/', authenticateUser, async (req, res) => {
     // Apply expert filter (JSONB arrow)
     if (expert) {
       query = query.filter('metadata->>expert', 'eq', expert);
+    }
+
+    // Apply full-text search on content
+    if (q && q.trim()) {
+      query = query.ilike('content', `%${q.trim()}%`);
     }
 
     // Apply platform filter (check both metadata.platform and metadata.source)

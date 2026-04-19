@@ -59,6 +59,7 @@ const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
+const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 // Prototype pages (Sundust design system)
@@ -270,6 +271,15 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <WikiPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/goals" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <GoalsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

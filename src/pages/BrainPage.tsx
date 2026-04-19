@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
 import { authFetch } from '@/services/api/apiBase';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -40,6 +40,7 @@ const BrainPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Filter / sort state
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeExpert, setActiveExpert] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<string | null>(null);
   const [sort, setSort] = useState<'newest' | 'importance' | 'accessed'>('newest');
@@ -63,6 +64,7 @@ const BrainPage: React.FC = () => {
     type: string | null;
     sort: string;
     offset: number;
+    search?: string;
     append?: boolean;
   }) => {
     if (isDemoMode) {
@@ -85,6 +87,7 @@ const BrainPage: React.FC = () => {
       const params = new URLSearchParams();
       if (opts.type) params.set('type', opts.type);
       if (opts.expert) params.set('expert', opts.expert);
+      if (opts.search?.trim()) params.set('q', opts.search.trim());
       params.set('sort', opts.sort);
       params.set('limit', String(PAGE_SIZE));
       params.set('offset', String(opts.offset));
@@ -113,12 +116,15 @@ const BrainPage: React.FC = () => {
     }
   }, [isSignedIn, isDemoMode, user?.id]);
 
-  // Fetch when filters change
+  // Fetch when filters or search change (debounce search by 300ms)
   useEffect(() => {
-    setOffset(0);
-    setExpandedId(null);
-    fetchMemories({ expert: activeExpert, type: activeType, sort, offset: 0 });
-  }, [activeExpert, activeType, sort, fetchMemories]);
+    const timer = setTimeout(() => {
+      setOffset(0);
+      setExpandedId(null);
+      fetchMemories({ expert: activeExpert, type: activeType, sort, offset: 0, search: searchQuery });
+    }, searchQuery ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [activeExpert, activeType, sort, searchQuery, fetchMemories]);
 
   // Fetch snapshots for timeline (lazy)
   useEffect(() => {
@@ -136,7 +142,7 @@ const BrainPage: React.FC = () => {
 
   const handleLoadMore = () => {
     const newOffset = offset + PAGE_SIZE;
-    fetchMemories({ expert: activeExpert, type: activeType, sort, offset: newOffset, append: true });
+    fetchMemories({ expert: activeExpert, type: activeType, sort, offset: newOffset, search: searchQuery, append: true });
   };
 
   const hasMore = memories.length < total;
@@ -276,6 +282,24 @@ const BrainPage: React.FC = () => {
             </p>
           </>
         )}
+      </div>
+
+      {/* ===== Search ===== */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" style={{ color: 'rgba(255,255,255,0.3)' }} />
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search memories…"
+          className="w-full pl-8 pr-3 py-2 text-sm rounded-[8px] outline-none transition-colors"
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#fdfcfb',
+            fontFamily: "'Inter', sans-serif",
+          }}
+        />
       </div>
 
       {/* ===== Section 2: Filter Chips ===== */}
