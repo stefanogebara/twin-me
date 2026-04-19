@@ -7,9 +7,12 @@
  * Desktop: 60/40 grid, sidebar sticky.
  * Tablet: full-width main + drawer sidebar.
  * Mobile: single column stack.
+ *
+ * Uses JS breakpoint detection so only ONE layout variant is in the DOM
+ * at a time — avoids duplicate landmarks and improves screen reader UX.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
 
@@ -18,41 +21,56 @@ interface SplitPanelLayoutProps {
   sidebar: React.ReactNode;
 }
 
+type Breakpoint = 'mobile' | 'tablet' | 'desktop';
+
+function getBreakpoint(): Breakpoint {
+  if (typeof window === 'undefined') return 'mobile';
+  if (window.innerWidth >= 1024) return 'desktop';
+  if (window.innerWidth >= 768) return 'tablet';
+  return 'mobile';
+}
+
+const BG_STYLE = {
+  '--body-gradient-1': 'rgba(210,145,55,0.50)',
+  '--body-gradient-2': 'rgba(180,110,65,0.42)',
+  '--body-gradient-3': 'rgba(160,95,55,0.46)',
+  '--body-gradient-4': 'rgba(55,45,140,0.38)',
+} as React.CSSProperties;
+
 const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) => {
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>(getBreakpoint);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  return (
-    <div
-      className="min-h-screen w-full"
-      style={{
-        '--body-gradient-1': 'rgba(210,145,55,0.50)',
-        '--body-gradient-2': 'rgba(180,110,65,0.42)',
-        '--body-gradient-3': 'rgba(160,95,55,0.46)',
-        '--body-gradient-4': 'rgba(55,45,140,0.38)',
-      } as React.CSSProperties}
-    >
-      {/* ── Desktop: side-by-side grid ─────────────────────────────── */}
-      <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-8 max-w-[1200px] mx-auto px-6 py-10">
-        {/* Main — no wrapper, sections float individually */}
-        <div className="min-w-0">
-          {main}
-        </div>
+  useEffect(() => {
+    const handler = () => setBreakpoint(getBreakpoint());
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
-        {/* Sidebar — sticky within full-height column track */}
-        <div className="relative">
-          <div
-            className="sticky top-[80px] overflow-y-auto"
-            style={{ maxHeight: 'calc(100vh - 100px)' }}
-          >
-            {sidebar}
+  if (breakpoint === 'desktop') {
+    return (
+      <div className="min-h-screen w-full" style={BG_STYLE}>
+        <div className="grid grid-cols-[1fr_380px] gap-8 max-w-[1200px] mx-auto px-6 py-10">
+          <div className="min-w-0">{main}</div>
+          <div className="relative">
+            <div
+              className="sticky top-[80px] overflow-y-auto"
+              style={{ maxHeight: 'calc(100vh - 100px)' }}
+            >
+              {sidebar}
+            </div>
           </div>
         </div>
-
       </div>
+    );
+  }
 
-      {/* ── Tablet: drawer toggle ──────────────────────────────────── */}
-      <div className="hidden md:block lg:hidden max-w-[720px] mx-auto px-6 py-10">
-        <div>{main}</div>
+  if (breakpoint === 'tablet') {
+    return (
+      <div className="min-h-screen w-full" style={BG_STYLE}>
+        <div className="max-w-[720px] mx-auto px-6 py-10">
+          <div>{main}</div>
+        </div>
 
         <button
           onClick={() => setDrawerOpen(!drawerOpen)}
@@ -103,9 +121,13 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
           )}
         </AnimatePresence>
       </div>
+    );
+  }
 
-      {/* ── Mobile: single column ──────────────────────────────────── */}
-      <div className="block md:hidden max-w-[680px] mx-auto px-4 sm:px-5 py-8 space-y-6">
+  // Mobile
+  return (
+    <div className="min-h-screen w-full" style={BG_STYLE}>
+      <div className="max-w-[680px] mx-auto px-4 sm:px-5 py-8 space-y-6">
         <div>{main}</div>
         <div>{sidebar}</div>
       </div>
