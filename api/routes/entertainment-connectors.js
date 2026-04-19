@@ -1711,6 +1711,119 @@ router.post('/connect/oura', authenticateUser, oauthAuthorizationLimiter, async 
   }
 });
 
+// ────────────────────────────────────────────────────────────────────────────
+// Notion OAuth
+// ────────────────────────────────────────────────────────────────────────────
+// Notion's OAuth deviates from the usual flow in two ways:
+//   1. No `scope` parameter — Notion grants page-level access at auth time
+//      instead. We send `owner=user` to request a user-scoped token.
+//   2. The authorize endpoint requires `response_type=code`.
+// Returns a graceful 503 when NOTION_CLIENT_ID is missing so the UI can show
+// a clean "coming soon" message instead of a 500.
+router.post('/connect/notion', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const clientId = process.env.NOTION_CLIENT_ID;
+
+    if (!clientId) {
+      return res.status(503).json({
+        success: false,
+        error: 'not_configured',
+        message: 'Notion integration is not configured yet. Check back soon.',
+      });
+    }
+
+    const appUrl = getAppUrl(req);
+    const redirectUri = `${appUrl}/oauth/callback`;
+    const state = encryptState({ platform: 'notion', userId }, 'entertainment');
+
+    const { error: stateInsertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        state,
+        data: { userId, platform: 'notion' },
+        expires_at: new Date(Date.now() + 1800000),
+      });
+    if (stateInsertError) throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+
+    const authUrl = `https://api.notion.com/v1/oauth/authorize?` +
+      `client_id=${clientId}&` +
+      `response_type=code&` +
+      `owner=user&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `state=${state}`;
+
+    log.info('Notion OAuth initiated', { userId });
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect Notion — journals, goals, and notes feed your twin the richest self-record available.',
+    });
+  } catch (error) {
+    log.error('Notion connection error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Notion connection',
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
+    });
+  }
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// Pinterest OAuth
+// ────────────────────────────────────────────────────────────────────────────
+// Pinterest API v5 — standard OAuth 2.0 with refresh tokens. Scopes cover
+// boards, pins, and secret boards/pins.
+router.post('/connect/pinterest', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const clientId = process.env.PINTEREST_APP_ID;
+
+    if (!clientId) {
+      return res.status(503).json({
+        success: false,
+        error: 'not_configured',
+        message: 'Pinterest integration is not configured yet. Check back soon.',
+      });
+    }
+
+    const appUrl = getAppUrl(req);
+    const redirectUri = `${appUrl}/oauth/callback`;
+    const scope = 'boards:read,boards:read_secret,pins:read,pins:read_secret,user_accounts:read';
+    const state = encryptState({ platform: 'pinterest', userId }, 'entertainment');
+
+    const { error: stateInsertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        state,
+        data: { userId, platform: 'pinterest' },
+        expires_at: new Date(Date.now() + 1800000),
+      });
+    if (stateInsertError) throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+
+    const authUrl = `https://www.pinterest.com/oauth/?` +
+      `client_id=${clientId}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `state=${state}`;
+
+    log.info('Pinterest OAuth initiated', { userId });
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect Pinterest — boards and pins reveal your aesthetic taste fingerprint.',
+    });
+  } catch (error) {
+    log.error('Pinterest connection error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize Pinterest connection',
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
+    });
+  }
+});
+
 /**
  * GET /api/entertainment/oauth/debug
  *
