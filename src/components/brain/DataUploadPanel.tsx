@@ -29,6 +29,8 @@ import {
   Tv,
   Music2,
   Hash,
+  Music,
+  Headphones,
 } from 'lucide-react';
 import { SpotifyLogo, YoutubeLogo, DiscordLogo, RedditLogo } from '@/components/PlatformLogos';
 import { importsAPI, type ImportPlatform, type DataImport } from '@/services/api/importsAPI';
@@ -215,6 +217,30 @@ const PLATFORMS: PlatformConfig[] = [
     exportInstructions: 'X → Settings → Your Account → Download an archive of your data. Upload the ZIP (24-48h).',
     exportUrl: 'https://x.com/settings/your_account/download_an_archive',
     expectedFile: 'twitter-archive-*.zip',
+    fileAccept: '.zip,application/zip',
+  },
+  {
+    id: 'apple_music',
+    label: 'Apple Music',
+    color: '#FA243C',
+    bgColor: 'rgba(250, 36, 60, 0.07)',
+    icon: <Music size={20} color="#FA243C" />,
+    description: 'Your full Apple Music listening history — unlimited play counts beyond the 50-item API cap. Reveals mood-by-time patterns.',
+    exportInstructions: 'privacy.apple.com → Request a copy of your data → select Apple Music activity. Upload the ZIP when it arrives (up to 7 days).',
+    exportUrl: 'https://privacy.apple.com/',
+    expectedFile: 'Apple Music - Play History Daily Tracks.csv (inside ZIP)',
+    fileAccept: '.zip,.csv,application/zip,text/csv',
+  },
+  {
+    id: 'soundcloud',
+    label: 'SoundCloud',
+    color: '#FF5500',
+    bgColor: 'rgba(255, 85, 0, 0.07)',
+    icon: <Headphones size={20} color="#FF5500" />,
+    description: 'Likes, follows, playlists, and comments — indie, electronic, and DJ-mix taste that Spotify often misses.',
+    exportInstructions: 'SoundCloud → Settings → Data privacy → Request a copy of your data. Upload the ZIP when it arrives.',
+    exportUrl: 'https://soundcloud.com/settings/account',
+    expectedFile: 'SoundCloud data export ZIP',
     fileAccept: '.zip,application/zip',
   },
 ];

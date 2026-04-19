@@ -340,6 +340,14 @@ async function generateProactiveInsights(userId) {
       if (item.category === 'nudge' && item.nudge_action) {
         insertData.nudge_action = item.nudge_action.substring(0, 300);
       }
+      // Provenance: detect which platforms this insight references so the UI
+      // can surface source chips. Combines LLM-mentioned platforms + any
+      // sources the caller provided (future: pass signalMemories platforms).
+      const textForSources = [item.insight, item.nudge_action].filter(Boolean).join(' ');
+      const sources = _extractSourcesFromText(textForSources);
+      if (sources.length > 0) {
+        insertData.sources = sources;
+      }
       const { error } = await supabaseAdmin
         .from('proactive_insights')
         .insert(insertData);
@@ -379,11 +387,13 @@ async function generateProactiveInsights(userId) {
           for (const item of correlations) {
             if (!item.insight || item.insight.length < 10) continue;
             if (await isInsightDuplicate(userId, item.insight, 'trend')) continue;
+            const corrSources = _extractSourcesFromText(item.insight);
             await supabaseAdmin.from('proactive_insights').insert({
               user_id: userId,
               insight: item.insight.substring(0, 500),
               urgency: 'low',
               category: 'trend',
+              ...(corrSources.length > 0 ? { sources: corrSources } : {}),
             });
             log.info('Stored correlation insight', { userId });
           }
@@ -746,6 +756,26 @@ async function getNudgeEffectivenessScore(userId) {
  * @param {string} insight
  * @returns {string} A simple action suggestion derived from the insight
  */
+const KNOWN_PLATFORMS = [
+  'Spotify', 'YouTube', 'Gmail', 'GitHub', 'Whoop', 'Calendar', 'Discord',
+  'Reddit', 'LinkedIn', 'Twitch', 'WhatsApp', 'Netflix', 'TikTok',
+  'Letterboxd', 'Goodreads', 'Notion', 'Pinterest',
+];
+
+/**
+ * Extract platform names mentioned in the insight text (case-insensitive,
+ * word-boundary match). Returns canonical capitalization, deduped.
+ */
+function _extractSourcesFromText(text) {
+  if (!text) return [];
+  const found = new Set();
+  for (const p of KNOWN_PLATFORMS) {
+    const re = new RegExp(`\\b${p}\\b`, 'i');
+    if (re.test(text)) found.add(p);
+  }
+  return [...found];
+}
+
 function _extractActionFromInsight(insight) {
   if (!insight) return 'take a short break today';
   const lower = insight.toLowerCase();

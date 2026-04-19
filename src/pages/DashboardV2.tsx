@@ -123,6 +123,7 @@ export function DashboardV2() {
           body={data.heroInsight.body}
           source={data.heroInsight.source}
           insightId={data.heroInsight.insightId}
+          sources={data.heroInsight.sources}
         />
       )}
 

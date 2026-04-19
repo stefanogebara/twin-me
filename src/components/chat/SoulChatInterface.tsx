@@ -204,7 +204,6 @@ export function SoulChatInterface({
   return (
     <div
       className={`flex flex-col h-full ${className}`}
-      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Header with Conversation Controls */}
       <div

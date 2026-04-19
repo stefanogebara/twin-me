@@ -1,16 +1,18 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authFetch } from '@/services/api/apiBase';
+import { SourceChips } from './SourceChips';
 
 interface HeroInsightProps {
   body: string;
   source: string;
   insightId: string;
+  sources?: string[];
 }
 
 const LABEL_STYLE = 'text-[11px] uppercase tracking-[0.15em] font-medium mb-4';
 
-export function HeroInsight({ body, source, insightId }: HeroInsightProps) {
+export function HeroInsight({ body, source, insightId, sources }: HeroInsightProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export function HeroInsight({ body, source, insightId }: HeroInsightProps) {
       <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
         Based on {source}
       </p>
+      <SourceChips sources={sources} />
       <button
         onClick={() => navigate('/talk-to-twin', { state: { prefill: body } })}
         className="mt-3 text-sm bg-transparent border-none cursor-pointer transition-all duration-150 ease-out hover:brightness-150 active:scale-[0.97] p-0"

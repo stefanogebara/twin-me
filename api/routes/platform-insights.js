@@ -189,7 +189,7 @@ router.get('/proactive', authenticateUser, async (req, res) => {
 
     const query = supabaseAdmin
       .from('proactive_insights')
-      .select('id, insight, urgency, category, created_at, delivered, engaged, nudge_action')
+      .select('id, insight, urgency, category, created_at, delivered, engaged, nudge_action, sources')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
