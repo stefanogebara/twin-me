@@ -16,6 +16,11 @@ const log = createLogger('Memories');
 
 const router = express.Router();
 
+const VALID_PLATFORMS = new Set([
+  'spotify', 'google_calendar', 'youtube', 'gmail', 'discord',
+  'linkedin', 'github', 'reddit', 'twitch', 'whoop',
+]);
+
 const VALID_TYPES = new Set([
   'reflection',
   'platform_data',
@@ -117,6 +122,9 @@ router.get('/', authenticateUser, async (req, res) => {
     // Supabase JS doesn't support OR on JSONB arrows in a single query,
     // so we use an or() filter with two conditions.
     if (platform) {
+      if (!VALID_PLATFORMS.has(platform)) {
+        return res.status(400).json({ success: false, error: `Invalid platform: ${platform}` });
+      }
       query = query.or(`metadata->>platform.eq.${platform},metadata->>source.eq.${platform}`);
     }
 

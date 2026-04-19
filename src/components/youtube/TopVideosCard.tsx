@@ -59,7 +59,7 @@ export const TopVideosCard: React.FC<TopVideosCardProps> = ({ videos, className 
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 <div className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   <Eye className="w-3 h-3 text-[#FF0000]" />
-                  <span className="font-mono">{video.views.toLocaleString()}</span>
+                  <span className="font-mono">{video.views.toLocaleString('en-US')}</span>
                 </div>
                 <div className="flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   <Clock className="w-3 h-3" />

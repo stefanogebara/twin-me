@@ -51,7 +51,7 @@ router.all('/', async (req, res) => {
     await logCronExecution('prospective-check', 'error', Date.now() - startTime, null, err.message);
     return res.status(500).json({
       success: false,
-      error: err.message
+      error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error'
     });
   }
 });

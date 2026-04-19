@@ -64,7 +64,7 @@ const CustomBarTooltip = ({
       style={{ backgroundColor: 'rgba(10,15,10,0.9)', border: '1px solid var(--glass-surface-border)', borderRadius: '8px', color: 'rgba(255,255,255,0.8)' }}
     >
       <p className="font-medium text-foreground/60 mb-0.5">{label}</p>
-      <p className="font-semibold text-foreground">{payload[0].value.toLocaleString()} memories</p>
+      <p className="font-semibold text-foreground">{payload[0].value.toLocaleString('en-US')} memories</p>
     </div>
   );
 };

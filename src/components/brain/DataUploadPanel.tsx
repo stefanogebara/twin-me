@@ -402,7 +402,7 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
           </div>
           <p className="text-sm text-foreground/60">
             Added{' '}
-            <span className="font-semibold text-foreground">{result.observationsCreated.toLocaleString()}</span>{' '}
+            <span className="font-semibold text-foreground">{result.observationsCreated.toLocaleString('en-US')}</span>{' '}
             new observations from {selectedPlatform.label} to your twin's memory.
             {result.observationsCreated > 20 && ' Your twin is reflecting on the new data.'}
           </p>

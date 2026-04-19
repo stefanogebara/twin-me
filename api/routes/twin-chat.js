@@ -462,7 +462,7 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Inject platform activity priorities into platformData for system prompt
     try {
-      const { data: actData } = await supabase
+      const { data: actData } = await supabaseAdmin
         .from('platform_connections')
         .select('platform, activity_score, activity_level, content_volume')
         .eq('user_id', userId)

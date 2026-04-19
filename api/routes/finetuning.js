@@ -35,6 +35,16 @@ router.post('/train', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Guard: finetuning requires TOGETHER_API_KEY. If missing (e.g. experimental
+    // feature not yet enabled in this environment), return a clear 503 rather than
+    // letting the downstream throw produce an opaque 500.
+    if (!process.env.TOGETHER_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        error: 'Personal model training is not available in this environment yet. Please check back soon.',
+      });
+    }
+
     // Check if there's already a running job
     const currentStatus = await checkFinetuneStatus(userId);
     if (currentStatus.status === 'running' || currentStatus.status === 'pending') {
@@ -69,8 +79,12 @@ router.post('/train', authenticateUser, async (req, res) => {
       status: result.status,
     });
   } catch (error) {
-    log.error('Train error:', error.message);
-    return res.status(500).json({ success: false, error: 'Failed to start finetuning' });
+    log.error('Train error:', error.message, error.stack);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to start finetuning',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
   }
 });
 

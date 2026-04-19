@@ -183,7 +183,7 @@ function buildCards(props: InsightCardsProps): CardDef[] {
             className="text-lg font-semibold"
             style={{ color: 'rgba(255,255,255,0.85)', fontFamily: "'Inter', sans-serif" }}
           >
-            {memoryCount.toLocaleString()}
+            {memoryCount.toLocaleString('en-US')}
           </p>
           <p
             className="text-[10px] uppercase tracking-wider"

@@ -76,7 +76,7 @@ export const authenticateUser = async (req, res, next) => {
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       log.warn('Missing authorization header', { path: req.path });
-      return res.status(401).json({
+      return res.status(401).json({ success: false,
         error: 'Unauthorized',
         message: 'Missing or invalid authorization header'
       });
@@ -87,7 +87,7 @@ export const authenticateUser = async (req, res, next) => {
 
     if (!token) {
       log.warn('No token provided', { path: req.path });
-      return res.status(401).json({
+      return res.status(401).json({ success: false,
         error: 'Unauthorized',
         message: 'Missing or invalid authorization header'
       });
@@ -104,7 +104,7 @@ export const authenticateUser = async (req, res, next) => {
 
       // Check if token has been revoked (logout blacklist)
       if (await isTokenBlacklisted(token)) {
-        return res.status(401).json({
+        return res.status(401).json({ success: false,
           error: 'Unauthorized',
           message: 'Token has been revoked'
         });
@@ -160,7 +160,7 @@ export const authenticateUser = async (req, res, next) => {
       next();
     } catch (verifyError) {
       log.error('Token verification failed', { path: req.path, errorName: verifyError.name });
-      return res.status(401).json({
+      return res.status(401).json({ success: false,
         error: 'Unauthorized',
         message: 'Invalid or expired token',
         tokenExpired: process.env.NODE_ENV === 'development' ? verifyError.name === 'TokenExpiredError' : undefined,
@@ -211,7 +211,7 @@ export const optionalAuth = async (req, res, next) => {
 // Admin/Professor role check middleware — re-validates role from DB
 export const requireProfessor = async (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({
+    return res.status(401).json({ success: false,
       error: 'Unauthorized',
       message: 'Authentication required'
     });
@@ -291,7 +291,7 @@ export const userRateLimit = (maxRequests = 100, windowMs = 15 * 60 * 1000) => a
 export const validateTwinOwnership = async (req, res, next) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
+      return res.status(401).json({ success: false,
         error: 'Authentication required',
         message: 'User must be authenticated to access this resource'
       });

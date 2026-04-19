@@ -187,7 +187,7 @@ const TwinIntelligence: React.FC = () => {
               </p>
             </div>
           </div>
-          {loadingReadiness ? (
+          {(loadingReadiness || !readiness) ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
           ) : readiness?.eligible && !readiness?.model ? (
             <button
@@ -239,11 +239,11 @@ const TwinIntelligence: React.FC = () => {
               </p>
             </div>
           </div>
-          {loadingReadiness ? (
+          {(loadingReadiness || !readiness) ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
           ) : (
             <span className="text-sm tabular-nums" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter, sans-serif' }}>
-              {readiness?.conversations?.toLocaleString() || '0'} / {readiness?.conversationsRequired || 50}
+              {readiness.conversations.toLocaleString('en-US')} / {readiness.conversationsRequired || 50}
             </span>
           )}
         </div>

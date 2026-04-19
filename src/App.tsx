@@ -230,6 +230,8 @@ const App = () => {
 
             {/* Soul Signature → redirect to Identity (canonical "Who You Are" page) */}
             <Route path="/soul-signature" element={<Navigate to="/identity" replace />} />
+            <Route path="/me" element={<Navigate to="/identity" replace />} />
+            <Route path="/you" element={<Navigate to="/identity" replace />} />
 
             {/* Deep Interview — structured onboarding */}
             <Route path="/interview" element={
@@ -263,6 +265,7 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+            <Route path="/memories" element={<Navigate to="/brain" replace />} />
 
 
             {/* LLM Wiki Knowledge Base */}
@@ -299,6 +302,7 @@ const App = () => {
             ))}
             <Route path="/connect-data" element={<Navigate to="/get-started" replace />} />
             <Route path="/connections" element={<Navigate to="/get-started" replace />} />
+            <Route path="/onboarding/connect" element={<Navigate to="/connect" replace />} />
             <Route path="/memory-explorer" element={<Navigate to="/brain" replace />} />
 
 

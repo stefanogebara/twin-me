@@ -110,7 +110,7 @@ export default async function handler(req, res) {
         refreshed++;
         log.info('Summary refreshed', { userId: userId.slice(0, 8) });
       } catch (err) {
-        errors.push({ userId: userId.slice(0, 8), error: err.message });
+        errors.push({ userId: userId.slice(0, 8), error: process.env.NODE_ENV !== 'production' ? err.message : 'refresh failed' });
         log.warn('Summary refresh failed (non-fatal)', { userId: userId.slice(0, 8), error: err.message });
       }
     }
@@ -140,6 +140,6 @@ export default async function handler(req, res) {
     const durationMs = Date.now() - startTime;
     await logCronExecution('twin-summary-refresh', 'error', durationMs, null, err.message);
     log.error('Twin summary refresh cron failed', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error' });
   }
 }

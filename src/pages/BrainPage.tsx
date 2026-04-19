@@ -242,7 +242,7 @@ const BrainPage: React.FC = () => {
           </h1>
           <span className="text-xs" style={{ color: '#86807b' }}>
             {compositionTotal > 0
-              ? `${compositionTotal.toLocaleString()} memories`
+              ? `${compositionTotal.toLocaleString('en-US')} memories`
               : '\u00A0'}
           </span>
         </div>

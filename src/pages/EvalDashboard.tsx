@@ -433,7 +433,7 @@ export default function EvalDashboard() {
               {historyData.runs.map((run: any) => (
                 <div key={run.id} className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
                   <div>
-                    <div className="text-sm text-muted-foreground">{new Date(run.run_at).toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground">{new Date(run.run_at).toLocaleString('en-US')}</div>
                     {run.notes && <div className="text-xs text-muted-foreground mt-0.5">{run.notes}</div>}
                   </div>
                   <div className="text-sm font-bold text-foreground">

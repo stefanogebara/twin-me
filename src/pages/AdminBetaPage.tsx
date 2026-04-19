@@ -71,7 +71,7 @@ function formatCost(usd: number | null | undefined): string {
 }
 function formatNumber(n: number | null | undefined): string {
   if (n == null || Number.isNaN(n)) return '—';
-  return n.toLocaleString();
+  return n.toLocaleString('en-US');
 }
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';

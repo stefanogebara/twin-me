@@ -29,6 +29,7 @@ import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner
 import type { RevealedArchetype } from './components/onboarding';
 import { GarminCredentialsModal } from './components/settings/GarminCredentialsModal';
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
+import ConnectionRevealCard from './components/onboarding/ConnectionRevealCard';
 
 const InstantTwinOnboarding = () => {
   useDocumentTitle('Connect Platforms');
@@ -77,6 +78,12 @@ const InstantTwinOnboarding = () => {
   const [garminModalOpen, setGarminModalOpen] = useState(false);
   const [revealedArchetype, setRevealedArchetype] = useState<RevealedArchetype | null>(null);
 
+  // Provider of the just-completed OAuth connection. Drives the
+  // first-connection reveal card — the "wow, it already noticed something"
+  // moment that makes the freshly connected data feel alive. Cleared when
+  // the user dismisses or moves on.
+  const [revealProvider, setRevealProvider] = useState<string | null>(null);
+
   const connectedServices = connectedProviders as DataProvider[];
 
   const activeConnections = connectedServices.filter(provider => {
@@ -101,7 +108,24 @@ const InstantTwinOnboarding = () => {
         variant: "default",
       });
       setConnectingProvider(null);
+      // Show the "your twin just noticed..." reveal card above the platform
+      // grid. It polls the memory stream for observations created in the last
+      // few minutes tagged with this provider and surfaces up to 3.
+      setRevealProvider(provider);
       setTimeout(() => refetchPlatformStatus(), 1500);
+
+      // Strip the URL params so a refresh doesn't re-trigger the reveal
+      // (the toast + reveal are a one-time moment).
+      try {
+        const cleanSearch = window.location.search
+          .replace(/[?&]connected=[^&]*/g, '')
+          .replace(/[?&]provider=[^&]*/g, '')
+          .replace(/^\?$/, '');
+        const newUrl = window.location.pathname + (cleanSearch || '');
+        window.history.replaceState({}, '', newUrl);
+      } catch {
+        // Non-fatal
+      }
 
       // Fire-and-forget: trigger proactive insight generation for this user.
       // The OAuth callback handles extraction + observation ingestion inline,
@@ -125,6 +149,7 @@ const InstantTwinOnboarding = () => {
           variant: "default",
         });
         setConnectingProvider(null);
+        setRevealProvider(rawProvider);
         setTimeout(() => refetchPlatformStatus(), 1500);
 
         // Mirror of redirect-flow handling above: trigger insight generation.
@@ -270,6 +295,13 @@ const InstantTwinOnboarding = () => {
           <ArchetypeReveal
             revealedArchetype={revealedArchetype}
             onEnterTwin={() => navigate('/soul-signature')}
+          />
+        )}
+
+        {currentStep === 1 && revealProvider && !isDemoMode && (
+          <ConnectionRevealCard
+            provider={revealProvider}
+            onDismiss={() => setRevealProvider(null)}
           />
         )}
 

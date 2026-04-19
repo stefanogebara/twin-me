@@ -91,7 +91,7 @@ const MemoryFeed: React.FC<MemoryFeedProps> = ({
                     }}
                   />
                   <span
-                    className="flex-1 text-sm truncate"
+                    className="flex-1 min-w-0 text-sm truncate"
                     style={{
                       color: '#fdfcfb',
                       lineHeight: '20px',

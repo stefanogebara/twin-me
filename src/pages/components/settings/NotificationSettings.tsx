@@ -260,7 +260,7 @@ const ToggleSwitch: React.FC<ToggleSwitchProps> = ({ enabled, onChange, disabled
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'var(--glass-surface-border)',
+      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'rgba(255,255,255,0.18)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
