@@ -9,14 +9,14 @@ interface BgConfig {
 }
 
 const BG_MAP: Record<SunPhase, BgConfig> = {
-  night:     { src: '/backgrounds/bg-night.jpg',        overlayOpacity: 0.12, position: 'top center' },
-  dawn:      { src: '/backgrounds/bg-dawn.jpg',         overlayOpacity: 0.18, position: 'center' },
-  sunrise:   { src: '/backgrounds/bg-sunrise.jpg',      overlayOpacity: 0.28, position: 'top left' },
-  morning:   { src: '/backgrounds/bg-morning.jpg',      overlayOpacity: 0.45, position: 'top center' },
-  noon:      { src: '/backgrounds/bg-noon.jpg',         overlayOpacity: 0.42, position: 'bottom center' },
-  afternoon: { src: '/backgrounds/bg-noon.jpg',         overlayOpacity: 0.38, position: 'bottom center' },
-  sunset:    { src: '/backgrounds/bg-sunset.jpg',       overlayOpacity: 0.22, position: 'center' },
-  dusk:      { src: '/backgrounds/bg-dusk.jpg',         overlayOpacity: 0.15, position: 'bottom center' },
+  night:     { src: '/backgrounds/bg-night.jpg',        overlayOpacity: 0.15, position: 'top center' },
+  dawn:      { src: '/backgrounds/bg-dawn.jpg',         overlayOpacity: 0.22, position: 'center' },
+  sunrise:   { src: '/backgrounds/bg-sunrise.jpg',      overlayOpacity: 0.38, position: 'top left' },
+  morning:   { src: '/backgrounds/bg-morning.jpg',      overlayOpacity: 0.58, position: 'top center' },
+  noon:      { src: '/backgrounds/bg-noon.jpg',         overlayOpacity: 0.62, position: 'bottom center' },
+  afternoon: { src: '/backgrounds/bg-noon.jpg',         overlayOpacity: 0.58, position: 'bottom center' },
+  sunset:    { src: '/backgrounds/bg-sunset.jpg',       overlayOpacity: 0.30, position: 'center' },
+  dusk:      { src: '/backgrounds/bg-dusk.jpg',         overlayOpacity: 0.22, position: 'bottom center' },
 };
 
 export const DayNightBackground: React.FC = () => {

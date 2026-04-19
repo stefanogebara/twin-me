@@ -186,10 +186,18 @@ For privacy concerns: privacy@twinme.me`
     >
       {/* Left panel — form (glass card on mobile, clean on desktop) */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
-      <div className="w-full max-w-[420px]">
+      <div
+        className="w-full max-w-[420px] rounded-[24px] px-6 py-8"
+        style={{
+          backgroundColor: 'rgba(13,12,18,0.55)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+        }}
+      >
 
         {/* Logo */}
-        <div className="flex items-center gap-2 mb-16">
+        <div className="flex items-center gap-2 mb-10">
           <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
             <img
               src="/images/backgrounds/flower.png"
@@ -403,7 +411,7 @@ For privacy concerns: privacy@twinme.me`
         </p>
 
         {/* Footer */}
-        <div className="mt-20 text-center">
+        <div className="mt-10 text-center">
           <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.35)' }}>
             &copy; 2026 TwinMe Inc.
           </span>
