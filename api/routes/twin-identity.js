@@ -18,6 +18,7 @@ import { inferIdentityContext } from '../services/identityContextService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
+import { getWeeklySynthesis } from '../services/weeklySynthesisService.js';
 
 const log = createLogger('TwinIdentity');
 
@@ -212,6 +213,24 @@ router.get('/identity', authenticateUser, async (req, res) => {
   cacheSet(cacheKey, data, 300).catch(() => {});
 
   return res.json({ success: true, data });
+});
+
+/**
+ * GET /api/twin/weekly-synthesis
+ * (Mounted at /api/identity/weekly-synthesis via server.js router path.)
+ *
+ * Returns { available, narrative?, weekStart?, generatedAt?, reason? }.
+ * Cached per ISO week (Mon-Sun, UTC) in user_weekly_synthesis.
+ */
+router.get('/weekly-synthesis', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const result = await getWeeklySynthesis(userId);
+    return res.json(result);
+  } catch (err) {
+    log.warn('weekly-synthesis failed', { error: err.message });
+    return res.json({ available: false, reason: 'generation_failed' });
+  }
 });
 
 export default router;

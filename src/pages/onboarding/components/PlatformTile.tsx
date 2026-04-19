@@ -17,6 +17,8 @@ interface PlatformTileProps {
   syncing?: boolean;
   comingSoon?: boolean;
   color?: string;
+  /** Optional personalized one-liner shown above the generic description. */
+  pitchHook?: string | null;
   onConnect: () => void;
   onManage?: () => void;
 }
@@ -30,6 +32,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
   syncing,
   comingSoon,
   color,
+  pitchHook,
   onConnect,
   onManage,
 }) => {
@@ -92,6 +95,14 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
             />
           )}
         </div>
+        {pitchHook && !connected && (
+          <span
+            className="text-[12px] leading-relaxed block mt-0.5"
+            style={{ color: 'var(--accent-vibrant, #c17e2c)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            {pitchHook}
+          </span>
+        )}
         <span
           className="text-[12px] leading-relaxed line-clamp-2 block mt-0.5"
           style={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}

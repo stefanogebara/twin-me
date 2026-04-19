@@ -8,6 +8,7 @@ import { BetaOnboardingChecklist } from './components/dashboard-v2/BetaOnboardin
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
+import { WeeklySynthesisCard } from './components/dashboard-v2/WeeklySynthesisCard';
 import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import MorningBriefingCard from '@/components/chat/MorningBriefingCard';
@@ -112,6 +113,9 @@ export function DashboardV2() {
       <div className="-mx-1 sm:-mx-2">
         <MorningBriefingCard />
       </div>
+
+      {/* 1b. Weekly Synthesis — your week read back to you */}
+      <WeeklySynthesisCard />
 
       {/* 2. What Your Twin Noticed — proactive insights */}
       {data.heroInsight && (

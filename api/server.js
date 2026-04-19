@@ -426,7 +426,9 @@ import githubConnectRoutes from './routes/github-connect.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
 import featureFlagsRoutes from './routes/feature-flags.js';
+import connectPitchHooksRoutes from './routes/connect-pitch-hooks.js';
 import twinIdentityRoutes from './routes/twin-identity.js';
+import identityRoutes from './routes/identity.js';
 import locationRoutes from './routes/location.js';
 import billingRoutes from './routes/billing.js';
 import discoveryRoutes from './routes/discovery.js';
@@ -604,8 +606,10 @@ if (process.env.NODE_ENV === 'development') {
   app.use('/api/eval', evalRoutes); // Twin eval rubric (dev-only)
 }
 app.use('/api/feature-flags', featureFlagsRoutes); // User-facing personality engine flags (all envs)
+app.use('/api/connect', connectPitchHooksRoutes); // Personalized pitch hooks for unconnected platform tiles
 app.use('/api/personality-profile', personalityProfileRoutes); // Soul Signature voting layer — OCEAN, stylometrics, sampling params
 app.use('/api/twin', twinIdentityRoutes); // Who You Are identity explorer
+app.use('/api/identity', identityRoutes); // Identity page extras — temporal comparison, etc.
 app.use('/api/twins-brain', twinsBrainRoutes); // Twins Brain unified knowledge graph
 app.use('/api/mem0', mem0Routes); // Mem0 intelligent memory layer
 app.use('/api/mem0-sync', mem0BrainSyncRoutes); // Mem0 → Twins Brain sync

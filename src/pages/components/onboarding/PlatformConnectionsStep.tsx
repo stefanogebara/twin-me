@@ -3,11 +3,12 @@
  * connected/disconnected tiles, Google Workspace, data upload, and verification.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DataProvider } from '@/types/data-integration';
 import { PlatformStatusData } from './onboardingTypes';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { PlatformTile } from '../../onboarding/components/PlatformTile';
+import { getAccessToken } from '@/services/api/apiBase';
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
@@ -61,6 +62,20 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   navigate,
 }) => {
   const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);
+
+  // Personalized pitch hooks — fetched once per mount. Silent fallback on failure.
+  const [pitchHooks, setPitchHooks] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (isDemoMode || !userId) return;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    fetch(`${API_URL}/connect/pitch-hooks`, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.hooks) setPitchHooks(d.hooks); })
+      .catch(() => { /* non-fatal */ });
+  }, [userId, isDemoMode]);
   const sort = (list: typeof AVAILABLE_CONNECTORS) => sortConnectors(list, connectedServices, discoveredSet);
 
   const entertainmentConnectors = sort(availableConnectors.filter(c => c.category === 'entertainment'));
@@ -82,6 +97,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           connected={false}
           comingSoon={c.comingSoon}
           syncing={connectingProvider === c.provider}
+          pitchHook={pitchHooks[c.provider] || null}
           onConnect={() => connectService(c.provider)}
         />
       ));
