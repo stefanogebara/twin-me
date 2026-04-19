@@ -31,7 +31,7 @@ const SoulRichnessBar: React.FC<{ connectedPlatforms: string[]; isLoading?: bool
           Soul Richness
         </span>
         <span style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}>
-          {isLoading ? ('—') : }
+          {isLoading ? '—' : `${score}%`}
         </span>
       </div>
       <div
