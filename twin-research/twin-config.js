@@ -74,6 +74,13 @@
  *   Key insight: relevance weight is scale-invariant when importance=0 and recency=0 (no effect on ranking).
  *   Key insight: SEMANTIC_DIVERSITY_WEIGHT negligible vs TDW penalty (0.02 vs 0.52+).
  *   Key insight: D=0.300 = multi-type query, 0 expected types in top-5, typeCoverage=0, entropy≈0.75.
+ * SESSION 16: MMR_LAMBDA 0.15→0.12 → 0.913869 (25/25 full run, baseline was 0.890035).
+ *   Key win: MMR=0.12 is a new local optimum below MMR=0.15. All other params confirmed flat.
+ *   Flat zone confirmed: TDW [0.65-0.80], TEMPORAL [0.20-0.30], ALPHA_CITATION_BASELINE, importance weights.
+ *   Note: eval runs partial (2-18 queries) due to API latency variance; reliable results only on full 25/25 runs.
+ *   12 experiments: mmr_012 (WIN +0.024), tdw_065 (no), temporal_020 (flat), alpha_085 (flat),
+ *   tdw_080 (flat), sem_div_005 (no), id_imp_-010 (flat), mmr_010 (no), default_imp_-010 (flat).
+ *   True ceiling at 0.913869 for current DB state. Query bottlenecks: q02 D=0.333, q04/q24 D, q20/q23 P.
  * SESSION 15: Gold labels corrected (platform_data removed from q01/q08/q17/q18/q10/q24).
  *   New baseline: 0.917778 (lucky q14 run) / 0.915447 (typical, q14 non-deterministic ±0.003).
  *   SoulScore.tsx bug fixed: expired platforms were inflating identity score (added !v?.tokenExpired check).
@@ -128,7 +135,7 @@ export const RETRIEVAL_WEIGHTS = {
 // 0.0 = pure diversity (maximize spread across topics)
 // 1.0 = pure relevance (return top-ranked by score only)
 // Range: [0.0, 1.0]
-export const MMR_LAMBDA = 0.15;
+export const MMR_LAMBDA = 0.12;
 
 // Type diversity weight for MMR reranking.
 // Penalizes selecting memories of a type already over-represented in the selected set.

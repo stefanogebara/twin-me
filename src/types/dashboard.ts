@@ -12,6 +12,7 @@ export interface ProactiveInsight {
   delivered: boolean;
   engaged: boolean;
   nudge_action?: string | null;
+  nudge_followed?: boolean | null;
 }
 
 export interface DashboardContext {

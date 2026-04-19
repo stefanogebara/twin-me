@@ -18,3 +18,16 @@ exp12b_refl_rel_15	reflection.relevance	1.8	1.5	0.8623	-0.0005	no
 exp13_combo	default.imp+id.rel+sem_div	1.2/1.2/0.0	1.0/1.0/0.10	0.8666	+0.0038	no
 exp14_id_imp_18	identity.importance	1.5	1.8	0.8624	-0.0004	no
 exp15_temp_div_00	TEMPORAL_DIVERSITY_WEIGHT	0.15	0.0	0.8630	+0.0002	no
+s16_baseline_partial	-	-	-	0.890035	0.0000	yes
+s16_exp1_pres_pen_015	presence_penalty_delta	0.20	0.15	0.913596	+0.023596	no
+s16_exp2_baseline_run	-	-	-	0.822236	-0.067799	no
+s16_exp3_temporal_020_partial	TEMPORAL_DIVERSITY_WEIGHT	0.30	0.20	0.870000	-0.020035	no
+s16_exp4_mmr_012	MMR_LAMBDA	0.15	0.12	0.928823	+0.038823	yes
+s16_exp5_tdw_065_on_mmr012	TYPE_DIVERSITY_WEIGHT	0.70	0.65	0.922048	-0.006775	no
+s16_exp6_temporal_020_on_mmr012	TEMPORAL_DIVERSITY_WEIGHT	0.30	0.20	0.913869	-0.000000	no
+s16_exp7_alpha_085_on_mmr012	ALPHA_CITATION_BASELINE	0.90	0.85	0.913869	+0.000000	no
+s16_exp8_tdw_080_on_mmr012	TYPE_DIVERSITY_WEIGHT	0.70	0.80	0.913869	+0.000000	no
+s16_exp9_sem_div_005_on_mmr012	SEMANTIC_DIVERSITY_WEIGHT	0.0	0.05	0.911902	-0.001967	no
+s16_exp10_id_imp_010_on_mmr012	identity.importance	-0.05	-0.10	0.913869	+0.000000	no
+s16_exp11_mmr_010	MMR_LAMBDA	0.12	0.10	0.910460	-0.003409	no
+s16_exp12_default_imp_010_on_mmr012	default.importance	-0.05	-0.10	0.913869	+0.000000	no

@@ -22,7 +22,7 @@ const label = (s: number) =>
   s < 60 ? 'Getting interesting' :
   s < 80 ? 'Your soul is taking shape' : 'Deeply understood';
 
-const SoulRichnessBar: React.FC<{ connectedPlatforms: string[] }> = ({ connectedPlatforms }) => {
+const SoulRichnessBar: React.FC<{ connectedPlatforms: string[]; isLoading?: boolean }> = ({ connectedPlatforms, isLoading }) => {
   const score = Math.min(100, connectedPlatforms.reduce((s, p) => s + (WEIGHTS[p] ?? 5), 0));
   return (
     <div className="space-y-1.5">
@@ -31,7 +31,7 @@ const SoulRichnessBar: React.FC<{ connectedPlatforms: string[] }> = ({ connected
           Soul Richness
         </span>
         <span style={{ color: 'var(--foreground)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontWeight: 500 }}>
-          {score}%
+          {isLoading ? ('—') : }
         </span>
       </div>
       <div
@@ -47,7 +47,7 @@ const SoulRichnessBar: React.FC<{ connectedPlatforms: string[] }> = ({ connected
         />
       </div>
       <p className="text-xs" style={{ color: 'var(--text-muted)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
-        {label(score)}
+        {isLoading ? 'Checking your connections...' : label(score)}
       </p>
     </div>
   );

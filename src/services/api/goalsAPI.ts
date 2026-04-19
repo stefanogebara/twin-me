@@ -44,6 +44,17 @@ export async function fetchGoalSuggestions(): Promise<Goal[]> {
   return data.suggestions ?? [];
 }
 
+/**
+ * Trigger on-demand suggestion generation and return the resulting list.
+ * Used by the Goals page when the user has no active goals and nothing
+ * is pending — avoids a dead empty state.
+ */
+export async function generateGoalSuggestions(): Promise<Goal[]> {
+  const res = await authFetch('/goals/suggestions', { method: 'POST' });
+  const data = await json<{ suggestions: Goal[] }>(res);
+  return data.suggestions ?? [];
+}
+
 export async function fetchGoalSummary(): Promise<GoalSummary> {
   const res = await authFetch('/goals/summary');
   const data = await json<GoalSummary>(res);

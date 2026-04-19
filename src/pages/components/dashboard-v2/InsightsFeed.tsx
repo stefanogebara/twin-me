@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   TrendingUp, AlertTriangle, PartyPopper, Heart,
   Lightbulb, Target, Compass,
@@ -6,6 +8,7 @@ import {
 import type { ProactiveInsight, InsightCategory } from '@/types/dashboard';
 import { useDemo } from '@/contexts/DemoContext';
 import { DEMO_TWIN_PORTRAIT } from '@/services/demo/demoSoulSignature';
+import type { NudgeFeedbackPayload } from '@/hooks/useProactiveInsights';
 
 const DEMO_INSIGHTS: ProactiveInsight[] = DEMO_TWIN_PORTRAIT.insights.map(i => ({
   ...i,
@@ -16,6 +19,8 @@ interface InsightsFeedProps {
   insights: ProactiveInsight[];
   heroInsightId?: string;
   onEngage: (id: string) => void;
+  onFeedback?: (payload: NudgeFeedbackPayload) => void;
+  feedbackPendingId?: string | null;
 }
 
 const CATEGORY_ICON: Record<InsightCategory, React.ReactNode> = {
@@ -45,13 +50,23 @@ function relativeTime(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeedProps) {
+export function InsightsFeed({
+  insights,
+  heroInsightId,
+  onEngage,
+  onFeedback,
+  feedbackPendingId,
+}: InsightsFeedProps) {
   const navigate = useNavigate();
   const { isDemoMode } = useDemo();
 
+  // Track optimistically-archived ids so the fade-out animation runs even
+  // before the query cache is updated by the mutation's onMutate.
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
+
   // Filter out the hero insight to avoid duplication, take max 5
   const feedInsights = insights
-    .filter(i => i.id !== heroInsightId)
+    .filter(i => i.id !== heroInsightId && !archivedIds.has(i.id))
     .slice(0, 5);
 
   // In demo mode, fall back to representative demo insights when feed is empty
@@ -68,6 +83,18 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
     navigate('/talk-to-twin', { state: { discussContext: insight.insight } });
   };
 
+  const handleFeedback = (insight: ProactiveInsight, followed: boolean) => {
+    if (!onFeedback || isDemoMode) return;
+    // Optimistically archive immediately for fade-out
+    setArchivedIds(prev => {
+      const next = new Set(prev);
+      next.add(insight.id);
+      return next;
+    });
+    onFeedback({ id: insight.id, followed });
+    toast('Thanks — your twin is learning');
+  };
+
   return (
     <section className="mb-12">
       <h2
@@ -78,12 +105,16 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
       </h2>
 
       <div className="flex flex-col gap-3">
-        {displayInsights.map(insight => (
+        {displayInsights.map(insight => {
+          const isPending = feedbackPendingId === insight.id;
+          const canFeedback = !!onFeedback && !isDemoMode;
+          return (
           <div
             key={insight.id}
-            className="py-3"
+            className="py-3 transition-all duration-300 ease-out"
             style={{
               borderBottom: '1px solid var(--glass-surface-border)',
+              opacity: isPending ? 0.5 : 1,
             }}
           >
             <div className="flex items-start gap-3">
@@ -131,10 +162,42 @@ export function InsightsFeed({ insights, heroInsightId, onEngage }: InsightsFeed
                     Discuss with twin &rarr;
                   </button>
                 </div>
+
+                {/* Feedback actions: archive this insight + teach the twin */}
+                {canFeedback && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleFeedback(insight, true)}
+                      className="text-[11px] font-medium rounded-[100px] px-3 py-1.5 transition-all duration-150 ease-out hover:opacity-80 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        background: '#F5F5F4',
+                        color: '#110f0f',
+                        border: 'none',
+                      }}
+                    >
+                      I did this
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPending}
+                      onClick={() => handleFeedback(insight, false)}
+                      className="text-[11px] rounded-[6px] px-2 py-1 transition-all duration-150 ease-out hover:opacity-70 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed bg-transparent"
+                      style={{
+                        color: 'var(--text-muted, #9C9590)',
+                        border: 'none',
+                      }}
+                    >
+                      Not for me
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

@@ -97,6 +97,11 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
   }
 });
 
+// Named slug guard — must come before /:id so "summary" doesn't hit UUID validation
+router.get('/summary', authenticateUser, (req, res) => {
+  return res.status(404).json({ error: 'Not found', message: 'Use GET /api/twin/pipeline for twin summary data' });
+});
+
 // GET /api/twins/:id - Get a specific twin by ID
 router.get('/:id', authenticateUser, userRateLimit(200, 15 * 60 * 1000), async (req, res) => {
   try {

@@ -23,7 +23,7 @@ export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardContext();
-  const { insights, markEngaged } = useProactiveInsights();
+  const { insights, markEngaged, submitFeedback, feedbackPendingId } = useProactiveInsights();
 
   // Register web push on first dashboard load (after auth)
   useWebPush(true);
@@ -126,6 +126,8 @@ export function DashboardV2() {
         insights={insights}
         heroInsightId={data.heroInsight?.insightId}
         onEngage={markEngaged}
+        onFeedback={submitFeedback}
+        feedbackPendingId={feedbackPendingId}
       />
 
       {/* 3. Soul Signature — condensed blurb */}

@@ -198,6 +198,10 @@ router.get('/proactive', authenticateUser, async (req, res) => {
       query.eq('delivered', false);
     }
 
+    // Filter out insights the user has already acted on (accepted/dismissed)
+    // so they don't reappear in the feed after feedback.
+    query.is('nudge_followed', null);
+
     const { data, error } = await query;
 
     if (error) {
@@ -408,6 +412,57 @@ router.post('/proactive/:id/engage', authenticateUser, async (req, res) => {
         .catch(err => log.warn('Pattern seed failed', { error: err }));
     })
     .catch(() => {});
+});
+
+/**
+ * POST /api/insights/:id/nudge-feedback
+ * Records user feedback on a proactive insight/nudge.
+ * Body: { followed: boolean, note?: string }
+ *
+ * Sets nudge_followed, nudge_outcome, and nudge_checked_at so the twin learns
+ * from user reactions and so the card stays archived on subsequent reloads.
+ * User can only update their own insights (enforced by .eq('user_id', userId)).
+ */
+router.post('/:id/nudge-feedback', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { id } = req.params;
+  const { followed, note } = req.body || {};
+
+  if (typeof followed !== 'boolean') {
+    return res.status(400).json({ success: false, error: 'followed must be boolean' });
+  }
+
+  const outcome = typeof note === 'string' && note.trim()
+    ? `user_feedback: ${note.trim().slice(0, 480)}`
+    : followed
+      ? 'user_feedback: followed'
+      : 'user_feedback: not_for_me';
+
+  const { data, error } = await supabaseAdmin
+    .from('proactive_insights')
+    .update({
+      nudge_followed: followed,
+      nudge_outcome: outcome,
+      nudge_checked_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', userId) // security: prevent cross-user writes
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    log.error('Nudge feedback error', { id, error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+    });
+  }
+
+  if (!data) {
+    return res.status(404).json({ success: false, error: 'Insight not found' });
+  }
+
+  res.json({ success: true, followed });
 });
 
 export default router;

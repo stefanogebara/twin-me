@@ -446,6 +446,19 @@ class ExtractionOrchestrator {
           }
           break;
 
+        case 'pinterest':
+          try {
+            const { extractAll: extractPinterest } = await import('./extractors/pinterestExtractor.js');
+            const pinterestResult = await extractPinterest(userId, null);
+            itemsExtracted = pinterestResult.itemsExtracted || 0;
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Pinterest observations', { stored: itemsExtracted });
+          } catch (pinterestError) {
+            log.error('Pinterest extraction error', { error: pinterestError });
+            result = { success: false, error: pinterestError.message };
+          }
+          break;
+
         default:
           log.info('Unknown platform', { platform });
           result = { success: false, error: 'Unknown platform' };

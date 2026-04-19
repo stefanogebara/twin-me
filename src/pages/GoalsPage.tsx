@@ -7,6 +7,7 @@ import {
   Goal,
   fetchGoals,
   fetchGoalSuggestions,
+  generateGoalSuggestions,
   acceptGoal,
   dismissGoal,
   completeGoal,
@@ -175,6 +176,9 @@ export default function GoalsPage() {
   const [suggestions, setSuggestions] = useState<Goal[]>([]);
   const [completed, setCompleted] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingSuggestions, setGeneratingSuggestions] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
+  const [hasTriedGeneration, setHasTriedGeneration] = useState(false);
   const [addTitle, setAddTitle] = useState('');
   const [adding, setAdding] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -199,6 +203,35 @@ export default function GoalsPage() {
   }, [isSignedIn]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Auto-trigger suggestion generation when the user lands on a dead page:
+  // no active goals AND no pending suggestions. Runs once per mount.
+  useEffect(() => {
+    if (loading || !isSignedIn || hasTriedGeneration) return;
+    if (active.length > 0 || suggestions.length > 0) return;
+
+    let cancelled = false;
+    setHasTriedGeneration(true);
+    setGeneratingSuggestions(true);
+    setSuggestionsError(null);
+    generateGoalSuggestions()
+      .then(fresh => {
+        if (cancelled) return;
+        setSuggestions(fresh);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        console.error('Failed to generate goal suggestions:', err);
+        setSuggestionsError(
+          "I'm still learning your patterns. Connect more platforms or come back in a few days.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setGeneratingSuggestions(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [loading, isSignedIn, hasTriedGeneration, active.length, suggestions.length]);
 
   async function handleComplete(id: string) {
     await completeGoal(id);
@@ -269,6 +302,78 @@ export default function GoalsPage() {
             </section>
           )}
 
+          {/* Generating-suggestions shimmer (only when we have no data to show yet) */}
+          {generatingSuggestions && suggestions.length === 0 && active.length === 0 && (
+            <section>
+              <p style={LABEL_STYLE}>From your twin</p>
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="px-5 py-4 rounded-[20px] animate-pulse"
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      backdropFilter: 'blur(42px)',
+                    }}
+                  >
+                    <div className="h-2 w-24 rounded-full mb-3" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                    <div className="h-3 w-3/4 rounded-full mb-2" style={{ background: 'rgba(255,255,255,0.10)' }} />
+                    <div className="h-3 w-1/2 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Twin-voice empty state (only when nothing to show and we've tried) */}
+          {!generatingSuggestions
+            && suggestions.length === 0
+            && active.length === 0
+            && hasTriedGeneration && (
+            <section>
+              <div
+                className="px-5 py-6 rounded-[20px]"
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  backdropFilter: 'blur(42px)',
+                }}
+              >
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{
+                    color: 'rgba(245,245,244,0.9)',
+                    fontFamily: "'Instrument Serif', Georgia, serif",
+                    fontSize: 18,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {suggestionsError
+                    ?? "I'm still learning your patterns. Connect more platforms or come back in a few days, and I'll suggest goals that actually fit you."}
+                </p>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/connect')}
+                    className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-80 active:scale-[0.97]"
+                    style={{ background: '#F5F5F4', color: '#110f0f', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    Connect more platforms
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddForm(true)}
+                    className="px-3 py-2 rounded-[100px] text-xs font-medium transition-all duration-150 hover:opacity-70 active:scale-[0.97]"
+                    style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', sans-serif" }}
+                  >
+                    Add your own
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Active goals */}
           <section>
             <div className="flex items-center justify-between mb-3">
@@ -314,9 +419,13 @@ export default function GoalsPage() {
             )}
 
             {active.length === 0 ? (
-              <p className="text-sm py-4" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
-                No active goals. Accept a suggestion or add one yourself.
-              </p>
+              // Suppress the terse text empty-state when either the shimmer
+              // or the twin-voice empty card is already rendered above.
+              suggestions.length === 0 && (generatingSuggestions || hasTriedGeneration) ? null : (
+                <p className="text-sm py-4" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Inter', sans-serif" }}>
+                  No active goals yet. Accept a suggestion above or add one yourself.
+                </p>
+              )
             ) : (
               <div className="space-y-3">
                 {active.map(g => (
