@@ -152,14 +152,26 @@ export async function ingestChatHistory(userId, fileBuffer, platform, opts = {})
   log.info('Processing complete', processStats);
 
   if (pairs.length === 0) {
+    const ownerSentZero = parsed.stats.owner_sent === 0;
+    log.warn('No conversation pairs extracted', {
+      userId,
+      platform,
+      ownerName: parsed.ownerName,
+      ownerSent: parsed.stats.owner_sent,
+      totalMessages: parsed.stats.total,
+      reason: ownerSentZero ? 'owner_sent_zero' : 'no_pairs',
+    });
     return {
-      success: true,
+      success: false,
+      reason: ownerSentZero ? 'owner_sent_zero' : 'no_pairs',
       platform,
       parseStats: parsed.stats,
       processStats,
       memoriesStored: 0,
       factsStored: 0,
-      message: 'No conversation pairs could be extracted from this export.',
+      message: ownerSentZero
+        ? `You sent 0 messages in this chat — nothing to learn from.`
+        : `Messages exist but no Q&A pairs could be extracted.`,
     };
   }
 
