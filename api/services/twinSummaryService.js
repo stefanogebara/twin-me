@@ -41,7 +41,7 @@ const pendingGenerations = new Map();
  * @param {string} userName - The user's name for context
  * @returns {string} A concise summary sentence
  */
-async function summarizeMemories(memories, aspect, userName) {
+async function summarizeMemories(memories, aspect, userName, voiceSamples = []) {
   if (!memories || memories.length === 0) {
     return '';
   }
@@ -50,13 +50,20 @@ async function summarizeMemories(memories, aspect, userName) {
     .map(m => m.content)
     .join('\n- ');
 
+  // Include verbatim user messages so the summary echoes actual phrasings instead of
+  // paraphrasing paraphrases. This prevents the "summary-of-summaries" voice laundering
+  // where each LLM pass blurs the person's authentic register.
+  const voiceBlock = voiceSamples.length > 0
+    ? `\n\nTHE PERSON'S OWN WORDS (verbatim — echo specific phrasings where natural):\n${voiceSamples.map(s => `> ${s}`).join('\n')}`
+    : '';
+
   try {
     const result = await complete({
       tier: TIER_ANALYSIS,
-      system: `You summarize memories about a person into a concise, natural-sounding description. Write in second person, addressing the person directly as "you" / "your". Be specific and use details from the memories. Output 1-2 sentences only, no bullet points. Only state things supported by the evidence.`,
+      system: `You summarize memories about a person into a concise, natural-sounding description. Write in second person, addressing the person directly as "you" / "your". Be specific and use details from the memories. When the person's own words are provided, echo their actual phrasings where natural instead of paraphrasing. Output 1-2 sentences only, no bullet points. Only state things supported by the evidence.`,
       messages: [{
         role: 'user',
-        content: `Based on these memories about ${userName}, write a concise summary of their ${aspect} (use "you/your" to address them directly):\n\n- ${memoryText}`
+        content: `Based on these memories about ${userName}, write a concise summary of their ${aspect} (use "you/your" to address them directly):\n\n- ${memoryText}${voiceBlock}`
       }],
       maxTokens: 200,
       temperature: 0.5,
@@ -71,6 +78,44 @@ async function summarizeMemories(memories, aspect, userName) {
 }
 
 /**
+ * Fetch a small pool of verbatim user messages from authentic first-party sources.
+ * Used to keep real phrasings inside summaries instead of LLM paraphrase chains.
+ */
+const VOICE_SOURCES_FOR_SUMMARY = [
+  'twin_chat', 'onboarding_interview',
+  'soul_interview_emotions', 'soul_interview_fears', 'soul_interview_goals',
+  'soul_interview_habits', 'soul_interview_identity', 'soul_interview_joy',
+  'soul_interview_relationships', 'soul_interview_values', 'soul_interview_work',
+  'telegram', 'whatsapp', 'whatsapp_chat',
+];
+
+async function fetchVerbatimVoiceSamples(userId, limit = 5) {
+  try {
+    const { data } = await supabaseAdmin
+      .from('user_memories')
+      .select('content, metadata')
+      .eq('user_id', userId)
+      .eq('memory_type', 'conversation')
+      .eq('metadata->>role', 'user')
+      .in('metadata->>source', VOICE_SOURCES_FOR_SUMMARY)
+      .order('created_at', { ascending: false })
+      .limit(limit * 3);
+    if (!data) return [];
+    return data
+      .map(m => {
+        let t = (m.content || '').trim();
+        if (t.startsWith('User said: ')) t = t.slice(11);
+        if (t.startsWith('"') && t.endsWith('"')) t = t.slice(1, -1);
+        return t.trim();
+      })
+      .filter(t => t.length >= 20 && t.length <= 400)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Generate a fresh twin summary by querying the memory stream with five
  * parallel retrieval queries aligned to the expert reflection domains.
  *
@@ -80,6 +125,10 @@ async function summarizeMemories(memories, aspect, userName) {
  */
 async function generateTwinSummary(userId, userName = 'This person') {
   log.info('Generating fresh summary', { userId });
+
+  // Fetch verbatim voice samples ONCE up front so each domain summary echoes real phrasings
+  // instead of laundering the user's voice through repeated paraphrase passes.
+  const voiceSamples = await fetchVerbatimVoiceSamples(userId, 5);
 
   // Five parallel retrieval queries aligned to expert reflection domains
   // Using 'identity' weights: relevance dominant, low recency bias — who this person IS, not just what happened recently
@@ -91,13 +140,13 @@ async function generateTwinSummary(userId, userName = 'This person') {
     retrieveMemories(userId, `${userName}'s work patterns, goals, ambitions, motivation, productivity, and decision-making style`, 25, 'identity'),
   ]);
 
-  // Summarize each domain in parallel
+  // Summarize each domain in parallel, passing voice samples so phrasings survive
   const [personality, lifestyle, culturalIdentity, socialDynamicsRaw, motivation] = await Promise.all([
-    summarizeMemories(personalityMemories, 'emotional patterns and personality', userName),
-    summarizeMemories(lifestyleMemories, 'daily rhythms and lifestyle patterns', userName),
-    summarizeMemories(culturalMemories, 'cultural identity and aesthetic preferences', userName),
-    summarizeMemories(socialMemories, 'social dynamics and communication style', userName),
-    summarizeMemories(motivationMemories, 'motivations and work patterns', userName),
+    summarizeMemories(personalityMemories, 'emotional patterns and personality', userName, voiceSamples),
+    summarizeMemories(lifestyleMemories, 'daily rhythms and lifestyle patterns', userName, voiceSamples),
+    summarizeMemories(culturalMemories, 'cultural identity and aesthetic preferences', userName, voiceSamples),
+    summarizeMemories(socialMemories, 'social dynamics and communication style', userName, voiceSamples),
+    summarizeMemories(motivationMemories, 'motivations and work patterns', userName, voiceSamples),
   ]);
 
   // Social dynamics fallback: if primary retrieval returned no usable summary,
@@ -159,10 +208,13 @@ async function generateTwinSummary(userId, userName = 'This person') {
   let finalSummary = '';
   if (parts.length >= 2) {
     try {
+      const synthVoiceBlock = voiceSamples.length > 0
+        ? `\n\nTHE PERSON'S OWN WORDS (preserve specific phrasings where they appear in the domain descriptions — do not re-paraphrase):\n${voiceSamples.slice(0, 4).map(s => `> ${s}`).join('\n')}`
+        : '';
       const synthesisResult = await complete({
         tier: TIER_ANALYSIS,
-        system: 'Synthesize personality domain descriptions into a non-repetitive 2-3 sentence summary. Each sentence must add new information. No filler phrases.',
-        messages: [{ role: 'user', content: `Synthesize:\n\n${parts.join('\n\n')}` }],
+        system: 'Synthesize personality domain descriptions into a non-repetitive 2-3 sentence summary. Each sentence must add new information. Preserve any specific phrasings from the source descriptions verbatim rather than re-paraphrasing them. No filler phrases, no "this person" framing — use "you/your".',
+        messages: [{ role: 'user', content: `Synthesize:\n\n${parts.join('\n\n')}${synthVoiceBlock}` }],
         maxTokens: 250,
         temperature: 0.4,
         serviceName: 'twinSummary-synthesize',

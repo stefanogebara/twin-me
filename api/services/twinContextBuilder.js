@@ -309,16 +309,35 @@ async function _fetchVoiceExamples(userId) {
   const cached = getCached(cacheKey);
   if (cached !== undefined) return cached;
 
-  // Fetch real user messages from twin chat conversations (not dev/MCP logs)
+  // Fetch real user messages from any first-party source that captures authentic voice.
+  // Excludes test_script / dev artifacts; includes twin_chat + soul interviews + messaging
+  // platforms (telegram, whatsapp) because those are often the richest voice samples.
+  const VOICE_SOURCES = [
+    'twin_chat',
+    'onboarding_interview',
+    'soul_interview_emotions',
+    'soul_interview_fears',
+    'soul_interview_goals',
+    'soul_interview_habits',
+    'soul_interview_identity',
+    'soul_interview_joy',
+    'soul_interview_relationships',
+    'soul_interview_values',
+    'soul_interview_work',
+    'telegram',
+    'whatsapp',
+    'whatsapp_chat',
+  ];
+
   const { data: memories, error } = await supabaseAdmin
     .from('user_memories')
     .select('content, metadata, created_at')
     .eq('user_id', userId)
     .eq('memory_type', 'conversation')
     .eq('metadata->>role', 'user')
-    .eq('metadata->>source', 'twin_chat')
+    .in('metadata->>source', VOICE_SOURCES)
     .order('created_at', { ascending: false })
-    .limit(40);
+    .limit(120);
 
   if (error || !memories || memories.length === 0) {
     setCache(cacheKey, []);
