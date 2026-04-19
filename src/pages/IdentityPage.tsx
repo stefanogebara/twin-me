@@ -447,6 +447,14 @@ const IdentityPage: React.FC = () => {
     localStorage.setItem(REVEAL_KEY, '1');
   }, []);
 
+  // Hooks must be declared BEFORE any early return (isLoading / hasAnyData
+  // guards below). Previously usePlatformStatus + useState(expandedLens) were
+  // positioned after those guards, causing React error #310 ("Rendered more
+  // hooks than during the previous render") on transition from loading to
+  // loaded state.
+  const { connectedProviders } = usePlatformStatus(user?.id);
+  const [expandedLens, setExpandedLens] = useState<string | null>(null);
+
   // ── Guards ─────────────────────────────────────────────────────────────
 
   if (!user && !isDemoMode) return null;
@@ -497,7 +505,6 @@ const IdentityPage: React.FC = () => {
   // ── Expert 1-liners (first sentence of first insight per domain) ─────
 
   const rawExpertInsights = data?.data?.expertInsights ?? {};
-  const { connectedProviders } = usePlatformStatus(user?.id);
 
   const expertLensEntries = EXPERT_LABELS
     .map(({ key, label }) => {
@@ -515,8 +522,6 @@ const IdentityPage: React.FC = () => {
       rest: string;
       insightLink: InsightLinkSpec | null;
     }[];
-
-  const [expandedLens, setExpandedLens] = useState<string | null>(null);
 
   // ── Insight-page discovery pills (shown when user has connected platforms) ──
   const availableInsightPages: InsightLinkSpec[] = (() => {
