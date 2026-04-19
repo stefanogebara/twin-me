@@ -126,7 +126,7 @@ const GmailCallback: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20" style={{ background: 'var(--background)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
       <div className="w-full max-w-md">
         <div
           className="rounded-3xl overflow-hidden p-8 text-center space-y-6"
