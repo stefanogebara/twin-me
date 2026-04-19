@@ -50,7 +50,7 @@ export const TopArtistsCard: React.FC<TopArtistsCardProps> = ({ artists, classNa
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                 <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                  {artist.plays.toLocaleString()}
+                  {artist.plays.toLocaleString('en-US')}
                 </span>
                 {artist.popularity >= 80 && (
                   <TrendingUp className="w-3 h-3 text-[#1DB954]" />

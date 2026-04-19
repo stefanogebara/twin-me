@@ -11,6 +11,7 @@
  * BASELINE: coldstart_quality_score = 0.790 (original)
  * BEST:     coldstart_quality_score = 0.960 (exp5/session2: coverage-domains prompt, enrichment=0.3, temp=0.4, limit=100, max_per_type=25, max_tokens=700)
  * SESSION3:  coldstart_quality_score = 0.885 (stable: limit=120, max_per_type=30, temp=0.45, enrichment=0.3, max_tokens=700, enhanced coverage domains)
+ * SESSION4:  coldstart_quality_score = 0.960 (simplification: max_tokens=700→600 same score, all other changes regressed)
  */
 
 // ─── Memory Limits ──────────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ export const SUMMARY_TEMPERATURE = 0.45;
 
 // Max tokens for the summary response.
 // Range: [100, 800]
-export const SUMMARY_MAX_TOKENS = 700;
+export const SUMMARY_MAX_TOKENS = 600;
 
 // ─── Memory Selection Strategy ──────────────────────────────────────────────
 

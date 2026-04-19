@@ -178,7 +178,7 @@ export function SoulChatInterface({
   const handleExport = (format: 'pdf' | 'text' | 'json') => {
     if (format === 'text') {
       const text = messages.map(m =>
-        `${m.role === 'assistant' ? 'Soul Twin' : 'You'} (${m.timestamp.toLocaleString()}):\n${m.content}\n\n`
+        `${m.role === 'assistant' ? 'Soul Twin' : 'You'} (${m.timestamp.toLocaleString('en-US')}):\n${m.content}\n\n`
       ).join('');
 
       const blob = new Blob([text], { type: 'text/plain' });

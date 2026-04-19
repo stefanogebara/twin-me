@@ -462,7 +462,7 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 **Interactive:**
 - `--primary: #F5F5F4` — primary button bg (light on dark)
 - `--primary-foreground: #110f0f` — primary button text (dark)
-- `--ring: rgba(255,132,0,0.25)` — focus ring
+- `--ring: rgba(255,255,255,0.25) — focus ring
 - `--input: rgba(255,255,255,0.08)` — input field bg
 
 **Component colors:**
@@ -478,8 +478,8 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 - `--sidebar-accent: rgba(255,255,255,0.08)` / `--sidebar-border: rgba(255,255,255,0.08)`
 
 **Accent (vibrant):**
-- `--accent-vibrant: #ff8400` — orange CTA highlight
-- `--accent-vibrant-glow: rgba(255,132,0,0.12)` — active nav pill fill
+- `--accent-vibrant: #F5F5F4 — warm white CTA highlight
+- `--accent-vibrant-glow: rgba(255,255,255,0.10) — active nav pill fill
 - `--accent-amber: #c17e2c` — warm copper (gradient core)
 - `--accent-purple: #5d5cae` — cool purple (gradient corner only)
 

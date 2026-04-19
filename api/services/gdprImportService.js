@@ -2414,6 +2414,276 @@ async function finalizeImportRecord(importId, status, observationsCreated, facts
 }
 
 // ---------------------------------------------------------------------------
+// Minimal CSV parser
+// ---------------------------------------------------------------------------
+// Hand-rolled to avoid adding a new dep for two small parsers. Handles:
+//   - quoted fields with embedded commas
+//   - escaped quotes ("")
+//   - CRLF and LF line endings
+//   - BOM
+// Not a full RFC 4180 impl, but sufficient for Letterboxd and Goodreads exports.
+
+function parseCsv(text) {
+  if (!text) return [];
+  // Strip UTF-8 BOM if present
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }  // escaped quote
+        else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+      continue;
+    }
+
+    if (c === '"') { inQuotes = true; continue; }
+    if (c === ',') { row.push(field); field = ''; continue; }
+    if (c === '\r') { continue; }
+    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; continue; }
+    field += c;
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function csvToObjects(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  return rows.slice(1)
+    .filter(r => r.some(cell => cell && cell.trim().length > 0))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = r[i] !== undefined ? r[i].trim() : ''; });
+      return obj;
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Letterboxd — film diary CSV export
+// ---------------------------------------------------------------------------
+// Source: Settings -> Data -> Export your data. The ZIP includes several CSVs
+// (diary.csv, watched.csv, ratings.csv, reviews.csv). Users typically upload
+// one directly; if a ZIP comes in we prefer diary.csv.
+
+function extractLetterboxdCsv(buffer) {
+  const asText = buffer.toString('utf8');
+  // Cheap ZIP detection
+  if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
+    try {
+      const zip = new AdmZip(buffer);
+      const entry = zip.getEntries().find(e => /diary\.csv$/i.test(e.entryName))
+        || zip.getEntries().find(e => /ratings\.csv$/i.test(e.entryName))
+        || zip.getEntries().find(e => /watched\.csv$/i.test(e.entryName));
+      if (entry) return entry.getData().toString('utf8');
+      throw new Error('Letterboxd ZIP missing diary.csv / ratings.csv / watched.csv');
+    } catch (e) {
+      throw new Error(`Letterboxd ZIP extract failed: ${e.message}`);
+    }
+  }
+  return asText;
+}
+
+function formatStars(r) {
+  const n = parseFloat(r);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  // Letterboxd stores 0.5-5 in half-star increments
+  return `${n}★`;
+}
+
+function parseLetterboxd(buffer) {
+  const csv = extractLetterboxdCsv(buffer);
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) throw new Error('Letterboxd CSV has no rows');
+
+  // Column layout varies between diary/ratings/watched — handle all three.
+  // diary.csv:   Date, Name, Year, Letterboxd URI, Rating, Rewatch, Tags, Watched Date
+  // ratings.csv: Date, Name, Year, Letterboxd URI, Rating
+  // watched.csv: Date, Name, Year, Letterboxd URI
+
+  const observations = [];
+  const MAX = 500;
+
+  // Aggregates for rollup observations
+  const ratingCounts = { '0.5★': 0, '1★': 0, '1.5★': 0, '2★': 0, '2.5★': 0, '3★': 0, '3.5★': 0, '4★': 0, '4.5★': 0, '5★': 0 };
+  let totalRated = 0;
+  let totalWatched = 0;
+  let fiveStarFilms = [];
+  let rewatches = 0;
+
+  for (const r of rows) {
+    const name = r['Name'] || '';
+    if (!name) continue;
+
+    const year = r['Year'] || '';
+    const watchedDate = r['Watched Date'] || r['Date'] || '';
+    const stars = formatStars(r['Rating']);
+    const isRewatch = (r['Rewatch'] || '').toLowerCase() === 'yes';
+    const tags = r['Tags'] || '';
+
+    totalWatched++;
+    if (stars) {
+      totalRated++;
+      ratingCounts[stars] = (ratingCounts[stars] || 0) + 1;
+      if (stars === '5★') fiveStarFilms.push(`${name}${year ? ` (${year})` : ''}`);
+    }
+    if (isRewatch) rewatches++;
+
+    // Per-film observation (cap to most recent MAX entries after sort)
+    const filmDisplay = year ? `"${name}" (${year})` : `"${name}"`;
+    const parts = [`You watched ${filmDisplay}`];
+    if (stars) parts.push(`and rated it ${stars}`);
+    if (isRewatch) parts.push('(rewatch)');
+    if (watchedDate) parts.push(`on ${watchedDate}`);
+    if (tags) parts.push(`— tagged: ${tags}`);
+    observations.push({
+      ts: watchedDate,
+      text: parts.join(' ') + '.',
+    });
+  }
+
+  // Keep most-recent per-film observations
+  observations.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+  const perFilm = observations.slice(0, MAX).map(o => o.text);
+
+  // Rollup observations
+  const rollups = [];
+  rollups.push(`Your Letterboxd diary contains ${totalWatched} watched film${totalWatched === 1 ? '' : 's'}${totalRated > 0 ? `, ${totalRated} of which you rated` : ''}${rewatches > 0 ? `, including ${rewatches} rewatch${rewatches === 1 ? '' : 'es'}` : ''}.`);
+
+  if (fiveStarFilms.length > 0) {
+    const top = fiveStarFilms.slice(0, 10).join(', ');
+    rollups.push(`Your five-star films on Letterboxd include: ${top}.`);
+  }
+
+  const topStar = Object.entries(ratingCounts).sort((a, b) => b[1] - a[1])[0];
+  if (topStar && topStar[1] > 0) {
+    rollups.push(`Your most common Letterboxd rating is ${topStar[0]} (${topStar[1]} films).`);
+  }
+
+  return [...rollups, ...perFilm];
+}
+
+// ---------------------------------------------------------------------------
+// Goodreads — library CSV export
+// ---------------------------------------------------------------------------
+// Source: My Books -> Import and Export -> Export Library. Returns a single CSV
+// with ~25 columns including shelves, dates, rating, review text.
+
+function parseGoodreads(buffer) {
+  const text = buffer.toString('utf8');
+  const rows = csvToObjects(text);
+  if (rows.length === 0) throw new Error('Goodreads CSV has no rows');
+
+  const observations = [];
+  const MAX = 500;
+
+  const shelfCounts = {};
+  let totalRead = 0;
+  let totalRated = 0;
+  let currentlyReading = [];
+  let wantToRead = [];
+  const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const fiveStarBooks = [];
+
+  const perBook = [];
+
+  for (const r of rows) {
+    const title = (r['Title'] || '').trim();
+    if (!title) continue;
+
+    const author = (r['Author'] || '').trim();
+    const rating = parseInt(r['My Rating'] || '0', 10);
+    const dateRead = (r['Date Read'] || '').trim();
+    const dateAdded = (r['Date Added'] || '').trim();
+    const shelf = (r['Exclusive Shelf'] || '').trim().toLowerCase();
+    const review = (r['My Review'] || '').trim();
+    const pageCount = parseInt(r['Number of Pages'] || '0', 10);
+
+    shelfCounts[shelf || 'unshelved'] = (shelfCounts[shelf || 'unshelved'] || 0) + 1;
+
+    if (shelf === 'read') {
+      totalRead++;
+      if (rating > 0) {
+        totalRated++;
+        ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1;
+        if (rating === 5) fiveStarBooks.push(`${title}${author ? ` by ${author}` : ''}`);
+      }
+    } else if (shelf === 'currently-reading') {
+      currentlyReading.push(`${title}${author ? ` by ${author}` : ''}`);
+    } else if (shelf === 'to-read') {
+      wantToRead.push(`${title}${author ? ` by ${author}` : ''}`);
+    }
+
+    // Per-book observation (focus on read books)
+    if (shelf === 'read') {
+      const parts = [`You read "${title}"`];
+      if (author) parts.push(`by ${author}`);
+      if (rating > 0) parts.push(`and rated it ${rating}/5`);
+      if (dateRead) parts.push(`(finished ${dateRead})`);
+      else if (dateAdded) parts.push(`(added ${dateAdded})`);
+      if (pageCount > 0) parts.push(`— ${pageCount} pages`);
+      const base = parts.join(' ') + '.';
+      const full = review && review.length > 0 && review.length < 400
+        ? `${base} Your review: "${review}"`
+        : base;
+      perBook.push({ ts: dateRead || dateAdded, text: full });
+    }
+  }
+
+  // Keep most-recent per-book observations
+  perBook.sort((a, b) => (b.ts || '').localeCompare(a.ts || ''));
+  const perBookText = perBook.slice(0, MAX).map(o => o.text);
+
+  // Rollups
+  const rollups = [];
+  rollups.push(`Your Goodreads library has ${totalRead} book${totalRead === 1 ? '' : 's'} on your "read" shelf${totalRated > 0 ? `, ${totalRated} rated` : ''}.`);
+
+  if (currentlyReading.length > 0) {
+    const top = currentlyReading.slice(0, 5).join('; ');
+    rollups.push(`You are currently reading: ${top}.`);
+  }
+  if (wantToRead.length > 0) {
+    rollups.push(`Your "want to read" shelf has ${wantToRead.length} book${wantToRead.length === 1 ? '' : 's'}.`);
+  }
+  if (fiveStarBooks.length > 0) {
+    const top = fiveStarBooks.slice(0, 10).join('; ');
+    rollups.push(`Your five-star books on Goodreads include: ${top}.`);
+  }
+
+  const topRating = Object.entries(ratingDistribution)
+    .map(([k, v]) => [parseInt(k, 10), v])
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])[0];
+  if (topRating) {
+    rollups.push(`Your most common Goodreads rating is ${topRating[0]}/5 (${topRating[1]} books).`);
+  }
+
+  const customShelves = Object.entries(shelfCounts)
+    .filter(([k]) => !['read', 'currently-reading', 'to-read', 'unshelved'].includes(k))
+    .map(([k]) => k);
+  if (customShelves.length > 0) {
+    rollups.push(`Custom Goodreads shelves you use: ${customShelves.slice(0, 10).join(', ')}.`);
+  }
+
+  return [...rollups, ...perBookText];
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
@@ -2423,7 +2693,7 @@ async function finalizeImportRecord(importId, status, observationsCreated, facts
  * @param {string}  userId     - The user's UUID (public.users.id)
  * @param {string}  platform   - 'spotify' | 'youtube' | 'discord' | 'reddit' | 'android_usage' |
  *                               'google_search' | 'whatsapp' | 'apple_health' |
- *                               'health_connect' | 'sms_patterns'
+ *                               'health_connect' | 'sms_patterns' | 'letterboxd' | 'goodreads'
  * @param {Buffer}  fileBuffer - Raw file bytes
  * @param {string}  fileName   - Original file name (for logging / import record)
  * @returns {{ importId, observationsCreated, factsCreated, error? }}
@@ -2476,6 +2746,12 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'sms_patterns':
         observations = parseSmsPatterns(fileBuffer);
+        break;
+      case 'letterboxd':
+        observations = parseLetterboxd(fileBuffer);
+        break;
+      case 'goodreads':
+        observations = parseGoodreads(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);

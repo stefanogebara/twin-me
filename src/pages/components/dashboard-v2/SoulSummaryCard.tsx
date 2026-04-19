@@ -164,39 +164,21 @@ export function SoulSummaryCard() {
       </p>
 
       <p
-        className="narrative-voice text-[15px] leading-[1.6] mb-4"
-        style={{ fontStyle: 'italic', color: 'rgba(245,245,244,0.88)' }}
+        className="narrative-voice text-[16px] leading-[1.55]"
+        style={{ fontStyle: 'italic', color: 'rgba(245,245,244,0.85)' }}
       >
-        {tasteStatement}
+        &ldquo;{tasteStatement}&rdquo;
       </p>
 
-      <div className="flex flex-wrap gap-2">
-        {topValues.map((value) => (
-          <span
-            key={value}
-            className="text-xs font-medium px-3 py-1 rounded-[46px]"
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {value}
-          </span>
-        ))}
-        {chronotype && (
-          <span
-            className="text-xs font-medium px-3 py-1 rounded-[46px]"
-            style={{
-              background: 'rgba(193,126,44,0.12)',
-              border: '1px solid rgba(193,126,44,0.25)',
-              color: 'var(--accent-amber)',
-            }}
-          >
-            {chronotype}
-          </span>
-        )}
-      </div>
+      <button
+        onClick={() => navigate('/identity')}
+        className="mt-3 text-xs font-medium transition-opacity hover:opacity-70"
+        style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+      >
+        See full soul signature &rarr;
+      </button>
+      {/* Suppress unused-variable noise from trimmed chips */}
+      <span style={{ display: 'none' }}>{topValues.join('')}{chronotype}</span>
     </div>
   );
 }

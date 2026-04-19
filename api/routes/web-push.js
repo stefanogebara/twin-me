@@ -17,7 +17,7 @@ const router = express.Router();
 // Public — frontend needs this to subscribe
 router.get('/vapid-key', (req, res) => {
   const key = process.env.VAPID_PUBLIC_KEY;
-  if (!key) return res.status(503).json({ error: 'Web push not configured' });
+  if (!key) return res.json({ enabled: false });
   return res.json({ publicKey: key });
 });
 

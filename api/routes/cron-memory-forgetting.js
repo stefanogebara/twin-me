@@ -320,7 +320,7 @@ router.all('/', async (req, res) => {
     const durationMs = Date.now() - startTime;
     await logCronExecution('memory-forgetting', 'error', durationMs, null, err.message);
     log.error('Unexpected error', { error: err.message });
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error' });
   }
 });
 

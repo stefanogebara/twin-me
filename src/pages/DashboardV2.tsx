@@ -1,13 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, User, Plug, BookOpen } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useDashboardContext, useDashboardHeatmap } from '@/hooks/useDashboardContext';
+import { useDashboardContext } from '@/hooks/useDashboardContext';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { BetaOnboardingChecklist } from './components/dashboard-v2/BetaOnboardingChecklist';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
 import { InsightsFeed } from './components/dashboard-v2/InsightsFeed';
-import { TwinStats } from './components/dashboard-v2/TwinStats';
 import { SoulSummaryCard } from './components/dashboard-v2/SoulSummaryCard';
 import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
@@ -24,7 +23,6 @@ export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useDashboardContext();
-  const { data: heatmapData } = useDashboardHeatmap();
   const { insights, markEngaged } = useProactiveInsights();
 
   // Register web push on first dashboard load (after auth)
@@ -89,8 +87,18 @@ export function DashboardV2() {
 
   const connectedCount = data.platforms?.filter((p) => p.status !== 'disconnected').length ?? 0;
 
+  // Capability statement — replaces vanity stats block
+  const memoryCount = data.twinStats.memoryCount;
+  const formattedMemoryCount =
+    memoryCount > 9999
+      ? `${(memoryCount / 1000).toFixed(1).replace(/\.0$/, '')}K`
+      : memoryCount.toLocaleString('en-US');
+  const capabilityStatement = memoryCount > 0 && connectedCount > 0
+    ? `Based on ${formattedMemoryCount} memories across ${connectedCount} ${connectedCount === 1 ? 'platform' : 'platforms'}, your twin can spot patterns in how your music, work, and recovery interact. Ask it anything.`
+    : null;
+
   return (
-    <div className="max-w-[720px] mx-auto px-4 sm:px-6 pb-24 space-y-10">
+    <div className="max-w-[760px] mx-auto px-4 sm:px-6 pb-24 space-y-10">
       <DashboardGreeting
         firstName={data.greeting.firstName}
         timeLabel={data.greeting.timeLabel}
@@ -100,12 +108,12 @@ export function DashboardV2() {
 
       <ExpiredTokenBanner />
 
-      <MorningBriefingCard />
+      {/* 1. Morning Briefing — dominant, full-width hero */}
+      <div className="-mx-1 sm:-mx-2">
+        <MorningBriefingCard />
+      </div>
 
-      <SoulSummaryCard />
-
-      <DepartmentWidget />
-
+      {/* 2. What Your Twin Noticed — proactive insights */}
       {data.heroInsight && (
         <HeroInsight
           body={data.heroInsight.body}
@@ -120,13 +128,32 @@ export function DashboardV2() {
         onEngage={markEngaged}
       />
 
-      <TwinStats
-        readiness={data.twinStats.readiness}
-        memoryCount={data.twinStats.memoryCount}
-        memoriesThisWeek={data.twinStats.memoriesThisWeek}
-        streak={data.twinStats.streak}
-        heatmap={heatmapData ?? data.heatmap ?? []}
-      />
+      {/* 3. Soul Signature — condensed blurb */}
+      <SoulSummaryCard />
+
+      {/* 4. Capability statement (replaces vanity stats) */}
+      {capabilityStatement && (
+        <div
+          className="rounded-[20px] px-5 py-4 backdrop-blur-[42px]"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <p
+            className="text-[14px] leading-relaxed"
+            style={{
+              color: 'rgba(245,245,244,0.75)',
+              fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+            }}
+          >
+            {capabilityStatement}
+          </p>
+        </div>
+      )}
+
+      {/* 5. Everything else — moved down */}
+      <DepartmentWidget />
 
       {/* Wiki discovery CTA — shown once user has enough memories */}
       {data.twinStats.memoryCount >= 10 && (

@@ -83,7 +83,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
       error: 'Invalid GitHub token',
       message: err.response?.status === 401
         ? 'Token is invalid or expired. Generate a new one at github.com/settings/tokens'
-        : err.message,
+        : 'Failed to validate GitHub token',
     });
   }
 

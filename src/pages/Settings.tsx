@@ -75,7 +75,7 @@ const ToggleSwitch: React.FC<{
     onClick={() => !disabled && onChange(!enabled)}
     className="relative w-10 h-5 rounded-full transition-colors duration-200 ease-out active:scale-95"
     style={{
-      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'var(--glass-surface-border)',
+      backgroundColor: enabled ? 'rgba(245,245,244,0.9)' : 'rgba(255,255,255,0.18)',
       cursor: disabled ? 'not-allowed' : 'pointer',
       opacity: disabled ? 0.5 : 1,
     }}
@@ -593,7 +593,7 @@ const Settings = () => {
         </SettingsRow>
         <SettingsRow label="Memory Count">
           <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {memoryCount != null ? `${memoryCount.toLocaleString()} memories` : '--'}
+            {memoryCount != null ? `${memoryCount.toLocaleString('en-US')} memories` : '--'}
           </span>
         </SettingsRow>
 

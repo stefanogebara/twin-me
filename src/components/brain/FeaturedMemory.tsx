@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { toSecondPerson } from '@/lib/utils';
 import {
   Memory,
@@ -9,6 +11,32 @@ import {
   relativeTime,
   getPlatformLabel,
 } from './brainConstants';
+
+const REMARK_PLUGINS = [remarkGfm];
+
+// Custom renderers keep headings/lists within the card visual language rather than
+// using browser defaults, and ensure bold/italics render instead of leaking `**`.
+const MARKDOWN_COMPONENTS = {
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="text-sm leading-relaxed mb-2 last:mb-0" style={{ color: '#fdfcfb' }}>{children}</p>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong style={{ color: '#fdfcfb', fontWeight: 600 }}>{children}</strong>
+  ),
+  em: ({ children }: { children?: React.ReactNode }) => (
+    <em style={{ color: 'rgba(253,252,251,0.85)' }}>{children}</em>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="text-sm leading-relaxed mb-2 ml-4 list-disc" style={{ color: '#fdfcfb' }}>{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="text-sm leading-relaxed mb-2 ml-4 list-decimal" style={{ color: '#fdfcfb' }}>{children}</ol>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => <li className="mb-1">{children}</li>,
+  code: ({ children }: { children?: React.ReactNode }) => (
+    <code className="text-xs px-1 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.08)', color: '#fdfcfb' }}>{children}</code>
+  ),
+};
 
 interface FeaturedMemoryProps {
   memory: Memory;
@@ -77,13 +105,13 @@ const FeaturedMemory: React.FC<FeaturedMemoryProps> = ({ memory }) => {
           </span>
         </div>
 
-        {/* Full content */}
-        <p
-          className="text-sm leading-relaxed mb-3"
-          style={{ color: '#fdfcfb' }}
-        >
-          {toSecondPerson(memory.content)}
-        </p>
+        {/* Full content — rendered through markdown so LLM-generated **bold** etc
+            display as formatting rather than literal asterisks. */}
+        <div className="mb-3">
+          <ReactMarkdown remarkPlugins={REMARK_PLUGINS} components={MARKDOWN_COMPONENTS}>
+            {toSecondPerson(memory.content)}
+          </ReactMarkdown>
+        </div>
 
         {/* Bottom: source + time */}
         <div className="flex items-center gap-3">

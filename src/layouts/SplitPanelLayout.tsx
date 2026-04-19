@@ -48,9 +48,11 @@ const SplitPanelLayout: React.FC<SplitPanelLayoutProps> = ({ main, sidebar }) =>
   }, []);
 
   if (breakpoint === 'desktop') {
+    // Wider sidebar + larger container so Soul Score quadrant, score number, and
+    // "Chat with your Twin" CTA have breathing room at 1440x900 and above.
     return (
       <div className="min-h-screen w-full" style={BG_STYLE}>
-        <div className="grid grid-cols-[1fr_380px] gap-8 max-w-[1200px] mx-auto px-6 py-10">
+        <div className="grid grid-cols-[minmax(0,1fr)_420px] gap-8 max-w-[1320px] mx-auto px-6 py-10">
           <div className="min-w-0">{main}</div>
           <div className="relative">
             <div

@@ -74,7 +74,7 @@ export default function PrototypeBrain() {
                   </div>
                   <SundustProgressBar value={t.pct} color={t.color} height={4} />
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sd-fg)' }}>{t.count.toLocaleString()}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sd-fg)' }}>{t.count.toLocaleString('en-US')}</div>
                     <div style={{ fontSize: 11, color: 'var(--sd-text-muted)' }}>{t.pct}%</div>
                   </div>
                 </div>

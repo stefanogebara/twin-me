@@ -96,7 +96,7 @@ router.all('/', async (req, res) => {
     const elapsed = Date.now() - startTime;
     await logCronExecution('agent-actions-cleanup', 'error', elapsed, null, err.message);
     log.error('Agent actions cleanup cron failed', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error' });
   }
 });
 

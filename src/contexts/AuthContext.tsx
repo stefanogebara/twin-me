@@ -45,6 +45,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Module-scoped guard: once a /auth/refresh call returns 401/invalid in this page
+// session, stop re-attempting on subsequent navigations/effects. Prevents the
+// observed burst of 5+ 401s during normal navigation when no valid refresh
+// cookie exists (e.g. user cleared cookies but auth_user lingered in localStorage).
+let refreshDisabledForSession = false;
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -296,6 +302,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Refresh access token using httpOnly refresh token cookie
   const refreshAccessToken = async (): Promise<boolean> => {
+    // If a previous refresh attempt in this session already failed, skip — the
+    // refresh cookie is missing/invalid and retrying will just burn rate limit
+    // and produce more 401s in the console.
+    if (refreshDisabledForSession) {
+      return false;
+    }
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
         method: 'POST',
@@ -318,6 +330,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         // Refresh token cookie is invalid or expired — DON'T clear localStorage here.
         // Let checkAuth() decide based on any remaining localStorage token (backward compat).
+        // Suppress further refresh attempts for this page session.
+        refreshDisabledForSession = true;
         return false;
       }
     } catch (error) {

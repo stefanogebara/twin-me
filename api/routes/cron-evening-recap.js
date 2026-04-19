@@ -72,7 +72,7 @@ router.all('/', async (req, res) => {
     const elapsed = Date.now() - startTime;
     await logCronExecution('evening-recap', 'error', elapsed, null, err.message);
     log.error('Evening recap cron failed', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error' });
   }
 });
 

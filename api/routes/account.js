@@ -37,6 +37,10 @@ const router = express.Router();
  * Tables with ON DELETE SET NULL (anonymized, not deleted):
  * - analytics_events, analytics_sessions, llm_usage_log
  */
+router.get('/profile', authenticateUser, async (req, res) => {
+  return res.json({ success: true, user: req.user });
+});
+
 router.delete('/', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;

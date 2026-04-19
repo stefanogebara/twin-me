@@ -26,6 +26,8 @@ const router = Router();
 const SUPPORTED_PLATFORMS = new Set([
   'spotify', 'youtube', 'discord', 'reddit', 'android_usage',
   'whoop', 'apple_health', 'google_search', 'whatsapp', 'android_health',
+  // CSV/export-only platforms with no live API (April 2026)
+  'letterboxd', 'goodreads',
 ]);
 
 // Chat history platforms — handled by the new chatHistoryIngestion pipeline
@@ -224,9 +226,12 @@ router.post('/process-chat', authenticateUser, async (req, res) => {
 
   } catch (err) {
     log.error('process-chat error:', err.message);
+    const safeMsg = err.message?.includes('timed out') || err.message?.includes('too large')
+      ? err.message
+      : 'Failed to process chat import';
     return res.status(422).json({
       success: false,
-      error: err.message || 'Failed to process chat import',
+      error: safeMsg,
     });
   }
 });

@@ -610,9 +610,10 @@ const IdentityPage: React.FC = () => {
                 )}
               </section>
 
-              {/* Pre-filled primary CTA — opens twin chat with an archetype-specific question so the user
-                  doesn't have to compose anything. This is the "wow" bridge from identity → conversation. */}
-              <div className="mt-6 pl-5">
+              {/* Pre-filled primary CTA + Share CTA — Share is promoted into the above-the-fold
+                  hero because "Here's what my AI twin knows about me" is the platform's strongest
+                  viral hook. Previously it was a tiny low-contrast link buried ~1400px down. */}
+              <div className="mt-6 pl-5 flex flex-wrap items-center gap-2.5">
                 <button
                   onClick={() =>
                     handleSuggestion(
@@ -630,6 +631,21 @@ const IdentityPage: React.FC = () => {
                   Ask your twin why this fits
                   <ArrowRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 </button>
+                {!isDemoMode && user && (
+                  <button
+                    onClick={handleShare}
+                    aria-label="Share your soul signature"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-90 active:scale-[0.97]"
+                    style={{
+                      background: '#F5F5F4',
+                      color: '#110f0f',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    Share your signature
+                  </button>
+                )}
               </div>
             </>
           ) : (
@@ -993,7 +1009,7 @@ const LoadingSkeleton: React.FC = () => (
       '--body-gradient-4': 'rgba(55,45,140,0.38)',
     } as React.CSSProperties}
   >
-    <div className="hidden lg:grid lg:grid-cols-[1fr_380px] gap-6 max-w-[1200px] mx-auto px-6 py-10">
+    <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_420px] gap-8 max-w-[1320px] mx-auto px-6 py-10">
       {/* Main panel skeleton */}
       <div
         className="rounded-[24px] px-8 py-10 animate-pulse"

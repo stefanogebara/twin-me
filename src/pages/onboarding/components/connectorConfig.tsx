@@ -1,4 +1,5 @@
 import React from 'react';
+import { FileText } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 // ====================================================================
@@ -341,6 +342,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     privacyLevel: 'low',
     category: 'entertainment',
     comingSoon: true,
+  },
+  {
+    provider: 'notion' as DataProvider,
+    name: 'Notion',
+    description: 'Journals, goals, reading lists, life OS pages — the richest authentic self-record available.',
+    icon: <FileText className="w-6 h-6" />,
+    color: '#000000',
+    dataTypes: ['Journals', 'Goals', 'Reading Lists', 'Life OS'],
+    estimatedInsights: 15,
+    setupTime: '15 seconds',
+    privacyLevel: 'high',
+    category: 'professional',
   },
   {
     provider: 'microsoft_outlook' as DataProvider,

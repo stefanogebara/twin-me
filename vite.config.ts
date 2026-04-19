@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => ({
         target: 'http://127.0.0.1:3004',
         changeOrigin: true,
         secure: false,
+        proxyTimeout: 120000,
+        timeout: 120000,
       }
     }
   },

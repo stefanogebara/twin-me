@@ -107,7 +107,7 @@ router.all('/', async (req, res) => {
     return res.json({ success: true, briefingsGenerated, errors, duration });
   } catch (err) {
     log.error('Meeting prep cron crashed', { error: err.message });
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error' });
   }
 });
 

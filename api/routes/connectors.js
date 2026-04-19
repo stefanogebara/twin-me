@@ -182,6 +182,16 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://www.strava.com/oauth/token'
   },
 
+  // Notion — uses Basic Auth for token exchange (see POST /callback)
+  // Notion does not use traditional scopes; users grant page-level access at auth time.
+  notion: {
+    clientId: process.env.NOTION_CLIENT_ID,
+    clientSecret: process.env.NOTION_CLIENT_SECRET,
+    scopes: [],
+    authUrl: 'https://api.notion.com/v1/oauth/authorize',
+    tokenUrl: 'https://api.notion.com/v1/oauth/token'
+  },
+
   // Oura Ring
   oura: {
     clientId: process.env.OURA_CLIENT_ID,
@@ -537,7 +547,16 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
     }
 
     if (!config.clientId) {
-      log.error("No clientId for provider", { provider });
+      log.warn("No clientId for provider", { provider });
+      // Graceful 503 when an optional integration isn't configured yet
+      // (mirrors the finetuning fix — better UX than a raw 500).
+      if (provider === 'notion') {
+        return res.status(503).json({
+          success: false,
+          error: 'not_configured',
+          message: 'Notion integration is not configured yet. Check back soon.'
+        });
+      }
       return res.status(500).json({
         success: false,
         error: 'OAuth not configured for this provider'
@@ -591,6 +610,11 @@ router.get('/auth/:provider', authenticateUser, (req, res) => {
       params.set('scope', [...config.scopes, 'offline'].join(' '));
     } else if (provider === 'strava') {
       params.set('approval_prompt', 'force');
+    } else if (provider === 'notion') {
+      // Notion requires owner=user on the authorize URL for user-scoped tokens.
+      params.set('owner', 'user');
+      // No scopes for Notion — remove empty scope param to avoid auth errors.
+      params.delete('scope');
     }
 
     const authUrl = `${config.authUrl}?${params.toString()}`;
@@ -761,6 +785,22 @@ router.post('/callback', async (req, res) => {
           'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
         },
         body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri
+        })
+      });
+    } else if (provider === 'notion') {
+      // Notion uses Basic Authentication with JSON body
+      // https://developers.notion.com/reference/create-a-token
+      tokenResponse = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64')}`
+        },
+        body: JSON.stringify({
           grant_type: 'authorization_code',
           code,
           redirect_uri: redirectUri

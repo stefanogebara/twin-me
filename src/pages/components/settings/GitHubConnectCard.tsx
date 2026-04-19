@@ -131,7 +131,7 @@ export default function GitHubConnectCard({ cardStyle }: GitHubConnectCardProps)
           <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
             Commits, PRs, and issues are ingested every 10 minutes into your memory stream.
             {status.last_synced_at && (
-              <> Last sync: {new Date(status.last_synced_at).toLocaleString()}</>
+              <> Last sync: {new Date(status.last_synced_at).toLocaleString('en-US')}</>
             )}
           </p>
         </div>

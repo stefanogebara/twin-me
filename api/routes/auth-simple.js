@@ -388,7 +388,7 @@ router.post('/signin', authLimiter, async (req, res) => {
 
     if (fetchError || !user) {
       await trackAuthFailure(normalizedEmail);
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     // Account uses social login only
@@ -400,7 +400,7 @@ router.post('/signin', authLimiter, async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       await trackAuthFailure(normalizedEmail);
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     // Successful login — clear failure counter
