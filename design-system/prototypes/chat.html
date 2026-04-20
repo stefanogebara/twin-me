@@ -8,51 +8,181 @@
 <link rel="stylesheet" href="../tokens.css" />
 <style>
   .layout { display: flex; height: 100vh; overflow: hidden; }
-  .sidebar { width: 240px; height: 100vh; background: var(--bg-surface); backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px 16px; flex-shrink: 0; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px; height: 100vh;
+    background: rgba(13,12,18,0.72);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 20px 14px;
+    flex-shrink: 0;
+  }
   .logo { display: flex; align-items: center; gap: 8px; margin-bottom: 28px; padding: 0 4px; }
-  .logo-icon { width: 28px; height: 28px; background: rgba(193,126,44,0.25); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-  .logo-name { font-size: 15px; font-weight: 600; }
-  .logo-beta { font-size: 10px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; color: var(--text-muted); margin-left: 4px; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); cursor: pointer; text-decoration: none; }
-  .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+  .logo-icon { width: 26px; height: 26px; background: rgba(193,126,44,0.22); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 1px solid rgba(193,126,44,0.2); }
+  .logo-name { font-size: 14.5px; font-weight: 600; }
+  .logo-beta { font-size: 9px; font-weight: 600; letter-spacing: 0.07em; background: rgba(255,255,255,0.07); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; color: var(--text-muted); margin-left: 4px; text-transform: uppercase; }
+  .nav-section { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 9px; font-size: 13.5px; font-weight: 500; color: var(--text-muted); cursor: pointer; text-decoration: none; transition: all 0.12s; }
+  .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-secondary); }
   .nav-item.active { background: rgba(255,255,255,0.08); color: var(--text-primary); }
-  .nav-icon { width: 18px; height: 18px; }
-  .nav-section { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-  .user-footer { display: flex; align-items: center; gap: 10px; padding: 12px 8px; border-top: 1px solid var(--border-subtle); margin-top: 12px; }
-  .avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, rgba(193,126,44,0.6), rgba(93,92,174,0.4)); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
-  .user-name { font-size: 13px; font-weight: 600; }
-  .user-email { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .user-footer { display: flex; align-items: center; gap: 9px; padding: 10px 6px; border-top: 1px solid var(--border-subtle); margin-top: 10px; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, rgba(193,126,44,0.55), rgba(93,92,174,0.4)); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .user-email { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
 
-  /* Chat area */
-  .chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  /* ── Chat area ── */
+  .chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: transparent; }
 
-  .chat-topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px 16px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
-  .chat-title { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .online-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.6); }
-  .online-label { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+  /* Topbar */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px 13px;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .twin-avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, rgba(193,126,44,0.45), rgba(93,92,174,0.35)); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .topbar-title { font-size: 14.5px; font-weight: 600; color: var(--text-primary); }
+  .status-row { display: flex; align-items: center; gap: 5px; }
+  .online-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 5px rgba(74,222,128,0.5); }
+  .status-text { font-size: 11px; color: var(--text-muted); }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-  .messages { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+  /* Context strip — what the twin is aware of */
+  .context-strip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 28px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(193,126,44,0.04);
+    flex-shrink: 0;
+  }
+  .context-label { font-size: 10.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(193,126,44,0.6); }
+  .context-chips { display: flex; gap: 6px; }
+  .ctx-chip {
+    font-size: 10.5px; font-weight: 500;
+    background: rgba(193,126,44,0.08); border: 1px solid rgba(193,126,44,0.18);
+    border-radius: 20px; padding: 2px 9px;
+    color: rgba(193,126,44,0.8);
+  }
 
-  .msg-twin { display: flex; gap: 12px; align-items: flex-start; max-width: 72%; }
-  .twin-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, rgba(193,126,44,0.5), rgba(93,92,174,0.4)); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; border: 1px solid var(--border); margin-top: 2px; }
-  .msg-bubble-twin { background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: 4px 18px 18px 18px; padding: 14px 18px; }
-  .msg-bubble-twin p:first-child { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 15px; line-height: 1.5; color: var(--text-primary); margin-bottom: 6px; }
-  .msg-bubble-twin p { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; }
+  /* Messages */
+  .messages { flex: 1; overflow-y: auto; padding: 24px 28px 8px; display: flex; flex-direction: column; gap: 6px; }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
 
-  .msg-user { display: flex; justify-content: flex-end; }
-  .msg-bubble-user { background: rgba(255,255,255,0.10); border: 1px solid var(--border-glass); border-radius: 18px 4px 18px 18px; padding: 12px 16px; max-width: 60%; }
-  .msg-bubble-user p { font-size: 14px; color: var(--text-primary); line-height: 1.5; }
+  /* Twin message */
+  .msg-group-twin { display: flex; gap: 10px; align-items: flex-start; max-width: 68%; margin-bottom: 4px; }
+  .twin-avatar-msg { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, rgba(193,126,44,0.5), rgba(93,92,174,0.4)); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 0px; }
+  .msg-bubble-twin {
+    background: rgba(255,255,255,0.065);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 4px 18px 18px 18px;
+    padding: 12px 16px;
+    flex: 1;
+  }
+  .twin-opener {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 15.5px;
+    line-height: 1.45;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+  .twin-body { font-size: 13.5px; color: var(--text-secondary); line-height: 1.65; }
+  .twin-body + .twin-body { margin-top: 6px; }
 
-  .msg-time { font-size: 10px; color: var(--text-muted); margin-top: 5px; padding-left: 2px; }
+  /* Memory source tags */
+  .source-tags { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+  .src-tag {
+    font-size: 10px; font-weight: 500;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border-subtle);
+    border-radius: 20px; padding: 2px 8px;
+    color: var(--text-muted); letter-spacing: 0.02em;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .src-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent-amber); opacity: 0.7; }
+
+  /* User message */
+  .msg-group-user { display: flex; justify-content: flex-end; margin-bottom: 4px; }
+  .msg-bubble-user {
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 18px 4px 18px 18px;
+    padding: 10px 16px;
+    max-width: 420px;
+    width: max-content;
+  }
+  .user-text { font-size: 14px; color: var(--text-primary); line-height: 1.5; }
+
+  /* Timestamp */
+  .msg-time { font-size: 10px; color: var(--text-muted); margin-top: 5px; }
+  .msg-time-right { font-size: 10px; color: var(--text-muted); margin-top: 5px; text-align: right; }
+
+  /* Spacer between exchanges */
+  .exchange-gap { height: 12px; }
+
+  /* Typing indicator */
+  .typing-group { display: flex; gap: 10px; align-items: center; }
+  .typing-bubble {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px 18px 18px 18px;
+    padding: 12px 16px;
+    display: flex; gap: 5px; align-items: center;
+  }
+  .typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); animation: bounce 1.2s infinite ease-in-out; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:0.4} 40%{transform:translateY(-4px);opacity:1} }
 
   /* Input area */
-  .input-area { padding: 16px 28px 24px; border-top: 1px solid var(--border-subtle); flex-shrink: 0; }
-  .chips-row { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; }
+  .input-area {
+    padding: 12px 28px 20px;
+    flex-shrink: 0;
+  }
+  .chips-row { display: flex; gap: 7px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 1px; }
   .chips-row::-webkit-scrollbar { display: none; }
-  .input-row { display: flex; gap: 10px; align-items: center; }
-  .chat-input { flex: 1; background: var(--bg-surface); border: 1px solid var(--border-glass); border-radius: 50px; padding: 12px 20px; color: var(--text-primary); font-family: var(--font-ui); font-size: 14px; outline: none; backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card); }
+  .chip {
+    background: rgba(255,255,255,0.055);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 50px; padding: 6px 13px;
+    font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    cursor: pointer; white-space: nowrap;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transition: all 0.12s;
+  }
+  .chip:hover { background: rgba(255,255,255,0.09); color: var(--text-primary); }
+
+  .input-row { display: flex; gap: 8px; align-items: center; }
+  .chat-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 50px;
+    padding: 11px 20px;
+    color: var(--text-primary);
+    font-family: var(--font-ui); font-size: 14px;
+    outline: none;
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    transition: border-color 0.15s;
+  }
   .chat-input::placeholder { color: var(--text-placeholder); }
-  .send-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--text-primary); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chat-input:focus { border-color: rgba(255,255,255,0.16); }
+
+  .send-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: var(--text-primary); border: none;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: opacity 0.15s;
+  }
+  .send-btn:hover { opacity: 0.88; }
 </style>
 </head>
 <body>
@@ -63,7 +193,7 @@
     <div class="logo">
       <div class="logo-icon">✦</div>
       <span class="logo-name">Twin Me</span>
-      <span class="logo-beta">BETA</span>
+      <span class="logo-beta">Beta</span>
     </div>
     <nav class="nav-section">
       <a class="nav-item" href="#">
@@ -71,18 +201,33 @@
         Home
       </a>
       <a class="nav-item active" href="#">
-        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><circle cx="9" cy="9" r="2.5" fill="currentColor"/></svg>
         Talk to Twin
       </a>
-      <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>You</a>
-      <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 18 18" fill="none"><path d="M3 4h12M3 9h8M3 14h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Memories</a>
-      <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.9 5.8H17l-4.9 3.6 1.9 5.8L9 13.6l-4.9 3.6 1.9-5.8L1 7.8h6.1L9 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>Knowledge</a>
-      <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="5" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="4" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="14" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M7.5 8L10.5 5M7.5 10l3 3" stroke="currentColor" stroke-width="1.3"/></svg>Connect</a>
-      <a class="nav-item" href="#"><svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Settings</a>
+      <a class="nav-item" href="#">
+        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        You
+      </a>
+      <a class="nav-item" href="#">
+        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><path d="M3 4h12M3 9h8M3 14h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Memories
+      </a>
+      <a class="nav-item" href="#">
+        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.9 5.8H17l-4.9 3.6 1.9 5.8L9 13.6l-4.9 3.6 1.9-5.8L1 7.8h6.1L9 2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        Knowledge
+      </a>
+      <a class="nav-item" href="#">
+        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="5" cy="9" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="4" r="2.5" stroke="currentColor" stroke-width="1.4"/><circle cx="13" cy="14" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M7.5 8L10.5 5M7.5 10l3 3" stroke="currentColor" stroke-width="1.3"/></svg>
+        Connect
+      </a>
+      <a class="nav-item" href="#">
+        <svg class="nav-icon" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.1 4.1l1.4 1.4M12.5 12.5l1.4 1.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Settings
+      </a>
     </nav>
     <div class="user-footer">
       <div class="avatar">S</div>
-      <div>
+      <div style="min-width:0">
         <div class="user-name">Stefano</div>
         <div class="user-email">stefanogebara@gmail.com</div>
       </div>
@@ -91,88 +236,151 @@
 
   <!-- Chat -->
   <div class="chat-area">
-    <div class="chat-topbar">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div class="chat-title">Stefano's Twin</div>
-        <div class="online-dot"></div>
-        <span class="online-label">online</span>
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="twin-avatar-sm">✦</div>
+        <div>
+          <div class="topbar-title">Stefano's Twin</div>
+          <div class="status-row">
+            <div class="online-dot"></div>
+            <span class="status-text">online — last seen now</span>
+          </div>
+        </div>
       </div>
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="3" stroke="#9C9590" stroke-width="1.4"/><path d="M9 2v2M9 14v2M2 9h2M14 9h2M4.1 4.1l1.4 1.4M12.5 12.5l1.4 1.4" stroke="#9C9590" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <div class="topbar-actions">
+        <div class="icon-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#9C9590" stroke-width="1.3"/><path d="M5 7c0-1.105.895-2 2-2s2 .895 2 2-.895 2-2 2" stroke="#9C9590" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="icon-btn">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" stroke="#9C9590" stroke-width="1.3"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13" stroke="#9C9590" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
     </div>
 
+    <!-- Context strip -->
+    <div class="context-strip">
+      <span class="context-label">Aware of</span>
+      <div class="context-chips">
+        <span class="ctx-chip">Spotify — last 7 days</span>
+        <span class="ctx-chip">GitHub — this week</span>
+        <span class="ctx-chip">Whoop — today</span>
+        <span class="ctx-chip">Calendar — this week</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
     <div class="messages">
-      <!-- Twin message 1 -->
-      <div class="msg-twin">
-        <div class="twin-avatar">✦</div>
+
+      <!-- Twin 1 -->
+      <div class="msg-group-twin">
+        <div class="twin-avatar-msg">✦</div>
         <div>
           <div class="msg-bubble-twin">
-            <p>Good evening. You've been building a lot lately — I can see it in your GitHub activity.</p>
-            <p>Three consecutive evenings of commits after 11pm. Your recovery score dropped 12 points this week. The code is shipping, but at what cost?</p>
+            <div class="twin-opener">Good evening. You've been building a lot lately — I can see it in your GitHub activity.</div>
+            <div class="twin-body">Three consecutive evenings of commits after 11pm. Your recovery score dropped 12 points this week. The code is shipping, but at what cost?</div>
+            <div class="source-tags">
+              <span class="src-tag"><span class="src-dot"></span>GitHub</span>
+              <span class="src-tag"><span class="src-dot"></span>Whoop</span>
+            </div>
           </div>
           <div class="msg-time">23:42</div>
         </div>
       </div>
 
-      <!-- User message -->
-      <div class="msg-user">
+      <div class="exchange-gap"></div>
+
+      <!-- User 1 -->
+      <div class="msg-group-user">
         <div>
           <div class="msg-bubble-user">
-            <p>I know, I know. It's a sprint. What song should I listen to right now?</p>
+            <div class="user-text">I know, I know. It's a sprint. What song should I listen to right now?</div>
           </div>
-          <div class="msg-time" style="text-align:right;">23:43</div>
+          <div class="msg-time-right">23:43</div>
         </div>
       </div>
 
-      <!-- Twin message 2 -->
-      <div class="msg-twin">
-        <div class="twin-avatar">✦</div>
+      <div class="exchange-gap"></div>
+
+      <!-- Twin 2 -->
+      <div class="msg-group-twin">
+        <div class="twin-avatar-msg">✦</div>
         <div>
           <div class="msg-bubble-twin">
-            <p>Something that matches where you actually are, not where you want to be.</p>
-            <p>You've been gravitating toward Brazilian pagode when you're winding down — Thiaguinho or Dilsinho. But your Spotify history shows you go for PARTYNEXTDOOR when you're in denial about needing rest. Which version of tonight is this?</p>
+            <div class="twin-opener">Something that matches where you actually are, not where you want to be.</div>
+            <div class="twin-body">You've been gravitating toward Brazilian pagode when you're winding down — Thiaguinho or Dilsinho. But your Spotify history shows you go for PARTYNEXTDOOR when you're in denial about needing rest. Which version of tonight is this?</div>
+            <div class="source-tags">
+              <span class="src-tag"><span class="src-dot"></span>Spotify</span>
+              <span class="src-tag"><span class="src-dot"></span>Reflections</span>
+            </div>
           </div>
           <div class="msg-time">23:43</div>
         </div>
       </div>
 
-      <!-- User message -->
-      <div class="msg-user">
+      <div class="exchange-gap"></div>
+
+      <!-- User 2 -->
+      <div class="msg-group-user">
         <div>
           <div class="msg-bubble-user">
-            <p>Denial version, honestly.</p>
+            <div class="user-text">Denial version, honestly.</div>
           </div>
-          <div class="msg-time" style="text-align:right;">23:44</div>
+          <div class="msg-time-right">23:44</div>
         </div>
       </div>
 
-      <!-- Twin message 3 -->
-      <div class="msg-twin">
-        <div class="twin-avatar">✦</div>
+      <div class="exchange-gap"></div>
+
+      <!-- Twin 3 -->
+      <div class="msg-group-twin">
+        <div class="twin-avatar-msg">✦</div>
         <div>
           <div class="msg-bubble-twin">
-            <p>Figured. Play PARTYNEXTDOOR — Savage Anthem. But set a hard stop at midnight. You said that last Tuesday too, and I watched you close the laptop at 1:47am.</p>
+            <div class="twin-opener">Figured.</div>
+            <div class="twin-body">Play PARTYNEXTDOOR — Savage Anthem. But set a hard stop at midnight. You said that last Tuesday too, and I watched you close the laptop at 1:47am.</div>
+            <div class="source-tags">
+              <span class="src-tag"><span class="src-dot"></span>Spotify</span>
+              <span class="src-tag"><span class="src-dot"></span>Patterns</span>
+            </div>
           </div>
           <div class="msg-time">23:44</div>
         </div>
       </div>
+
+      <div class="exchange-gap"></div>
+
+      <!-- Typing indicator -->
+      <div class="typing-group">
+        <div class="twin-avatar-msg">✦</div>
+        <div class="typing-bubble">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>
+
     </div>
 
+    <!-- Input -->
     <div class="input-area">
       <div class="chips-row">
         <div class="chip">How was my week?</div>
         <div class="chip">What am I avoiding?</div>
         <div class="chip">Play a song for my mood</div>
         <div class="chip">What did I do well?</div>
+        <div class="chip">What should I work on?</div>
       </div>
       <div class="input-row">
         <input class="chat-input" type="text" placeholder="Ask your twin anything..." />
         <button class="send-btn">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="#110f0f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 7.5h10M9 3.5l4 4-4 4" stroke="#110f0f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
       </div>
     </div>
-  </div>
 
+  </div>
 </div>
 </body>
 </html>
