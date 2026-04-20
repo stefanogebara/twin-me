@@ -325,6 +325,23 @@ export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelPro
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (!selectedPlatform || files.length === 0) return;
+
+    // Client-side MIME / extension + size guard
+    const allowedExtensions = selectedPlatform.fileAccept.split(',').map(s => s.trim().toLowerCase());
+    for (const file of files) {
+      const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedExtensions.includes(ext) && !allowedExtensions.includes(file.type)) {
+        setResult({ observationsCreated: 0, error: `${file.name}: unsupported file type. Expected ${selectedPlatform.fileAccept}` });
+        setStep('error');
+        return;
+      }
+      if (file.size > 300 * 1024 * 1024) {
+        setResult({ observationsCreated: 0, error: `${file.name}: file exceeds 300 MB limit` });
+        setStep('error');
+        return;
+      }
+    }
+
     setStep('processing');
     setMultiFileProgress(null);
 

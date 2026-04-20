@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, lazy, Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -63,10 +64,10 @@ const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
+const MoneyPage = lazy(() => import("./pages/MoneyPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 
-const queryClient = new QueryClient();
 
 // Auto-track page views on route change
 const PostHogPageTracker = () => {
@@ -280,6 +281,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <GoalsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Financial-Emotional Twin — bank statement upload + emotional tagging (Phase 2A) */}
+            <Route path="/money" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <MoneyPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
