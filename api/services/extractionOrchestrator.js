@@ -60,12 +60,14 @@ class ExtractionOrchestrator {
     log.info('Starting extraction for all platforms', { userId });
 
     try {
-      // 1. Get all connected platforms
+      // 1. Get all connected platforms.
+      // Most platforms require an access_token; Steam is API-key based (no OAuth)
+      // and stores its identifier in metadata.steamId, so we include it explicitly.
       const { data: connections, error } = await supabaseAdmin
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
-        .not('access_token', 'is', null);
+        .or('access_token.not.is.null,platform.eq.steam');
 
       if (error) {
         throw new Error(`Failed to fetch connections: ${error.message}`);
@@ -456,6 +458,19 @@ class ExtractionOrchestrator {
           } catch (pinterestError) {
             log.error('Pinterest extraction error', { error: pinterestError });
             result = { success: false, error: pinterestError.message };
+          }
+          break;
+
+        case 'steam':
+          try {
+            const { extractAll: extractSteam } = await import('./extractors/steamExtractor.js');
+            const steamResult = await extractSteam(userId, null);
+            itemsExtracted = steamResult.itemsExtracted || 0;
+            result = { success: steamResult.success !== false, itemsExtracted, error: steamResult.error };
+            log.info('Extracted Steam observations', { stored: itemsExtracted });
+          } catch (steamError) {
+            log.error('Steam extraction error', { error: steamError });
+            result = { success: false, error: steamError.message };
           }
           break;
 

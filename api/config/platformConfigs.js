@@ -11,7 +11,7 @@
  */
 export const VALID_DEMO_PLATFORMS = [
   'spotify', 'youtube', 'discord', 'twitch', 'linkedin',
-  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest',
+  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest', 'steam',
 ];
 
 export const PLATFORM_CONFIGS = {
@@ -288,6 +288,29 @@ export const PLATFORM_CONFIGS = {
     rateLimit: {
       requests: 1000,
       window: 3600, // per hour
+    },
+  },
+
+  steam: {
+    name: 'Steam',
+    // Steam Web API uses API keys + a user-provided Steam ID; no OAuth flow.
+    connectionType: 'api_key_user_id',
+    apiBaseUrl: 'https://api.steampowered.com',
+
+    endpoints: {
+      resolveVanityURL: '/ISteamUser/ResolveVanityURL/v1/',
+      playerSummaries: '/ISteamUser/GetPlayerSummaries/v2/',
+      ownedGames: '/IPlayerService/GetOwnedGames/v1/',
+      recentlyPlayedGames: '/IPlayerService/GetRecentlyPlayedGames/v1/',
+      playerBans: '/ISteamUser/GetPlayerBans/v1/',
+      playerAchievements: '/ISteamUserStats/GetPlayerAchievements/v1/',
+    },
+
+    refreshable: false,
+
+    rateLimit: {
+      requests: 100000,
+      window: 86400, // Steam Web API: 100k/day per key
     },
   },
 

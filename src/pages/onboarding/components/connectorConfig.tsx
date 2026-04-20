@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Image as ImageIcon } from 'lucide-react';
+import { FileText, Image as ImageIcon, Gamepad2 } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 // ====================================================================
@@ -354,6 +354,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '15 seconds',
     privacyLevel: 'high',
     category: 'professional',
+  },
+  {
+    provider: 'steam' as DataProvider,
+    name: 'Steam',
+    description: 'Owned games + playtime + achievements — reveals gaming identity, obsessions, and completion style. Public profile required.',
+    icon: <Gamepad2 className="w-6 h-6" />,
+    color: '#171A21',
+    dataTypes: ['Owned Games', 'Playtime', 'Achievements', 'Recent Activity'],
+    estimatedInsights: 10,
+    setupTime: '15 seconds',
+    privacyLevel: 'medium',
+    category: 'entertainment',
   },
   {
     provider: 'pinterest' as DataProvider,
