@@ -74,12 +74,18 @@ const CHAT_RATE_LIMIT_MAX = 50;
 const CHAT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // Map<userId, { timestamps: number[] }>
+// ONLY used when REDIS_URL is not configured (local dev without Redis).
 const chatRateLimitMap = new Map();
 
 // Interval IDs for cleanup — prevent accumulation on hot-reload
 let _chatRateLimitCleanupInterval = null;
 
-// Periodic cleanup of expired entries to prevent memory leaks
+// Warn once at startup if Redis is not configured so it's visible in dev logs
+if (!process.env.REDIS_URL) {
+  log.warn('REDIS_URL is not set — chat rate limiting is in-memory only (not safe for multi-instance/serverless deployments)');
+}
+
+// Periodic cleanup of expired entries to prevent memory leaks (in-memory fallback only)
 if (!_chatRateLimitCleanupInterval) {
   _chatRateLimitCleanupInterval = setInterval(() => {
     const now = Date.now();
@@ -97,12 +103,19 @@ if (!_chatRateLimitCleanupInterval) {
 /**
  * Check if a user has exceeded the per-hour chat rate limit.
  * Uses Redis sorted sets for serverless-safe sliding window.
- * Falls back to in-memory Map if Redis is unavailable.
+ *
+ * Fail-closed policy: when REDIS_URL is configured but the Redis call fails
+ * (network error, timeout, etc.), the request is DENIED rather than silently
+ * falling through to an in-memory store that resets on every cold start.
+ * The in-memory fallback is ONLY used when REDIS_URL is not configured at all
+ * (i.e. local dev without Redis).
+ *
  * Returns { allowed: boolean, used: number, limit: number, retryAfterMs: number | null }
  */
 async function checkChatRateLimit(userId) {
   const now = Date.now();
   const windowStart = now - CHAT_RATE_LIMIT_WINDOW_MS;
+  const redisConfigured = Boolean(process.env.REDIS_URL);
 
   // Try Redis first (cross-instance, survives cold starts)
   try {
@@ -126,10 +139,24 @@ async function checkChatRateLimit(userId) {
       return { allowed: true, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
     }
   } catch (redisErr) {
-    log.warn('Redis rate limit check failed, using in-memory fallback', { error: redisErr });
+    if (redisConfigured) {
+      // Fail-closed: Redis is expected but unavailable. Deny the request rather than
+      // bypassing the rate limit via an in-memory store that resets on cold starts.
+      log.warn('Redis rate limit check failed — denying request (fail-closed)', { error: redisErr });
+      return { allowed: false, used: 0, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null, reason: 'rate_limit_unavailable' };
+    }
+    // REDIS_URL not configured: fall through to in-memory (dev mode only)
+    log.warn('Redis rate limit check failed, using in-memory fallback (dev mode)', { error: redisErr });
   }
 
-  // Fallback: in-memory Map (resets on cold start)
+  // Safety net: if Redis is configured but client not yet initialized (no exception thrown),
+  // fail closed rather than silently allowing through.
+  if (redisConfigured) {
+    log.warn('Redis configured but client not ready — denying request (fail-closed)');
+    return { allowed: false, used: 0, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null, reason: 'rate_limit_unavailable' };
+  }
+
+  // In-memory fallback — only reached when REDIS_URL is not configured
   const entry = chatRateLimitMap.get(userId);
 
   if (!entry) {
@@ -559,6 +586,19 @@ router.post('/message', authenticateUser, async (req, res) => {
       log.debug('Oracle draft injected', { chars: oracleDraft.length, tier: routingTier });
     } else if (oracleDraft && skipOracle) {
       log.debug('Oracle skipped for LIGHT tier message');
+    }
+
+    // Financial Coach mode — inject last 30d transactions with emotional context
+    // when the user's message is money-related. Zero LLM cost, pure SQL + keyword match.
+    try {
+      const { buildFinancialCoachContext } = await import('../services/transactions/financialChatContext.js');
+      const financialBlock = await buildFinancialCoachContext(userId, message);
+      if (financialBlock) {
+        systemPrompt.push({ type: 'text', text: `\n${financialBlock}` });
+        log.info('Financial Coach context injected', { chars: financialBlock.length });
+      }
+    } catch (finErr) {
+      log.warn('Financial Coach injection failed (non-fatal)', { error: finErr.message });
     }
 
     // Detect neurotransmitter mode from message (pure keyword analysis, microseconds)

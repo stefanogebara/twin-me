@@ -63,7 +63,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
       const failsafe = setTimeout(() => setInterviewChecked(true), 3000);
 
       try {
-        const token = getAccessToken() || localStorage.getItem('auth_token');
+        const token = getAccessToken();
         if (!token) { clearTimeout(failsafe); setInterviewChecked(true); return; }
         const payload = JSON.parse(atob(token.split('.')[1]));
         const id = payload.id || payload.userId;
@@ -99,7 +99,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
   const fetchUsage = async () => {
     if (!userId || isDemoMode()) return;
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const res = await fetch(`${API_BASE}/chat/usage`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -135,7 +135,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
       }]);
       return;
     }
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
     fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -156,7 +156,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
     if (!userId || isDemoMode()) return;
     setIsLoadingContext(true);
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const headers = { 'Authorization': `Bearer ${token}` };
       const res = await fetch(`${API_BASE}/chat/context`, { headers }).catch(() => null);
       const items: ContextItem[] = [];

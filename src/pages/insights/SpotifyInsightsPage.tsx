@@ -118,7 +118,7 @@ const SpotifyInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your musical soul');
       setLoading(false);
@@ -159,7 +159,7 @@ const SpotifyInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
 
     try {
       await fetch(`${API_BASE}/insights/spotify/refresh`, {

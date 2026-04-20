@@ -64,7 +64,7 @@ export function SoulChatInterface({
 
     try {
       // Call the twin chat API - POST /api/chat/message
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
       const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/message`, {
         method: 'POST',
         headers: {

@@ -64,7 +64,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   // Get userId from auth token
   const getUserId = useCallback(() => {
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
       if (!token) return null;
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.id || payload.userId || null;
@@ -215,7 +215,7 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
     fetchNextQuestion([]);
   }, [mode]);
 
-  const getAuthToken = () => getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const getAuthToken = () => getAccessToken();
 
   const fetchNextQuestion = async (
     conversationHistory: Message[],

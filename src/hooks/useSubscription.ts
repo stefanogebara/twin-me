@@ -16,7 +16,7 @@ export function useSubscription() {
       return;
     }
 
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
     if (!token) { setLoading(false); return; }
     fetch(`${API_URL}/billing/subscription`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())

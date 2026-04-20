@@ -29,7 +29,7 @@ export function DuolingoConnectModal({ open, onClose, onSuccess }: DuolingoConne
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`,
+          Authorization: `Bearer ${getAccessToken()}`,
         },
         body: JSON.stringify({ username: username.trim() }),
       });

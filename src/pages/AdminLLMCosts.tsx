@@ -362,7 +362,7 @@ const AdminLLMCosts: React.FC = () => {
 
   const fetchData = useCallback(async (days: number) => {
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       const apiUrl = import.meta.env.VITE_API_URL || '';
 

@@ -130,7 +130,7 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
   const API_URL = import.meta.env.VITE_API_URL as string;
 
   useEffect(() => {
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
     if (!token) { setLoading(false); return; }
 
     fetch(`${API_URL}/twin/evolution`, {

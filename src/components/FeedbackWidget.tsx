@@ -65,7 +65,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
 
     setIsSubmitting(true);
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/feedback`, {
         method: 'POST',
         headers: {

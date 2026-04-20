@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { setAccessToken } from '@/services/api/apiBase';
 
+const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
+
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -323,7 +325,7 @@ const OAuthCallback = () => {
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
                   chrome.runtime.sendMessage(
-                    'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
+                    CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
                       // Chrome extension sync callback
@@ -418,7 +420,7 @@ const OAuthCallback = () => {
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
                   chrome.runtime.sendMessage(
-                    'acnofcjjfjaikcfnalggkkbghjaijepc', // Extension ID
+                    CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
                       // Chrome extension sync callback
@@ -477,7 +479,12 @@ const OAuthCallback = () => {
                 }, 1500);
               } else {
                 // This is truly an error - no valid data received
-                console.error('OAuth callback failed - no valid data received', { data, stateData, isAuthOAuth, isConnectorOAuth });
+                console.error('OAuth callback failed - no valid data received', {
+                  isAuthOAuth,
+                  isConnectorOAuth,
+                  hasData: !!data,
+                  hasStateData: !!stateData,
+                });
                 throw new Error('OAuth authentication failed. Please try again.');
               }
             }
@@ -487,7 +494,7 @@ const OAuthCallback = () => {
         }
 
       } catch (error) {
-        console.error('OAuth callback error:', error);
+        console.error('OAuth callback error:', error instanceof Error ? error.message : 'Unknown error');
 
         // Clear the processing marker on error to allow retry
         const code = searchParams.get('code');

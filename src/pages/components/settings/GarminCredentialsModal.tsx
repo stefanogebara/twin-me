@@ -30,7 +30,7 @@ export function GarminCredentialsModal({ open, onClose, onSuccess }: GarminCrede
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`,
+          Authorization: `Bearer ${getAccessToken()}`,
         },
         body: JSON.stringify({ email, password }),
       });

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { DEMO_USER } from '../services/demoDataService';
-import { setAccessToken, getAccessToken, authFetch } from '../services/api/apiBase';
+import { setAccessToken, getAccessToken, clearAccessToken, authFetch } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 
 /**
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const [user, setUser] = useState<User | null>(getCachedUser());
-  const [authToken, setAuthToken] = useState<string | null>(getAccessToken() || localStorage.getItem('auth_token'));
+  const [authToken, setAuthToken] = useState<string | null>(getAccessToken());
   const [isLoaded, setIsLoaded] = useState(false); // Don't set true until verification completes
   const [isLoading, setIsLoading] = useState(true); // Start true — we're verifying on mount
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const resetAuthState = () => {
-    setAccessToken(null);
+    clearAccessToken();
     localStorage.removeItem('auth_user');
     setUser(null);
     setAuthToken(null);
@@ -112,12 +112,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
   useEffect(() => {
-    // Page reload recovery: only use cookie refresh when there is no stored access token.
-    // If auth_token exists in localStorage, checkAuth() will verify it directly — no need to
-    // hit /auth/refresh on every page load (avoids burning the rate limit on navigations).
+    // Page reload recovery: access token is in-memory only, so it is lost on every page load.
+    // Rehydrate it from the httpOnly refresh cookie before running checkAuth().
+    // If the refresh cookie is missing/expired, refreshAccessToken() returns false and
+    // checkAuth() will find no token and set the user to logged-out (no flash — isLoaded
+    // starts false, so the loading spinner shows until we finish here).
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('auth_token');
-      if (!getAccessToken() && !storedToken && localStorage.getItem('auth_user')) {
+      if (!getAccessToken()) {
         await refreshAccessToken();
       }
       checkAuth();
@@ -160,7 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
 
     if (!token) {
       setUser(null);
@@ -204,11 +205,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // If this request was aborted (component unmounted), bail out silently
       if (abortController.signal.aborted) return;
 
-      // Expired persisted access tokens can be recovered via the refresh cookie.
-      if (response.status === 401 && localStorage.getItem('auth_user')) {
+      // Expired access tokens can be recovered via the refresh cookie.
+      if (response.status === 401) {
         const refreshed = await refreshAccessToken();
         if (refreshed) {
-          const refreshedToken = getAccessToken() || localStorage.getItem('auth_token');
+          const refreshedToken = getAccessToken();
           if (refreshedToken) {
             tokenToVerify = refreshedToken;
             setAuthToken(refreshedToken);
@@ -274,7 +275,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     // Tell the server to invalidate the refresh token cookie
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
     if (token) {
       fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
         method: 'POST',
@@ -283,8 +284,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }).catch(() => {});
     }
 
-    // Clear all auth-related keys
-    ['auth_user', 'auth_token', 'auth_provider', 'twinme_account_created'].forEach(k => localStorage.removeItem(k));
+    // Clear all auth-related keys (auth_token removed — no longer stored in localStorage)
+    ['auth_user', 'auth_provider', 'twinme_account_created'].forEach(k => localStorage.removeItem(k));
     // Clear per-user session keys
     ['twin_chat_history', 'soul-signature-onboarding', 'twinme_interview_progress', 'demo_mode'].forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
@@ -295,7 +296,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const clearAuth = () => {
     // Before clearing, tell the server to invalidate the refresh token cookie
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
     if (token) {
       fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
         method: 'POST',
@@ -342,7 +343,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('Token refresh error:', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   };

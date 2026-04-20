@@ -227,7 +227,7 @@ const TalkToTwin = () => {
 
   const handleSelectConversation = async (id: string) => {
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const response = await fetch(`${API_BASE}/chat/history?conversationId=${id}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -305,7 +305,7 @@ const TalkToTwin = () => {
     const assistantMsgId = crypto.randomUUID();
 
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const response = await fetch(`${API_BASE}/chat/message?stream=1`, {
         method: 'POST',
         headers: {
@@ -580,7 +580,7 @@ const TalkToTwin = () => {
 
   const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       await fetch(`${API_BASE}/chat/feedback`, {
         method: 'POST',
         headers: {

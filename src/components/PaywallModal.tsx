@@ -38,7 +38,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
   const [loading, setLoading] = useState<string | null>(null);
 
   const upgrade = async (plan: string) => {
-    const token = getAccessToken() || localStorage.getItem('auth_token');
+    const token = getAccessToken();
     if (!token) return;
     setLoading(plan);
     try {

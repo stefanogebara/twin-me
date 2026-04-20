@@ -47,7 +47,7 @@ export function DailyTimeline() {
       return;
     }
 
-    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken();
     fetch(`${API_URL}/dashboard/context/timeline`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
