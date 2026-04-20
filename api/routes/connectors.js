@@ -208,6 +208,15 @@ const OAUTH_CONFIGS = {
     tokenUrl: 'https://api.pinterest.com/v5/oauth/token'
   },
 
+  // SoundCloud — v2 OAuth 2.1 with PKCE (mandatory since 2024), Basic-auth token exchange
+  soundcloud: {
+    clientId: process.env.SOUNDCLOUD_CLIENT_ID,
+    clientSecret: process.env.SOUNDCLOUD_CLIENT_SECRET,
+    scopes: [],
+    authUrl: 'https://secure.soundcloud.com/authorize',
+    tokenUrl: 'https://secure.soundcloud.com/oauth/token'
+  },
+
   // Oura Ring
   oura: {
     clientId: process.env.OURA_CLIENT_ID,

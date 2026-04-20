@@ -1824,6 +1824,68 @@ router.post('/connect/pinterest', authenticateUser, oauthAuthorizationLimiter, a
   }
 });
 
+// ────────────────────────────────────────────────────────────────────────────
+// SoundCloud OAuth
+// ────────────────────────────────────────────────────────────────────────────
+// SoundCloud API v2 — OAuth 2.1 with mandatory PKCE (S256). We generate a
+// code_verifier locally, store it alongside the state row, and send the
+// code_challenge on the authorize URL. Developer key issuance has been
+// closed since 2023, so this endpoint returns a clean 503 `not_configured`
+// when SOUNDCLOUD_CLIENT_ID is missing.
+router.post('/connect/soundcloud', authenticateUser, oauthAuthorizationLimiter, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const clientId = process.env.SOUNDCLOUD_CLIENT_ID;
+
+    if (!clientId) {
+      return res.status(503).json({
+        success: false,
+        error: 'not_configured',
+        message: 'SoundCloud integration is not configured yet. Developer keys are currently restricted by SoundCloud.',
+      });
+    }
+
+    const appUrl = getAppUrl(req);
+    const redirectUri = `${appUrl}/oauth/callback`;
+    const state = encryptState({ platform: 'soundcloud', userId }, 'entertainment');
+
+    // Generate PKCE params — code_verifier stored in oauth_states.data for
+    // retrieval at the token-exchange step.
+    const { codeVerifier, codeChallenge, codeChallengeMethod } = generatePKCEParams();
+
+    const { error: stateInsertError } = await supabaseAdmin
+      .from('oauth_states')
+      .insert({
+        state,
+        data: { userId, platform: 'soundcloud', codeVerifier },
+        expires_at: new Date(Date.now() + 1800000),
+      });
+    if (stateInsertError) throw new Error(`Failed to store OAuth state: ${stateInsertError.message}`);
+
+    const authUrl = `https://secure.soundcloud.com/authorize?` +
+      `client_id=${encodeURIComponent(clientId)}&` +
+      `response_type=code&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `code_challenge=${encodeURIComponent(codeChallenge)}&` +
+      `code_challenge_method=${encodeURIComponent(codeChallengeMethod)}&` +
+      `state=${state}`;
+
+    log.info('SoundCloud OAuth initiated', { userId });
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Connect SoundCloud — likes, follows, and uploads reveal indie, electronic, and DJ-mix taste Spotify often misses.',
+    });
+  } catch (error) {
+    log.error('SoundCloud connection error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to initialize SoundCloud connection',
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message }),
+    });
+  }
+});
+
 /**
  * GET /api/entertainment/oauth/debug
  *

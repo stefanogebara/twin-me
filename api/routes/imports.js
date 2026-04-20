@@ -32,6 +32,10 @@ const SUPPORTED_PLATFORMS = new Set([
   'netflix', 'tiktok', 'x_archive',
   // Music GDPR exports (full history beyond what live APIs expose)
   'apple_music', 'soundcloud',
+  // Professional identity (live API limited to basic fields without Partner status)
+  'linkedin',
+  // Instagram GDPR export (Graph API only works for Business/Creator accounts)
+  'instagram',
 ]);
 
 // Chat history platforms — handled by the new chatHistoryIngestion pipeline

@@ -461,6 +461,19 @@ class ExtractionOrchestrator {
           }
           break;
 
+        case 'soundcloud':
+          try {
+            const { extractAll: extractSoundCloud } = await import('./extractors/soundcloudExtractor.js');
+            const soundcloudResult = await extractSoundCloud(userId, null);
+            itemsExtracted = soundcloudResult.itemsExtracted || 0;
+            result = { success: soundcloudResult.success !== false, itemsExtracted, error: soundcloudResult.error };
+            log.info('Extracted SoundCloud observations', { stored: itemsExtracted });
+          } catch (soundcloudError) {
+            log.error('SoundCloud extraction error', { error: soundcloudError });
+            result = { success: false, error: soundcloudError.message };
+          }
+          break;
+
         case 'duolingo':
           try {
             const { extractAll: extractDuolingo } = await import('./extractors/duolingoExtractor.js');
