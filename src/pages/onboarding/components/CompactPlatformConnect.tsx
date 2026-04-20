@@ -4,6 +4,7 @@ import { enrichmentService } from '@/services/enrichmentService';
 import type { PlatformDataPoint } from '@/services/enrichmentService';
 import TwinLearningOverlay from './TwinLearningOverlay';
 import { getAccessToken } from '@/services/api/apiBase';
+import { safeRedirect } from '@/lib/safeRedirect';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -165,7 +166,9 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
       if (result.success && (result.authUrl || result.connectUrl)) {
         sessionStorage.setItem('onboarding_platform_connect', platform.id);
         sessionStorage.setItem('connecting_provider', platform.id);
-        window.location.href = result.authUrl || result.connectUrl;
+        if (!safeRedirect(result.authUrl || result.connectUrl)) {
+          console.error('Platform connect blocked: untrusted redirect URL');
+        }
       }
     } catch (error) {
       console.error(`Failed to connect ${platform.id}:`, error);

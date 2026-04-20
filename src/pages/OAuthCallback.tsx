@@ -159,6 +159,25 @@ const OAuthCallback = () => {
           }
         }
 
+        // CSRF check: verify a nonce was set by signInWithOAuth in this browser session.
+        // Full nonce round-trip requires backend to embed the nonce in the encrypted state and
+        // return it in the callback response (see backend TODO below). For now this guards against
+        // cross-origin CSRF — sessionStorage is same-origin only, so an attacker cannot set it.
+        // TODO (backend): accept `nonce` query param in /auth/oauth/:provider, embed it in the
+        // encrypted state, and return `data.nonce` from /auth/oauth/callback so the client can do
+        // a full `stored === data.nonce` comparison.
+        if (isAuthOAuth) {
+          const storedNonce = sessionStorage.getItem('oauth_state_nonce');
+          sessionStorage.removeItem('oauth_state_nonce');
+          if (!storedNonce) {
+            console.error('OAuth state nonce missing — possible CSRF attempt');
+            setStatus('error');
+            setMessage('Security check failed. Please sign in again.');
+            setTimeout(() => navigate('/auth'), 3000);
+            return;
+          }
+        }
+
         // Determine the correct callback endpoint based on flow type prefix
         let response;
         if (isConnectorOAuth) {

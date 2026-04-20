@@ -416,7 +416,7 @@ router.post('/run', authenticateUser, async (req, res) => {
     log.error('Error:', error);
     res.status(500).json({
       error: 'Sync failed',
-      message: error.message || 'An unexpected error occurred'
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message || 'An unexpected error occurred' })
     });
   }
 });

@@ -4,7 +4,7 @@ import { Upload, File, X, CheckCircle, AlertCircle, FileText, Video, Music, Imag
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '../../contexts/AuthContext';
+import { getAccessToken } from '../../services/api/apiBase';
 
 interface UploadedFile {
   fileName: string;
@@ -60,7 +60,6 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [completedFiles, setCompletedFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
-  const { getToken } = useAuth();
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -119,7 +118,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
 
     try {
       // Get authentication token
-      const token = await getToken();
+      const token = getAccessToken() || localStorage.getItem('auth_token');
       if (!token) {
         throw new Error('Authentication required. Please sign in.');
       }
