@@ -11,7 +11,7 @@
  */
 export const VALID_DEMO_PLATFORMS = [
   'spotify', 'youtube', 'discord', 'twitch', 'linkedin',
-  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest', 'steam',
+  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest', 'steam', 'duolingo',
 ];
 
 export const PLATFORM_CONFIGS = {
@@ -288,6 +288,25 @@ export const PLATFORM_CONFIGS = {
     rateLimit: {
       requests: 1000,
       window: 3600, // per hour
+    },
+  },
+
+  duolingo: {
+    name: 'Duolingo',
+    // Duolingo's unofficial public endpoint takes a username; no OAuth, no API key.
+    connectionType: 'api_key_user_id',
+    apiBaseUrl: 'https://www.duolingo.com',
+
+    endpoints: {
+      userByUsername: '/2017-06-30/users', // ?username={username}
+    },
+
+    refreshable: false,
+
+    rateLimit: {
+      // No documented rate limit on the unofficial endpoint; cache 24h between extractions.
+      requests: 60,
+      window: 3600,
     },
   },
 

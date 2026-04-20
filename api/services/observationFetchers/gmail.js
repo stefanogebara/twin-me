@@ -356,6 +356,38 @@ async function fetchGmailObservations(userId) {
           contentType: 'weekly_summary',
         });
       }
+
+      // Semantic sender clustering — group domains into buckets to surface
+      // communication mix patterns (work/newsletter/social/financial/academic).
+      // Pure heuristic matching against well-known domains + substring patterns.
+      // No PII stored; only category counts.
+      const buckets = { newsletter: 0, social: 0, financial: 0, work: 0, academic: 0, shopping: 0, dev: 0 };
+      const NEWSLETTER = /^(mail\.beehiiv|substack|medium|morningbrew|bulletin|mailchimp|constantcontact|sendgrid|cc\.sendgrid|email\.|news\.|updates\.|hello\.|info\.|noreply\.|no-reply\.)/;
+      const SOCIAL = /^(linkedin|facebook|meta|instagram|twitter|x\.com|reddit|discord|tiktok|pinterest|snapchat|whatsapp)\./;
+      const FINANCIAL = /^(chase|bankofamerica|wellsfargo|amex|citi|capitalone|paypal|venmo|cashapp|stripe|plaid|robinhood|coinbase|kraken|ramp|mercury|wise|revolut|n26|nubank|itau|bradesco|santander)\./;
+      const SHOPPING = /^(amazon|ebay|shopify|etsy|stripe-receipts|apple|appstore|mercadolibre|magalu|americanas)\./;
+      const DEV = /^(github|gitlab|bitbucket|stackoverflow|stackexchange|vercel|netlify|railway|supabase|heroku|aws\.amazon|digitalocean|cloudflare|mongodb)\./;
+      const ACADEMIC = /\.(edu|ac\.[a-z]{2,3})$/;
+      for (const [domain, count] of Object.entries(domainCounts)) {
+        if (NEWSLETTER.test(domain)) buckets.newsletter += count;
+        else if (SOCIAL.test(domain)) buckets.social += count;
+        else if (FINANCIAL.test(domain)) buckets.financial += count;
+        else if (SHOPPING.test(domain)) buckets.shopping += count;
+        else if (DEV.test(domain)) buckets.dev += count;
+        else if (ACADEMIC.test(domain)) buckets.academic += count;
+        else buckets.work += count; // fallback: treat as personal/work correspondence
+      }
+      const total = Object.values(buckets).reduce((a, b) => a + b, 0);
+      if (total >= 5) {
+        const parts = Object.entries(buckets)
+          .filter(([, n]) => n > 0)
+          .sort(([, a], [, b]) => b - a)
+          .map(([bucket, n]) => `${bucket} ${Math.round((n / total) * 100)}%`);
+        observations.push({
+          content: `Your email mix this week: ${parts.join(', ')} — reveals attention allocation across communication types`,
+          contentType: 'weekly_summary',
+        });
+      }
     }
   } catch (e) {
     log.warn('Gmail top senders error', { error: e });

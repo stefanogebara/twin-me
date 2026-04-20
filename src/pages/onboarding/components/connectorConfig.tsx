@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Image as ImageIcon, Gamepad2 } from 'lucide-react';
+import { FileText, Image as ImageIcon, Gamepad2, Languages } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 // ====================================================================
@@ -354,6 +354,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '15 seconds',
     privacyLevel: 'high',
     category: 'professional',
+  },
+  {
+    provider: 'duolingo' as DataProvider,
+    name: 'Duolingo',
+    description: 'Which languages you\'re learning + streak length reveals cultural curiosity and discipline. No OAuth needed — just your public username.',
+    icon: <Languages className="w-6 h-6" />,
+    color: '#58CC02',
+    dataTypes: ['Languages', 'Streak', 'Total XP', 'Courses'],
+    estimatedInsights: 8,
+    setupTime: '10 seconds',
+    privacyLevel: 'low',
+    category: 'entertainment',
   },
   {
     provider: 'steam' as DataProvider,

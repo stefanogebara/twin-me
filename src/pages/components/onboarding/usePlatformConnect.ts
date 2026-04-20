@@ -36,6 +36,7 @@ interface UsePlatformConnectOptions {
   setDemoModalPlatform: (platform: string | null) => void;
   setGarminModalOpen?: (open: boolean) => void;
   setSteamModalOpen?: (open: boolean) => void;
+  setDuolingoModalOpen?: (open: boolean) => void;
 }
 
 function createConnectError(message: string, status?: number, code?: string): ConnectError {
@@ -64,6 +65,7 @@ export function usePlatformConnect({
   setDemoModalPlatform,
   setGarminModalOpen,
   setSteamModalOpen,
+  setDuolingoModalOpen,
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
@@ -208,6 +210,17 @@ export function usePlatformConnect({
         return;
       }
 
+      // Duolingo uses a public username (unofficial profile endpoint, not OAuth)
+      if (provider === 'duolingo') {
+        setConnectingProvider(null);
+        if (setDuolingoModalOpen) {
+          setDuolingoModalOpen(true);
+        } else {
+          toast({ title: 'Duolingo', description: 'Open Settings > Platforms to connect Duolingo.', variant: 'default' });
+        }
+        return;
+      }
+
       const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
 
       const authHeaders = {
@@ -326,7 +339,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen, setSteamModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen, setSteamModalOpen, setDuolingoModalOpen, handleNangoPopup]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;

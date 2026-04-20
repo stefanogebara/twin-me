@@ -111,10 +111,16 @@ class PinterestExtractor {
       const boardName = board.name || '(Untitled board)';
       const boardDesc = (board.description || '').trim();
       const pinCount = board.pin_count ?? null;
+      // Pinterest exposes `privacy` as 'PUBLIC' or 'SECRET' on each board.
+      // Secret boards are aspirational signal — pins the user hasn't acted
+      // on publicly, often the most revealing taste information.
+      const isSecret = String(board.privacy || '').toUpperCase() === 'SECRET';
 
       // Per-board observation
       try {
-        let boardObs = `You have a Pinterest board named "${boardName}"`;
+        let boardObs = isSecret
+          ? `You have a secret Pinterest board named "${boardName}" — an aspirational collection`
+          : `You have a Pinterest board named "${boardName}"`;
         if (pinCount != null) boardObs += ` with ${pinCount} pins`;
         if (boardDesc) boardObs += ` — description: ${boardDesc}`;
         const content = boardObs.slice(0, MAX_OBSERVATION_CHARS);
@@ -123,6 +129,7 @@ class PinterestExtractor {
           board_id: board.id,
           board_name: boardName,
           pin_count: pinCount,
+          privacy: isSecret ? 'SECRET' : 'PUBLIC',
         });
         if (ok) observationsStored++;
         boardsProcessed++;

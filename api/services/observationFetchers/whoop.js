@@ -196,6 +196,36 @@ async function fetchWhoopObservations(userId) {
     }
   }
 
+  // ── v2 cycle + body measurement (direct path only; graceful on any failure) ─
+  let cycleData = [];
+  let bodyMeasurement = null;
+  if (directHeaders) {
+    try {
+      const cycleRes = await axios.get(
+        'https://api.prod.whoop.com/developer/v2/cycle?limit=14',
+        { headers: directHeaders, timeout: 10000 }
+      );
+      cycleData = cycleRes.data?.records || [];
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status && status !== 401 && status !== 403 && status !== 404) {
+        log.warn('Whoop cycle v2 error', { status });
+      }
+    }
+    try {
+      const bodyRes = await axios.get(
+        'https://api.prod.whoop.com/developer/v2/user/measurement/body',
+        { headers: directHeaders, timeout: 10000 }
+      );
+      bodyMeasurement = bodyRes.data || null;
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status && status !== 401 && status !== 403 && status !== 404) {
+        log.warn('Whoop body measurement v2 error', { status });
+      }
+    }
+  }
+
   // ── Store raw Whoop data in user_platform_data (fire-and-forget) ─────────
   try {
     storeWhoopPlatformData(userId, supabase, { recoveryData, recoveryHistory, sleepData, workoutData });
@@ -231,6 +261,72 @@ async function fetchWhoopObservations(userId) {
     } else if (recoveryScore < 40) {
       observations.push({ content: `Low Whoop recovery (${recoveryScore}%) — likely needs rest or light activity`, contentType: 'daily_summary' });
     }
+  }
+
+  // ── Recovery trend: last 7 days vs prior 7 days ───────────────────────────
+  try {
+    if (recoveryHistory.length >= 8) {
+      const scores = recoveryHistory
+        .map(r => r?.score?.recovery_score)
+        .filter(s => typeof s === 'number');
+      if (scores.length >= 8) {
+        const recent = scores.slice(0, 7);
+        const prior = scores.slice(7, 14);
+        if (prior.length >= 3) {
+          const recentAvg = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+          const priorAvg = Math.round(prior.reduce((a, b) => a + b, 0) / prior.length);
+          const delta = recentAvg - priorAvg;
+          const direction = delta > 3 ? 'up' : delta < -3 ? 'down' : 'stable';
+          observations.push({
+            content: `Whoop recovery trending ${direction} (${priorAvg}% → ${recentAvg}%)`,
+            contentType: 'weekly_summary',
+          });
+        }
+      }
+    }
+  } catch (e) {
+    log.warn('Whoop recovery trend error', { error: e });
+  }
+
+  // ── v2 cycle: daily stress score (if returned) ────────────────────────────
+  try {
+    if (cycleData.length > 0) {
+      const latestCycle = cycleData[0];
+      const stressScore = latestCycle?.score?.stress_score
+        ?? latestCycle?.score?.daily_stress
+        ?? latestCycle?.score?.stress
+        ?? null;
+      if (typeof stressScore === 'number') {
+        const bucket = stressScore >= 67 ? 'high' : stressScore >= 34 ? 'moderate' : 'low';
+        observations.push({
+          content: `Whoop stress score today: ${Math.round(stressScore)}/100 — ${bucket}`,
+          contentType: 'daily_summary',
+        });
+      }
+    }
+  } catch (e) {
+    log.warn('Whoop cycle stress error', { error: e });
+  }
+
+  // ── v2 body measurement: context for max HR / anthropometrics ─────────────
+  try {
+    if (bodyMeasurement) {
+      const heightM = bodyMeasurement.height_meter ?? null;
+      const weightKg = bodyMeasurement.weight_kilogram ?? null;
+      const maxHR = bodyMeasurement.max_heart_rate ?? null;
+      const parts = [];
+      if (heightM) parts.push(`height ${heightM.toFixed(2)}m`);
+      if (weightKg) parts.push(`weight ${weightKg.toFixed(1)}kg`);
+      if (maxHR) parts.push(`max HR ${Math.round(maxHR)}bpm`);
+      if (parts.length > 0) {
+        observations.push({
+          content: `Whoop body profile: ${parts.join(', ')}`,
+          contentType: 'profile',
+        });
+      }
+    }
+  } catch (e) {
+    log.warn('Whoop body measurement observation error', { error: e });
   }
 
   // ── 3-day low recovery streak ─────────────────────────────────────────────

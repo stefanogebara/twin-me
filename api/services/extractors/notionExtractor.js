@@ -125,7 +125,7 @@ class NotionExtractor {
   /**
    * Fetch and flatten the text content of a page's blocks (1 level deep).
    */
-  async fetchPageText(pageId) {
+  async fetchPageText(pageId, depth = 0) {
     const textParts = [];
     try {
       const result = await this.makeRequest(
@@ -140,9 +140,20 @@ class NotionExtractor {
         if (!payload) continue;
         const text = this.richTextToPlain(payload.rich_text);
         if (text) textParts.push(text);
+
+        // Notion "Life OS" patterns use toggle blocks to hide daily entries,
+        // habit trackers, and journal pages. The top-level API returns the
+        // toggle header but NOT its children. Recurse once into toggle
+        // blocks with has_children=true to unlock that content. Depth-limit
+        // of 1 (only the direct children of toggles, not their sub-toggles)
+        // prevents runaway recursion on deeply nested templates.
+        if (type === 'toggle' && block.has_children && depth < 1) {
+          const nested = await this.fetchPageText(block.id, depth + 1);
+          if (nested) textParts.push(nested);
+        }
       }
     } catch (err) {
-      log.warn('Failed to fetch blocks for page', { pageId, error: err.message });
+      log.warn('Failed to fetch blocks for page', { pageId, depth, error: err.message });
     }
     return textParts.join('\n').trim();
   }
