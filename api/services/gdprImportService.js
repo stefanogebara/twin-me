@@ -28,6 +28,42 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('GDPRImport');
 
+// ── ZIP safety guards (ZIP-bomb + zip-slip protection) ────────────────────────
+const MAX_UNZIPPED_BYTES = 200 * 1024 * 1024; // 200 MB uncompressed cap
+const MAX_ZIP_ENTRIES = 50_000;
+
+function safeAdmZip(buffer) {
+  if (!Buffer.isBuffer(buffer) && !(buffer instanceof Uint8Array)) {
+    throw new Error('safeAdmZip: expected Buffer');
+  }
+  if (buffer.length > 150 * 1024 * 1024) {
+    throw new Error('ZIP too large (>150MB compressed)');
+  }
+  const zip = safeAdmZip(buffer);
+  const entries = zip.getEntries();
+  if (entries.length > MAX_ZIP_ENTRIES) {
+    throw new Error(`ZIP has too many entries (${entries.length} > ${MAX_ZIP_ENTRIES})`);
+  }
+  let totalUnzipped = 0;
+  for (const e of entries) {
+    totalUnzipped += e.header.size | 0;
+    if (totalUnzipped > MAX_UNZIPPED_BYTES) {
+      throw new Error(`ZIP uncompressed size exceeds ${MAX_UNZIPPED_BYTES} bytes`);
+    }
+  }
+  return zip;
+}
+
+function isSafeZipEntryName(name) {
+  if (!name || typeof name !== 'string') return false;
+  if (/\.\.[\\/]/.test(name)) return false;           // no ../ traversal
+  if (/^[\\/]/.test(name)) return false;              // no absolute paths
+  if (/\0/.test(name)) return false;                  // no null bytes
+  if (/^[a-zA-Z]:[\\/]/.test(name)) return false;     // no windows drive
+  return true;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Lazy-load supabaseAdmin to avoid circular deps
 let _supabase = null;
 async function getSupabase() {
@@ -593,14 +629,14 @@ function parseYouTube(buffer) {
 function parseDiscord(buffer) {
   let zip;
   try {
-    zip = new AdmZip(buffer);
+    zip = safeAdmZip(buffer);
   } catch {
     throw new Error('Invalid Discord export — expected a ZIP file');
   }
 
   const entries = zip.getEntries();
   const messageFiles = entries.filter(e =>
-    e.entryName.match(/messages\/[^/]+\/messages\.json$/i) && !e.isDirectory
+    isSafeZipEntryName(e.entryName) && e.entryName.match(/messages\/[^/]+\/messages\.json$/i) && !e.isDirectory
   );
 
   if (messageFiles.length === 0) {
@@ -613,6 +649,7 @@ function parseDiscord(buffer) {
   const channelIds = new Set();
 
   for (const entry of messageFiles) {
+    if (!isSafeZipEntryName(entry.entryName)) continue;
     let msgs;
     try {
       msgs = JSON.parse(entry.getData().toString('utf8'));
@@ -754,7 +791,7 @@ function parseWhatsApp(buffer) {
   // ── Step 1: extract text ────────────────────────────────────────────────
   let text;
   try {
-    const zip = new AdmZip(buffer);
+    const zip = safeAdmZip(buffer);
     const chatEntry = zip.getEntries().find(e =>
       !e.isDirectory && e.entryName.toLowerCase().endsWith('_chat.txt')
     );
@@ -1098,7 +1135,7 @@ function parseAppleHealth(buffer) {
   let xmlStr;
 
   try {
-    const zip = new AdmZip(buffer);
+    const zip = safeAdmZip(buffer);
     const entry = zip.getEntries().find(e =>
       !e.isDirectory && /export\.xml$/i.test(e.entryName)
     );
@@ -1120,6 +1157,11 @@ function parseAppleHealth(buffer) {
   // ── Step 2: scan XML for <Record .../>  and <Workout .../> tags ───────────
   // We use String.prototype.matchAll with global regex — safe for large files
   // and avoids needing a full XML parser.
+
+  const MAX_XML_BYTES = 100 * 1024 * 1024; // 100 MB
+  if (xmlStr.length > MAX_XML_BYTES) {
+    throw new Error('Apple Health XML too large');
+  }
 
   const MAX_INDIVIDUAL_OBS = 100;
 
@@ -2238,7 +2280,7 @@ function parseCsvRows(text) {
 function parseWhoop(buffer) {
   let zip;
   try {
-    zip = new AdmZip(buffer);
+    zip = safeAdmZip(buffer);
   } catch {
     throw new Error('Whoop export must be a ZIP file downloaded from the Whoop app');
   }
@@ -2636,7 +2678,7 @@ function extractLetterboxdCsv(buffer) {
   // Cheap ZIP detection
   if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
     try {
-      const zip = new AdmZip(buffer);
+      const zip = safeAdmZip(buffer);
       const entry = zip.getEntries().find(e => /diary\.csv$/i.test(e.entryName))
         || zip.getEntries().find(e => /ratings\.csv$/i.test(e.entryName))
         || zip.getEntries().find(e => /watched\.csv$/i.test(e.entryName));
@@ -2844,7 +2886,7 @@ function parseGoodreads(buffer) {
 function extractNetflixCsv(buffer) {
   if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
     try {
-      const zip = new AdmZip(buffer);
+      const zip = safeAdmZip(buffer);
       const entry = zip.getEntries().find(e => /ViewingActivity\.csv$/i.test(e.entryName));
       if (entry) return entry.getData().toString('utf8');
       throw new Error('Netflix ZIP missing CONTENT_INTERACTION/ViewingActivity.csv');
@@ -2969,7 +3011,7 @@ function parseNetflix(buffer) {
 function extractTikTokJson(buffer) {
   if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
     try {
-      const zip = new AdmZip(buffer);
+      const zip = safeAdmZip(buffer);
       const entry = zip.getEntries().find(e => /user_data\.json$/i.test(e.entryName))
         || zip.getEntries().find(e => /\.json$/i.test(e.entryName) && !e.isDirectory);
       if (entry) return entry.getData().toString('utf8');
@@ -3109,7 +3151,7 @@ function parseXArchive(buffer) {
   }
 
   let zip;
-  try { zip = new AdmZip(buffer); } catch (e) {
+  try { zip = safeAdmZip(buffer); } catch (e) {
     throw new Error(`X archive extract failed: ${e.message}`);
   }
 
@@ -3203,7 +3245,7 @@ function parseXArchive(buffer) {
 function extractAppleMusicCsv(buffer) {
   if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
     try {
-      const zip = new AdmZip(buffer);
+      const zip = safeAdmZip(buffer);
       const preferred = [
         /Play History Daily Tracks\.csv$/i,
         /Recently Played Tracks\.csv$/i,
@@ -3308,7 +3350,7 @@ function parseSoundCloud(buffer) {
   }
 
   let zip;
-  try { zip = new AdmZip(buffer); } catch (e) {
+  try { zip = safeAdmZip(buffer); } catch (e) {
     throw new Error(`SoundCloud ZIP extract failed: ${e.message}`);
   }
 
@@ -3628,7 +3670,7 @@ function parseLinkedIn(buffer) {
 
   let zip;
   try {
-    zip = new AdmZip(buffer);
+    zip = safeAdmZip(buffer);
   } catch (e) {
     throw new Error(`LinkedIn ZIP could not be opened: ${e.message}`);
   }
@@ -3683,7 +3725,7 @@ function igSafeJson(entry) {
 }
 
 function igFindEntries(zip, basenameRegex) {
-  return zip.getEntries().filter(e => !e.isDirectory && basenameRegex.test(e.entryName));
+  return zip.getEntries().filter(e => !e.isDirectory && isSafeZipEntryName(e.entryName) && basenameRegex.test(e.entryName));
 }
 
 function igUsernameFromHref(href) {
@@ -3698,7 +3740,7 @@ function parseInstagram(buffer) {
   }
 
   let zip;
-  try { zip = new AdmZip(buffer); } catch (e) {
+  try { zip = safeAdmZip(buffer); } catch (e) {
     throw new Error(`Instagram ZIP extract failed: ${e.message}`);
   }
 

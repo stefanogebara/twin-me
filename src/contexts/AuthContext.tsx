@@ -380,15 +380,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       oauthUrl += `?${params.toString()}`;
     }
 
+    // Generate a CSRF nonce and pass it to the backend so it can embed it in the encrypted state.
+    // On callback, OAuthCallback.tsx verifies the nonce round-trips correctly.
+    const nonce = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem('oauth_state_nonce', nonce);
+    params.set('nonce', nonce);
+    // Rebuild URL with updated params (nonce now included)
+    const finalUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}?${params.toString()}`;
+
     // Probe the endpoint before redirecting — a 429 would show raw JSON in the browser
     // (window.location.href navigates away before React can catch the error)
-    const probe = await fetch(oauthUrl, { method: 'HEAD', redirect: 'manual' });
+    const probe = await fetch(finalUrl, { method: 'HEAD', redirect: 'manual' });
     if (probe.status === 429) {
       throw new Error('Too many sign-in attempts. Please wait a few minutes and try again.');
     }
 
     // Redirect to OAuth provider
-    window.location.href = oauthUrl;
+    window.location.href = finalUrl;
   };
 
   const value: AuthContextType = {

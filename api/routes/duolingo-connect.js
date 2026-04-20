@@ -107,7 +107,7 @@ router.post('/connect', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('Duolingo connect error:', err.message);
-    return res.status(500).json({ error: 'Failed to connect Duolingo', message: err.message });
+    return res.status(500).json({ error: 'Failed to connect Duolingo', ...(process.env.NODE_ENV !== 'production' && { message: err.message }) });
   }
 });
 

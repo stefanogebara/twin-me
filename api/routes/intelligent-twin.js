@@ -152,7 +152,7 @@ router.get('/context', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get user context',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -195,7 +195,7 @@ router.get('/recommendations', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get recommendations',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -251,7 +251,7 @@ router.get('/insights', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get insights',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -467,7 +467,7 @@ router.get('/status', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get status',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -534,7 +534,7 @@ router.get('/music/:purpose', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get music recommendations',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -566,7 +566,7 @@ router.get('/advice/:purpose', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get advice',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -596,7 +596,7 @@ router.get('/patterns', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get patterns',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -705,7 +705,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
       return res.status(500).json({
         success: false,
         error: 'Failed to save feedback',
-        message: error.message
+        ...(process.env.NODE_ENV !== 'production' && { message: error.message })
       });
     }
 
@@ -726,7 +726,7 @@ router.post('/feedback', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to submit feedback',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -1074,7 +1074,7 @@ router.get('/today-insights', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get today\'s insights',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -1176,7 +1176,7 @@ router.get('/science-analysis', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to run science-backed analysis',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -1225,7 +1225,7 @@ router.get('/science-analysis/agents', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get agent status',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -1276,7 +1276,7 @@ router.get('/purpose-suggestion', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get purpose suggestion',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -1362,7 +1362,7 @@ router.post('/purpose-selection', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to record purpose selection',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -1407,7 +1407,7 @@ router.get('/purpose-patterns', authenticateUser, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get purpose patterns',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });

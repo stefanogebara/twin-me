@@ -22,6 +22,14 @@ const log = createLogger('OAuthCallback');
 
 const router = express.Router();
 
+// Allowlist of valid OAuth providers — prevents path traversal / injection via :provider param
+const VALID_PROVIDERS = new Set([
+  'spotify', 'youtube', 'google_gmail', 'google_calendar', 'discord', 'github',
+  'reddit', 'slack', 'tiktok', 'strava', 'notion', 'pinterest', 'soundcloud',
+  'whoop', 'fitbit', 'twitch', 'linkedin', 'instagram', 'outlook',
+  'duolingo', 'steam',
+]);
+
 // Encryption key for OAuth tokens
 const ENCRYPTION_KEY = process.env.TOKEN_ENCRYPTION_KEY;
 if (!ENCRYPTION_KEY) {
@@ -58,6 +66,17 @@ router.get('/callback', async (req, res) => {
     }
 
     const { provider, userId, timestamp } = stateData;
+
+    // Verify the userId from state actually exists in our users table
+    // (prevents crafted state tokens from creating dangling platform_connections)
+    const userCheck = await serverDb.query(
+      'SELECT id FROM users WHERE id = $1',
+      [userId]
+    );
+    if (!userCheck.rows || userCheck.rows.length === 0) {
+      log.warn(`OAuth callback: userId ${userId} not found in users table`);
+      return res.redirect(`${appUrl}/soul-signature?error=invalid_state`);
+    }
 
     // Validate state is fresh to prevent replay attacks (10-minute window)
     const STATE_MAX_AGE_MS = 10 * 60 * 1000;
@@ -169,7 +188,6 @@ async function exchangeSpotifyCode(code, redirectUri) {
   log.info('Exchanging authorization code for tokens...');
   log.info('Code length:', code.length);
   log.info('Redirect URI:', redirectUri);
-  log.info('Client ID:', clientId);
 
   const response = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
@@ -718,6 +736,9 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
 router.post('/extract/:provider', authenticateUser, async (req, res) => {
   try {
     const { provider } = req.params;
+    if (!VALID_PROVIDERS.has(provider)) {
+      return res.status(400).json({ success: false, error: 'Invalid provider' });
+    }
     const userId = req.user.id;
 
     log.info(`Manual extraction requested for ${provider} - User: ${userId}`);
@@ -781,7 +802,7 @@ router.post('/extract/:provider', authenticateUser, async (req, res) => {
     log.error('Manual extraction error:', error);
     res.status(500).json({
       error: 'Extraction failed',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -823,7 +844,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
     log.error('Status fetch error:', error);
     res.status(500).json({
       error: 'Failed to fetch status',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -834,6 +855,9 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
 router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
   try {
     const { provider } = req.params;
+    if (!VALID_PROVIDERS.has(provider)) {
+      return res.status(400).json({ success: false, error: 'Invalid provider' });
+    }
     const userId = req.user.id;
 
     // Soft delete - mark as inactive instead of deleting
@@ -852,7 +876,7 @@ router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
     log.error('Disconnect error:', error);
     res.status(500).json({
       error: 'Failed to disconnect',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });

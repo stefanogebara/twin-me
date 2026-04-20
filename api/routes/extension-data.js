@@ -144,7 +144,7 @@ router.post('/capture/:platform', authenticateUser, async (req, res) => {
     log.error(`Error processing ${platform} data:`, error);
     res.status(500).json({
       error: 'Failed to store extension data',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -271,7 +271,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
     log.error(`Batch sync error:`, error);
     res.status(500).json({
       error: 'Batch sync failed',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -379,7 +379,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
     log.error(`Stats error:`, error);
     res.status(500).json({
       error: 'Failed to get stats',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -415,7 +415,7 @@ router.delete('/clear/:platform', authenticateUser, async (req, res) => {
     log.error(`Clear error:`, error);
     res.status(500).json({
       error: 'Failed to clear data',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });
@@ -519,7 +519,7 @@ router.post('/analyze', authenticateUser, async (req, res) => {
     log.error(`Analysis error:`, error);
     res.status(500).json({
       error: 'Analysis failed',
-      message: error.message
+      ...(process.env.NODE_ENV !== 'production' && { message: error.message })
     });
   }
 });

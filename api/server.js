@@ -195,14 +195,21 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
-    // Auth verification runs on every page load — must never be rate-limited or users get silently logged out
-    if (req.path === '/auth/verify') return true;
     // OAuth initiation redirects to Google — must never return 429 (user would see raw JSON, not a UI error)
     if (req.path.startsWith('/auth/oauth/')) return true;
     // Onboarding has its own dedicated limiter (18-question interview needs ~40 requests)
     if (req.path.startsWith('/onboarding/')) return true;
     return false;
   }
+});
+
+// Dedicated rate limit for /auth/verify (runs on every page load — generous but not unlimited)
+const verifyLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,             // 60 req/min (normal use is < 5/min)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many verify requests' },
 });
 
 // Stricter rate limiting for authentication endpoints (brute-force protection)
@@ -215,6 +222,7 @@ const authLimiter = rateLimit({
 });
 
 // Apply auth rate limiter before general API limiter
+app.use('/api/auth/verify', verifyLimiter);
 app.use('/api/auth/signin', authLimiter);
 app.use('/api/auth/signup', authLimiter);
 

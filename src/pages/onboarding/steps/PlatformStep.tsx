@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { safeRedirect } from '@/lib/safeRedirect';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -163,7 +164,9 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
       if (result.success && result.authUrl) {
         sessionStorage.setItem('connecting_provider', platform.id);
         sessionStorage.setItem('onboarding_platform_step', '1');
-        window.location.href = result.authUrl;
+        if (!safeRedirect(result.authUrl)) {
+          console.error('Platform connect blocked: untrusted redirect URL');
+        }
       } else if (result.success && result.connectUrl) {
         const width = 600, height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;

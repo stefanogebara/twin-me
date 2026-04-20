@@ -1,6 +1,7 @@
 // src/components/PaywallModal.tsx
 import React, { useState } from 'react';
 import { getAccessToken } from '@/services/api/apiBase';
+import { safeRedirect } from '@/lib/safeRedirect';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
@@ -47,7 +48,7 @@ const PaywallModal: React.FC<Props> = ({ isOpen }) => {
         body: JSON.stringify({ plan }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
+      if (data.url) safeRedirect(data.url);
     } finally { setLoading(null); }
   };
 
