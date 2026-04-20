@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { DEMO_USER } from '../services/demoDataService';
 import { setAccessToken, getAccessToken, authFetch } from '../services/api/apiBase';
+import { queryClient } from '@/lib/queryClient';
 
 /**
  * AuthContext - Authentication Management
@@ -282,8 +283,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }).catch(() => {});
     }
 
+    // Clear all auth-related keys
+    ['auth_user', 'auth_token', 'auth_provider', 'twinme_account_created'].forEach(k => localStorage.removeItem(k));
+    // Clear per-user session keys
+    ['twin_chat_history', 'soul-signature-onboarding', 'twinme_interview_progress', 'demo_mode'].forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+    queryClient.clear();
+
     resetAuthState();
-    localStorage.removeItem('demo_mode'); // Also exit demo mode
   };
 
   const clearAuth = () => {

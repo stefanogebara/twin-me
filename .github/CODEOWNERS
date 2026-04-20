@@ -1,0 +1,21 @@
+# CODEOWNERS — auto-assign reviews for sensitive paths.
+# Global owner — catches anything not matched below
+* @stefanogebara
+
+# Backend security-critical paths
+/api/middleware/      @stefanogebara
+/api/routes/auth.js   @stefanogebara
+/api/routes/oauth-callback.js @stefanogebara
+/api/services/encryption.js @stefanogebara
+/api/services/gdprImportService.js @stefanogebara
+
+# Infrastructure
+/.github/             @stefanogebara
+/vercel.json          @stefanogebara
+/database/migrations/ @stefanogebara
+/database/supabase/   @stefanogebara
+
+# Frontend auth
+/src/contexts/AuthContext.tsx @stefanogebara
+/src/pages/OAuthCallback.tsx  @stefanogebara
+/src/lib/safeRedirect.ts      @stefanogebara

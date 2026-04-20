@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect, useRef, lazy, Suspense } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -66,7 +67,6 @@ const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 
-const queryClient = new QueryClient();
 
 // Auto-track page views on route change
 const PostHogPageTracker = () => {
