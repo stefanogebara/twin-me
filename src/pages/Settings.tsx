@@ -6,7 +6,7 @@ import { useDemo } from '../contexts/DemoContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
-import { Download, Info, ArrowRight, Send, ExternalLink, Check } from 'lucide-react';
+import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
 import ConnectedPlatformsSettings from './components/settings/ConnectedPlatformsSettings';
 import AutonomySettings from './components/settings/AutonomySettings';
 import UserRulesSettings from './components/settings/UserRulesSettings';
@@ -371,6 +371,7 @@ const Settings = () => {
     { id: 'section-messaging', label: 'Messaging' },
     { id: 'section-notifications', label: 'Notifications' },
     { id: 'section-privacy', label: 'Data & Privacy' },
+    { id: 'section-advanced', label: 'Advanced' },
   ];
 
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || '');
@@ -797,6 +798,31 @@ const Settings = () => {
         </div>
       </div>
 
+      </section>
+
+      {/* ── Advanced ── */}
+      <section id="section-advanced" className="scroll-mt-10">
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
+          <SectionLabel label="Advanced" />
+          <button
+            onClick={() => navigate('/brain')}
+            className="w-full flex items-center justify-between gap-3 py-4 px-1 -mx-1 rounded-[4px] transition-colors text-left"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'transparent' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <Brain className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <div className="min-w-0">
+                <span className="text-[14px]" style={{ color: 'var(--foreground)' }}>Memory Explorer</span>
+                <p className="text-[12px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Browse and search your raw memory stream
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }} />
+          </button>
+        </div>
       </section>
 
       {/* Footer */}
