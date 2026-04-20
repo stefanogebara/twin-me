@@ -75,7 +75,7 @@ const fetchPlatformStatus = async (userId: string): Promise<PlatformStatusMap> =
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
   const url = `${baseUrl}/connectors/status/${encodeURIComponent(userId)}`;
 
-  const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = getAccessToken();
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',

@@ -212,7 +212,7 @@ const InstantTwinOnboarding = () => {
         knowledge_base_status: 'pending_extraction'
       };
 
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twins`, {
         method: 'POST',
         headers: {

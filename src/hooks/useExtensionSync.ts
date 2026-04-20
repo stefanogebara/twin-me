@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { getAccessToken } from '@/services/api/apiBase';
 
 /**
- * Hook to automatically sync auth tokens from web app localStorage to browser extension
- * This ensures the extension always has access to the latest auth token
+ * Hook to automatically sync the in-memory auth token to the browser extension.
+ * Token is sourced exclusively from getAccessToken() (never localStorage).
  */
 export const useExtensionSync = () => {
   useEffect(() => {
@@ -13,8 +13,7 @@ export const useExtensionSync = () => {
         return;
       }
 
-      // Get token from memory store, falling back to localStorage
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
 
       if (!token) {
         return;
@@ -33,20 +32,7 @@ export const useExtensionSync = () => {
       }
     };
 
-    // Sync on mount
+    // Sync on mount (after AuthContext has rehydrated the token via refresh cookie)
     syncTokenToExtension();
-
-    // Also sync when localStorage changes (e.g., user logs in/out)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth_token') {
-        syncTokenToExtension();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 };

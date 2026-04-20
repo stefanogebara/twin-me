@@ -17,7 +17,7 @@ export function MessagingPrompt() {
   useEffect(() => {
     if (sessionStorage.getItem('telegram_prompt_dismissed')) return;
 
-    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken();
     fetch(`${API_URL}/telegram/status`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })

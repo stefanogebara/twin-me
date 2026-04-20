@@ -56,7 +56,7 @@ export function ConversationList({
     setIsLoading(true);
     setError(null);
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const response = await fetch(`${API_BASE}/chat/conversations`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });

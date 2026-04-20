@@ -66,7 +66,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
   useEffect(() => {
     const fetchExisting = async () => {
       try {
-        const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+        const token = getAccessToken();
         const response = await fetch(`${API_URL}/connectors/status/${encodeURIComponent(userId)}`, {
           headers: {
             'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ const CompactPlatformConnect: React.FC<CompactPlatformConnectProps> = ({
     setConnecting(platform.id);
 
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
 
       // Record consent
       await fetch(`${API_URL}/consent`, {

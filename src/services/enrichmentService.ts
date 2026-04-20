@@ -15,7 +15,7 @@ interface AuthHeaders {
 }
 
 const getAuthHeaders = (): AuthHeaders => {
-  const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = getAccessToken();
   const headers: AuthHeaders = {
     'Content-Type': 'application/json',
   };
@@ -537,7 +537,7 @@ export const enrichmentService = {
       formData.append('name', name);
     }
 
-    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken();
     const headers: Record<string, string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

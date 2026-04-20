@@ -17,10 +17,7 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const getAuthHeaders = (): Record<string, string> => {
-  const token =
-    getAccessToken() ||
-    localStorage.getItem('auth_token') ||
-    localStorage.getItem('token');
+  const token = getAccessToken();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return headers;

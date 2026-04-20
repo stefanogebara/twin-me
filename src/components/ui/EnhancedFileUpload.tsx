@@ -118,7 +118,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
 
     try {
       // Get authentication token
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       if (!token) {
         throw new Error('Authentication required. Please sign in.');
       }

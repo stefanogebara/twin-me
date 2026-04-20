@@ -25,7 +25,7 @@ export function InsightsBanner({ insights, onQuickAction, onEngage }: InsightsBa
   const handleRate = async (insightId: string, rating: number) => {
     setRatedInsights(prev => ({ ...prev, [insightId]: rating }));
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
       await fetch(`${API_URL}/insights/${insightId}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

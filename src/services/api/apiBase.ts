@@ -5,20 +5,20 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004';
 
 // In-memory access token store (not in localStorage — XSS protection)
+// Refresh token lives in an httpOnly cookie; on page load AuthContext calls
+// refreshAccessToken() to rehydrate this variable from the cookie.
 let currentAccessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   currentAccessToken = token;
-  // Persist to localStorage so token survives full page reloads (e.g. window.location.href redirect after OAuth)
-  if (token) {
-    localStorage.setItem('auth_token', token);
-  } else {
-    localStorage.removeItem('auth_token');
-  }
 }
 
 export function getAccessToken(): string | null {
   return currentAccessToken;
+}
+
+export function clearAccessToken(): void {
+  currentAccessToken = null;
 }
 
 export interface AuthHeaders {
@@ -27,7 +27,7 @@ export interface AuthHeaders {
 }
 
 export const getAuthHeaders = (): AuthHeaders => {
-  const token = currentAccessToken || localStorage.getItem('auth_token') || localStorage.getItem('token');
+  const token = currentAccessToken;
   const headers: AuthHeaders = {
     'Content-Type': 'application/json',
   };

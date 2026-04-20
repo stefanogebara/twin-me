@@ -14,7 +14,7 @@ import { getAccessToken } from '@/services/api/apiBase';
 const API_URL = import.meta.env.VITE_API_URL;
 
 async function fetchPortrait(): Promise<TwinPortraitData> {
-  const token = getAccessToken() || localStorage.getItem('auth_token');
+  const token = getAccessToken();
   if (!token) throw new Error('Not authenticated');
 
   const res = await fetch(`${API_URL}/twin/portrait`, {

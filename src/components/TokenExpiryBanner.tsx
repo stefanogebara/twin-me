@@ -58,7 +58,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     const fetchNotifications = async () => {
       setIsLoading(true);
       try {
-        const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+        const token = getAccessToken();
         const response = await fetch(
           `${API_URL}/notifications/unread?userId=${encodeURIComponent(user.id)}`,
           {

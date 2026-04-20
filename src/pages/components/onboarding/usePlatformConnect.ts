@@ -100,7 +100,7 @@ export function usePlatformConnect({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
+            'Authorization': `Bearer ${getAccessToken()}`
           },
           body: JSON.stringify({ integrationId: nangoIntegrationId })
         });
@@ -225,7 +225,7 @@ export function usePlatformConnect({
 
       const authHeaders = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`,
+        'Authorization': `Bearer ${getAccessToken()}`,
       };
 
       const runConnectionRequest = async (apiUrl: string, fetchOptions: RequestInit): Promise<ConnectResult> => {
@@ -356,7 +356,7 @@ export function usePlatformConnect({
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getAccessToken() || localStorage.getItem('auth_token')}`
+          'Authorization': `Bearer ${getAccessToken()}`
         }
       };
 

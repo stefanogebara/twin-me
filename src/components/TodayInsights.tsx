@@ -129,7 +129,7 @@ export const TodayInsights: React.FC = () => {
         };
       }
 
-      const token = getAccessToken() || localStorage.getItem('auth_token');
+      const token = getAccessToken();
       const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/today-insights`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });

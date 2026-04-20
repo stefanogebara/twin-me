@@ -16,7 +16,7 @@ interface CalibrationData {
 
 function getUserIdFromToken(): string | null {
   try {
-    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken();
     if (!token) return null;
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.id || payload.userId || null;

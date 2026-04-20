@@ -68,7 +68,7 @@ export interface GdprImportResult {
 }
 
 function getAuthToken(): string | null {
-  return getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+  return getAccessToken();
 }
 
 function authHeaders(): Record<string, string> {

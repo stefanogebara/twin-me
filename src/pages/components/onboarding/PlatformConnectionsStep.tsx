@@ -68,7 +68,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   useEffect(() => {
     if (isDemoMode || !userId) return;
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
-    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     fetch(`${API_URL}/connect/pitch-hooks`, { headers })

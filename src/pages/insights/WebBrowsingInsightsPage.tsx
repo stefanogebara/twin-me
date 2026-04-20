@@ -109,7 +109,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your digital life insights');
       setLoading(false);
@@ -153,7 +153,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your digital life insights');
       setLoading(false);
@@ -191,7 +191,7 @@ const WebBrowsingInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
 
     try {
       await fetch(`${API_BASE}/insights/web/refresh`, {

@@ -469,7 +469,7 @@ const NewDiscoverFlow: React.FC = () => {
     setGeneratingSignature(true);
 
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
       const enrichment = enrichmentDataRef.current;
       const quick = quickDataRef.current;
 

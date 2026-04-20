@@ -212,7 +212,7 @@ const CalendarInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your time patterns');
       setLoading(false);
@@ -252,7 +252,7 @@ const CalendarInsightsPage: React.FC = () => {
       return;
     }
 
-    const authToken = token || getAccessToken() || localStorage.getItem('auth_token');
+    const authToken = token || getAccessToken();
 
     try {
       await fetch(`${API_BASE}/insights/calendar/refresh`, {

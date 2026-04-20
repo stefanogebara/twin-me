@@ -38,7 +38,7 @@ export function ChatPrompt() {
     setTriggering(action.skillName);
 
     try {
-      const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const token = getAccessToken();
       await fetch(`${API_URL}/skills/trigger`, {
         method: 'POST',
         headers: {

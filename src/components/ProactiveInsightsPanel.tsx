@@ -79,7 +79,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
-        const token = getAccessToken() || localStorage.getItem('auth_token');
+        const token = getAccessToken();
         const response = await fetch(`${import.meta.env.VITE_API_URL}/chat/context`, {
           headers: { 'Authorization': `Bearer ${token}` },
           signal: controller.signal,

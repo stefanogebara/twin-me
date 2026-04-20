@@ -46,7 +46,7 @@ export default function DiscoverLanding() {
 
   // Redirect if already signed in
   useEffect(() => {
-    const token = getAccessToken() || localStorage.getItem('auth_token') || localStorage.getItem('token');
+    const token = getAccessToken();
     if (token) navigate('/dashboard', { replace: true });
   }, [navigate]);
 
