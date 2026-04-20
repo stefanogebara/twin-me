@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Image as ImageIcon, Gamepad2, Languages } from 'lucide-react';
+import { FileText, Image as ImageIcon, Gamepad2, Languages, Headphones } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 // ====================================================================
@@ -389,6 +389,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 10,
     setupTime: '15 seconds',
     privacyLevel: 'medium',
+    category: 'entertainment',
+  },
+  {
+    provider: 'soundcloud' as DataProvider,
+    name: 'SoundCloud',
+    description: 'Likes, follows, playlists, and your own uploads — indie, electronic, and DJ-mix taste that Spotify often misses.',
+    icon: <Headphones className="w-6 h-6" />,
+    color: '#FF5500',
+    dataTypes: ['Likes', 'Follows', 'Playlists', 'Uploads'],
+    estimatedInsights: 10,
+    setupTime: '15 seconds',
+    privacyLevel: 'low',
     category: 'entertainment',
   },
   {

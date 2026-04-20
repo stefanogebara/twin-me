@@ -11,7 +11,7 @@
  */
 export const VALID_DEMO_PLATFORMS = [
   'spotify', 'youtube', 'discord', 'twitch', 'linkedin',
-  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest', 'steam', 'duolingo',
+  'whoop', 'calendar', 'reddit', 'github', 'gmail', 'notion', 'pinterest', 'steam', 'duolingo', 'soundcloud',
 ];
 
 export const PLATFORM_CONFIGS = {
@@ -330,6 +330,37 @@ export const PLATFORM_CONFIGS = {
     rateLimit: {
       requests: 100000,
       window: 86400, // Steam Web API: 100k/day per key
+    },
+  },
+
+  soundcloud: {
+    name: 'SoundCloud',
+    // SoundCloud API v2 — OAuth 2.1 with mandatory PKCE (since 2024).
+    // NOTE: SoundCloud developer key issuance has been restricted since 2023;
+    // graceful 503 is required throughout when SOUNDCLOUD_CLIENT_ID is missing.
+    authUrl: 'https://secure.soundcloud.com/authorize',
+    tokenUrl: 'https://secure.soundcloud.com/oauth/token',
+    // SoundCloud does not use traditional scopes — permissions are fixed
+    // per registered app and approved at auth time.
+    scopes: [],
+    apiBaseUrl: 'https://api.soundcloud.com',
+
+    endpoints: {
+      userProfile: '/me',
+      likedTracks: '/me/likes/tracks',
+      followings: '/me/followings',
+      playlists: '/me/playlists',
+      uploadedTracks: '/me/tracks',
+    },
+
+    tokenType: 'Bearer',
+    refreshable: true,       // access tokens ~1 hour, refresh_token rotates
+    usesPKCE: true,          // mandatory for v2 auth
+
+    // Per https://developers.soundcloud.com/docs/api/rate-limits
+    rateLimit: {
+      requests: 15000,
+      window: 86400, // 15k requests / 24h per client_id
     },
   },
 

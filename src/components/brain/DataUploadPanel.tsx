@@ -31,6 +31,8 @@ import {
   Hash,
   Music,
   Headphones,
+  Briefcase,
+  Instagram,
 } from 'lucide-react';
 import { SpotifyLogo, YoutubeLogo, DiscordLogo, RedditLogo } from '@/components/PlatformLogos';
 import { importsAPI, type ImportPlatform, type DataImport } from '@/services/api/importsAPI';
@@ -92,10 +94,10 @@ const PLATFORMS: PlatformConfig[] = [
     color: '#5865F2',
     bgColor: 'rgba(88, 101, 242, 0.08)',
     icon: <DiscordLogo className="w-5 h-5" />,
-    description: 'Message frequency and activity patterns across your servers (no content stored).',
-    exportInstructions: 'Go to Discord → User Settings → Privacy & Safety → Request all my data',
+    description: 'Years of message patterns + server activity + DM timing — everything Discord\'s OAuth scope hides. Content is stripped for privacy; only behavioral signals are stored.',
+    exportInstructions: 'Discord (desktop or web) → User Settings (gear icon) → Privacy & Safety → scroll to bottom → "Request all of my Data" → confirm. Discord emails you a ZIP in ~1-30 days. Upload that ZIP here.',
     exportUrl: 'https://discord.com/settings/privacy-and-safety',
-    expectedFile: 'package.zip (Discord export)',
+    expectedFile: 'package.zip (from discord-data@discord.com email)',
     fileAccept: '.zip,application/zip',
   },
   {
@@ -232,6 +234,18 @@ const PLATFORMS: PlatformConfig[] = [
     fileAccept: '.zip,.csv,application/zip,text/csv',
   },
   {
+    id: 'linkedin',
+    label: 'LinkedIn',
+    color: '#0A66C2',
+    bgColor: 'rgba(10, 102, 194, 0.07)',
+    icon: <Briefcase size={20} color="#0A66C2" />,
+    description: 'Full career trajectory + skills + network + recommendations — everything LinkedIn\'s API hides behind Partner status.',
+    exportInstructions: "LinkedIn → Settings → Data Privacy → Get a copy of your data → choose 'Fast file only' for CSVs. Upload the ZIP (~10 min).",
+    exportUrl: 'https://www.linkedin.com/mypreferences/d/download-my-data',
+    expectedFile: 'Basic_LinkedInDataExport_*.zip',
+    fileAccept: '.zip,application/zip',
+  },
+  {
     id: 'soundcloud',
     label: 'SoundCloud',
     color: '#FF5500',
@@ -241,6 +255,18 @@ const PLATFORMS: PlatformConfig[] = [
     exportInstructions: 'SoundCloud → Settings → Data privacy → Request a copy of your data. Upload the ZIP when it arrives.',
     exportUrl: 'https://soundcloud.com/settings/account',
     expectedFile: 'SoundCloud data export ZIP',
+    fileAccept: '.zip,application/zip',
+  },
+  {
+    id: 'instagram',
+    label: 'Instagram',
+    color: '#E4405F',
+    bgColor: 'rgba(228, 64, 95, 0.07)',
+    icon: <Instagram size={20} color="#E4405F" />,
+    description: "Liked posts, following list, search history, saved posts — everything the Graph API won't give you without Business-account status.",
+    exportInstructions: 'Instagram → Settings → Meta Accounts Center → Your information and permissions → Download your information → JSON format. Upload the ZIP when it arrives (2-14 days).',
+    exportUrl: 'https://accountscenter.facebook.com/info_and_permissions/dyi',
+    expectedFile: 'instagram-*.zip',
     fileAccept: '.zip,application/zip',
   },
 ];

@@ -17,7 +17,11 @@ export type ImportPlatform =
   | 'letterboxd' | 'goodreads'
   | 'netflix' | 'tiktok' | 'x_archive'
   // Music export-only (live APIs cap history too aggressively)
-  | 'apple_music' | 'soundcloud';
+  | 'apple_music' | 'soundcloud'
+  // Professional identity (GDPR export only — live API capped at basic fields)
+  | 'linkedin'
+  // Instagram GDPR JSON export (Graph API only works for Business/Creator accounts)
+  | 'instagram';
 export type ChatPlatform = 'whatsapp_chat' | 'telegram_chat';
 export type ChatContext = 'close_friend' | 'family' | 'professional' | 'romantic_partner';
 

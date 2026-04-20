@@ -2447,6 +2447,47 @@ function parseGoogleSearch(buffer) {
     );
   }
 
+  // Semantic topic clustering — bucket the top 30 words into interest
+  // categories so the twin can say "you research finance, health, and
+  // software engineering" rather than just listing raw words.
+  if (topWords.length > 0 && totalSearches >= 20) {
+    const TOPIC_MAP = {
+      tech:       /^(javascript|typescript|python|react|node|vue|rust|golang|kubernetes|docker|linux|github|vscode|npm|api|database|postgres|sql|nosql|redis|mongodb|serverless|aws|azure|gcp|tailwind|nextjs|vite|webpack|esbuild|nginx|graphql|postgresql|lambda|terraform|ansible|kafka|async|await|typescript|ruby|php|java|kotlin|swift|flutter|android|ios|web3|solidity|ethereum|blockchain)$/,
+      ai:         /^(openai|claude|anthropic|llm|gpt|prompt|langchain|rag|embedding|vector|transformer|diffusion|stable|midjourney|gemini|mistral|finetune|training|pytorch|tensorflow|huggingface|agent|autogen|inference|perplexity)$/,
+      health:     /^(sleep|hrv|workout|exercise|fitness|nutrition|diet|protein|supplement|vitamin|cortisol|testosterone|injury|pain|stretch|mobility|yoga|pilates|running|cycling|climb|fasting|meditation|mindful|therapy|anxiety|depression|adhd|burnout|stress|recovery|hormone|magnesium|creatine)$/,
+      finance:    /^(invest|stock|crypto|bitcoin|etf|dividend|401k|ira|tax|taxes|irs|mortgage|refinance|rental|property|equity|valuation|revenue|ebitda|runway|burn|seed|series|vc|venture|startup|founder|angel|cap\s*table|secondary|liquidity|ipo|spac|roth|bonds|treasury|yield|inflation|portfolio|hedge|margin|option|futures|currency|forex|dollar|euro|pound|yen|real\s*estate|airbnb|reit|mutual|index|s&p|nasdaq)$/,
+      travel:     /^(flight|flights|hotel|airbnb|booking|visa|passport|embassy|airport|airline|delta|united|american|iberia|emirates|itinerary|cruise|miles|points|expedia|kayak|skyscanner|turkish|lounge|lhr|jfk|lax|hnd|cdg|mad|bcn|gru|mia|layover|jetlag)$/,
+      food:       /^(recipe|cooking|restaurant|menu|cuisine|pasta|sushi|ramen|burger|steak|salad|vegan|vegetarian|keto|paleo|mediterranean|dietician|brunch|cocktail|wine|pairing|michelin|chef|knife|cast\s*iron|sourdough|fermented)$/,
+      entertainment: /^(movie|film|netflix|hbo|showtime|disney|hulu|series|season|episode|trailer|director|actor|actress|soundtrack|podcast|audiobook|series|episode|imdb|rotten|tomatoes|letterboxd|goodreads|vinyl|spotify|playlist|concert|tour|festival|lineup|coachella|glastonbury)$/,
+      sports:     /^(nfl|nba|mlb|nhl|mls|uefa|fifa|champions|premier|bundesliga|laliga|formula|f1|nascar|ufc|mma|boxing|tennis|golf|pga|lpga|atp|wta|wimbledon|olympics|marathon|triathlon|ironman|cycling|tour\s*de\s*france|giro|vuelta|stanley|superbowl|worldcup|fantasy)$/,
+      career:     /^(interview|salary|negotiate|offer|promotion|linkedin|recruiter|resume|cv|application|employer|employee|benefits|equity|401k|severance|layoff|manager|director|engineer|designer|analyst|consulting|mba|phd|internship|graduate|junior|senior|staff|principal|vp|ceo|cto|cpo|cmo|hr)$/,
+      shopping:   /^(amazon|ebay|shopify|etsy|review|reviews|deal|deals|discount|coupon|promo|bestbuy|target|walmart|costco|apple|store|iphone|samsung|pixel|macbook|laptop|headphone|airpod|kindle|keyboard|monitor|speaker)$/,
+      news:       /^(election|president|senate|congress|policy|russia|ukraine|israel|china|inflation|unemployment|gdp|war|sanction|embargo|treaty|parliament|government|minister|prime|politics|debate|ruling|court|supreme|justice|senator|mayor|governor)$/,
+      learning:   /^(tutorial|course|udemy|coursera|edx|mooc|class|lecture|textbook|study|thesis|paper|arxiv|research|academic|pubmed|scholar|journal|citation|proof|theorem|equation|calculus|algebra|statistics|probability|linear|matrix|integral|derivative)$/,
+    };
+    const buckets = {};
+    for (const [word, count] of topWords) {
+      for (const [topic, re] of Object.entries(TOPIC_MAP)) {
+        if (re.test(word)) {
+          buckets[topic] = (buckets[topic] || 0) + count;
+          break;
+        }
+      }
+    }
+    const topClusters = Object.entries(buckets)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+    if (topClusters.length >= 2) {
+      const totalClustered = topClusters.reduce((sum, [, c]) => sum + c, 0);
+      const parts = topClusters
+        .filter(([, c]) => c / totalClustered >= 0.05)
+        .map(([topic, c]) => `${topic} (${Math.round((c / totalClustered) * 100)}%)`);
+      observations.push(
+        `Your Google searches cluster into: ${parts.join(', ')} — reveals where your attention actually goes`
+      );
+    }
+  }
+
   // Time-of-day pattern
   const totalHourPlays = hourBuckets.reduce((a, b) => a + b, 0);
   if (totalHourPlays > 0) {
@@ -3348,6 +3389,489 @@ function parseSoundCloud(buffer) {
 }
 
 // ---------------------------------------------------------------------------
+// LinkedIn — GDPR export (multi-CSV ZIP)
+// ---------------------------------------------------------------------------
+// Source: LinkedIn -> Settings -> Data Privacy -> Get a copy of your data
+// ("Fast file only" for CSVs). Arrives as a ZIP of 20+ CSVs. We only parse the
+// ones that carry soul signature signal — positions, skills, connections,
+// education, certifications, recommendations, articles, search queries. No
+// LLM, pure string work. Never store raw PII (emails, full connection names).
+// ---------------------------------------------------------------------------
+
+function findLinkedInCsv(zip, baseNameRegex) {
+  const entry = zip.getEntries().find(e => baseNameRegex.test(e.entryName));
+  if (!entry) return null;
+  try {
+    return entry.getData().toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
+function parseLinkedInDate(s) {
+  // LinkedIn date formats vary: "Jan 2020", "2020", "2020-01-15", "01/15/2020", "" (means "present")
+  if (!s) return null;
+  const trimmed = String(s).trim();
+  if (!trimmed) return null;
+  const d = new Date(trimmed);
+  if (!Number.isNaN(d.getTime())) return d;
+  // Try "Mon YYYY"
+  const m = trimmed.match(/^([A-Za-z]{3,})\s+(\d{4})$/);
+  if (m) {
+    const d2 = new Date(`${m[1]} 1, ${m[2]}`);
+    if (!Number.isNaN(d2.getTime())) return d2;
+  }
+  return null;
+}
+
+function linkedInPositions(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Positions\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+
+  const MAX_PER_POSITION = 50;
+  const companies = new Set();
+  const dated = [];
+
+  for (const r of rows) {
+    const company = (r['Company Name'] || '').trim();
+    const title = (r['Title'] || '').trim();
+    const started = (r['Started On'] || '').trim();
+    const finished = (r['Finished On'] || '').trim();
+    if (!company && !title) continue;
+    if (company) companies.add(company);
+    dated.push({ company, title, started, finished, startDate: parseLinkedInDate(started) });
+  }
+
+  // Most recent by start date (nulls last)
+  dated.sort((a, b) => {
+    const av = a.startDate ? a.startDate.getTime() : 0;
+    const bv = b.startDate ? b.startDate.getTime() : 0;
+    return bv - av;
+  });
+
+  const count = dated.length;
+  if (count === 0) return;
+
+  const mostRecent = dated[0];
+  const mrRange = `${mostRecent.started || '?'}-${mostRecent.finished || 'present'}`;
+  out.push(
+    `Your LinkedIn career spans ${count} position${count === 1 ? '' : 's'} across ${companies.size} compan${companies.size === 1 ? 'y' : 'ies'}. ` +
+    `Most recent: ${mostRecent.title || 'unspecified role'} at ${mostRecent.company || 'unspecified company'} (${mrRange}).`
+  );
+
+  for (const p of dated.slice(0, MAX_PER_POSITION)) {
+    const range = `${p.started || '?'}-${p.finished || 'present'}`;
+    const title = p.title || 'unspecified role';
+    const company = p.company || 'unspecified company';
+    out.push(`You worked as ${title} at ${company} (${range}).`);
+  }
+}
+
+function linkedInSkills(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Skills\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+  const skills = rows.map(r => (r['Name'] || '').trim()).filter(Boolean);
+  if (skills.length === 0) return;
+  const top = skills.slice(0, 15).join(', ');
+  out.push(`Your LinkedIn lists ${skills.length} skill${skills.length === 1 ? '' : 's'} including: ${top}.`);
+}
+
+function linkedInConnections(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Connections\.csv$/i);
+  if (!csv) return;
+  // LinkedIn's Connections.csv often has a 2-3 line "Notes:" preamble before the header row.
+  // Detect the header by finding the first line that contains "First Name".
+  const lines = csv.split(/\r?\n/);
+  const headerIdx = lines.findIndex(l => /First Name/i.test(l) && /Last Name/i.test(l));
+  const cleaned = headerIdx > 0 ? lines.slice(headerIdx).join('\n') : csv;
+
+  const rows = csvToObjects(cleaned);
+  if (rows.length === 0) return;
+
+  const companies = new Map();
+  const positions = new Map();
+  for (const r of rows) {
+    const c = (r['Company'] || '').trim();
+    const p = (r['Position'] || '').trim();
+    if (c) companies.set(c, (companies.get(c) || 0) + 1);
+    if (p) positions.set(p, (positions.get(p) || 0) + 1);
+  }
+
+  out.push(`Your LinkedIn has ${rows.length} first-degree connection${rows.length === 1 ? '' : 's'}.`);
+
+  const MAX_COMPANIES = 10;
+  const MAX_POSITIONS = 5;
+  const topCompanies = [...companies.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_COMPANIES);
+  if (topCompanies.length > 0) {
+    const fmt = topCompanies.map(([c, n]) => `${c} (${n})`).join(', ');
+    out.push(`Top companies in your LinkedIn network: ${fmt}.`);
+  }
+
+  const topPositions = [...positions.entries()].sort((a, b) => b[1] - a[1]).slice(0, MAX_POSITIONS);
+  if (topPositions.length > 0) {
+    const fmt = topPositions.map(([p, n]) => `${p} (${n})`).join(', ');
+    out.push(`Most common roles among your LinkedIn connections: ${fmt}.`);
+  }
+}
+
+function linkedInEducation(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Education\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+  for (const r of rows.slice(0, 25)) {
+    const school = (r['School Name'] || '').trim();
+    const degree = (r['Degree Name'] || '').trim();
+    const start = (r['Start Date'] || '').trim();
+    const end = (r['End Date'] || '').trim();
+    if (!school && !degree) continue;
+    const range = start || end ? ` (${start || '?'}-${end || '?'})` : '';
+    const degreePart = degree ? `${degree} at ` : '';
+    const schoolPart = school || 'unspecified school';
+    out.push(`Your LinkedIn education: ${degreePart}${schoolPart}${range}.`);
+  }
+}
+
+function linkedInCertifications(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Certifications\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+
+  const now = Date.now();
+  let active = 0;
+  let expired = 0;
+  const emitted = [];
+  for (const r of rows.slice(0, 50)) {
+    const name = (r['Name'] || '').trim();
+    const authority = (r['Authority'] || '').trim();
+    if (!name) continue;
+    const finished = parseLinkedInDate(r['Finished On'] || '');
+    if (finished) {
+      if (finished.getTime() < now) expired++;
+      else active++;
+    } else {
+      active++; // no expiry = active
+    }
+    const authPart = authority ? ` from ${authority}` : '';
+    emitted.push(`You hold ${name}${authPart}.`);
+  }
+  if (active + expired > 0) {
+    out.push(`Your LinkedIn lists ${active + expired} certification${(active + expired) === 1 ? '' : 's'} (${active} active, ${expired} expired).`);
+  }
+  out.push(...emitted);
+}
+
+function linkedInRecommendations(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Recommendations_Received\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+
+  out.push(`You've received ${rows.length} LinkedIn recommendation${rows.length === 1 ? '' : 's'}.`);
+
+  const quoted = rows.slice(0, 3);
+  for (const r of quoted) {
+    const first = (r['First Name'] || '').trim();
+    const last = (r['Last Name'] || '').trim();
+    const company = (r['Company'] || '').trim();
+    const jobTitle = (r['Job Title'] || '').trim();
+    const text = (r['Text'] || '').trim();
+    if (!text) continue;
+    const who = [first, last].filter(Boolean).join(' ') || 'Someone';
+    const rolePart = jobTitle || company ? ` (${[jobTitle, company].filter(Boolean).join(' at ')})` : '';
+    const excerpt = text.length > 200 ? text.slice(0, 200).trim() + '...' : text;
+    out.push(`${who}${rolePart} wrote: "${excerpt}"`);
+  }
+}
+
+function linkedInArticles(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)Articles\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+  const titles = rows.map(r => (r['Title'] || '').trim()).filter(Boolean);
+  if (titles.length === 0) return;
+  const preview = titles.slice(0, 15).map(t => `"${t}"`).join(', ');
+  out.push(`You've published ${titles.length} article${titles.length === 1 ? '' : 's'} on LinkedIn. Titles: ${preview}.`);
+}
+
+function linkedInSearchQueries(zip, out) {
+  const csv = findLinkedInCsv(zip, /(^|\/)SearchQueries\.csv$/i);
+  if (!csv) return;
+  const rows = csvToObjects(csv);
+  if (rows.length === 0) return;
+
+  const queries = rows.map(r => (r['Search Query'] || '').trim()).filter(Boolean);
+  if (queries.length === 0) return;
+
+  // Rough topic clustering — word frequency on 4+ char tokens
+  const stop = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'your', 'have', 'about', 'into']);
+  const wordCounts = new Map();
+  for (const q of queries) {
+    const tokens = q.toLowerCase().split(/[^a-z0-9]+/).filter(t => t.length >= 4 && !stop.has(t));
+    for (const t of tokens) wordCounts.set(t, (wordCounts.get(t) || 0) + 1);
+  }
+  const top = [...wordCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const patterns = top.length > 0 ? top.map(([w, n]) => `${w} (${n})`).join(', ') : 'none detected';
+  out.push(`Your LinkedIn search history shows ${queries.length} quer${queries.length === 1 ? 'y' : 'ies'}. Top patterns: ${patterns}.`);
+}
+
+function parseLinkedIn(buffer) {
+  if (!(buffer[0] === 0x50 && buffer[1] === 0x4B)) {
+    throw new Error('LinkedIn import expects a ZIP file (the full export from linkedin.com).');
+  }
+
+  let zip;
+  try {
+    zip = new AdmZip(buffer);
+  } catch (e) {
+    throw new Error(`LinkedIn ZIP could not be opened: ${e.message}`);
+  }
+
+  const observations = [];
+
+  // Each helper is defensive — if the CSV is missing or unreadable, it no-ops.
+  try { linkedInPositions(zip, observations); } catch (e) { log.warn('LinkedIn Positions parse failed:', e.message); }
+  try { linkedInSkills(zip, observations); } catch (e) { log.warn('LinkedIn Skills parse failed:', e.message); }
+  try { linkedInConnections(zip, observations); } catch (e) { log.warn('LinkedIn Connections parse failed:', e.message); }
+  try { linkedInEducation(zip, observations); } catch (e) { log.warn('LinkedIn Education parse failed:', e.message); }
+  try { linkedInCertifications(zip, observations); } catch (e) { log.warn('LinkedIn Certifications parse failed:', e.message); }
+  try { linkedInRecommendations(zip, observations); } catch (e) { log.warn('LinkedIn Recommendations parse failed:', e.message); }
+  try { linkedInArticles(zip, observations); } catch (e) { log.warn('LinkedIn Articles parse failed:', e.message); }
+  try { linkedInSearchQueries(zip, observations); } catch (e) { log.warn('LinkedIn SearchQueries parse failed:', e.message); }
+
+  if (observations.length === 0) {
+    throw new Error('LinkedIn ZIP did not contain any of the expected CSVs (Positions, Skills, Connections, etc.).');
+  }
+
+  return observations;
+}
+
+// ---------------------------------------------------------------------------
+// Instagram — GDPR JSON export (ZIP)
+// ---------------------------------------------------------------------------
+// Users download from instagram.com → Settings → Meta Accounts Center →
+// Your information and permissions → Download your information → JSON format.
+// Arrives as a ZIP with many JSON files nested under varying subdirectory
+// depths. We match by basename regex so we're resilient to Meta's reshuffling.
+
+// Instagram search term -> rough topic category (same pattern as Reddit inference)
+const INSTAGRAM_TOPIC_MAP = {
+  fitness: ['gym', 'workout', 'fitness', 'running', 'yoga', 'crossfit', 'pilates', 'hiit', 'muscle', 'abs'],
+  food: ['recipe', 'cooking', 'food', 'restaurant', 'chef', 'baking', 'coffee', 'wine', 'vegan', 'pizza'],
+  travel: ['travel', 'flight', 'hotel', 'beach', 'hiking', 'vacation', 'trip', 'airbnb', 'wanderlust'],
+  fashion: ['fashion', 'outfit', 'style', 'dress', 'sneakers', 'ootd', 'streetwear', 'designer'],
+  tech: ['tech', 'ai', 'coding', 'programming', 'startup', 'crypto', 'iphone', 'gadget'],
+  music: ['music', 'concert', 'festival', 'dj', 'album', 'song', 'guitar', 'spotify', 'rap', 'hiphop'],
+  art: ['art', 'design', 'painting', 'photography', 'illustration', 'architecture', 'museum'],
+  sports: ['football', 'soccer', 'basketball', 'nba', 'nfl', 'tennis', 'golf', 'f1', 'formula'],
+  wellness: ['meditation', 'mindfulness', 'wellness', 'therapy', 'mental health', 'self care'],
+  business: ['business', 'entrepreneur', 'marketing', 'finance', 'investing', 'stocks'],
+};
+
+function igSafeJson(entry) {
+  try {
+    return JSON.parse(entry.getData().toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function igFindEntries(zip, basenameRegex) {
+  return zip.getEntries().filter(e => !e.isDirectory && basenameRegex.test(e.entryName));
+}
+
+function igUsernameFromHref(href) {
+  if (!href || typeof href !== 'string') return null;
+  const m = href.match(/instagram\.com\/([^\/?#]+)/i);
+  return m ? m[1] : null;
+}
+
+function parseInstagram(buffer) {
+  if (!(buffer[0] === 0x50 && buffer[1] === 0x4B)) {
+    throw new Error('Instagram export must be a ZIP (download JSON format from Meta Accounts Center)');
+  }
+
+  let zip;
+  try { zip = new AdmZip(buffer); } catch (e) {
+    throw new Error(`Instagram ZIP extract failed: ${e.message}`);
+  }
+
+  const rollups = [];
+  const TOP_N_CREATORS = 10;
+  const TOP_N_FOLLOWING = 25;
+
+  // --- Liked posts ---
+  // Shape: { likes_media_likes: [{ title, string_list_data: [{ href, value, timestamp }] }] }
+  // title is often the creator username. Multiple files possible (_1, _2, ...).
+  const likedEntries = igFindEntries(zip, /liked_posts(_\d+)?\.json$/i);
+  const creatorCounts = {};
+  let totalLiked = 0;
+  for (const entry of likedEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data?.likes_media_likes) ? data.likes_media_likes : [];
+    for (const item of items) {
+      totalLiked++;
+      let creator = typeof item?.title === 'string' && item.title.trim() ? item.title.trim() : null;
+      if (!creator) {
+        const href = item?.string_list_data?.[0]?.href;
+        creator = igUsernameFromHref(href);
+      }
+      if (creator) {
+        const handle = creator.replace(/^@/, '').slice(0, 40);
+        creatorCounts[handle] = (creatorCounts[handle] || 0) + 1;
+      }
+    }
+  }
+  if (totalLiked > 0) {
+    const top = Object.entries(creatorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, TOP_N_CREATORS)
+      .map(([h]) => `@${h}`);
+    const topStr = top.length > 0 ? ` Top creators you liked most: ${top.join(', ')}.` : '';
+    rollups.push(`You've liked ${totalLiked.toLocaleString()} posts on Instagram.${topStr}`);
+  }
+
+  // --- Following ---
+  // Shape: { relationships_following: [{ string_list_data: [{ href, value, timestamp }] }] }
+  const followingEntries = igFindEntries(zip, /(?:^|\/)following(_\d+)?\.json$/i);
+  const followingHandles = [];
+  let totalFollowing = 0;
+  for (const entry of followingEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data?.relationships_following) ? data.relationships_following : [];
+    for (const item of items) {
+      totalFollowing++;
+      const sld = item?.string_list_data?.[0];
+      const handle = (typeof sld?.value === 'string' && sld.value) || igUsernameFromHref(sld?.href);
+      if (handle) followingHandles.push(handle.replace(/^@/, '').slice(0, 40));
+    }
+  }
+  if (totalFollowing > 0) {
+    const sample = followingHandles.slice(0, TOP_N_FOLLOWING).map(h => `@${h}`);
+    const sampleStr = sample.length > 0 ? ` Accounts you follow include: ${sample.join(', ')}.` : '';
+    rollups.push(`You follow ${totalFollowing.toLocaleString()} accounts on Instagram.${sampleStr}`);
+  }
+
+  // --- Followers ---
+  const followerEntries = igFindEntries(zip, /(?:^|\/)followers(_\d+)?\.json$/i);
+  let totalFollowers = 0;
+  for (const entry of followerEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data) ? data
+      : Array.isArray(data?.relationships_followers) ? data.relationships_followers
+      : [];
+    totalFollowers += items.length;
+  }
+  if (totalFollowers > 0) {
+    rollups.push(`Your Instagram has ${totalFollowers.toLocaleString()} followers.`);
+  }
+
+  // --- Saved posts ---
+  const savedEntries = igFindEntries(zip, /saved_posts(_\d+)?\.json$/i);
+  let totalSaved = 0;
+  for (const entry of savedEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data?.saved_saved_media) ? data.saved_saved_media
+      : Array.isArray(data?.saved_posts) ? data.saved_posts
+      : [];
+    totalSaved += items.length;
+  }
+  if (totalSaved > 0) {
+    rollups.push(`You've saved ${totalSaved.toLocaleString()} posts on Instagram — the ones you want to come back to.`);
+  }
+
+  // --- Liked comments (count only) ---
+  const likedCommentsEntries = igFindEntries(zip, /liked_comments(_\d+)?\.json$/i);
+  let totalLikedComments = 0;
+  for (const entry of likedCommentsEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data?.likes_comment_likes) ? data.likes_comment_likes : [];
+    totalLikedComments += items.length;
+  }
+  if (totalLikedComments > 0) {
+    rollups.push(`You've liked ${totalLikedComments.toLocaleString()} comments on Instagram.`);
+  }
+
+  // --- Word/phrase searches (topic clustering, privacy-safe) ---
+  const wordSearchEntries = igFindEntries(zip, /word_or_phrase_searches\.json$/i);
+  const topicCounts = {};
+  let totalWordSearches = 0;
+  for (const entry of wordSearchEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data?.searches_keyword) ? data.searches_keyword
+      : Array.isArray(data?.searches_user) ? data.searches_user
+      : [];
+    for (const item of items) {
+      totalWordSearches++;
+      const term = (item?.string_map_data?.Search?.value
+        || item?.string_map_data?.Query?.value
+        || item?.string_list_data?.[0]?.value
+        || '').toLowerCase();
+      if (!term) continue;
+      for (const [topic, keywords] of Object.entries(INSTAGRAM_TOPIC_MAP)) {
+        if (keywords.some(k => term.includes(k))) {
+          topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+        }
+      }
+    }
+  }
+  if (totalWordSearches > 0) {
+    const topTopics = Object.entries(topicCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([t]) => t);
+    if (topTopics.length > 0) {
+      rollups.push(`Your Instagram searches reveal interest in: ${topTopics.join(', ')}.`);
+    } else {
+      rollups.push(`You've made ${totalWordSearches.toLocaleString()} keyword searches on Instagram.`);
+    }
+  }
+
+  // --- Account searches ---
+  const accountSearchEntries = igFindEntries(zip, /account_searches\.json$/i);
+  let totalAccountSearches = 0;
+  for (const entry of accountSearchEntries) {
+    const data = igSafeJson(entry);
+    const items = Array.isArray(data?.searches_user) ? data.searches_user
+      : Array.isArray(data?.searches_account) ? data.searches_account
+      : [];
+    totalAccountSearches += items.length;
+  }
+  if (totalAccountSearches > 0) {
+    rollups.push(`You've searched for ${totalAccountSearches.toLocaleString()} accounts on Instagram.`);
+  }
+
+  // --- Profile info (bio only — strip emails/phones) ---
+  const profileEntries = igFindEntries(zip, /personal_information\.json$/i);
+  const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.-]+/g;
+  const PHONE_RE = /\+?\d[\d\s().-]{7,}\d/g;
+  for (const entry of profileEntries) {
+    const data = igSafeJson(entry);
+    const profiles = Array.isArray(data?.profile_user) ? data.profile_user : [];
+    for (const p of profiles) {
+      const sm = p?.string_map_data || {};
+      const bio = sm?.Bio?.value || sm?.bio?.value || '';
+      if (typeof bio === 'string' && bio.trim()) {
+        const safeBio = bio.replace(EMAIL_RE, '').replace(PHONE_RE, '').replace(/\s+/g, ' ').trim().slice(0, 300);
+        if (safeBio) rollups.push(`Your Instagram bio reads: "${safeBio}"`);
+      }
+    }
+  }
+
+  if (rollups.length === 0) {
+    throw new Error('Instagram export appears empty or has an unrecognised structure — did you select JSON format?');
+  }
+
+  return rollups;
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
@@ -3432,6 +3956,12 @@ export async function processGdprImport(userId, platform, fileBuffer, fileName) 
         break;
       case 'soundcloud':
         observations = parseSoundCloud(fileBuffer);
+        break;
+      case 'linkedin':
+        observations = parseLinkedIn(fileBuffer);
+        break;
+      case 'instagram':
+        observations = parseInstagram(fileBuffer);
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);

@@ -11,7 +11,7 @@ export type DataProvider =
   | 'google_gmail' | 'google_calendar' | 'google_drive'
   | 'microsoft_outlook' | 'microsoft_onedrive'
   | 'slack' | 'discord' | 'linkedin' | 'twitter' | 'instagram'
-  | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'pinterest' | 'reddit'
+  | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'pinterest' | 'reddit' | 'soundcloud'
   | 'strava' | 'oura' | 'whoop'
   | 'fitbit' | 'garmin' | 'twitch' | 'steam' | 'duolingo'
   | 'browser_extension';

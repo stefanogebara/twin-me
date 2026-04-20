@@ -69,7 +69,8 @@ router.get('/callback', async (req, res) => {
     log.info(`OAuth callback received for ${provider} - User: ${userId}`);
 
     // Exchange authorization code for access token
-    const tokens = await exchangeCodeForTokens(provider, code, appUrl);
+    // (state is passed for flows that need to look up a stored PKCE code_verifier)
+    const tokens = await exchangeCodeForTokens(provider, code, appUrl, state);
 
     if (!tokens || !tokens.access_token) {
       throw new Error(`Failed to exchange code for tokens: ${provider}`);
@@ -106,7 +107,7 @@ router.get('/callback', async (req, res) => {
 /**
  * Exchange authorization code for access tokens
  */
-async function exchangeCodeForTokens(provider, code, appUrl) {
+async function exchangeCodeForTokens(provider, code, appUrl, state) {
   const redirectUri = `${appUrl}/oauth/callback`;
 
   switch (provider) {
@@ -145,6 +146,9 @@ async function exchangeCodeForTokens(provider, code, appUrl) {
 
     case 'pinterest':
       return await exchangePinterestCode(code, redirectUri);
+
+    case 'soundcloud':
+      return await exchangeSoundCloudCode(code, redirectUri, state);
 
     default:
       throw new Error(`Unsupported provider: ${provider}`);
@@ -497,6 +501,68 @@ async function exchangePinterestCode(code, redirectUri) {
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Pinterest token exchange failed: ${error}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * SoundCloud token exchange (v2, OAuth 2.1 with PKCE)
+ *
+ * SoundCloud requires:
+ *   - Basic Auth header (client_id:client_secret base64)
+ *   - application/x-www-form-urlencoded body
+ *   - code_verifier (PKCE — retrieved from oauth_states row keyed by state)
+ * Access tokens live ~1 hour; refresh_token rotates on each refresh.
+ * NOTE: SoundCloud developer key issuance has been closed since 2023,
+ * so configuration may be absent in most environments — we throw a
+ * clearly-labeled error so the callback surface becomes 503-equivalent.
+ * https://developers.soundcloud.com/docs/api/guide
+ */
+async function exchangeSoundCloudCode(code, redirectUri, state) {
+  const clientId = process.env.SOUNDCLOUD_CLIENT_ID;
+  const clientSecret = process.env.SOUNDCLOUD_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('SoundCloud credentials not configured');
+  }
+
+  // Look up the PKCE code_verifier we stored at the /connect/soundcloud step.
+  let codeVerifier = null;
+  try {
+    const stateRow = await serverDb.query(
+      `SELECT data FROM oauth_states WHERE state = $1 LIMIT 1`,
+      [state]
+    );
+    const row = stateRow?.rows?.[0] || stateRow?.[0] || null;
+    codeVerifier = row?.data?.codeVerifier || row?.data?.code_verifier || null;
+  } catch (err) {
+    // Non-fatal lookup error — we'll still attempt the exchange but it
+    // will fail with a clear message from SoundCloud.
+  }
+
+  if (!codeVerifier) {
+    throw new Error('SoundCloud PKCE code_verifier missing from oauth_states');
+  }
+
+  const response = await fetch('https://secure.soundcloud.com/oauth/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json; charset=utf-8',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+    },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: codeVerifier
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`SoundCloud token exchange failed: ${error}`);
   }
 
   return await response.json();
