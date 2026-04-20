@@ -148,6 +148,15 @@ function parseSpotifyExtended(raw) {
   const hourBuckets = new Array(24).fill(0);
   const countries   = new Set();
 
+  // Podcast stats — Spotify's Extended Streaming History mixes music and
+  // podcast plays. Music entries use master_metadata_* fields; podcast entries
+  // use episode_name + episode_show_name instead. Prior to this change podcast
+  // plays were silently dropped (audit 2026-04-20).
+  const podcastShowStats = {}; // show -> { msTotal, count }
+  const podcastEpisodeCounts = {}; // "episode|show" -> count
+  let totalPodcastPlays = 0;
+  let totalPodcastMs    = 0;
+
   let totalRealPlays   = 0;
   let totalRealMs      = 0;
   let skippedCount     = 0;
@@ -169,6 +178,22 @@ function parseSpotifyExtended(raw) {
     const track  = String(entry.master_metadata_track_name || '').trim().slice(0, 80)  || null;
     const album  = String(entry.master_metadata_album_album_name || '').trim().slice(0, 80) || null;
     const country = entry.conn_country || null;
+
+    // Podcast branch — entries without music metadata but with episode_name
+    // and episode_show_name are podcast plays.
+    const podcastShow = String(entry.episode_show_name || '').trim().slice(0, 80) || null;
+    const podcastEpisode = String(entry.episode_name || '').trim().slice(0, 100) || null;
+    if (!artist && podcastShow && msPlayed >= MIN_MS) {
+      totalPodcastPlays++;
+      totalPodcastMs += msPlayed;
+      if (!podcastShowStats[podcastShow]) podcastShowStats[podcastShow] = { msTotal: 0, count: 0 };
+      podcastShowStats[podcastShow].msTotal += msPlayed;
+      podcastShowStats[podcastShow].count++;
+      if (podcastEpisode) {
+        const key = `${podcastEpisode}|${podcastShow}`;
+        podcastEpisodeCounts[key] = (podcastEpisodeCounts[key] || 0) + 1;
+      }
+    }
 
     if (country) countries.add(country);
     if (isSkipped) skippedCount++;
@@ -367,6 +392,34 @@ function parseSpotifyExtended(raw) {
   if (topAlbums.length > 0) {
     const parts = topAlbums.map(([name, s]) => `"${name}" (${Math.round(s.msTotal / 3_600_000)}h)`);
     summaryObs.push(`Top Spotify albums by listening time: ${parts.join(', ')}`);
+  }
+
+  // 10b. Podcasts — intellectual/topical identity signal distinct from music
+  if (totalPodcastPlays > 0) {
+    const totalPodcastHours = Math.round(totalPodcastMs / 3_600_000);
+    summaryObs.push(
+      `Spotify podcast listening: ${totalPodcastPlays.toLocaleString()} episodes played, ~${totalPodcastHours.toLocaleString()}h total`
+    );
+
+    const topShows = Object.entries(podcastShowStats)
+      .sort((a, b) => b[1].msTotal - a[1].msTotal)
+      .slice(0, 5)
+      .map(([name, s]) => `${name} (${Math.round(s.msTotal / 3_600_000)}h)`);
+    if (topShows.length > 0) {
+      summaryObs.push(`Top Spotify podcasts by listening time: ${topShows.join(', ')}`);
+    }
+
+    const repeatedEpisodes = Object.entries(podcastEpisodeCounts)
+      .filter(([, c]) => c >= 3)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    if (repeatedEpisodes.length > 0) {
+      const parts = repeatedEpisodes.map(([key, count]) => {
+        const [ep, show] = key.split('|');
+        return `"${ep}" (${show}, ${count}x)`;
+      });
+      summaryObs.push(`Podcast episodes you replayed on Spotify: ${parts.join('; ')}`);
+    }
   }
 
   // 11. Individual significant listens (up to MAX_INDIVIDUAL_OBS)
@@ -1078,6 +1131,11 @@ function parseAppleHealth(buffer) {
   const sleepSessions   = [];  // { minutes: number, date: Date }
   const workouts        = [];  // { type: string, durationMin: number, date: Date }
   const weightSamples   = [];  // { kg: number, date: Date }
+  // Athletic fitness + mental health metrics — already present in the export
+  // since iOS 14 / 16 respectively, but were being silently skipped until
+  // the 2026-04-20 audit flagged them.
+  const vo2Samples      = [];  // { value: number (ml/(kg·min)), date: Date }
+  const mindfulnessSessions = []; // { minutes: number, date: Date }
 
   // Match all self-closing <Record .../> tags
   const recordMatches = xmlStr.matchAll(/<Record\b([^>]*?)\/>/gs);
@@ -1140,6 +1198,26 @@ function parseAppleHealth(buffer) {
       if (!isNaN(kg) && date) {
         if (unit.toLowerCase() === 'lb') kg *= 0.453592;
         if (kg > 20 && kg < 500) weightSamples.push({ kg, date });
+      }
+
+    } else if (type === 'HKQuantityTypeIdentifierVO2Max') {
+      // ml/(kg·min) — Apple Watch estimates maximal aerobic capacity from HR
+      // during outdoor walks/runs. Typical range 15 (poor) to 60+ (elite).
+      const vo2 = parseFloat(valueStr);
+      if (!isNaN(vo2) && vo2 > 5 && vo2 < 100 && date) {
+        vo2Samples.push({ value: vo2, date });
+      }
+
+    } else if (type === 'HKCategoryTypeIdentifierMindfulSession') {
+      // Meditation/breath sessions logged by the Mindfulness app or 3rd-party
+      // apps (Calm, Headspace, etc.). Only duration signal matters here.
+      const start = parseAppleDate(startStr);
+      const end   = parseAppleDate(endStr);
+      if (start && end) {
+        const minutes = (end.getTime() - start.getTime()) / 60_000;
+        if (minutes > 0.2 && minutes < 180) {
+          mindfulnessSessions.push({ minutes, date: start });
+        }
       }
     }
   }
@@ -1395,6 +1473,37 @@ function parseAppleHealth(buffer) {
 
     summaryObs.push(
       `Apple Health body weight: avg ${avgKg}kg across ${weightSamples.length} measurements — ${trend} over the tracked period`
+    );
+  }
+
+  // VO2max — athletic fitness level.
+  //   < 25  poor, 25-35 below average, 35-45 average, 45-55 above average, > 55 excellent/elite
+  if (vo2Samples.length > 0) {
+    const sorted = [...vo2Samples].sort((a, b) => a.date - b.date);
+    const last = sorted[sorted.length - 1].value;
+    const avg = sorted.reduce((a, s) => a + s.value, 0) / sorted.length;
+    let bracket;
+    if (last < 30) bracket = 'low';
+    else if (last < 40) bracket = 'below average';
+    else if (last < 50) bracket = 'above average';
+    else if (last < 60) bracket = 'athletic';
+    else bracket = 'elite';
+    summaryObs.push(
+      `Apple Health VO2max: latest ${last.toFixed(1)} ml/(kg·min) (${bracket}), avg ${avg.toFixed(1)} across ${vo2Samples.length} Apple Watch readings — aerobic fitness indicator`
+    );
+  }
+
+  // Mindfulness — mental-health practice signal.
+  if (mindfulnessSessions.length > 0) {
+    const totalMin = mindfulnessSessions.reduce((a, s) => a + s.minutes, 0);
+    const days = new Set(mindfulnessSessions.map(s => s.date.toISOString().substring(0, 10))).size;
+    const avgSessionMin = totalMin / mindfulnessSessions.length;
+    const descriptor = days >= 100 ? 'sustained meditation practice'
+      : days >= 30 ? 'regular mindfulness habit'
+      : days >= 7 ? 'mindfulness practice in progress'
+      : 'occasional mindfulness sessions';
+    summaryObs.push(
+      `Apple Health mindfulness: ${mindfulnessSessions.length} sessions across ${days} days, ${Math.round(totalMin)} total minutes — ${descriptor} (avg ${avgSessionMin.toFixed(1)} min/session)`
     );
   }
 

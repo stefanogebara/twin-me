@@ -32,6 +32,10 @@ class RedditExtractor {
       totalItems += await this.extractUserPosts(userId);
       totalItems += await this.extractUserComments(userId);
       totalItems += await this.extractSavedPosts(userId);
+      // Upvotes are 10-100x more frequent than posts on Reddit — they're
+      // the real passive interest map. Requires the `history` OAuth scope
+      // which is already requested in platformConfigs.js.
+      totalItems += await this.extractUpvotedPosts(userId);
 
       // Complete job
       await this.completeExtractionJob(job.id, totalItems);
@@ -349,6 +353,69 @@ class RedditExtractor {
     } catch (error) {
       log.error('Error extracting saved items:', error);
       return savedCount;
+    }
+  }
+
+  /**
+   * Extract upvoted posts — the user's passive interest map.
+   * Requires the `history` OAuth scope. If the scope isn't granted the
+   * endpoint returns 403; we catch and move on without failing the job.
+   */
+  async extractUpvotedPosts(userId) {
+    log.info(`Extracting upvoted posts...`);
+    let upvotedCount = 0;
+
+    try {
+      let after = null;
+      let hasMore = true;
+
+      while (hasMore && upvotedCount < 200) {
+        const params = { limit: 100 };
+        if (after) params.after = after;
+
+        const data = await this.makeRequest('/user/me/upvoted', params);
+
+        if (data?.data?.children?.length > 0) {
+          for (const child of data.data.children) {
+            const item = child.data;
+
+            await this.storeRawData(userId, 'reddit', 'upvoted_item', {
+              id: item.id,
+              kind: child.kind, // t1 = comment, t3 = post
+              subreddit: item.subreddit,
+              title: item.title || item.link_title,
+              body: item.selftext || item.body,
+              url: item.url,
+              created_utc: item.created_utc,
+              permalink: `https://reddit.com${item.permalink}`,
+              score: item.score,
+              num_comments: item.num_comments,
+            });
+
+            upvotedCount++;
+          }
+
+          after = data.data.after;
+          hasMore = after !== null;
+        } else {
+          hasMore = false;
+        }
+
+        await this.sleep(500);
+      }
+
+      log.info(`Extracted ${upvotedCount} upvoted items`);
+      return upvotedCount;
+    } catch (error) {
+      // 403 = `history` scope not granted yet (user authorized before we
+      // started requesting it). Not a failure — just skip and re-prompt on
+      // next OAuth cycle.
+      if (error.status === 403 || error.message?.includes('403')) {
+        log.warn('Upvoted posts require `history` scope — user needs to re-authorize Reddit');
+        return 0;
+      }
+      log.error('Error extracting upvoted items:', error);
+      return upvotedCount;
     }
   }
 

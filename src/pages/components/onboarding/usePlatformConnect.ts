@@ -35,6 +35,7 @@ interface UsePlatformConnectOptions {
   setDisconnectingProvider: (provider: DataProvider | null) => void;
   setDemoModalPlatform: (platform: string | null) => void;
   setGarminModalOpen?: (open: boolean) => void;
+  setSteamModalOpen?: (open: boolean) => void;
 }
 
 function createConnectError(message: string, status?: number, code?: string): ConnectError {
@@ -62,6 +63,7 @@ export function usePlatformConnect({
   setDisconnectingProvider,
   setDemoModalPlatform,
   setGarminModalOpen,
+  setSteamModalOpen,
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
@@ -195,6 +197,17 @@ export function usePlatformConnect({
         return;
       }
 
+      // Steam uses user-provided profile URL/ID (Steam Web API, not OAuth)
+      if (provider === 'steam') {
+        setConnectingProvider(null);
+        if (setSteamModalOpen) {
+          setSteamModalOpen(true);
+        } else {
+          toast({ title: 'Steam', description: 'Open Settings > Platforms to connect Steam.', variant: 'default' });
+        }
+        return;
+      }
+
       const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
 
       const authHeaders = {
@@ -313,7 +326,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen, setSteamModalOpen, handleNangoPopup]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;
