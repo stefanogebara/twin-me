@@ -14,16 +14,32 @@
  * Pure parser — no DB, no side effects.
  */
 
-import iconv from 'iconv-lite';
-import { Ofx } from 'ofx-data-extractor';
 import crypto from 'crypto';
 import { parseBrlAmount } from './nubankCsvParser.js';
+
+// Lazy-loaded heavy deps. Loaded on first use so a broken package can't crash
+// the serverless cold start and take down /api/* with it.
+// `ofx-data-extractor` ships UMD/CJS — ESM interop is fragile on Vercel.
+let _iconv = null;
+let _Ofx = null;
+async function loadIconv() {
+  if (_iconv) return _iconv;
+  const mod = await import('iconv-lite');
+  _iconv = mod.default || mod;
+  return _iconv;
+}
+async function loadOfx() {
+  if (_Ofx) return _Ofx;
+  const mod = await import('ofx-data-extractor');
+  _Ofx = mod.Ofx || mod.default?.Ofx || mod.default || mod;
+  return _Ofx;
+}
 
 /**
  * Decode a raw OFX file buffer. Tries Windows-1252 first (Brazilian default),
  * falls back to UTF-8 if content looks UTF-8.
  */
-export function decodeOfxBuffer(buffer) {
+export async function decodeOfxBuffer(buffer) {
   if (typeof buffer === 'string') return buffer;
   if (!Buffer.isBuffer(buffer)) throw new Error('decodeOfxBuffer: expected Buffer or string');
 
@@ -32,6 +48,7 @@ export function decodeOfxBuffer(buffer) {
   if (!utf8.includes('\uFFFD')) {
     return utf8;
   }
+  const iconv = await loadIconv();
   return iconv.decode(buffer, 'win1252');
 }
 
@@ -99,14 +116,15 @@ function normalizeTxnList(list) {
  *   errors: string[]
  * }}
  */
-export function parseOfx(input) {
-  const text = decodeOfxBuffer(input);
+export async function parseOfx(input) {
+  const text = await decodeOfxBuffer(input);
   const sourceBank = inferSourceBank(text);
 
   const errors = [];
   let ofx;
   try {
-    ofx = new Ofx(text);
+    const OfxCtor = await loadOfx();
+    ofx = new OfxCtor(text);
   } catch (err) {
     return { accountType: 'checking', sourceBank, transactions: [], errors: [`OFX parse init failed: ${err.message}`] };
   }

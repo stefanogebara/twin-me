@@ -17,8 +17,17 @@
  * Pure parser — no DB, no side effects.
  */
 
-import { parse as parseCsv } from 'csv-parse/sync';
 import crypto from 'crypto';
+
+// Lazy-loaded — csv-parse has a CJS subpath import that can be fragile on
+// Vercel cold start. Load inside the parser call instead of at module init.
+let _parseCsv = null;
+async function loadCsvParser() {
+  if (_parseCsv) return _parseCsv;
+  const mod = await import('csv-parse/sync');
+  _parseCsv = mod.parse || mod.default?.parse || mod.default;
+  return _parseCsv;
+}
 
 const HEADER_CARD_APP = /^date\s*;\s*title\s*;\s*amount$/i;
 const HEADER_CARD_LEGACY = /^DATA\s*;\s*DESCRICAO\s*;\s*VALOR$/i;
@@ -109,7 +118,7 @@ function parseDate(str) {
  *   errors: string[]
  * }}
  */
-export function parseNubankCsv(text) {
+export async function parseNubankCsv(text) {
   const variant = detectNubankVariant(text);
   if (!variant) {
     return {
@@ -128,6 +137,7 @@ export function parseNubankCsv(text) {
   const errors = [];
   let rows;
   try {
+    const parseCsv = await loadCsvParser();
     rows = parseCsv(text, {
       delimiter,
       columns: true,

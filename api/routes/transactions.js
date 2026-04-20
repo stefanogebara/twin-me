@@ -44,7 +44,7 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
     }
 
     const { buffer, originalname } = req.file;
-    const parsed = parseBankStatement(buffer, { filename: originalname });
+    const parsed = await parseBankStatement(buffer, { filename: originalname });
 
     if (!parsed.transactions.length) {
       return res.status(400).json({

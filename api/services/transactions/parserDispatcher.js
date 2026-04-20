@@ -17,8 +17,8 @@ import { parseOfx, decodeOfxBuffer } from './ofxParser.js';
  * Classify file format from a small preview of the content.
  * @returns 'ofx' | 'csv_nubank' | 'csv_generic' | 'unknown'
  */
-export function detectFormat(input) {
-  const text = Buffer.isBuffer(input) ? decodeOfxBuffer(input) : String(input);
+export async function detectFormat(input) {
+  const text = Buffer.isBuffer(input) ? await decodeOfxBuffer(input) : String(input);
   const head = text.slice(0, 400).trim();
 
   // OFX header starts with OFXHEADER:100 or <OFX or <?xml + <OFX
@@ -55,19 +55,19 @@ function sha256Hex(input) {
  *   fileHash: string
  * }}
  */
-export function parseBankStatement(input, options = {}) {
+export async function parseBankStatement(input, options = {}) {
   const { filename = '' } = options;
   const fileHash = sha256Hex(input);
-  const format = detectFormat(input);
+  const format = await detectFormat(input);
 
   if (format === 'ofx') {
-    const result = parseOfx(input);
+    const result = await parseOfx(input);
     return { format, ...result, fileHash };
   }
 
   if (format === 'csv_nubank') {
     const text = Buffer.isBuffer(input) ? input.toString('utf8') : String(input);
-    const result = parseNubankCsv(text);
+    const result = await parseNubankCsv(text);
     return {
       format,
       sourceBank: result.sourceBank,
