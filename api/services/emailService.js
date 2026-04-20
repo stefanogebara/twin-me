@@ -151,6 +151,107 @@ export async function sendWeeklyDigest({ toEmail, firstName, reflections, newMem
 }
 
 /**
+ * Financial-Emotional Twin — weekly report.
+ * Sent Sunday 8am (São Paulo) to users who uploaded a bank statement.
+ */
+export async function sendFinancialWeeklyReport({ toEmail, firstName, report, userId }) {
+  if (!resend) throw new Error('Email service not configured');
+  const safeName = escapeHtml(firstName || 'amigo');
+  const unsubToken = generateUnsubscribeToken(userId);
+  const unsubUrl = `${APP_URL}/api/email/unsubscribe?uid=${userId}&token=${unsubToken}`;
+
+  const fmt = (n) => new Intl.NumberFormat('pt-BR', {
+    style: 'currency', currency: 'BRL', minimumFractionDigits: 2,
+  }).format(n);
+
+  const categoryCards = (report.topCategories || [])
+    .map((c) => `
+      <div style="${S.card}">
+        <p style="${S.cardText}"><strong style="color:#F5F5F4;">${escapeHtml(c.category)}</strong> &nbsp;·&nbsp; ${fmt(c.total)}</p>
+      </div>`)
+    .join('');
+
+  const stressCards = (report.topStressPurchases || [])
+    .map((p) => {
+      const d = new Date(p.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      const stressPct = Math.round((p.stress_score || 0) * 100);
+      return `
+      <div style="${S.card}">
+        <p style="${S.cardText}"><strong style="color:#F5F5F4;">${escapeHtml(p.merchant)}</strong> ${fmt(p.amount)}</p>
+        <p style="font-family:'Inter',Arial,sans-serif;font-size:12px;color:#57534E;margin:4px 0 0;">${d} · stress ${stressPct}%</p>
+      </div>`;
+    })
+    .join('');
+
+  const wow = report.weekOverWeek;
+  const wowLine = wow && wow.outflow_delta_pct !== null
+    ? `<p style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#878279;margin:6px 0 0;">
+         ${wow.outflow_delta_pct > 0 ? '+' : ''}${wow.outflow_delta_pct}% vs semana anterior
+       </p>`
+    : '';
+
+  const savingsBlock = report.savings && report.savings.saved > 0
+    ? `
+      <p style="${S.label}">TwinMe economizou</p>
+      <div style="${S.card}">
+        <p style="font-family:Georgia,'Times New Roman',serif;font-size:24px;color:#86EFAC;margin:0 0 4px;">${fmt(report.savings.saved)}</p>
+        <p style="font-family:'Inter',Arial,sans-serif;font-size:13px;color:#878279;margin:0;">${report.savings.waited} ${report.savings.waited === 1 ? 'vez' : 'vezes'} que você esperou depois do aviso</p>
+      </div>
+      <div style="${S.divider}"></div>
+    `
+    : '';
+
+  const stressBlock = stressCards
+    ? `
+      <p style="${S.label}">Compras sob stress</p>
+      ${stressCards}
+      <div style="${S.divider}"></div>
+    `
+    : '';
+
+  const body = `
+  <p style="${S.heading}">Sua semana, traduzida ${safeName}</p>
+  <p style="${S.body}">
+    ${report.txCount} transaç${report.txCount === 1 ? 'ão' : 'ões'} ·
+    ${fmt(report.totalOutflow)} em gastos
+  </p>
+  ${wowLine}
+
+  <div style="${S.divider}"></div>
+
+  <p style="${S.label}">Onde foi seu dinheiro</p>
+  ${categoryCards || `<p style="${S.body}">Sem categorias suficientes para mostrar.</p>`}
+
+  <div style="${S.divider}"></div>
+
+  ${savingsBlock}
+  ${stressBlock}
+
+  ${report.emotionalSpendRatio !== null && report.emotionalSpendRatio > 0.2 ? `
+    <p style="${S.body}">
+      <strong style="color:#F5F5F4;">${Math.round(report.emotionalSpendRatio * 100)}%</strong> do seu gasto
+      foi em momentos de stress alto. Em breve vou te avisar antes da próxima compra impulsiva.
+    </p>
+  ` : ''}
+
+  <div style="margin-top:28px;">
+    <a href="${APP_URL}/money" style="${S.cta}">Ver detalhes</a>
+  </div>
+
+  <div style="${S.footer}">
+    <p style="margin:0 0 4px;">Você recebe esse email porque conectou seus gastos ao TwinMe.</p>
+    <p style="margin:0;"><a href="${unsubUrl}" style="${S.footerLink}">Cancelar emails semanais</a></p>
+  </div>`;
+
+  return resend.emails.send({
+    from: FROM,
+    to: toEmail,
+    subject: `Sua semana financeira, ${safeName}`,
+    html: emailShell(body),
+  });
+}
+
+/**
  * Welcome email for new beta users.
  */
 export async function sendWelcomeEmail({ toEmail, firstName }) {

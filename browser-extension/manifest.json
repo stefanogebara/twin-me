@@ -23,6 +23,11 @@
     "https://www.amazon.com/gp/video/*",
     "https://www.disneyplus.com/*",
     "https://twin-ai-learn.vercel.app/*",
+    "https://www.ifood.com.br/*",
+    "https://ifood.com.br/*",
+    "https://www.amazon.com.br/*",
+    "https://www.mercadolivre.com.br/*",
+    "https://www.shein.com.br/*",
     "*://*/*"
   ],
   "background": {
@@ -68,6 +73,17 @@
     {
       "matches": ["https://www.disneyplus.com/*"],
       "js": ["collectors/disneyplus.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.ifood.com.br/*",
+        "https://ifood.com.br/*",
+        "https://www.amazon.com.br/*",
+        "https://www.mercadolivre.com.br/*",
+        "https://www.shein.com.br/*"
+      ],
+      "js": ["content/stress-shop-nudge.js"],
       "run_at": "document_idle"
     },
     {
