@@ -55,11 +55,20 @@ async function fetchYouTubeObservations(userId) {
     const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
 
     try {
-      const subsRes = await axios.get(
-        'https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=20',
-        { headers, timeout: 10000 }
-      );
-      subsItems = subsRes.data?.items || [];
+      // Paginate up to 500 subscriptions (10 pages of 50). YouTube data API supports
+      // maxResults=50 per page and returns nextPageToken when more exist.
+      let nextPageToken = null;
+      const MAX_SUBS = 500;
+      const MAX_PAGES = 10;
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const url = `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50${nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : ''}`;
+        const subsRes = await axios.get(url, { headers, timeout: 10000 });
+        const items = subsRes.data?.items || [];
+        subsItems.push(...items);
+        nextPageToken = subsRes.data?.nextPageToken || null;
+        if (!nextPageToken || subsItems.length >= MAX_SUBS) break;
+      }
+      if (subsItems.length > MAX_SUBS) subsItems = subsItems.slice(0, MAX_SUBS);
     } catch (e) {
       log.warn('YouTube subscriptions error', { error: e });
     }
@@ -121,7 +130,10 @@ async function fetchYouTubeObservations(userId) {
   // Subscribed channels
   if (subsItems.length > 0) {
     const channelNames = subsItems.map(i => sanitizeExternal(i.snippet?.title)).filter(Boolean).slice(0, 10);
-    observations.push({ content: `Subscribed to YouTube channels: ${channelNames.join(', ')}`, contentType: 'weekly_summary' });
+    observations.push({
+      content: `Subscribed to ${subsItems.length} YouTube channel${subsItems.length !== 1 ? 's' : ''}, including: ${channelNames.join(', ')}`,
+      contentType: 'weekly_summary',
+    });
 
     // Subscription tenure analysis from publishedAt timestamps
     const subDates = subsItems

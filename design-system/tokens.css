@@ -1,0 +1,196 @@
+/* Claura — TwinMe Design System Tokens */
+:root {
+  /* ── Backgrounds ── */
+  --bg-base:        #13121a;
+  --bg-surface:     rgba(255,255,255,0.06);
+  --bg-surface-up:  rgba(255,255,255,0.10);
+  --bg-input:       rgba(255,255,255,0.08);
+  --bg-nav:         rgba(20,20,20,0.72);
+  --bg-overlay:     rgba(13,12,18,0.55);
+
+  /* ── Text ── */
+  --text-primary:   #F5F5F4;
+  --text-secondary: #A8A29E;
+  --text-muted:     #9C9590;
+  --text-placeholder: #57534E;
+
+  /* ── Borders ── */
+  --border:         rgba(255,255,255,0.08);
+  --border-glass:   rgba(255,255,255,0.10);
+  --border-subtle:  rgba(255,255,255,0.05);
+
+  /* ── Accents ── */
+  --accent-amber:   #c17e2c;
+  --accent-purple:  #5d5cae;
+  --accent-primary: #F5F5F4;
+
+  /* ── Radius ── */
+  --radius-sm:   6px;
+  --radius-md:   12px;
+  --radius-card: 20px;
+  --radius-nav:  32px;
+  --radius-chip: 46px;
+  --radius-pill: 100px;
+
+  /* ── Blur ── */
+  --blur-card:  blur(42px);
+  --blur-nav:   blur(19.65px);
+  --blur-auth:  blur(51px);
+
+  /* ── Fonts ── */
+  --font-ui:      'Geist', 'Inter', system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+
+  /* ── Spacing ── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+}
+
+/* ── Base reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 15% 15%, rgba(210,145,55,0.38) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 45% at 82% 12%, rgba(180,110,65,0.30) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 50% at 50% 90%, rgba(160,95,55,0.34) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 40% at 70% 55%, rgba(55,45,140,0.28) 0%, transparent 60%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Glass surface ── */
+.glass {
+  background: var(--bg-surface);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-card);
+}
+
+.glass-nav {
+  background: var(--bg-nav);
+  backdrop-filter: var(--blur-nav);
+  -webkit-backdrop-filter: var(--blur-nav);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-nav);
+}
+
+/* ── Typography ── */
+.display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.02em; font-style: italic; }
+.display-xl { font-size: 56px; line-height: 1.1; }
+.display-lg { font-size: 48px; line-height: 1.15; }
+.display-md { font-size: 36px; line-height: 1.2; }
+
+.heading-lg { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.heading-md { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.heading-sm { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+
+.label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.text-secondary { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+
+/* ── Buttons ── */
+.btn-primary {
+  background: var(--accent-primary);
+  color: #110f0f;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 10px 24px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-glass {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+}
+
+/* ── Input ── */
+.input {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+}
+.input::placeholder { color: var(--text-placeholder); }
+.input:focus { border-color: var(--border-glass); }
+
+/* ── Chip ── */
+.chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-chip);
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  white-space: nowrap;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 240px;
+  height: 100vh;
+  background: var(--bg-surface);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  flex-shrink: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+.nav-item.active { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+.nav-icon { width: 18px; height: 18px; opacity: 0.7; }
+.nav-item.active .nav-icon { opacity: 1; }

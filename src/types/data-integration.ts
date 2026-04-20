@@ -13,7 +13,7 @@ export type DataProvider =
   | 'slack' | 'discord' | 'linkedin' | 'twitter' | 'instagram'
   | 'netflix' | 'spotify' | 'youtube' | 'github' | 'notion' | 'pinterest' | 'reddit'
   | 'strava' | 'oura' | 'whoop'
-  | 'fitbit' | 'garmin' | 'twitch' | 'steam'
+  | 'fitbit' | 'garmin' | 'twitch' | 'steam' | 'duolingo'
   | 'browser_extension';
 
 export type DataType =

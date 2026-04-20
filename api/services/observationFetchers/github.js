@@ -172,6 +172,197 @@ async function fetchGitHubObservations(userId) {
     log.warn('Repos fetch error (non-fatal)', { error: err });
   }
 
+  // ── 4b. GraphQL contribution calendar (full 365-day heatmap) ─────────────
+  // Uses ~2 rate-limit points. Gracefully degrades to REST-only on failure.
+  let contribCalendar = null;
+  try {
+    const gqlQuery = `query($login: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          contributionCalendar {
+            totalContributions
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+                weekday
+              }
+            }
+          }
+          totalCommitContributions
+          totalIssueContributions
+          totalPullRequestContributions
+          totalPullRequestReviewContributions
+        }
+      }
+    }`;
+    const gqlRes = await axios.post(
+      'https://api.github.com/graphql',
+      { query: gqlQuery, variables: { login: githubUsername } },
+      {
+        headers: {
+          Authorization: `bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'TwinMe/1.0',
+        },
+        timeout: 15000,
+      }
+    );
+    const cc = gqlRes.data?.data?.user?.contributionsCollection;
+    if (cc?.contributionCalendar) {
+      contribCalendar = {
+        totalContributions: cc.contributionCalendar.totalContributions || 0,
+        totalCommits: cc.totalCommitContributions || 0,
+        totalPRs: cc.totalPullRequestContributions || 0,
+        totalReviews: cc.totalPullRequestReviewContributions || 0,
+        totalIssues: cc.totalIssueContributions || 0,
+        weeks: cc.contributionCalendar.weeks || [],
+      };
+    }
+  } catch (err) {
+    log.warn('GitHub GraphQL contribution calendar failed (non-fatal)', { error: err?.message });
+  }
+
+  // ── 4c. Flatten calendar + compute streaks / distributions ───────────────
+  if (contribCalendar) {
+    const days = [];
+    for (const w of contribCalendar.weeks) {
+      for (const d of (w.contributionDays || [])) {
+        days.push({
+          date: d.date,
+          count: d.contributionCount || 0,
+          weekday: d.weekday, // 0=Sunday ... 6=Saturday
+        });
+      }
+    }
+    // Ensure chronological order
+    days.sort((a, b) => a.date.localeCompare(b.date));
+
+    // Year summary
+    const year = new Date().getFullYear();
+    observations.push({
+      content: `Your GitHub ${year} activity: ${contribCalendar.totalContributions} contributions — ${contribCalendar.totalCommits} commits, ${contribCalendar.totalPRs} PRs, ${contribCalendar.totalReviews} reviews, ${contribCalendar.totalIssues} issues`,
+      contentType: 'annual_summary',
+    });
+
+    // Longest streak
+    let longestStreak = 0;
+    let longestStreakEnd = null;
+    let currentRun = 0;
+    let currentRunEnd = null;
+    for (const d of days) {
+      if (d.count > 0) {
+        currentRun++;
+        currentRunEnd = d.date;
+        if (currentRun > longestStreak) {
+          longestStreak = currentRun;
+          longestStreakEnd = currentRunEnd;
+        }
+      } else {
+        currentRun = 0;
+        currentRunEnd = null;
+      }
+    }
+    if (longestStreak >= 3) {
+      observations.push({
+        content: `Longest GitHub contribution streak in the past year: ${longestStreak} consecutive days${longestStreakEnd ? ` (ending ${longestStreakEnd})` : ''}`,
+        contentType: 'annual_summary',
+      });
+    }
+
+    // Current streak (consecutive days ending today/yesterday with contributions)
+    let curStreak = 0;
+    for (let i = days.length - 1; i >= 0; i--) {
+      if (days[i].count > 0) curStreak++;
+      else break;
+    }
+    if (curStreak >= 2) {
+      observations.push({
+        content: `Current GitHub contribution streak: ${curStreak} consecutive day${curStreak !== 1 ? 's' : ''}`,
+        contentType: 'current_state',
+      });
+    }
+
+    // Day-of-week distribution (weekday coder vs weekend tinkerer)
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const weekdayTotals = [0, 0, 0, 0, 0, 0, 0];
+    for (const d of days) weekdayTotals[d.weekday] += d.count;
+    const weekdaySum = weekdayTotals[1] + weekdayTotals[2] + weekdayTotals[3] + weekdayTotals[4] + weekdayTotals[5];
+    const weekendSum = weekdayTotals[0] + weekdayTotals[6];
+    const totalAll = weekdaySum + weekendSum;
+    if (totalAll > 20) {
+      const peakIdx = weekdayTotals.indexOf(Math.max(...weekdayTotals));
+      const weekendPct = Math.round((weekendSum / totalAll) * 100);
+      const persona = weekendPct >= 35 ? 'weekend tinkerer' : weekendPct <= 15 ? 'strict weekday coder' : 'weekday coder';
+      observations.push({
+        content: `GitHub rhythm: ${persona} — peak day is ${dayNames[peakIdx]} (${weekdayTotals[peakIdx]} contributions), ${weekendPct}% of activity on weekends`,
+        contentType: 'annual_summary',
+      });
+    }
+
+    // Peak month
+    const monthTotals = {};
+    for (const d of days) {
+      const ym = d.date.slice(0, 7); // YYYY-MM
+      monthTotals[ym] = (monthTotals[ym] || 0) + d.count;
+    }
+    const peakMonthEntry = Object.entries(monthTotals).sort(([, a], [, b]) => b - a)[0];
+    if (peakMonthEntry && peakMonthEntry[1] > 0) {
+      const [ym, count] = peakMonthEntry;
+      const [yy, mm] = ym.split('-');
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      observations.push({
+        content: `Most active GitHub month in the past year: ${monthNames[parseInt(mm, 10) - 1]} ${yy} with ${count} contributions`,
+        contentType: 'annual_summary',
+      });
+    }
+  }
+
+  // ── 4d. Language bytes from top starred repos (authoritative vs name-guess) ──
+  let languageBytes = null;
+  if (repos.length > 0) {
+    try {
+      const topByStars = [...repos]
+        .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
+        .slice(0, 5);
+      const langResults = await Promise.all(
+        topByStars.map(r =>
+          r.owner?.login && r.name
+            ? axios
+                .get(`https://api.github.com/repos/${r.owner.login}/${r.name}/languages`, {
+                  headers,
+                  timeout: 10000,
+                })
+                .then(res => res.data || {})
+                .catch(() => ({}))
+            : Promise.resolve({})
+        )
+      );
+      const agg = {};
+      for (const byLang of langResults) {
+        for (const [lang, bytes] of Object.entries(byLang)) {
+          agg[lang] = (agg[lang] || 0) + (bytes || 0);
+        }
+      }
+      const total = Object.values(agg).reduce((a, b) => a + b, 0);
+      if (total > 0) {
+        languageBytes = Object.entries(agg)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 4)
+          .map(([lang, bytes]) => ({ lang, pct: Math.round((bytes / total) * 100) }));
+      }
+    } catch (err) {
+      log.debug('GitHub language bytes fetch failed (non-fatal)', { error: err?.message });
+    }
+  }
+  if (languageBytes && languageBytes.length > 0) {
+    const parts = languageBytes.map(({ lang, pct }) => `${lang} (${pct}%)`).join(', ');
+    observations.push({
+      content: `Your GitHub language distribution: ${parts}`,
+      contentType: 'annual_summary',
+    });
+  }
+
   // ── 5. Build event-based observations ────────────────────────────────────
   const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;

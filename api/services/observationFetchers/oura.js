@@ -433,6 +433,113 @@ async function fetchOuraObservations(userId) {
     log.warn('Oura heartrate error', { error: e?.response?.status || e.message });
   }
 
+  // ── 5. Daily Stress (v2) ──────────────────────────────────────────────────
+  try {
+    const stressRes = await axios.get(
+      `${OURA_API}/daily_stress?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    const stressEntries = stressRes.data?.data || [];
+    if (stressEntries.length > 0) {
+      const latest = stressEntries[stressEntries.length - 1];
+      const stressHigh = latest.stress_high ?? null; // seconds in high-stress state
+      const recoveryHigh = latest.recovery_high ?? null; // seconds in recovery state
+      const dayLabel = latest.day_summary || null;
+
+      // Trend across available window
+      const highs = stressEntries.map(e => e.stress_high).filter(n => typeof n === 'number');
+      let trendDir = null;
+      if (highs.length >= 4) {
+        const firstHalf = highs.slice(0, Math.floor(highs.length / 2));
+        const secondHalf = highs.slice(Math.floor(highs.length / 2));
+        const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+        trendDir = secondAvg > firstAvg * 1.1 ? 'up' : secondAvg < firstAvg * 0.9 ? 'down' : 'stable';
+      }
+
+      const parts = [];
+      if (typeof stressHigh === 'number') parts.push(`${Math.round(stressHigh / 60)} min in high stress`);
+      if (typeof recoveryHigh === 'number') parts.push(`${Math.round(recoveryHigh / 60)} min recovery time`);
+      if (dayLabel) parts.push(`day labeled ${sanitizeExternal(String(dayLabel), 40)}`);
+      if (trendDir) parts.push(`stress trending ${trendDir}`);
+
+      if (parts.length > 0) {
+        observations.push({
+          content: `Oura stress: ${parts.join(', ')}`,
+          contentType: 'daily_summary',
+        });
+      }
+    }
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status !== 401 && status !== 403 && status !== 404) {
+      log.warn('Oura daily_stress error', { error: e?.response?.status || e.message });
+    }
+  }
+
+  // ── 6. Daily Resilience (v2) ──────────────────────────────────────────────
+  try {
+    const resilRes = await axios.get(
+      `${OURA_API}/daily_resilience?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    const resilEntries = resilRes.data?.data || [];
+    if (resilEntries.length > 0) {
+      const latest = resilEntries[resilEntries.length - 1];
+      const level = latest.level ? sanitizeExternal(String(latest.level), 30) : null;
+      if (level) {
+        observations.push({
+          content: `Oura resilience: ${level} based on last 14 days of sleep + HRV + recovery`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status !== 401 && status !== 403 && status !== 404) {
+      log.warn('Oura daily_resilience error', { error: e?.response?.status || e.message });
+    }
+  }
+
+  // ── 7. Daily Cardiovascular Age (v2, Oura premium — often empty) ──────────
+  try {
+    const cardioRes = await axios.get(
+      `${OURA_API}/daily_cardiovascular_age?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    const cardioEntries = cardioRes.data?.data || [];
+    if (cardioEntries.length > 0) {
+      const latest = cardioEntries[cardioEntries.length - 1];
+      const vascularAge = latest.vascular_age ?? latest.cardio_age ?? null;
+      if (typeof vascularAge === 'number') {
+        observations.push({
+          content: `Oura cardiovascular age: ${Math.round(vascularAge)} years`,
+          contentType: 'weekly_summary',
+        });
+      }
+    }
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status !== 401 && status !== 403 && status !== 404) {
+      log.warn('Oura daily_cardiovascular_age error', { error: e?.response?.status || e.message });
+    }
+  }
+
+  // ── 8. Tags (v2) — user self-tracking habits ──────────────────────────────
+  try {
+    const tagRes = await axios.get(
+      `${OURA_API}/tag?${queryParams}`,
+      { headers: ouraHeaders, timeout: 10000 }
+    );
+    const tagEntries = tagRes.data?.data || [];
+    _buildOuraTagObservations(observations, tagEntries);
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status !== 401 && status !== 403 && status !== 404) {
+      log.warn('Oura tag error', { error: e?.response?.status || e.message });
+    }
+  }
+
   // ── Store raw Oura data in user_platform_data (fire-and-forget) ─────────
   try {
     _storeOuraPlatformData(userId, supabase, { sleepData, readinessData, activityData });
