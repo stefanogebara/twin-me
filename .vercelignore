@@ -18,22 +18,11 @@ api/mcp-server/
 *.md
 !README.md
 
-# Large dirs unused at runtime — reduces upload + build surface.
-mobile/
-twin-research/
-tests/
-e2e-tests/
-scripts/
-tasks/
-design-system/
-test-data/
-database/
-.github/
-tmp/
-coverage/
-playwright-report/
-test-results/
-
-# Editor junk
+# Editor junk (safe — not imported at runtime)
 .vscode/
 .idea/
+
+# NOTE: 3d425f00 added broad excludes (mobile/, database/, scripts/, tasks/,
+# etc) that triggered an ERR_MODULE_NOT_FOUND outage. Reverted until we can
+# identify exactly which path is referenced at runtime and exclude only the
+# safe ones one-at-a-time.
