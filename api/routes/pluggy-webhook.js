@@ -225,10 +225,13 @@ router.post('/', express.json({ limit: '1mb' }), async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     log.error(`dispatch ${event} failed: ${err.message}\n${err.stack}`);
+    // Temporarily expose error detail in prod to debug Phase 3.2 sandbox E2E.
+    // Remove this once the ingestion pipeline is confirmed green.
     res.status(500).json({
       success: false,
       error: 'dispatch failed',
-      message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      message: err.message,
+      stack: (err.stack || '').split('\n').slice(0, 6),
     });
   }
 });
