@@ -400,6 +400,8 @@ import extractionStatusRoutes from './routes/extraction-status.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
 import transactionsRoutes from './routes/transactions.js';
+import pluggyRoutes from './routes/pluggy.js';
+import pluggyWebhookRoutes from './routes/pluggy-webhook.js';
 import claudeSyncRoutes from './routes/claude-sync.js';
 import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
 import twinsBrainRoutes from './routes/twins-brain.js';
@@ -604,7 +606,9 @@ app.use('/api/notifications', notificationsRoutes); // User notifications (token
 app.use('/api/device-tokens', deviceTokensRoutes);  // FCM/Expo push token registration
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
+app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
 app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — bank statement ingestion + emotional tagging
+app.use('/api/webhooks/pluggy', pluggyWebhookRoutes); // Phase 3.1 — Pluggy webhook receiver (public, header-secret gate)
 app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing

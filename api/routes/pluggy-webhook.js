@@ -1,0 +1,223 @@
+/**
+ * Pluggy Webhook Receiver — Financial-Emotional Twin, Phase 3.1
+ * ================================================================
+ * Public endpoint. Gated by a shared-secret header (Pluggy has no HMAC).
+ * Pluggy retries 10× over 3 days if we don't 200 within 5s, so we:
+ *   1. Verify the secret
+ *   2. Parse + persist event metadata
+ *   3. Kick off heavy work (API fetches, ingestion) without blocking the response
+ *
+ * Events handled:
+ *   item/created | item/updated | item/deleted | item/error
+ *   item/waiting_user_input | item/login_succeeded
+ *   connector/status_updated
+ *   transactions/created | transactions/updated | transactions/deleted
+ */
+
+import express from 'express';
+import crypto from 'crypto';
+import { supabaseAdmin } from '../services/database.js';
+import * as pluggy from '../services/transactions/pluggyClient.js';
+import {
+  seedItemTransactions,
+  ingestTransactionsByIds,
+  resolveUserIdForItem,
+} from '../services/transactions/pluggyIngestion.js';
+import { createLogger } from '../services/logger.js';
+
+const log = createLogger('pluggy-webhook');
+const router = express.Router();
+
+const WEBHOOK_SECRET = process.env.PLUGGY_WEBHOOK_SECRET;
+
+/**
+ * Fail-closed secret check. Pluggy posts a custom header we configure when
+ * registering the webhook URL. This is NOT HMAC — so rotate the secret
+ * promptly if it ever leaks, and keep it out of logs.
+ */
+function verifyPluggySecret(req) {
+  if (!WEBHOOK_SECRET) {
+    log.error('PLUGGY_WEBHOOK_SECRET not set — rejecting webhook');
+    return false;
+  }
+  const header = req.headers['x-pluggy-signature'] || req.headers['x-webhook-secret'];
+  if (!header || typeof header !== 'string') return false;
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(WEBHOOK_SECRET, 'utf8'),
+      Buffer.from(header, 'utf8'),
+    );
+  } catch {
+    return false;
+  }
+}
+
+// In-memory dedup — Pluggy may retry on timeout. Keep 5min window.
+const seenEventIds = new Map();
+const DEDUP_TTL_MS = 5 * 60 * 1000;
+
+function isDuplicateEvent(eventId) {
+  if (!eventId) return false;
+  const now = Date.now();
+  // Opportunistic cleanup
+  if (seenEventIds.size > 500) {
+    for (const [id, ts] of seenEventIds.entries()) {
+      if (now - ts > DEDUP_TTL_MS) seenEventIds.delete(id);
+    }
+  }
+  const prev = seenEventIds.get(eventId);
+  if (prev && now - prev < DEDUP_TTL_MS) return true;
+  seenEventIds.set(eventId, now);
+  return false;
+}
+
+/**
+ * Upsert a user_bank_connections row from a Pluggy item payload.
+ * Called on item/created and item/updated.
+ */
+async function upsertConnectionFromItem(userId, item) {
+  if (!userId || !item?.id) return;
+  const row = {
+    user_id: userId,
+    pluggy_item_id: item.id,
+    connector_id: item.connector?.id ?? 0,
+    connector_name: item.connector?.name || 'Unknown Bank',
+    status: item.status || 'UNKNOWN',
+    status_detail: item.executionStatus ? { executionStatus: item.executionStatus } : null,
+    last_synced_at: item.lastUpdatedAt || new Date().toISOString(),
+    consent_expires_at: item.consentExpiresAt || null,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabaseAdmin
+    .from('user_bank_connections')
+    .upsert(row, { onConflict: 'pluggy_item_id' });
+  if (error) log.warn(`upsert connection ${item.id}: ${error.message}`);
+}
+
+async function handleItemEvent(event, payload) {
+  const itemId = payload.itemId;
+  if (!itemId) return;
+
+  // Primary user lookup: clientUserId (set by us at connect_token time)
+  let userId = payload.clientUserId || null;
+
+  // Fallback lookup: if the row exists, trust it (covers item/updated where clientUserId may be absent)
+  if (!userId) userId = await resolveUserIdForItem(itemId);
+  if (!userId) {
+    log.warn(`no user for item ${itemId}; skipping ${event}`);
+    return;
+  }
+
+  switch (event) {
+    case 'item/created':
+    case 'item/updated':
+    case 'item/login_succeeded': {
+      const item = await pluggy.getItem(itemId);
+      await upsertConnectionFromItem(userId, item);
+      // Only seed on create — update fires again on every refresh cycle
+      if (event === 'item/created') {
+        await seedItemTransactions(userId, itemId);
+      }
+      break;
+    }
+    case 'item/error':
+    case 'item/waiting_user_input': {
+      const item = await pluggy.getItem(itemId).catch(() => null);
+      const status = item?.status || (event === 'item/error' ? 'LOGIN_ERROR' : 'WAITING_USER_INPUT');
+      await supabaseAdmin
+        .from('user_bank_connections')
+        .update({
+          status,
+          status_detail: item?.executionStatus ? { executionStatus: item.executionStatus } : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('pluggy_item_id', itemId);
+      break;
+    }
+    case 'item/deleted': {
+      await supabaseAdmin
+        .from('user_bank_connections')
+        .update({ deleted_at: new Date().toISOString(), status: 'DELETED' })
+        .eq('pluggy_item_id', itemId);
+      break;
+    }
+    default:
+      log.info(`unhandled item event: ${event}`);
+  }
+}
+
+async function handleTransactionEvent(event, payload) {
+  const itemId = payload.itemId;
+  const transactionIds = Array.isArray(payload.transactionIds) ? payload.transactionIds : [];
+  if (!itemId || !transactionIds.length) return;
+
+  const userId = payload.clientUserId || (await resolveUserIdForItem(itemId));
+  if (!userId) {
+    log.warn(`no user for transactions on item ${itemId}`);
+    return;
+  }
+
+  if (event === 'transactions/deleted') {
+    const { error } = await supabaseAdmin
+      .from('user_transactions')
+      .delete()
+      .in('pluggy_transaction_id', transactionIds)
+      .eq('user_id', userId);
+    if (error) log.warn(`delete tx failed: ${error.message}`);
+    return;
+  }
+
+  // transactions/created + transactions/updated both funnel into the same upsert path.
+  await ingestTransactionsByIds(userId, itemId, transactionIds);
+}
+
+/**
+ * Dispatch in the background. We deliberately don't await this from the HTTP
+ * handler — Pluggy needs 200 within 5s. Errors are logged; retries will be
+ * driven by Pluggy's own retry policy if we return non-2xx.
+ *
+ * NOTE: On Vercel serverless, fire-and-forget work gets killed after response
+ * returns. For webhooks, this is acceptable because Pluggy retries on failure;
+ * if we want stronger guarantees we'd push to Inngest here. For Phase 3.1 we
+ * accept best-effort and revisit if we see drops.
+ */
+async function dispatch(event, payload) {
+  try {
+    if (event.startsWith('item/')) {
+      await handleItemEvent(event, payload);
+    } else if (event.startsWith('transactions/')) {
+      await handleTransactionEvent(event, payload);
+    } else {
+      log.info(`ignored event: ${event}`);
+    }
+  } catch (err) {
+    log.error(`dispatch ${event} failed: ${err.message}`);
+  }
+}
+
+router.post('/', express.json({ limit: '1mb' }), async (req, res) => {
+  if (!verifyPluggySecret(req)) {
+    return res.status(401).json({ success: false, error: 'unauthorized' });
+  }
+
+  const payload = req.body || {};
+  const event = String(payload.event || '');
+  const eventId = payload.eventId;
+
+  if (!event) return res.status(400).json({ success: false, error: 'missing event' });
+  if (isDuplicateEvent(eventId)) {
+    log.info(`duplicate event ${eventId} ignored`);
+    return res.json({ success: true, deduplicated: true });
+  }
+
+  log.info(`received ${event} for item ${payload.itemId || '?'}`);
+
+  // Return 200 fast, dispatch in background.
+  res.json({ success: true });
+
+  dispatch(event, payload).catch((err) => {
+    log.error(`background dispatch error: ${err.message}`);
+  });
+});
+
+export default router;
