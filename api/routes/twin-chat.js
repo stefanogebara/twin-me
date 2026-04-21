@@ -179,6 +179,7 @@ async function checkChatRateLimit(userId) {
 // Platform data cache - prevents redundant API calls during conversations
 
 import { TWIN_BASE_INSTRUCTIONS, MAX_DYNAMIC_CONTEXT_CHARS, deduplicateByTheme, buildTwinSystemPrompt } from '../services/twinSystemPromptBuilder.js';
+import { maybeBuildAmbientHint } from '../services/ambientInterviewService.js';
 const MAX_ADDITIONAL_CONTEXT_CHARS = 12000; // ~3K tokens for writing profile, memories, history
 function getTimeAgo(timestamp) {
   if (!timestamp) return 'recently';
@@ -902,6 +903,20 @@ Make it sound natural and curious, not like a survey question.`;
         systemPrompt.push({ type: 'text', text: deepQuestionBlock.trim() });
       }
       log.debug('Injected proactive deep question', { turn: conversationHistory.length });
+    }
+
+    // Ambient interview — session-lottery gate (1/3) + thin-domain check.
+    // Weaves ONE optional domain question into the response if the conversation
+    // naturally allows. Fills the 2 domains (lifestyle, cultural) we skipped
+    // in the 3-question onboarding.
+    try {
+      const ambientHint = await maybeBuildAmbientHint(userId);
+      if (ambientHint) {
+        systemPrompt.push({ type: 'text', text: ambientHint });
+        chatLog('Ambient interview hint injected');
+      }
+    } catch (err) {
+      log.warn('Ambient interview hint failed (non-fatal)', { error: err.message });
     }
 
     // Log total system prompt size for monitoring
