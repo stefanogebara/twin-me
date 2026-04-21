@@ -617,6 +617,25 @@ router.post('/nudge-outcome', authenticateUser, async (req, res) => {
 });
 
 /**
+ * GET /risk-forecast
+ * Phase 3.5 — "before it happens" morning forecast. Returns a status chip
+ * and copy explaining whether today's biology + sleep matches the user's
+ * historical impulse-spending pattern. Cheap to compute, safe to poll.
+ */
+router.get('/risk-forecast', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+    const { computeRiskForecast } = await import('../services/transactions/financialRiskForecast.js');
+    const forecast = await computeRiskForecast(userId);
+    return res.json({ success: true, forecast });
+  } catch (err) {
+    log.error('risk-forecast error', err);
+    return res.status(500).json({ success: false, error: 'failed to compute forecast' });
+  }
+});
+
+/**
  * GET /nudge-stats
  * Phase 3.4b — aggregated stress_nudge effectiveness for the affirmation UI.
  * Reads proactive_insights (category=stress_nudge) that have been

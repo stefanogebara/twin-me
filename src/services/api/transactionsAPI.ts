@@ -202,6 +202,25 @@ export interface NudgeStats {
   recent?: NudgeRecent[];
 }
 
+/** Phase 3.5 "before it happens": daily risk forecast for impulse spending. */
+export interface RiskForecast {
+  status: 'high_risk' | 'low_risk' | 'no_history' | 'no_biology' | 'insufficient_data';
+  headline?: string;
+  detail?: string;
+  message?: string;
+  expected_extra?: number;
+  current_biology?: { recovery: number | null; sleep: number | null; hrv: number | null; source: string; at: string };
+  baseline?: { stress_days: number; normal_days: number; stress_avg_discretionary: number | null; normal_avg_discretionary: number | null; currency: string };
+}
+
+export async function getRiskForecast(): Promise<RiskForecast | null> {
+  const res = await authFetch('/transactions/risk-forecast');
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (!json.success) return null;
+  return (json.forecast || null) as RiskForecast | null;
+}
+
 /** Phase 3.4b affirmation card: how did the user respond to stress nudges? */
 export async function getNudgeStats(): Promise<NudgeStats | null> {
   const res = await authFetch('/transactions/nudge-stats');

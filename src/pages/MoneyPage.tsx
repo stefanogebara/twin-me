@@ -16,12 +16,14 @@ import {
   getSavings,
   getSpendingPatterns,
   getNudgeStats,
+  getRiskForecast,
   type Transaction,
   type TransactionsSummary,
   type SavingsSummary,
   type PatternsResult,
   type SpendingPattern,
   type NudgeStats,
+  type RiskForecast,
   type UploadResult,
 } from '@/services/api/transactionsAPI';
 import { ConnectBankButton } from './components/money/ConnectBankButton';
@@ -465,6 +467,7 @@ export default function MoneyPage() {
   const [savings, setSavings] = useState<SavingsSummary | null>(null);
   const [patterns, setPatterns] = useState<PatternsResult | null>(null);
   const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
+  const [forecast, setForecast] = useState<RiskForecast | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
@@ -490,18 +493,20 @@ export default function MoneyPage() {
     setLoading(true);
     setError(null);
     try {
-      const [txns, sum, sav, pat, nudges] = await Promise.all([
+      const [txns, sum, sav, pat, nudges, fc] = await Promise.all([
         listTransactions({ limit: 50 }),
         getTransactionsSummary(),
         getSavings(),
         getSpendingPatterns(),
         getNudgeStats(),
+        getRiskForecast(),
       ]);
       setTransactions(txns);
       setSummary(sum);
       setSavings(sav);
       setPatterns(pat);
       setNudgeStats(nudges);
+      setForecast(fc);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar transações');
     } finally {
@@ -716,6 +721,55 @@ export default function MoneyPage() {
           >
             {savings.waited_count} {savings.waited_count === 1 ? 'vez' : 'vezes'} que você esperou depois do aviso.
             {savings.biggest_save > 0 && <> Maior pausa: {formatCurrency(savings.biggest_save, dominantCurrency)}.</>}
+          </p>
+        </div>
+      )}
+
+      {/* Phase 3.5 — "before it happens" daily risk forecast. Appears only when
+          the backend has enough signal to say something meaningful. */}
+      {forecast && (forecast.status === 'high_risk' || forecast.status === 'low_risk') && (
+        <div
+          className="mb-6 px-5 py-4"
+          style={{
+            ...CARD_STYLE,
+            background: forecast.status === 'high_risk'
+              ? 'rgba(217, 119, 6, 0.06)'
+              : 'rgba(134, 239, 172, 0.04)',
+            borderColor: forecast.status === 'high_risk'
+              ? 'rgba(217, 119, 6, 0.20)'
+              : 'rgba(134, 239, 172, 0.14)',
+          }}
+        >
+          <p
+            style={{
+              ...LABEL_STYLE,
+              color: forecast.status === 'high_risk' ? 'rgba(232, 160, 80, 0.85)' : 'rgba(134, 239, 172, 0.85)',
+              marginBottom: 6,
+            }}
+          >
+            Hoje
+          </p>
+          <p
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: 24,
+              color: 'var(--foreground)',
+              lineHeight: 1.2,
+              letterSpacing: '-0.01em',
+              marginBottom: 6,
+            }}
+          >
+            {forecast.headline}
+          </p>
+          <p
+            style={{
+              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.70)',
+            }}
+          >
+            {forecast.detail}
           </p>
         </div>
       )}
