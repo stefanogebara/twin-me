@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useVoiceInterview, type OrbVoiceState } from '../../../hooks/useVoiceInterview';
 import SoulOrb from './SoulOrb';
 import { getAccessToken } from '@/services/api/apiBase';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import ModeSelectionScreen from './interview/ModeSelectionScreen';
 import InterviewCompletion from './interview/InterviewCompletion';
 import ChatInputArea from './interview/ChatInputArea';
@@ -58,6 +59,13 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const initRan = useRef(false);
+
+  // PostHog funnel instrumentation (onboarding 12→3 reduction measurement).
+  const { trackEvent } = useAnalytics();
+  const startedAtRef = useRef<number>(0);           // ms timestamp when first question shown
+  const questionShownAtRef = useRef<number>(0);     // ms timestamp current question appeared
+  const startFiredRef = useRef(false);              // ensure interview_started fires once
+  const completeFiredRef = useRef(false);           // ensure completion fires once
 
   const STORAGE_KEY = 'twinme_interview_progress';
 
@@ -205,6 +213,12 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         const restoredQ = progress.questionNumber || 1;
         if (restoredQ >= 3) {
           localStorage.removeItem(STORAGE_KEY);
+          trackEvent('onboarding_interview_migrated', {
+            old_question_number: restoredQ,
+            answered: (progress.messages || []).filter(
+              (m: { role: string }) => m.role === 'user',
+            ).length,
+          });
           // Their answers are already stored as memories; let them proceed.
           onSkip();
           return;
@@ -259,6 +273,20 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         setSummary(result.summary || '');
         if (result.domainProgress) setDomainProgress(result.domainProgress);
         clearProgress();
+        // Fire completion event once — captures full 3-question funnel close.
+        if (!completeFiredRef.current) {
+          completeFiredRef.current = true;
+          const durationSec = startedAtRef.current
+            ? Math.round((Date.now() - startedAtRef.current) / 1000)
+            : 0;
+          const answered = messages.filter(m => m.role === 'user').length;
+          trackEvent('onboarding_interview_completed', {
+            questions_answered: answered,
+            duration_seconds: durationSec,
+            mode,
+            domain_coverage: result.domainProgress,
+          });
+        }
         await generateEnhancedSignature(result);
         return;
       }
@@ -273,6 +301,20 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
         });
         setQuestionNumber(nextQ);
         if (result.domainProgress) setDomainProgress(result.domainProgress);
+
+        // Fire interview_started on the first question render + question_shown on each.
+        if (!startFiredRef.current) {
+          startFiredRef.current = true;
+          startedAtRef.current = Date.now();
+          trackEvent('onboarding_interview_started', { mode });
+        }
+        questionShownAtRef.current = Date.now();
+        trackEvent('onboarding_interview_question_shown', {
+          question_number: result.questionNumber,
+          phase: result.phase,
+          current_domain: result.currentDomain,
+          mode,
+        });
       }
     } catch (error) {
       console.error('[DeepInterview] Error fetching question:', error);
@@ -295,6 +337,17 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   const handleSend = () => {
     const text = input.trim();
     if (!text || loading || isDone) return;
+
+    // Measure think-time per question (shown -> answered).
+    const thinkSec = questionShownAtRef.current
+      ? Math.round((Date.now() - questionShownAtRef.current) / 1000)
+      : 0;
+    trackEvent('onboarding_interview_question_answered', {
+      question_number: questionNumber,
+      answer_length: text.length,
+      think_seconds: thinkSec,
+      mode,
+    });
 
     setInput('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
@@ -344,6 +397,18 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
   };
 
   const handleDoneEarly = async () => {
+    // Fire skip event — captures at-which-question abandonment.
+    const durationSec = startedAtRef.current
+      ? Math.round((Date.now() - startedAtRef.current) / 1000)
+      : 0;
+    const answered = messages.filter(m => m.role === 'user').length;
+    trackEvent('onboarding_interview_skipped', {
+      question_number: questionNumber,
+      questions_answered: answered,
+      duration_seconds: durationSec,
+      mode,
+    });
+
     // Navigate immediately — don't block on LLM calls
     voice.endVoice().catch(() => {});
     clearProgress();
@@ -406,9 +471,18 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       <ModeSelectionScreen
         firstName={firstName}
         voiceAvailable={voiceAvailable}
-        onSelectVoice={() => setMode('voice')}
-        onSelectText={() => setMode('text')}
-        onSkip={onSkip}
+        onSelectVoice={() => {
+          trackEvent('onboarding_interview_mode_selected', { mode: 'voice' });
+          setMode('voice');
+        }}
+        onSelectText={() => {
+          trackEvent('onboarding_interview_mode_selected', { mode: 'text' });
+          setMode('text');
+        }}
+        onSkip={() => {
+          trackEvent('onboarding_interview_skipped_at_mode_select', {});
+          onSkip();
+        }}
       />
     );
   }
