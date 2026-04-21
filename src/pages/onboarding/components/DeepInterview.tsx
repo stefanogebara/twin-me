@@ -199,9 +199,18 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const progress = JSON.parse(saved);
+        // Migration: interview reduced from 12 to 3 questions. If a user has
+        // saved state from the old flow (Q >= 3), treat their existing answers
+        // as a completed interview — don't ask them to redo it.
+        const restoredQ = progress.questionNumber || 1;
+        if (restoredQ >= 3) {
+          localStorage.removeItem(STORAGE_KEY);
+          // Their answers are already stored as memories; let them proceed.
+          onSkip();
+          return;
+        }
         if (progress.savedAt && Date.now() - progress.savedAt < 7 * 24 * 60 * 60 * 1000) {
           const restoredMessages = progress.messages || [];
-          const restoredQ = progress.questionNumber || 1;
           const restoredDp = progress.domainProgress || {};
           setMessages(restoredMessages);
           setQuestionNumber(restoredQ);
@@ -456,8 +465,8 @@ const DeepInterview: React.FC<DeepInterviewProps> = ({
               className="text-xs"
               style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
             >
-              {questionNumber <= 12
-                ? `Question ${Math.max(1, Math.min(questionNumber - 1, 12))} of 12`
+              {questionNumber <= 3
+                ? `Question ${Math.max(1, Math.min(questionNumber - 1, 3))} of 3`
                 : 'Wrapping up'}
             </p>
           </div>

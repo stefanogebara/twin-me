@@ -28,9 +28,11 @@ const router = express.Router();
 // Config — mirrors onboarding-calibration.js
 // ====================================================================
 
-const MIN_QUESTIONS = 12;
-const MAX_QUESTIONS = 12;
-const QUESTIONS_PER_DOMAIN = 2;
+const MIN_QUESTIONS = 3;
+const MAX_QUESTIONS = 3;
+const QUESTIONS_PER_DOMAIN = 1;
+// Priority domains: the 3 we ask directly. Lifestyle + cultural inferred from platform data.
+const PRIORITY_DOMAINS = new Set(['motivation', 'personality', 'social']);
 
 const INTERVIEW_DOMAINS = [
   { id: 'motivation', name: 'Motivation & Work', expertPersona: 'Motivation Analyst', description: 'What drives this person, their career arc, ambitions' },
@@ -63,20 +65,12 @@ const DOMAIN_KEYWORDS = {
   },
 };
 
-// Deterministic domain schedule — enforces coherent narrative arc
+// Deterministic domain schedule — 3-question interview.
+// Lifestyle + cultural are inferred from platform data (Spotify, Calendar, Whoop).
 const QUESTION_DOMAIN_SCHEDULE = {
-  1: null,           // Q1: Warm opener from enrichment context
-  2: 'motivation',   // Q2-3: What drives them
-  3: 'motivation',
-  4: 'lifestyle',    // Q4-5: Daily rhythms, energy, habits
-  5: 'lifestyle',
-  6: 'cultural',     // Q6-7: Music, media, aesthetics
-  7: 'cultural',
-  8: 'social',       // Q8-9: Relationships, communication
-  9: 'social',
-  10: 'personality', // Q10-11: Emotional depth, stress, coping
-  11: 'personality',
-  12: null,          // Q12: Integration — tie everything together
+  1: 'motivation',   // Q1: What drives them (warm opener + identity)
+  2: 'personality',  // Q2: Emotional texture / how they feel most themselves
+  3: 'social',       // Q3: Social/relational close, reflective
 };
 
 // ====================================================================
@@ -132,18 +126,19 @@ function deriveInterviewState(messages) {
     }
   }
 
-  // Determine phase
+  // Determine phase (3-question interview)
   let phase;
-  if (questionNumber <= 3) {
+  if (questionNumber <= 1) {
     phase = 'warmup';
+  } else if (questionNumber === 2) {
+    phase = 'deepdive';
   } else {
-    const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 2).length;
-    phase = (questionNumber >= MIN_QUESTIONS && domainsWithCoverage >= 4) ? 'integration' : 'deepdive';
+    phase = 'integration';
   }
 
-  const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 2).length;
+  const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 1).length;
   const shouldComplete = (questionNumber > MAX_QUESTIONS) ||
-    (questionNumber > MIN_QUESTIONS && domainsWithCoverage >= 4);
+    (questionNumber > MIN_QUESTIONS && domainsWithCoverage >= 2);
 
   return { questionNumber, domainProgress, phase, shouldComplete, domainsWithCoverage, conversation };
 }

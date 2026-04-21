@@ -1,30 +1,29 @@
 /**
- * Onboarding Calibration API — Deep Adaptive Interview
- * =====================================================
- * Inspired by Park et al. 2024 ("Generative Agent Simulations of 1,000 People")
- * where 2-hour interviews across life domains created high-fidelity agent simulations.
+ * Onboarding Calibration API — Compact Adaptive Interview
+ * ========================================================
+ * Previously 12 questions (inspired by Park et al. 2024, compressed from
+ * 2-hour interviews). Users dropped off around Q5-7. Reduced to 3 questions
+ * focused on the 3 highest-signal domains; platform data + GDPR imports
+ * cover the rest (lifestyle / cultural).
  *
- * This is TwinMe's compressed version: 12-18 adaptive questions across 5 expert domains,
- * designed to feel like a warm conversation while systematically building the memory
- * foundation for the twin's personality model.
+ * Interview Architecture (3 questions total):
+ *   Q1: WARM-UP — motivation angle, references known enrichment data
+ *   Q2: DEEP-DIVE — personality/emotion (feeling-tone question)
+ *   Q3: INTEGRATION — social/cultural (closing, ties it together)
  *
- * Interview Architecture:
- *   Phase 1: WARM-UP (2-3 questions) — Reference enrichment data, build rapport
- *   Phase 2: DOMAIN DEEP-DIVES (8-12 questions) — Cover all 5 expert domains
- *   Phase 3: INTEGRATION (1-2 questions) — Cross-domain reflection, forward-looking
+ * Priority domains (3 of 5):
+ *   1. Motivation & Work — hardest to infer from platform data
+ *   2. Personality & Emotions — stress, coping, emotional processing
+ *   3. Social Dynamics — relationship depth + communication style
  *
- * Domain alignment (matches Expert Reflection Personas):
- *   1. Motivation & Work — ambitions, career arc, what drives you
- *   2. Lifestyle & Rhythms — daily patterns, energy, health, routines
- *   3. Personality & Emotions — emotional processing, stress, coping
- *   4. Cultural Identity — music, media, aesthetics, creative expression
- *   5. Social Dynamics — relationships, communication style, social energy
+ * Deferred to ambient gathering (via twin chat over time):
+ *   - Lifestyle & Rhythms (calendar + Whoop already reveal this)
+ *   - Cultural Identity (Spotify + YouTube + Netflix already reveal this)
  *
  * Adaptive behavior:
- *   - Rich answers get follow-ups within the same domain
- *   - Thin answers trigger domain switch
- *   - AI interviewer receives domain coverage tracking + decides flow
- *   - Each Q&A pair is stored in memory stream with domain tags
+ *   - AI picks from seed questions prioritizing the 3 core domains
+ *   - Each question must target a different domain from the last
+ *   - Q&A pairs stored in memory stream with domain tags
  */
 
 import express from 'express';
@@ -44,9 +43,11 @@ const router = express.Router();
 // Interview Configuration
 // ====================================================================
 
-const MIN_QUESTIONS = 12;
-const MAX_QUESTIONS = 12;
-const QUESTIONS_PER_DOMAIN = 2; // Target: 2 per domain
+const MIN_QUESTIONS = 3;
+const MAX_QUESTIONS = 3;
+const QUESTIONS_PER_DOMAIN = 1; // Target: 1 per domain across 3 priority domains
+// Priority domains: the 3 we ask directly. Lifestyle + cultural are inferred from platform data.
+const PRIORITY_DOMAINS = new Set(['motivation', 'personality', 'social']);
 
 /**
  * The 5 interview domains, aligned with the Expert Reflection Personas.
@@ -148,44 +149,42 @@ function buildInterviewPrompt(enrichmentContext, questionNumber, domainProgress,
     return `  - ${d.name}: ${status}`;
   }).join('\n');
 
-  // Determine which domains still need coverage
+  // Determine which priority domains still need coverage (motivation/personality/social)
   const uncovered = INTERVIEW_DOMAINS.filter(d => {
+    if (!PRIORITY_DOMAINS.has(d.id)) return false;
     const p = domainProgress[d.id] || { asked: 0 };
-    return p.asked < 2;
+    return p.asked < 1;
   });
 
   const suggestedDomain = uncovered.length > 0 ? uncovered[0] : null;
 
-  // Phase-specific instructions
+  // Phase-specific instructions — 3 questions total, one per phase
   let phaseInstructions = '';
   if (phase === 'warmup') {
-    phaseInstructions = `CURRENT PHASE: WARM-UP (questions 1-3)
-You're building rapport. Reference something specific from their profile data to show you already know them.
-Ask questions that are easy to answer but reveal personality. Start broad, then narrow.
-If you know their company/role, reference it. If you know very little, ask about their life in a friendly way.
-Naturally weave in questions about what they do and what draws them to it.`;
+    phaseInstructions = `CURRENT PHASE: QUESTION 1 OF 3 — OPENING
+This is a 3-question conversation. Make question 1 land hard.
+Reference something specific from their profile data if you have it.
+Ask a motivation/identity question — what drives them, what they keep coming back to.
+Example angles: "What's something you keep coming back to, even when no one's asking?" or "What drew you to ${enrichmentContext?.company || 'your current path'}?"`;
   } else if (phase === 'deepdive') {
-    phaseInstructions = `CURRENT PHASE: DOMAIN DEEP-DIVE (questions 4-${MAX_QUESTIONS - 2})
-You're exploring specific life domains to deeply understand this person.
-
-DOMAIN COVERAGE:
-${domainStatus}
-
-${suggestedDomain ? `SUGGESTED NEXT DOMAIN: "${suggestedDomain.name}" — ${suggestedDomain.description}
-Example angles: ${suggestedDomain.seedQuestions.slice(0, 2).join(' / ')}` : 'All domains have some coverage. Go deeper where answers were richest.'}
+    phaseInstructions = `CURRENT PHASE: QUESTION 2 OF 3 — GO DEEPER
+Now pivot to an emotional/personality angle. This is the feeling-tone question.
+${suggestedDomain ? `TARGET DOMAIN: "${suggestedDomain.name}" — ${suggestedDomain.description}
+Pick from: ${suggestedDomain.seedQuestions.slice(0, 2).join(' / ')}` : 'Ask about how they feel most themselves, what stress looks like for them, or their emotional texture.'}
 
 ADAPTIVE RULES:
-- BREADTH OVER DEPTH: After at most 2 questions in the same domain, you MUST move to a different uncovered domain. Never ask 3+ questions in a row about the same topic.
-- If the previous answer was THIN (brief, surface-level), switch to a completely different domain immediately
-- If the previous answer was RICH, you may ask ONE follow-up in the same domain, then move on
-- Cover at least 4 of the 5 domains before moving to integration phase
-- When switching domains, make the transition feel natural — briefly connect the new topic to something they said, then ask about the new area
-- VARIETY IS KEY: Each question should explore a genuinely different aspect of their life. If you asked about sleep, don't ask about mornings — switch to music, relationships, work, or hobbies instead`;
+- Must be a DIFFERENT domain from question 1
+- Reference their Q1 answer briefly before asking Q2 — show you heard them
+- Keep it warm, curious, not clinical
+
+DOMAIN COVERAGE:
+${domainStatus}`;
   } else if (phase === 'integration') {
-    phaseInstructions = `CURRENT PHASE: INTEGRATION (final 1-2 questions)
-You've covered the main domains. Now ask a reflective or forward-looking question that ties things together.
-Reference specific things they've shared to show you've been listening deeply.
-Make this feel like a meaningful closing — not just another question.`;
+    phaseInstructions = `CURRENT PHASE: QUESTION 3 OF 3 — CLOSING
+This is the last question. Ask something social/relational OR a reflective closing that ties the conversation together.
+Reference specific things they've shared in Q1 or Q2.
+Example angles: "Who understands you best, and what do they understand that others don't?" or "Based on what you've shared, what's one thing you wish people got about you?"
+Make this feel like a meaningful wrap-up, not a form filler.`;
   }
 
   return `You are a perceptive, warm interviewer for Twin Me — a platform that builds a digital twin of someone's personality from their real life data. You're conducting the initial deep interview during onboarding.
@@ -230,18 +229,14 @@ function analyzeProgress(conversationHistory, questionNumber) {
     domainProgress[d.id] = { asked: 0, covered: false, lastAnswer: '' };
   });
 
-  // Phase determination
+  // Phase determination (3-question interview: Q1 warmup, Q2 deepdive, Q3 integration)
   let phase;
-  if (questionNumber <= 3) {
+  if (questionNumber <= 1) {
     phase = 'warmup';
-  } else if (questionNumber >= MIN_QUESTIONS) {
-    // Check if we have enough domain coverage to move to integration
-    const domainsWithCoverage = INTERVIEW_DOMAINS.filter(d =>
-      (domainProgress[d.id]?.asked || 0) >= 2
-    ).length;
-    phase = domainsWithCoverage >= 4 ? 'integration' : 'deepdive';
-  } else {
+  } else if (questionNumber === 2) {
     phase = 'deepdive';
+  } else {
+    phase = 'integration';
   }
 
   return { domainProgress, phase };
@@ -566,10 +561,10 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
     }
 
     // Cap conversation history to prevent oversized LLM payloads
-    // 18-question interview = 36+ messages, so cap at 40 and trim from the start
+    // 3-question interview = ~6 messages, 20 is generous headroom for retries
     let history_raw = Array.isArray(conversationHistory) ? conversationHistory : [];
-    if (history_raw.length > 40) {
-      history_raw = history_raw.slice(-40);
+    if (history_raw.length > 20) {
+      history_raw = history_raw.slice(-20);
     }
 
     const currentQ = Math.min(questionNumber, MAX_QUESTIONS);
@@ -597,10 +592,10 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       }
     }
 
-    // Check completion conditions
-    const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 2).length;
+    // Check completion conditions (3-question interview)
+    const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 1).length;
     const shouldComplete = (currentQ >= MAX_QUESTIONS) ||
-      (currentQ > MIN_QUESTIONS && domainsWithCoverage >= 4);
+      (currentQ > MIN_QUESTIONS && domainsWithCoverage >= 2);
 
     if (shouldComplete) {
       // ============================================================
@@ -739,9 +734,8 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       serviceName: 'onboarding-calibration',
     });
 
-    // Estimate total based on domain coverage
-    const estimatedTotal = Math.max(MIN_QUESTIONS,
-      Math.min(MAX_QUESTIONS, MIN_QUESTIONS + (5 - domainsWithCoverage) * 2));
+    // Interview is fixed at 3 questions
+    const estimatedTotal = MAX_QUESTIONS;
 
     return res.json({
       success: true,

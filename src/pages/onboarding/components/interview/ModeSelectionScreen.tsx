@@ -60,7 +60,7 @@ const ModeSelectionScreen: React.FC<ModeSelectionScreenProps> = ({
           animation: 'fadeInUp 0.6s ease-out 0.5s both',
         }}
       >
-        How would you like to tell your story?
+        3 questions. 2 minutes. Sharpens your twin.
       </p>
 
       {/* Mode options — two elegant choices */}
