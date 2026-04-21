@@ -5,6 +5,7 @@ dist
 .env
 .env.example
 .env.local
+.env.vercel-check
 **/*.test.js
 **/*.test.ts
 **/*.spec.js
@@ -16,3 +17,23 @@ api/mcp-server/
 .claude/
 *.md
 !README.md
+
+# Large dirs unused at runtime — reduces upload + build surface.
+mobile/
+twin-research/
+tests/
+e2e-tests/
+scripts/
+tasks/
+design-system/
+test-data/
+database/
+.github/
+tmp/
+coverage/
+playwright-report/
+test-results/
+
+# Editor junk
+.vscode/
+.idea/

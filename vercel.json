@@ -19,9 +19,16 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 60
+    },
+    "api/webhook-pluggy.js": {
+      "maxDuration": 60
     }
   },
   "routes": [
+    {
+      "src": "/api/webhooks/pluggy",
+      "dest": "/api/webhook-pluggy.js"
+    },
     {
       "src": "/api/(.*)",
       "dest": "/api/index.js"
