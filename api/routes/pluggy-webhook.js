@@ -178,14 +178,13 @@ async function handleTransactionEvent(event, payload) {
 }
 
 /**
- * Dispatch in the background. We deliberately don't await this from the HTTP
- * handler — Pluggy needs 200 within 5s. Errors are logged; retries will be
- * driven by Pluggy's own retry policy if we return non-2xx.
- *
- * NOTE: On Vercel serverless, fire-and-forget work gets killed after response
- * returns. For webhooks, this is acceptable because Pluggy retries on failure;
- * if we want stronger guarantees we'd push to Inngest here. For Phase 3.1 we
- * accept best-effort and revisit if we see drops.
+ * Dispatch handlers. On Vercel serverless, fire-and-forget promises get
+ * killed after the response returns — sandbox testing confirmed this makes
+ * the handler no-op even though Pluggy saw a 200. So we AWAIT dispatch
+ * before responding. Pluggy's 5s SLA means light operations finish in
+ * budget; seedItemTransactions (up to 90 days of tx across N accounts) can
+ * exceed it — Pluggy retries 10x over 3d and our dedup cache + pluggy_tx_id
+ * upsert skip duplicates on retry, so that's acceptable for Phase 3.
  */
 async function dispatch(event, payload) {
   try {
@@ -218,12 +217,17 @@ router.post('/', express.json({ limit: '1mb' }), async (req, res) => {
 
   log.info(`received ${event} for item ${payload.itemId || '?'}`);
 
-  // Return 200 fast, dispatch in background.
-  res.json({ success: true });
-
-  dispatch(event, payload).catch((err) => {
-    log.error(`background dispatch error: ${err.message}`);
-  });
+  // MUST await — Vercel serverless kills fire-and-forget promises after the
+  // response returns, so dispatch never runs. If this times out past Pluggy's
+  // 5s SLA, Pluggy retries (10x over 3d) and our dedup + pluggy_transaction_id
+  // unique index make retries idempotent.
+  try {
+    await dispatch(event, payload);
+    res.json({ success: true });
+  } catch (err) {
+    log.error(`dispatch failed: ${err.message}`);
+    res.status(500).json({ success: false, error: 'dispatch failed' });
+  }
 });
 
 export default router;
