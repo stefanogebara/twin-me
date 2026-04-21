@@ -126,9 +126,13 @@ async function upsertTransactions(userId, pluggyAccountId, source, accountType, 
 
   if (!rows.length) return [];
 
+  // Upsert on (user_id, external_id) — that's the full unique index from the
+  // CSV era. The partial unique on pluggy_transaction_id can't be used as an
+  // onConflict target in PostgREST. external_id is "pluggy:<tx.id>" so the
+  // collision key is effectively the same.
   const { data, error } = await supabaseAdmin
     .from('user_transactions')
-    .upsert(rows, { onConflict: 'pluggy_transaction_id', ignoreDuplicates: false })
+    .upsert(rows, { onConflict: 'user_id,external_id', ignoreDuplicates: false })
     .select('id');
 
   if (error) {
