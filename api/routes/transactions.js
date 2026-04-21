@@ -86,11 +86,16 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
 
     const insertedIds = (inserted || []).map((r) => r.id);
 
-    // Kick off emotion tagging — fire-and-forget so upload returns fast.
-    // Errors logged inside tagger; not awaited.
-    tagTransactionsBatch(userId, insertedIds).catch((err) =>
-      log.warn(`background tagger crashed: ${err.message}`),
-    );
+    // Await tagging synchronously so the response reflects final state.
+    // Vercel kills serverless lambdas after response returns — fire-and-forget
+    // tagging gets truncated. Batch tagger is ~2-3s for 20 rows (prefetches
+    // platform_data once then joins in memory), well within maxDuration 60s.
+    let tagResult = { tagged: 0, errors: 0 };
+    try {
+      tagResult = await tagTransactionsBatch(userId, insertedIds);
+    } catch (err) {
+      log.warn(`tagger failed (non-fatal): ${err.message}`);
+    }
 
     return res.json({
       success: true,
@@ -98,6 +103,8 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
       source_bank: parsed.sourceBank,
       account_type: parsed.accountType,
       inserted: insertedIds.length,
+      tagged: tagResult.tagged,
+      tag_errors: tagResult.errors,
       parse_errors: parsed.errors,
       file_hash: parsed.fileHash,
     });

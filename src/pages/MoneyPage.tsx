@@ -24,8 +24,8 @@ import {
 } from '@/services/api/transactionsAPI';
 
 const CARD_STYLE: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
+  border: '1px solid var(--glass-surface-border)', // rgba(255,255,255,0.10) per design system
   backdropFilter: 'blur(42px)',
   WebkitBackdropFilter: 'blur(42px)',
   borderRadius: 20,
@@ -282,7 +282,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
               style={{
                 fontSize: 10,
                 padding: '2px 8px',
-                borderRadius: 20,
+                borderRadius: 46,
                 background: 'rgba(255,255,255,0.04)',
                 color: 'rgba(255,255,255,0.55)',
                 fontFamily: "'Geist', 'Inter', sans-serif",
@@ -298,7 +298,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
               style={{
                 fontSize: 10,
                 padding: '2px 8px',
-                borderRadius: 20,
+                borderRadius: 46,
                 background: stress.bg,
                 color: stress.fg,
                 fontFamily: "'Geist', 'Inter', sans-serif",
@@ -447,7 +447,7 @@ export default function MoneyPage() {
             type="button"
             onClick={handleRetag}
             disabled={retagging}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.08)',

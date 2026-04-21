@@ -46,6 +46,8 @@ export interface UploadResult {
   source_bank: string;
   account_type: string | null;
   inserted: number;
+  tagged?: number;
+  tag_errors?: number;
   parse_errors: string[];
   file_hash: string;
   error?: string;
