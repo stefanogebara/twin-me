@@ -331,9 +331,13 @@ async function prefetchPlatformDataForBatch(userId, transactions) {
   // Biology needs extra back-lookback (for sleep captured next morning)
   const bioStart = new Date(minTs.getTime() - BIOLOGY_LOOKBACK_HOURS * MS_PER_HOUR);
 
-  // Pre-filter extracted_at generously on both sides (late-extraction).
-  const preStart = new Date(bioStart.getTime() - 60 * 24 * MS_PER_HOUR).toISOString();
-  const preEnd = new Date(maxTs.getTime() + 60 * 24 * MS_PER_HOUR).toISOString();
+  // Pre-filter extracted_at with a modest buffer. 10 days is enough to catch
+  // the common late-extraction case (platform polling runs within hours of
+  // events) while keeping Supabase query payload small (<2000 rows typical).
+  // Previously used 60d which returned 8k+ rows for active users and hit the
+  // Vercel serverless response timeout.
+  const preStart = new Date(bioStart.getTime() - 10 * 24 * MS_PER_HOUR).toISOString();
+  const preEnd = new Date(maxTs.getTime() + 10 * 24 * MS_PER_HOUR).toISOString();
 
   const fetchOne = async (platforms, dataTypes) => {
     let q = supabaseAdmin
@@ -342,7 +346,11 @@ async function prefetchPlatformDataForBatch(userId, transactions) {
       .eq('user_id', userId)
       .in('platform', platforms)
       .gte('extracted_at', preStart)
-      .lte('extracted_at', preEnd);
+      .lte('extracted_at', preEnd)
+      .order('extracted_at', { ascending: false })
+      // Safety cap: prevents unbounded query payloads on heavy users. Tagger
+      // in-memory filter will still narrow by effective event time per tx.
+      .limit(1500);
     if (dataTypes?.length) q = q.in('data_type', dataTypes);
     const { data, error } = await q;
     if (error) {
