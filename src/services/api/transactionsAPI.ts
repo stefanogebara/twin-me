@@ -226,3 +226,35 @@ export async function syncBankConnection(id: string): Promise<boolean> {
   const json = await res.json();
   return !!json.success;
 }
+
+/* -------------------------------------------------------------------------- */
+/* TrueLayer EU/UK bank sync (Phase 4)                                        */
+/* -------------------------------------------------------------------------- */
+
+export interface TrueLayerAuthUrlResponse {
+  success: boolean;
+  authUrl?: string;
+  error?: string;
+}
+
+/**
+ * Request a TrueLayer OAuth authorization URL. The frontend then window.location
+ * assigns to it — TrueLayer handles bank selection + consent, redirects back to
+ * /api/truelayer/callback which completes the handshake and redirects to /money.
+ */
+export async function getTrueLayerAuthUrl(providers?: string): Promise<TrueLayerAuthUrlResponse> {
+  const res = await authFetch('/truelayer/auth-url', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(providers ? { providers } : {}),
+  });
+  if (!res.ok) return { success: false, error: `auth-url failed (${res.status})` };
+  return res.json();
+}
+
+export async function syncTrueLayerConnection(id: string): Promise<boolean> {
+  const res = await authFetch(`/truelayer/sync/${id}`, { method: 'POST' });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return !!json.success;
+}

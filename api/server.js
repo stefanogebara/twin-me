@@ -403,6 +403,8 @@ import transactionsRoutes from './routes/transactions.js';
 import pluggyRoutes from './routes/pluggy.js';
 // pluggyWebhookRoutes extracted to standalone Vercel function at api/webhook-pluggy.js
 // vercel.json routes /api/webhooks/pluggy → that file, bypassing the Express monolith.
+import trueLayerRoutes from './routes/truelayer.js';
+// truelayer webhook also lives at api/webhook-truelayer.js (standalone lambda).
 import claudeSyncRoutes from './routes/claude-sync.js';
 import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
 import twinsBrainRoutes from './routes/twins-brain.js';
@@ -609,8 +611,10 @@ app.use('/api/device-tokens', deviceTokensRoutes);  // FCM/Expo push token regis
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
+app.use('/api/truelayer', trueLayerRoutes); // Phase 4 — TrueLayer EU/UK Open Banking (OAuth redirect)
 app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — bank statement ingestion + emotional tagging
-// /api/webhooks/pluggy is routed to the standalone api/webhook-pluggy.js lambda by vercel.json
+// /api/webhooks/pluggy and /api/webhooks/truelayer are routed to standalone
+// lambdas (api/webhook-pluggy.js, api/webhook-truelayer.js) by vercel.json
 app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing

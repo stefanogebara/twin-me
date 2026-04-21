@@ -22,12 +22,19 @@
     },
     "api/webhook-pluggy.js": {
       "maxDuration": 60
+    },
+    "api/webhook-truelayer.js": {
+      "maxDuration": 60
     }
   },
   "routes": [
     {
       "src": "/api/webhooks/pluggy",
       "dest": "/api/webhook-pluggy.js"
+    },
+    {
+      "src": "/api/webhooks/truelayer",
+      "dest": "/api/webhook-truelayer.js"
     },
     {
       "src": "/api/(.*)",

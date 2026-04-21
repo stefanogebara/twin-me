@@ -10,8 +10,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { PluggyConnect } from 'react-pluggy-connect';
-import { Wallet, Loader2 } from 'lucide-react';
-import { getPluggyConnectToken } from '@/services/api/transactionsAPI';
+import { Wallet, Loader2, Globe } from 'lucide-react';
+import { getPluggyConnectToken, getTrueLayerAuthUrl } from '@/services/api/transactionsAPI';
 
 interface Props {
   onConnected?: (itemId: string) => void;
@@ -55,6 +55,24 @@ export function ConnectBankButton({ onConnected }: Props) {
     setConnectToken(null);
   }, []);
 
+  const openTrueLayer = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getTrueLayerAuthUrl();
+      if (!res.success || !res.authUrl) {
+        setError(res.error || 'Não foi possível iniciar a conexão EU/UK');
+        return;
+      }
+      // Full-page redirect: TrueLayer's consent page is not widget-embeddable.
+      window.location.assign(res.authUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro inesperado');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return (
     <>
       <button
@@ -68,13 +86,36 @@ export function ConnectBankButton({ onConnected }: Props) {
           fontWeight: 500,
           fontSize: 14,
         }}
+        title="Nubank, Itaú, Santander BR, Bradesco (via Pluggy)"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <Wallet className="w-4 h-4" />
         )}
-        {loading ? 'Preparando…' : 'Conectar banco'}
+        {loading ? 'Preparando…' : 'Conectar banco BR'}
+      </button>
+
+      <button
+        onClick={openTrueLayer}
+        disabled={loading}
+        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] transition-colors disabled:opacity-60"
+        style={{
+          background: 'rgba(255,255,255,0.08)',
+          color: 'rgba(255,255,255,0.90)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          fontFamily: "'Geist', 'Inter', sans-serif",
+          fontWeight: 500,
+          fontSize: 14,
+        }}
+        title="Santander Spain, Revolut, N26, Monzo, EU/UK banks (via TrueLayer)"
+      >
+        {loading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <Globe className="w-4 h-4" />
+        )}
+        {loading ? 'Preparando…' : 'Conectar banco EU/UK'}
       </button>
 
       {error && (
