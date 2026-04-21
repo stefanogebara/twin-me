@@ -17,6 +17,7 @@ import { createLogger } from '../logger.js';
 import { normalizeMerchant } from './merchantNormalizer.js';
 import { detectAndMarkRecurring } from './recurrenceDetector.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
+import { maybeNudgeForTransactions } from './transactionNudgeService.js';
 import * as tl from './trueLayerClient.js';
 
 const log = createLogger('truelayer-ingestion');
@@ -97,12 +98,16 @@ async function upsertTransactions(userId, tlAccountId, source, accountType, txs)
   return (data || []).map((r) => r.id);
 }
 
-async function runDownstream(userId, insertedIds) {
+async function runDownstream(userId, insertedIds, { allowNudge = false } = {}) {
   try { await detectAndMarkRecurring(userId); }
   catch (err) { log.warn(`recurrence detector failed user ${userId}: ${err.message}`); }
   if (insertedIds.length) {
     try { await tagTransactionsBatch(userId, insertedIds); }
     catch (err) { log.warn(`emotion tagger failed user ${userId}: ${err.message}`); }
+    if (allowNudge) {
+      try { await maybeNudgeForTransactions(userId, insertedIds); }
+      catch (err) { log.warn(`nudge check failed user ${userId}: ${err.message}`); }
+    }
   }
 }
 
@@ -170,7 +175,10 @@ async function pullAndIngest(connectionId, { from, to }) {
     .update({ last_synced_at: new Date().toISOString(), status: 'UPDATED' })
     .eq('id', connectionId);
 
-  await runDownstream(conn.user_id, allInserted);
+  // Only allow nudges on the incremental 14d sync window — NOT the initial
+  // 24-month seed backfill (historical tx are never "fresh enough" to nudge).
+  const isIncremental = source === 'truelayer_webhook';
+  await runDownstream(conn.user_id, allInserted, { allowNudge: isIncremental });
 
   log.info(`tl sync user ${conn.user_id} conn ${connectionId}: ${allInserted.length} tx, ${accountList.length}a+${cardList.length}c`);
   return { inserted: allInserted.length, accounts: accountList.length, cards: cardList.length };

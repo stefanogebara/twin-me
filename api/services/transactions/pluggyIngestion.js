@@ -18,6 +18,7 @@ import { createLogger } from '../logger.js';
 import { normalizeMerchant } from './merchantNormalizer.js';
 import { detectAndMarkRecurring } from './recurrenceDetector.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
+import { maybeNudgeForTransactions } from './transactionNudgeService.js';
 import * as pluggy from './pluggyClient.js';
 
 const log = createLogger('pluggy-ingestion');
@@ -148,7 +149,7 @@ async function upsertTransactions(userId, pluggyAccountId, source, accountType, 
  * and already gate internally when there's nothing to do. Errors are logged
  * and swallowed — we never want a tagger blip to fail a webhook 200.
  */
-async function runDownstreamPipeline(userId, insertedIds) {
+async function runDownstreamPipeline(userId, insertedIds, { allowNudge = false } = {}) {
   try {
     await detectAndMarkRecurring(userId);
   } catch (err) {
@@ -159,6 +160,16 @@ async function runDownstreamPipeline(userId, insertedIds) {
       await tagTransactionsBatch(userId, insertedIds);
     } catch (err) {
       log.warn(`emotion tagger failed for user ${userId}: ${err.message}`);
+    }
+    // Phase 3.4: pre-transaction nudges. Only on webhook-sourced ingests
+    // (live tx), not the 90d seed backfill — historical tx are never "fresh
+    // enough" to nudge about.
+    if (allowNudge) {
+      try {
+        await maybeNudgeForTransactions(userId, insertedIds);
+      } catch (err) {
+        log.warn(`nudge check failed for user ${userId}: ${err.message}`);
+      }
     }
   }
 }
@@ -232,7 +243,7 @@ export async function ingestTransactionsByIds(userId, pluggyItemId, transactionI
     allIds.push(...ids);
   }
 
-  await runDownstreamPipeline(userId, allIds);
+  await runDownstreamPipeline(userId, allIds, { allowNudge: true });
 
   log.info(`ingested ${allIds.length}/${transactionIds.length} webhook tx for user ${userId}`);
   return { inserted: allIds.length };
