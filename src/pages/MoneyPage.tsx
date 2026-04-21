@@ -22,6 +22,8 @@ import {
   type SpendingPattern,
   type UploadResult,
 } from '@/services/api/transactionsAPI';
+import { ConnectBankButton } from './components/money/ConnectBankButton';
+import { BankConnectionsList } from './components/money/BankConnectionsList';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -491,6 +493,30 @@ export default function MoneyPage() {
       >
         Seu dinheiro tem sentimentos. A gente traduz.
       </p>
+
+      {/* Connect a BR bank in real time via Pluggy Open Finance. Falls back to
+          CSV/OFX upload below for banks Pluggy doesn't cover or users who
+          prefer the manual flow. */}
+      <div className="mb-4 flex items-center gap-3 flex-wrap">
+        <ConnectBankButton
+          onConnected={() => {
+            // Webhook has already ingested 90d of tx; refresh the view after
+            // a small delay so the background pipeline has time to tag them.
+            window.setTimeout(() => { load(); }, 2500);
+          }}
+        />
+        <span
+          className="text-xs"
+          style={{
+            color: 'rgba(255,255,255,0.45)',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+          }}
+        >
+          ou envie um extrato CSV/OFX abaixo
+        </span>
+      </div>
+
+      <BankConnectionsList onChanged={load} />
 
       {/* Upload zone */}
       <div className="mb-6">

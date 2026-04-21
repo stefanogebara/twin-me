@@ -167,3 +167,62 @@ export async function getSavings(): Promise<SavingsSummary | null> {
   const { success: _success, ...summary } = json;
   return summary as SavingsSummary;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Pluggy real-time bank sync (Phase 3.2)                                     */
+/* -------------------------------------------------------------------------- */
+
+export interface BankConnection {
+  id: string;
+  connector_name: string;
+  status: string;
+  status_detail: unknown;
+  last_synced_at: string | null;
+  consent_expires_at: string | null;
+  created_at: string;
+}
+
+export interface ConnectTokenResponse {
+  success: boolean;
+  connectToken?: string;
+  environment?: 'sandbox' | 'production';
+  error?: string;
+}
+
+/**
+ * Request a short-lived (30min) Pluggy connect token to open the widget.
+ * `itemId` is only passed when the user is reconnecting an existing item
+ * (MFA / password change flow).
+ */
+export async function getPluggyConnectToken(itemId?: string): Promise<ConnectTokenResponse> {
+  const res = await authFetch('/transactions/pluggy/connect-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(itemId ? { itemId } : {}),
+  });
+  if (!res.ok) {
+    return { success: false, error: `Failed to create connect token (${res.status})` };
+  }
+  return res.json();
+}
+
+export async function listBankConnections(): Promise<BankConnection[]> {
+  const res = await authFetch('/transactions/pluggy/connections');
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.connections || [];
+}
+
+export async function deleteBankConnection(id: string): Promise<boolean> {
+  const res = await authFetch(`/transactions/pluggy/connections/${id}`, { method: 'DELETE' });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return !!json.success;
+}
+
+export async function syncBankConnection(id: string): Promise<boolean> {
+  const res = await authFetch(`/transactions/pluggy/sync/${id}`, { method: 'POST' });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return !!json.success;
+}
