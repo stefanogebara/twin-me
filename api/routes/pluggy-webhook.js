@@ -187,16 +187,15 @@ async function handleTransactionEvent(event, payload) {
  * upsert skip duplicates on retry, so that's acceptable for Phase 3.
  */
 async function dispatch(event, payload) {
-  try {
-    if (event.startsWith('item/')) {
-      await handleItemEvent(event, payload);
-    } else if (event.startsWith('transactions/')) {
-      await handleTransactionEvent(event, payload);
-    } else {
-      log.info(`ignored event: ${event}`);
-    }
-  } catch (err) {
-    log.error(`dispatch ${event} failed: ${err.message}`);
+  // No inner try/catch — let errors bubble so the route handler returns 500
+  // with the real reason AND logs the stack. Previously we swallowed and
+  // responded 200, which masked real failures during sandbox E2E.
+  if (event.startsWith('item/')) {
+    await handleItemEvent(event, payload);
+  } else if (event.startsWith('transactions/')) {
+    await handleTransactionEvent(event, payload);
+  } else {
+    log.info(`ignored event: ${event}`);
   }
 }
 
@@ -225,8 +224,12 @@ router.post('/', express.json({ limit: '1mb' }), async (req, res) => {
     await dispatch(event, payload);
     res.json({ success: true });
   } catch (err) {
-    log.error(`dispatch failed: ${err.message}`);
-    res.status(500).json({ success: false, error: 'dispatch failed' });
+    log.error(`dispatch ${event} failed: ${err.message}\n${err.stack}`);
+    res.status(500).json({
+      success: false,
+      error: 'dispatch failed',
+      message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
   }
 });
 
