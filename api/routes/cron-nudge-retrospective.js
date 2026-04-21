@@ -25,6 +25,7 @@
 import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 
 const log = createLogger('cron-nudge-retro');
 const router = express.Router();
@@ -115,7 +116,11 @@ export async function runNudgeRetrospectiveSweep() {
   return { processed: nudges?.length || 0, followed, not_followed: notFollowed, skipped };
 }
 
-router.get('/', async (_req, res) => {
+router.all('/', async (req, res) => {
+  const authResult = verifyCronSecret(req);
+  if (!authResult.authorized) {
+    return res.status(authResult.status).json({ error: authResult.error });
+  }
   try {
     const result = await runNudgeRetrospectiveSweep();
     res.json({ success: true, ...result });

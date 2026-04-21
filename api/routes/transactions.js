@@ -616,4 +616,72 @@ router.post('/nudge-outcome', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * GET /nudge-stats
+ * Phase 3.4b — aggregated stress_nudge effectiveness for the affirmation UI.
+ * Reads proactive_insights (category=stress_nudge) that have been
+ * retrospectively checked by the daily cron.
+ *
+ * Response:
+ *   {
+ *     window_days,
+ *     total_sent,      // all stress_nudges in window
+ *     checked_count,   // had nudge_checked_at set (i.e. past 24h old)
+ *     followed_count,  // user paused after receiving nudge
+ *     follow_rate,     // followed_count / checked_count (null if nothing checked yet)
+ *     est_saved,       // Σ metadata.amount where followed=true — rough "if they
+ *                      //   hadn't stopped, they'd have kept this spending pace"
+ *     dominant_currency
+ *   }
+ */
+router.get('/nudge-stats', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    const windowDays = Math.min(Number(req.query.window_days) || 30, 365);
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: nudges, error } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id, nudge_followed, nudge_checked_at, metadata, created_at')
+      .eq('user_id', userId)
+      .eq('category', 'stress_nudge')
+      .gte('created_at', since);
+
+    if (error) throw error;
+
+    const rows = nudges || [];
+    const totalSent = rows.length;
+    const checked = rows.filter((n) => n.nudge_checked_at !== null);
+    const followed = checked.filter((n) => n.nudge_followed === true);
+    const followRate = checked.length > 0 ? followed.length / checked.length : null;
+
+    // Sum the tx amounts where the user followed the nudge — rough saved estimate.
+    // Currency mixing is ignored here: the frontend picks the dominant currency
+    // symbol for display. Good-enough for affirmation copy ("you saved ~R$400").
+    const estSaved = followed.reduce((s, n) => s + (Number(n.metadata?.amount) || 0), 0);
+
+    // Derive dominant currency from the nudged tx records (their underlying
+    // user_transactions rows). metadata.currency isn't stored on the nudge
+    // payload yet, so we back off to BRL — good enough for the MVP and easy
+    // to extend later when we include currency in the nudge metadata.
+    const dominantCurrency = 'BRL';
+
+    return res.json({
+      success: true,
+      window_days: windowDays,
+      total_sent: totalSent,
+      checked_count: checked.length,
+      followed_count: followed.length,
+      follow_rate: followRate,
+      est_saved: Math.round(estSaved * 100) / 100,
+      dominant_currency: dominantCurrency,
+    });
+  } catch (err) {
+    log.error('nudge-stats error', err);
+    return res.status(500).json({ success: false, error: 'failed to fetch nudge stats' });
+  }
+});
+
 export default router;

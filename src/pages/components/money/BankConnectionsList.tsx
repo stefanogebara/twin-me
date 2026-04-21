@@ -123,11 +123,28 @@ export function BankConnectionsList({ onChanged }: Props) {
                 )}
               </div>
               <div className="min-w-0">
-                <div
-                  className="text-sm font-medium truncate"
-                  style={{ color: 'rgba(255,255,255,0.90)', fontFamily: "'Geist', 'Inter', sans-serif" }}
-                >
-                  {c.connector_name}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    className="text-sm font-medium truncate"
+                    style={{ color: 'rgba(255,255,255,0.90)', fontFamily: "'Geist', 'Inter', sans-serif" }}
+                  >
+                    {c.connector_name}
+                  </div>
+                  {c.provider && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      style={{
+                        background: c.provider === 'truelayer' ? 'rgba(129, 140, 248, 0.12)' : 'rgba(255,255,255,0.06)',
+                        color: c.provider === 'truelayer' ? 'rgba(165, 180, 252, 0.90)' : 'rgba(255,255,255,0.50)',
+                        fontFamily: "'Geist', 'Inter', sans-serif",
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                      }}
+                      title={c.provider === 'truelayer' ? 'EU/UK via TrueLayer' : 'BR via Pluggy Open Finance'}
+                    >
+                      {c.provider === 'truelayer' ? 'EU/UK' : 'BR'}
+                    </span>
+                  )}
                 </div>
                 <div
                   className="text-xs"

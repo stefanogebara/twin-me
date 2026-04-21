@@ -15,11 +15,13 @@ import {
   retagTransactions,
   getSavings,
   getSpendingPatterns,
+  getNudgeStats,
   type Transaction,
   type TransactionsSummary,
   type SavingsSummary,
   type PatternsResult,
   type SpendingPattern,
+  type NudgeStats,
   type UploadResult,
 } from '@/services/api/transactionsAPI';
 import { ConnectBankButton } from './components/money/ConnectBankButton';
@@ -251,6 +253,42 @@ function SummaryBar({ summary, currency, mixedCurrency }: { summary: Transaction
           </p>
         </div>
       </div>
+
+      {/* Per-currency breakdown when the user has more than one currency */}
+      {mixedCurrency && summary.currencies && summary.currencies.length > 1 && (
+        <div
+          className="mt-5 pt-4 flex flex-wrap gap-x-5 gap-y-2"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {summary.currencies.map((c) => (
+            <div key={c.currency}>
+              <p
+                style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontSize: 17,
+                  color: 'rgba(255,255,255,0.85)',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {formatCurrency(c.outflow, c.currency)}
+              </p>
+              <p
+                style={{
+                  fontSize: 10.5,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  color: 'rgba(255,255,255,0.40)',
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  marginTop: 2,
+                }}
+              >
+                {c.currency} · {c.count} {c.count === 1 ? 'tx' : 'tx'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -426,6 +464,7 @@ export default function MoneyPage() {
   const [summary, setSummary] = useState<TransactionsSummary | null>(null);
   const [savings, setSavings] = useState<SavingsSummary | null>(null);
   const [patterns, setPatterns] = useState<PatternsResult | null>(null);
+  const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
@@ -451,16 +490,18 @@ export default function MoneyPage() {
     setLoading(true);
     setError(null);
     try {
-      const [txns, sum, sav, pat] = await Promise.all([
+      const [txns, sum, sav, pat, nudges] = await Promise.all([
         listTransactions({ limit: 50 }),
         getTransactionsSummary(),
         getSavings(),
         getSpendingPatterns(),
+        getNudgeStats(),
       ]);
       setTransactions(txns);
       setSummary(sum);
       setSavings(sav);
       setPatterns(pat);
+      setNudgeStats(nudges);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar transações');
     } finally {
@@ -683,6 +724,51 @@ export default function MoneyPage() {
       {summary && (
         <div className="mb-6">
           <SummaryBar summary={summary} currency={dominantCurrency} mixedCurrency={hasMixedCurrency} />
+        </div>
+      )}
+
+      {/* Nudge effectiveness affirmation — only show if at least one nudge was retro-checked */}
+      {nudgeStats && nudgeStats.checked_count > 0 && (
+        <div
+          className="mb-6 px-5 py-4"
+          style={{
+            ...CARD_STYLE,
+            background: 'rgba(134, 239, 172, 0.04)',
+            borderColor: 'rgba(134, 239, 172, 0.14)',
+          }}
+        >
+          <p style={{ ...LABEL_STYLE, color: 'rgba(134, 239, 172, 0.85)', marginBottom: 10 }}>
+            Você ouvindo o twin · últimos {nudgeStats.window_days} dias
+          </p>
+          <p
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: 24,
+              color: 'var(--foreground)',
+              lineHeight: 1.2,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Você seguiu <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{nudgeStats.followed_count}</span> de {nudgeStats.checked_count} avisos
+            {nudgeStats.est_saved > 0 && (
+              <> e pausou cerca de <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{formatCurrency(nudgeStats.est_saved, dominantCurrency)}</span> em gastos impulsivos</>
+            )}
+            .
+          </p>
+          {nudgeStats.total_sent > nudgeStats.checked_count && (
+            <p
+              style={{
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.40)',
+                marginTop: 8,
+                fontFamily: "'Geist', 'Inter', sans-serif",
+              }}
+            >
+              {nudgeStats.total_sent - nudgeStats.checked_count} aviso
+              {nudgeStats.total_sent - nudgeStats.checked_count === 1 ? '' : 's'} ainda sendo avaliado
+              {nudgeStats.total_sent - nudgeStats.checked_count === 1 ? '' : 's'}.
+            </p>
+          )}
         </div>
       )}
 

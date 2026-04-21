@@ -178,12 +178,33 @@ export async function getSavings(): Promise<SavingsSummary | null> {
   return summary as SavingsSummary;
 }
 
+export interface NudgeStats {
+  window_days: number;
+  total_sent: number;
+  checked_count: number;
+  followed_count: number;
+  follow_rate: number | null;
+  est_saved: number;
+  dominant_currency: string;
+}
+
+/** Phase 3.4b affirmation card: how did the user respond to stress nudges? */
+export async function getNudgeStats(): Promise<NudgeStats | null> {
+  const res = await authFetch('/transactions/nudge-stats');
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (!json.success) return null;
+  const { success: _success, ...stats } = json;
+  return stats as NudgeStats;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Pluggy real-time bank sync (Phase 3.2)                                     */
 /* -------------------------------------------------------------------------- */
 
 export interface BankConnection {
   id: string;
+  provider?: 'pluggy' | 'truelayer';
   connector_name: string;
   status: string;
   status_detail: unknown;
@@ -230,8 +251,13 @@ export async function deleteBankConnection(id: string): Promise<boolean> {
   return !!json.success;
 }
 
-export async function syncBankConnection(id: string): Promise<boolean> {
-  const res = await authFetch(`/transactions/pluggy/sync/${id}`, { method: 'POST' });
+export async function syncBankConnection(id: string, provider?: string): Promise<boolean> {
+  // TrueLayer sync lives under a separate router. Dispatch on provider so the
+  // caller doesn't have to know about the URL split.
+  const endpoint = provider === 'truelayer'
+    ? `/truelayer/sync/${id}`
+    : `/transactions/pluggy/sync/${id}`;
+  const res = await authFetch(endpoint, { method: 'POST' });
   if (!res.ok) return false;
   const json = await res.json();
   return !!json.success;

@@ -20,6 +20,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { sendPushToUser } from '../services/pushNotificationService.js';
 import { createLogger } from '../services/logger.js';
+import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 
 const log = createLogger('cron-bank-consent');
 const router = express.Router();
@@ -154,7 +155,11 @@ export async function runConsentReminderSweep() {
 /**
  * Vercel cron endpoint. Schedule via vercel.json (daily at 10am UTC = 7am SP).
  */
-router.get('/', async (_req, res) => {
+router.all('/', async (req, res) => {
+  const authResult = verifyCronSecret(req);
+  if (!authResult.authorized) {
+    return res.status(authResult.status).json({ error: authResult.error });
+  }
   try {
     const result = await runConsentReminderSweep();
     res.json({ success: true, ...result });
