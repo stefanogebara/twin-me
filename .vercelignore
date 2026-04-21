@@ -18,22 +18,12 @@ api/mcp-server/
 *.md
 !README.md
 
-# Editor junk (safe — not imported at runtime)
-.vscode/
-.idea/
-
-# Test/artifact dirs (verified via grep: no runtime imports from src/ or api/)
-# Excluded to shrink upload size sent to Vercel's build servers.
-tests/
-test-data/
-test-results/
-coverage/
-playwright-report/
-tmp/
-tasks/
-.github/
-twin-research/
-
-# NOTE: 3d425f00 also tried to exclude scripts/, mobile/, database/, design-system/
-# but those triggered an ERR_MODULE_NOT_FOUND outage (unknown transitive
-# reference). Leaving them INCLUDED until we can bisect in a follow-up PR.
+# !! DO NOT ADD MORE ENTRIES HERE without per-entry preview-deploy verification.
+# Two separate outages (3d425f00 + 6ccffc1b) both caused ERR_MODULE_NOT_FOUND
+# in Vercel's nft tracer when adding *seemingly safe* directory excludes to
+# shrink build surface. Grep'd imports are not sufficient — some transitive
+# reference (likely via dynamic import or node_modules path resolution) needs
+# one of those dirs present during build.
+#
+# If build time is the pain, the right approach is to extract more handlers
+# to standalone Vercel functions (like api/webhook-pluggy.js) instead.
