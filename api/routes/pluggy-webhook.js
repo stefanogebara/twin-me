@@ -31,23 +31,29 @@ const router = express.Router();
 const WEBHOOK_SECRET = process.env.PLUGGY_WEBHOOK_SECRET;
 
 /**
- * Fail-closed secret check. Pluggy posts a custom header we configure when
- * registering the webhook URL. This is NOT HMAC — so rotate the secret
- * promptly if it ever leaks, and keep it out of logs.
+ * Secret check — optional because Pluggy's dashboard webhook form does NOT
+ * expose custom-header configuration (only the URL). If the secret env is
+ * set AND a header is present, we enforce a match. If either is absent,
+ * we accept the request and rely on the downstream defenses:
+ *
+ *   1. clientUserId must map to a real user in user_bank_connections
+ *   2. pluggy_item_id must exist and not be soft-deleted
+ *   3. Events for unknown items are logged and dropped
+ *
+ * When Pluggy ships HMAC signing (or we find the header config), tighten
+ * this to fail-closed again.
  */
 function verifyPluggySecret(req) {
-  if (!WEBHOOK_SECRET) {
-    log.error('PLUGGY_WEBHOOK_SECRET not set — rejecting webhook');
-    return false;
-  }
+  if (!WEBHOOK_SECRET) return true; // no secret configured — accept
   const header = req.headers['x-pluggy-signature'] || req.headers['x-webhook-secret'];
-  if (!header || typeof header !== 'string') return false;
+  if (!header || typeof header !== 'string') return true; // Pluggy didn't send one — accept
   try {
     return crypto.timingSafeEqual(
       Buffer.from(WEBHOOK_SECRET, 'utf8'),
       Buffer.from(header, 'utf8'),
     );
   } catch {
+    // Length mismatch — secret rotated or malformed header. Reject.
     return false;
   }
 }
