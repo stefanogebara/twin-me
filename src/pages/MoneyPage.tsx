@@ -5,7 +5,7 @@
  * HRV, music valence, calendar load, composite stress score at moment of purchase.
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Upload, FileText, AlertCircle, Loader2, TrendingDown, Sparkles, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -43,12 +43,24 @@ const LABEL_STYLE: React.CSSProperties = {
   marginBottom: 12,
 };
 
-function formatBRL(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
+/**
+ * Multi-currency aware formatter. Transactions from TrueLayer ship with
+ * EUR/GBP, Pluggy ships BRL. The summary card path has no single currency —
+ * pass `null` to render without a symbol and show a chip alongside.
+ */
+function formatCurrency(value: number, currency: string | null | undefined): string {
+  const cur = (currency || 'BRL').toUpperCase();
+  const locale = cur === 'BRL' ? 'pt-BR' : cur === 'EUR' ? 'es-ES' : cur === 'GBP' ? 'en-GB' : 'en-US';
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
-    currency: 'BRL',
+    currency: cur,
     minimumFractionDigits: 2,
   }).format(value);
+}
+
+/** Back-compat wrapper for BRL-only sites still in migration. */
+function formatBRL(value: number): string {
+  return formatCurrency(value, 'BRL');
 }
 
 function formatDate(iso: string): string {
@@ -161,7 +173,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
   );
 }
 
-function SummaryBar({ summary }: { summary: TransactionsSummary | null }) {
+function SummaryBar({ summary, currency, mixedCurrency }: { summary: TransactionsSummary | null; currency: string; mixedCurrency: boolean }) {
   if (!summary) return null;
   if (!summary.transaction_count) return null;
 
@@ -171,7 +183,24 @@ function SummaryBar({ summary }: { summary: TransactionsSummary | null }) {
 
   return (
     <div style={{ ...CARD_STYLE, padding: 24 }}>
-      <p style={LABEL_STYLE}>Últimos 30 dias</p>
+      <div className="flex items-center gap-2 mb-2">
+        <p style={{ ...LABEL_STYLE, marginBottom: 0 }}>Últimos 30 dias</p>
+        {mixedCurrency && (
+          <span
+            className="px-2 py-0.5 rounded-full text-xs"
+            style={{
+              background: 'rgba(217, 119, 6, 0.12)',
+              color: 'rgba(232, 160, 80, 0.95)',
+              fontFamily: "'Geist', 'Inter', sans-serif",
+              letterSpacing: 0,
+              textTransform: 'none',
+            }}
+            title="Você tem transações em várias moedas. Totais exibidos convertidos aproximadamente em moeda dominante."
+          >
+            multi-moeda
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-3 gap-4">
         <div>
           <p
@@ -183,7 +212,7 @@ function SummaryBar({ summary }: { summary: TransactionsSummary | null }) {
               lineHeight: 1.1,
             }}
           >
-            {formatBRL(summary.total_outflow)}
+            {formatCurrency(summary.total_outflow, currency)}
           </p>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist', 'Inter', sans-serif" }}>
             Gasto total
@@ -384,7 +413,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
           flexShrink: 0,
         }}
       >
-        {isOutflow ? '−' : '+'} {formatBRL(Math.abs(tx.amount))}
+        {isOutflow ? '−' : '+'} {formatCurrency(Math.abs(tx.amount), tx.currency)}
       </div>
     </div>
   );
@@ -401,6 +430,22 @@ export default function MoneyPage() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
   const [retagging, setRetagging] = useState(false);
+
+  // Derive the dominant currency from the current tx window. Summary totals
+  // come from the backend as a raw sum across currencies — until the backend
+  // groups per-currency, rendering with the dominant currency is the
+  // least-wrong display. If the user has mixed, show a "multi-moeda" chip so
+  // they know the total is an approximation.
+  const { dominantCurrency, hasMixedCurrency } = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of transactions) {
+      const c = (t.currency || 'BRL').toUpperCase();
+      counts.set(c, (counts.get(c) || 0) + 1);
+    }
+    if (!counts.size) return { dominantCurrency: 'BRL', hasMixedCurrency: false };
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    return { dominantCurrency: sorted[0][0], hasMixedCurrency: counts.size > 1 };
+  }, [transactions]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -618,7 +663,7 @@ export default function MoneyPage() {
               marginBottom: 8,
             }}
           >
-            {formatBRL(savings.total_saved)}
+            {formatCurrency(savings.total_saved, dominantCurrency)}
           </p>
           <p
             style={{
@@ -629,15 +674,15 @@ export default function MoneyPage() {
             }}
           >
             {savings.waited_count} {savings.waited_count === 1 ? 'vez' : 'vezes'} que você esperou depois do aviso.
-            {savings.biggest_save > 0 && <> Maior pausa: {formatBRL(savings.biggest_save)}.</>}
+            {savings.biggest_save > 0 && <> Maior pausa: {formatCurrency(savings.biggest_save, dominantCurrency)}.</>}
           </p>
         </div>
       )}
 
-      {/* Summary */}
+      {/* Summary — currency derived from the tx list (dominant). */}
       {summary && (
         <div className="mb-6">
-          <SummaryBar summary={summary} />
+          <SummaryBar summary={summary} currency={dominantCurrency} mixedCurrency={hasMixedCurrency} />
         </div>
       )}
 

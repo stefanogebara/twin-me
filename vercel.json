@@ -123,6 +123,10 @@
       "schedule": "0 6 * * *"
     },
     {
+      "path": "/api/cron/bank-consent",
+      "schedule": "0 10 * * *"
+    },
+    {
       "path": "/api/cron/twin-summary-refresh",
       "schedule": "0 6 * * *"
     },

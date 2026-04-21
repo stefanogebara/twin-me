@@ -170,6 +170,29 @@ export function TwinChatScreen() {
       .finally(() => setHistoryLoaded(true));
   }, []);
 
+  // ── Phase 3.4: handle stress_nudge pre-seed from push tap ──────────────────
+  // App.tsx stashes pending_nudge_context when the user taps a stress_nudge
+  // push. On mount here, if that key exists and is fresh (< 5min old), seed
+  // the input box with a contextual opener so the user just hits send.
+  useEffect(() => {
+    AsyncStorage.getItem('pending_nudge_context')
+      .then(raw => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as { txId?: string; insightId?: string; seededAt?: number };
+        // Stale — user arrived long after the push tap (e.g. app was already
+        // open on Chat and they navigated back through). Don't surprise them.
+        if (!parsed.seededAt || Date.now() - parsed.seededAt > 5 * 60 * 1000) {
+          AsyncStorage.removeItem('pending_nudge_context').catch(() => {});
+          return;
+        }
+        setInput(
+          'Acabei de receber um aviso sobre uma compra em stress. Quero conversar sobre isso antes de cair no padrão de novo.',
+        );
+        AsyncStorage.removeItem('pending_nudge_context').catch(() => {});
+      })
+      .catch(() => {/* non-critical */});
+  }, []);
+
   useEffect(() => {
     if (!historyLoaded) return;
     // Don't save if we're in the middle of streaming (incomplete message)

@@ -478,6 +478,7 @@ import cronMorningBriefingRoutes from './routes/cron-morning-briefing.js';
 import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
+import cronBankConsentRoutes from './routes/cron-bank-consent.js';
 import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
 import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
@@ -675,6 +676,7 @@ app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morni
 app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
+app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for Pluggy + TrueLayer connections
 app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
 app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected

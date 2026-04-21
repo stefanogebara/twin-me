@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   InstrumentSerif_400Regular,
 } from '@expo-google-fonts/instrument-serif';
@@ -144,8 +145,22 @@ export default function App() {
       goal: 'Home',      // no dedicated Goals tab in mobile yet
       reflection: 'Me',
       chat: 'Chat',
+      stress_nudge: 'Chat',  // Phase 3.4 — open twin chat pre-seeded with tx context
     };
     const screen = screenMap[type] ?? 'Chat';
+
+    // For stress_nudge, pre-seed the input with a contextual opener. The push
+    // payload carries insightId + txId; we stash both on AsyncStorage so
+    // TwinChatScreen can read them on mount and the twin pulls the tx from DB.
+    if (type === 'stress_nudge') {
+      const txId = (data?.txId as string) || '';
+      const insightId = (data?.insightId as string) || '';
+      AsyncStorage.setItem(
+        'pending_nudge_context',
+        JSON.stringify({ txId, insightId, seededAt: Date.now() }),
+      ).catch(() => {/* non-critical */});
+    }
+
     navRef.current?.navigate(screen as never);
   }, []);
 
