@@ -30,6 +30,14 @@ export interface Transaction {
   emotional_context: EmotionalContext | null;
 }
 
+export interface CurrencyBreakdown {
+  currency: string;
+  outflow: number;
+  inflow: number;
+  count: number;
+  stress_shop_total: number;
+}
+
 export interface TransactionsSummary {
   window_days: number;
   transaction_count: number;
@@ -39,6 +47,8 @@ export interface TransactionsSummary {
   stress_shop_total: number;
   high_stress_outflow: number;
   emotional_spend_ratio: number | null;
+  /** Phase 3 multi-currency breakdown. Sorted by outflow desc; [0] is dominant. */
+  currencies?: CurrencyBreakdown[];
 }
 
 export interface UploadResult {

@@ -15,6 +15,33 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from './services/database.js';
 import * as pluggy from './services/transactions/pluggyClient.js';
+
+// In-memory IP rate limit. Lambda warm reuse keeps the Map alive across
+// invocations; cold start resets — that's fine, 429 is a soft guard.
+// 60 requests per minute per IP ≫ Pluggy's typical burst (a few events at
+// item/created + a batch of transactions/created per connection).
+const RATE_BUCKETS = new Map();
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 60;
+
+function rateLimitAllow(ip) {
+  if (!ip) return true; // can't identify — don't block
+  const now = Date.now();
+  const entry = RATE_BUCKETS.get(ip) || { start: now, count: 0 };
+  if (now - entry.start > RATE_WINDOW_MS) {
+    entry.start = now;
+    entry.count = 0;
+  }
+  entry.count++;
+  RATE_BUCKETS.set(ip, entry);
+  // Opportunistic cleanup
+  if (RATE_BUCKETS.size > 1000) {
+    for (const [k, v] of RATE_BUCKETS.entries()) {
+      if (now - v.start > 2 * RATE_WINDOW_MS) RATE_BUCKETS.delete(k);
+    }
+  }
+  return entry.count <= RATE_MAX;
+}
 import {
   seedItemTransactions,
   ingestTransactionsByIds,
@@ -167,6 +194,15 @@ async function dispatch(event, payload) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ success: false, error: 'method not allowed' });
+    return;
+  }
+
+  // Rate limit BEFORE signature check so a secret-scrape attacker can't burn
+  // us out on failed auth attempts.
+  const ip = String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+  if (!rateLimitAllow(ip)) {
+    log.warn(`rate-limited ip=${ip}`);
+    res.status(429).json({ success: false, error: 'rate limit exceeded' });
     return;
   }
 

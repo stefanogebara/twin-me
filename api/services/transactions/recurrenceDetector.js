@@ -37,7 +37,7 @@ export async function detectAndMarkRecurring(userId) {
 
   const { data: rows, error } = await supabaseAdmin
     .from('user_transactions')
-    .select('id, merchant_normalized, amount, transaction_date, is_recurring')
+    .select('id, merchant_normalized, amount, currency, transaction_date, is_recurring')
     .eq('user_id', userId)
     .lt('amount', 0) // outflows only
     .not('merchant_normalized', 'is', null)
@@ -50,10 +50,13 @@ export async function detectAndMarkRecurring(userId) {
 
   if (!rows?.length) return { scanned: 0, marked_recurring: 0, groups: 0 };
 
-  // Group by merchant_normalized
+  // Group by (merchant_normalized, currency). Cross-currency merchants
+  // (e.g. Netflix BR R$55 + Netflix ES €13) are separate groups so each
+  // can qualify as recurring independently — the amount CV threshold makes
+  // no sense across currencies.
   const groups = new Map();
   for (const r of rows) {
-    const k = r.merchant_normalized;
+    const k = `${r.merchant_normalized}|${(r.currency || 'BRL').toUpperCase()}`;
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(r);
   }

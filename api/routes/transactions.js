@@ -187,6 +187,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
       .from('user_transactions')
       .select(`
         amount,
+        currency,
         account_type,
         emotional_context:transaction_emotional_context (
           computed_stress_score, is_stress_shop_candidate
@@ -204,14 +205,28 @@ router.get('/summary', authenticateUser, async (req, res) => {
     let stressShopTotal = 0;
     let highStressOutflow = 0;
 
+    // Per-currency breakdown so the frontend can render mixed-currency users
+    // correctly. Each bucket: { currency: 'BRL', outflow: n, inflow: n, count: n }.
+    const byCurrency = new Map();
+    function bucket(cur) {
+      const k = (cur || 'BRL').toUpperCase();
+      if (!byCurrency.has(k)) byCurrency.set(k, { currency: k, outflow: 0, inflow: 0, count: 0, stress_shop_total: 0 });
+      return byCurrency.get(k);
+    }
+
     for (const t of rows) {
-      if (t.amount < 0) totalOutflow += Math.abs(t.amount);
-      else totalInflow += t.amount;
+      const b = bucket(t.currency);
+      b.count++;
+      if (t.amount < 0) { totalOutflow += Math.abs(t.amount); b.outflow += Math.abs(t.amount); }
+      else { totalInflow += t.amount; b.inflow += t.amount; }
 
       const ec = Array.isArray(t.emotional_context) ? t.emotional_context[0] : t.emotional_context;
       if (ec?.is_stress_shop_candidate) {
         stressShopCount++;
-        if (t.amount < 0) stressShopTotal += Math.abs(t.amount);
+        if (t.amount < 0) {
+          stressShopTotal += Math.abs(t.amount);
+          b.stress_shop_total += Math.abs(t.amount);
+        }
       }
       if (ec?.computed_stress_score !== null && ec?.computed_stress_score >= 0.6 && t.amount < 0) {
         highStressOutflow += Math.abs(t.amount);
@@ -219,6 +234,15 @@ router.get('/summary', authenticateUser, async (req, res) => {
     }
 
     const emotionalSpendRatio = totalOutflow > 0 ? highStressOutflow / totalOutflow : null;
+    const currencies = [...byCurrency.values()]
+      .map((b) => ({
+        currency: b.currency,
+        outflow: Math.round(b.outflow * 100) / 100,
+        inflow: Math.round(b.inflow * 100) / 100,
+        count: b.count,
+        stress_shop_total: Math.round(b.stress_shop_total * 100) / 100,
+      }))
+      .sort((a, b) => b.outflow - a.outflow);
 
     return res.json({
       success: true,
@@ -230,6 +254,9 @@ router.get('/summary', authenticateUser, async (req, res) => {
       stress_shop_total: Math.round(stressShopTotal * 100) / 100,
       high_stress_outflow: Math.round(highStressOutflow * 100) / 100,
       emotional_spend_ratio: emotionalSpendRatio,
+      // Phase 3 multi-currency: per-currency breakdown. Sorted by outflow desc
+      // so [0] is the dominant currency.
+      currencies,
     });
   } catch (err) {
     log.error('summary error', err);

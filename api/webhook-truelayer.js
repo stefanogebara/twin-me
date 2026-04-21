@@ -20,6 +20,31 @@ import { supabaseAdmin } from './services/database.js';
 import { syncUserConnection } from './services/transactions/trueLayerIngestion.js';
 import { createLogger } from './services/logger.js';
 
+// Per-IP in-memory rate limit. 60 req/min ≫ TrueLayer's typical volume per
+// user. Shared cold-start scope with webhook-pluggy.js (lives in separate
+// lambdas so their Maps don't cross-contaminate — intentional isolation).
+const RATE_BUCKETS = new Map();
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 60;
+
+function rateLimitAllow(ip) {
+  if (!ip) return true;
+  const now = Date.now();
+  const entry = RATE_BUCKETS.get(ip) || { start: now, count: 0 };
+  if (now - entry.start > RATE_WINDOW_MS) {
+    entry.start = now;
+    entry.count = 0;
+  }
+  entry.count++;
+  RATE_BUCKETS.set(ip, entry);
+  if (RATE_BUCKETS.size > 1000) {
+    for (const [k, v] of RATE_BUCKETS.entries()) {
+      if (now - v.start > 2 * RATE_WINDOW_MS) RATE_BUCKETS.delete(k);
+    }
+  }
+  return entry.count <= RATE_MAX;
+}
+
 const log = createLogger('truelayer-webhook-lambda');
 
 const TL_JWKS_URL = (process.env.TRUELAYER_ENV === 'production')
@@ -156,6 +181,13 @@ async function dispatch(event, payload) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ success: false, error: 'method not allowed' });
+    return;
+  }
+
+  const ip = String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || '').split(',')[0].trim();
+  if (!rateLimitAllow(ip)) {
+    log.warn(`rate-limited ip=${ip}`);
+    res.status(429).json({ success: false, error: 'rate limit exceeded' });
     return;
   }
 

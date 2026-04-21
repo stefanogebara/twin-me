@@ -15,6 +15,8 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import * as pluggy from '../services/transactions/pluggyClient.js';
+import * as tl from '../services/transactions/trueLayerClient.js';
+import { decryptToken } from '../services/encryption.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('pluggy-routes');
@@ -71,14 +73,16 @@ router.post('/connect-token', async (req, res) => {
 
 /**
  * GET /connections
- * List the current user's active bank connections. Used by BankConnectionsPage.
+ * List the current user's active bank connections. Provider-agnostic — returns
+ * both Pluggy (BR) and TrueLayer (EU/UK) rows so the single BankConnectionsList
+ * UI can render them together.
  */
 router.get('/connections', async (req, res) => {
   try {
     const userId = req.user?.id;
     const { data, error } = await supabaseAdmin
       .from('user_bank_connections')
-      .select('id, connector_name, status, status_detail, last_synced_at, consent_expires_at, created_at')
+      .select('id, provider, connector_name, status, status_detail, last_synced_at, consent_expires_at, created_at')
       .eq('user_id', userId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
@@ -92,8 +96,12 @@ router.get('/connections', async (req, res) => {
 
 /**
  * DELETE /connections/:id
- * Disconnect a bank. Calls Pluggy DELETE + soft-deletes our row so historical
- * transactions stay attached to the user.
+ * Disconnect a bank. Dispatches to the right provider's revoke API based on
+ * the row's provider field (pluggy or truelayer), then soft-deletes our row
+ * so historical transactions stay attached to the user.
+ *
+ * Provider revoke errors are logged but not fatal — local soft-delete must
+ * always succeed so the user isn't stuck with a phantom connection.
  */
 router.delete('/connections/:id', async (req, res) => {
   try {
@@ -102,7 +110,7 @@ router.delete('/connections/:id', async (req, res) => {
 
     const { data: row, error } = await supabaseAdmin
       .from('user_bank_connections')
-      .select('id, pluggy_item_id')
+      .select('id, provider, pluggy_item_id, truelayer_credentials_id, refresh_token_encrypted')
       .eq('id', id)
       .eq('user_id', userId)
       .is('deleted_at', null)
@@ -110,11 +118,23 @@ router.delete('/connections/:id', async (req, res) => {
     if (error) throw new Error(error.message);
     if (!row) return res.status(404).json({ success: false, error: 'connection not found' });
 
-    try {
-      await pluggy.deleteItem(row.pluggy_item_id);
-    } catch (err) {
-      // Log but don't fail — our soft-delete should still proceed so the user isn't stuck.
-      log.warn(`pluggy delete failed for ${row.pluggy_item_id}: ${err.message}`);
+    if (row.provider === 'truelayer') {
+      try {
+        if (row.refresh_token_encrypted) {
+          const refresh = decryptToken(row.refresh_token_encrypted);
+          const { accessToken } = await tl.refreshAccessToken(refresh);
+          await tl.revokeToken(accessToken);
+        }
+      } catch (err) {
+        log.warn(`truelayer revoke failed for ${row.truelayer_credentials_id}: ${err.message}`);
+      }
+    } else {
+      // Default: Pluggy (existing behaviour, also handles legacy rows with no provider set)
+      try {
+        await pluggy.deleteItem(row.pluggy_item_id);
+      } catch (err) {
+        log.warn(`pluggy delete failed for ${row.pluggy_item_id}: ${err.message}`);
+      }
     }
 
     await supabaseAdmin
@@ -131,8 +151,10 @@ router.delete('/connections/:id', async (req, res) => {
 
 /**
  * POST /sync/:id
- * Force a fresh pull on an item. Triggers Pluggy's internal sync; new transactions
- * will arrive via webhook shortly after. Returns the item's updated status.
+ * Force a fresh pull on a connection. Dispatches on the row's provider field:
+ *   - pluggy: triggers Pluggy's PATCH /items/:id (new tx arrive via webhook)
+ *   - truelayer: /api/truelayer/sync/:id owns the pull-side refresh path;
+ *     here we return a redirect hint so the frontend can call that instead.
  */
 router.post('/sync/:id', async (req, res) => {
   try {
@@ -141,13 +163,19 @@ router.post('/sync/:id', async (req, res) => {
 
     const { data: row, error } = await supabaseAdmin
       .from('user_bank_connections')
-      .select('id, pluggy_item_id')
+      .select('id, provider, pluggy_item_id')
       .eq('id', id)
       .eq('user_id', userId)
       .is('deleted_at', null)
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) return res.status(404).json({ success: false, error: 'connection not found' });
+
+    if (row.provider === 'truelayer') {
+      // Frontend should be calling /api/truelayer/sync/:id directly — this is a
+      // safety net for legacy clients.
+      return res.status(400).json({ success: false, error: 'use /api/truelayer/sync/:id for TrueLayer connections' });
+    }
 
     const updated = await pluggy.triggerSync(row.pluggy_item_id);
 
