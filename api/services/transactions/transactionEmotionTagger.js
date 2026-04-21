@@ -466,8 +466,16 @@ function computeFromBundle(userId, tx, bundle) {
   // only flag if the charge is unusually large (R$100+) which would indicate a new/yearly plan.
   const minAmount = category === 'streaming' ? 100 : 30;
 
+  // Recurring charges (subscriptions, habits, monthly bills) are NOT impulses —
+  // they happen on schedule regardless of how stressed you were that day.
+  // Renan feedback 2026-04-21: "separa o joio do trigo — o que é assinatura,
+  // o que é recorrente" — a recurring bill correlating with a high-stress
+  // day is coincidence, not causation.
+  const isRecurring = tx.is_recurring === true;
+
   const isStressShop =
     isOutflow &&
+    !isRecurring &&
     stressScore !== null &&
     stressScore >= 0.6 &&
     discretionary &&
@@ -504,7 +512,7 @@ export async function tagTransactionsBatch(userId, transactionIds) {
 
   const { data: txns, error } = await supabaseAdmin
     .from('user_transactions')
-    .select('id, transaction_date, amount, category, merchant_normalized')
+    .select('id, transaction_date, amount, category, merchant_normalized, is_recurring')
     .eq('user_id', userId)
     .in('id', transactionIds);
 

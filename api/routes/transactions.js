@@ -13,6 +13,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { parseBankStatement } from '../services/transactions/parserDispatcher.js';
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
+import { detectAndMarkRecurring } from '../services/transactions/recurrenceDetector.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('transactions-api');
@@ -86,6 +87,15 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
 
     const insertedIds = (inserted || []).map((r) => r.id);
 
+    // Detect recurring charges BEFORE tagging so stress-shop rule can exclude them.
+    // Netflix monthly, gym, Friday iFood habit = not impulses. Fast — single
+    // query + in-memory grouping, no external calls.
+    try {
+      await detectAndMarkRecurring(userId);
+    } catch (err) {
+      log.warn(`recurrence detector failed (non-fatal): ${err.message}`);
+    }
+
     // Await tagging synchronously so the response reflects final state.
     // Vercel kills serverless lambdas after response returns — fire-and-forget
     // tagging gets truncated. Batch tagger is ~2-3s for 20 rows (prefetches
@@ -133,7 +143,7 @@ router.get('/', authenticateUser, async (req, res) => {
       .from('user_transactions')
       .select(`
         id, amount, currency, merchant_raw, merchant_normalized, category,
-        transaction_date, source_bank, account_type, created_at,
+        transaction_date, source_bank, account_type, is_recurring, created_at,
         emotional_context:transaction_emotional_context (
           hrv_score, recovery_score, sleep_score, music_valence, calendar_load,
           computed_stress_score, is_stress_shop_candidate, signals_found
@@ -267,9 +277,22 @@ router.post('/retag', authenticateUser, async (req, res) => {
       if (!updErr) backfilled++;
     }
 
+    // Re-detect recurring before tagging so the rule picks up newly-recurring patterns
+    let recurringStats = { scanned: 0, marked_recurring: 0 };
+    try {
+      recurringStats = await detectAndMarkRecurring(userId);
+    } catch (err) {
+      log.warn(`recurrence detector failed (non-fatal): ${err.message}`);
+    }
+
     const ids = (txns || []).map((r) => r.id);
     const result = await tagTransactionsBatch(userId, ids);
-    return res.json({ success: true, ...result, merchants_backfilled: backfilled });
+    return res.json({
+      success: true,
+      ...result,
+      merchants_backfilled: backfilled,
+      recurring_scan: recurringStats,
+    });
   } catch (err) {
     log.error('retag error', err);
     return res.status(500).json({ success: false, error: err.message || 'retag failed' });

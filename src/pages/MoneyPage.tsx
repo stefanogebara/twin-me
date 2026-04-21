@@ -324,6 +324,23 @@ function TransactionRow({ tx }: { tx: Transaction }) {
               impulso
             </span>
           )}
+          {tx.is_recurring && (
+            <span
+              style={{
+                fontSize: 10,
+                padding: '2px 8px',
+                borderRadius: 20,
+                background: 'rgba(255,255,255,0.04)',
+                color: 'rgba(255,255,255,0.50)',
+                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+              }}
+              title="Charge recorrente — não conta como impulso"
+            >
+              recorrente
+            </span>
+          )}
           {ec?.music_valence !== null && ec?.music_valence !== undefined && (
             <span
               style={{

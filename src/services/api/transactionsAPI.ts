@@ -25,6 +25,7 @@ export interface Transaction {
   transaction_date: string;
   source_bank: string;
   account_type: 'checking' | 'credit_card' | 'savings';
+  is_recurring?: boolean;
   created_at: string;
   emotional_context: EmotionalContext | null;
 }
