@@ -647,7 +647,8 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
       .select('id, nudge_followed, nudge_checked_at, metadata, created_at')
       .eq('user_id', userId)
       .eq('category', 'stress_nudge')
-      .gte('created_at', since);
+      .gte('created_at', since)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -668,6 +669,21 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
     // to extend later when we include currency in the nudge metadata.
     const dominantCurrency = 'BRL';
 
+    // Recent 5 nudges for inline card rendering. Includes outcome when the
+    // retrospective cron has already evaluated them.
+    const recent = rows.slice(0, 5).map((n) => ({
+      id: n.id,
+      title: n.metadata?.title || 'Aviso',
+      body: n.metadata?.body || '',
+      amount: Number(n.metadata?.amount) || 0,
+      merchant: n.metadata?.merchant || '',
+      category: n.metadata?.tx_category || null,
+      stress_score: Number(n.metadata?.stress_score) || null,
+      followed: n.nudge_followed,
+      checked: n.nudge_checked_at !== null,
+      created_at: n.created_at,
+    }));
+
     return res.json({
       success: true,
       window_days: windowDays,
@@ -677,6 +693,7 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
       follow_rate: followRate,
       est_saved: Math.round(estSaved * 100) / 100,
       dominant_currency: dominantCurrency,
+      recent,
     });
   } catch (err) {
     log.error('nudge-stats error', err);

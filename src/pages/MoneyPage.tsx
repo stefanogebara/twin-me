@@ -727,8 +727,11 @@ export default function MoneyPage() {
         </div>
       )}
 
-      {/* Nudge effectiveness affirmation — only show if at least one nudge was retro-checked */}
-      {nudgeStats && nudgeStats.checked_count > 0 && (
+      {/* Nudge feed — shows recent stress_nudge rows as cards, plus a rolled-up
+          effectiveness line when the retrospective cron has checked any. The
+          cards-per-nudge pattern follows Renan's "single canvas" call: each
+          nudge is an in-page moment, not hidden behind a push notification. */}
+      {nudgeStats && nudgeStats.total_sent > 0 && (
         <div
           className="mb-6 px-5 py-4"
           style={{
@@ -740,34 +743,97 @@ export default function MoneyPage() {
           <p style={{ ...LABEL_STYLE, color: 'rgba(134, 239, 172, 0.85)', marginBottom: 10 }}>
             Você ouvindo o twin · últimos {nudgeStats.window_days} dias
           </p>
-          <p
-            style={{
-              fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: 24,
-              color: 'var(--foreground)',
-              lineHeight: 1.2,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Você seguiu <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{nudgeStats.followed_count}</span> de {nudgeStats.checked_count} avisos
-            {nudgeStats.est_saved > 0 && (
-              <> e pausou cerca de <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{formatCurrency(nudgeStats.est_saved, dominantCurrency)}</span> em gastos impulsivos</>
-            )}
-            .
-          </p>
-          {nudgeStats.total_sent > nudgeStats.checked_count && (
+          {nudgeStats.checked_count > 0 ? (
             <p
               style={{
-                fontSize: 12,
-                color: 'rgba(255,255,255,0.40)',
-                marginTop: 8,
-                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: 22,
+                color: 'var(--foreground)',
+                lineHeight: 1.25,
+                letterSpacing: '-0.01em',
               }}
             >
-              {nudgeStats.total_sent - nudgeStats.checked_count} aviso
-              {nudgeStats.total_sent - nudgeStats.checked_count === 1 ? '' : 's'} ainda sendo avaliado
-              {nudgeStats.total_sent - nudgeStats.checked_count === 1 ? '' : 's'}.
+              Você seguiu <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{nudgeStats.followed_count}</span> de {nudgeStats.checked_count} avisos
+              {nudgeStats.est_saved > 0 && (
+                <> · <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{formatCurrency(nudgeStats.est_saved, dominantCurrency)}</span> pausados</>
+              )}
+              .
             </p>
+          ) : (
+            <p
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: 18,
+                color: 'rgba(255,255,255,0.75)',
+                lineHeight: 1.3,
+              }}
+            >
+              {nudgeStats.total_sent} aviso{nudgeStats.total_sent === 1 ? '' : 's'} enviado{nudgeStats.total_sent === 1 ? '' : 's'} — avaliando se você respondeu.
+            </p>
+          )}
+
+          {Array.isArray(nudgeStats.recent) && nudgeStats.recent.length > 0 && (
+            <div className="mt-4 flex flex-col gap-2">
+              {nudgeStats.recent.map((n) => {
+                const when = new Date(n.created_at);
+                const whenTxt = when.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                let outcomeChip: { text: string; bg: string; fg: string } | null = null;
+                if (n.checked) {
+                  outcomeChip = n.followed
+                    ? { text: 'você parou', bg: 'rgba(134, 239, 172, 0.14)', fg: 'rgba(134, 239, 172, 0.95)' }
+                    : { text: 'continuou', bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)' };
+                }
+                return (
+                  <div
+                    key={n.id}
+                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg"
+                    style={{
+                      background: 'rgba(0,0,0,0.20)',
+                      border: '1px solid rgba(255,255,255,0.04)',
+                    }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: 'rgba(255,255,255,0.85)',
+                          fontFamily: "'Geist', 'Inter', sans-serif",
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {n.merchant ? (
+                          <>
+                            {formatCurrency(n.amount, dominantCurrency)} em <span style={{ color: 'rgba(255,255,255,0.95)' }}>{n.merchant}</span>
+                            {n.stress_score !== null && (
+                              <> · stress {Math.round(n.stress_score * 100)}%</>
+                            )}
+                          </>
+                        ) : (
+                          n.title
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, fontFamily: "'Geist', 'Inter', sans-serif" }}>
+                        {whenTxt}
+                      </div>
+                    </div>
+                    {outcomeChip && (
+                      <span
+                        className="px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{
+                          background: outcomeChip.bg,
+                          color: outcomeChip.fg,
+                          fontSize: 11,
+                          fontFamily: "'Geist', 'Inter', sans-serif",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {outcomeChip.text}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

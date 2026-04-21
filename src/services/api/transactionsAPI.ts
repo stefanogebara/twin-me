@@ -178,6 +178,19 @@ export async function getSavings(): Promise<SavingsSummary | null> {
   return summary as SavingsSummary;
 }
 
+export interface NudgeRecent {
+  id: string;
+  title: string;
+  body: string;
+  amount: number;
+  merchant: string;
+  category: string | null;
+  stress_score: number | null;
+  followed: boolean | null;
+  checked: boolean;
+  created_at: string;
+}
+
 export interface NudgeStats {
   window_days: number;
   total_sent: number;
@@ -186,6 +199,7 @@ export interface NudgeStats {
   follow_rate: number | null;
   est_saved: number;
   dominant_currency: string;
+  recent?: NudgeRecent[];
 }
 
 /** Phase 3.4b affirmation card: how did the user respond to stress nudges? */
