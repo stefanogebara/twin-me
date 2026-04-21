@@ -22,7 +22,18 @@ api/mcp-server/
 .vscode/
 .idea/
 
-# NOTE: 3d425f00 added broad excludes (mobile/, database/, scripts/, tasks/,
-# etc) that triggered an ERR_MODULE_NOT_FOUND outage. Reverted until we can
-# identify exactly which path is referenced at runtime and exclude only the
-# safe ones one-at-a-time.
+# Test/artifact dirs (verified via grep: no runtime imports from src/ or api/)
+# Excluded to shrink upload size sent to Vercel's build servers.
+tests/
+test-data/
+test-results/
+coverage/
+playwright-report/
+tmp/
+tasks/
+.github/
+twin-research/
+
+# NOTE: 3d425f00 also tried to exclude scripts/, mobile/, database/, design-system/
+# but those triggered an ERR_MODULE_NOT_FOUND outage (unknown transitive
+# reference). Leaving them INCLUDED until we can bisect in a follow-up PR.
