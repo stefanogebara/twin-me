@@ -198,11 +198,7 @@ export default async function handler(req, res) {
     res.status(200).json({ success: true });
   } catch (err) {
     log.error(`dispatch ${event} failed: ${err.message}\n${err.stack}`);
-    res.status(500).json({
-      success: false,
-      error: 'dispatch failed',
-      message: err.message,
-    });
+    res.status(500).json({ success: false, error: 'dispatch failed' });
   }
 }
 
