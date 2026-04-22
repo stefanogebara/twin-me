@@ -17,7 +17,23 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'https://twin-ai-learn.vercel.app/api';
+  // API base URL — overridable via chrome.storage.local for dev/staging.
+  // Default to prod. Developers set via chrome devtools console:
+  //   chrome.storage.local.set({ twinme_api_base: 'http://localhost:3004/api' })
+  // 2026-04-22 audit: was a hardcoded literal that would break any non-prod
+  // deployment. Storage lookup is async, so we start with the default and
+  // asynchronously swap if an override exists — the first request still uses
+  // the default (acceptable; dev can reload after setting).
+  const DEFAULT_API_BASE = 'https://twin-ai-learn.vercel.app/api';
+  let API_BASE = DEFAULT_API_BASE;
+  try {
+    chrome.storage?.local?.get?.(['twinme_api_base'], (res) => {
+      if (res?.twinme_api_base && typeof res.twinme_api_base === 'string') {
+        API_BASE = res.twinme_api_base;
+      }
+    });
+  } catch { /* chrome.storage unavailable — stick with default */ }
+
   const NUDGE_STORAGE_PREFIX = 'twinme_nudge_shown_';
 
   /** Detect a checkout/cart page by URL pattern per host. */

@@ -14,6 +14,7 @@ import { parseBankStatement } from '../services/transactions/parserDispatcher.js
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
 import { detectAndMarkRecurring } from '../services/transactions/recurrenceDetector.js';
+import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('transactions-api');
@@ -63,7 +64,7 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
         user_id: userId,
         external_id: t.external_id,
         amount: t.amount,
-        currency: t.currency || 'BRL',
+        currency: t.currency || DEFAULT_CURRENCY,
         merchant_raw: t.merchant_raw,
         merchant_normalized: brand,
         category,
@@ -209,7 +210,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     // correctly. Each bucket: { currency: 'BRL', outflow: n, inflow: n, count: n }.
     const byCurrency = new Map();
     function bucket(cur) {
-      const k = (cur || 'BRL').toUpperCase();
+      const k = (cur || DEFAULT_CURRENCY).toUpperCase();
       if (!byCurrency.has(k)) byCurrency.set(k, { currency: k, outflow: 0, inflow: 0, count: 0, stress_shop_total: 0 });
       return byCurrency.get(k);
     }
@@ -228,7 +229,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
           b.stress_shop_total += Math.abs(t.amount);
         }
       }
-      if (ec?.computed_stress_score !== null && ec?.computed_stress_score >= 0.6 && t.amount < 0) {
+      if (ec?.computed_stress_score !== null && ec?.computed_stress_score >= STRESS_HIGH && t.amount < 0) {
         highStressOutflow += Math.abs(t.amount);
       }
     }
@@ -394,7 +395,7 @@ router.get('/patterns', authenticateUser, async (req, res) => {
  *     score: 0.72,                 // 0-1, higher = more stressed
  *     signals_found: 3,            // number of signal types contributing
  *     signals: { recovery, music_valence, calendar_load_12h, sleep },
- *     should_nudge: true,          // true when score >= 0.65
+ *     should_nudge: true,          // true when score >= NUDGE_TRIGGER (0.65)
  *     reason: "HRV dropped and you have 3 meetings today"
  *   }
  */
@@ -483,7 +484,7 @@ router.get('/stress-shop-score', authenticateUser, async (req, res) => {
       score = components.reduce((s, c) => s + c.weight * c.value, 0) / totalWeight;
     }
 
-    const shouldNudge = score !== null && score >= 0.65;
+    const shouldNudge = score !== null && score >= NUDGE_TRIGGER;
 
     return res.json({
       success: true,
@@ -684,9 +685,9 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
 
     // Derive dominant currency from the nudged tx records (their underlying
     // user_transactions rows). metadata.currency isn't stored on the nudge
-    // payload yet, so we back off to BRL — good enough for the MVP and easy
-    // to extend later when we include currency in the nudge metadata.
-    const dominantCurrency = 'BRL';
+    // payload yet, so we back off to the DEFAULT_CURRENCY (BRL in this
+    // deployment). Easy to extend once we include currency in nudge metadata.
+    const dominantCurrency = DEFAULT_CURRENCY;
 
     // Recent 5 nudges for inline card rendering. Includes outcome when the
     // retrospective cron has already evaluated them.

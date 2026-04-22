@@ -20,6 +20,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { STRESS_HIGH } from '../config/financialThresholds.js';
 
 const log = createLogger('financial-weekly-report');
 
@@ -104,7 +105,7 @@ function summarize(rows) {
         stress_score: ec.computed_stress_score,
       });
     }
-    if (ec?.computed_stress_score !== null && ec?.computed_stress_score !== undefined && ec.computed_stress_score >= 0.6 && t.amount < 0) {
+    if (ec?.computed_stress_score !== null && ec?.computed_stress_score !== undefined && ec.computed_stress_score >= STRESS_HIGH && t.amount < 0) {
       highStressOutflow += abs;
     }
   }

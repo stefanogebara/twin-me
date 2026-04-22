@@ -21,6 +21,7 @@ import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { isDiscretionaryCategory } from './merchantNormalizer.js';
 import { estimateValence } from './musicValenceDictionary.js';
+import { STRESS_HIGH, MIN_CANDIDATE_AMOUNT, MAX_CANDIDATE_AMOUNT } from '../../config/financialThresholds.js';
 
 const log = createLogger('transaction-emotion-tagger');
 
@@ -291,9 +292,9 @@ export async function computeTransactionEmotionalContext(userId, transaction) {
   const isStressShop =
     isOutflow &&
     stressScore !== null &&
-    stressScore >= 0.6 &&
-    absAmount >= 20 && // ignore micro-transactions
-    absAmount <= 2000; // ignore huge purchases (likely planned)
+    stressScore >= STRESS_HIGH &&
+    absAmount >= MIN_CANDIDATE_AMOUNT &&
+    absAmount <= MAX_CANDIDATE_AMOUNT;
 
   return {
     transaction_id: transaction.id,
@@ -477,10 +478,10 @@ function computeFromBundle(userId, tx, bundle) {
     isOutflow &&
     !isRecurring &&
     stressScore !== null &&
-    stressScore >= 0.6 &&
+    stressScore >= STRESS_HIGH &&
     discretionary &&
     absAmount >= minAmount &&
-    absAmount <= 2000;
+    absAmount <= MAX_CANDIDATE_AMOUNT;
 
   return {
     transaction_id: tx.id,

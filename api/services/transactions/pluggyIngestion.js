@@ -20,6 +20,7 @@ import { detectAndMarkRecurring } from './recurrenceDetector.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
 import { maybeNudgeForTransactions } from './transactionNudgeService.js';
 import * as pluggy from './pluggyClient.js';
+import { DEFAULT_CURRENCY } from '../../config/financialThresholds.js';
 
 const log = createLogger('pluggy-ingestion');
 
@@ -114,7 +115,7 @@ async function upsertTransactions(userId, pluggyAccountId, source, accountType, 
         // Reuse Pluggy's id so CSV + Pluggy can coexist without collision.
         external_id: `pluggy:${t.id}`,
         amount: signedAmount(t),
-        currency: t.currencyCode || 'BRL',
+        currency: t.currencyCode || DEFAULT_CURRENCY,
         merchant_raw: merchantRaw,
         merchant_normalized: brand,
         category,

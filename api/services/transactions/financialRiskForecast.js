@@ -14,6 +14,7 @@
 
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from './../logger.js';
+import { DEFAULT_CURRENCY } from '../../config/financialThresholds.js';
 
 const log = createLogger('risk-forecast');
 
@@ -91,7 +92,7 @@ async function getHistoricalBaseline(userId) {
     if (!days.has(day)) days.set(day, {
       outflow: 0,
       discretionary: 0,
-      currency: t.currency || 'BRL',
+      currency: t.currency || DEFAULT_CURRENCY,
       recovery: null,
       sleep: null,
     });
@@ -123,7 +124,7 @@ async function getHistoricalBaseline(userId) {
     const count = new Map();
     for (const b of days.values()) count.set(b.currency, (count.get(b.currency) || 0) + 1);
     const sorted = [...count.entries()].sort((a, b) => b[1] - a[1]);
-    return sorted[0]?.[0] || 'BRL';
+    return sorted[0]?.[0] || DEFAULT_CURRENCY;
   })();
 
   return {
@@ -195,10 +196,11 @@ export async function computeRiskForecast(userId) {
 }
 
 function formatCurrency(n, cur) {
-  const locale = cur === 'BRL' ? 'pt-BR' : cur === 'EUR' ? 'es-ES' : cur === 'GBP' ? 'en-GB' : 'en-US';
+  const code = cur || DEFAULT_CURRENCY;
+  const locale = code === 'BRL' ? 'pt-BR' : code === 'EUR' ? 'es-ES' : code === 'GBP' ? 'en-GB' : 'en-US';
   try {
-    return new Intl.NumberFormat(locale, { style: 'currency', currency: cur || 'BRL', maximumFractionDigits: 0 }).format(n);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: code, maximumFractionDigits: 0 }).format(n);
   } catch {
-    return `${cur || 'BRL'} ${n}`;
+    return `${code} ${n}`;
   }
 }

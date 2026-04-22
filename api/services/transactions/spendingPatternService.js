@@ -19,6 +19,7 @@
 
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
+import { STRESS_HIGH, STRESS_LOW } from '../../config/financialThresholds.js';
 
 const log = createLogger('spending-pattern-service');
 
@@ -64,7 +65,7 @@ function categoryStressPatterns(rows) {
     const ec = Array.isArray(t.emotional_context) ? t.emotional_context[0] : t.emotional_context;
     const s = ec?.computed_stress_score;
     if (s === null || s === undefined) continue;
-    const band = s >= 0.6 ? 'high' : s < 0.4 ? 'low' : null;
+    const band = s >= STRESS_HIGH ? 'high' : s < STRESS_LOW ? 'low' : null;
     if (!band) continue;
     if (!bins[cat]) bins[cat] = { high: [], low: [] };
     bins[cat][band].push(Math.abs(t.amount));

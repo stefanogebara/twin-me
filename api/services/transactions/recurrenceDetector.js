@@ -15,6 +15,7 @@
 
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
+import { DEFAULT_CURRENCY } from '../../config/financialThresholds.js';
 
 const log = createLogger('recurrence-detector');
 
@@ -56,7 +57,7 @@ export async function detectAndMarkRecurring(userId) {
   // no sense across currencies.
   const groups = new Map();
   for (const r of rows) {
-    const k = `${r.merchant_normalized}|${(r.currency || 'BRL').toUpperCase()}`;
+    const k = `${r.merchant_normalized}|${(r.currency || DEFAULT_CURRENCY).toUpperCase()}`;
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(r);
   }

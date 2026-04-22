@@ -171,6 +171,55 @@ function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+// Refresh token TTL — must match setRefreshCookie maxAge (30 days)
+const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * Extract a best-effort device label from the User-Agent header.
+ * Truncated to 100 chars to match column width guidance. Nullable-safe.
+ */
+function deriveDeviceLabel(req) {
+  const ua = req?.get?.('user-agent');
+  if (!ua || typeof ua !== 'string') return null;
+  return ua.slice(0, 100);
+}
+
+/**
+ * Persist a freshly-issued refresh token.
+ *
+ * Writes to the new per-device user_refresh_tokens table (primary path) AND
+ * to the legacy users.refresh_token_hash column (transition fallback so
+ * deployments can be rolled back without invalidating active sessions).
+ *
+ * TODO(post-rollout): Once users.refresh_token_hash is dropped, remove the
+ * legacy update block.
+ */
+async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
+  const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
+
+  const { error: insertErr } = await supabaseAdmin
+    .from('user_refresh_tokens')
+    .insert({
+      user_id: userId,
+      token_hash: tokenHash,
+      device_label: deviceLabel,
+      expires_at: expiresAt,
+    });
+  if (insertErr) {
+    log.error('Failed to insert user_refresh_tokens row', { error: insertErr, userId });
+  }
+
+  // Legacy fallback during rollout — write the latest hash to the users column
+  // so pre-migration refresh handlers still work if we have to roll back.
+  const { error: legacyErr } = await supabaseAdmin
+    .from('users')
+    .update({ refresh_token_hash: tokenHash })
+    .eq('id', userId);
+  if (legacyErr) {
+    log.warn('Failed to update legacy refresh_token_hash (non-fatal)', { error: legacyErr, userId });
+  }
+}
+
 /**
  * Set refresh token as an httpOnly cookie.
  * - httpOnly: JS cannot read it (XSS-safe)
@@ -330,14 +379,12 @@ router.post('/signup', authLimiter, async (req, res) => {
     const { accessToken, refreshToken } = generateTokenPair(newUser, client);
     const refreshTokenHash = hashToken(refreshToken);
 
-    // Store refresh token hash
-    const { error: signupHashErr } = await supabaseAdmin
-      .from('users')
-      .update({ refresh_token_hash: refreshTokenHash })
-      .eq('id', newUser.id);
-    if (signupHashErr) {
-      log.error('Failed to store refresh token hash on signup', { error: signupHashErr });
-    }
+    // Store refresh token (per-device row + legacy fallback)
+    await persistRefreshToken({
+      userId: newUser.id,
+      tokenHash: refreshTokenHash,
+      deviceLabel: deriveDeviceLabel(req),
+    });
 
     // Trigger background enrichment for email signup users
     // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
@@ -411,14 +458,13 @@ router.post('/signin', authLimiter, async (req, res) => {
     const { accessToken, refreshToken } = generateTokenPair(user, client);
     const refreshTokenHash = hashToken(refreshToken);
 
-    // Store refresh token hash
-    const { error: signinHashErr } = await supabaseAdmin
-      .from('users')
-      .update({ refresh_token_hash: refreshTokenHash })
-      .eq('id', user.id);
-    if (signinHashErr) {
-      log.error('Failed to store refresh token hash on signin', { error: signinHashErr });
-    }
+    // Store refresh token (per-device row + legacy fallback)
+    // Signing in from a new device does NOT invalidate other device rows.
+    await persistRefreshToken({
+      userId: user.id,
+      tokenHash: refreshTokenHash,
+      deviceLabel: deriveDeviceLabel(req),
+    });
 
     setRefreshCookie(res, refreshToken);
 
@@ -484,14 +530,47 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
 
     const tokenHash = hashToken(refreshToken);
 
-    // Find user by refresh token hash
-    const { data: user, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name, last_name, created_at, email_verified')
-      .eq('refresh_token_hash', tokenHash)
+    // Preferred path: look up per-device row in user_refresh_tokens.
+    // This is what new logins write to. Signing in from another device no
+    // longer invalidates THIS device's row.
+    let user = null;
+    let tokenRowId = null; // non-null => use new-table rotation path
+
+    const { data: tokenRow } = await supabaseAdmin
+      .from('user_refresh_tokens')
+      .select('id, user_id, expires_at')
+      .eq('token_hash', tokenHash)
       .single();
 
-    if (fetchError || !user) {
+    if (tokenRow) {
+      // Reject expired rows
+      if (new Date(tokenRow.expires_at) < new Date()) {
+        await supabaseAdmin.from('user_refresh_tokens').delete().eq('id', tokenRow.id);
+        return res.status(401).json({ error: 'Invalid refresh token' });
+      }
+      tokenRowId = tokenRow.id;
+      const { data: userRow } = await supabaseAdmin
+        .from('users')
+        .select('id, email, first_name, last_name, created_at, email_verified')
+        .eq('id', tokenRow.user_id)
+        .single();
+      user = userRow || null;
+    }
+
+    // Legacy fallback: token was issued before the user_refresh_tokens
+    // migration landed. Accept it, then silently migrate to the new table on
+    // successful rotation below.
+    // TODO(post-rollout): remove this block after users.refresh_token_hash is dropped.
+    if (!user) {
+      const { data: legacyUser } = await supabaseAdmin
+        .from('users')
+        .select('id, email, first_name, last_name, created_at, email_verified')
+        .eq('refresh_token_hash', tokenHash)
+        .single();
+      user = legacyUser || null;
+    }
+
+    if (!user) {
       return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
@@ -499,14 +578,35 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokenPair(user);
     const newHash = hashToken(newRefreshToken);
 
-    // Update stored hash (token rotation)
-    const { error: rotateHashErr } = await supabaseAdmin
-      .from('users')
-      .update({ refresh_token_hash: newHash })
-      .eq('id', user.id);
-    if (rotateHashErr) {
-      log.error('Failed to rotate refresh token hash', { error: rotateHashErr });
-      return res.status(500).json({ error: 'Internal server error' });
+    if (tokenRowId) {
+      // Rotate the existing per-device row in place. Preserves device_label
+      // and created_at, refreshes last_used_at, extends expires_at.
+      const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
+      const { error: rotateErr } = await supabaseAdmin
+        .from('user_refresh_tokens')
+        .update({
+          token_hash: newHash,
+          last_used_at: new Date().toISOString(),
+          expires_at: newExpiresAt,
+        })
+        .eq('id', tokenRowId);
+      if (rotateErr) {
+        log.error('Failed to rotate user_refresh_tokens row', { error: rotateErr });
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      // Mirror to legacy column during rollout so rollbacks keep working.
+      await supabaseAdmin
+        .from('users')
+        .update({ refresh_token_hash: newHash })
+        .eq('id', user.id);
+    } else {
+      // Legacy-token migration: create a new per-device row going forward.
+      await persistRefreshToken({
+        userId: user.id,
+        tokenHash: newHash,
+        deviceLabel: deriveDeviceLabel(req),
+      });
     }
 
     setRefreshCookie(res, newRefreshToken);
@@ -527,15 +627,31 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
 router.post('/logout', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
+    // Read the current device's refresh token from the cookie (or body for mobile).
+    // Logout must only invalidate THIS device, not every device the user has.
+    const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        // Clear refresh token
-        const { error: clearTokenErr } = await supabaseAdmin
-          .from('users')
-          .update({ refresh_token_hash: null })
-          .eq('id', decoded.id);
-        if (clearTokenErr) log.warn('Error clearing refresh token on logout', { error: clearTokenErr });
+
+        // Delete only THIS device's row in user_refresh_tokens (per-device logout)
+        if (refreshToken) {
+          const rtHash = hashToken(refreshToken);
+          const { error: delErr } = await supabaseAdmin
+            .from('user_refresh_tokens')
+            .delete()
+            .eq('token_hash', rtHash);
+          if (delErr) log.warn('Error deleting user_refresh_tokens row on logout', { error: delErr });
+
+          // Legacy: clear the users column ONLY if this device's hash matches
+          // what's stored there (avoid nuking a different device's legacy token).
+          // TODO(post-rollout): remove after users.refresh_token_hash is dropped.
+          await supabaseAdmin
+            .from('users')
+            .update({ refresh_token_hash: null })
+            .eq('id', decoded.id)
+            .eq('refresh_token_hash', rtHash);
+        }
 
         // Blacklist the JWT until its natural expiry
         const { blacklistToken } = await import('../middleware/auth.js');
@@ -910,14 +1026,12 @@ router.get('/oauth/callback', async (req, res) => {
     const { accessToken, refreshToken } = generateTokenPair(user);
     const refreshTokenHash = hashToken(refreshToken);
 
-    // Store refresh token hash
-    const { error: getCallbackHashErr } = await supabaseAdmin
-      .from('users')
-      .update({ refresh_token_hash: refreshTokenHash })
-      .eq('id', user.id);
-    if (getCallbackHashErr) {
-      log.error('Failed to store refresh token hash in GET callback', { error: getCallbackHashErr });
-    }
+    // Store refresh token (per-device row + legacy fallback)
+    await persistRefreshToken({
+      userId: user.id,
+      tokenHash: refreshTokenHash,
+      deviceLabel: deriveDeviceLabel(req),
+    });
 
     // Generate a one-time auth code to pass to the frontend — avoids tokens in the redirect URL
     // (tokens in URLs are logged by servers, stored in browser history, and leaked in Referer headers)
@@ -1194,14 +1308,12 @@ router.post('/oauth/callback', async (req, res) => {
       const { accessToken, refreshToken } = generateTokenPair(user);
       const refreshTokenHash = hashToken(refreshToken);
 
-      // Store refresh token hash
-      const { error: postCallbackHashErr } = await supabaseAdmin
-        .from('users')
-        .update({ refresh_token_hash: refreshTokenHash })
-        .eq('id', user.id);
-      if (postCallbackHashErr) {
-        log.error('Failed to store refresh token hash in POST callback', { error: postCallbackHashErr });
-      }
+      // Store refresh token (per-device row + legacy fallback)
+      await persistRefreshToken({
+        userId: user.id,
+        tokenHash: refreshTokenHash,
+        deviceLabel: deriveDeviceLabel(req),
+      });
 
       log.info('Returning auth success with token');
 
