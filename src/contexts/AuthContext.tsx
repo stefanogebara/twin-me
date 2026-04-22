@@ -114,12 +114,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Page reload recovery: access token is in-memory only, so it is lost on every page load.
     // Rehydrate it from the httpOnly refresh cookie before running checkAuth().
-    // If the refresh cookie is missing/expired, refreshAccessToken() returns false and
-    // checkAuth() will find no token and set the user to logged-out (no flash — isLoaded
-    // starts false, so the loading spinner shows until we finish here).
+    // If the refresh cookie is missing/expired, refreshAccessToken() returns false —
+    // clear stale user state and redirect to /auth so ProtectedRoute pages don't render
+    // a broken UI with 401 errors (2026-04-22 bug: /money?truelayer_connected=1 showed
+    // "Failed to load transactions (401)" instead of redirecting to sign-in).
     const initAuth = async () => {
       if (!getAccessToken()) {
-        await refreshAccessToken();
+        const refreshed = await refreshAccessToken();
+        if (!refreshed) {
+          // Session expired. Wipe any stale cached user so ProtectedRoute kicks in
+          // before API calls hit the page and show 401 error banners.
+          resetAuthState();
+          const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+          const isPublicRoute = ['/auth', '/login', '/discover', '/', '/p'].some(
+            (p) => pathname === p || pathname.startsWith(p + '/'),
+          );
+          if (!isPublicRoute) {
+            const target = '/auth?error=session_expired';
+            try { window.location.replace(target); } catch { /* SSR safety */ }
+          }
+        }
       }
       checkAuth();
     };

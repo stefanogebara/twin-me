@@ -29,6 +29,15 @@ const CustomAuth = () => {
   // On mount: check URL param or sessionStorage for invite code
   useEffect(() => {
     trackFunnel('auth_page_viewed', {});
+
+    // Surface session-expired message from AuthContext init redirect (2026-04-22)
+    const urlError = searchParams.get('error');
+    if (urlError === 'session_expired') {
+      setError('Sua sessão expirou. Faça login novamente.');
+    } else if (urlError === 'invalid_state') {
+      setError('Algo deu errado com o login. Tente novamente.');
+    }
+
     const urlCode = searchParams.get('invite');
     const storedCode = sessionStorage.getItem('beta_invite_code');
     // URL param always wins over stale sessionStorage
