@@ -117,8 +117,10 @@ export function buildAuthUrl({ state, redirectUri, providers }) {
   // Sandbox only supports the mock universal provider; real provider IDs
   // (es-santander-ob, uk-ob-barclays, revolut-ob-revolut, etc.) are gated
   // to the production environment.
+  // Sandbox mock bank: providers=mock (per TL docs). Credentials: john/doe.
+  // Production covers UK Open Banking + UK OAuth + major EU countries.
   const defaultProviders = isSandbox
-    ? 'uk-oauth-mock'
+    ? 'mock'
     : 'uk-ob-all uk-oauth-all es-santander-ob ro-ob-all fr-ob-all de-ob-all';
   const params = new URLSearchParams({
     response_type: 'code',
