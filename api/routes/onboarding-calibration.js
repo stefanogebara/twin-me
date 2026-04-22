@@ -592,9 +592,13 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
       }
     }
 
-    // Check completion conditions (3-question interview)
+    // Check completion conditions (3-question interview).
+    // `currentQ` is the question the client is REQUESTING. We complete only
+    // AFTER that question's answer has come back — i.e. when currentQ exceeds
+    // MAX. `>= MAX` would cut off the last question before it's generated
+    // (bug caught by E2E test 2026-04-21).
     const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 1).length;
-    const shouldComplete = (currentQ >= MAX_QUESTIONS) ||
+    const shouldComplete = (currentQ > MAX_QUESTIONS) ||
       (currentQ > MIN_QUESTIONS && domainsWithCoverage >= 2);
 
     if (shouldComplete) {
