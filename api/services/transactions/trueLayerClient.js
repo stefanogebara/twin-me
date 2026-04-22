@@ -27,7 +27,11 @@ const log = createLogger('truelayer-client');
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
-const SCOPE = 'info accounts balance transactions cards direct_debits standing_orders offline_access';
+// Core scope — what we need for Data API.
+// direct_debits + standing_orders are UK-only and sandbox-iffy; drop until
+// we're in prod with explicit UK opt-in. offline_access is required for
+// refresh-token rotation.
+const SCOPE = 'info accounts balance transactions cards offline_access';
 
 function assertCredentials() {
   const clientId = process.env.TRUELAYER_CLIENT_ID;
@@ -109,14 +113,21 @@ async function httpWithRetry(url, opts = {}, { retries = 2, backoffMs = 300 } = 
 export function buildAuthUrl({ state, redirectUri, providers }) {
   const { clientId } = assertCredentials();
   const { auth } = bases();
+  const isSandbox = (process.env.TRUELAYER_ENV || 'sandbox') !== 'production';
+  // Sandbox only supports the mock universal provider; real provider IDs
+  // (es-santander-ob, uk-ob-barclays, revolut-ob-revolut, etc.) are gated
+  // to the production environment.
+  const defaultProviders = isSandbox
+    ? 'uk-oauth-mock'
+    : 'uk-ob-all uk-oauth-all es-santander-ob ro-ob-all fr-ob-all de-ob-all';
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
     scope: SCOPE,
     redirect_uri: redirectUri,
-    providers: providers || 'uk-ob-all uk-oauth-all es-santander-ob',
+    providers: providers || defaultProviders,
     state,
-    enable_mock: process.env.TRUELAYER_ENV === 'production' ? 'false' : 'true',
+    enable_mock: isSandbox ? 'true' : 'false',
   });
   return `${auth}/?${params.toString()}`;
 }
