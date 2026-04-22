@@ -270,6 +270,8 @@ app.use((req, res, next) => {
     : req.path.includes('/telegram-webhook') ? 90000
     : req.path.includes('/discovery/scan') ? 55000
     : req.path.includes('/departments/heartbeat') ? 55000  // LLM heartbeat needs time
+    : req.path.includes('/truelayer/callback') ? 55000  // OAuth callback seeds 24mo of tx — real banks can have thousands
+    : req.path.includes('/truelayer/sync') ? 55000  // Same as callback — full re-pull
     : req.path.includes('/templates/') && req.method === 'POST' ? 45000  // Template apply does multiple DB writes
     : DEFAULT_TIMEOUT;
   req.setTimeout(timeout);
