@@ -126,7 +126,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // before API calls hit the page and show 401 error banners.
           resetAuthState();
           const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-          const isPublicRoute = ['/auth', '/login', '/discover', '/', '/p'].some(
+          const isPublicRoute = ['/auth', '/login', '/discover', '/', '/p', '/oauth'].some(
             (p) => pathname === p || pathname.startsWith(p + '/'),
           );
           if (!isPublicRoute) {
