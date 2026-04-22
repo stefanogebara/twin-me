@@ -593,13 +593,15 @@ router.post('/calibrate', authenticateUser, async (req, res) => {
     }
 
     // Check completion conditions (3-question interview).
-    // `currentQ` is the question the client is REQUESTING. We complete only
-    // AFTER that question's answer has come back — i.e. when currentQ exceeds
-    // MAX. `>= MAX` would cut off the last question before it's generated
-    // (bug caught by E2E test 2026-04-21).
+    // Uses raw `questionNumber` (not `currentQ` which is clamped to MAX),
+    // otherwise Q4 requests get capped to 3 and never trigger completion.
+    // Matches the voice handler pattern in onboarding-voice.js line 140.
+    // `>` (not `>=`) because currentQ=MAX means "generate question MAX now",
+    // completion fires only once that answer has come back (next request).
+    // Bug caught by E2E test 2026-04-21 (Q3 cut off, then Q4 never completed).
     const domainsWithCoverage = Object.values(domainProgress).filter(d => d.asked >= 1).length;
-    const shouldComplete = (currentQ > MAX_QUESTIONS) ||
-      (currentQ > MIN_QUESTIONS && domainsWithCoverage >= 2);
+    const shouldComplete = (questionNumber > MAX_QUESTIONS) ||
+      (questionNumber > MIN_QUESTIONS && domainsWithCoverage >= 2);
 
     if (shouldComplete) {
       // ============================================================
