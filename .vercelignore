@@ -19,11 +19,21 @@ api/mcp-server/
 !README.md
 
 # !! DO NOT ADD MORE ENTRIES HERE without per-entry preview-deploy verification.
-# Two separate outages (3d425f00 + 6ccffc1b) both caused ERR_MODULE_NOT_FOUND
-# in Vercel's nft tracer when adding *seemingly safe* directory excludes to
-# shrink build surface. Grep'd imports are not sufficient — some transitive
-# reference (likely via dynamic import or node_modules path resolution) needs
-# one of those dirs present during build.
+#
+# History:
+# - 3d425f00 added 11 dir excludes at once → prod 500'd with ERR_MODULE_NOT_FOUND.
+# - 6ccffc1b tried a 9-dir "safe subset" → same outage.
+# - 2026-04-22 bisection (branch bisect/vercelignore-twin-research) confirmed
+#   `twin-research/` alone causes FUNCTION_INVOCATION_FAILED. Unknown transitive
+#   reference — grep finds no static imports, but nft's trace needs it present.
+#   Never add `twin-research/` here.
+# - Other candidates (scripts/, mobile/, database/, design-system/, tests/,
+#   test-data/, coverage/, playwright-report/, tmp/, tasks/, .github/) not
+#   yet individually verified. If re-introducing, push as its own branch
+#   `bisect/vercelignore-<dir>`, use `vercel curl` or the Vercel MCP
+#   `web_fetch_vercel_url` tool to probe the preview's /api/health — preview
+#   URLs are SSO-gated so plain curl returns 401 regardless of health.
 #
 # If build time is the pain, the right approach is to extract more handlers
-# to standalone Vercel functions (like api/webhook-pluggy.js) instead.
+# to standalone Vercel functions (like api/webhook-pluggy.js) instead of
+# tightening the ignore list.
