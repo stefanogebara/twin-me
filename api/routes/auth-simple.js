@@ -581,18 +581,28 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
     if (tokenRowId) {
       // Rotate the existing per-device row in place. Preserves device_label
       // and created_at, refreshes last_used_at, extends expires_at.
+      // Optimistic lock: also match the current token_hash so two concurrent
+      // /refresh calls racing on the same device can't both succeed and
+      // orphan the second device's cookie. The loser returns 401 below.
       const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
-      const { error: rotateErr } = await supabaseAdmin
+      const { data: rotated, error: rotateErr } = await supabaseAdmin
         .from('user_refresh_tokens')
         .update({
           token_hash: newHash,
           last_used_at: new Date().toISOString(),
           expires_at: newExpiresAt,
         })
-        .eq('id', tokenRowId);
+        .eq('id', tokenRowId)
+        .eq('token_hash', tokenHash) // must still match the hash we read
+        .select('id');
       if (rotateErr) {
         log.error('Failed to rotate user_refresh_tokens row', { error: rotateErr });
         return res.status(500).json({ error: 'Internal server error' });
+      }
+      if (!rotated || rotated.length === 0) {
+        // Lost the race — another refresh already rotated this row.
+        log.warn('refresh rotation lost race — token already rotated', { tokenRowId });
+        return res.status(401).json({ error: 'Invalid refresh token' });
       }
 
       // Mirror to legacy column during rollout so rollbacks keep working.

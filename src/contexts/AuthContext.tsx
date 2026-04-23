@@ -132,6 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (!isPublicRoute) {
             const target = '/auth?error=session_expired';
             try { window.location.replace(target); } catch { /* SSR safety */ }
+            return; // stop — don't run checkAuth() during the navigation
           }
         }
       }

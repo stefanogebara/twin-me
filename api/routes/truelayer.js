@@ -12,6 +12,7 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
@@ -22,6 +23,18 @@ import { createLogger } from '../services/logger.js';
 
 const log = createLogger('truelayer-routes');
 const router = express.Router();
+
+// Tight per-IP limiter for the unauthenticated callback. A legitimate flow
+// fires exactly once per user connection; anything above 5 in 15min is abuse.
+// The callback holds a 55s Vercel function for seedUserConnection — without
+// this cap an attacker could burn GB-s quickly.
+const callbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'rate_limited' },
+});
 
 function redirectUriForEnv() {
   const base = process.env.VITE_APP_URL || 'https://twinme.me';
@@ -55,7 +68,7 @@ router.post('/auth-url', authenticateUser, async (req, res) => {
  * code, persists the connection, kicks off the seed backfill.
  * No JWT middleware — the state cookie/param carries identity.
  */
-router.get('/callback', async (req, res) => {
+router.get('/callback', callbackLimiter, async (req, res) => {
   const { code, state, error } = req.query || {};
   if (error) {
     log.warn(`callback error: ${error}`);
