@@ -27,6 +27,7 @@ import { HomeScreen } from './src/screens/HomeScreen';
 import { TwinChatScreen } from './src/screens/TwinChatScreen';
 import { MeScreen } from './src/screens/MeScreen';
 import { ConnectPlatformsScreen } from './src/screens/ConnectPlatformsScreen';
+import { MoneyScreen } from './src/screens/MoneyScreen';
 import { WikiScreen } from './src/screens/WikiScreen';
 import { InsightsScreen } from './src/screens/InsightsScreen';
 import { SoulInterviewScreen } from './src/screens/SoulInterviewScreen';
@@ -44,6 +45,7 @@ const Stack = createStackNavigator();
 const TAB_ICONS: Record<string, string> = {
   Home: '⊙',
   Chat: '◈',
+  Money: '◊',
   Me: '⊕',
   Connect: '⊛',
 };
@@ -203,6 +205,17 @@ export default function App() {
           tabBarIcon: ({ focused }) => <TabIcon label="Chat" focused={focused} />,
         }}
       />
+
+      <Tab.Screen
+        name="Money"
+        options={{
+          title: 'Money',
+          tabBarLabel: 'Money',
+          tabBarIcon: ({ focused }) => <TabIcon label="Money" focused={focused} />,
+        }}
+      >
+        {() => <MoneyScreen user={user!} />}
+      </Tab.Screen>
 
       <Tab.Screen
         name="Me"
