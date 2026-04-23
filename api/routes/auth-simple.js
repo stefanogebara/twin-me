@@ -58,6 +58,19 @@ const refreshLimiter = rateLimit({
   },
 });
 
+// OAuth claim endpoint — a legit user claims their auth_code exactly once.
+// Tight limit protects against enumeration attempts on stolen/leaked codes.
+const oauthClaimLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10, // one legitimate claim + 9 retries per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    log.warn('OAuth claim rate limit exceeded', { ip: req.ip });
+    res.status(429).json({ error: 'Too many claim attempts. Please try again later.' });
+  },
+});
+
 const AUTH_LOCKOUT_THRESHOLD = 10; // failed attempts before lockout
 const AUTH_LOCKOUT_TTL = 15 * 60; // 15 minutes in seconds
 
@@ -191,8 +204,13 @@ function deriveDeviceLabel(req) {
  * to the legacy users.refresh_token_hash column (transition fallback so
  * deployments can be rolled back without invalidating active sessions).
  *
+ * Returns true iff AT LEAST ONE write succeeded — either path is sufficient
+ * for a working refresh (the /refresh handler reads both). Returns false only
+ * when BOTH writes fail, in which case the client would receive a cookie it
+ * can never exchange. Callers should 500 on false.
+ *
  * TODO(post-rollout): Once users.refresh_token_hash is dropped, remove the
- * legacy update block.
+ * legacy update block and return `!insertErr` directly.
  */
 async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
@@ -216,8 +234,15 @@ async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
     .update({ refresh_token_hash: tokenHash })
     .eq('id', userId);
   if (legacyErr) {
-    log.warn('Failed to update legacy refresh_token_hash (non-fatal)', { error: legacyErr, userId });
+    log.warn('Failed to update legacy refresh_token_hash', { error: legacyErr, userId });
   }
+
+  // Both failed — client cookie will never refresh; caller MUST abort.
+  if (insertErr && legacyErr) {
+    log.error('Refresh token persistence failed on both paths', { userId });
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -380,11 +405,14 @@ router.post('/signup', authLimiter, async (req, res) => {
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token (per-device row + legacy fallback)
-    await persistRefreshToken({
+    const persistedSignup = await persistRefreshToken({
       userId: newUser.id,
       tokenHash: refreshTokenHash,
       deviceLabel: deriveDeviceLabel(req),
     });
+    if (!persistedSignup) {
+      return res.status(500).json({ success: false, error: 'Failed to persist session. Please try again.' });
+    }
 
     // Trigger background enrichment for email signup users
     // Save to enriched_profiles for display in onboarding, but do NOT seed memories yet.
@@ -460,11 +488,14 @@ router.post('/signin', authLimiter, async (req, res) => {
 
     // Store refresh token (per-device row + legacy fallback)
     // Signing in from a new device does NOT invalidate other device rows.
-    await persistRefreshToken({
+    const persistedSignin = await persistRefreshToken({
       userId: user.id,
       tokenHash: refreshTokenHash,
       deviceLabel: deriveDeviceLabel(req),
     });
+    if (!persistedSignin) {
+      return res.status(500).json({ success: false, error: 'Failed to persist session. Please try again.' });
+    }
 
     setRefreshCookie(res, refreshToken);
 
@@ -612,11 +643,14 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
         .eq('id', user.id);
     } else {
       // Legacy-token migration: create a new per-device row going forward.
-      await persistRefreshToken({
+      const persistedMigration = await persistRefreshToken({
         userId: user.id,
         tokenHash: newHash,
         deviceLabel: deriveDeviceLabel(req),
       });
+      if (!persistedMigration) {
+        return res.status(500).json({ error: 'Failed to persist session. Please try again.' });
+      }
     }
 
     setRefreshCookie(res, newRefreshToken);
@@ -1037,11 +1071,14 @@ router.get('/oauth/callback', async (req, res) => {
     const refreshTokenHash = hashToken(refreshToken);
 
     // Store refresh token (per-device row + legacy fallback)
-    await persistRefreshToken({
+    const persistedOauthRedirect = await persistRefreshToken({
       userId: user.id,
       tokenHash: refreshTokenHash,
       deviceLabel: deriveDeviceLabel(req),
     });
+    if (!persistedOauthRedirect) {
+      return res.status(500).json({ error: 'Failed to persist session. Please try again.' });
+    }
 
     // Generate a one-time auth code to pass to the frontend — avoids tokens in the redirect URL
     // (tokens in URLs are logged by servers, stored in browser history, and leaked in Referer headers)
@@ -1319,11 +1356,14 @@ router.post('/oauth/callback', async (req, res) => {
       const refreshTokenHash = hashToken(refreshToken);
 
       // Store refresh token (per-device row + legacy fallback)
-      await persistRefreshToken({
+      const persistedOauthPost = await persistRefreshToken({
         userId: user.id,
         tokenHash: refreshTokenHash,
         deviceLabel: deriveDeviceLabel(req),
       });
+      if (!persistedOauthPost) {
+        return res.status(500).json({ error: 'Failed to persist session. Please try again.' });
+      }
 
       log.info('Returning auth success with token');
 
@@ -1362,7 +1402,7 @@ router.post('/oauth/callback', async (req, res) => {
 
 // Exchange one-time auth code for tokens — called by frontend after GET redirect
 // Tokens are stored in Supabase to avoid exposing them in URLs and to work across serverless instances
-router.get('/oauth/claim', async (req, res) => {
+router.get('/oauth/claim', oauthClaimLimiter, async (req, res) => {
   const { auth_code: authCode } = req.query;
 
   if (!authCode || typeof authCode !== 'string') {

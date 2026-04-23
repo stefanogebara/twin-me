@@ -126,9 +126,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // before API calls hit the page and show 401 error banners.
           resetAuthState();
           const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
-          const isPublicRoute = ['/auth', '/login', '/discover', '/', '/p', '/oauth'].some(
-            (p) => pathname === p || pathname.startsWith(p + '/'),
-          );
+          // Public routes: either an exact match or a documented prefix.
+          // NOTE: do NOT add '/oauth' as a prefix — that would silently exempt
+          // any future '/oauth/*' subroute from auth. Only '/oauth/callback'
+          // legitimately needs to load without a JWT (the callback component
+          // sets the token itself via POST /api/auth/oauth/callback).
+          const PUBLIC_EXACT = ['/auth', '/login', '/discover', '/', '/oauth/callback'];
+          const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/'];
+          const isPublicRoute =
+            PUBLIC_EXACT.includes(pathname) ||
+            PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
           if (!isPublicRoute) {
             const target = '/auth?error=session_expired';
             try { window.location.replace(target); } catch { /* SSR safety */ }
