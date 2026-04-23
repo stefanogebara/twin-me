@@ -1,4 +1,5 @@
 import { Clock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface ChatUsage {
   used: number;
@@ -57,6 +58,21 @@ export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsag
           {chatUsage.used}/{chatUsage.limit} messages used
         </span>
       )}
+
+      <Link
+        to="/pricing"
+        className="mt-2 inline-flex items-center justify-center px-5 py-2 rounded-[100px] min-w-[140px] transition-all duration-150 hover:opacity-90"
+        style={{
+          background: 'var(--accent-vibrant)',
+          color: 'var(--primary-foreground)',
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 500,
+          fontSize: '14px',
+          textDecoration: 'none',
+        }}
+      >
+        Upgrade plan
+      </Link>
     </div>
   </div>
 );

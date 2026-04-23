@@ -68,9 +68,12 @@ const log = createLogger('TwinChat');
 const router = express.Router();
 
 // ====================================================================
-// Per-user chat rate limit: 50 messages per user per hour
+// Per-user chat rate limit: 200 messages per user per hour
+// Bumped 2026-04-23 from 50 → 200 to reduce friction during power-user
+// bursts (Q&A sessions, back-to-back agentic skill triggers). Still tight
+// enough to catch runaway loops or compromised accounts.
 // ====================================================================
-const CHAT_RATE_LIMIT_MAX = 50;
+const CHAT_RATE_LIMIT_MAX = 200;
 const CHAT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 // Map<userId, { timestamps: number[] }>

@@ -1,16 +1,18 @@
 // api/services/subscriptionService.js
 //
 // Littlebird pricing model:
-//   free  → "Free"    $0/mo   — 50 msgs/mo, 2 platforms, 7-day memory
-//   pro   → "Plus"   $20/mo   — 500 msgs/mo, 5 platforms, 90-day memory, expert personas, email digest
+//   free  → "Free"    $0/mo   — 100 msgs/mo, 2 platforms, 7-day memory
+//   pro   → "Plus"   $20/mo   — 1500 msgs/mo, 5 platforms, 90-day memory, expert personas, email digest
 //   max   → "Pro"   $100/mo   — Unlimited, all platforms, full history, best models, priority support
 //
 // DB enum stays ('free','pro','max') — display names differ.
+// Message caps bumped 2026-04-23 (free 50→100, pro 500→1500) to give beta users
+// more room before the paywall triggers. Max stays Infinity.
 import { supabaseAdmin } from './database.js';
 
 const PLAN_LIMITS = {
   free: {
-    chatMessages: 50,
+    chatMessages: 100,
     platformConnections: 2,
     memoryDays: 7,
     reflections: false,
@@ -18,7 +20,7 @@ const PLAN_LIMITS = {
     bestModels: false,
   },
   pro: {
-    chatMessages: 500,
+    chatMessages: 1500,
     platformConnections: 5,
     memoryDays: 90,
     reflections: true,
