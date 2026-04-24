@@ -19,6 +19,8 @@ import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.
 import { addConversationMemory } from '../services/memoryStreamService.js';
 import { executeTool } from '../services/toolRegistry.js';
 import { createLogger } from '../services/logger.js';
+import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
+import { generatePurchaseReflection } from '../services/purchaseReflection.js';
 
 const log = createLogger('WhatsAppWebhook');
 const router = express.Router();
@@ -26,6 +28,18 @@ const router = express.Router();
 // ====================================================================
 // Intent Classification → Direct Tool Mapping (no planner, instant)
 // ====================================================================
+
+// Pre-purchase intent: user says they're thinking about buying something.
+// Fires BEFORE the tool intents so a message like "vou comprar..." routes to
+// reflection, not to a Gmail/Calendar tool. Phase: Financial-Emotional Twin.
+const PURCHASE_INTENT_PATTERNS = [
+  /\bvou\s+compra/i,
+  /\bpensando\s+em\s+compra/i,
+  /\best(ou|á)\s+a?\s*fim\s+de\s+compra/i,
+  /\b(about\s+to|thinking\s+(?:of|about))\s+buy(?:ing)?/i,
+  /\bR\$\s*\d/,
+  /\$\s*\d+.*(?:buy|purchase|cart|checkout)/i,
+];
 
 const TOOL_INTENTS = [
   { pattern: /check\s*(my\s*)?(emails?|inbox|mail)/i, tool: 'gmail_search', params: { query: 'is:unread newer_than:1d', maxResults: 5 } },
@@ -46,6 +60,15 @@ const TOOL_INTENTS = [
  */
 function classifyIntent(message) {
   const text = message.trim();
+
+  // Purchase-check fires first — user mentioning an amount or intent to buy
+  // should never be interpreted as a calendar/gmail tool call.
+  for (const pattern of PURCHASE_INTENT_PATTERNS) {
+    if (pattern.test(text)) {
+      return { type: 'purchase', toolName: null, toolParams: null };
+    }
+  }
+
   for (const { pattern, tool, params } of TOOL_INTENTS) {
     if (pattern.test(text)) {
       // Extract dynamic params from message (e.g., search query for drive)
@@ -209,7 +232,17 @@ router.post('/webhook', express.json(), async (req, res) => {
       const intent = classifyIntent(text);
       let response;
 
-      if (intent.type === 'tool') {
+      if (intent.type === 'purchase') {
+        log.info('Purchase intent detected', { userId });
+        try {
+          const ctx = await buildPurchaseContext(userId);
+          const refl = await generatePurchaseReflection(ctx, text);
+          response = refl.text;
+        } catch (err) {
+          log.error('Purchase reflection failed, falling back to chat', { userId, error: err.message });
+          response = await processTwinMessage(userId, text);
+        }
+      } else if (intent.type === 'tool') {
         log.info('Tool action detected', { userId, tool: intent.toolName });
         try {
           const result = await executeTool(userId, intent.toolName, intent.toolParams);
