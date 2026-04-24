@@ -89,10 +89,13 @@ export async function extractSpotifyData(userId) {
 
     log.info(`Extracted ${totalItems} Spotify items`);
 
-    // Save extracted data to soul_data table
-    const { error: insertError } = await supabaseAdmin
+    // Save extracted data to soul_data. Upsert on the actual unique constraint
+    // (user_id, platform, data_type) — .insert() fails on every run after the
+    // first because the constraint blocks duplicate keys, which used to silently
+    // kill every resync.
+    const { error: upsertError } = await supabaseAdmin
       .from('soul_data')
-      .insert({
+      .upsert({
         user_id: userId,
         platform: 'spotify',
         data_type: 'comprehensive_music_profile',
@@ -113,10 +116,13 @@ export async function extractSpotifyData(userId) {
         },
         extracted_patterns: soulData,
         extracted_at: new Date()
+      }, {
+        onConflict: 'user_id,platform,data_type',
+        ignoreDuplicates: false,
       });
 
-    if (insertError) {
-      log.error('Error saving Spotify data:', insertError);
+    if (upsertError) {
+      log.error('Error saving Spotify data:', upsertError);
     }
 
     // Update connection status

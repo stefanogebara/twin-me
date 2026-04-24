@@ -166,7 +166,20 @@ class ExtractionOrchestrator {
 
         case 'calendar':
         case 'google_calendar':
-          result = { success: true, itemsExtracted: 0, message: 'Calendar feature extraction removed' };
+          try {
+            const { fetchCalendarObservations } = await import('./observationFetchers/calendar.js');
+            const calObs = await fetchCalendarObservations(userId);
+            const calStored = await storeObservationsToMemory(userId, 'google_calendar', calObs);
+            itemsExtracted = calStored;
+            // fetchCalendarObservations also upserts raw forward-window events
+            // into user_platform_data as data_type='events' for downstream
+            // readers (purchase-bot, goal tracker).
+            result = { success: true, itemsExtracted };
+            log.info('Extracted Calendar observations', { fetched: calObs.length, stored: calStored });
+          } catch (calError) {
+            log.error('Calendar extraction error', { error: calError.message });
+            result = { success: false, error: calError.message };
+          }
           break;
 
         case 'discord':

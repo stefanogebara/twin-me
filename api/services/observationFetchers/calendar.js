@@ -27,6 +27,11 @@ async function fetchCalendarObservations(userId) {
     const now = new Date();
     const todayEnd = new Date(now);
     todayEnd.setHours(23, 59, 59, 999);
+    // Forward window for raw-event persistence to user_platform_data.
+    // 7 days is enough for the purchase-bot's "next 4h" window to always
+    // find something if it exists, and for goalTrackingService to pick up
+    // upcoming commitments. Natural-language observations still use today-only.
+    const forwardEnd = new Date(now.getTime() + 7 * 24 * 36e5);
     const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
 
     // ── Fetch ALL calendars via CalendarList, then events from each ──────────
@@ -47,31 +52,76 @@ async function fetchCalendarObservations(userId) {
       log.warn('CalendarList fetch failed, falling back to primary', { error: e.message });
     }
 
-    // Fetch events from all calendars in parallel
-    const eventPromises = calendarIds.map(calId =>
+    // Fetch today's events (for natural-language observations) AND a 7-day
+    // forward window (for raw persistence) in parallel across all calendars.
+    // Today-only keeps the observation summaries tight; 7d forward gives the
+    // purchase-bot + goal tracker real upcoming context.
+    const fetchEventsForCalendar = (calId, timeMin, timeMax, maxResults) =>
       axios.get(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events`, {
         headers,
         params: {
-          timeMin: now.toISOString(),
-          timeMax: todayEnd.toISOString(),
-          maxResults: 10,
+          timeMin: timeMin.toISOString(),
+          timeMax: timeMax.toISOString(),
+          maxResults,
           singleEvents: true,
           orderBy: 'startTime',
         },
         timeout: 10000,
-      }).catch(() => null)
-    );
-    const calResults = await Promise.all(eventPromises);
+      }).catch(() => null);
 
-    // Merge and deduplicate events by ID
+    const [todayResults, forwardResults] = await Promise.all([
+      Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, now, todayEnd, 10))),
+      Promise.all(calendarIds.map(id => fetchEventsForCalendar(id, now, forwardEnd, 50))),
+    ]);
+
+    // Merge + dedupe today's events (for observation synthesis)
     const seenIds = new Set();
     const events = [];
-    for (const res of calResults) {
+    for (const res of todayResults) {
       for (const e of (res?.data?.items || [])) {
         if (e.id && !seenIds.has(e.id)) {
           seenIds.add(e.id);
           events.push(e);
         }
+      }
+    }
+
+    // Merge + dedupe forward-window events (for raw persistence)
+    const forwardSeen = new Set();
+    const forwardEvents = [];
+    for (const res of forwardResults) {
+      for (const e of (res?.data?.items || [])) {
+        if (e.id && !forwardSeen.has(e.id)) {
+          forwardSeen.add(e.id);
+          forwardEvents.push(e);
+        }
+      }
+    }
+
+    // Persist raw forward-window events to user_platform_data so downstream
+    // readers (purchaseContextBuilder, goalTrackingService) have fresh data.
+    // One row per day, upserted on (user_id, platform, data_type, source_url).
+    if (forwardEvents.length > 0) {
+      try {
+        const supabase = await getSupabase();
+        if (supabase) {
+          const today = new Date().toISOString().slice(0, 10);
+          await supabase.from('user_platform_data').upsert({
+            user_id: userId,
+            platform: 'google_calendar',
+            data_type: 'events',
+            source_url: `calendar:events:${today}`,
+            raw_data: {
+              items: forwardEvents,
+              window: { from: now.toISOString(), to: forwardEnd.toISOString() },
+              calendar_ids: calendarIds,
+              total: forwardEvents.length,
+            },
+            processed: true,
+          }, { onConflict: 'user_id,platform,data_type,source_url' });
+        }
+      } catch (storeErr) {
+        log.warn('Calendar: failed to persist forward events', { error: storeErr?.message });
       }
     }
     // Sort by start time

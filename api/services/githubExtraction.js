@@ -97,10 +97,12 @@ export async function extractGitHubData(userId) {
 
     log.info(`Extracted ${totalItems} GitHub items`);
 
-    // Save extracted data to soul_data table
+    // Save extracted data to soul_data. Upsert on the actual unique
+    // constraint — .insert() silently killed every re-extraction after the
+    // first. Same bug pattern as spotifyExtraction.js + discordExtraction.js.
     const { error: insertError } = await supabaseAdmin
       .from('soul_data')
-      .insert({
+      .upsert({
         user_id: userId,
         platform: 'github',
         data_type: 'comprehensive_github_profile',
@@ -115,6 +117,9 @@ export async function extractGitHubData(userId) {
         },
         extracted_patterns: soulData,
         extracted_at: new Date()
+      }, {
+        onConflict: 'user_id,platform,data_type',
+        ignoreDuplicates: false,
       });
 
     if (insertError) {
