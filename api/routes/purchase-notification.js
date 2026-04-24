@@ -16,12 +16,32 @@ import { createLogger } from '../services/logger.js';
 const router = Router();
 const log = createLogger('PurchaseNotification');
 
-// Per-user cooldown: 5 min between triggers regardless of filtering outcome
-const cooldowns = new Map();
-
-// Per-user daily cap: max 2 reflections per calendar day
-const dailyCounts = new Map(); // `${userId}_${YYYY-MM-DD}` → count
+const COOLDOWN_MS = 5 * 60 * 1000;
 const MAX_DAILY = 2;
+
+// Persistent state via Supabase — survives Vercel cold starts / multi-instance
+async function loadState(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('raw_data, extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', '_internal')
+    .eq('data_type', 'purchase_cooldown')
+    .maybeSingle();
+  return data?.raw_data ?? { last_sent_at: null, day_date: null, daily_count: 0 };
+}
+
+async function saveState(userId, state) {
+  await supabaseAdmin
+    .from('user_platform_data')
+    .upsert({
+      user_id: userId,
+      platform: '_internal',
+      data_type: 'purchase_cooldown',
+      raw_data: state,
+      extracted_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,platform,data_type' });
+}
 
 // Minimum amount in BRL to trigger on a routine weekday (9am–10pm)
 const ROUTINE_MIN_AMOUNT = 80;
@@ -77,24 +97,9 @@ function isStressWorthy(amount, timezone, calendarEventCount) {
   return { worthy: false, reason: 'routine_small' };
 }
 
-function checkDailyCap(userId) {
-  const today = new Date().toISOString().slice(0, 10);
-  const key = `${userId}_${today}`;
-  const count = dailyCounts.get(key) ?? 0;
-  if (count >= MAX_DAILY) return true;
-  dailyCounts.set(key, count + 1);
-  return false;
-}
-
 router.post('/trigger', authenticateUser, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-
-  // 5-min cooldown — fast path before any DB calls
-  const lastFired = cooldowns.get(userId) ?? 0;
-  if (Date.now() - lastFired < 5 * 60 * 1000) {
-    return res.json({ skipped: true, reason: 'cooldown' });
-  }
 
   const { appName, notificationText, amount: rawAmount } = req.body;
   if (!notificationText) return res.status(400).json({ error: 'notificationText required' });
@@ -102,7 +107,15 @@ router.post('/trigger', authenticateUser, async (req, res) => {
   const amount = parseAmount(rawAmount);
 
   try {
-    // Fetch timezone + WhatsApp in one query (cheap, no LLM yet)
+    // Load persistent state first (cooldown + daily cap)
+    const state = await loadState(userId);
+
+    // 5-min cooldown check (persistent)
+    if (state.last_sent_at && Date.now() - new Date(state.last_sent_at).getTime() < COOLDOWN_MS) {
+      return res.json({ skipped: true, reason: 'cooldown' });
+    }
+
+    // Fetch timezone + WhatsApp in parallel
     const [{ data: userRow }, { data: channel }] = await Promise.all([
       supabaseAdmin.from('users').select('timezone').eq('id', userId).maybeSingle(),
       supabaseAdmin.from('messaging_channels').select('channel_id')
@@ -115,24 +128,31 @@ router.post('/trigger', authenticateUser, async (req, res) => {
 
     const timezone = userRow?.timezone || 'America/Sao_Paulo';
 
-    // Build context for calendar density signal (parallel fetch anyway)
+    // Build context for calendar density signal
     const ctx = await buildPurchaseContext(userId, { timezone });
     const calendarCount = ctx.schedule?.available ? (ctx.schedule.events?.length ?? 0) : 0;
 
-    // Smart filter — check AFTER context so we have calendar density
+    // Smart filter
     const filter = isStressWorthy(amount, timezone, calendarCount);
     if (!filter.worthy) {
       log.info('Skipped — not stress-worthy', { userId, amount, reason: filter.reason });
       return res.json({ skipped: true, reason: filter.reason });
     }
 
-    // Daily cap
-    if (checkDailyCap(userId)) {
+    // Daily cap check (persistent)
+    const today = new Date().toISOString().slice(0, 10);
+    const todayCount = state.day_date === today ? (state.daily_count ?? 0) : 0;
+    if (todayCount >= MAX_DAILY) {
       log.info('Skipped — daily cap reached', { userId });
       return res.json({ skipped: true, reason: 'daily_cap' });
     }
 
-    cooldowns.set(userId, Date.now());
+    // Persist new state before sending (prevents duplicate on retry)
+    await saveState(userId, {
+      last_sent_at: new Date().toISOString(),
+      day_date: today,
+      daily_count: todayCount + 1,
+    });
 
     const purchaseMsg = amount
       ? `${appName ? `[${appName}] ` : ''}${notificationText} (${rawAmount})`
