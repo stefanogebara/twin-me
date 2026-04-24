@@ -44,8 +44,20 @@ async function getKapsoClient() {
 
 /**
  * Send a text message via WhatsApp (Kapso or Meta Cloud API fallback).
+ *
+ * SAFETY: When TWINME_DISABLE_OUTBOUND_SEND=true, returns a no-op success.
+ * Set this in any test environment that fires real webhook payloads —
+ * otherwise every E2E run sends actual WhatsApp messages to real users.
  */
 export async function sendWhatsAppMessage(recipientPhone, text) {
+  if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
+    log.info('Outbound WhatsApp send suppressed (TWINME_DISABLE_OUTBOUND_SEND=true)', {
+      recipientPhone: recipientPhone?.slice(-4),
+      textLen: text?.length || 0,
+    });
+    return { success: true, suppressed: true };
+  }
+
   // Try Kapso first
   if (USE_KAPSO) {
     const client = await getKapsoClient();

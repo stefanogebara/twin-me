@@ -146,10 +146,22 @@ async function fetchLatestTwinResponseToUser(userSaid: string) {
 test.describe('WhatsApp pre-purchase reflection bot (live local backend)', () => {
   test.setTimeout(60_000);
 
-  // If a prior run timed out mid-test, the C7 opt-out toggle may not have
-  // restored. Reset preferences before each run so tests 1+2 can't fail
-  // because of leaked state.
+  // SAFETY: this suite fires real webhooks at the local backend, which
+  // by default forwards every response to the real WhatsApp Cloud API for
+  // the linked phone. Without TWINME_DISABLE_OUTBOUND_SEND=true on the
+  // server, every test run = real WhatsApp messages landing on the user's
+  // phone. Document the requirement loudly and refuse to run if missing.
+  // (We can't introspect the server's env, but we can require the test
+  // process to have set it — a simple convention.)
   test.beforeAll(async () => {
+    if (process.env.TWINME_DISABLE_OUTBOUND_SEND !== 'true') {
+      throw new Error(
+        '[purchase-bot-e2e] TWINME_DISABLE_OUTBOUND_SEND=true must be set in BOTH the server env AND this test process. Without it, every test fires a real WhatsApp message to the linked phone.'
+      );
+    }
+
+    // Reset preferences before run so a prior-run timeout couldn't leak
+    // opted-out state into tests 1+2.
     const supabase = createClient(
       process.env.VITE_SUPABASE_URL! || process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
