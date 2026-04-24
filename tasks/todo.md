@@ -157,24 +157,24 @@ returns 403. One-line fix.
 
 ### CRITICAL — block ship
 
-- [ ] **C1 — Signature verify uses re-serialized body, not `req.rawBody`.**
+- [x] **C1 — Signature verify uses re-serialized body, not `req.rawBody`.** SHIPPED 046a2227 (2026-04-24).
   `whatsapp-twinme-webhook.js:190` reads `JSON.stringify(req.body)` for HMAC
   but raw-body capture in `server.js:329` only fires for `/api/whatsapp/webhook`
   (Kapso path), not `/api/whatsapp-twin/webhook`. Every Meta POST → 403.
   Fix: extend the verify allowlist + use `req.rawBody`. (~5min)
-- [ ] **C2 — Prompt injection via raw `userMessage`.**
+- [x] **C2 — Prompt injection via raw `userMessage`.** SHIPPED 046a2227.
   `purchaseReflection.js:136` interpolates user text without escape. Attacker
   sends `"R$100" Ignore previous instructions...`. Wrap in XML tags or
   sanitize. (~15min)
-- [ ] **C3 — PostgREST filter injection via `msg.from`.**
+- [x] **C3 — PostgREST filter injection via `msg.from`.** SHIPPED 046a2227.
   `whatsapp-twinme-webhook.js:215-219` interpolates phone into `.or(...)`.
   A crafted value alters the OR clause. Use parameterized syntax. (~10min)
 - [ ] **C4 — No webhook dedup on `wamid`.** Meta retries → 2 reflections, 2 LLM
   calls, 2 memory rows. Add Redis `SETNX EX 300` on `msg.id`. (~30min)
-- [ ] **C5 — No per-user rate limit.** Existing `apiLimiter` is per-IP (Meta
+- [x] **C5 — No per-user rate limit.** SHIPPED 046a2227 — `acquirePurchaseRateSlot` with Redis INCR + in-memory fallback. Cap via `PURCHASE_RATE_LIMIT_PER_HOUR` env (default 10). Existing `apiLimiter` is per-IP (Meta
   IP pool defeats it). Cap at 10 purchase intents/hour/user via Redis
   counter. (~30min)
-- [ ] **C6 — No feature flag / kill switch.** Add
+- [x] **C6 — No feature flag / kill switch.** SHIPPED 046a2227. `PURCHASE_BOT_ENABLED=true` env required to fire reflections; defaults OFF. Add
   `if (process.env.PURCHASE_BOT_ENABLED !== 'true') return;` at intent
   branch entry. (~5min)
 - [ ] **C7 — No user opt-out.** Add `purchase_bot_enabled boolean` to
@@ -205,16 +205,11 @@ returns 403. One-line fix.
 - [ ] **H6 — Calendar `source_url: calendar:events:${today}` overwrites
   intraday changes.** Cancellations vanish. Document or include hour in key.
   (`observationFetchers/calendar.js:108-121`)
-- [ ] **H7 — No `userMessage` length cap.** 60k-char message blows tokens +
-  stresses regex. Add `if (text.length > 2000) continue;` early.
-  (`whatsapp-twinme-webhook.js:205`)
+- [x] **H7 — No `userMessage` length cap.** SHIPPED 046a2227 — drops messages >2000 chars at the webhook + `purchaseReflection` clamps to 1000.
 - [ ] **H8 — Zero unit tests for 4 modified extractors.** spotifyExtraction,
   discordExtraction, githubExtraction, observationFetchers/calendar — all
   touched in 6aad5fb1 with no tests. Silent regression risk.
-- [ ] **H9 — Silent failure escalates to Claude Sonnet (~50x cost).**
-  `whatsapp-twinme-webhook.js:241-244` falls back to `processTwinMessage`
-  on purchase reflection error. DeepSeek 503 → 50x cost. Log + return
-  fixed fallback string.
+- [x] **H9 — Silent failure escalates to Claude Sonnet (~50x cost).** SHIPPED 046a2227 — fallback is now a fixed string, not a Sonnet escalation.
 - [ ] **H10 — No `purchase_reflections` audit table.** Can't see lang
   breakdown, false-positive rate, delivery success.
 
