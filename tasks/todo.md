@@ -169,16 +169,14 @@ returns 403. One-line fix.
 - [x] **C3 — PostgREST filter injection via `msg.from`.** SHIPPED 046a2227.
   `whatsapp-twinme-webhook.js:215-219` interpolates phone into `.or(...)`.
   A crafted value alters the OR clause. Use parameterized syntax. (~10min)
-- [ ] **C4 — No webhook dedup on `wamid`.** Meta retries → 2 reflections, 2 LLM
-  calls, 2 memory rows. Add Redis `SETNX EX 300` on `msg.id`. (~30min)
+- [x] **C4 — No webhook dedup on `wamid`.** SHIPPED ff4a163d — `claimWhatsAppMessageId` with Redis SET NX EX 300 + in-memory fallback.
 - [x] **C5 — No per-user rate limit.** SHIPPED 046a2227 — `acquirePurchaseRateSlot` with Redis INCR + in-memory fallback. Cap via `PURCHASE_RATE_LIMIT_PER_HOUR` env (default 10). Existing `apiLimiter` is per-IP (Meta
   IP pool defeats it). Cap at 10 purchase intents/hour/user via Redis
   counter. (~30min)
 - [x] **C6 — No feature flag / kill switch.** SHIPPED 046a2227. `PURCHASE_BOT_ENABLED=true` env required to fire reflections; defaults OFF. Add
   `if (process.env.PURCHASE_BOT_ENABLED !== 'true') return;` at intent
   branch entry. (~5min)
-- [ ] **C7 — No user opt-out.** Add `purchase_bot_enabled boolean` to
-  `messaging_channels` (default true) + check before classify. (~45min)
+- [x] **C7 — No user opt-out.** SHIPPED ff4a163d — uses existing `messaging_channels.preferences` jsonb. Set `preferences.purchase_bot_enabled=false` to opt out; default fires.
 - [ ] **C8 — WhatsApp number unverified.** Memory `+1 762-994-3997` is 26 days
   stale. Manual test before shipping to non-Stefano users. (~5min)
 
@@ -186,19 +184,13 @@ returns 403. One-line fix.
 
 ### HIGH — this week
 
-- [ ] **H1 — `sensitiveContent: true` silently downgrades to Mistral Small.**
-  `llmGateway.js:407` swaps tier without telling caller. Either pass
-  `TIER_EXTRACTION` directly or remove the flag. Note: "privacy routing to
-  a different model" is not actually privacy-preserving — data still leaves
-  via OpenRouter.
+- [x] **H1 — `sensitiveContent: true` silently downgrades to Mistral Small.** SHIPPED ff4a163d — pass `TIER_EXTRACTION` explicitly, removed `sensitiveContent` flag.
 - [ ] **H2 — No cross-user leak regression test.** The `skipCache: true` fix
   has no test. A future "let's cut costs" PR removes it and the bug returns.
 - [ ] **H3 — `getValidAccessToken` called 3x sequentially in calendar fetcher.**
   Triples cold-start latency. Hoist to top + pass down.
   (`observationFetchers/calendar.js:20,258,370`)
-- [ ] **H4 — Zero PostHog telemetry on purchase reflections.** Can't answer
-  Day-7 success metric. Add `posthog.capture('purchase_reflection_generated')`
-  with `{userId, lang, hasMusic, hasCalendar, elapsed_ms, cost}`. No user text.
+- [x] **H4 — Zero PostHog telemetry on purchase reflections.** SHIPPED ff4a163d — `captureTelemetry` emits structured log envelopes. Three events: generated/rate_limited/failed. Never includes user text. PostHog wiring is one swap-out away.
 - [ ] **H5 — `addConversationMemory` swallows errors silently** —
   `.catch(() => {})` loses entire conversation turn. Log to warn at minimum.
   (`whatsapp-twinme-webhook.js:259`)
@@ -237,9 +229,9 @@ returns 403. One-line fix.
 
 ### Test coverage gaps (P0/P1)
 
-- [ ] **T1 (P0)** — Cross-user reflection leak test (User A vs User B)
-- [ ] **T2 (P0)** — Webhook idempotency on duplicate `wamid`
-- [ ] **T3 (P0)** — Prompt injection neutralization
+- [ ] **T1 (P0)** — Cross-user reflection leak test (User A vs User B) — needs second linked user, deferred
+- [x] **T2 (P0)** — Webhook idempotency on duplicate `wamid`. SHIPPED ff4a163d.
+- [x] **T3 (P0)** — Prompt injection neutralization. SHIPPED 95299199.
 - [ ] **T4 (P0)** — `purchaseContextBuilder` graceful degrade (no Spotify/Calendar)
 - [ ] **T5 (P0)** — Rapid-fire 5 messages in 60s (rate-limit verification)
 - [ ] **T6 (P1)** — LLM timeout returns graceful fallback (mocked)
