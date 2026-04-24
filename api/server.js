@@ -325,8 +325,12 @@ app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain'
 app.use(express.json({
   limit: '100kb',
   verify: (req, _res, buf) => {
-    // Store raw body for HMAC verification on webhook routes
+    // Store raw body for HMAC verification on webhook routes. Must include
+    // the twin webhook path — otherwise verifyWebhookSignature is fed
+    // JSON.stringify(req.body) which is NOT byte-equivalent to Meta's payload
+    // and the HMAC always mismatches → every signed POST returns 403.
     if (req.originalUrl.startsWith('/api/whatsapp/webhook') ||
+        req.originalUrl.startsWith('/api/whatsapp-twin/webhook') ||
         req.originalUrl.startsWith('/api/telegram/webhook')) {
       req.rawBody = buf.toString('utf8');
     }

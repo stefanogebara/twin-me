@@ -21,6 +21,41 @@ import { executeTool } from '../services/toolRegistry.js';
 import { createLogger } from '../services/logger.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
+import { getRedisClient } from '../services/redisClient.js';
+
+// Per-user purchase-intent rate limit. Cap is intentionally low — the bot
+// is a reflective companion, not a search agent. 10 messages/hour gives
+// plenty of room for a real moment of indecision but caps cost runaway and
+// spam to a few cents per attacker per hour.
+const PURCHASE_RATE_LIMIT = parseInt(process.env.PURCHASE_RATE_LIMIT_PER_HOUR || '10', 10);
+const _purchaseRateMem = new Map(); // fallback when Redis is down
+
+async function acquirePurchaseRateSlot(userId) {
+  const hour = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
+  const key = `purchase_intents:${userId}:${hour}`;
+  try {
+    const redis = getRedisClient();
+    if (redis) {
+      const count = await redis.incr(key);
+      if (count === 1) await redis.expire(key, 3700); // ~1h + small grace
+      return count <= PURCHASE_RATE_LIMIT;
+    }
+  } catch (_e) {
+    // fall through to in-memory
+  }
+  // In-memory fallback (single-instance only — Vercel cold starts may reset)
+  const cur = _purchaseRateMem.get(key) || 0;
+  if (cur >= PURCHASE_RATE_LIMIT) return false;
+  _purchaseRateMem.set(key, cur + 1);
+  // Best-effort cleanup
+  if (_purchaseRateMem.size > 1000) {
+    const cutoff = new Date(Date.now() - 7200_000).toISOString().slice(0, 13);
+    for (const k of _purchaseRateMem.keys()) {
+      if (k.split(':')[2] < cutoff) _purchaseRateMem.delete(k);
+    }
+  }
+  return true;
+}
 
 const log = createLogger('WhatsAppWebhook');
 const router = express.Router();
@@ -177,8 +212,12 @@ router.get('/webhook', (req, res) => {
   return res.sendStatus(403);
 });
 
-// Incoming messages (POST)
-router.post('/webhook', express.json(), async (req, res) => {
+// Incoming messages (POST). Body parsing is done by the global express.json
+// middleware in server.js, which ALSO captures req.rawBody for HMAC verification
+// when the URL matches the webhook allowlist. Do NOT mount express.json() here
+// — it would consume the stream before the global verify hook runs and silently
+// break signature verification.
+router.post('/webhook', async (req, res) => {
   if (!process.env.TWINME_WHATSAPP_WEBHOOK_SECRET) {
     log.error('TWINME_WHATSAPP_WEBHOOK_SECRET not configured');
     return res.sendStatus(403);
@@ -187,8 +226,14 @@ router.post('/webhook', express.json(), async (req, res) => {
   const signature = req.headers['x-hub-signature-256'];
   if (!signature) return res.sendStatus(403);
 
-  const rawBody = JSON.stringify(req.body);
-  if (!verifyWebhookSignature(signature, rawBody)) return res.sendStatus(403);
+  // Use the raw bytes captured by the global verify hook — JSON.stringify of
+  // the parsed body is NOT byte-equivalent to Meta's HMAC input and would
+  // never match. If rawBody is missing the route is misconfigured.
+  if (!req.rawBody) {
+    log.error('req.rawBody missing — server.js verify allowlist out of sync');
+    return res.sendStatus(500);
+  }
+  if (!verifyWebhookSignature(signature, req.rawBody)) return res.sendStatus(403);
 
   // Process BEFORE responding (Vercel kills functions after res.send)
   try {
@@ -201,14 +246,30 @@ router.post('/webhook', express.json(), async (req, res) => {
     for (const msg of messages) {
       if (msg.type !== 'text') continue;
 
-      const phone = msg.from;
+      // Sanitize phone — webhook payload is attacker-controllable. Allow only
+      // E.164 chars (+ and digits). Anything else gets stripped before we put
+      // it into a Supabase .or() filter, which is string-interpolated and
+      // could otherwise be used to alter the OR clause.
+      const rawPhone = msg.from;
+      if (!rawPhone) continue;
+      const phone = String(rawPhone).replace(/[^\d+]/g, '');
+      if (!phone || phone.length < 8 || phone.length > 16) continue;
+
       const text = msg.text?.body;
-      if (!phone || !text) continue;
+      if (!text) continue;
+      // Length cap: WhatsApp allows ~65k chars but a real user message that's
+      // even close to 2000 is either spam, a paste accident, or an attack on
+      // the LLM token budget. Drop and move on.
+      if (text.length > 2000) {
+        log.warn('Dropping oversize WhatsApp message', { phoneLen: phone.length, textLen: text.length });
+        continue;
+      }
 
       // Mark as read immediately (blue checkmarks)
       markMessageAsRead(msg.id).catch(() => {});
 
-      // Look up user
+      // Look up user. Both forms ('+5511...' and '5511...') exist in the wild
+      // depending on how the user linked.
       const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
       const phoneWithout = phone.startsWith('+') ? phone.slice(1) : phone;
 
@@ -233,14 +294,30 @@ router.post('/webhook', express.json(), async (req, res) => {
       let response;
 
       if (intent.type === 'purchase') {
-        log.info('Purchase intent detected', { userId });
-        try {
-          const ctx = await buildPurchaseContext(userId);
-          const refl = await generatePurchaseReflection(ctx, text);
-          response = refl.text;
-        } catch (err) {
-          log.error('Purchase reflection failed, falling back to chat', { userId, error: err.message });
+        // Kill switch — flip PURCHASE_BOT_ENABLED in env to disable in prod
+        // without a code change. Defaults OFF so any new deploy without an
+        // explicit opt-in cannot accidentally fire reflections.
+        if (process.env.PURCHASE_BOT_ENABLED !== 'true') {
+          log.info('Purchase intent detected but bot disabled — falling through to chat', { userId });
           response = await processTwinMessage(userId, text);
+        } else if (!(await acquirePurchaseRateSlot(userId))) {
+          // C5: per-user rate limit. Cap at PURCHASE_RATE_LIMIT_PER_HOUR
+          // (default 10) intents per user per rolling hour. Returns a soft
+          // message instead of running another LLM round.
+          log.warn('Purchase rate limit exceeded', { userId });
+          response = "Você tá querendo comprar bastante coisa hoje, hein? Vou te dar um espaço — manda de novo daqui a pouco.";
+        } else {
+          log.info('Purchase intent detected', { userId });
+          try {
+            const ctx = await buildPurchaseContext(userId);
+            const refl = await generatePurchaseReflection(ctx, text);
+            response = refl.text;
+          } catch (err) {
+            // C-H9: do NOT escalate to processTwinMessage (Claude Sonnet, ~50x
+            // cost). Return a fixed fallback string instead.
+            log.error('Purchase reflection failed', { userId, error: err.message });
+            response = "Tive um problema agora pra te responder. Tenta de novo daqui a pouco?";
+          }
         }
       } else if (intent.type === 'tool') {
         log.info('Tool action detected', { userId, tool: intent.toolName });
