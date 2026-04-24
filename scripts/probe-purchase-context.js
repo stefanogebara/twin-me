@@ -24,8 +24,8 @@ async function main() {
 
   console.log('Building context...');
   const ctx = await buildPurchaseContext(userId);
-  console.log(`  Biology:  ${ctx.biology.available ? `recovery ${ctx.biology.recovery_score}, HRV ${ctx.biology.hrv_ms}ms (${ctx.biology.age_hours}h old${ctx.biology.stale ? ', STALE' : ''})` : `unavailable`}`);
-  console.log(`  Music:    ${ctx.music.available ? `${ctx.music.track_count} tracks in window (sync ${ctx.music.age_hours}h old${ctx.music.stale ? ', STALE' : ''})` : `unavailable`}`);
+  console.log(`  Moment:   ${ctx.moment.day_of_week} ${ctx.moment.band} (${ctx.moment.hour}h, ${ctx.moment.is_weekend ? 'weekend' : 'weekday'}, tz ${ctx.moment.timezone})`);
+  console.log(`  Music:    ${ctx.music.available ? `${ctx.music.track_count} tracks in window${ctx.music.stale ? ` (SYNC ${ctx.music.age_hours}h STALE)` : ''}${ctx.music.avg_popularity != null ? `, avg pop ${ctx.music.avg_popularity}/100` : ''}` : `unavailable`}`);
   console.log(`  Schedule: ${ctx.schedule.available ? `${ctx.schedule.past_count} past + ${ctx.schedule.upcoming_count} upcoming` : 'unavailable'}`);
   console.log(`  Latency:  ${ctx.elapsed_ms}ms`);
 

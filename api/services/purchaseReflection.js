@@ -25,29 +25,27 @@ function detectLang(text) {
 }
 
 /**
- * Compose the context section the LLM will mirror from. Only include what's
- * actually fresh — don't feed 277-hour-old Whoop data into the prompt as if
- * it were current, that makes the reflection hallucinate.
+ * Compose the context section the LLM will mirror from. Behavior-as-biology:
+ * no wearable data, just time/day/music/calendar — enough signal to infer
+ * state without forcing the user to own a ring or watch.
  */
 function formatContextForPrompt(ctx) {
   const lines = [];
 
-  if (ctx.biology?.available && !ctx.biology.stale) {
-    const { recovery_score, hrv_ms, resting_hr } = ctx.biology;
-    const bits = [];
-    if (recovery_score != null) bits.push(`recovery ${recovery_score}%`);
-    if (hrv_ms != null) bits.push(`HRV ${hrv_ms}ms`);
-    if (resting_hr != null) bits.push(`resting HR ${resting_hr}bpm`);
-    if (bits.length) lines.push(`Biology (from Whoop, current): ${bits.join(', ')}`);
-  } else if (ctx.biology?.available && ctx.biology.stale) {
-    lines.push(`Biology: last Whoop reading is ${ctx.biology.age_hours}h old — too stale to trust as current state`);
-  } else {
-    lines.push(`Biology: no Whoop data available`);
+  if (ctx.moment) {
+    const m = ctx.moment;
+    lines.push(`Moment: ${m.day_of_week} ${m.band} (hour ${m.hour}${m.is_weekend ? ', weekend' : ''}, tz ${m.timezone})`);
   }
 
   if (ctx.music?.available && !ctx.music.stale && ctx.music.track_count > 0) {
-    const sample = ctx.music.tracks.slice(0, 5).map(t => `${t.track} — ${t.artist}`).join('; ');
-    lines.push(`Music last ${ctx.music.window_hours}h (${ctx.music.track_count} tracks): ${sample}`);
+    const sample = ctx.music.tracks.slice(0, 6).map(t => `${t.track} — ${t.artist}`).join('; ');
+    const hints = [];
+    if (ctx.music.avg_popularity != null) {
+      hints.push(`avg popularity ${ctx.music.avg_popularity}/100 (${ctx.music.avg_popularity < 40 ? 'niche' : ctx.music.avg_popularity > 70 ? 'mainstream' : 'mixed'})`);
+    }
+    if (ctx.music.unique_artists) hints.push(`${ctx.music.unique_artists} unique artists`);
+    if (ctx.music.context_types?.length) hints.push(`from ${ctx.music.context_types.join('+')}`);
+    lines.push(`Music last ${ctx.music.window_hours}h (${ctx.music.track_count} tracks${hints.length ? ', ' + hints.join(', ') : ''}): ${sample}`);
   } else if (ctx.music?.available && ctx.music.stale) {
     lines.push(`Music: Spotify sync is ${ctx.music.age_hours}h stale — no current listening signal`);
   } else {
@@ -58,15 +56,18 @@ function formatContextForPrompt(ctx) {
     const past = ctx.schedule.events.filter(e => e.relation === 'past');
     const up = ctx.schedule.events.filter(e => e.relation === 'upcoming');
     const parts = [];
-    if (past.length) parts.push(`${past.length} meeting${past.length>1?'s':''} in last ${ctx.schedule.window.past_hours}h`);
-    if (up.length) parts.push(`${up.length} coming up in next ${ctx.schedule.window.future_hours}h`);
-    if (up.length <= 3) {
-      const names = up.map(e => e.title).filter(Boolean).slice(0, 3);
-      if (names.length) parts.push(`(next: ${names.join(', ')})`);
+    if (past.length) {
+      const titles = past.map(e => e.title).filter(Boolean).slice(0, 2);
+      parts.push(`${past.length} meeting${past.length > 1 ? 's' : ''} in last ${ctx.schedule.window.past_hours}h${titles.length ? ` (last: ${titles.join(', ')})` : ''}`);
     }
+    if (up.length) {
+      const names = up.map(e => e.title).filter(Boolean).slice(0, 2);
+      parts.push(`${up.length} coming up in next ${ctx.schedule.window.future_hours}h${names.length ? ` (next: ${names.join(', ')})` : ''}`);
+    }
+    if (ctx.schedule.has_important_upcoming) parts.push('important meeting coming');
     lines.push(`Calendar: ${parts.join(', ')}`);
   } else {
-    lines.push(`Calendar: clear in window`);
+    lines.push(`Calendar: clear in window (no meetings past 3h or next 4h)`);
   }
 
   return lines.join('\n');
@@ -74,33 +75,47 @@ function formatContextForPrompt(ctx) {
 
 function systemPrompt(lang) {
   if (lang === 'pt-BR') {
-    return `Você é o "twin" de uma pessoa — a versão de IA dela mesma, que conhece seu corpo, humor e padrões. Ela acabou de te avisar que está pensando em comprar algo.
+    return `Você é o "twin" de uma pessoa — a versão de IA dela mesma, que conhece os padrões comportamentais dela (o que anda ouvindo, como está o calendário, que horas e dia são). Ela acabou de te avisar que está pensando em comprar algo.
 
 Sua única missão: devolver uma reflexão curta que a ajude a ver o que está acontecendo por dentro dela agora — não para impedir a compra, não para julgar, não para dar conselho.
 
+Como você "lê" o estado dela (comportamento como espelho do corpo):
+- HORÁRIO e DIA: compra tarde da noite sozinha num domingo é diferente de almoço de terça. Use isso.
+- MÚSICA: o que ela andou ouvindo nas últimas horas é pista de humor. Música nicho + muitos artistas diferentes = dispersão / inquietação. Mesmo álbum em loop = foco ou ruminação. Playlist popular = conforto/default. Use sua intuição sobre cada artista.
+- CALENDÁRIO: muitas reuniões passadas = cansaço social. Reunião importante chegando = ansiedade antecipatória. Calendário vazio = pode ser solidão / tédio / alívio, depende do horário.
+- Se tiver pouco dado, use só o que tem. Se não tiver nada, apenas reaja à própria mensagem dela.
+
 REGRAS ABSOLUTAS:
 - No máximo 3 frases. Nunca mais.
-- Uma frase que espelha o estado atual dela usando APENAS dados que eu te der. Se não tiver dado, não invente.
-- Uma pergunta aberta que a convide a se observar. A pergunta deve parecer vinda de um amigo próximo, não de um terapeuta.
-- Zero conselhos. Zero avisos. Zero "talvez você devesse". Zero "considere se".
+- Uma frase curta que espelha o padrão que você lê (momento + música + calendário juntos, não listados). NÃO cite os dados brutos tipo "você ouviu X" — traduz em estado: "cê tá num clima de Y".
+- Uma pergunta aberta que a convide a se observar. Pergunta de amigo próximo, não de terapeuta.
+- Zero conselhos. Zero avisos. Zero "talvez você devesse". Zero "considere se". Zero sugestão do que fazer.
 - Zero emojis.
-- Tom: direto, caloroso, íntimo. Como se fosse alguém que a conhece há anos.
-- Português brasileiro coloquial. Pode usar "cê" se soar natural.
-- Se o estado dela estiver bom (recovery alto, calendário leve), reconheça isso e faça uma pergunta diferente — não force ansiedade onde não tem.`;
+- Nunca invente sensações corporais (HRV, cansaço físico, fome, sono) — você não tem esses dados.
+- Tom: direto, caloroso, íntimo. Como alguém que a conhece há anos.
+- Português brasileiro coloquial. "Cê" ok se soar natural.
+- Se o padrão parecer bom (domingo de manhã, calendário leve, música agradável), reconheça isso — não force ansiedade onde não tem.`;
   }
 
-  return `You are this person's "twin" — the AI version of themselves that knows their body, mood, and patterns. They just told you they're thinking about buying something.
+  return `You are this person's "twin" — the AI version of themselves that knows their behavioral patterns (what they're listening to, what their calendar looks like, what time of day it is). They just told you they're thinking about buying something.
 
 Your only job: give back a short reflection that helps them see what's happening inside them right now — not to block the purchase, not to judge, not to give advice.
 
+How you "read" their state (behavior as a mirror of body/mood):
+- TIME and DAY: late-night solo shop on a Sunday reads differently than Tuesday lunch. Use it.
+- MUSIC: what they've been listening to in recent hours hints at mood. Niche + many different artists = scattered/restless. Same album on loop = focus or rumination. Popular playlist = comfort/default. Use your intuition about each artist.
+- CALENDAR: many recent meetings = social fatigue. Important meeting coming = anticipatory anxiety. Empty calendar = could be loneliness / boredom / relief depending on time.
+- If data is thin, use only what's there. If there's nothing, just react to the message itself.
+
 HARD RULES:
 - Max 3 sentences. Never more.
-- One sentence mirroring their current state using ONLY the data I give you. If there's no data, don't invent.
-- One open question that invites them to notice themselves. Should sound like a close friend, not a therapist.
-- Zero advice. Zero warnings. Zero "maybe you should". Zero "consider whether".
+- One short sentence mirroring the pattern you read (moment + music + calendar combined, not listed). Don't quote raw data like "you listened to X" — translate to a state: "you're in a mode of Y".
+- One open question that invites them to notice themselves. Close-friend tone, not therapist.
+- Zero advice. Zero warnings. Zero "maybe you should". Zero "consider whether". Zero suggestions.
 - Zero emojis.
+- Never invent bodily sensations (HRV, physical fatigue, hunger, sleep) — you don't have that data.
 - Tone: direct, warm, intimate. Like someone who's known them for years.
-- If their state looks good (high recovery, light calendar), acknowledge it and ask a different question — don't force anxiety where there isn't any.`;
+- If the pattern looks good (Sunday morning, light calendar, pleasant music), acknowledge it — don't force anxiety where there isn't any.`;
 }
 
 /**
