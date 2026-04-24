@@ -112,12 +112,24 @@ Total: ~210 lines of real code + ~30 lines of prompt.
 2. Does the whatsapp-twinme-webhook actually receive inbound messages right now? Send yourself a message and check logs.
 3. What's the current WA number the twin replies from? Per memory +1 762-994-3997 but dated 2026-03-29. Verify.
 
-### Known data-sync bugs surfaced during Day 2 (separate tickets, NOT purchase-bot blockers)
+### Data-sync bugs surfaced + fixed during Day 2 (commit 6aad5fb1, 2026-04-24)
 
-1. **Spotify extractor writes to both `user_platform_data` and `soul_data`.** The `soul_data` table has a UNIQUE constraint on `(user_id, platform, data_type)` that blocks the `comprehensive_music_profile` write. Error: `duplicate key value violates unique constraint "soul_data_user_platform_datatype_unique"`. Fix: either drop the obsolete `soul_data` write entirely (it looks legacy — the live surface is `user_platform_data`), or switch to upsert with matching onConflict. The purchase-bot fetcher reads `user_platform_data` and works regardless.
-2. **Google Calendar extractor silently returns 0 items.** `connected` status + `last_sync_at` updates, but no new rows land in `user_platform_data`. Tokens are valid (both spotify + google_calendar show `status: connected`). Extractor has a bug that silently drops everything. Need to trace `extractionOrchestrator.extractPlatform(userId, 'google_calendar')` to find where items get dropped.
+1. ~~**Spotify extractor `.insert()` on soul_data**~~ FIXED. Same bug in
+   discordExtraction.js + githubExtraction.js — all three now use `.upsert()`
+   with onConflict='user_id,platform,data_type' matching the actual unique
+   constraint. Every resync was silently no-oping before.
+2. ~~**Google Calendar extractor returning 0 items**~~ FIXED. The orchestrator
+   case at extractionOrchestrator.js:167 was literally a stub
+   `{ success: true, itemsExtracted: 0, message: 'Calendar feature extraction removed' }`.
+   Wired to call fetchCalendarObservations + storeObservationsToMemory, and
+   extended the fetcher to dual-pull (today for NL observations, 7-day forward
+   for raw events persisted to user_platform_data as data_type='events').
+   Verified: fresh row with 8 upcoming events landed on first probe.
 
-Impact: fresh data for both signals requires fixing (1) and (2) before the bot gives its sharpest reflections. In the meantime the bot still works on the Apr 8 snapshot + live moment + live calendar queries; reflections lose granularity but not correctness.
+Impact beyond Stefano: ANY user who connected Spotify/Discord/GitHub once
+and then tried to re-extract hit a silent no-op on soul_data writes. ANY
+user with google_calendar connected got zero events synced since the stub
+was added. This fix unblocks all of them.
 
 ### Anti-goals (do not let yourself drift)
 
