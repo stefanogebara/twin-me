@@ -19,9 +19,13 @@ const log = createLogger('PurchaseReflection');
  */
 function detectLang(text) {
   const t = (text || '').toLowerCase();
-  if (/\b(vou|quero|estou|comprar|comprando|pensando|mercado|ifood|r\$)\b/.test(t)) return 'pt-BR';
-  if (/\b(i|want|thinking|about\s*to|buy|buying|\$)\b/.test(t)) return 'en';
-  return 'pt-BR';
+  // Strong PT-BR markers — Portuguese words with no English cognates
+  if (/\b(vou|cê|você|tô|tá|pra|pro|né|comprar|comprando|pensando|gastar|loja|mercado|ifood)\b/.test(t)) return 'pt-BR';
+  if (/r\$\s*\d/.test(t)) return 'pt-BR';
+  // Strong EN markers — English words that don't appear in Portuguese
+  if (/\b(thinking|buying|should|need|want|about|new|gonna|wanna)\b/.test(t)) return 'en';
+  if (/\$\s*\d/.test(t)) return 'en';
+  return 'pt-BR'; // Brazil-first default
 }
 
 /**
@@ -140,7 +144,8 @@ export async function generatePurchaseReflection(ctx, userMessage) {
     maxTokens: 180,
     userId: ctx.user_id,
     serviceName: 'purchase_reflection',
-    sensitiveContent: true, // financial + biological state, route to cheapest tier per NemoClaw privacy pattern
+    sensitiveContent: true, // financial + behavioral state — route to cheapest tier per NemoClaw privacy pattern
+    skipCache: true, // every reflection is hyper-personal to a moment; caching collides across users + times
   });
 
   const elapsed_ms = Date.now() - t0;

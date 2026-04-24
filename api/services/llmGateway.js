@@ -400,6 +400,7 @@ export async function complete({
   serviceName,
   modelOverride,
   sensitiveContent = false,
+  skipCache = false, // Per-call cache bypass for hyper-personal responses
 }) {
   // Privacy routing: downgrade to cheapest tier for sensitive content (NemoClaw pattern)
   // This minimizes data exposure for health/emotional/financial content
@@ -447,8 +448,8 @@ export async function complete({
   model = modelOverride || OPENROUTER_MODELS[effectiveTier] || OPENROUTER_MODELS[TIER_ANALYSIS];
   ttl = CACHE_TTL_BY_TIER[effectiveTier] || 0;
 
-  // Check cache (skip for chat)
-  if (ttl > 0) {
+  // Check cache (skip for chat, or when caller opts out via skipCache)
+  if (ttl > 0 && !skipCache) {
     const cacheKey = buildCacheKey(model, system, messages, maxTokens);
     const cached = await cacheGet(cacheKey);
     if (cached) {
@@ -500,8 +501,8 @@ export async function complete({
 
     const result = { content, model, usage, cost, cacheHit: false };
 
-    // Cache result
-    if (ttl > 0) {
+    // Cache result (unless caller opted out)
+    if (ttl > 0 && !skipCache) {
       const cacheKey = buildCacheKey(model, system, messages, maxTokens);
       await cacheSet(cacheKey, result, ttl);
     }
