@@ -36,6 +36,7 @@ import { PermissionOnboardingScreen } from './src/screens/PermissionOnboardingSc
 import { COLORS, STORAGE_KEYS } from './src/constants';
 import { UsageStatsModule } from './src/native/UsageStatsModule';
 import { NotificationListenerModule } from './src/native/NotificationListenerModule';
+import { NotificationListenerModule as NotifListenerBg } from './modules/notification-listener/src';
 
 const FG_SYNC_KEY = 'twinme_last_fg_sync';
 const FG_SYNC_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
@@ -91,6 +92,7 @@ export default function App() {
         console.warn('[Push] Registration failed (non-fatal):', err)
       );
       checkPermissionsNeeded();
+      NotifListenerBg.setAuthToken(token);
     } else {
       setShowPermissions(null);
     }

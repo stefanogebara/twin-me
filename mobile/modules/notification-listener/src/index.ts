@@ -15,6 +15,7 @@ export interface NotificationStatsModuleType extends NativeModule {
   requestNotificationPermission(): void;
   getNotificationStats(): Promise<NotificationEntry[]>;
   clearStats(): void;
+  setAuthToken(token: string): void;
   addListener(eventName: string, listener: (event: PurchaseEvent) => void): EventSubscription;
 }
 
@@ -45,6 +46,10 @@ export const NotificationListenerModule = {
 
   clearStats(): void {
     getModule()?.clearStats();
+  },
+
+  setAuthToken(token: string): void {
+    getModule()?.setAuthToken(token);
   },
 
   addPurchaseListener(callback: (event: PurchaseEvent) => void): EventSubscription | null {

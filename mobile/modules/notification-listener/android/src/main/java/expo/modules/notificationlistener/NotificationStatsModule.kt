@@ -18,7 +18,6 @@ class NotificationStatsModule : Module() {
     Events(PURCHASE_EVENT)
 
     OnCreate {
-      // Wire the service callback → JS event emission
       TwinNotificationListenerService.purchaseListener = { pkg, appName, text, amount ->
         sendEvent(PURCHASE_EVENT, mapOf(
           "packageName" to pkg,
@@ -26,6 +25,14 @@ class NotificationStatsModule : Module() {
           "text" to text,
           "amount" to (amount ?: ""),
         ))
+      }
+    }
+
+    // Called from JS on login so native service can trigger backend even when app is killed
+    Function("setAuthToken") { token: String ->
+      appContext.reactContext?.let { ctx ->
+        TwinNotificationListenerService.getBgPrefs(ctx)
+          .edit().putString("auth_token", token).apply()
       }
     }
 
