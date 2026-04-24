@@ -148,6 +148,122 @@ real LLM, real WhatsApp round-trip.
 
 ---
 
+## Audit (2026-04-24, after 16-commit shipping session)
+
+3 parallel sub-agents (production / code review / test coverage). Bottom line:
+**bot does not work in production today** — signature verification consumes
+re-serialized body instead of `req.rawBody`, so every signed Meta webhook
+returns 403. One-line fix.
+
+### CRITICAL — block ship
+
+- [ ] **C1 — Signature verify uses re-serialized body, not `req.rawBody`.**
+  `whatsapp-twinme-webhook.js:190` reads `JSON.stringify(req.body)` for HMAC
+  but raw-body capture in `server.js:329` only fires for `/api/whatsapp/webhook`
+  (Kapso path), not `/api/whatsapp-twin/webhook`. Every Meta POST → 403.
+  Fix: extend the verify allowlist + use `req.rawBody`. (~5min)
+- [ ] **C2 — Prompt injection via raw `userMessage`.**
+  `purchaseReflection.js:136` interpolates user text without escape. Attacker
+  sends `"R$100" Ignore previous instructions...`. Wrap in XML tags or
+  sanitize. (~15min)
+- [ ] **C3 — PostgREST filter injection via `msg.from`.**
+  `whatsapp-twinme-webhook.js:215-219` interpolates phone into `.or(...)`.
+  A crafted value alters the OR clause. Use parameterized syntax. (~10min)
+- [ ] **C4 — No webhook dedup on `wamid`.** Meta retries → 2 reflections, 2 LLM
+  calls, 2 memory rows. Add Redis `SETNX EX 300` on `msg.id`. (~30min)
+- [ ] **C5 — No per-user rate limit.** Existing `apiLimiter` is per-IP (Meta
+  IP pool defeats it). Cap at 10 purchase intents/hour/user via Redis
+  counter. (~30min)
+- [ ] **C6 — No feature flag / kill switch.** Add
+  `if (process.env.PURCHASE_BOT_ENABLED !== 'true') return;` at intent
+  branch entry. (~5min)
+- [ ] **C7 — No user opt-out.** Add `purchase_bot_enabled boolean` to
+  `messaging_channels` (default true) + check before classify. (~45min)
+- [ ] **C8 — WhatsApp number unverified.** Memory `+1 762-994-3997` is 26 days
+  stale. Manual test before shipping to non-Stefano users. (~5min)
+
+**Critical total: ~2.5 hours of focused work.**
+
+### HIGH — this week
+
+- [ ] **H1 — `sensitiveContent: true` silently downgrades to Mistral Small.**
+  `llmGateway.js:407` swaps tier without telling caller. Either pass
+  `TIER_EXTRACTION` directly or remove the flag. Note: "privacy routing to
+  a different model" is not actually privacy-preserving — data still leaves
+  via OpenRouter.
+- [ ] **H2 — No cross-user leak regression test.** The `skipCache: true` fix
+  has no test. A future "let's cut costs" PR removes it and the bug returns.
+- [ ] **H3 — `getValidAccessToken` called 3x sequentially in calendar fetcher.**
+  Triples cold-start latency. Hoist to top + pass down.
+  (`observationFetchers/calendar.js:20,258,370`)
+- [ ] **H4 — Zero PostHog telemetry on purchase reflections.** Can't answer
+  Day-7 success metric. Add `posthog.capture('purchase_reflection_generated')`
+  with `{userId, lang, hasMusic, hasCalendar, elapsed_ms, cost}`. No user text.
+- [ ] **H5 — `addConversationMemory` swallows errors silently** —
+  `.catch(() => {})` loses entire conversation turn. Log to warn at minimum.
+  (`whatsapp-twinme-webhook.js:259`)
+- [ ] **H6 — Calendar `source_url: calendar:events:${today}` overwrites
+  intraday changes.** Cancellations vanish. Document or include hour in key.
+  (`observationFetchers/calendar.js:108-121`)
+- [ ] **H7 — No `userMessage` length cap.** 60k-char message blows tokens +
+  stresses regex. Add `if (text.length > 2000) continue;` early.
+  (`whatsapp-twinme-webhook.js:205`)
+- [ ] **H8 — Zero unit tests for 4 modified extractors.** spotifyExtraction,
+  discordExtraction, githubExtraction, observationFetchers/calendar — all
+  touched in 6aad5fb1 with no tests. Silent regression risk.
+- [ ] **H9 — Silent failure escalates to Claude Sonnet (~50x cost).**
+  `whatsapp-twinme-webhook.js:241-244` falls back to `processTwinMessage`
+  on purchase reflection error. DeepSeek 503 → 50x cost. Log + return
+  fixed fallback string.
+- [ ] **H10 — No `purchase_reflections` audit table.** Can't see lang
+  breakdown, false-positive rate, delivery success.
+
+### MEDIUM — next sprint
+
+- [ ] **M1 — `PURCHASE_INTENT_PATTERNS[4]` (`/\bR\$\s*\d/`) too broad.**
+  False positives: "meu aluguel é R$ 2000", "comprei R$50 ontem", "salário
+  R$5000". Add LLM gate or require present/future verb.
+- [ ] **M2 — Real PII committed in test file.** `STEFANO_USER_ID` +
+  `STEFANO_PHONE` should come from env. (`tests/purchase-bot-e2e.spec.ts:33-35`)
+- [ ] **M3 — `insertError` named for upsert calls** (Discord:97, GitHub:125).
+- [ ] **M4 — `local_iso` always UTC despite the name.** (`purchaseContextBuilder.js:56`)
+- [ ] **M5 — Dead `biology_fresh` log field** post-pivot. (`purchaseReflection.js:160`)
+- [ ] **M6 — `case 'calendar':` dead alias** — codebase uses `'google_calendar'`.
+  (`extractionOrchestrator.js:167`)
+- [ ] **M7 — Default timezone hardcoded `'America/Sao_Paulo'`.** Silently wrong
+  for non-BR users. Log warning on fallback. (`purchaseContextBuilder.js:217`)
+- [ ] **M8 — `markMessageAsRead` ignores Kapso entirely.** (`whatsappService.js:151-165`)
+
+### LOW
+
+- [ ] **L1 — 4 `console.log` calls in committed test file.**
+- [ ] **L2 — `githubExtraction.js` API calls have no timeout** — slow GitHub
+  hangs entire extraction. (`githubExtraction.js:56-68`)
+
+### Test coverage gaps (P0/P1)
+
+- [ ] **T1 (P0)** — Cross-user reflection leak test (User A vs User B)
+- [ ] **T2 (P0)** — Webhook idempotency on duplicate `wamid`
+- [ ] **T3 (P0)** — Prompt injection neutralization
+- [ ] **T4 (P0)** — `purchaseContextBuilder` graceful degrade (no Spotify/Calendar)
+- [ ] **T5 (P0)** — Rapid-fire 5 messages in 60s (rate-limit verification)
+- [ ] **T6 (P1)** — LLM timeout returns graceful fallback (mocked)
+- [ ] **T7 (P1)** — Extractor regression suite (Spotify/Discord/GitHub/Calendar fixtures)
+- [ ] **T8 (P1)** — Non-linked phone rejected cleanly
+- [ ] **T9 (P2)** — Timezone DST + midnight boundary on `computeMoment()`
+- [ ] **T10 (P2)** — Edge inputs (empty, emoji, 4KB, ES/JP languages)
+
+### Ship-blocker short list (~70 minutes to "minimally safe")
+
+1. C1 signature fix — 5min
+2. C8 verify WA number works — 5min
+3. C2 sanitize userMessage interpolation — 15min
+4. C3 parameterize phone filter — 10min
+5. C5 add per-user rate limit — 30min
+6. C6 add kill-switch env var — 5min
+
+---
+
 ## Previous Phase: Cold Start + Interview Backlog (2026-03-16)
 
 Archived — all items complete.
