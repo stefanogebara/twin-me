@@ -10,8 +10,28 @@ import expo.modules.kotlin.modules.ModuleDefinition
 
 class NotificationStatsModule : Module() {
 
+  private val PURCHASE_EVENT = "onPurchaseDetected"
+
   override fun definition() = ModuleDefinition {
     Name("NotificationStats")
+
+    Events(PURCHASE_EVENT)
+
+    OnCreate {
+      // Wire the service callback → JS event emission
+      TwinNotificationListenerService.purchaseListener = { pkg, appName, text, amount ->
+        sendEvent(PURCHASE_EVENT, mapOf(
+          "packageName" to pkg,
+          "appName" to appName,
+          "text" to text,
+          "amount" to (amount ?: ""),
+        ))
+      }
+    }
+
+    OnDestroy {
+      TwinNotificationListenerService.purchaseListener = null
+    }
 
     // -------------------------------------------------------------------------
     // hasNotificationPermission — checks NotificationListenerService is enabled

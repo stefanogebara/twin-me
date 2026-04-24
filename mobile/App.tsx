@@ -22,6 +22,7 @@ import { registerBackgroundSync, runSyncNow } from './src/services/backgroundSyn
 import { addLocationSample, SAMPLE_INTERVAL_MS } from './src/services/locationClusters';
 import { registerForPushNotifications } from './src/services/pushNotifications';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
+import { usePurchaseDetection } from './src/hooks/usePurchaseDetection';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { TwinChatScreen } from './src/screens/TwinChatScreen';
@@ -167,6 +168,7 @@ export default function App() {
   }, []);
 
   usePushNotifications(token ? handlePushTap : undefined);
+  usePurchaseDetection();
 
   const MainTabs = useCallback(() => (
     <Tab.Navigator
