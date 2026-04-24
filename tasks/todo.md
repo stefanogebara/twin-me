@@ -108,9 +108,16 @@ Total: ~210 lines of real code + ~30 lines of prompt.
 
 ### Open questions Day 1 must answer
 
-1. Is Whoop token still valid or did it rot? Probe with a test fetch.
+1. ~~Is Whoop token still valid or did it rot?~~ N/A — biology dropped from V1, Stefano lost his Whoop (2026-04-24).
 2. Does the whatsapp-twinme-webhook actually receive inbound messages right now? Send yourself a message and check logs.
 3. What's the current WA number the twin replies from? Per memory +1 762-994-3997 but dated 2026-03-29. Verify.
+
+### Known data-sync bugs surfaced during Day 2 (separate tickets, NOT purchase-bot blockers)
+
+1. **Spotify extractor writes to both `user_platform_data` and `soul_data`.** The `soul_data` table has a UNIQUE constraint on `(user_id, platform, data_type)` that blocks the `comprehensive_music_profile` write. Error: `duplicate key value violates unique constraint "soul_data_user_platform_datatype_unique"`. Fix: either drop the obsolete `soul_data` write entirely (it looks legacy — the live surface is `user_platform_data`), or switch to upsert with matching onConflict. The purchase-bot fetcher reads `user_platform_data` and works regardless.
+2. **Google Calendar extractor silently returns 0 items.** `connected` status + `last_sync_at` updates, but no new rows land in `user_platform_data`. Tokens are valid (both spotify + google_calendar show `status: connected`). Extractor has a bug that silently drops everything. Need to trace `extractionOrchestrator.extractPlatform(userId, 'google_calendar')` to find where items get dropped.
+
+Impact: fresh data for both signals requires fixing (1) and (2) before the bot gives its sharpest reflections. In the meantime the bot still works on the Apr 8 snapshot + live moment + live calendar queries; reflections lose granularity but not correctness.
 
 ### Anti-goals (do not let yourself drift)
 

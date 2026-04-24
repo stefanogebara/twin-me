@@ -127,30 +127,55 @@ async function fetchRecentTracks(userId, lookbackHours = 6) {
 }
 
 async function fetchCalendarDensity(userId, pastHours = 3, futureHours = 4) {
+  // Google Calendar events land in user_platform_data as raw API responses
+  // (one row per calendar per sync). The dedicated `calendar_events` table
+  // is empty for most users — that was a legacy schema. We unpack items[]
+  // from the most recent sync rows and dedupe by event id.
   const now = new Date();
   const past = new Date(now.getTime() - pastHours * 36e5);
   const future = new Date(now.getTime() + futureHours * 36e5);
 
   const { data, error } = await supabaseAdmin
-    .from('calendar_events')
-    .select('title, start_time, end_time, is_important, event_type, attendees')
+    .from('user_platform_data')
+    .select('raw_data, extracted_at')
     .eq('user_id', userId)
-    .gte('start_time', past.toISOString())
-    .lte('start_time', future.toISOString())
-    .order('start_time', { ascending: true });
+    .eq('platform', 'google_calendar')
+    .eq('data_type', 'events')
+    .order('extracted_at', { ascending: false })
+    .limit(30); // last ~30 sync rows cover all connected calendars' recent extractions
 
   if (error) return { available: false, reason: error.message };
+  if (!data?.length) return { available: false, reason: 'no google_calendar rows' };
 
-  const nowTs = now.getTime();
-  const events = (data || []).map(e => ({
-    title: e.title,
-    start: e.start_time,
-    end: e.end_time,
-    is_important: !!e.is_important,
-    event_type: e.event_type,
-    attendee_count: Array.isArray(e.attendees) ? e.attendees.length : 0,
-    relation: new Date(e.start_time).getTime() < nowTs ? 'past' : 'upcoming',
-  }));
+  // Unpack + dedupe by event id (newer extraction wins since `data` is desc).
+  const seen = new Map();
+  for (const row of data) {
+    const items = row.raw_data?.items;
+    if (!Array.isArray(items)) continue;
+    for (const ev of items) {
+      if (!ev?.id || ev.status === 'cancelled') continue;
+      if (seen.has(ev.id)) continue;
+      const startTs = ev.start?.dateTime || ev.start?.date;
+      if (!startTs) continue;
+      const startMs = new Date(startTs).getTime();
+      if (isNaN(startMs)) continue;
+      if (startMs < past.getTime() || startMs > future.getTime()) continue;
+      seen.set(ev.id, {
+        id: ev.id,
+        title: ev.summary || '(no title)',
+        start: startTs,
+        end: ev.end?.dateTime || ev.end?.date || null,
+        is_all_day: !ev.start?.dateTime,
+        attendee_count: Array.isArray(ev.attendees) ? ev.attendees.length : 0,
+        calendar: row.raw_data?.summary || 'primary',
+        relation: startMs < now.getTime() ? 'past' : 'upcoming',
+      });
+    }
+  }
+
+  const events = [...seen.values()].sort((a, b) => new Date(a.start) - new Date(b.start));
+  const latestSync = data[0]?.extracted_at;
+  const syncAgeHours = latestSync ? Math.round(ageHours(latestSync)) : null;
 
   return {
     available: true,
@@ -158,7 +183,9 @@ async function fetchCalendarDensity(userId, pastHours = 3, futureHours = 4) {
     events,
     past_count: events.filter(e => e.relation === 'past').length,
     upcoming_count: events.filter(e => e.relation === 'upcoming').length,
-    has_important_upcoming: events.some(e => e.relation === 'upcoming' && e.is_important),
+    has_important_upcoming: false, // Google API doesn't expose an "important" flag; leave false
+    sync_age_hours: syncAgeHours,
+    sync_stale: syncAgeHours != null && syncAgeHours > 24, // >24h stale
   };
 }
 
