@@ -23,12 +23,58 @@ import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
 import { getRedisClient } from '../services/redisClient.js';
 
+// H4 — telemetry. Structured log envelope so a future PostHog (or BigQuery,
+// or a simple Supabase events table) ingest can pick up purchase-bot signal
+// without changing every callsite. Emits one log line per event with
+// `telemetry: true` so log forwarders can split it out. NEVER include user
+// text or reflection content — only metadata.
+function captureTelemetry(eventName, properties = {}) {
+  try {
+    log.info(`telemetry:${eventName}`, { telemetry: true, event: eventName, ...properties });
+  } catch (_e) {
+    // never let telemetry crash the request flow
+  }
+}
+
 // Per-user purchase-intent rate limit. Cap is intentionally low — the bot
 // is a reflective companion, not a search agent. 10 messages/hour gives
 // plenty of room for a real moment of indecision but caps cost runaway and
 // spam to a few cents per attacker per hour.
 const PURCHASE_RATE_LIMIT = parseInt(process.env.PURCHASE_RATE_LIMIT_PER_HOUR || '10', 10);
 const _purchaseRateMem = new Map(); // fallback when Redis is down
+
+// C4 — Webhook dedup. Meta retries failed deliveries with the same `wamid`,
+// so the handler can't be naive about "is this the same message I already
+// processed?" without a per-message lock. We use SETNX with 5min TTL, which
+// is well past Meta's retry window. Return true on first sight, false on
+// repeat.
+async function claimWhatsAppMessageId(messageId) {
+  if (!messageId) return true; // missing id is rare; let it through rather than drop
+  const key = `wamid_seen:${messageId}`;
+  try {
+    const redis = getRedisClient();
+    if (redis) {
+      // SET key value NX EX 300 — succeed only if absent, expire after 5min.
+      const result = await redis.set(key, '1', 'EX', 300, 'NX');
+      return result === 'OK';
+    }
+  } catch (_e) {
+    // fall through to in-memory
+  }
+  // In-memory fallback. Dies on cold start but that's fine — Meta retries
+  // within seconds, server stays warm during a retry storm.
+  if (_wamidSeen.has(key)) return false;
+  _wamidSeen.set(key, Date.now() + 300_000);
+  // Best-effort prune
+  if (_wamidSeen.size > 5000) {
+    const now = Date.now();
+    for (const [k, exp] of _wamidSeen) {
+      if (exp < now) _wamidSeen.delete(k);
+    }
+  }
+  return true;
+}
+const _wamidSeen = new Map();
 
 async function acquirePurchaseRateSlot(userId) {
   const hour = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
@@ -246,6 +292,14 @@ router.post('/webhook', async (req, res) => {
     for (const msg of messages) {
       if (msg.type !== 'text') continue;
 
+      // C4 — dedup on wamid. Meta retries the same payload up to ~5 times
+      // for failed acks; without this gate we'd run 5 reflections, store 5
+      // memory turns, and burn 5x cost.
+      if (!(await claimWhatsAppMessageId(msg.id))) {
+        log.info('WhatsApp message duplicate ignored', { wamid: msg.id });
+        continue;
+      }
+
       // Sanitize phone — webhook payload is attacker-controllable. Allow only
       // E.164 chars (+ and digits). Anything else gets stripped before we put
       // it into a Supabase .or() filter, which is string-interpolated and
@@ -275,7 +329,7 @@ router.post('/webhook', async (req, res) => {
 
       const { data: channel } = await supabaseAdmin
         .from('messaging_channels')
-        .select('user_id')
+        .select('user_id, preferences')
         .eq('channel', 'whatsapp')
         .or(`channel_id.eq.${phoneWithPlus},channel_id.eq.${phoneWithout}`)
         .single();
@@ -287,6 +341,13 @@ router.post('/webhook', async (req, res) => {
       }
 
       const userId = channel.user_id;
+      // C7 — user-level opt-out for the purchase bot. Stored in
+      // messaging_channels.preferences.purchase_bot_enabled (default true).
+      // To opt a user out: UPDATE messaging_channels SET preferences =
+      // jsonb_set(coalesce(preferences,'{}'), '{purchase_bot_enabled}', 'false')
+      // WHERE user_id = ... AND channel = 'whatsapp';
+      const userPrefs = channel.preferences || {};
+      const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
       log.info('WhatsApp message received', { userId, textLength: text.length });
 
       // Classify intent: chat or tool action?
@@ -294,11 +355,13 @@ router.post('/webhook', async (req, res) => {
       let response;
 
       if (intent.type === 'purchase') {
-        // Kill switch — flip PURCHASE_BOT_ENABLED in env to disable in prod
-        // without a code change. Defaults OFF so any new deploy without an
-        // explicit opt-in cannot accidentally fire reflections.
+        // C6 — global kill switch (env). C7 — per-user opt-out (preferences).
+        // Both must allow before we fire a reflection.
         if (process.env.PURCHASE_BOT_ENABLED !== 'true') {
-          log.info('Purchase intent detected but bot disabled — falling through to chat', { userId });
+          log.info('Purchase intent detected but bot disabled (env) — falling through to chat', { userId });
+          response = await processTwinMessage(userId, text);
+        } else if (!purchaseBotEnabledForUser) {
+          log.info('Purchase intent detected but user opted out — falling through to chat', { userId });
           response = await processTwinMessage(userId, text);
         } else if (!(await acquirePurchaseRateSlot(userId))) {
           // C5: per-user rate limit. Cap at PURCHASE_RATE_LIMIT_PER_HOUR
@@ -306,17 +369,30 @@ router.post('/webhook', async (req, res) => {
           // message instead of running another LLM round.
           log.warn('Purchase rate limit exceeded', { userId });
           response = "Você tá querendo comprar bastante coisa hoje, hein? Vou te dar um espaço — manda de novo daqui a pouco.";
+          captureTelemetry('purchase_reflection_rate_limited', { userId });
         } else {
           log.info('Purchase intent detected', { userId });
           try {
             const ctx = await buildPurchaseContext(userId);
             const refl = await generatePurchaseReflection(ctx, text);
             response = refl.text;
+            // H4 — telemetry. Only metadata, never user text or reflection.
+            captureTelemetry('purchase_reflection_generated', {
+              userId,
+              lang: refl.lang,
+              hasMusic: !!ctx.music?.available && !ctx.music?.stale,
+              hasCalendar: !!ctx.schedule?.available && (ctx.schedule.events?.length || 0) > 0,
+              moment_band: ctx.moment?.band,
+              elapsed_ms: refl.elapsed_ms,
+              cost: refl.cost,
+              response_length: refl.text?.length || 0,
+            });
           } catch (err) {
-            // C-H9: do NOT escalate to processTwinMessage (Claude Sonnet, ~50x
+            // H9: do NOT escalate to processTwinMessage (Claude Sonnet, ~50x
             // cost). Return a fixed fallback string instead.
             log.error('Purchase reflection failed', { userId, error: err.message });
             response = "Tive um problema agora pra te responder. Tenta de novo daqui a pouco?";
+            captureTelemetry('purchase_reflection_failed', { userId, error: err.message });
           }
         }
       } else if (intent.type === 'tool') {

@@ -146,6 +146,22 @@ async function fetchLatestTwinResponseToUser(userSaid: string) {
 test.describe('WhatsApp pre-purchase reflection bot (live local backend)', () => {
   test.setTimeout(60_000);
 
+  // If a prior run timed out mid-test, the C7 opt-out toggle may not have
+  // restored. Reset preferences before each run so tests 1+2 can't fail
+  // because of leaked state.
+  test.beforeAll(async () => {
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL! || process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    );
+    await supabase
+      .from('messaging_channels')
+      .update({ preferences: {} })
+      .eq('user_id', STEFANO_USER_ID)
+      .eq('channel', 'whatsapp');
+  });
+
   test('PT-BR purchase intent triggers reflection, stores conversation', async () => {
     const nonce = `t${Date.now().toString(36)}`;
     const msg = `vou comprar um iFood de R$85 agora ${nonce}`;
@@ -344,6 +360,110 @@ test.describe('WhatsApp pre-purchase reflection bot (live local backend)', () =>
     expect(res.status).toBe(200); // webhook must not throw on bad input
     // Cannot easily assert "no DB row written" without polling — sufficient
     // to confirm 200 + no crash, sanitization unit is exercised.
+  });
+
+  test('C4 — duplicate wamid is deduped, only one reflection generated', async () => {
+    // Meta retries failed webhooks with the same wamid. Without dedup we'd
+    // run the LLM twice, store two memory rows, and double the cost. Fire
+    // the same exact payload (same wamid) twice, assert only one user row
+    // landed in the recent window.
+    const fixedWamid = `wamid.DEDUP-TEST-${Date.now()}`;
+    const nonce = `t${Date.now().toString(36)}`;
+    const text = `vou comprar duplicado R$77 ${nonce}`;
+
+    const fire = async () => {
+      const payload = makeInboundPayload(text, fixedWamid);
+      const body = JSON.stringify(payload);
+      return fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-hub-signature-256': signPayload(body) },
+        body,
+      });
+    };
+
+    const res1 = await fire();
+    const res2 = await fire();
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+
+    // Allow the async memory writes to land
+    await new Promise(r => setTimeout(r, 4000));
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL! || process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    );
+    const { data: userRows } = await supabase
+      .from('user_memories')
+      .select('id, content, created_at')
+      .eq('user_id', STEFANO_USER_ID)
+      .eq('memory_type', 'conversation')
+      .eq('metadata->>role', 'user')
+      .ilike('content', `%${nonce}%`)
+      .gte('created_at', new Date(Date.now() - 30_000).toISOString())
+      .limit(5);
+
+    console.log(`Dedup probe — user rows for nonce ${nonce}: ${userRows?.length ?? 0}`);
+    expect(userRows || []).toHaveLength(1);
+  });
+
+  test('C7 — per-user opt-out (preferences.purchase_bot_enabled=false) skips reflection', async () => {
+    // Flip the user-level opt-out, send a purchase, assert the response
+    // is NOT a reflection (no explicit purchase question). Then re-enable.
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL! || process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    );
+
+    // Read current preferences first so we can restore exactly
+    const { data: before } = await supabase
+      .from('messaging_channels')
+      .select('preferences')
+      .eq('user_id', STEFANO_USER_ID)
+      .eq('channel', 'whatsapp')
+      .single();
+    const originalPrefs = before?.preferences ?? {};
+
+    try {
+      // Opt out
+      await supabase
+        .from('messaging_channels')
+        .update({ preferences: { ...originalPrefs, purchase_bot_enabled: false } })
+        .eq('user_id', STEFANO_USER_ID)
+        .eq('channel', 'whatsapp');
+
+      const nonce = `t${Date.now().toString(36)}`;
+      const msg = `vou comprar opt-out test R$33 ${nonce}`;
+      await fireWebhook(msg);
+
+      // Find the assistant reply
+      await new Promise(r => setTimeout(r, 5000));
+      const { data: assistantRow } = await supabase
+        .from('user_memories')
+        .select('content, created_at')
+        .eq('user_id', STEFANO_USER_ID)
+        .eq('memory_type', 'conversation')
+        .eq('metadata->>role', 'assistant')
+        .gte('created_at', new Date(Date.now() - 30_000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // When opt-out is active, the bot falls through to processTwinMessage —
+      // a generic Claude chat. The output won't have the purchase-reflection
+      // signature ("o que tá te chamando", "preencher o espaço", etc).
+      console.log('Opt-out response:', (assistantRow?.content || '').slice(0, 200));
+      const looksLikePurchaseReflection = /tá num clima de|esse vazio|preencher o espaço|chamando.*compra/i.test(assistantRow?.content || '');
+      expect(looksLikePurchaseReflection).toBe(false);
+    } finally {
+      // Restore preferences
+      await supabase
+        .from('messaging_channels')
+        .update({ preferences: originalPrefs })
+        .eq('user_id', STEFANO_USER_ID)
+        .eq('channel', 'whatsapp');
+    }
   });
 
   test('H7 — oversize message (>2000 chars) is dropped silently', async () => {

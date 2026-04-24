@@ -8,7 +8,7 @@
  * reflection style was chosen on the Renan call — "WHY you spend, not
  * WHAT you spend."
  */
-import { complete, TIER_ANALYSIS } from './llmGateway.js';
+import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('PurchaseReflection');
@@ -158,14 +158,19 @@ Respond in ${lang === 'pt-BR' ? 'Brazilian Portuguese' : 'English'}. Reflect onl
 
   const t0 = Date.now();
   const result = await complete({
-    tier: TIER_ANALYSIS,
+    // H1 — pass TIER_EXTRACTION (Mistral Small) explicitly. Previous code
+    // passed TIER_ANALYSIS (DeepSeek) + sensitiveContent:true which silently
+    // downgraded — caller had no visibility into the model actually used.
+    // Mistral Small is genuinely good enough for this reflection style at
+    // 2-5x lower cost. If we ever decide quality > cost here, switch to
+    // TIER_ANALYSIS — but make that decision visibly, not via a privacy flag.
+    tier: TIER_EXTRACTION,
     system: systemPrompt(lang),
     messages: [{ role: 'user', content: userPrompt }],
     temperature: 0.7,
     maxTokens: 180,
     userId: ctx.user_id,
     serviceName: 'purchase_reflection',
-    sensitiveContent: true, // financial + behavioral state — route to cheapest tier per NemoClaw privacy pattern
     skipCache: true, // every reflection is hyper-personal to a moment; caching collides across users + times
   });
 
