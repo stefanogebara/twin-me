@@ -1,4 +1,137 @@
-# TwinMe — Cold Start + Interview Backlog (2026-03-16)
+# TwinMe — Active Backlog
+
+## Active Phase: WhatsApp Pre-Purchase Stress-Check Bot (2026-04-24)
+
+First shippable unit of the Financial-Emotional Twin pivot (committed 2026-04-20).
+Plan locked 2026-04-24.
+
+### Why this, why now
+
+Renan's frame: find the "credit card" inside the credit card. Bank integration +
+transaction tagging + nudges + weekly report is a 4-week MVP. Too big for week 1.
+
+The pre-purchase bot is 1/20th the scope: WhatsApp-only, zero banking, reuses
+existing Spotify/Whoop/Calendar integrations. Brazilian-native channel (same
+Natura pattern Renan preached). Gets the mood x money reflection loop into a
+real user's hands in 7 days.
+
+**One-liner**: Before you tap buy, ask your twin.
+**Voice**: "your twin" (named character, not Stefano-the-friend). Creates distance.
+
+### The loop (2 messages)
+
+1. User sends twin: "vou comprar o iFood, R$80" (or "thinking of buying X for $Y")
+2. Twin replies:
+   > Recovery 42% (estresse alto). Ultimas 2h no Spotify: Billie Eilish, baixa valencia. Calendario: 3 reunioes atras, 2 pela frente.
+   >
+   > *O que rolou essa manha que voce ta tentando compensar com esse pedido?*
+
+No advice. No judgment. Mirror + one question. PT-BR default, English if detected.
+
+### Day 0 findings (2026-04-24)
+
+Only one user in the entire TwinMe database has Whoop + Spotify + Calendar all
+connected: you. Antonio Piza linked WhatsApp on Apr 2 but never reconnected
+platforms. Rafael Zema never connected Whoop at all.
+
+| User | Whoop+Spotify+Cal | WA linked | Phone |
+|---|---|---|---|
+| Stefano (167c27b5) | 3/3 | yes | +5511999002121 |
+| Antonio Piza (4ce189bb) | 0/3 disconnected | yes | +5511996112005 |
+| Rafael Zema (9147425e) | 0/3, no Whoop ever | no | — |
+
+Even your data is thin: Whoop last obs 2026-04-12 (12d stale), 0 Spotify plays
+last 24h, 0 calendar events next 3h. Reconnect/re-sync before Day 1 — Whoop
+token may have rotted.
+
+### Revised strategy: dogfood then recruit with proof
+
+#### Days 1-3 — build for Stefano only
+- [ ] 1-1: Reconnect Whoop + confirm Spotify sync is live (probe /api/connectors/status)
+- [ ] 1-2: `buildPurchaseContext(userId)` — parallel fetch Whoop HRV + Spotify 2h valence + Calendar density. Query DB tables directly, don't re-hit Whoop/Spotify APIs each call.
+  - Tables: `user_memories` (whoop platform_data), `spotify_listening_data`, `calendar_events`
+- [ ] 1-3: Curl-test the context builder locally, see real numbers
+- [ ] 2-1: Add `purchase_check` intent to `classifyIntent()` in `api/routes/whatsapp-twinme-webhook.js:47`. Regex: `/vou compra|pensando em|about to buy|R\$\s*\d+/i`
+- [ ] 2-2: `generateReflection(ctx, userMsg)` — DeepSeek call (TIER_ANALYSIS). Prompt: mirror 1 sentence, ask 1 question, PT-BR default. Max 3 sentences total. No advice. No judgment.
+- [ ] 2-3: Handler wiring — intent match → buildPurchaseContext → generateReflection → sendWhatsAppMessage
+- [ ] 3-1: Text the bot 20 times over the day with real pre-purchase moments
+- [ ] 3-2: Binary check — does the reflection feel like a friend, not ChatGPT? Tune prompt until yes.
+
+#### Day 4 — recruit with proof, not promise
+- [ ] 4-1: Screenshot a real reflection from Day 3. The one that felt most true.
+- [ ] 4-2: Text Antonio + Rafael: "built this, needs Whoop+Spotify+Calendar reconnected (3 min). Here's what it looks like: [screenshot]"
+- [ ] 4-3: Do NOT chase if they don't respond within 24h. That's signal.
+
+#### Days 5-7 — widen or kill
+- [ ] 5: If they reconnect, help them send their first message. Log it.
+- [ ] 6: Public post — IG story / tweet / LinkedIn with a real example. Not a product pitch. Just "this happened."
+- [ ] 7: Success check.
+
+### Success metric (binary, no wiggle room)
+
+> Did at least **one non-Stefano user send a pre-purchase message unprompted**
+> in the 7-day window, and did they report the reflection changed their
+> decision even once?
+
+- **Yes** → wedge is real. Commit to bank integration next sprint (Pluggy BR).
+- **No** → kill this path. The pain Renan scored 10/10 isn't actually 10/10
+  for your network. Rethink the credit card.
+
+### What to explicitly SKIP in V1
+
+- Screenshot OCR (v1.1 if V1 works)
+- Proactive push ("stress pattern detected") — needs consent flow, skip
+- Bank integration — month 2, only if Day 7 is green
+- Savings tracker with R$ math — month 2
+- Weekly Financial-Emotional Report — month 2
+- Voice note replies (tempting, Brazilian audio culture — v1.1)
+- Multi-tenant polish, onboarding — you're the only user in week 1
+
+### Files to touch
+
+| File | Change | Lines |
+|---|---|---|
+| `api/services/purchaseContextBuilder.js` (new) | Parallel DB fetch of Whoop+Spotify+Calendar state | ~80 |
+| `api/services/purchaseReflection.js` (new) | DeepSeek prompt + generator | ~60 |
+| `api/routes/whatsapp-twinme-webhook.js` | Add `purchase_check` case in classifyIntent, handler | ~40 |
+| `tasks/purchase-reflections-prompt.md` (new) | Living prompt doc, iterated daily | ~30 |
+
+Total: ~210 lines of real code + ~30 lines of prompt.
+
+### Existing infra to reuse (do not rebuild)
+
+- `api/routes/whatsapp-twinme-webhook.js` — inbound webhook with intent classifier
+- `api/services/whatsappService.js` — `sendWhatsAppMessage(phone, text)`
+- `api/services/observationFetchers/{whoop,spotify,calendar}.js` — fresh API pulls (probably not needed for V1 — DB is fresh enough)
+- `api/services/llmGateway.js` — DeepSeek call via TIER_ANALYSIS
+- `messaging_channels` table — phone-to-user_id mapping (already has Stefano + Antonio)
+
+### Open questions Day 1 must answer
+
+1. Is Whoop token still valid or did it rot? Probe with a test fetch.
+2. Does the whatsapp-twinme-webhook actually receive inbound messages right now? Send yourself a message and check logs.
+3. What's the current WA number the twin replies from? Per memory +1 762-994-3997 but dated 2026-03-29. Verify.
+
+### Anti-goals (do not let yourself drift)
+
+- Do NOT build a UI. Zero pages, zero dashboard changes.
+- Do NOT rebuild platform integrations. Query existing tables.
+- Do NOT add a feature flag. Hardcode your user_id for week 1.
+- Do NOT optimize the prompt pre-emptively. Ship bad, iterate with real messages.
+- Do NOT recruit users without proof. Day 3 or bust.
+
+### Ship criteria for Day 2 (the "it works" moment)
+
+Text the bot `"vou comprar um iFood de R$60"` from your phone and get back
+a reflection that includes at least one real number from your biology/music/
+calendar state. Any reflection. Doesn't have to be perfect. Just real data,
+real LLM, real WhatsApp round-trip.
+
+---
+
+## Previous Phase: Cold Start + Interview Backlog (2026-03-16)
+
+Archived — all items complete.
 
 ## Cold Start Instant Wow — COMPLETE
 - [x] 1. Add `discoveryScan()` to enrichmentService.ts (public, unauthenticated)
