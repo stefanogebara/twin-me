@@ -36,6 +36,36 @@ function captureTelemetry(eventName, properties = {}) {
   }
 }
 
+// H10 — purchase_reflections audit table. Persists outcomes durably so we
+// can answer the Day-7 success question and analyze false-positive rate
+// without grepping log files. Hashed user message (sha256 truncated)
+// allows dedup analysis without storing plaintext.
+function logPurchaseReflection(userId, outcome, userText, props = {}) {
+  try {
+    const text_hash = userText
+      ? crypto.createHash('sha256').update(userText).digest('hex').slice(0, 32)
+      : null;
+    // Fire-and-forget — never block the response path
+    supabaseAdmin.from('purchase_reflections').insert({
+      user_id: userId,
+      outcome,
+      lang: props.lang ?? null,
+      has_music: props.hasMusic ?? null,
+      has_calendar: props.hasCalendar ?? null,
+      moment_band: props.moment_band ?? null,
+      elapsed_ms: props.elapsed_ms ?? null,
+      cost_usd: props.cost ?? null,
+      response_length: props.response_length ?? null,
+      error_message: props.error ?? null,
+      text_hash,
+    }).then(({ error }) => {
+      if (error) log.warn('purchase_reflections write failed', { outcome, error: error.message });
+    });
+  } catch (_e) {
+    // never let audit writes crash the request flow
+  }
+}
+
 // Per-user purchase-intent rate limit. Cap is intentionally low — the bot
 // is a reflective companion, not a search agent. 10 messages/hour gives
 // plenty of room for a real moment of indecision but caps cost runaway and
@@ -360,9 +390,11 @@ router.post('/webhook', async (req, res) => {
         if (process.env.PURCHASE_BOT_ENABLED !== 'true') {
           log.info('Purchase intent detected but bot disabled (env) — falling through to chat', { userId });
           response = await processTwinMessage(userId, text);
+          logPurchaseReflection(userId, 'kill_switch', text);
         } else if (!purchaseBotEnabledForUser) {
           log.info('Purchase intent detected but user opted out — falling through to chat', { userId });
           response = await processTwinMessage(userId, text);
+          logPurchaseReflection(userId, 'opted_out', text);
         } else if (!(await acquirePurchaseRateSlot(userId))) {
           // C5: per-user rate limit. Cap at PURCHASE_RATE_LIMIT_PER_HOUR
           // (default 10) intents per user per rolling hour. Returns a soft
@@ -370,15 +402,14 @@ router.post('/webhook', async (req, res) => {
           log.warn('Purchase rate limit exceeded', { userId });
           response = "Você tá querendo comprar bastante coisa hoje, hein? Vou te dar um espaço — manda de novo daqui a pouco.";
           captureTelemetry('purchase_reflection_rate_limited', { userId });
+          logPurchaseReflection(userId, 'rate_limited', text);
         } else {
           log.info('Purchase intent detected', { userId });
           try {
             const ctx = await buildPurchaseContext(userId);
             const refl = await generatePurchaseReflection(ctx, text);
             response = refl.text;
-            // H4 — telemetry. Only metadata, never user text or reflection.
-            captureTelemetry('purchase_reflection_generated', {
-              userId,
+            const auditProps = {
               lang: refl.lang,
               hasMusic: !!ctx.music?.available && !ctx.music?.stale,
               hasCalendar: !!ctx.schedule?.available && (ctx.schedule.events?.length || 0) > 0,
@@ -386,13 +417,17 @@ router.post('/webhook', async (req, res) => {
               elapsed_ms: refl.elapsed_ms,
               cost: refl.cost,
               response_length: refl.text?.length || 0,
-            });
+            };
+            // H4 — telemetry log line. H10 — durable audit row.
+            captureTelemetry('purchase_reflection_generated', { userId, ...auditProps });
+            logPurchaseReflection(userId, 'generated', text, auditProps);
           } catch (err) {
             // H9: do NOT escalate to processTwinMessage (Claude Sonnet, ~50x
             // cost). Return a fixed fallback string instead.
             log.error('Purchase reflection failed', { userId, error: err.message });
             response = "Tive um problema agora pra te responder. Tenta de novo daqui a pouco?";
             captureTelemetry('purchase_reflection_failed', { userId, error: err.message });
+            logPurchaseReflection(userId, 'failed', text, { error: err.message });
           }
         }
       } else if (intent.type === 'tool') {
@@ -409,7 +444,8 @@ router.post('/webhook', async (req, res) => {
       }
 
       // Store conversation (fire and forget)
-      addConversationMemory(userId, text, response, { source: 'whatsapp' }).catch(() => {});
+      addConversationMemory(userId, text, response, { source: 'whatsapp' })
+        .catch(err => log.warn('addConversationMemory failed (turn lost)', { userId, error: err?.message }));
 
       // Send response
       await sendWhatsAppMessage(phoneWithout, response.length <= 4096 ? response : response.slice(0, 4096));

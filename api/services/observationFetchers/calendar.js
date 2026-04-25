@@ -100,17 +100,22 @@ async function fetchCalendarObservations(userId) {
 
     // Persist raw forward-window events to user_platform_data so downstream
     // readers (purchaseContextBuilder, goalTrackingService) have fresh data.
-    // One row per day, upserted on (user_id, platform, data_type, source_url).
+    // Source-url is keyed by ISO HOUR (not day) so intraday rescheduling
+    // doesn't overwrite the previous snapshot — purchaseContextBuilder reads
+    // the latest 30 rows and dedupes events by id, so a fresh hour-keyed row
+    // adds new state without losing the prior. UNIQUE constraint on
+    // (user_id, platform, data_type, source_url) means within the same hour
+    // we still upsert (latest wins for the hour bucket).
     if (forwardEvents.length > 0) {
       try {
         const supabase = await getSupabase();
         if (supabase) {
-          const today = new Date().toISOString().slice(0, 10);
+          const hourKey = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
           await supabase.from('user_platform_data').upsert({
             user_id: userId,
             platform: 'google_calendar',
             data_type: 'events',
-            source_url: `calendar:events:${today}`,
+            source_url: `calendar:events:${hourKey}`,
             raw_data: {
               items: forwardEvents,
               window: { from: now.toISOString(), to: forwardEnd.toISOString() },
@@ -254,8 +259,11 @@ async function fetchCalendarObservations(userId) {
   }
 
   // ── Focus Time + OOO blocks — deep work and boundary signals ──────────────
+  // Reuse the token fetched at function entry (line 20). Three separate
+  // getValidAccessToken calls used to triple cold-start latency on token
+  // refresh, with no benefit — token is valid for the full request lifetime.
   try {
-    const tokenResult2 = await getValidAccessToken(userId, 'google_calendar');
+    const tokenResult2 = tokenResult;
     if (tokenResult2.success && tokenResult2.accessToken) {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -366,8 +374,9 @@ async function fetchCalendarObservations(userId) {
   }
 
   // ── CalendarList — organizational complexity signal ────────────────────────
+  // Reuse the token fetched at function entry. See note above.
   try {
-    const tokenResult3 = await getValidAccessToken(userId, 'google_calendar');
+    const tokenResult3 = tokenResult;
     if (tokenResult3.success && tokenResult3.accessToken) {
       const calListRes = await axios.get(
         'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=20',
