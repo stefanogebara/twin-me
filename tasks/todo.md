@@ -192,33 +192,25 @@ returns 403. One-line fix.
 - [x] **H5 — `addConversationMemory` swallows errors silently** SHIPPED 81f211d3 — `.catch(err => log.warn(...))`.
 - [x] **H6 — Calendar `source_url` overwrites intraday changes.** SHIPPED 81f211d3 — key now hour-bucketed (`calendar:events:YYYY-MM-DDTHH`).
 - [x] **H7 — No `userMessage` length cap.** SHIPPED 046a2227 — drops messages >2000 chars at the webhook + `purchaseReflection` clamps to 1000.
-- [ ] **H8 — Zero unit tests for 4 modified extractors.** spotifyExtraction,
-  discordExtraction, githubExtraction, observationFetchers/calendar — all
-  touched in 6aad5fb1 with no tests. Silent regression risk.
+- [x] **H8 — Zero unit tests for 4 modified extractors.** SHIPPED e6f4fa01 — `tests/unit/extractor-upsert-regression.test.js` (12 cases, source-text assertions).
 - [x] **H9 — Silent failure escalates to Claude Sonnet (~50x cost).** SHIPPED 046a2227 — fallback is now a fixed string, not a Sonnet escalation.
 - [x] **H10 — No `purchase_reflections` audit table.** SHIPPED 81f211d3 — table created, 5 outcome paths logged. Verified populated post-test.
 
 ### MEDIUM — next sprint
 
-- [ ] **M1 — `PURCHASE_INTENT_PATTERNS[4]` (`/\bR\$\s*\d/`) too broad.**
-  False positives: "meu aluguel é R$ 2000", "comprei R$50 ontem", "salário
-  R$5000". Add LLM gate or require present/future verb.
-- [ ] **M2 — Real PII committed in test file.** `STEFANO_USER_ID` +
-  `STEFANO_PHONE` should come from env. (`tests/purchase-bot-e2e.spec.ts:33-35`)
-- [ ] **M3 — `insertError` named for upsert calls** (Discord:97, GitHub:125).
-- [ ] **M4 — `local_iso` always UTC despite the name.** (`purchaseContextBuilder.js:56`)
-- [ ] **M5 — Dead `biology_fresh` log field** post-pivot. (`purchaseReflection.js:160`)
-- [ ] **M6 — `case 'calendar':` dead alias** — codebase uses `'google_calendar'`.
-  (`extractionOrchestrator.js:167`)
-- [ ] **M7 — Default timezone hardcoded `'America/Sao_Paulo'`.** Silently wrong
-  for non-BR users. Log warning on fallback. (`purchaseContextBuilder.js:217`)
-- [ ] **M8 — `markMessageAsRead` ignores Kapso entirely.** (`whatsappService.js:151-165`)
+- [x] **M1 — Purchase intent regex too broad.** SHIPPED e6f4fa01 — added negative list (past-tense, bills, income), required verb proximity to amount.
+- [x] **M2 — Real PII in test file.** SHIPPED e6f4fa01 — sourced from `E2E_TEST_USER_ID`/`E2E_TEST_PHONE` env.
+- [x] **M3 — `insertError` named for upsert calls.** SHIPPED e6f4fa01.
+- [x] **M4 — `local_iso` misleading.** SHIPPED e6f4fa01 — renamed to `utc_iso`.
+- [x] **M5 — Dead `biology_fresh` log field.** SHIPPED e6f4fa01.
+- [x] **M6 — `case 'calendar':` dead alias.** SHIPPED e6f4fa01.
+- [x] **M7 — Timezone fallback silent.** SHIPPED e6f4fa01 — logs warn when falling back.
+- [x] **M8 — `markMessageAsRead` ignores Kapso.** SHIPPED e6f4fa01 — Kapso path added + `TWINME_DISABLE_OUTBOUND_SEND` honored.
 
 ### LOW
 
-- [ ] **L1 — 4 `console.log` calls in committed test file.**
-- [ ] **L2 — `githubExtraction.js` API calls have no timeout** — slow GitHub
-  hangs entire extraction. (`githubExtraction.js:56-68`)
+- [x] **L1 — `console.log` in tests** — INTENTIONAL, kept for LLM-output debug visibility. The probes are the only window into reflection text on failure.
+- [x] **L2 — `githubExtraction.js` API calls have no timeout.** SHIPPED e6f4fa01 — every axios.get has `timeout: 10000`.
 
 ### Test coverage gaps (P0/P1)
 
