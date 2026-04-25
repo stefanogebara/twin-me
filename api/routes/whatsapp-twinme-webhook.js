@@ -334,6 +334,22 @@ router.post('/webhook', async (req, res) => {
   try {
     const entry = req.body?.entry?.[0];
     const changes = entry?.changes?.[0];
+
+    // Defense-in-depth: even with a valid signature, the payload's
+    // phone_number_id must match OUR provisioned WA number. If
+    // TWINME_WHATSAPP_WEBHOOK_SECRET ever leaks, this catches an attacker
+    // forging messages to land them in our user's twin context. We do NOT
+    // gate on this in dev to keep the test-secret workflow simple — only
+    // enforce when an expected ID is configured.
+    const expectedPhoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+    const incomingPhoneNumberId = changes?.value?.metadata?.phone_number_id;
+    if (expectedPhoneNumberId && incomingPhoneNumberId && incomingPhoneNumberId !== expectedPhoneNumberId) {
+      log.warn('Webhook payload phone_number_id mismatch — dropping', {
+        expected: expectedPhoneNumberId.slice(-6),
+        got: String(incomingPhoneNumberId).slice(-6),
+      });
+      return res.sendStatus(200); // ack so Meta doesn't retry the bad payload
+    }
     const messages = changes?.value?.messages;
 
     if (!messages?.length) return res.sendStatus(200);

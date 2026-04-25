@@ -48,7 +48,9 @@ function makePayload(text: string, fromWaId: string, messageId?: string) {
       changes: [{
         value: {
           messaging_product: 'whatsapp',
-          metadata: { display_phone_number: '17629943997', phone_number_id: 'prod-test' },
+          // Must match TWINME_WHATSAPP_PHONE_NUMBER_ID on the prod server.
+          // Loaded into .env.prod.c8 via `vercel env pull`.
+          metadata: { display_phone_number: '17629943997', phone_number_id: process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID || '882860144919419' },
           contacts: [{ profile: { name: 'C8 Smoke Test' }, wa_id: fromWaId }],
           messages: [{
             from: fromWaId,

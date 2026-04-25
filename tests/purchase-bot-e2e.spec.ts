@@ -41,6 +41,10 @@ function signPayload(body: string): string {
 }
 
 function makeInboundPayload(text: string, messageId?: string) {
+  // phone_number_id must match TWINME_WHATSAPP_PHONE_NUMBER_ID on the
+  // server (defense-in-depth gate added in the audit "things missing"
+  // round). Falls back to the dev value if .env didn't load it.
+  const phoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID || '882860144919419';
   return {
     object: 'whatsapp_business_account',
     entry: [{
@@ -48,7 +52,7 @@ function makeInboundPayload(text: string, messageId?: string) {
       changes: [{
         value: {
           messaging_product: 'whatsapp',
-          metadata: { display_phone_number: '17629943997', phone_number_id: 'test-phone-id' },
+          metadata: { display_phone_number: '17629943997', phone_number_id: phoneNumberId },
           contacts: [{ profile: { name: 'Stefano' }, wa_id: STEFANO_WA_ID }],
           messages: [{
             from: STEFANO_WA_ID,
