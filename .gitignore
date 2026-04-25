@@ -189,3 +189,5 @@ test-data/
 .env.vercel-*
 production
 .playwright-mcp/
+.gstack/
+.env.prod.c8
