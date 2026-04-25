@@ -76,7 +76,7 @@ export async function extractDiscordData(userId) {
     // Save extracted data to soul_data. Upsert on the actual unique
     // constraint — .insert() silently killed every re-extraction after the
     // first. Same bug pattern as spotifyExtraction.js.
-    const { error: insertError } = await supabaseAdmin
+    const { error: upsertError } = await supabaseAdmin
       .from('soul_data')
       .upsert({
         user_id: userId,
@@ -94,8 +94,8 @@ export async function extractDiscordData(userId) {
         ignoreDuplicates: false,
       });
 
-    if (insertError) {
-      log.error('Error saving Discord data:', insertError);
+    if (upsertError) {
+      log.error('Error saving Discord data:', upsertError);
     }
 
     // Update connection status

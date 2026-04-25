@@ -183,7 +183,6 @@ Respond in ${lang === 'pt-BR' ? 'Brazilian Portuguese' : 'English'}. Reflect onl
     model: result.model,
     tokens: result.usage?.total_tokens,
     cost: result.cost,
-    biology_fresh: ctx.biology?.available && !ctx.biology.stale,
     music_fresh: ctx.music?.available && !ctx.music.stale,
     calendar_count: ctx.schedule?.events?.length || 0,
   });

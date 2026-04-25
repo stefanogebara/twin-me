@@ -164,7 +164,6 @@ class ExtractionOrchestrator {
           // Feature extraction removed (OCEAN pipeline removed)
           break;
 
-        case 'calendar':
         case 'google_calendar':
           try {
             const { fetchCalendarObservations } = await import('./observationFetchers/calendar.js');

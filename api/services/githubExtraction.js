@@ -52,28 +52,21 @@ export async function extractGitHubData(userId) {
       followingResponse,
       followersResponse
     ] = await Promise.all([
-      // Get user profile
-      axios.get('https://api.github.com/user', { headers }),
-
-      // Get user's repositories
-      axios.get('https://api.github.com/user/repos?per_page=100&sort=updated', { headers }),
-
-      // Get starred repositories
-      axios.get('https://api.github.com/user/starred?per_page=100', { headers }),
-
-      // Get following
-      axios.get('https://api.github.com/user/following?per_page=100', { headers }),
-
-      // Get followers
-      axios.get('https://api.github.com/user/followers?per_page=100', { headers })
+      // L2: 10s timeout on every GitHub call — without it, a slow API hangs
+      // the whole extraction pipeline indefinitely.
+      axios.get('https://api.github.com/user', { headers, timeout: 10000 }),
+      axios.get('https://api.github.com/user/repos?per_page=100&sort=updated', { headers, timeout: 10000 }),
+      axios.get('https://api.github.com/user/starred?per_page=100', { headers, timeout: 10000 }),
+      axios.get('https://api.github.com/user/following?per_page=100', { headers, timeout: 10000 }),
+      axios.get('https://api.github.com/user/followers?per_page=100', { headers, timeout: 10000 }),
     ]);
 
     // Fix events URL with actual username
     const username = userResponse.data.login;
     const actualEventsResponse = await axios.get(
       `https://api.github.com/users/${username}/events?per_page=100`,
-      { headers }
-    ).catch(() => ({ data: [] }));
+      { headers, timeout: 10000 }
+    );
 
     // Get languages from repositories
     const languageStats = await extractLanguageStats(reposResponse.data, headers);
@@ -100,7 +93,7 @@ export async function extractGitHubData(userId) {
     // Save extracted data to soul_data. Upsert on the actual unique
     // constraint — .insert() silently killed every re-extraction after the
     // first. Same bug pattern as spotifyExtraction.js + discordExtraction.js.
-    const { error: insertError } = await supabaseAdmin
+    const { error: upsertError } = await supabaseAdmin
       .from('soul_data')
       .upsert({
         user_id: userId,
@@ -122,8 +115,8 @@ export async function extractGitHubData(userId) {
         ignoreDuplicates: false,
       });
 
-    if (insertError) {
-      log.error('Error saving GitHub data:', insertError);
+    if (upsertError) {
+      log.error('Error saving GitHub data:', upsertError);
     }
 
     // Update connection status
@@ -205,7 +198,7 @@ async function extractLanguageStats(repos, headers) {
     if (repo.fork) continue; // Skip forked repos
 
     try {
-      const { data: languages } = await axios.get(repo.languages_url, { headers });
+      const { data: languages } = await axios.get(repo.languages_url, { headers, timeout: 10000 });
 
       Object.entries(languages).forEach(([lang, bytes]) => {
         languageTotals[lang] = (languageTotals[lang] || 0) + bytes;

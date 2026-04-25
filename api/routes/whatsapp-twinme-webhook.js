@@ -143,14 +143,34 @@ const router = express.Router();
 // Pre-purchase intent: user says they're thinking about buying something.
 // Fires BEFORE the tool intents so a message like "vou comprar..." routes to
 // reflection, not to a Gmail/Calendar tool. Phase: Financial-Emotional Twin.
+//
+// M1: Tightened to drop false positives. Past-tense, recurring bills, and
+// salary mentions used to trip the bare R$\d catch-all. Now we require
+// either explicit purchase verbs (vou comprar / thinking about buying) OR
+// an amount paired with a near-future indicator (agora, hoje, comprar).
 const PURCHASE_INTENT_PATTERNS = [
-  /\bvou\s+compra/i,
-  /\bpensando\s+em\s+compra/i,
-  /\best(ou|á)\s+a?\s*fim\s+de\s+compra/i,
-  /\b(about\s+to|thinking\s+(?:of|about))\s+buy(?:ing)?/i,
-  /\bR\$\s*\d/,
-  /\$\s*\d+.*(?:buy|purchase|cart|checkout)/i,
+  /\bvou\s+compra/i,                                       // "vou comprar"
+  /\bpensando\s+em\s+compra/i,                             // "pensando em comprar"
+  /\best(ou|á)\s+a?\s*fim\s+de\s+compra/i,                 // "tô a fim de comprar"
+  /\b(about\s+to|thinking\s+(?:of|about))\s+buy(?:ing)?/i, // EN intent
+  /\bR\$\s*\d.*\b(comprar|comprando|gastar|pedir|levar)\b/i, // R$ amount + future verb
+  /\b(comprar|comprando|gastar|pedir|levar)\b.*R\$\s*\d/i,   // future verb + R$ amount
+  /\$\s*\d+.*(?:buy|purchase|cart|checkout)/i,             // EN $ + checkout signal
 ];
+
+// Negative-match guards: even if a positive pattern fires, treat these as
+// non-purchase context (past-tense, recurring expenses, income).
+const PURCHASE_INTENT_NEGATIVE = [
+  /\b(comprei|gastei|paguei|levei|peguei)\b/i,             // already done
+  /\b(j[áa])\s+comprei/i,
+  /\b(ontem|outro\s+dia|sexta\s+passada|m[êe]s\s+passado)\b/i, // past-time markers
+  /\b(sal[áa]rio|aluguel|conta\s+de\s+luz|fatura|boleto|sal[aá]rio|recebi)\b/i, // bills/income
+];
+
+function matchesPurchaseIntent(text) {
+  if (PURCHASE_INTENT_NEGATIVE.some(re => re.test(text))) return false;
+  return PURCHASE_INTENT_PATTERNS.some(re => re.test(text));
+}
 
 const TOOL_INTENTS = [
   { pattern: /check\s*(my\s*)?(emails?|inbox|mail)/i, tool: 'gmail_search', params: { query: 'is:unread newer_than:1d', maxResults: 5 } },
@@ -173,11 +193,10 @@ function classifyIntent(message) {
   const text = message.trim();
 
   // Purchase-check fires first — user mentioning an amount or intent to buy
-  // should never be interpreted as a calendar/gmail tool call.
-  for (const pattern of PURCHASE_INTENT_PATTERNS) {
-    if (pattern.test(text)) {
-      return { type: 'purchase', toolName: null, toolParams: null };
-    }
+  // should never be interpreted as a calendar/gmail tool call. matchesPurchaseIntent
+  // also rejects past-tense / recurring-bill / income mentions.
+  if (matchesPurchaseIntent(text)) {
+    return { type: 'purchase', toolName: null, toolParams: null };
   }
 
   for (const { pattern, tool, params } of TOOL_INTENTS) {

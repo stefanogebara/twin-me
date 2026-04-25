@@ -159,8 +159,28 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
 
 /**
  * Mark a message as read (shows blue checkmarks to the sender).
+ *
+ * M8: Routes through Kapso when configured. Previous version always hit
+ * Meta directly which made send/read inconsistent under Kapso setups.
+ * Test-mode short-circuit so suite doesn't hit live APIs.
  */
 export async function markMessageAsRead(messageId) {
+  if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') return;
+  if (!messageId) return;
+
+  if (USE_KAPSO) {
+    try {
+      const client = await getKapsoClient();
+      const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+      if (client?.messages?.markRead && phoneNumberId) {
+        await client.messages.markRead({ phoneNumberId, messageId });
+        return;
+      }
+    } catch {
+      // fall through to Meta direct
+    }
+  }
+
   const phoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.TWINME_WHATSAPP_ACCESS_TOKEN;
   if (!phoneNumberId || !accessToken) return;

@@ -43,7 +43,7 @@ function ageHours(ts) {
  */
 function computeMoment(timezone = 'UTC') {
   const now = new Date();
-  let hour, dayOfWeek, localIso;
+  let hour, dayOfWeek;
   try {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: timezone,
@@ -53,12 +53,11 @@ function computeMoment(timezone = 'UTC') {
     }).formatToParts(now);
     hour = Number(parts.find(p => p.type === 'hour')?.value ?? now.getUTCHours());
     dayOfWeek = parts.find(p => p.type === 'weekday')?.value?.toLowerCase() ?? '';
-    localIso = now.toISOString();
   } catch {
     hour = now.getUTCHours();
     dayOfWeek = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][now.getUTCDay()];
-    localIso = now.toISOString();
   }
+  // M4: ISO is always UTC. Don't expose `local_iso` — that's misleading.
 
   const band =
     hour < 5 ? 'late_night' :
@@ -71,7 +70,7 @@ function computeMoment(timezone = 'UTC') {
 
   const is_weekend = dayOfWeek === 'saturday' || dayOfWeek === 'sunday';
 
-  return { hour, band, day_of_week: dayOfWeek, is_weekend, timezone, local_iso: localIso };
+  return { hour, band, day_of_week: dayOfWeek, is_weekend, timezone, utc_iso: now.toISOString() };
 }
 
 async function fetchRecentTracks(userId, lookbackHours = 6) {
@@ -214,6 +213,10 @@ export async function buildPurchaseContext(userId, opts = {}) {
       .select('timezone')
       .eq('id', userId)
       .maybeSingle();
+    if (!data?.timezone) {
+      // M7: log when we fall back so non-BR users surface in logs.
+      log.warn('Timezone fallback to America/Sao_Paulo (user has no timezone set)', { userId });
+    }
     tz = data?.timezone || 'America/Sao_Paulo';
   }
 
