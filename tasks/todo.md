@@ -187,23 +187,16 @@ returns 403. One-line fix.
 - [x] **H1 — `sensitiveContent: true` silently downgrades to Mistral Small.** SHIPPED ff4a163d — pass `TIER_EXTRACTION` explicitly, removed `sensitiveContent` flag.
 - [ ] **H2 — No cross-user leak regression test.** The `skipCache: true` fix
   has no test. A future "let's cut costs" PR removes it and the bug returns.
-- [ ] **H3 — `getValidAccessToken` called 3x sequentially in calendar fetcher.**
-  Triples cold-start latency. Hoist to top + pass down.
-  (`observationFetchers/calendar.js:20,258,370`)
+- [x] **H3 — `getValidAccessToken` called 3x sequentially in calendar fetcher.** SHIPPED 81f211d3 — token hoisted to function entry, lines 258+370 reuse it.
 - [x] **H4 — Zero PostHog telemetry on purchase reflections.** SHIPPED ff4a163d — `captureTelemetry` emits structured log envelopes. Three events: generated/rate_limited/failed. Never includes user text. PostHog wiring is one swap-out away.
-- [ ] **H5 — `addConversationMemory` swallows errors silently** —
-  `.catch(() => {})` loses entire conversation turn. Log to warn at minimum.
-  (`whatsapp-twinme-webhook.js:259`)
-- [ ] **H6 — Calendar `source_url: calendar:events:${today}` overwrites
-  intraday changes.** Cancellations vanish. Document or include hour in key.
-  (`observationFetchers/calendar.js:108-121`)
+- [x] **H5 — `addConversationMemory` swallows errors silently** SHIPPED 81f211d3 — `.catch(err => log.warn(...))`.
+- [x] **H6 — Calendar `source_url` overwrites intraday changes.** SHIPPED 81f211d3 — key now hour-bucketed (`calendar:events:YYYY-MM-DDTHH`).
 - [x] **H7 — No `userMessage` length cap.** SHIPPED 046a2227 — drops messages >2000 chars at the webhook + `purchaseReflection` clamps to 1000.
 - [ ] **H8 — Zero unit tests for 4 modified extractors.** spotifyExtraction,
   discordExtraction, githubExtraction, observationFetchers/calendar — all
   touched in 6aad5fb1 with no tests. Silent regression risk.
 - [x] **H9 — Silent failure escalates to Claude Sonnet (~50x cost).** SHIPPED 046a2227 — fallback is now a fixed string, not a Sonnet escalation.
-- [ ] **H10 — No `purchase_reflections` audit table.** Can't see lang
-  breakdown, false-positive rate, delivery success.
+- [x] **H10 — No `purchase_reflections` audit table.** SHIPPED 81f211d3 — table created, 5 outcome paths logged. Verified populated post-test.
 
 ### MEDIUM — next sprint
 
