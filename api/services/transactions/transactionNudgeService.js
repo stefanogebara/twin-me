@@ -21,6 +21,9 @@
 
 import { supabaseAdmin } from '../database.js';
 import { sendPushToUser } from '../pushNotificationService.js';
+import { buildPurchaseContext } from '../purchaseContextBuilder.js';
+import { generatePurchaseReflection } from '../purchaseReflection.js';
+import { sendWhatsAppMessage } from '../whatsappService.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('tx-nudge');
@@ -127,8 +130,6 @@ export async function maybeNudgeForTransactions(userId, transactionIds) {
     const body = `Você está em stress ${stressPct}% agora e acabou de gastar ${amount} em ${merchant}. Quer conversar antes da próxima?`;
 
     // Record BEFORE sending — prevents duplicate nudges on webhook retry.
-    // proactive_insights uses a single 'insight' text column; title + body + tx
-    // metadata go into the JSONB metadata column.
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('proactive_insights')
       .insert({
@@ -151,19 +152,46 @@ export async function maybeNudgeForTransactions(userId, transactionIds) {
 
     if (insErr) {
       log.warn(`persist nudge insight failed: ${insErr.message}`);
-      // Still try to push — losing the dedup record is less bad than losing the nudge
     }
 
-    try {
-      await sendPushToUser(userId, {
-        title,
-        body,
-        notificationType: 'stress_nudge',
-        data: { insightId: inserted?.id, txId: winner.row.id, category: winner.row.category },
-      });
-      log.info(`nudge sent user=${userId} stress=${stressPct}% amount=${amount} merchant=${merchant}`);
-    } catch (err) {
-      log.warn(`push send failed for user ${userId}: ${err.message}`);
+    // Primary path: WhatsApp + LLM reflection
+    // Fallback: push notification (when no WhatsApp channel, or if send fails)
+    const [{ data: userRow }, { data: channel }] = await Promise.all([
+      supabaseAdmin.from('users').select('timezone').eq('id', userId).maybeSingle(),
+      supabaseAdmin.from('messaging_channels').select('channel_id')
+        .eq('user_id', userId).eq('channel', 'whatsapp').maybeSingle(),
+    ]);
+
+    let whatsappSent = false;
+    if (channel?.channel_id) {
+      try {
+        const timezone = userRow?.timezone || 'America/Sao_Paulo';
+        const purchaseMsg = `${merchant} (${amount})`;
+        const ctx = await buildPurchaseContext(userId, { timezone });
+        const refl = await generatePurchaseReflection(ctx, purchaseMsg);
+        const phone = channel.channel_id.startsWith('+')
+          ? channel.channel_id.slice(1)
+          : channel.channel_id;
+        await sendWhatsAppMessage(phone, refl.text);
+        whatsappSent = true;
+        log.info(`whatsapp nudge sent user=${userId} stress=${stressPct}% amount=${amount} merchant=${merchant} lang=${refl.lang}`);
+      } catch (err) {
+        log.warn(`whatsapp nudge failed for ${userId}: ${err.message} — falling back to push`);
+      }
+    }
+
+    if (!whatsappSent) {
+      try {
+        await sendPushToUser(userId, {
+          title,
+          body,
+          notificationType: 'stress_nudge',
+          data: { insightId: inserted?.id, txId: winner.row.id, category: winner.row.category },
+        });
+        log.info(`push nudge sent user=${userId} stress=${stressPct}% amount=${amount} merchant=${merchant}`);
+      } catch (err) {
+        log.warn(`push send also failed for user ${userId}: ${err.message}`);
+      }
     }
   } catch (err) {
     log.error(`maybeNudgeForTransactions crashed: ${err.message}`);

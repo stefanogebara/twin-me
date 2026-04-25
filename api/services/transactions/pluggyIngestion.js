@@ -19,8 +19,11 @@ import { normalizeMerchant } from './merchantNormalizer.js';
 import { detectAndMarkRecurring } from './recurrenceDetector.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
 import { maybeNudgeForTransactions } from './transactionNudgeService.js';
+import { addPlatformObservation } from '../memoryStreamService.js';
 import * as pluggy from './pluggyClient.js';
 import { DEFAULT_CURRENCY } from '../../config/financialThresholds.js';
+
+const MEMORY_MIN_AMOUNT = 50; // BRL — only material tx enter the memory stream
 
 const log = createLogger('pluggy-ingestion');
 
@@ -161,6 +164,52 @@ async function runDownstreamPipeline(userId, insertedIds, { allowNudge = false }
       await tagTransactionsBatch(userId, insertedIds);
     } catch (err) {
       log.warn(`emotion tagger failed for user ${userId}: ${err.message}`);
+    }
+    // Dual-write material transactions to user_memories so the twin can
+    // reflect on spending patterns in chat and in the reflection engine.
+    // Filtered to abs(amount) >= MEMORY_MIN_AMOUNT to avoid stream pollution.
+    try {
+      const { data: txRows } = await supabaseAdmin
+        .from('user_transactions')
+        .select(`
+          id, amount, merchant_normalized, merchant_raw, category,
+          transaction_date,
+          emotional_context:transaction_emotional_context (
+            computed_stress_score, emotion_label
+          )
+        `)
+        .in('id', insertedIds)
+        .eq('user_id', userId)
+        .lt('amount', 0);
+
+      const material = (txRows || []).filter(
+        (r) => Math.abs(Number(r.amount) || 0) >= MEMORY_MIN_AMOUNT
+      );
+
+      await Promise.all(
+        material.map((r) => {
+          const merchant = r.merchant_normalized || r.merchant_raw || 'unknown';
+          const amountStr = new Intl.NumberFormat('pt-BR', {
+            style: 'currency', currency: 'BRL',
+          }).format(Math.abs(r.amount));
+          const date = r.transaction_date?.slice(0, 10) || 'unknown date';
+          const ec = r.emotional_context;
+          const emotionNote = ec?.emotion_label
+            ? `; emotional context: ${ec.emotion_label}${ec.computed_stress_score != null ? `, stress=${Math.round(ec.computed_stress_score * 100)}%` : ''}`
+            : '';
+          const content = `Spent ${amountStr} at ${merchant} on ${date}${emotionNote}.`;
+          return addPlatformObservation(userId, content, 'pluggy', {
+            category: r.category,
+            source_tx_id: r.id,
+          }).catch((err) => log.warn(`memory write failed for tx ${r.id}: ${err.message}`));
+        })
+      );
+
+      if (material.length) {
+        log.info(`wrote ${material.length} tx observations to memory stream for user ${userId}`);
+      }
+    } catch (err) {
+      log.warn(`memory stream dual-write failed for user ${userId}: ${err.message}`);
     }
     // Phase 3.4: pre-transaction nudges. Only on webhook-sourced ingests
     // (live tx), not the 90d seed backfill — historical tx are never "fresh

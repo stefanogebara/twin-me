@@ -151,7 +151,7 @@ export async function deliverInsight(userId, insight) {
  * Global cap of 50 deliveries per run to avoid Vercel 120s timeout.
  */
 const MAX_DELIVERIES_PER_RUN = 50;
-const EMAIL_COOLDOWN_HOURS = 4;
+const EMAIL_COOLDOWN_HOURS = 24;
 
 /**
  * Attempt email delivery of batched insights for a single user.

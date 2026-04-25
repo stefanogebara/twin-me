@@ -21,7 +21,6 @@ class TwinNotificationListenerService : NotificationListenerService() {
     // Delivery/commerce apps whose notification text we read for purchase detection.
     // All other apps: only metadata (package + hour) is collected, content never read.
     private val PURCHASE_APPS = setOf(
-      "com.android.shell",       // ADB test only — remove before ship
       "br.com.brainweb.ifood",   // iFood BR (actual package)
       "com.ifood.customer",      // iFood legacy
       "com.grability.rappi",     // Rappi BR (actual package)

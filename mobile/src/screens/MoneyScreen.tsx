@@ -6,16 +6,15 @@
  *   - Risk forecast card (Renan's "before it happens")
  *   - Recent stress nudges feed
  *   - Bank connections list
- *   - Connect Banco BR / EU deep-links to web (Pluggy widget + TL OAuth
- *     are web-based; opening in-app browser is the simplest path — users
- *     return to the app via deep-link after connecting)
+ *   - In-app Pluggy Connect widget (WebView modal — no browser jump needed)
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl, ActivityIndicator,
-  TouchableOpacity, Linking, Alert,
+  TouchableOpacity, Modal, Alert,
 } from 'react-native';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../constants';
 import { authFetch } from '../services/api';
@@ -101,6 +100,9 @@ export function MoneyScreen({ user: _user }: { user: User }) {
   const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [widgetVisible, setWidgetVisible] = useState(false);
+  const [widgetUrl, setWidgetUrl] = useState<string | null>(null);
+  const webViewRef = useRef<WebView>(null);
 
   const loadAll = useCallback(async () => {
     try {
@@ -138,15 +140,41 @@ export function MoneyScreen({ user: _user }: { user: User }) {
   }, [loadAll]);
 
   const onConnect = async (provider: 'br' | 'eu') => {
-    // Pluggy widget + TL OAuth are web-based. Deep-link to web /money where
-    // the connect buttons live; user returns via universal link after consent.
-    const url = provider === 'br'
-      ? 'https://twinme.me/money?autoconnect=pluggy'
-      : 'https://twinme.me/money?autoconnect=truelayer';
+    if (provider === 'eu') {
+      // TrueLayer uses a standard OAuth redirect — keep the external browser path
+      try {
+        const { Linking } = await import('react-native');
+        await Linking.openURL('https://twinme.me/money?autoconnect=truelayer');
+      } catch {
+        Alert.alert('Erro', 'Não foi possível abrir o navegador');
+      }
+      return;
+    }
+
+    // Pluggy: fetch a short-lived connect token and open the hosted widget in-app
     try {
-      await Linking.openURL(url);
+      const res = await authFetch('/transactions/pluggy/connect-token', { method: 'POST' });
+      if (!res.ok) throw new Error('connect-token request failed');
+      const { connectToken, environment } = await res.json() as { connectToken: string; environment: string };
+      const includeSandbox = environment === 'sandbox' ? '&includeSandbox=true' : '';
+      setWidgetUrl(`https://connect.pluggy.ai/?connect_token=${connectToken}${includeSandbox}`);
+      setWidgetVisible(true);
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível iniciar a conexão bancária');
+    }
+  };
+
+  const onWidgetMessage = (e: WebViewMessageEvent) => {
+    try {
+      const msg = JSON.parse(e.nativeEvent.data) as { event?: string; payload?: { itemId?: string } };
+      if (msg.event === 'pluggyConnect/success' || msg.event === 'pluggyConnect/updateSuccess') {
+        setWidgetVisible(false);
+        loadAll(); // refresh connections list
+      } else if (msg.event === 'pluggyConnect/close' || msg.event === 'pluggyConnect/error') {
+        setWidgetVisible(false);
+      }
     } catch {
-      Alert.alert('Erro', 'Não foi possível abrir o navegador');
+      // non-JSON postMessage from the widget page — ignore
     }
   };
 
@@ -298,6 +326,31 @@ export function MoneyScreen({ user: _user }: { user: User }) {
 
       <View style={{ height: 40 }} />
     </ScrollView>
+
+    {/* Pluggy Connect in-app widget */}
+    <Modal
+      visible={widgetVisible}
+      animationType="slide"
+      onRequestClose={() => setWidgetVisible(false)}
+    >
+      <View style={styles.webViewContainer}>
+        <TouchableOpacity style={styles.webViewClose} onPress={() => setWidgetVisible(false)}>
+          <Text style={styles.webViewCloseText}>Fechar</Text>
+        </TouchableOpacity>
+        {widgetUrl ? (
+          <WebView
+            ref={webViewRef}
+            source={{ uri: widgetUrl }}
+            onMessage={onWidgetMessage}
+            javaScriptEnabled
+            domStorageEnabled
+            style={{ flex: 1 }}
+          />
+        ) : (
+          <ActivityIndicator color={COLORS.primary} style={{ flex: 1 }} />
+        )}
+      </View>
+    </Modal>
   );
 }
 
@@ -464,4 +517,18 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFg,
   },
   connectBtnTextSecondary: { color: COLORS.text },
+
+  webViewContainer: { flex: 1, backgroundColor: COLORS.background },
+  webViewClose: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  webViewCloseText: {
+    fontSize: 14,
+    fontFamily: 'Inter_500Medium',
+    color: COLORS.text,
+  },
 });
