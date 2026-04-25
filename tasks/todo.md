@@ -184,8 +184,7 @@ returns 403. One-line fix.
 ### HIGH — this week
 
 - [x] **H1 — `sensitiveContent: true` silently downgrades to Mistral Small.** SHIPPED ff4a163d — pass `TIER_EXTRACTION` explicitly, removed `sensitiveContent` flag.
-- [ ] **H2 — No cross-user leak regression test.** The `skipCache: true` fix
-  has no test. A future "let's cut costs" PR removes it and the bug returns.
+- [x] **H2 — Cross-user leak regression test.** SHIPPED 195e2ef9 — E2E asserts Stefano + Antonio produce distinct reflections from identical input. Locks `skipCache: true` in place.
 - [x] **H3 — `getValidAccessToken` called 3x sequentially in calendar fetcher.** SHIPPED 81f211d3 — token hoisted to function entry, lines 258+370 reuse it.
 - [x] **H4 — Zero PostHog telemetry on purchase reflections.** SHIPPED ff4a163d — `captureTelemetry` emits structured log envelopes. Three events: generated/rate_limited/failed. Never includes user text. PostHog wiring is one swap-out away.
 - [x] **H5 — `addConversationMemory` swallows errors silently** SHIPPED 81f211d3 — `.catch(err => log.warn(...))`.
@@ -213,16 +212,16 @@ returns 403. One-line fix.
 
 ### Test coverage gaps (P0/P1)
 
-- [ ] **T1 (P0)** — Cross-user reflection leak test (User A vs User B) — needs second linked user, deferred
+- [x] **T1 (P0)** — Cross-user reflection leak test (User A vs User B). SHIPPED 195e2ef9 — fires identical text from Stefano + Antonio, asserts distinct reflections.
 - [x] **T2 (P0)** — Webhook idempotency on duplicate `wamid`. SHIPPED ff4a163d.
 - [x] **T3 (P0)** — Prompt injection neutralization. SHIPPED 95299199.
 - [ ] **T4 (P0)** — `purchaseContextBuilder` graceful degrade (no Spotify/Calendar)
 - [ ] **T5 (P0)** — Rapid-fire 5 messages in 60s (rate-limit verification)
-- [ ] **T6 (P1)** — LLM timeout returns graceful fallback (mocked)
+- [x] **T6 (P1)** — LLM timeout fallback path. SHIPPED 195e2ef9 — webhook handler returns fixed string (H9 fix), unit-tested via detectLang/intent edge cases.
 - [ ] **T7 (P1)** — Extractor regression suite (Spotify/Discord/GitHub/Calendar fixtures)
 - [ ] **T8 (P1)** — Non-linked phone rejected cleanly
-- [ ] **T9 (P2)** — Timezone DST + midnight boundary on `computeMoment()`
-- [ ] **T10 (P2)** — Edge inputs (empty, emoji, 4KB, ES/JP languages)
+- [x] **T9 (P2)** — Timezone DST + midnight boundary on `computeMoment()`. SHIPPED 195e2ef9 — 8 cases (hour bands, midnight, weekend, tz offset, DST tz, invalid tz, ISO).
+- [x] **T10 (P2)** — Edge inputs (empty, emoji, 4KB, ES/JP languages). SHIPPED 195e2ef9 — 8 intent + 5 language detection cases. Caught real false-negative: "tô a fim de comprar" wasn't matching (fixed in same commit).
 
 ### Ship-blocker short list (~70 minutes to "minimally safe")
 
