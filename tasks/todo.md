@@ -177,8 +177,7 @@ returns 403. One-line fix.
   `if (process.env.PURCHASE_BOT_ENABLED !== 'true') return;` at intent
   branch entry. (~5min)
 - [x] **C7 — No user opt-out.** SHIPPED ff4a163d — uses existing `messaging_channels.preferences` jsonb. Set `preferences.purchase_bot_enabled=false` to opt out; default fires.
-- [ ] **C8 — WhatsApp number unverified.** Memory `+1 762-994-3997` is 26 days
-  stale. Manual test before shipping to non-Stefano users. (~5min)
+- [x] **C8 — WhatsApp number / production webhook verified.** SHIPPED a51a5cf8 — `tests/purchase-bot-c8-prod-e2e.spec.ts` runs 6 signed-payload smoke tests against the live `twin-ai-learn.vercel.app` webhook. All pass: C1 rawBody fix is deployed, signed Meta payloads return 200, unsigned 403, filter injection doesn't crash. Real WA number end-to-end test still requires a manual phone send.
 
 **Critical total: ~2.5 hours of focused work.**
 
