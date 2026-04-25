@@ -19,6 +19,7 @@
  *   - Respect quiet hours via sendPushToUser's own gating
  */
 
+import crypto from 'crypto';
 import { supabaseAdmin } from '../database.js';
 import { sendPushToUser } from '../pushNotificationService.js';
 import { buildPurchaseContext } from '../purchaseContextBuilder.js';
@@ -27,6 +28,36 @@ import { sendWhatsAppMessage } from '../whatsappService.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('tx-nudge');
+
+// Mirror of the audit-table writer in whatsapp-twinme-webhook.js. Inlined
+// rather than imported because that file owns webhook routing + we want to
+// keep the dependency direction one-way (transactions don't depend on
+// webhook code). Hash truncated SHA-256 of the merchant message — never
+// stores plaintext.
+function logTxReflection(userId, outcome, sourceText, props = {}) {
+  try {
+    const text_hash = sourceText
+      ? crypto.createHash('sha256').update(sourceText).digest('hex').slice(0, 32)
+      : null;
+    supabaseAdmin.from('purchase_reflections').insert({
+      user_id: userId,
+      outcome,
+      lang: props.lang ?? null,
+      has_music: props.hasMusic ?? null,
+      has_calendar: props.hasCalendar ?? null,
+      moment_band: props.moment_band ?? null,
+      elapsed_ms: props.elapsed_ms ?? null,
+      cost_usd: props.cost ?? null,
+      response_length: props.response_length ?? null,
+      error_message: props.error ?? null,
+      text_hash,
+    }).then(({ error }) => {
+      if (error) log.warn(`audit row failed: ${error.message}`);
+    });
+  } catch (_e) {
+    // never let audit writes crash the nudge flow
+  }
+}
 
 const NUDGE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const MAX_TX_AGE_MS = 15 * 60 * 1000;
@@ -158,15 +189,27 @@ export async function maybeNudgeForTransactions(userId, transactionIds) {
     // Fallback: push notification (when no WhatsApp channel, or if send fails)
     const [{ data: userRow }, { data: channel }] = await Promise.all([
       supabaseAdmin.from('users').select('timezone').eq('id', userId).maybeSingle(),
-      supabaseAdmin.from('messaging_channels').select('channel_id')
+      supabaseAdmin.from('messaging_channels').select('channel_id, preferences')
         .eq('user_id', userId).eq('channel', 'whatsapp').maybeSingle(),
     ]);
 
+    // Mirror the gates in whatsapp-twinme-webhook.js — same product surface,
+    // same controls. Without these, the env kill switch only stops webhook
+    // traffic and the per-user opt-out is silently ignored on tx-driven path.
+    const purchaseMsg = `${merchant} (${amount})`;
+    const purchaseBotEnabledForUser = (channel?.preferences || {}).purchase_bot_enabled !== false;
+    const killSwitchOn = process.env.PURCHASE_BOT_ENABLED !== 'true';
     let whatsappSent = false;
-    if (channel?.channel_id) {
+
+    if (channel?.channel_id && killSwitchOn) {
+      log.info(`tx nudge user=${userId} skipped — PURCHASE_BOT_ENABLED off`);
+      logTxReflection(userId, 'kill_switch', purchaseMsg);
+    } else if (channel?.channel_id && !purchaseBotEnabledForUser) {
+      log.info(`tx nudge user=${userId} skipped — user opted out`);
+      logTxReflection(userId, 'opted_out', purchaseMsg);
+    } else if (channel?.channel_id) {
       try {
         const timezone = userRow?.timezone || 'America/Sao_Paulo';
-        const purchaseMsg = `${merchant} (${amount})`;
         const ctx = await buildPurchaseContext(userId, { timezone });
         const refl = await generatePurchaseReflection(ctx, purchaseMsg);
         const phone = channel.channel_id.startsWith('+')
@@ -175,8 +218,18 @@ export async function maybeNudgeForTransactions(userId, transactionIds) {
         await sendWhatsAppMessage(phone, refl.text);
         whatsappSent = true;
         log.info(`whatsapp nudge sent user=${userId} stress=${stressPct}% amount=${amount} merchant=${merchant} lang=${refl.lang}`);
+        logTxReflection(userId, 'generated', purchaseMsg, {
+          lang: refl.lang,
+          hasMusic: !!ctx.music?.available && !ctx.music?.stale,
+          hasCalendar: !!ctx.schedule?.available && (ctx.schedule.events?.length || 0) > 0,
+          moment_band: ctx.moment?.band,
+          elapsed_ms: refl.elapsed_ms,
+          cost: refl.cost,
+          response_length: refl.text?.length || 0,
+        });
       } catch (err) {
         log.warn(`whatsapp nudge failed for ${userId}: ${err.message} — falling back to push`);
+        logTxReflection(userId, 'failed', purchaseMsg, { error: err.message });
       }
     }
 
