@@ -487,6 +487,92 @@ test.describe('WhatsApp pre-purchase reflection bot (live local backend)', () =>
     }
   });
 
+  test('H2/T1 — cross-user reflection does not leak via LLM cache', async () => {
+    // Regression for the cross-user leak we found during E2E build (where
+    // the LLM gateway cached purchase reflections by (model, system, messages)
+    // but those keys collided across users). skipCache: true is the fix; this
+    // test ensures it stays in place. If anyone removes it, two users firing
+    // the same exact message would get IDENTICAL reflections — privacy bug.
+    //
+    // Method: fire same message from User A (Stefano) and User B (Antonio Piza,
+    // already linked in messaging_channels via +5511996112005). Different
+    // user_id → different platform context → different reflection. If the
+    // cache is leaking, the assistant content will be byte-identical.
+    const ANTONIO_USER_ID = '4ce189bb-041a-4183-a9a2-453948ba8b81';
+    const ANTONIO_WA_ID = '5511996112005';
+    const sharedNonce = `xuser${Date.now().toString(36)}`;
+    const sharedText = `vou comprar algo de R$77 ${sharedNonce}`;
+
+    const fireFrom = async (waId: string) => {
+      const payload = makeInboundPayload(sharedText);
+      payload.entry[0].changes[0].value.contacts[0].wa_id = waId;
+      payload.entry[0].changes[0].value.messages[0].from = waId;
+      const body = JSON.stringify(payload);
+      return fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-hub-signature-256': signPayload(body) },
+        body,
+      });
+    };
+
+    const [resA, resB] = await Promise.all([
+      fireFrom(STEFANO_WA_ID),
+      fireFrom(ANTONIO_WA_ID),
+    ]);
+    expect(resA.status).toBe(200);
+    expect(resB.status).toBe(200);
+
+    // Wait for both reflections to land
+    await new Promise(r => setTimeout(r, 6000));
+
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL! || process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    );
+
+    // Pull the assistant response for each user that paired with the shared text
+    const fetchAssistantFor = async (userId: string) => {
+      const { data: userRow } = await supabase
+        .from('user_memories')
+        .select('id, created_at')
+        .eq('user_id', userId)
+        .eq('memory_type', 'conversation')
+        .ilike('content', `%${sharedNonce}%`)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!userRow) return null;
+      const userTs = new Date(userRow.created_at).getTime();
+      const { data: twinRows } = await supabase
+        .from('user_memories')
+        .select('content, created_at')
+        .eq('user_id', userId)
+        .eq('memory_type', 'conversation')
+        .eq('metadata->>role', 'assistant')
+        .gte('created_at', new Date(userTs - 10_000).toISOString())
+        .lte('created_at', new Date(userTs + 10_000).toISOString())
+        .order('created_at', { ascending: true });
+      const closest = (twinRows || [])
+        .map(r => ({ ...r, diff: Math.abs(new Date(r.created_at).getTime() - userTs) }))
+        .sort((a, b) => a.diff - b.diff)[0];
+      return closest?.content ?? null;
+    };
+
+    const responseA = await fetchAssistantFor(STEFANO_USER_ID);
+    const responseB = await fetchAssistantFor(ANTONIO_USER_ID);
+    console.log('User A reflection:', (responseA || '').slice(0, 120));
+    console.log('User B reflection:', (responseB || '').slice(0, 120));
+
+    expect(responseA, 'Stefano must have an assistant reflection').toBeTruthy();
+    expect(responseB, 'Antonio must have an assistant reflection').toBeTruthy();
+
+    // The hard assertion: the two responses must NOT be byte-identical. Both
+    // got the same input text; if the cache is leaking, both LLM calls return
+    // the same first-cached response.
+    expect(responseA).not.toBe(responseB);
+  });
+
   test('H7 — oversize message (>2000 chars) is dropped silently', async () => {
     const huge = 'vou comprar algo gigante ' + 'x'.repeat(2500);
     const res = await fireWebhook(huge);

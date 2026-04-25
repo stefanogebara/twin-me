@@ -1,0 +1,65 @@
+name: Purchase Bot Unit Tests
+
+# Catches regressions on the WhatsApp pre-purchase reflection bot before
+# they merge. Two suites, both deterministic and offline:
+#   1. tests/unit/extractor-upsert-regression.test.js — source-text checks
+#      that the 4 extractors fixed in 6aad5fb1 stay fixed.
+#   2. tests/unit/purchase-bot-logic.test.js — pure-function tests for
+#      timezone/moment classification, intent regex, language detection.
+#
+# E2E suites (purchase-bot-e2e + purchase-bot-c8-prod-e2e) need either a
+# live local backend or production webhook secrets — those run manually.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/services/purchaseContextBuilder.js'
+      - 'api/services/purchaseReflection.js'
+      - 'api/services/spotifyExtraction.js'
+      - 'api/services/discordExtraction.js'
+      - 'api/services/githubExtraction.js'
+      - 'api/services/observationFetchers/calendar.js'
+      - 'api/services/extractionOrchestrator.js'
+      - 'api/routes/whatsapp-twinme-webhook.js'
+      - 'tests/unit/extractor-upsert-regression.test.js'
+      - 'tests/unit/purchase-bot-logic.test.js'
+      - '.github/workflows/purchase-bot-tests.yml'
+  pull_request:
+    paths:
+      - 'api/services/purchaseContextBuilder.js'
+      - 'api/services/purchaseReflection.js'
+      - 'api/services/spotifyExtraction.js'
+      - 'api/services/discordExtraction.js'
+      - 'api/services/githubExtraction.js'
+      - 'api/services/observationFetchers/calendar.js'
+      - 'api/services/extractionOrchestrator.js'
+      - 'api/routes/whatsapp-twinme-webhook.js'
+      - 'tests/unit/extractor-upsert-regression.test.js'
+      - 'tests/unit/purchase-bot-logic.test.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies (no peer warnings)
+        run: npm ci --legacy-peer-deps
+
+      - name: Run extractor regression suite
+        run: npx vitest run tests/unit/extractor-upsert-regression.test.js
+
+      - name: Run purchase-bot logic suite
+        run: npx vitest run tests/unit/purchase-bot-logic.test.js

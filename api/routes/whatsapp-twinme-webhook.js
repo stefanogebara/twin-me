@@ -151,7 +151,7 @@ const router = express.Router();
 const PURCHASE_INTENT_PATTERNS = [
   /\bvou\s+compra/i,                                       // "vou comprar"
   /\bpensando\s+em\s+compra/i,                             // "pensando em comprar"
-  /\best(ou|á)\s+a?\s*fim\s+de\s+compra/i,                 // "tô a fim de comprar"
+  /\b(est(ou|á)|t[ôo])\s+a?\s*fim\s+de\s+compra/i,         // "tô / estou a fim de comprar"
   /\b(about\s+to|thinking\s+(?:of|about))\s+buy(?:ing)?/i, // EN intent
   /\bR\$\s*\d.*\b(comprar|comprando|gastar|pedir|levar)\b/i, // R$ amount + future verb
   /\b(comprar|comprando|gastar|pedir|levar)\b.*R\$\s*\d/i,   // future verb + R$ amount
