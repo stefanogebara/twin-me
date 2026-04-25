@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { NotificationListenerModule, PurchaseEvent } from '../native/NotificationListenerModule';
 import { STORAGE_KEYS } from '../constants';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://twin-ai-learn.vercel.app/api';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'https://www.twinme.me/api';
 
 /**
  * usePurchaseDetection

@@ -15,7 +15,7 @@ class TwinNotificationListenerService : NotificationListenerService() {
   companion object {
     const val PREFS_NAME = "twinme_notif_stats"
     const val BG_PREFS_NAME = "twinme_bg_prefs"
-    private const val API_URL = "https://twin-ai-learn.vercel.app/api/purchase-notification/trigger"
+    private const val API_URL = "https://www.twinme.me/api/purchase-notification/trigger"
     private const val COOLDOWN_MS = 5 * 60 * 1000L
 
     // Delivery/commerce apps whose notification text we read for purchase detection.

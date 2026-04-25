@@ -2,7 +2,7 @@
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3004/api';
 
 // OAuth API URL — always uses production (requires HTTPS for Google OAuth)
-export const OAUTH_API_URL = process.env.EXPO_PUBLIC_OAUTH_API_URL ?? 'https://twin-ai-learn.vercel.app/api';
+export const OAUTH_API_URL = process.env.EXPO_PUBLIC_OAUTH_API_URL ?? 'https://www.twinme.me/api';
 
 // Storage keys
 export const STORAGE_KEYS = {

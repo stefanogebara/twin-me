@@ -36,7 +36,7 @@ const PLATFORMS: PlatformDef[] = [
   { id: 'whoop',           name: 'Whoop',             description: 'Recovery & health',                   icon: '◉' },
 ];
 
-const CONNECT_BASE_URL = 'https://twin-ai-learn.vercel.app/connect';
+const CONNECT_BASE_URL = 'https://www.twinme.me/connect';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
