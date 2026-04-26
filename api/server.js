@@ -496,7 +496,6 @@ import wikiRoutes from './routes/wiki.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
 import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
-import debugPurchaseEnvRoutes from './routes/debug-purchase-env.js';
 import purchaseNotificationRoutes from './routes/purchase-notification.js';
 import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
 import webPushRoutes from './routes/web-push.js';
@@ -696,7 +695,6 @@ app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-m
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)
-app.use('/api/_debug', debugPurchaseEnvRoutes); // temporary, gated by DEBUG_TOKEN — delete after troubleshoot
 app.use('/api/purchase-notification', purchaseNotificationRoutes); // Mobile purchase detection
 app.use('/api/web-push', webPushRoutes); // Web push notification subscribe/unsubscribe
 app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
