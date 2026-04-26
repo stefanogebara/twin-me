@@ -27,9 +27,65 @@ import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js'
 import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
+import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
+import { generatePurchaseReflection } from '../services/purchaseReflection.js';
 
 const log = createLogger('WhatsAppKapsoWebhook');
 const router = express.Router();
+
+// ====================================================================
+// Pre-purchase intent — same patterns and gates as whatsapp-twinme-webhook.js.
+// Real production traffic for the TwinMe WA number lands HERE (via Kapso),
+// not on the direct-Meta route. So the purchase reflection logic must live
+// here too. If you change the patterns, change them in both files.
+// ====================================================================
+const PURCHASE_INTENT_PATTERNS = [
+  /\bvou\s+compra/i,
+  /\bpensando\s+em\s+compra/i,
+  /\b(est(ou|á)|t[ôo])\s+a?\s*fim\s+de\s+compra/i,
+  /\b(about\s+to|thinking\s+(?:of|about))\s+buy(?:ing)?/i,
+  /\bR\$\s*\d.*\b(comprar|comprando|gastar|pedir|levar)\b/i,
+  /\b(comprar|comprando|gastar|pedir|levar)\b.*R\$\s*\d/i,
+  /\$\s*\d+.*(?:buy|purchase|cart|checkout)/i,
+];
+const PURCHASE_INTENT_NEGATIVE = [
+  /\b(comprei|gastei|paguei|levei|peguei)\b/i,
+  /\b(j[áa])\s+comprei/i,
+  /\b(ontem|outro\s+dia|sexta\s+passada|m[êe]s\s+passado)\b/i,
+  /\b(sal[áa]rio|aluguel|conta\s+de\s+luz|fatura|boleto|sal[aá]rio|recebi)\b/i,
+];
+function matchesPurchaseIntent(text) {
+  if (!text || typeof text !== 'string') return false;
+  if (PURCHASE_INTENT_NEGATIVE.some(re => re.test(text))) return false;
+  return PURCHASE_INTENT_PATTERNS.some(re => re.test(text));
+}
+
+// Audit-table writer (same shape as the one in whatsapp-twinme-webhook.js).
+// Inlined to keep route files independent.
+function logPurchaseReflection(userId, outcome, sourceText, props = {}) {
+  try {
+    const text_hash = sourceText
+      ? crypto.createHash('sha256').update(sourceText).digest('hex').slice(0, 32)
+      : null;
+    supabaseAdmin.from('purchase_reflections').insert({
+      user_id: userId,
+      outcome,
+      lang: props.lang ?? null,
+      has_music: props.hasMusic ?? null,
+      has_calendar: props.hasCalendar ?? null,
+      moment_band: props.moment_band ?? null,
+      elapsed_ms: props.elapsed_ms ?? null,
+      cost_usd: props.cost ?? null,
+      response_length: props.response_length ?? null,
+      error_message: props.error ?? null,
+      text_hash,
+    }).then(({ error }) => {
+      if (error) log.warn(`audit row failed: ${error.message}`);
+    });
+  } catch (_e) {
+    // never let audit writes crash the webhook flow
+  }
+}
 
 // ====================================================================
 // Dedup: prevent processing the same message twice (Kapso may retry)
@@ -210,7 +266,7 @@ router.post('/webhook', async (req, res) => {
     // 6. Look up user by phone number in messaging_channels
     const { data: channel } = await supabaseAdmin
       .from('messaging_channels')
-      .select('user_id')
+      .select('user_id, preferences')
       .eq('channel', 'whatsapp')
       .eq('channel_id', phone)
       .single();
@@ -231,9 +287,48 @@ router.post('/webhook', async (req, res) => {
     }
 
     const userId = channel.user_id;
+    const userPrefs = channel.preferences || {};
+    const purchaseBotEnabledForUser = userPrefs.purchase_bot_enabled !== false;
 
-    // 7. Process through twin chat pipeline
-    const response = await processTwinMessage(userId, text);
+    // 7a. Pre-purchase intent — fires BEFORE the generic twin chat pipeline.
+    // Same gates as the direct-Meta webhook: env kill switch + per-user
+    // opt-out + try/catch with fallback string. The Kapso route already has
+    // its own per-phone rate limit (line 56), so we don't double-gate.
+    let response;
+    if (matchesPurchaseIntent(text)) {
+      if (process.env.PURCHASE_BOT_ENABLED !== 'true') {
+        log.info('Purchase intent detected but bot disabled (env)', { userId });
+        logPurchaseReflection(userId, 'kill_switch', text);
+        response = await processTwinMessage(userId, text);
+      } else if (!purchaseBotEnabledForUser) {
+        log.info('Purchase intent detected but user opted out', { userId });
+        logPurchaseReflection(userId, 'opted_out', text);
+        response = await processTwinMessage(userId, text);
+      } else {
+        log.info('Purchase intent detected — generating reflection', { userId });
+        try {
+          const ctx = await buildPurchaseContext(userId);
+          const refl = await generatePurchaseReflection(ctx, text);
+          response = refl.text;
+          logPurchaseReflection(userId, 'generated', text, {
+            lang: refl.lang,
+            hasMusic: !!ctx.music?.available && !ctx.music?.stale,
+            hasCalendar: !!ctx.schedule?.available && (ctx.schedule.events?.length || 0) > 0,
+            moment_band: ctx.moment?.band,
+            elapsed_ms: refl.elapsed_ms,
+            cost: refl.cost,
+            response_length: refl.text?.length || 0,
+          });
+        } catch (err) {
+          log.error('Purchase reflection failed', { userId, error: err.message });
+          response = 'Tive um problema agora pra te responder. Tenta de novo daqui a pouco?';
+          logPurchaseReflection(userId, 'failed', text, { error: err.message });
+        }
+      }
+    } else {
+      // 7b. Normal twin chat pipeline
+      response = await processTwinMessage(userId, text);
+    }
 
     // 8. Store conversation in memory stream
     await addConversationMemory(userId, text, response, {
