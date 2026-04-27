@@ -102,6 +102,42 @@ const DISCRETIONARY_CATEGORIES = new Set([
 ]);
 
 /**
+ * Strip BR-specific corporate noise so an unrecognized merchant still reads as
+ * a real name. Removes legal suffixes (LTDA/S.A./ME/EIRELI/MEI), trailing CNPJ
+ * digit blobs, payment-processor prefixes (PAGSEGURO/MERCADOPAGO/STONE), and
+ * generic descriptors ("INSTITUICAO DE PAGAMENTO", "COMERCIO DE..."). Title-
+ * cases the result so "PLUGGY BRASIL INSTITUICAO DE PAGAMENTO LTDA" → "Pluggy
+ * Brasil". Returns null if nothing recognizable is left.
+ */
+function fallbackBrand(raw) {
+  let s = String(raw)
+    .replace(/\*/g, ' ')
+    .replace(/\b\d{6,}\b/g, ' ')
+    .replace(/\bcnpj[\s:#]*[\d./-]+/gi, ' ')
+    .replace(/\b(pagseguro|mercadopago|mercado\s?pago|stone|getnet|cielo|rede)\s+/gi, ' ')
+    .replace(/\b(institui[cç][aã]o\s+de\s+pagamento|com[eé]rcio\s+(de|e)\s+\w+|servi[cç]os?\s+(de|e)\s+\w+)\b/gi, ' ')
+    .replace(/\b(ltda|s\/?\s?a|s\.?a\.?|me|mei|eireli|epp)\b\.?/gi, ' ')
+    .replace(/[^A-Za-z0-9À-ÿ\s&'-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!s || s.length < 2) return null;
+  // Trim to first 4 words to avoid bloated names
+  s = s.split(' ').slice(0, 4).join(' ');
+  // Title case. Keep PT connectors lowercase (except first word). Preserve
+  // 2-char all-caps acronyms (BB, XP, BV) — longer words are common nouns.
+  const CONNECTORS = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'o', 'a']);
+  return s
+    .split(' ')
+    .map((w, i) => {
+      const lower = w.toLowerCase();
+      if (i > 0 && CONNECTORS.has(lower)) return lower;
+      if (w === w.toUpperCase() && w.length === 2) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+/**
  * Normalize a raw merchant description to { brand, category }.
  * @returns {{ brand: string|null, category: string }}
  */
@@ -115,7 +151,7 @@ export function normalizeMerchant(rawDescription) {
       return { brand: rule.brand, category: rule.category };
     }
   }
-  return { brand: null, category: 'other' };
+  return { brand: fallbackBrand(trimmed), category: 'other' };
 }
 
 /**
