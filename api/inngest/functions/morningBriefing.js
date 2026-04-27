@@ -16,6 +16,7 @@ import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { deliverInsight } from '../../services/messageRouter.js';
+import { generateInboxBrief } from '../../services/inboxIntelligenceService.js';
 import { createLogger } from '../../services/logger.js';
 
 const log = createLogger('MorningBriefing');
@@ -213,6 +214,49 @@ Casual, warm, USEFUL. Like a text from a smart friend. No bullet lists.`;
         });
 
       log.info('Morning briefing delivered', { userId, chars: briefing.length });
+    });
+
+    // Step 6: Inbox Intelligence — scan Gmail, surface real emails, generate drafts
+    await step.run('inbox-intelligence', async () => {
+      try {
+        const inboxBrief = await generateInboxBrief(userId);
+        if (!inboxBrief) return { skipped: true, reason: 'no_relevant_emails' };
+
+        const { data: insertedInsight } = await supabaseAdmin
+          .from('proactive_insights')
+          .insert({
+            user_id: userId,
+            insight: inboxBrief.message,
+            urgency: 'medium',
+            category: 'email_triage',
+            delivered: false,
+            metadata: {
+              emails: inboxBrief.emails.map(e => ({
+                id: e.id,
+                from: e.from,
+                subject: e.subject,
+                summary: e.summary,
+                draft: e.draft,
+                score: e.score,
+                category: e.category,
+              })),
+              count: inboxBrief.count,
+            },
+          })
+          .select('id, insight, category, urgency')
+          .single();
+
+        if (insertedInsight) {
+          await deliverInsight(userId, insertedInsight);
+          log.info('Inbox brief delivered', { userId, emailCount: inboxBrief.count });
+        }
+
+        return { delivered: true, emailCount: inboxBrief.count };
+      } catch (err) {
+        // Non-fatal — inbox intelligence failure never kills the briefing
+        log.warn('Inbox intelligence step failed', { userId, error: err.message });
+        return { skipped: true, reason: err.message };
+      }
     });
 
     return {

@@ -31,15 +31,14 @@ router.all('/', async (req, res) => {
       return res.json({ success: true, triggered: 0, reason: 'cooldown' });
     }
 
-    // Get active users (had conversation or platform data in the last 7 days)
+    // Get active users (had memories in the last 7 days).
+    // Uses RPC with SELECT DISTINCT — the naive .limit(200) approach caused high-volume
+    // users to fill all rows, making other users invisible to the cron.
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: activeUsers } = await supabaseAdmin
-      .from('user_memories')
-      .select('user_id')
-      .gte('created_at', weekAgo)
-      .limit(200);
+      .rpc('get_active_user_ids', { since_timestamp: weekAgo });
 
-    const uniqueUserIds = [...new Set((activeUsers || []).map(u => u.user_id))];
+    const uniqueUserIds = (activeUsers || []).map(u => u.user_id);
 
     if (uniqueUserIds.length === 0) {
       return res.json({ success: true, triggered: 0, reason: 'no_active_users' });
