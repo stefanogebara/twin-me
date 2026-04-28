@@ -189,7 +189,7 @@ router.get('/proactive', authenticateUser, async (req, res) => {
 
     const query = supabaseAdmin
       .from('proactive_insights')
-      .select('id, insight, urgency, category, created_at, delivered, engaged, nudge_action, sources')
+      .select('id, insight, urgency, category, created_at, delivered, engaged, nudge_action, sources, metadata')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -269,6 +269,37 @@ router.post('/proactive/generate', authenticateUser, async (req, res) => {
   } catch (error) {
     log.error('POST /proactive/generate error', { error: error.message });
     res.status(500).json({ success: false, error: 'Failed to generate insights' });
+  }
+});
+
+/**
+ * GET /api/insights/inbox
+ * Returns the most recent email_triage insight (last 48h) with structured email metadata.
+ * Unlike /proactive, this includes already-delivered insights so the in-app view
+ * works even after WhatsApp delivery has marked the insight as delivered.
+ */
+router.get('/inbox', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id, insight, urgency, category, created_at, delivered, metadata')
+      .eq('user_id', userId)
+      .eq('category', 'email_triage')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      return res.status(500).json({ success: false, error: 'Failed to fetch inbox brief' });
+    }
+
+    return res.json({ success: true, brief: data || null });
+  } catch (err) {
+    log.error('GET /inbox error', { error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to fetch inbox brief' });
   }
 });
 

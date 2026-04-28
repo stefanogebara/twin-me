@@ -146,12 +146,8 @@ export async function sendWhatsAppInsight(recipientPhone, insight) {
   const text = insight.category === 'meeting_prep'
     ? formatMeetingPrepMessage(insight)
     : (() => {
-        const emoji = {
-          briefing: '\u2615', evening_recap: '\u{1F319}', music_mood_match: '\u{1F3B5}',
-          email_triage: '\u{1F4E7}', reminder: '\u{1F514}', suggestion: '\u{1F4A1}', nudge: '\u{1F449}',
-        }[insight.category] || '\u2728';
         const label = (insight.category || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        return `${emoji} *${label}*\n\n${insight.insight || ''}`;
+        return `*${label}*\n\n${insight.insight || ''}`;
       })();
 
   return sendWhatsAppMessage(recipientPhone, text);
