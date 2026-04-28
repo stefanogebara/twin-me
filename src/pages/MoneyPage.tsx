@@ -323,11 +323,14 @@ function TransactionRow({ tx }: { tx: Transaction }) {
 
   return (
     <div
+      data-testid="transaction-row"
+      data-merchant={displayMerchant || ''}
       className="flex items-center gap-4 px-4 py-3.5"
       style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
     >
       <div className="flex-1 min-w-0">
         <p
+          data-testid="transaction-merchant"
           className="truncate"
           style={{
             fontFamily: "'Geist', 'Inter', sans-serif",
