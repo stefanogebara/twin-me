@@ -70,21 +70,30 @@ export function usePlatformConnect({
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
 
-  const handleNangoPopup = useCallback((provider: DataProvider, connectUrl: string) => {
-    const width = 600, height = 700;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
+  const handleNangoPopup = useCallback((provider: DataProvider, connectUrl: string, preOpened?: Window | null) => {
+    let popup: Window | null = null;
 
-    const popup = window.open(
-      connectUrl,
-      'nango-connect',
-      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
-    );
+    if (preOpened && !preOpened.closed) {
+      // Navigate pre-opened popup (opened during user gesture, so never blocked)
+      preOpened.location.href = connectUrl;
+      popup = preOpened;
+    } else {
+      // Fallback: open directly (may be blocked if called after an await)
+      const width = 600, height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      popup = window.open(connectUrl, 'nango-connect',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`);
+    }
 
     if (!popup) {
       trackFunnel('oauth_popup_blocked', { platform: provider });
-      sessionStorage.setItem('connecting_provider', provider);
-      window.location.href = connectUrl;
+      toast({
+        title: 'Popup blocked',
+        description: 'Allow popups for this site in your browser settings, then try again.',
+        variant: 'destructive',
+      });
+      setConnectingProvider(null);
       return;
     }
 
@@ -223,6 +232,28 @@ export function usePlatformConnect({
 
       const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
 
+      // Pre-open a blank popup while still inside the user-gesture call stack.
+      // Browsers block window.open() called after any await, so we must open
+      // the window before the first async API call and navigate it later.
+      let preOpenedPopup: Window | null = null;
+      if (nangoPlatforms.includes(provider as string)) {
+        const w = 600, h = 700;
+        const left = window.screenX + (window.outerWidth - w) / 2;
+        const top = window.screenY + (window.outerHeight - h) / 2;
+        preOpenedPopup = window.open('about:blank', 'nango-connect',
+          `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no`);
+        if (!preOpenedPopup) {
+          trackFunnel('oauth_popup_blocked', { platform: provider });
+          toast({
+            title: 'Popup blocked',
+            description: 'Allow popups for this site in your browser settings, then try again.',
+            variant: 'destructive',
+          });
+          setConnectingProvider(null);
+          return;
+        }
+      }
+
       const authHeaders = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getAccessToken()}`,
@@ -318,7 +349,7 @@ export function usePlatformConnect({
         sessionStorage.setItem('connecting_provider', provider);
         window.location.href = result.authUrl;
       } else if (result.success && result.connectUrl) {
-        handleNangoPopup(provider, result.connectUrl);
+        handleNangoPopup(provider, result.connectUrl, preOpenedPopup);
       } else if (result.success) {
         await refetchPlatformStatus();
         toast({
@@ -330,6 +361,8 @@ export function usePlatformConnect({
         throw new Error(result.error || 'Connection failed');
       }
     } catch (error: unknown) {
+      // Close the pre-opened popup if the API call failed (avoid leaving blank window)
+      if (preOpenedPopup && !preOpenedPopup.closed) preOpenedPopup.close();
       const errorMsg = error instanceof Error ? error.message : 'Connection failed';
       toast({
         title: "Connection failed",
