@@ -68,7 +68,7 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
         const result = await client.messages.sendText({
           phoneNumberId,
           to: recipientPhone,
-          text,
+          body: text,
         });
         log.info('WhatsApp message sent via Kapso', { recipientPhone, messageId: result?.messages?.[0]?.id });
         return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
