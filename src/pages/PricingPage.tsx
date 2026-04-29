@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
+import { getAccessToken, API_URL } from '@/services/api/apiBase';
+import { safeRedirect } from '@/lib/safeRedirect';
 
 const PLANS = [
   {
@@ -59,6 +61,24 @@ const PLANS = [
 
 const PricingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleUpgrade = async (planId: string) => {
+    const token = getAccessToken();
+    if (!token) { navigate('/auth'); return; }
+    setLoading(planId);
+    try {
+      const res = await fetch(`${API_URL}/billing/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ plan: planId }),
+      });
+      const data = await res.json();
+      if (data.url) safeRedirect(data.url);
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <div className="min-h-screen px-4 py-12 flex flex-col items-center" style={{ background: 'transparent' }}>
@@ -162,13 +182,8 @@ const PricingPage: React.FC = () => {
               </ul>
 
               <button
-                disabled={plan.ctaDisabled}
-                onClick={() => {
-                  if (!plan.ctaDisabled) {
-                    // Stripe checkout goes here when billing is wired
-                    navigate('/settings');
-                  }
-                }}
+                disabled={plan.ctaDisabled || loading === plan.id}
+                onClick={() => { if (!plan.ctaDisabled) handleUpgrade(plan.id); }}
                 style={{
                   width: '100%',
                   padding: '10px 0',
@@ -177,6 +192,10 @@ const PricingPage: React.FC = () => {
                   fontWeight: 500,
                   cursor: plan.ctaDisabled ? 'default' : 'pointer',
                   transition: 'opacity 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
                   ...(plan.ctaDisabled
                     ? {
                         background: 'transparent',
@@ -196,7 +215,8 @@ const PricingPage: React.FC = () => {
                       }),
                 }}
               >
-                {plan.cta}
+                {loading === plan.id && <Loader2 size={14} className="animate-spin" />}
+                {loading === plan.id ? 'Opening checkout...' : plan.cta}
               </button>
             </div>
           ))}

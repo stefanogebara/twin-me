@@ -30,15 +30,32 @@ dotenv.config({ path: path.resolve(__dirname, '../.env.production') });
 const PROD_BASE = 'https://twin-ai-learn.vercel.app';
 const JWT = process.env.TEST_AUTH_TOKEN;
 
+// Synthetic user returned by the mocked refresh endpoint.
+// AuthContext stores this in localStorage as auth_user and then calls
+// /api/auth/verify which succeeds because JWT is signed with the real JWT_SECRET.
+const TEST_USER = {
+  id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
+  email: 'stefanogebara@gmail.com',
+  firstName: 'Stefano',
+  lastName: 'Gebara',
+};
+
 test.describe('MoneyPage — merchant normalization E2E', () => {
   test.setTimeout(60_000);
 
   test.beforeEach(async ({ page }) => {
-    // Inject JWT into localStorage before navigating to the protected route
-    await page.goto(`${PROD_BASE}/`);
-    await page.evaluate((token) => {
-      localStorage.setItem('auth_token', token);
-    }, JWT);
+    // The app uses in-memory access tokens + httpOnly refresh cookie.
+    // Intercept /api/auth/refresh before the first navigation so AuthContext
+    // thinks the session is valid and skips the → /auth redirect.
+    // checkAuth() will then call /api/auth/verify with the Bearer JWT, which
+    // succeeds on production because the JWT is signed with the real JWT_SECRET.
+    await page.route('**/api/auth/refresh', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, accessToken: JWT, user: TEST_USER }),
+      });
+    });
   });
 
   test('transactions load and all merchant names are populated', async ({ page }) => {

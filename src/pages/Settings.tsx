@@ -272,9 +272,17 @@ const Settings = () => {
         headers: getAuthHeaders(),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch { /* non-fatal */ }
-    finally { setManagingBilling(false); }
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        // No Stripe customer yet (free plan) — send to upgrade flow
+        navigate('/pricing');
+      }
+    } catch {
+      toast.error('Could not open billing portal. Please try again.');
+    } finally {
+      setManagingBilling(false);
+    }
   };
 
   const handleDisconnectService = async (provider: string) => {

@@ -133,7 +133,20 @@ export function ConnectBankButton({ onConnected }: Props) {
           includeSandbox={environment === 'sandbox'}
           onSuccess={handleSuccess}
           onError={(err) => {
-            setError(err?.message || 'Falha na conexão com o banco');
+            const code = err?.message || '';
+            const friendly: Record<string, string> = {
+              TRIAL_CLIENT_ITEM_CREATE_NOT_ALLOWED:
+                'Conexão bancária indisponível no momento. Entre em contato com o suporte.',
+              ITEM_ALREADY_EXISTS:
+                'Este banco já está conectado à sua conta.',
+              INVALID_CREDENTIALS:
+                'Credenciais inválidas. Verifique seu login e senha bancários.',
+              ACCOUNT_LOCKED:
+                'Conta bloqueada no banco. Desbloqueie pelo app do banco e tente novamente.',
+              CONNECTION_ERROR:
+                'Erro de conexão com o banco. Tente novamente em alguns instantes.',
+            };
+            setError(friendly[code] || 'Falha na conexão com o banco. Tente novamente.');
             setConnectToken(null);
           }}
           onClose={handleExit}
