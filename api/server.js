@@ -482,6 +482,7 @@ import cronDeliverInsightsRoutes from './routes/cron-deliver-insights.js';
 import cronIntelligentTriggersRoutes from './routes/cron-intelligent-triggers.js';
 import cronMorningBriefingRoutes from './routes/cron-morning-briefing.js';
 import cronMorningBriefingEmailRoutes from './routes/cron-morning-briefing-email.js';
+import cronInboxIntelligenceRoutes from './routes/cron-inbox-intelligence.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
 import cronBankConsentRoutes from './routes/cron-bank-consent.js';
@@ -682,6 +683,7 @@ app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver ins
 app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Daily intelligent triggers (10am UTC)
 app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
 app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
+app.use('/api/cron/inbox-intelligence', cronInboxIntelligenceRoutes); // Daily inbox triage (10:05 UTC)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
 app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for Pluggy + TrueLayer connections

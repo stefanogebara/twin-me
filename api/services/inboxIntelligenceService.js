@@ -9,7 +9,7 @@
  * Called as a step in the Inngest morning briefing function.
  */
 
-import { getEmails } from './googleWorkspaceActions.js';
+import { getEmails, getEmail } from './googleWorkspaceActions.js';
 import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
@@ -136,27 +136,54 @@ Mark as "noise" if it is clearly automated, promotional, or no reply is needed.`
 }
 
 /**
+ * Fetch the full body of an email, falling back to the snippet.
+ */
+async function getEmailBody(userId, email) {
+  if (!email.id) return email.snippet || '';
+  try {
+    const result = await getEmail(userId, email.id);
+    if (result.success && result.email?.body) {
+      // Strip quoted reply blocks and trim to 1500 chars
+      const body = result.email.body
+        .replace(/^>.*$/gm, '')        // remove quoted lines
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')    // collapse runs of blank lines
+        .trim();
+      return body.slice(0, 1500);
+    }
+  } catch {
+    // Fall through to snippet
+  }
+  return email.snippet || '';
+}
+
+/**
  * Generate a short draft reply for a single email in the user's voice.
  */
 async function generateDraft(userId, email, senderContext) {
+  const body = await getEmailBody(userId, email);
   const contextSection = senderContext
-    ? `\nWhat I know about this person from past interactions: ${senderContext}`
+    ? `\nContext from past interactions with this person: ${senderContext}`
     : '';
 
-  const prompt = `Write a short email reply on behalf of the user. Be natural and personal, not corporate.
+  const prompt = `Write a short draft reply to the email below. CRITICAL RULES:
+- Use ONLY information explicitly stated in the email. Never invent details, dates, names, or specifics.
+- If the email content is ambiguous or you don't know enough to be specific, be vague and friendly instead of guessing.
+- 2-4 sentences max. No greeting ("Hi X"). No sign-off. Just the body text.
+- Casual, direct tone — like texting a colleague.
 
 EMAIL:
 From: ${email.from}
 Subject: ${email.subject || '(no subject)'}
-Content: ${email.snippet}${contextSection}
+Content: ${body}${contextSection}
 
-Write 2-4 sentences maximum. Write the actual reply text — no placeholders, no [brackets], no "Dear X". Just the reply body. Casual and direct.`;
+Draft reply (body only):`;
 
   const response = await complete({
     messages: [{ role: 'user', content: prompt }],
     tier: TIER_ANALYSIS,
     maxTokens: 150,
-    temperature: 0.7,
+    temperature: 0.5,
     userId,
     serviceName: 'inbox-draft',
   });
@@ -199,16 +226,13 @@ export async function generateInboxBrief(userId) {
   const topEmails = await scoreEmails(userId, realEmails);
   if (!topEmails.length) return null;
 
-  // Enrich with sender context + generate drafts (parallel per email)
-  const enrichedEmails = await Promise.all(
-    topEmails.map(async (email) => {
-      const [senderContext, draft] = await Promise.all([
-        getSenderContext(userId, email.from),
-        generateDraft(userId, email, null), // draft first without context (faster)
-      ]);
-      return { ...email, senderContext, draft };
-    })
-  );
+  // Enrich with sender context + generate drafts (sequential per email to avoid rate limits)
+  const enrichedEmails = [];
+  for (const email of topEmails) {
+    const senderContext = await getSenderContext(userId, email.from);
+    const draft = await generateDraft(userId, email, senderContext);
+    enrichedEmails.push({ ...email, senderContext, draft });
+  }
 
   // Build WhatsApp-ready message (no emojis per platform rules)
   const count = enrichedEmails.length;
