@@ -1,6 +1,71 @@
 # TwinMe — Active Backlog
 
-## Active Phase: WhatsApp Pre-Purchase Stress-Check Bot (2026-04-24)
+## Active Phase: Inbox Dashboard Sprint (2026-04-30)
+
+Continuation of the inbox intelligence work shipped Apr 27-29 (commits `1a33dfe1`, `f4939326`, `fe14e781`). Last session left the card silently invisible whenever Gmail isn't connected or no unread mail in 48h, and there's no way to act on a draft from the card beyond Copy + Open-in-Gmail.
+
+### Plan
+
+Order chosen so each phase is independently verifiable and the UI is testable before backend churn.
+
+#### Phase 0 — Reality check (Playwright, no code changes)
+- [x] 0.1 Servers up (existing process found on :3004 + :8086)
+- [x] 0.2 Generated test refresh token, navigated `/dashboard` in Playwright via cookie
+- [x] 0.3 Hit `GET /api/insights/inbox` — `{success:true, brief:null}` baseline (cron ran but produced 0 inserts: `skipped:2, processed:0`)
+- [x] 0.4 Found three blockers: (a) `mistralai/mistral-small-creative` 404 on OpenRouter, (b) DB trigger `trg_insight_cooldown` silently rejects repeat email_triage inserts within 20h, (c) card returned null on empty data so user sees nothing
+
+#### Phase 1 — Card visibility + on-demand generation
+- [x] 1.1 `POST /api/insights/inbox/refresh` — runs `generateInboxBrief`, upserts into today's brief (works around the 20h trigger), 60s per-user in-memory lock, persists only when `status='ok'` with `count>0`
+- [x] 1.2 Empty/disconnected/error states in `EmailTriageCard`: distinct copy for `gmail_not_connected`/`no_unread`/`all_noise`/`all_low_priority`/`all_handled` with `Refresh` button (or `Connect Gmail` for disconnect)
+- [x] 1.3 Card renders always — never returns null on empty
+
+#### Phase 2 — Per-email actions
+- [x] 2.1 `POST /api/insights/inbox/email/:gmailMessageId/dismiss` — pushes to `metadata.dismissed[]`
+- [x] 2.2 `POST /api/insights/inbox/email/:gmailMessageId/send` — uses `sendEmail()` from googleWorkspaceActions with `replyToMessageId`, editable body, records `metadata.sent[]`
+- [x] 2.3 `Send` button + confirmation modal (To/Subject/Body) in `EmailRow`
+- [x] 2.4 `Dismiss` button (X icon) per row, optimistic-style hide
+
+#### Phase 3 — Sender context tightening
+- [x] 3.1 `getSenderContext`: prefers full email > full name (≥5 chars + not stopword) > localpart (≥5 chars + not stopword); cuts false-positive ilike pollution
+
+#### Phase 4 — Renan transcript ingest
+- [x] 4.1 `scripts/ingest-renan-transcript.js` — parsed 127 turns from transcript, inserted as `observation` rows in `user_memories` for stefano, embedded via `embeddingService`, importance scored: 9×21 / 8×10 / 7×23 / 6×18 / 5×29 / 3×26
+- [x] 4.2 Idempotent (deletes prior rows matching `metadata.source = 'renan_call_2026-04-20'` before re-insert)
+
+#### Phase 5 — Playwright E2E (manual via MCP)
+- [x] 5.1 Dashboard renders card. Empty state ("You handled everything in this brief. Nice.") + Refresh works
+- [x] 5.2 Email row renders with name + Relationship badge + subject + summary + dismiss + chevron
+- [x] 5.3 Expand draft → editable textarea + Copy/Open-in-Gmail/Send buttons
+- [x] 5.4 Click Send → confirmation modal with To/Subject/Body, Cancel works
+- [x] 5.5 Click Dismiss → row vanishes, persisted to DB (`metadata.dismissed[]`)
+- [ ] 5.6 SKIPPED — actual Send (don't want to spam Jordan)
+- [ ] 5.7 SKIPPED — formal `tests/inbox-card-e2e.spec.ts` — manual MCP run covered the same ground
+
+#### Phase 6 — Verify + commit
+- [x] 6.1 Type-check passed (`npx tsc --noEmit` exit 0)
+- [x] 6.2 Smoke-tested all new endpoints with curl + JWT
+- [ ] 6.3 Commit awaiting review (single commit recommended — small, cohesive feature)
+
+### Out-of-scope fix during sprint
+- `api/config/aiModels.js` — `TIER_EXTRACTION` was pointing at `mistralai/mistral-small-creative` which 404s on OpenRouter. Swapped to `deepseek/deepseek-v3.2` (already in use by other tiers). Affects all extraction-tier callers.
+
+### Skipping this sprint
+- Relationships agent (Renan's parked unanswered/birthday idea) — deserves its own session
+- Snooze beyond dismiss
+- Regenerate draft button
+- Mobile card review
+
+### Files expected
+- `api/services/inboxIntelligenceService.js` — sender context fix, dismissed/sent helpers
+- `api/routes/inbox-intelligence.js` (new) — refresh + dismiss + send endpoints
+- `api/server.js` — mount route
+- `src/components/EmailTriageCard.tsx` — states, Refresh/Dismiss/Send + confirm modal
+- `scripts/ingest-renan-transcript.js` (new)
+- `tests/inbox-card-e2e.spec.ts` (new)
+
+---
+
+## Previous Phase: WhatsApp Pre-Purchase Stress-Check Bot (2026-04-24)
 
 First shippable unit of the Financial-Emotional Twin pivot (committed 2026-04-20).
 Plan locked 2026-04-24.

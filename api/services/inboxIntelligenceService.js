@@ -47,13 +47,41 @@ function extractEmail(from = '') {
   return match ? match[1] : from;
 }
 
+// Common first names that produce false-positive matches when ilike'd against
+// memory content. Anything in this set must match by full email instead.
+const GENERIC_NAME_STOPWORDS = new Set([
+  'stefano', 'maria', 'joão', 'joao', 'ana', 'pedro', 'lucas', 'carlos',
+  'paulo', 'jose', 'josé', 'antonio', 'antônio', 'rafael', 'gabriel',
+  'admin', 'team', 'support', 'hello', 'hi', 'contact',
+]);
+
 /**
- * Search user_memories for any mentions of a sender's name or email.
+ * Search user_memories for mentions of a sender. Skips ambiguous queries
+ * that would false-positive (e.g. searching for "Maria" matches every memory
+ * containing the word). Prefers full email > full name > email localpart.
  */
 async function getSenderContext(userId, from) {
   const email = extractEmail(from);
   const name = extractName(from);
-  const searchTerm = name.length > 3 ? name : email.split('@')[0];
+  const localpart = email.split('@')[0];
+
+  // Pick the most specific search term we can.
+  let searchTerm = null;
+
+  // Prefer full email — most specific
+  if (email && email.includes('@')) {
+    searchTerm = email;
+  }
+  // Fall back to full name if it's specific enough
+  else if (name && name.length >= 5 && !GENERIC_NAME_STOPWORDS.has(name.toLowerCase().split(' ')[0])) {
+    searchTerm = name;
+  }
+  // Fall back to localpart only if it's specific
+  else if (localpart && localpart.length >= 5 && !GENERIC_NAME_STOPWORDS.has(localpart.toLowerCase())) {
+    searchTerm = localpart;
+  }
+
+  if (!searchTerm) return null;
 
   const { data } = await supabaseAdmin
     .from('user_memories')
@@ -198,8 +226,17 @@ Draft reply (body only):`;
  * @returns {Promise<{
  *   message: string,        — WhatsApp-ready plain text
  *   emails: Array,          — enriched email objects with summary + draft
- *   count: number
- * } | null>}
+ *   count: number,
+ *   status: 'ok'
+ * } | {
+ *   status: 'gmail_not_connected' | 'no_unread' | 'all_noise' | 'all_low_priority',
+ *   message: string,
+ *   emails: [],
+ *   count: 0
+ * }>}
+ *
+ * Always returns a structured object — never null — so the dashboard card
+ * can communicate the actual state to the user instead of silently hiding.
  */
 export async function generateInboxBrief(userId) {
   // Fetch recent unread emails
@@ -210,21 +247,47 @@ export async function generateInboxBrief(userId) {
 
   if (!emailResult.success) {
     log.info('Gmail not connected or fetch failed', { userId, error: emailResult.error });
-    return null;
+    return {
+      status: 'gmail_not_connected',
+      message: 'Connect Gmail to triage your inbox.',
+      emails: [],
+      count: 0,
+    };
   }
 
   const rawEmails = (emailResult.emails || []).filter(e => !e.error);
-  if (!rawEmails.length) return null;
+  if (!rawEmails.length) {
+    return {
+      status: 'no_unread',
+      message: 'No unread email in the last 48 hours. Inbox zero.',
+      emails: [],
+      count: 0,
+    };
+  }
 
   // Filter noise upfront to save LLM tokens
   const realEmails = rawEmails.filter(e => !isNoise(e.from));
-  if (!realEmails.length) return null;
+  if (!realEmails.length) {
+    return {
+      status: 'all_noise',
+      message: `${rawEmails.length} unread email${rawEmails.length === 1 ? '' : 's'} — all newsletters or notifications. Nothing needs you.`,
+      emails: [],
+      count: 0,
+    };
+  }
 
   log.info('Scoring emails', { userId, total: rawEmails.length, real: realEmails.length });
 
   // Score and surface top emails
   const topEmails = await scoreEmails(userId, realEmails);
-  if (!topEmails.length) return null;
+  if (!topEmails.length) {
+    return {
+      status: 'all_low_priority',
+      message: `${realEmails.length} unread email${realEmails.length === 1 ? '' : 's'} — none scored urgent enough to surface.`,
+      emails: [],
+      count: 0,
+    };
+  }
 
   // Enrich with sender context + generate drafts (sequential per email to avoid rate limits)
   const enrichedEmails = [];
@@ -250,6 +313,7 @@ export async function generateInboxBrief(userId) {
   lines.push('Open TwinMe to see drafts and reply in one tap.');
 
   return {
+    status: 'ok',
     message: lines.join('\n'),
     emails: enrichedEmails,
     count,

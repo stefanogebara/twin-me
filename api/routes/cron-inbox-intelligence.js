@@ -69,7 +69,10 @@ router.all('/', async (req, res) => {
         }
 
         const inboxBrief = await generateInboxBrief(userId);
-        if (!inboxBrief) {
+        // Only persist + deliver when we have actual emails to surface.
+        // Empty-state briefs (no_unread, gmail_not_connected, all_noise, all_low_priority)
+        // are useful for the on-demand refresh endpoint but would spam WhatsApp every day.
+        if (!inboxBrief || inboxBrief.status !== 'ok' || !inboxBrief.count) {
           skipped++;
           continue;
         }

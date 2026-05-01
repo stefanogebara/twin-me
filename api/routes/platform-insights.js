@@ -20,6 +20,8 @@ import { seedPatternFromInsight } from '../services/twinPatternService.js';
 import { get as redisGet, set as redisSet } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 import { generateProactiveInsights } from '../services/proactiveInsights.js';
+import { generateInboxBrief } from '../services/inboxIntelligenceService.js';
+import { sendEmail } from '../services/googleWorkspaceActions.js';
 
 const log = createLogger('PlatformInsights');
 
@@ -300,6 +302,250 @@ router.get('/inbox', authenticateUser, async (req, res) => {
   } catch (err) {
     log.error('GET /inbox error', { error: err.message });
     return res.status(500).json({ success: false, error: 'Failed to fetch inbox brief' });
+  }
+});
+
+// Per-user lock for on-demand refresh — prevents double-clicks burning LLM
+// budget. 60s window is long enough to cover the slowest brief (~25s).
+const inboxRefreshLocks = new Map();
+const INBOX_REFRESH_LOCK_MS = 60_000;
+
+function tryAcquireRefreshLock(userId) {
+  const now = Date.now();
+  const last = inboxRefreshLocks.get(userId);
+  if (last && now - last < INBOX_REFRESH_LOCK_MS) {
+    return { acquired: false, retryInMs: INBOX_REFRESH_LOCK_MS - (now - last) };
+  }
+  inboxRefreshLocks.set(userId, now);
+  return { acquired: true };
+}
+
+/**
+ * POST /api/insights/inbox/refresh
+ * On-demand brief regeneration. Bypasses the cron's 20h cooldown but applies
+ * a 60s per-user lock. Persists the brief as a proactive insight (only when
+ * status is 'ok' with real emails) and returns the latest brief envelope.
+ */
+router.post('/inbox/refresh', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+
+  const lock = tryAcquireRefreshLock(userId);
+  if (!lock.acquired) {
+    return res.status(429).json({
+      success: false,
+      error: 'rate_limited',
+      retryInMs: lock.retryInMs,
+    });
+  }
+
+  try {
+    const brief = await generateInboxBrief(userId);
+    log.info('Refresh brief generated', { userId, status: brief?.status, count: brief?.count });
+
+    // Persist only when we actually have emails to surface — empty-state briefs
+    // (no_unread, all_noise, etc.) shouldn't pollute the proactive_insights feed
+    // or get re-delivered to messaging channels.
+    if (brief?.status === 'ok' && brief.count > 0) {
+      const metadata = {
+        emails: brief.emails.map(e => ({
+          id: e.id,
+          from: e.from,
+          subject: e.subject,
+          summary: e.summary,
+          draft: e.draft,
+          score: e.score,
+          category: e.category,
+        })),
+        count: brief.count,
+        on_demand: true,
+      };
+
+      // The DB trigger `trg_insight_cooldown` silently blocks repeat email_triage
+      // inserts within 20h. For the user-facing refresh button to actually
+      // refresh, upsert into today's existing row when present.
+      const cutoff = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+      const { data: existing } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id, metadata')
+        .eq('user_id', userId)
+        .eq('category', 'email_triage')
+        .gte('created_at', cutoff)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let persisted = null;
+
+      if (existing?.id) {
+        // Preserve user-applied dismissed/sent flags across refresh; new draft
+        // suggestions overwrite any stale ones.
+        const merged = {
+          ...metadata,
+          dismissed: existing.metadata?.dismissed || [],
+          sent: existing.metadata?.sent || [],
+        };
+        const { data: updated, error: updateErr } = await supabaseAdmin
+          .from('proactive_insights')
+          .update({ insight: brief.message, metadata: merged })
+          .eq('id', existing.id)
+          .eq('user_id', userId)
+          .select('id, insight, urgency, category, created_at, delivered, metadata')
+          .single();
+        if (updateErr || !updated) {
+          log.error('Refresh update failed', { userId, error: updateErr?.message });
+          return res.status(500).json({ success: false, error: 'Failed to persist brief' });
+        }
+        persisted = updated;
+      } else {
+        const { data: inserted, error: insertErr } = await supabaseAdmin
+          .from('proactive_insights')
+          .insert({
+            user_id: userId,
+            insight: brief.message,
+            urgency: 'medium',
+            category: 'email_triage',
+            delivered: true,
+            delivered_at: new Date().toISOString(),
+            metadata,
+          })
+          .select('id, insight, urgency, category, created_at, delivered, metadata')
+          .single();
+        if (insertErr || !inserted) {
+          log.error('Refresh insert failed', { userId, error: insertErr?.message });
+          return res.status(500).json({ success: false, error: 'Failed to persist brief' });
+        }
+        persisted = inserted;
+      }
+
+      return res.json({ success: true, brief: persisted, status: 'ok' });
+    }
+
+    // Empty-state: return a synthetic brief so the card has something to render.
+    return res.json({
+      success: true,
+      brief: null,
+      status: brief?.status || 'unknown',
+      message: brief?.message || 'No inbox brief available.',
+    });
+  } catch (err) {
+    log.error('POST /inbox/refresh error', { userId, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to refresh inbox brief' });
+  }
+});
+
+/**
+ * Helper: read latest email_triage insight for a user (last 48h).
+ */
+async function getLatestInboxInsight(userId) {
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabaseAdmin
+    .from('proactive_insights')
+    .select('id, metadata')
+    .eq('user_id', userId)
+    .eq('category', 'email_triage')
+    .gte('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data || null;
+}
+
+/**
+ * POST /api/insights/inbox/email/:gmailMessageId/dismiss
+ * Mark a single email as dismissed inside the latest brief's metadata.
+ * Frontend filters dismissed IDs out before rendering.
+ */
+router.post('/inbox/email/:gmailMessageId/dismiss', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { gmailMessageId } = req.params;
+  if (!gmailMessageId) return res.status(400).json({ success: false, error: 'Missing gmailMessageId' });
+
+  try {
+    const insight = await getLatestInboxInsight(userId);
+    if (!insight) {
+      return res.status(404).json({ success: false, error: 'No active inbox brief' });
+    }
+
+    const metadata = insight.metadata || {};
+    const dismissed = Array.isArray(metadata.dismissed) ? metadata.dismissed : [];
+    if (!dismissed.includes(gmailMessageId)) dismissed.push(gmailMessageId);
+
+    const { error } = await supabaseAdmin
+      .from('proactive_insights')
+      .update({ metadata: { ...metadata, dismissed } })
+      .eq('id', insight.id)
+      .eq('user_id', userId);
+
+    if (error) {
+      log.error('Dismiss update failed', { userId, error: error.message });
+      return res.status(500).json({ success: false, error: 'Failed to dismiss' });
+    }
+    return res.json({ success: true, dismissed });
+  } catch (err) {
+    log.error('POST /inbox/email/:id/dismiss error', { userId, gmailMessageId, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to dismiss' });
+  }
+});
+
+/**
+ * POST /api/insights/inbox/email/:gmailMessageId/send
+ * Body: { body: string, to?: string, subject?: string }
+ * Sends a reply via existing Gmail API client. Records the gmail message ID in
+ * the brief's metadata.sent[] so the card can hide that row after success.
+ */
+router.post('/inbox/email/:gmailMessageId/send', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const { gmailMessageId } = req.params;
+  const { body, to: toOverride, subject: subjectOverride } = req.body || {};
+
+  if (!gmailMessageId) return res.status(400).json({ success: false, error: 'Missing gmailMessageId' });
+  if (!body || typeof body !== 'string' || !body.trim()) {
+    return res.status(400).json({ success: false, error: 'Body is required' });
+  }
+  if (body.length > 5000) {
+    return res.status(400).json({ success: false, error: 'Body too long (max 5000)' });
+  }
+
+  try {
+    const insight = await getLatestInboxInsight(userId);
+    if (!insight) {
+      return res.status(404).json({ success: false, error: 'No active inbox brief' });
+    }
+    const emails = insight.metadata?.emails || [];
+    const targetEmail = emails.find(e => e.id === gmailMessageId);
+    if (!targetEmail) {
+      return res.status(404).json({ success: false, error: 'Email not found in current brief' });
+    }
+
+    // Extract recipient email address from "Name <email>" format
+    const fromMatch = targetEmail.from?.match(/<([^>]+)>/);
+    const recipient = toOverride || (fromMatch ? fromMatch[1] : targetEmail.from);
+
+    const result = await sendEmail(userId, {
+      to: recipient,
+      subject: subjectOverride, // sendEmail will derive Re: subject when omitted
+      body: body.trim(),
+      replyToMessageId: gmailMessageId,
+    });
+
+    if (!result.success) {
+      return res.status(502).json({ success: false, error: result.error || 'Send failed' });
+    }
+
+    // Record the send so the row hides on next render
+    const metadata = insight.metadata || {};
+    const sent = Array.isArray(metadata.sent) ? metadata.sent : [];
+    if (!sent.includes(gmailMessageId)) sent.push(gmailMessageId);
+    await supabaseAdmin
+      .from('proactive_insights')
+      .update({ metadata: { ...metadata, sent } })
+      .eq('id', insight.id)
+      .eq('user_id', userId);
+
+    return res.json({ success: true, messageId: result.messageId, sent });
+  } catch (err) {
+    log.error('POST /inbox/email/:id/send error', { userId, gmailMessageId, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to send reply' });
   }
 });
 

@@ -51,7 +51,7 @@ export const OPENROUTER_MODELS = {
   [TIER_CHAT]: 'deepseek/deepseek-v3.2', // $0.25/$0.38 per M — 12x cheaper, ~3x faster TTFT
   [TIER_CHAT_FINETUNED]: FINETUNED_MODEL,     // OpenAI finetuned model — routed directly, not via OpenRouter
   [TIER_ANALYSIS]: 'deepseek/deepseek-v3.2',          // $0.25/$0.38 per M — 90% cheaper than Haiku
-  [TIER_EXTRACTION]: 'mistralai/mistral-small-creative', // $0.10/$0.30 per M — replaces deprecated gemini-2.0-flash
+  [TIER_EXTRACTION]: 'deepseek/deepseek-v3.2', // mistral-small-creative was 404'ing on OpenRouter (2026-04-30)
   // NOTE: Kimi K2.5 is a reasoning model (wastes tokens on chain-of-thought).
   // Only suitable for complex problem-solving, not general chat/analysis.
 };

@@ -6,6 +6,32 @@ Per CLAUDE.md workflow rule #3 ("Self-Improvement Loop"): update this file after
 
 ---
 
+## 2026-04-30 — `proactive_insights` has a 20h cooldown trigger that drops inserts silently
+
+**Incident**: Built `POST /api/insights/inbox/refresh` for the dashboard inbox card. Endpoint completed without error but the row never persisted. `.select().single()` returned PGRST116 ("Cannot coerce the result to a single JSON object"). Stale memory tried `service_role bypasses RLS` — yes, but RLS isn't the gate here.
+
+**Root cause**: Migration `20260323_insight_cooldown_trigger.sql` installs a `BEFORE INSERT` trigger (`trg_insight_cooldown` → `enforce_insight_cooldown()`). For categories `music_mood_match` (6h) / `briefing` / `evening_recap` / `email_triage` (20h), it counts existing rows in the window and `RETURN NULL`s the insert if any exist. PostgreSQL drops the row, no error raised, RAISE NOTICE only — invisible to a Node Supabase client.
+
+**Rule for any user-facing "regenerate" / "refresh" action that writes to `proactive_insights`**:
+- Don't `.insert()` blindly. First read the latest row in the cooldown window (20h for email_triage). If one exists, `UPDATE` it instead — preserves user-applied state (dismissed/sent flags) and bypasses the trigger.
+- If the trigger fundamentally blocks your use case, change the trigger (allowlist `metadata->>on_demand = 'true'` to skip), do not bypass it ad-hoc per call site — the trigger exists to prevent automated spam.
+
+**How to apply**: any new endpoint that lets a human re-trigger an insight category MUST follow the upsert pattern. Cron paths keep using `.insert()` so the trigger keeps doing its job for automated traffic.
+
+---
+
+## 2026-04-30 — `mistralai/mistral-small-creative` is dead on OpenRouter
+
+**Incident**: First `/api/insights/inbox/refresh` call failed with `404 No endpoints found for mistralai/mistral-small-creative`. The model ID in `api/config/aiModels.js` for `TIER_EXTRACTION` is no longer routable.
+
+**Why it slipped**: `aiModels.js` had a TODO comment "replaces deprecated gemini-2.0-flash" — the replacement also got deprecated and nobody noticed because the Inngest path was silently failing in prod (signing key missing) and the cron path was hitting `wasRecentlyRun` cooldowns most days. Net effect: every extraction-tier call had been silently failing-over via fallback paths for an unknown duration.
+
+**Fix (shipped)**: swapped `TIER_EXTRACTION` to `deepseek/deepseek-v3.2` (same model used by `TIER_CHAT` and `TIER_ANALYSIS` — proven to work, slight cost bump from $0.10/$0.30 → $0.25/$0.38 per M).
+
+**Rule**: when an OpenRouter model 404s, fix `OPENROUTER_MODELS` in `api/config/aiModels.js` immediately — don't paper over it. Pick a known-working ID (deepseek-v3.2 is the safe default in this codebase) rather than guessing at Mistral version strings that turn over fast.
+
+---
+
 ## 2026-04-21 — Never modify `.vercelignore` without per-entry preview-deploy verification
 
 **Incident**: Two prod outages in a single session from `.vercelignore` changes.
