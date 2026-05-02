@@ -722,6 +722,37 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
 });
 
 /**
+ * POST /api/transactions/:id/feedback
+ * Store user correction: was this transaction stress-driven or not?
+ * Upserts so re-tagging a transaction just updates the existing record.
+ */
+router.post('/:id/feedback', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    const transactionId = req.params.id;
+    const { is_stress_driven } = req.body;
+    if (typeof is_stress_driven !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'is_stress_driven must be boolean' });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('transaction_feedback')
+      .upsert(
+        { user_id: userId, transaction_id: transactionId, is_stress_driven },
+        { onConflict: 'user_id,transaction_id' }
+      );
+    if (error) throw error;
+
+    return res.json({ success: true });
+  } catch (err) {
+    log.error('transaction feedback error', err);
+    return res.status(500).json({ success: false, error: 'failed to save feedback' });
+  }
+});
+
+/**
  * GET /api/transactions/timeline-analysis
  * Returns daily spend totals + average stress score for the last 30 days.
  * Used by the StressSpendTimeline chart — the visual proof of the "WHY you spend" UVP.

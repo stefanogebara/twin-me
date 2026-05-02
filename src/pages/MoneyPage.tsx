@@ -18,6 +18,7 @@ import {
   getNudgeStats,
   getRiskForecast,
   getTimelineAnalysis,
+  setTransactionFeedback,
   type Transaction,
   type TransactionsSummary,
   type SavingsSummary,
@@ -317,12 +318,69 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'outros',
 };
 
+function FeedbackToggle({ txId, initial }: { txId: string; initial: boolean | null }) {
+  const [value, setValue] = useState<boolean | null>(initial);
+  const [saving, setSaving] = useState(false);
+
+  const toggle = async (next: boolean) => {
+    if (saving) return;
+    const newVal = value === next ? null : next;
+    setValue(newVal);
+    if (newVal !== null) {
+      setSaving(true);
+      await setTransactionFeedback(txId, newVal).finally(() => setSaving(false));
+    }
+  };
+
+  const btnBase: React.CSSProperties = {
+    fontFamily: "'Geist', 'Inter', sans-serif",
+    fontSize: 10,
+    fontWeight: 500,
+    padding: '2px 8px',
+    borderRadius: 46,
+    border: '1px solid',
+    cursor: saving ? 'wait' : 'pointer',
+    transition: 'all 120ms ease-out',
+    background: 'transparent',
+    letterSpacing: '0.02em',
+  };
+
+  return (
+    <div className="flex items-center gap-1.5 mt-1" title="Foi uma compra por estresse?">
+      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist','Inter',sans-serif" }}>estresse?</span>
+      <button
+        onClick={() => { void toggle(true); }}
+        style={{
+          ...btnBase,
+          borderColor: value === true ? 'rgba(232,160,80,0.6)' : 'rgba(255,255,255,0.12)',
+          color: value === true ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.40)',
+          background: value === true ? 'rgba(217,119,6,0.12)' : 'transparent',
+        }}
+      >
+        sim
+      </button>
+      <button
+        onClick={() => { void toggle(false); }}
+        style={{
+          ...btnBase,
+          borderColor: value === false ? 'rgba(134,239,172,0.5)' : 'rgba(255,255,255,0.12)',
+          color: value === false ? 'rgba(134,239,172,0.90)' : 'rgba(255,255,255,0.40)',
+          background: value === false ? 'rgba(34,197,94,0.08)' : 'transparent',
+        }}
+      >
+        nao
+      </button>
+    </div>
+  );
+}
+
 function TransactionRow({ tx }: { tx: Transaction }) {
   const isOutflow = tx.amount < 0;
   const ec = tx.emotional_context;
   const stress = stressChipColor(ec?.computed_stress_score ?? null);
   const displayMerchant = tx.merchant_normalized || tx.merchant_raw;
   const categoryLabel = tx.category ? CATEGORY_LABELS[tx.category] || tx.category : null;
+  const showFeedback = isOutflow && ec !== null && ec.signals_found > 0;
 
   return (
     <div
@@ -449,6 +507,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
             </span>
           )}
         </div>
+        {showFeedback && <FeedbackToggle txId={tx.id} initial={null} />}
       </div>
       <div
         style={{

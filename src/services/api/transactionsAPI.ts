@@ -336,6 +336,17 @@ export async function syncTrueLayerConnection(id: string): Promise<boolean> {
   return !!json.success;
 }
 
+export async function setTransactionFeedback(transactionId: string, isStressDriven: boolean): Promise<boolean> {
+  const res = await authFetch(`/transactions/${transactionId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_stress_driven: isStressDriven }),
+  });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return !!json.success;
+}
+
 export async function getTimelineAnalysis(): Promise<TimelineDay[]> {
   const res = await authFetch('/timeline-analysis');
   if (!res.ok) return [];
