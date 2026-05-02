@@ -721,4 +721,24 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/transactions/timeline-analysis
+ * Returns daily spend totals + average stress score for the last 30 days.
+ * Used by the StressSpendTimeline chart — the visual proof of the "WHY you spend" UVP.
+ */
+router.get('/timeline-analysis', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    const { data, error } = await supabaseAdmin.rpc('get_spending_timeline', { p_user_id: userId });
+    if (error) throw error;
+
+    return res.json({ success: true, days: data || [] });
+  } catch (err) {
+    log.error('timeline-analysis error', err);
+    return res.status(500).json({ success: false, error: 'timeline analysis failed' });
+  }
+});
+
 export default router;

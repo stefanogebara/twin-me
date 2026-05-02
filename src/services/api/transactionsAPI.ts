@@ -51,6 +51,14 @@ export interface TransactionsSummary {
   currencies?: CurrencyBreakdown[];
 }
 
+export interface TimelineDay {
+  day: string;          // YYYY-MM-DD
+  spend: number;        // outflow total (positive)
+  stress_avg: number | null;  // 0–1 average stress score
+  stress_shop_count: number;
+  tx_count: number;
+}
+
 export interface UploadResult {
   success: boolean;
   format: string;
@@ -326,4 +334,17 @@ export async function syncTrueLayerConnection(id: string): Promise<boolean> {
   if (!res.ok) return false;
   const json = await res.json();
   return !!json.success;
+}
+
+export async function getTimelineAnalysis(): Promise<TimelineDay[]> {
+  const res = await authFetch('/timeline-analysis');
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.days || []).map((d: TimelineDay) => ({
+    ...d,
+    spend: Number(d.spend),
+    stress_avg: d.stress_avg !== null ? Number(d.stress_avg) : null,
+    stress_shop_count: Number(d.stress_shop_count),
+    tx_count: Number(d.tx_count),
+  }));
 }

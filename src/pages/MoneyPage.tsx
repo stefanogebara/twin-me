@@ -17,6 +17,7 @@ import {
   getSpendingPatterns,
   getNudgeStats,
   getRiskForecast,
+  getTimelineAnalysis,
   type Transaction,
   type TransactionsSummary,
   type SavingsSummary,
@@ -25,9 +26,11 @@ import {
   type NudgeStats,
   type RiskForecast,
   type UploadResult,
+  type TimelineDay,
 } from '@/services/api/transactionsAPI';
 import { ConnectBankButton } from './components/money/ConnectBankButton';
 import { BankConnectionsList } from './components/money/BankConnectionsList';
+import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -471,6 +474,7 @@ export default function MoneyPage() {
   const [patterns, setPatterns] = useState<PatternsResult | null>(null);
   const [nudgeStats, setNudgeStats] = useState<NudgeStats | null>(null);
   const [forecast, setForecast] = useState<RiskForecast | null>(null);
+  const [timeline, setTimeline] = useState<TimelineDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
@@ -496,13 +500,14 @@ export default function MoneyPage() {
     setLoading(true);
     setError(null);
     try {
-      const [txns, sum, sav, pat, nudges, fc] = await Promise.all([
+      const [txns, sum, sav, pat, nudges, fc, tl] = await Promise.all([
         listTransactions({ limit: 50 }),
         getTransactionsSummary(),
         getSavings(),
         getSpendingPatterns(),
         getNudgeStats(),
         getRiskForecast(),
+        getTimelineAnalysis(),
       ]);
       setTransactions(txns);
       setSummary(sum);
@@ -510,6 +515,7 @@ export default function MoneyPage() {
       setPatterns(pat);
       setNudgeStats(nudges);
       setForecast(fc);
+      setTimeline(tl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao carregar transações');
     } finally {
@@ -679,6 +685,14 @@ export default function MoneyPage() {
           >
             {error}
           </p>
+        </div>
+      )}
+
+      {/* Stress-Spend Timeline — the visual "WHY you spend" correlation */}
+      {timeline.length > 0 && (
+        <div className="mb-6" style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
+          <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Estresse vs Gastos · 30 dias</p>
+          <StressSpendTimeline days={timeline} currency={dominantCurrency} />
         </div>
       )}
 
