@@ -1,6 +1,60 @@
 # TwinMe — Active Backlog
 
-## Active Phase: Inbox Dashboard Sprint (2026-04-30)
+## Active Phase: Relationships Agent V1 (2026-05-02)
+
+Renan's parked "never-miss-relationships" idea — flag people waiting on you. Same infra pattern as the inbox card sprint, narrower scope.
+
+### V1 signal
+**Unanswered Gmail threads.** Inbound message > 3 days old, from a real person (noise-filter same as inbox), where the last reply in the thread wasn't from you. Group by sender. Top N surface as proactive insights.
+
+Skipping for V1: birthdays (lower value, can add later), WhatsApp unanswered (different platform pipeline), CRM-style lead qualification (needs more signal).
+
+### Plan
+
+#### Phase 1 — Detection service
+- [ ] 1.1 `api/services/relationshipsService.js` — `findUnansweredThreads(userId, { olderThanDays = 3, limit = 5 })`
+  - Gmail query: `older_than:3d in:inbox -in:sent -in:promotions -in:social`
+  - For each thread, get last message; reject if `from:me` (already answered)
+  - Apply NOISE_PATTERNS filter from inboxIntelligenceService (export it as a shared util)
+  - Group by extracted email address; aggregate count + most-recent subject
+  - Return top N by `(thread_count * 1.0) + (days_unanswered * 0.5)` so frequency + age both push up
+
+#### Phase 2 — Cron + persistence
+- [ ] 2.1 `api/routes/cron-relationships.js` — daily at 10:10 UTC (5 min after inbox cron)
+  - `wasRecentlyRun('relationships')` 20h gate
+  - For each Gmail-connected user, run `findUnansweredThreads`
+  - Insert one `proactive_insights` row per result with `category='relationship_followup'`, `urgency='medium'`
+  - `metadata`: `{ from, days_unanswered, thread_count, last_subject, gmail_url }` — gmail_url so user can click straight to it
+  - Same upsert pattern as inbox refresh (DB trigger blocks repeats)
+
+#### Phase 3 — Reuse existing surfaces
+- [ ] 3.1 Add `relationship_followup` to `cooldown_hours` map in `enforce_insight_cooldown` trigger (24h cooldown)
+- [ ] 3.2 InsightsFeed renders any category — confirm via probe that the new insights show
+- [ ] 3.3 Add a one-line nudge_action so the existing "I did this / Not for me" feedback works
+
+#### Phase 4 — Verify
+- [ ] 4.1 Trigger cron manually as Stefano, expect 1-3 inserted insights about real unanswered senders
+- [ ] 4.2 Playwright dashboard, see them in InsightsFeed
+- [ ] 4.3 Click an insight, verify the gmail_url opens the thread
+
+### Skipping V1
+- Birthday/anniversary detection
+- WhatsApp unanswered detection
+- Per-relationship importance scoring from memory stream (might add later)
+- New dedicated card on dashboard (existing InsightsFeed is good enough)
+
+### Files expected
+- `api/services/relationshipsService.js` (new, ~120 lines)
+- `api/services/inboxIntelligenceService.js` — extract `NOISE_PATTERNS` + `isNoise` to a util
+- `api/services/noiseSenders.js` (new, ~20 lines)
+- `api/routes/cron-relationships.js` (new, ~80 lines)
+- `api/server.js` — mount cron route
+- `vercel.json` — schedule entry
+- `database/migrations/<date>_relationship_followup_cooldown.sql` (new, ~5 lines)
+
+---
+
+## Previous Phase: Inbox Dashboard Sprint (2026-04-30)
 
 Continuation of the inbox intelligence work shipped Apr 27-29 (commits `1a33dfe1`, `f4939326`, `fe14e781`). Last session left the card silently invisible whenever Gmail isn't connected or no unread mail in 48h, and there's no way to act on a draft from the card beyond Copy + Open-in-Gmail.
 

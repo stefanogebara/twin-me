@@ -13,26 +13,12 @@ import { getEmails, getEmail } from './googleWorkspaceActions.js';
 import { complete, TIER_EXTRACTION, TIER_ANALYSIS } from './llmGateway.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { isNoise } from './noiseSenders.js';
 
 const log = createLogger('InboxIntelligence');
 
 const MAX_EMAILS_TO_SCORE = 20;
 const MAX_EMAILS_TO_SURFACE = 5;
-
-// Senders that are always noise — no real person is waiting
-const NOISE_PATTERNS = [
-  'noreply', 'no-reply', 'donotreply', 'do-not-reply',
-  'notifications@', 'newsletter', 'updates@', 'hello@mail',
-  'support@', 'info@mail', 'mailer@', 'bounce@', 'mailchimp',
-  'sendgrid', 'beehiiv', 'substack.com', 'github.com',
-  'linkedin.com', 'twitter.com', 'instagram.com', 'facebook.com',
-  'samsung', 'glovo', 'uber', 'ifood', 'amazon',
-];
-
-function isNoise(from = '') {
-  const f = from.toLowerCase();
-  return NOISE_PATTERNS.some(p => f.includes(p));
-}
 
 function extractName(from = '') {
   // "Pedro Alves <pedro@example.com>" → "Pedro Alves"
