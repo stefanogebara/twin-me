@@ -65,9 +65,16 @@ export function InsightsFeed({
   // before the query cache is updated by the mutation's onMutate.
   const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
 
-  // Filter out the hero insight to avoid duplication, take max 5
+  // Filter out the hero insight + categories that have their own dedicated
+  // dashboard cards (email_triage → EmailTriageCard, relationship_followup
+  // → RelationshipsCard). Take max 5 of what remains.
+  const DEDICATED_CARD_CATEGORIES = new Set(['email_triage', 'relationship_followup']);
   const feedInsights = insights
-    .filter(i => i.id !== heroInsightId && !archivedIds.has(i.id))
+    .filter(i =>
+      i.id !== heroInsightId &&
+      !archivedIds.has(i.id) &&
+      !DEDICATED_CARD_CATEGORIES.has(i.category)
+    )
     .slice(0, 5);
 
   // In demo mode, fall back to representative demo insights when feed is empty

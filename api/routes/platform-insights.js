@@ -22,6 +22,7 @@ import { createLogger } from '../services/logger.js';
 import { generateProactiveInsights } from '../services/proactiveInsights.js';
 import { generateInboxBrief } from '../services/inboxIntelligenceService.js';
 import { sendEmail } from '../services/googleWorkspaceActions.js';
+import { findUnansweredThreads } from '../services/relationshipsService.js';
 
 const log = createLogger('PlatformInsights');
 
@@ -546,6 +547,188 @@ router.post('/inbox/email/:gmailMessageId/send', authenticateUser, async (req, r
   } catch (err) {
     log.error('POST /inbox/email/:id/send error', { userId, gmailMessageId, error: err.message });
     return res.status(500).json({ success: false, error: 'Failed to send reply' });
+  }
+});
+
+// ============================================================================
+// Relationships agent endpoints — mirrors the inbox card pattern.
+// ============================================================================
+
+const relationshipsRefreshLocks = new Map();
+const RELATIONSHIPS_REFRESH_LOCK_MS = 60_000;
+
+function tryAcquireRelLock(userId) {
+  const now = Date.now();
+  const last = relationshipsRefreshLocks.get(userId);
+  if (last && now - last < RELATIONSHIPS_REFRESH_LOCK_MS) {
+    return { acquired: false, retryInMs: RELATIONSHIPS_REFRESH_LOCK_MS - (now - last) };
+  }
+  relationshipsRefreshLocks.set(userId, now);
+  return { acquired: true };
+}
+
+async function getLatestRelationshipsInsight(userId) {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabaseAdmin
+    .from('proactive_insights')
+    .select('id, insight, urgency, category, created_at, metadata')
+    .eq('user_id', userId)
+    .eq('category', 'relationship_followup')
+    .gte('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data || null;
+}
+
+/**
+ * GET /api/insights/relationships
+ * Returns the latest relationship_followup insight (last 24h).
+ */
+router.get('/relationships', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const data = await getLatestRelationshipsInsight(userId);
+    return res.json({ success: true, brief: data || null });
+  } catch (err) {
+    log.error('GET /relationships error', { userId, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to fetch relationships' });
+  }
+});
+
+/**
+ * POST /api/insights/relationships/refresh
+ * On-demand scan. 60s per-user lock. Upserts into today's row to dodge the
+ * trg_insight_cooldown DB trigger (relationship_followup has 23h cooldown).
+ */
+router.post('/relationships/refresh', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+
+  const lock = tryAcquireRelLock(userId);
+  if (!lock.acquired) {
+    return res.status(429).json({ success: false, error: 'rate_limited', retryInMs: lock.retryInMs });
+  }
+
+  try {
+    const result = await findUnansweredThreads(userId);
+    log.info('Relationships refresh', { userId, status: result.status, count: result.relationships?.length });
+
+    if (result.status !== 'ok' || !result.relationships.length) {
+      return res.json({
+        success: true,
+        brief: null,
+        status: result.status || 'unknown',
+      });
+    }
+
+    const lines = result.relationships.map((r, i) =>
+      `${i + 1}. ${r.name} — ${r.thread_count} message${r.thread_count > 1 ? 's' : ''} unanswered for ${r.days_unanswered}d`
+    );
+    const insightText = [
+      `${result.relationships.length} ${result.relationships.length === 1 ? 'person is' : 'people are'} waiting on you:`,
+      '',
+      ...lines,
+    ].join('\n');
+
+    const cutoff = new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabaseAdmin
+      .from('proactive_insights')
+      .select('id, metadata')
+      .eq('user_id', userId)
+      .eq('category', 'relationship_followup')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let persisted;
+    if (existing?.id) {
+      // Preserve user-applied dismissed flags across refresh.
+      const merged = {
+        relationships: result.relationships,
+        count: result.relationships.length,
+        dismissed: existing.metadata?.dismissed || [],
+        on_demand: true,
+      };
+      const { data: updated, error: updateErr } = await supabaseAdmin
+        .from('proactive_insights')
+        .update({ insight: insightText, metadata: merged, urgency: 'medium' })
+        .eq('id', existing.id)
+        .eq('user_id', userId)
+        .select('id, insight, urgency, category, created_at, metadata')
+        .single();
+      if (updateErr || !updated) {
+        log.error('Refresh update failed', { userId, error: updateErr?.message });
+        return res.status(500).json({ success: false, error: 'Failed to persist' });
+      }
+      persisted = updated;
+    } else {
+      const top = result.relationships[0];
+      const { data: inserted, error: insertErr } = await supabaseAdmin
+        .from('proactive_insights')
+        .insert({
+          user_id: userId,
+          insight: insightText,
+          urgency: 'medium',
+          category: 'relationship_followup',
+          delivered: true,
+          delivered_at: new Date().toISOString(),
+          nudge_action: top ? `Reply to ${top.name} — they've waited ${top.days_unanswered} days.` : null,
+          metadata: {
+            relationships: result.relationships,
+            count: result.relationships.length,
+            on_demand: true,
+          },
+        })
+        .select('id, insight, urgency, category, created_at, metadata')
+        .single();
+      if (insertErr || !inserted) {
+        log.error('Refresh insert failed', { userId, error: insertErr?.message });
+        return res.status(500).json({ success: false, error: 'Failed to persist' });
+      }
+      persisted = inserted;
+    }
+
+    return res.json({ success: true, brief: persisted, status: 'ok' });
+  } catch (err) {
+    log.error('POST /relationships/refresh error', { userId, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to refresh' });
+  }
+});
+
+/**
+ * POST /api/insights/relationships/dismiss
+ * Body: { email: string }
+ * Adds the email to metadata.dismissed[] on the latest relationships brief.
+ * Frontend filters dismissed entries client-side.
+ */
+router.post('/relationships/dismiss', authenticateUser, async (req, res) => {
+  const userId = req.user.id;
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : null;
+  if (!email) return res.status(400).json({ success: false, error: 'email is required' });
+
+  try {
+    const insight = await getLatestRelationshipsInsight(userId);
+    if (!insight) return res.status(404).json({ success: false, error: 'No active relationships brief' });
+
+    const metadata = insight.metadata || {};
+    const dismissed = Array.isArray(metadata.dismissed) ? metadata.dismissed : [];
+    if (!dismissed.includes(email)) dismissed.push(email);
+
+    const { error } = await supabaseAdmin
+      .from('proactive_insights')
+      .update({ metadata: { ...metadata, dismissed } })
+      .eq('id', insight.id)
+      .eq('user_id', userId);
+
+    if (error) {
+      log.error('Dismiss update failed', { userId, error: error.message });
+      return res.status(500).json({ success: false, error: 'Failed to dismiss' });
+    }
+    return res.json({ success: true, dismissed });
+  } catch (err) {
+    log.error('POST /relationships/dismiss error', { userId, email, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to dismiss' });
   }
 });
 

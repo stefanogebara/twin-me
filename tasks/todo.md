@@ -1,6 +1,26 @@
 # TwinMe — Active Backlog
 
-## Active Phase: Relationships Agent V1 (2026-05-02)
+## Active Phase: Relationships V2 + Renan Concept Retrieval (2026-05-03)
+
+### Relationships V2 — per-person actions
+- [ ] Backend: `POST /api/insights/relationships/:email/dismiss` (push to metadata.dismissed[])
+- [ ] Backend: `POST /api/insights/relationships/refresh` (60s lock, upsert pattern)
+- [ ] Frontend: `RelationshipsCard.tsx` — name + count + days + "Open in Gmail" + Dismiss per row
+- [ ] Wire into DashboardV2 above InsightsFeed (next to EmailTriageCard)
+- [ ] Hide entries from metadata.dismissed[] client-side
+
+### Renan concept retrieval — English fact-summaries
+- [ ] `scripts/generate-renan-summaries.js` — read transcript, ask DeepSeek for ~10 English takeaways, store as `fact` memory_type with source='renan_call_2026-04-20', importance 8-9
+- [ ] Re-probe concept queries: "features I should kill in TwinMe", "Vibe Anything paradigm" → expect Renan facts in top 5
+
+### Verify + ship
+- [ ] Type-check
+- [ ] Commit + push
+- [ ] Playwright verify on prod with Google account
+
+---
+
+## Previous Phase: Relationships Agent V1 (2026-05-02)
 
 Renan's parked "never-miss-relationships" idea — flag people waiting on you. Same infra pattern as the inbox card sprint, narrower scope.
 

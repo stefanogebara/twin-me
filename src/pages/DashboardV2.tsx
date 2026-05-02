@@ -13,6 +13,7 @@ import { DepartmentWidget } from './components/dashboard-v2/DepartmentWidget';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
 import MorningBriefingCard from '@/components/chat/MorningBriefingCard';
 import { EmailTriageCard } from '@/components/EmailTriageCard';
+import { RelationshipsCard } from '@/components/RelationshipsCard';
 import { useWebPush } from '@/hooks/useWebPush';
 
 const QUICK_ACTIONS = [
@@ -129,6 +130,8 @@ export function DashboardV2() {
       )}
 
       <EmailTriageCard />
+
+      <RelationshipsCard />
 
       <InsightsFeed
         insights={insights}
