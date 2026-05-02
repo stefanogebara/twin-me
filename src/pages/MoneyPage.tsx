@@ -524,6 +524,208 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   );
 }
 
+function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; currency: string }) {
+  if (!nudgeStats || nudgeStats.total_sent === 0) {
+    return (
+      <div style={{ ...CARD_STYLE, padding: '40px 24px', textAlign: 'center' }}>
+        <p
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontSize: 20,
+            color: 'rgba(255,255,255,0.65)',
+            letterSpacing: '-0.01em',
+            marginBottom: 8,
+          }}
+        >
+          Ainda sem avisos
+        </p>
+        <p
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 13,
+            color: 'rgba(255,255,255,0.40)',
+            lineHeight: 1.6,
+          }}
+        >
+          Quando o twin detectar que voce esta prestes a gastar sob stress,<br />
+          ele te avisa antes. Os avisos aparecem aqui com os resultados.
+        </p>
+      </div>
+    );
+  }
+
+  const winRate = nudgeStats.follow_rate !== null ? Math.round(nudgeStats.follow_rate * 100) : null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Hero — win counter */}
+      <div
+        style={{
+          ...CARD_STYLE,
+          padding: '24px 24px 20px',
+          background: nudgeStats.followed_count > 0
+            ? 'linear-gradient(135deg, rgba(134,239,172,0.08) 0%, rgba(255,255,255,0.03) 80%)'
+            : undefined,
+          borderColor: nudgeStats.followed_count > 0 ? 'rgba(134,239,172,0.20)' : undefined,
+        }}
+      >
+        <p style={{ ...LABEL_STYLE, color: 'rgba(134,239,172,0.85)', marginBottom: 10 }}>
+          Nudges & Wins · {nudgeStats.window_days} dias
+        </p>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <p
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: 32,
+                letterSpacing: '-0.03em',
+                color: 'rgba(134,239,172,0.95)',
+                lineHeight: 1.05,
+              }}
+            >
+              {nudgeStats.followed_count}
+            </p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
+              pausas
+            </p>
+          </div>
+          <div>
+            <p
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: 32,
+                letterSpacing: '-0.03em',
+                color: 'var(--foreground)',
+                lineHeight: 1.05,
+              }}
+            >
+              {winRate !== null ? `${winRate}%` : '—'}
+            </p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
+              taxa de pausa
+            </p>
+          </div>
+          <div>
+            <p
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: 32,
+                letterSpacing: '-0.03em',
+                color: nudgeStats.est_saved > 0 ? 'rgba(134,239,172,0.95)' : 'rgba(255,255,255,0.40)',
+                lineHeight: 1.05,
+              }}
+            >
+              {nudgeStats.est_saved > 0 ? formatCurrency(nudgeStats.est_saved, currency) : '—'}
+            </p>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4, fontFamily: "'Geist','Inter',sans-serif" }}>
+              economizado
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent nudge list */}
+      {Array.isArray(nudgeStats.recent) && nudgeStats.recent.length > 0 && (
+        <div style={{ ...CARD_STYLE, padding: '16px 0 4px' }}>
+          <p style={{ ...LABEL_STYLE, padding: '0 16px', marginBottom: 10 }}>Historico</p>
+          <div>
+            {nudgeStats.recent.map((n) => {
+              const whenTxt = new Date(n.created_at).toLocaleString('pt-BR', {
+                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+              });
+              let outcome: { text: string; bg: string; fg: string } | null = null;
+              if (n.checked) {
+                outcome = n.followed
+                  ? { text: 'pausou', bg: 'rgba(134,239,172,0.14)', fg: 'rgba(134,239,172,0.95)' }
+                  : { text: 'continuou', bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)' };
+              }
+              return (
+                <div
+                  key={n.id}
+                  className="flex items-start gap-3 px-4 py-3"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p
+                      style={{
+                        fontFamily: "'Geist','Inter',sans-serif",
+                        fontSize: 14,
+                        color: 'var(--foreground)',
+                        fontWeight: 500,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {n.title}
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "'Geist','Inter',sans-serif",
+                        fontSize: 12.5,
+                        color: 'rgba(255,255,255,0.55)',
+                        marginTop: 2,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {n.merchant
+                        ? `${formatCurrency(n.amount, currency)} em ${n.merchant}${n.stress_score !== null ? ` · stress ${Math.round(n.stress_score * 100)}%` : ''}`
+                        : n.body}
+                    </p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.30)', marginTop: 3, fontFamily: "'Geist','Inter',sans-serif" }}>
+                      {whenTxt}
+                    </p>
+                  </div>
+                  {outcome ? (
+                    <span
+                      className="flex-shrink-0 px-2 py-0.5 rounded-full"
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "'Geist','Inter',sans-serif",
+                        fontWeight: 500,
+                        background: outcome.bg,
+                        color: outcome.fg,
+                      }}
+                    >
+                      {outcome.text}
+                    </span>
+                  ) : (
+                    <span
+                      className="flex-shrink-0 px-2 py-0.5 rounded-full"
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "'Geist','Inter',sans-serif",
+                        background: 'rgba(255,255,255,0.04)',
+                        color: 'rgba(255,255,255,0.30)',
+                      }}
+                    >
+                      avaliando
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* If nudges were sent but no recent detail returned */}
+      {(!nudgeStats.recent || nudgeStats.recent.length === 0) && nudgeStats.total_sent > 0 && (
+        <div style={{ ...CARD_STYLE, padding: '20px 24px' }}>
+          <p
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: 16,
+              color: 'rgba(255,255,255,0.65)',
+              lineHeight: 1.5,
+            }}
+          >
+            {nudgeStats.total_sent} aviso{nudgeStats.total_sent === 1 ? '' : 's'} enviado{nudgeStats.total_sent === 1 ? '' : 's'} — avaliando resultados.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MoneyPage() {
   useDocumentTitle('Money · TwinMe');
 
@@ -536,6 +738,7 @@ export default function MoneyPage() {
   const [timeline, setTimeline] = useState<TimelineDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'gastos' | 'nudges'>('gastos');
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
   const [retagging, setRetagging] = useState(false);
 
@@ -641,7 +844,7 @@ export default function MoneyPage() {
         )}
       </div>
       <p
-        className="mb-8"
+        className="mb-6"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",
           fontSize: 19,
@@ -652,6 +855,63 @@ export default function MoneyPage() {
       >
         Seu dinheiro tem sentimentos. A gente traduz.
       </p>
+
+      {/* Tab bar */}
+      <div
+        className="flex gap-1 mb-6 p-1 rounded-[12px]"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.06)',
+          display: 'inline-flex',
+        }}
+      >
+        {(['gastos', 'nudges'] as const).map((tab) => {
+          const labels = { gastos: 'Gastos', nudges: 'Nudges & Wins' };
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                fontFamily: "'Geist','Inter',sans-serif",
+                fontSize: 13,
+                fontWeight: 500,
+                padding: '6px 16px',
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 120ms ease-out',
+                background: isActive ? 'rgba(255,255,255,0.10)' : 'transparent',
+                color: isActive ? 'var(--foreground)' : 'rgba(255,255,255,0.40)',
+              }}
+            >
+              {labels[tab]}
+              {tab === 'nudges' && nudgeStats && nudgeStats.followed_count > 0 && (
+                <span
+                  style={{
+                    marginLeft: 6,
+                    fontSize: 10,
+                    padding: '1px 6px',
+                    borderRadius: 20,
+                    background: 'rgba(134,239,172,0.20)',
+                    color: 'rgba(134,239,172,0.95)',
+                  }}
+                >
+                  {nudgeStats.followed_count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Nudges tab — dedicated view */}
+      {activeTab === 'nudges' && (
+        <NudgesTab nudgeStats={nudgeStats} currency={dominantCurrency} />
+      )}
+
+      {/* Main gastos view */}
+      {activeTab === 'gastos' && (<>
 
       {/* Connect a BR bank in real time via Pluggy Open Finance. Falls back to
           CSV/OFX upload below for banks Pluggy doesn't cover or users who
@@ -857,116 +1117,34 @@ export default function MoneyPage() {
         </div>
       )}
 
-      {/* Nudge feed — shows recent stress_nudge rows as cards, plus a rolled-up
-          effectiveness line when the retrospective cron has checked any. The
-          cards-per-nudge pattern follows Renan's "single canvas" call: each
-          nudge is an in-page moment, not hidden behind a push notification. */}
+      {/* Inline nudge summary in the gastos tab — just the counter, points to the tab */}
       {nudgeStats && nudgeStats.total_sent > 0 && (
         <div
-          className="mb-6 px-5 py-4"
+          className="mb-6 px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           style={{
             ...CARD_STYLE,
-            background: 'rgba(134, 239, 172, 0.04)',
-            borderColor: 'rgba(134, 239, 172, 0.14)',
+            background: 'rgba(134,239,172,0.04)',
+            borderColor: 'rgba(134,239,172,0.14)',
           }}
+          onClick={() => setActiveTab('nudges')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter') setActiveTab('nudges'); }}
         >
-          <p style={{ ...LABEL_STYLE, color: 'rgba(134, 239, 172, 0.85)', marginBottom: 10 }}>
-            Você ouvindo o twin · últimos {nudgeStats.window_days} dias
-          </p>
-          {nudgeStats.checked_count > 0 ? (
-            <p
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: 22,
-                color: 'var(--foreground)',
-                lineHeight: 1.25,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Você seguiu <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{nudgeStats.followed_count}</span> de {nudgeStats.checked_count} avisos
-              {nudgeStats.est_saved > 0 && (
-                <> · <span style={{ color: 'rgba(134, 239, 172, 0.95)' }}>{formatCurrency(nudgeStats.est_saved, dominantCurrency)}</span> pausados</>
-              )}
-              .
+          <div>
+            <p style={{ ...LABEL_STYLE, color: 'rgba(134,239,172,0.85)', marginBottom: 4 }}>
+              Nudges & Wins
             </p>
-          ) : (
-            <p
-              style={{
-                fontFamily: "'Instrument Serif', Georgia, serif",
-                fontSize: 18,
-                color: 'rgba(255,255,255,0.75)',
-                lineHeight: 1.3,
-              }}
-            >
-              {nudgeStats.total_sent} aviso{nudgeStats.total_sent === 1 ? '' : 's'} enviado{nudgeStats.total_sent === 1 ? '' : 's'} — avaliando se você respondeu.
+            <p style={{ fontFamily: "'Instrument Serif',Georgia,serif", fontSize: 16, color: 'var(--foreground)', lineHeight: 1.3 }}>
+              {nudgeStats.followed_count > 0
+                ? `${nudgeStats.followed_count} pausa${nudgeStats.followed_count === 1 ? '' : 's'} · ${formatCurrency(nudgeStats.est_saved, dominantCurrency)} economizados`
+                : `${nudgeStats.total_sent} aviso${nudgeStats.total_sent === 1 ? '' : 's'} enviados`}
             </p>
-          )}
-
-          {Array.isArray(nudgeStats.recent) && nudgeStats.recent.length > 0 && (
-            <div className="mt-4 flex flex-col gap-2">
-              {nudgeStats.recent.map((n) => {
-                const when = new Date(n.created_at);
-                const whenTxt = when.toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-                let outcomeChip: { text: string; bg: string; fg: string } | null = null;
-                if (n.checked) {
-                  outcomeChip = n.followed
-                    ? { text: 'você parou', bg: 'rgba(134, 239, 172, 0.14)', fg: 'rgba(134, 239, 172, 0.95)' }
-                    : { text: 'continuou', bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)' };
-                }
-                return (
-                  <div
-                    key={n.id}
-                    className="flex items-start gap-3 px-3 py-2.5 rounded-lg"
-                    style={{
-                      background: 'rgba(0,0,0,0.20)',
-                      border: '1px solid rgba(255,255,255,0.04)',
-                    }}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: 'rgba(255,255,255,0.85)',
-                          fontFamily: "'Geist', 'Inter', sans-serif",
-                          lineHeight: 1.45,
-                        }}
-                      >
-                        {n.merchant ? (
-                          <>
-                            {formatCurrency(n.amount, dominantCurrency)} em <span style={{ color: 'rgba(255,255,255,0.95)' }}>{n.merchant}</span>
-                            {n.stress_score !== null && (
-                              <> · stress {Math.round(n.stress_score * 100)}%</>
-                            )}
-                          </>
-                        ) : (
-                          n.title
-                        )}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, fontFamily: "'Geist', 'Inter', sans-serif" }}>
-                        {whenTxt}
-                      </div>
-                    </div>
-                    {outcomeChip && (
-                      <span
-                        className="px-2 py-0.5 rounded-full flex-shrink-0"
-                        style={{
-                          background: outcomeChip.bg,
-                          color: outcomeChip.fg,
-                          fontSize: 11,
-                          fontFamily: "'Geist', 'Inter', sans-serif",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {outcomeChip.text}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          </div>
+          <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.30)' }}>›</span>
         </div>
       )}
+
 
       {/* Stress-spending patterns — the "WHY you spend" UVP card */}
       {patterns && patterns.hasData && patterns.patterns.length > 0 && (
@@ -1158,6 +1336,8 @@ export default function MoneyPage() {
           </div>
         </div>
       )}
+
+      </>)}
     </div>
   );
 }
