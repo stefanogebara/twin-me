@@ -33,6 +33,188 @@ const SERVICE_NAME = 'soul-signature-5layer';
 const MIN_MEMORIES_FOR_GENERATION = 10;
 
 // ====================================================================
+// Single accessor — replaces 14 raw `from('soul_signatures')` reads.
+// audit-2026-05-08 architecture HIGH: every consumer should now go through
+// this accessor so we have one cache, one error handler, one schema-migration
+// point. Direct DB reads in routes/services are tech debt being paid down.
+// ====================================================================
+
+/**
+ * In-memory soul-signature cache. Per-process; fine for serverless because
+ * the row also lives in DB and the lookup is cheap. TTL kept short (90s)
+ * because the live row can change as soon as `generateSoulSignature` runs.
+ */
+const _soulSignatureCache = new Map(); // userId → { row, expiresAt }
+const SOUL_SIGNATURE_CACHE_TTL_MS = 90 * 1000;
+
+/**
+ * Look up a user's stored soul signature row.
+ *
+ * @param {string} userId — public.users.id
+ * @param {object} [opts]
+ * @param {boolean} [opts.bypassCache=false] — skip the in-process cache
+ * @param {string} [opts.select] — column projection (defaults to '*')
+ * @returns {Promise<object|null>} the row or null if no signature exists
+ */
+export async function getSoulSignature(userId, opts = {}) {
+  if (!userId) return null;
+  const select = opts.select || '*';
+  const cacheKey = `${userId}::${select}`;
+
+  if (!opts.bypassCache) {
+    const cached = _soulSignatureCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.row;
+    }
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('soul_signatures')
+      .select(select)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      log.warn('getSoulSignature failed', { userId, error: error.message });
+      return null;
+    }
+
+    _soulSignatureCache.set(cacheKey, {
+      row: data || null,
+      expiresAt: Date.now() + SOUL_SIGNATURE_CACHE_TTL_MS,
+    });
+    // Bound the cache so a long-lived dev process doesn't leak across users.
+    if (_soulSignatureCache.size > 500) {
+      const oldest = [..._soulSignatureCache.entries()]
+        .sort((a, b) => a[1].expiresAt - b[1].expiresAt)[0];
+      if (oldest) _soulSignatureCache.delete(oldest[0]);
+    }
+    return data || null;
+  } catch (err) {
+    log.warn('getSoulSignature threw', { userId, error: err.message });
+    return null;
+  }
+}
+
+/**
+ * Invalidate the cached signature for a user — call after writes so the next
+ * read sees the new row immediately.
+ */
+export function invalidateSoulSignatureCache(userId) {
+  if (!userId) return;
+  for (const k of _soulSignatureCache.keys()) {
+    if (k.startsWith(`${userId}::`)) _soulSignatureCache.delete(k);
+    if (k.startsWith(`public::${userId}::`)) _soulSignatureCache.delete(k);
+  }
+}
+
+/**
+ * Upsert a soul-signature row (one per user) and invalidate the in-process
+ * cache so the next read returns the new row immediately.
+ *
+ * Use this instead of raw `supabaseAdmin.from('soul_signatures').upsert(...)`
+ * so cache + audit-logging + schema-migration touchpoints stay centralized.
+ *
+ * `updated_at` is set to NOW() automatically — callers shouldn't pass it.
+ *
+ * @param {string} userId
+ * @param {object} fields — column values (excluding user_id, updated_at)
+ * @param {object} [opts]
+ * @param {boolean} [opts.returning=false] — set true to return the upserted row
+ * @returns {Promise<{ ok: true, row?: object } | { ok: false, error: Error }>}
+ */
+export async function upsertSoulSignature(userId, fields, opts = {}) {
+  if (!userId) return { ok: false, error: new Error('userId required') };
+  const payload = { ...fields, user_id: userId, updated_at: new Date().toISOString() };
+
+  let query = supabaseAdmin
+    .from('soul_signatures')
+    .upsert(payload, { onConflict: 'user_id' });
+  if (opts.returning) query = query.select().maybeSingle();
+
+  const { data, error } = await query;
+  if (error) {
+    log.warn('upsertSoulSignature failed', { userId, error: error.message });
+    return { ok: false, error };
+  }
+  invalidateSoulSignatureCache(userId);
+  return { ok: true, row: data || null };
+}
+
+/**
+ * Toggle the public-visibility flag on a user's soul signature.
+ * Returns the new is_public value (or null if no signature row exists).
+ */
+export async function setSoulSignatureVisibility(userId, isPublic) {
+  if (!userId) return { ok: false, error: new Error('userId required') };
+  if (typeof isPublic !== 'boolean') {
+    return { ok: false, error: new Error('isPublic must be boolean') };
+  }
+  const { data, error } = await supabaseAdmin
+    .from('soul_signatures')
+    .update({ is_public: isPublic, updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .select('is_public')
+    .maybeSingle();
+  if (error) {
+    log.warn('setSoulSignatureVisibility failed', { userId, error: error.message });
+    return { ok: false, error };
+  }
+  invalidateSoulSignatureCache(userId);
+  return { ok: true, isPublic: data?.is_public ?? null };
+}
+
+/**
+ * Look up a user's signature ONLY when it's been marked as publicly visible.
+ *
+ * audit-2026-05-08 architecture HIGH (pass 2): used by `og-image`,
+ * `portfolio-public`, `soul-signature-public` so they share the same cache
+ * and policy as authenticated reads. Returns `null` when the row exists but
+ * `is_public = false`, so callers can keep their current "404 if private"
+ * branches verbatim.
+ */
+export async function getPublicSoulSignature(userId, opts = {}) {
+  if (!userId) return null;
+  const select = opts.select || 'archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, icon_type, updated_at';
+  const cacheKey = `public::${userId}::${select}`;
+
+  if (!opts.bypassCache) {
+    const cached = _soulSignatureCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.row;
+    }
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('soul_signatures')
+      .select(select)
+      .eq('user_id', userId)
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      log.warn('getPublicSoulSignature failed', { userId, error: error.message });
+      return null;
+    }
+
+    _soulSignatureCache.set(cacheKey, {
+      row: data || null,
+      expiresAt: Date.now() + SOUL_SIGNATURE_CACHE_TTL_MS,
+    });
+    return data || null;
+  } catch (err) {
+    log.warn('getPublicSoulSignature threw', { userId, error: err.message });
+    return null;
+  }
+}
+
+// ====================================================================
 // LLM Prompts
 // ====================================================================
 

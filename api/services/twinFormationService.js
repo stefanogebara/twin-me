@@ -13,6 +13,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { generateChatResponse } from './anthropicService.js';
+import { upsertSoulSignature } from './soulSignatureService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TwinFormation');
@@ -236,9 +237,8 @@ What does this reveal about their personality or habits?`;
    */
   async saveTwin(userId, twinData) {
     try {
-      // Save to soul_signatures table (using actual schema columns)
-      const soulSignature = {
-        user_id: userId,
+      // Save to soul_signatures via shared accessor (cache + audit chokepoint).
+      const result = await upsertSoulSignature(userId, {
         archetype_name: twinData.archetype.name,
         archetype_subtitle: twinData.archetype.subtitle || twinData.archetype.group || 'Discovering your authentic self',
         narrative: twinData.narrative.content,
@@ -249,15 +249,8 @@ What does this reveal about their personality or habits?`;
         })),
         color_scheme: twinData.archetype.colorScheme || null,
         icon_type: twinData.archetype.iconType || 'default',
-        updated_at: new Date().toISOString()
-      };
-
-      const { data, error } = await supabaseAdmin
-        .from('soul_signatures')
-        .upsert(soulSignature, { onConflict: 'user_id' })
-        .select();
-
-      if (error) throw error;
+      });
+      if (!result.ok) throw result.error;
 
       // Save reflections
       if (twinData.reflections.length > 0) {

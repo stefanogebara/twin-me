@@ -16,6 +16,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { addMemory } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections } from '../services/reflectionEngine.js';
 import { generateGoalSuggestions } from '../services/goalTrackingService.js';
+import { upsertSoulSignature } from '../services/soulSignatureService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('OnboardingSoulSignature');
@@ -136,20 +137,16 @@ Respond in this exact JSON format:
       };
     }
 
-    // Save initial signature to database (awaited — critical for onboarding)
-    if (userId && supabaseAdmin && signature) {
-      const { error: sigError } = await supabaseAdmin
-        .from('soul_signatures')
-        .upsert({
-          user_id: userId,
-          archetype_name: signature.archetype_name,
-          archetype_subtitle: signature.signature_quote,
-          narrative: signature.first_impression,
-          defining_traits: signature.core_traits,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
-      if (sigError) {
-        log.error('Failed to save signature:', sigError.message);
+    // Save initial signature via the shared accessor (handles cache invalidation).
+    if (userId && signature) {
+      const result = await upsertSoulSignature(userId, {
+        archetype_name: signature.archetype_name,
+        archetype_subtitle: signature.signature_quote,
+        narrative: signature.first_impression,
+        defining_traits: signature.core_traits,
+      });
+      if (!result.ok) {
+        log.error('Failed to save signature:', result.error?.message);
       }
     }
 
