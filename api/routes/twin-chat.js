@@ -77,65 +77,14 @@ const router = express.Router();
 import { TWIN_BASE_INSTRUCTIONS, MAX_DYNAMIC_CONTEXT_CHARS, deduplicateByTheme, buildTwinSystemPrompt } from '../services/twinSystemPromptBuilder.js';
 import { maybeBuildAmbientHint } from '../services/ambientInterviewService.js';
 const MAX_ADDITIONAL_CONTEXT_CHARS = 12000; // ~3K tokens for writing profile, memories, history
-function getTimeAgo(timestamp) {
-  if (!timestamp) return 'recently';
-  const now = new Date();
-  const then = new Date(timestamp);
-  const diffMs = now - then;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return then.toLocaleDateString();
-}
-
-/**
- * Fetch user's soul signature from database
- */
-async function getSoulSignature(userId) {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('soul_signatures')
-      .select('archetype_name, archetype_subtitle, narrative, defining_traits, created_at, updated_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error || !data) return null;
-
-    return data;
-  } catch (err) {
-    log.error('Error fetching soul signature', { error: err });
-    return null;
-  }
-}
-
-/**
- * Fetch behavioral personality scores from database
- * Returns Big Five scores + confidence levels from behavioral evidence pipeline
- */
-async function getPersonalityScores(userId) {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('personality_scores')
-      .select('openness, conscientiousness, extraversion, agreeableness, neuroticism, openness_confidence, conscientiousness_confidence, extraversion_confidence, agreeableness_confidence, neuroticism_confidence, analyzed_platforms, source_type')
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) return null;
-    return data;
-  } catch (err) {
-    log.warn('Could not fetch personality scores', { error: err });
-    return null;
-  }
-}
-
 // P6: Dead platform fetchers removed — all platform data is now fetched by twinContextBuilder.js
+// 2026-05-09 monolith trim: getTimeAgo / getSoulSignature / getPersonalityScores
+// were declared here but never called in this file. Removed (~57 LOC).
+//   - The canonical getSoulSignature lives in services/soulSignatureService.js
+//     (with caching). Future callers should import from there to avoid the
+//     "soul signature read in 15 places via raw SQL" architecture finding.
+//   - getPersonalityScores duplicated logic available via the personality-
+//     profile route / personalityProfileService.
 
 /**
  * POST /api/chat/message - Send a message to your digital twin
