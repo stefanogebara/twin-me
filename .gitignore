@@ -191,3 +191,7 @@ production
 .playwright-mcp/
 .gstack/
 .env.prod.c8
+
+# audit-2026-05-08 hygiene — never commit backup files or zero-byte stubs
+*.backup
+*.backup_*
