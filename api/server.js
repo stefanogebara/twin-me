@@ -55,6 +55,15 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 
+// Soft-required: warn loudly if absent, but don't crash. audit-2026-05-08 LOW-2
+// — when ADMIN_EMAILS is empty the admin-beta routes return 403 silently with
+// no operator-visible signal. Surface it at boot so misconfiguration is loud.
+const SOFT_REQUIRED_ENV_VARS = ['ADMIN_EMAILS'];
+const missingSoft = SOFT_REQUIRED_ENV_VARS.filter(key => !process.env[key]);
+if (missingSoft.length > 0 && process.env.NODE_ENV === 'production') {
+  log.warn('Soft-required env vars not set — feature will silently 403', { missingSoft });
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -367,6 +376,7 @@ import documentRoutes from './routes/documents.js';
 import twinsRoutes from './routes/twins.js';
 import twinPortraitRoutes from './routes/twin-portrait.js';
 import twinChatRoutes from './routes/twin-chat.js';
+import twinConversationsRoutes from './routes/twin-conversations.js';
 import twinFirstMessageRoutes from './routes/twin-first-message.js';
 import chatUsageRoutes from './routes/chat-usage.js';
 import conversationsRoutes from './routes/conversations.js';
@@ -388,10 +398,10 @@ import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
-// Test/debug route imports moved to dynamic imports gated by NODE_ENV at the
-// mount sites — see below. Top-level imports execute on every prod cold start
-// even when the route is never mounted, parsing those modules + their
-// transitive deps for nothing. Dynamic import keeps prod cold starts lean.
+// audit-2026-05-08 code-quality HIGH: debug-platform-fetch + 3 test-* routes
+// were imported at top-level even though they're only mounted in dev. The
+// modules were parsed on every prod cold start. Defer to dynamic import at
+// the mount site so they no longer drag into the production bundle.
 import soulSignatureRoutes from './routes/soul-signature.js';
 import soulInsightsRoutes from './routes/soul-insights.js';
 import calendarOAuthRoutes from './routes/calendar-oauth.js';
@@ -463,7 +473,8 @@ import healthRoutes from './routes/health.js';
 import finetuningRoutes from './routes/finetuning.js';
 import betaPublicRoutes from './routes/beta-public.js';
 import betaSignupRoutes from './routes/beta.js';
-import { betaFeedbackRouter, betaAdminRouter } from './routes/beta-admin.js';
+import { betaAdminRouter } from './routes/beta-admin.js';
+import betaFeedbackRouter from './routes/beta-feedback.js';
 // OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
 let ogImageRoutes = null;
 try {
@@ -527,6 +538,8 @@ app.use('/api/twin', twinPortraitRoutes); // Twin portrait for Soul Signature pa
 app.use('/api/twin', twinFirstMessageRoutes); // Twin first message (GET /api/twin/first-message)
 app.use('/api/twin', twinChatRoutes); // Legacy placeholder
 app.use('/api/chat', twinChatRoutes); // Chat with Twin endpoint (POST /api/chat/message)
+app.use('/api/twin', twinConversationsRoutes); // /conversations + /history (extracted from twin-chat.js)
+app.use('/api/chat', twinConversationsRoutes); // same — preserves both URL prefixes
 app.use('/api/chat', chatUsageRoutes); // Chat usage tracking (GET /api/chat/usage)
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
@@ -584,11 +597,11 @@ app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
 app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights from graph metrics
-// Test/debug routes - only available in development. Dynamic import so the
-// route module isn't parsed in production cold starts.
+// Test/debug routes — only loaded + mounted in development. audit-2026-05-08
+// code-quality HIGH: dynamic imports keep these out of the production bundle.
 if (process.env.NODE_ENV === 'development') {
   const { default: testExtractionRoutes } = await import('./routes/test-extraction.js');
-  app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
+  app.use('/api/test-extraction', testExtractionRoutes);
 }
 app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
 app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpoints
@@ -597,7 +610,7 @@ app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist en
 app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes (context, today-insights, music)
 if (process.env.NODE_ENV === 'development') {
   const { default: testPatternLearningRoutes } = await import('./routes/test-pattern-learning.js');
-  app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
+  app.use('/api/test-pattern-learning', testPatternLearningRoutes);
 }
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
 app.use('/api/onboarding', onboardingCalibrationRoutes); // AI-driven calibration Q&A for cofounder.co-style onboarding
@@ -725,7 +738,7 @@ app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 ho
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 if (process.env.NODE_ENV === 'development') {
   const { default: debugPlatformFetchHandler } = await import('./routes/debug-platform-fetch.js');
-  app.use('/api/debug/platform-fetch', debugPlatformFetchHandler); // Diagnostic: direct fetcher call
+  app.use('/api/debug/platform-fetch', debugPlatformFetchHandler);
 }
 
 app.use('/api/finetuning', finetuningRoutes); // Behavioral finetuning (together.ai personality oracle)
@@ -733,7 +746,7 @@ app.use('/api/chat', finetuningRoutes); // Chat feedback endpoint (POST /api/cha
 app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
 if (process.env.NODE_ENV === 'development') {
   const { default: testEvidencePipelineRoutes } = await import('./routes/test-evidence-pipeline.js');
-  app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes); // Evidence pipeline debugging
+  app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes);
 }
 
 // Sentry error handler (must be after routes but before other error handlers)
