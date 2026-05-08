@@ -46,8 +46,8 @@ import { getTwinSummary } from '../services/twinSummaryService.js';
 import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
 import { getFeatureFlags } from '../services/featureFlagsService.js';
-import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { checkChatRateLimit, CHAT_RATE_LIMIT_MAX, CHAT_RATE_LIMIT_WINDOW_MS } from '../services/chatRateLimiter.js';
+import { trackChatMessage } from '../services/twinSessionTracker.js';
 import { runCitationPipeline } from '../services/citationExtractionService.js';
 import { strengthenCoCitedLinks } from '../services/memoryLinksService.js';
 import { fileQueryInsightIfValuable } from '../services/wikiCompilationService.js';
@@ -1310,45 +1310,9 @@ RULES:
       );
     }
 
-    // Session tracking for post-conversation reflection (Inngest)
-    // Track last message time. When 15 min pass without a message,
-    // Inngest triggers a session reflection (facts, HUMAN block update, follow-ups).
-    // Uses Redis with in-memory Map fallback (same pattern as chatRateLimitMap).
-    if (!evalMode) {
-      try {
-        let prevTimestamp = null;
-        const sessionKey = `twin:lastMsg:${userId}`;
-        const nowStr = Date.now().toString();
-
-        // Try Redis first
-        const client = getRedisClient();
-        if (client && isRedisAvailable()) {
-          prevTimestamp = await client.get(sessionKey);
-          await client.set(sessionKey, nowStr, 'EX', 1800); // 30 min TTL
-        } else {
-          // In-memory fallback
-          if (!global._twinSessionTracker) global._twinSessionTracker = new Map();
-          prevTimestamp = global._twinSessionTracker.get(userId);
-          global._twinSessionTracker.set(userId, nowStr);
-        }
-
-        // If there was a previous message and it was >15 min ago, a new session started
-        // The OLD session ended — trigger reflection for it
-        if (prevTimestamp) {
-          const gap = Date.now() - parseInt(prevTimestamp);
-          if (gap > 15 * 60 * 1000) { // 15 minute silence = session ended
-            log.info('Session gap detected, triggering reflection', { userId, gapMinutes: Math.round(gap / 60000) });
-            // Fire Inngest event for session reflection (non-blocking)
-            import('../services/inngestClient.js').then(({ inngest, EVENTS }) => {
-              inngest.send({ name: EVENTS.SESSION_ENDED, data: { userId } })
-                .catch(err => log.warn('Inngest session reflection trigger failed', { error: err }));
-            });
-          }
-        }
-      } catch (sessionErr) {
-        log.debug('Session tracking failed (non-fatal)', { error: sessionErr.message });
-      }
-    }
+    // Session tracking for post-conversation reflection (Inngest).
+    // Extracted to ../services/twinSessionTracker.js — audit ARCH-1.
+    if (!evalMode) trackChatMessage(userId);
 
     // Return response
     const responsePayload = {
