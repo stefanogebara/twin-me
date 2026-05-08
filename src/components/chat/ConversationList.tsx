@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus } from 'lucide-react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+const API_BASE = API_URL;
 
 interface Conversation {
   id: string;

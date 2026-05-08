@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+const API_BASE = API_URL;
 
 interface ChatUsage {
   used: number;

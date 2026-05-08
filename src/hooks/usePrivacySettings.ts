@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_URL } from '@/services/api/apiBase';
 import type {
   PrivacySettings,
   ContextualTwin,
@@ -12,7 +13,7 @@ import type {
   UpdateContextualTwinRequest,
 } from '@/types/privacy';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+const API_BASE = API_URL;
 
 // --- Demo mode fallback data (no API calls needed) ---
 // These are partial shapes — the real API returns richer objects, but the

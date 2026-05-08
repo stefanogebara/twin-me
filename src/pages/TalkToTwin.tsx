@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-import { getAccessToken, authFetch } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
@@ -62,7 +62,7 @@ interface Message {
   };
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+const API_BASE = API_URL;
 
 const CHAT_HISTORY_KEY = 'twin_chat_history';
 const CHAT_HISTORY_MAX = 20;
