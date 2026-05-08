@@ -458,7 +458,13 @@ const IdentityPage: React.FC = () => {
   // ── Guards ─────────────────────────────────────────────────────────────
 
   if (!user && !isDemoMode) return null;
-  if (isLoading) return <LoadingSkeleton />;
+
+  // Render skeleton only on truly cold loads (nothing in cache yet). On warm
+  // navigation back, data is already populated even though isLoading may flip
+  // true briefly — block on isLoading there caused the audit's reported 20 s
+  // hang on /identity (Vercel cold-start chain across 5 parallel fetches).
+  // Frontend audit CRITICAL #3.
+  if (isLoading && !summary && !layers) return <LoadingSkeleton />;
 
   if ((identityError || soulError) && !isDemoMode) {
     const errorMsg = (identityError as Error)?.message || (soulError as Error)?.message || 'Could not load your soul signature.';
