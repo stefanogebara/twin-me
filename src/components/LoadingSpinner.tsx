@@ -29,11 +29,11 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
     switch (variant) {
       case 'brain':
-        return <img src="/icons/3d/brain.png" alt="Loading" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
+        return <img src="/icons/3d/brain.webp" alt="Loading" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       case 'upload':
-        return <img src="/icons/3d/rocket.png" alt="Uploading" className="animate-bounce" style={{ width: clay3dSize, height: clay3dSize }} />;
+        return <img src="/icons/3d/rocket.webp" alt="Uploading" className="animate-bounce" style={{ width: clay3dSize, height: clay3dSize }} />;
       case 'chat':
-        return <img src="/icons/3d/chat-bubble.png" alt="Loading chat" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
+        return <img src="/icons/3d/chat-bubble.webp" alt="Loading chat" className="animate-pulse" style={{ width: clay3dSize, height: clay3dSize }} />;
       default:
         return <Loader2 className={baseClasses} style={{ color: 'var(--foreground)' }} />;
     }

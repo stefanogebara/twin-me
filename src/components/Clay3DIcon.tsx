@@ -27,7 +27,7 @@ export const Clay3DIcon = ({ name, size = 'md', className = '', alt }: Clay3DIco
 
   return (
     <img
-      src={`/icons/3d/${name}.png`}
+      src={`/icons/3d/${name}.webp`}
       alt={alt || name}
       width={px}
       height={px}
