@@ -328,15 +328,19 @@ export const DataTransparencyPanel: React.FC<DataTransparencyPanelProps> = ({
         )}
       </div>
 
-      {/* Privacy Notice */}
-      <div className="p-5 rounded-xl bg-blue-900/20 border-2 border-blue-800/30">
+      {/* Privacy Notice — design system uses dark glass surface (no navy blue per CLAUDE.md) */}
+      <div className="p-5 rounded-xl" style={{
+        background: 'var(--glass-surface-bg)',
+        border: '1px solid var(--glass-surface-border)',
+        backdropFilter: 'blur(42px)',
+      }}>
         <div className="flex items-start gap-3">
-          <Shield className="w-5 h-5 text-blue-400 mt-0.5" />
+          <Shield className="w-5 h-5 mt-0.5" style={{ color: 'var(--accent-vibrant)' }} />
           <div>
-            <h5 className="text-sm font-medium text-blue-900 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <h5 className="text-sm font-medium mb-1" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-primary)' }}>
               Your Data, Your Control
             </h5>
-            <p className="text-sm text-blue-800 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <p className="text-sm leading-relaxed" style={{ fontFamily: "'Inter', sans-serif", color: 'var(--text-secondary)' }}>
               All data is encrypted and stored securely. You can export or delete your data at any time.
               We never share your personal data with third parties without your explicit consent.
             </p>

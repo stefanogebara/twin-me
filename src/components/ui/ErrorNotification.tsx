@@ -44,7 +44,8 @@ const ErrorNotification: React.FC = () => {
       case 'success':
         return 'bg-green-900/20 border-green-800/30 text-green-800';
       case 'info':
-        return 'bg-blue-900/20 border-blue-800/30 text-blue-800';
+        // CLAUDE.md: never navy blue. Use the warm-amber accent for info notices.
+        return 'bg-[rgba(193,126,44,0.12)] border-[rgba(193,126,44,0.30)] text-[var(--accent-amber)]';
     }
   };
 
