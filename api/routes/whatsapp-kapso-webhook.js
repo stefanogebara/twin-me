@@ -22,6 +22,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { classifyMessageTier, CHAT_TIER_MODELS } from '../services/chatRouter.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
+import { checkChatRateLimit } from '../services/chatRateLimiter.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
@@ -222,16 +223,18 @@ router.post('/webhook', async (req, res) => {
     return res.sendStatus(403);
   }
 
-  // HMAC must be computed against the EXACT bytes the sender signed. JSON.stringify
-  // reorders keys, normalizes whitespace, and re-encodes non-ASCII — any of which
-  // breaks the signature for valid payloads OR (worse) accidentally matches a
-  // crafted payload whose serialization happens to round-trip. Fail closed if
-  // rawBody capture is missing instead of falling back.
-  if (!req.rawBody) {
-    log.error('rawBody missing — refusing to verify signature without it (check express.raw middleware order)');
+  // Use raw body for HMAC verification. audit-2026-05-08 HIGH-2: removed
+  // `|| JSON.stringify(req.body)` fallback because JSON re-serialisation
+  // produces different bytes than what Kapso signed (key order, non-ASCII,
+  // float formatting), which silently breaks signature checks for any
+  // real-world payload — or worse, lets crafted payloads pass. Fail closed
+  // if rawBody is missing so middleware-ordering regressions are visible.
+  const rawBody = req.rawBody;
+  if (!rawBody) {
+    log.error('rawBody missing — server.js:332-335 rawBody capture is misconfigured');
     return res.sendStatus(500);
   }
-  if (!verifyKapsoSignature(signature, req.rawBody)) {
+  if (!verifyKapsoSignature(signature, rawBody)) {
     log.warn('Webhook signature verification failed');
     return res.sendStatus(403);
   }
@@ -367,9 +370,20 @@ router.post('/webhook', async (req, res) => {
 // Twin chat pipeline (mirrors Telegram webhook pattern with smart routing)
 // ====================================================================
 async function processTwinMessage(userId, message) {
+  // Per-user rate limit (200 msg/h) — same ceiling as web twin
+  // (audit ARCH-Theme-1: cross-entry-point consistency).
+  const rateLimit = await checkChatRateLimit(userId);
+  if (!rateLimit.allowed) {
+    const minutes = Math.ceil((rateLimit.retryAfterMs || 0) / 60000);
+    return `You've been chatty (${rateLimit.used}/${rateLimit.limit} messages this hour). Take a breath — I'll be here in ${minutes || 'a few'} minutes.`;
+  }
+
   // Build context in parallel
   const [twinContext, coreBlocks, personalityProfile, soulLayers] = await Promise.all([
-    fetchTwinContext(userId, message).catch(() => ({})),
+    // audit-2026-05-08 architecture HIGH: opt into the same enrichment phase
+    // (neuropil + expert routing) the web twin runs, so WhatsApp twin stops
+    // being a stripped-down version.
+    fetchTwinContext(userId, message, { enrichments: true }).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
     getProfile(userId).catch(() => null),
     getSoulSignatureLayers(userId).catch(() => null),

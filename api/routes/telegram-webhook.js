@@ -17,6 +17,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { classifyMessageTier, CHAT_TIER_MODELS } from '../services/chatRouter.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
+import { checkChatRateLimit } from '../services/chatRateLimiter.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { buildPersonalityPrompt } from '../services/personalityPromptBuilder.js';
 import { getProfile, getSoulSignatureLayers } from '../services/personalityProfileService.js';
@@ -358,9 +359,19 @@ async function handleLinkCode(ctx, chatId, code) {
  * Simplified version of twin-chat.js for Telegram (non-streaming).
  */
 async function processTwinMessage(userId, message) {
-  // Build context (reuse existing pipeline)
+  // Per-user rate limit (200 msg/h) — same ceiling as web twin (audit
+  // ARCH-Theme-1: cross-entry-point consistency). Returns a friendly
+  // throttle message instead of an LLM response if exceeded.
+  const rateLimit = await checkChatRateLimit(userId);
+  if (!rateLimit.allowed) {
+    const minutes = Math.ceil((rateLimit.retryAfterMs || 0) / 60000);
+    return `You've been chatty today (${rateLimit.used}/${rateLimit.limit} messages this hour). Take a breath — I'll be here in ${minutes || 'a few'} minutes.`;
+  }
+
+  // Build context (reuse existing pipeline).
+  // audit-2026-05-08 architecture HIGH: enrichment parity with web twin.
   const [twinContext, coreBlocks, personalityProfile, soulLayers] = await Promise.all([
-    fetchTwinContext(userId, message).catch(() => ({})),
+    fetchTwinContext(userId, message, { enrichments: true }).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
     getProfile(userId).catch(() => null),
     getSoulSignatureLayers(userId).catch(() => null),

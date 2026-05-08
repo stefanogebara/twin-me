@@ -15,6 +15,7 @@ import { sendWhatsAppMessage, markMessageAsRead, verifyWebhookSignature } from '
 import { supabaseAdmin } from '../services/database.js';
 import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { fetchTwinContext } from '../services/twinContextBuilder.js';
+import { checkChatRateLimit } from '../services/chatRateLimiter.js';
 import { getBlocks, formatBlocksForPrompt } from '../services/coreMemoryService.js';
 import { addConversationMemory } from '../services/memoryStreamService.js';
 import { executeTool } from '../services/toolRegistry.js';
@@ -497,8 +498,17 @@ router.post('/webhook', async (req, res) => {
  * Process a conversational message (no tools).
  */
 async function processTwinMessage(userId, message) {
+  // Per-user rate limit (200 msg/h) — same ceiling as web twin
+  // (audit ARCH-Theme-1: cross-entry-point consistency).
+  const rateLimit = await checkChatRateLimit(userId);
+  if (!rateLimit.allowed) {
+    const minutes = Math.ceil((rateLimit.retryAfterMs || 0) / 60000);
+    return `You've been chatty (${rateLimit.used}/${rateLimit.limit} messages this hour). Take a breath — I'll be here in ${minutes || 'a few'} minutes.`;
+  }
+
   const [twinContext, coreBlocks] = await Promise.all([
-    fetchTwinContext(userId, message).catch(() => ({})),
+    // audit-2026-05-08 architecture HIGH: enrichment parity with web twin.
+    fetchTwinContext(userId, message, { enrichments: true }).catch(() => ({})),
     getBlocks(userId).catch(() => ({})),
   ]);
 
