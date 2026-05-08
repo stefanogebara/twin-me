@@ -8,7 +8,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { FeedbackWidget } from './FeedbackWidget';
 import { DEMO_TODAY_INSIGHTS } from '../services/demoDataService';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
@@ -130,7 +130,7 @@ export const TodayInsights: React.FC = () => {
       }
 
       const token = getAccessToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/today-insights`, {
+      const response = await fetch(`${API_URL}/twin/today-insights`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to fetch insights');

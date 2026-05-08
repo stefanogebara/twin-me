@@ -3,6 +3,7 @@ import { DEMO_USER } from '../services/demoDataService';
 import { setAccessToken, getAccessToken, clearAccessToken, authFetch } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 
+import { API_URL } from '@/services/api/apiBase';
 /**
  * AuthContext - Authentication Management
  *
@@ -103,7 +104,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const verifyTokenWithServer = (token: string, signal: AbortSignal) =>
-    fetch(`${import.meta.env.VITE_API_URL}/auth/verify`, {
+    fetch(`${API_URL}/auth/verify`, {
       headers: {
         'Authorization': `Bearer ${token}`
       },
@@ -253,7 +254,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('twinme_account_created', createdAt);
         }
         // Non-blocking: check if new user needs onboarding
-        fetch(`${import.meta.env.VITE_API_URL}/onboarding/new-user-check`, {
+        fetch(`${API_URL}/onboarding/new-user-check`, {
           headers: { 'Authorization': `Bearer ${tokenToVerify}` }
         })
           .then(r => r.ok ? r.json() : null)
@@ -299,7 +300,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Tell the server to invalidate the refresh token cookie
     const token = getAccessToken();
     if (token) {
-      fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+      fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         credentials: 'include',
@@ -320,7 +321,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Before clearing, tell the server to invalidate the refresh token cookie
     const token = getAccessToken();
     if (token) {
-      fetch(`${import.meta.env.VITE_API_URL}/auth/logout`, {
+      fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         credentials: 'include',
@@ -339,7 +340,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     }
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/refresh`, {
+      const response = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -388,7 +389,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signInWithOAuth = async (provider: 'google', redirectAfterAuth?: string) => {
     // Build OAuth URL with query parameters
-    let oauthUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}`;
+    let oauthUrl = `${API_URL}/auth/oauth/${provider}`;
     const params = new URLSearchParams();
 
     if (redirectAfterAuth) {
@@ -418,7 +419,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     sessionStorage.setItem('oauth_state_nonce', nonce);
     params.set('nonce', nonce);
     // Rebuild URL with updated params (nonce now included)
-    const finalUrl = `${import.meta.env.VITE_API_URL}/auth/oauth/${provider}?${params.toString()}`;
+    const finalUrl = `${API_URL}/auth/oauth/${provider}?${params.toString()}`;
 
     // Probe the endpoint before redirecting — a 429 would show raw JSON in the browser
     // (window.location.href navigates away before React can catch the error)

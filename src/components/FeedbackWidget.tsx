@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Star, MessageSquare, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 interface FeedbackWidgetProps {
   recommendationId: string;
@@ -66,7 +66,7 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
     setIsSubmitting(true);
     try {
       const token = getAccessToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/twin/feedback`, {
+      const response = await fetch(`${API_URL}/twin/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

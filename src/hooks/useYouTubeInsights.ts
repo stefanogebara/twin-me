@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { API_URL } from '@/services/api/apiBase';
 // TypeScript Interfaces
 export interface YouTubeVideo {
   title: string;
@@ -70,7 +71,7 @@ export const useYouTubeInsights = ({ userId, enabled = true }: UseYouTubeInsight
     queryKey: ['youtube-insights', userId],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/test-extraction/youtube-insights/${userId}`,
+        `${API_URL}/test-extraction/youtube-insights/${userId}`,
         {
           credentials: 'include',
           headers: {

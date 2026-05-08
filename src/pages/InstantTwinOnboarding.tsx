@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { getAccessToken, authFetch } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
@@ -213,7 +213,7 @@ const InstantTwinOnboarding = () => {
       };
 
       const token = getAccessToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/twins`, {
+      const response = await fetch(`${API_URL}/twins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

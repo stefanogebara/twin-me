@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { setAccessToken } from '@/services/api/apiBase';
+import { API_URL, setAccessToken } from '@/services/api/apiBase';
 
 const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
 
@@ -85,7 +85,7 @@ const OAuthCallback = () => {
         const authCodeParam = searchParams.get('auth_code');
         if (authCodeParam && !code) {
           const claimResponse = await fetch(
-            `${import.meta.env.VITE_API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}`
+            `${API_URL}/auth/oauth/claim?auth_code=${encodeURIComponent(authCodeParam)}`
           );
           if (!claimResponse.ok) {
             setStatus('error');
@@ -204,7 +204,7 @@ const OAuthCallback = () => {
               break;
           }
 
-          response = await fetch(`${import.meta.env.VITE_API_URL}${callbackEndpoint}`, {
+          response = await fetch(`${API_URL}${callbackEndpoint}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -216,7 +216,7 @@ const OAuthCallback = () => {
           });
         } else {
           // Handle main auth OAuth callback
-          response = await fetch(`${import.meta.env.VITE_API_URL}/auth/oauth/callback`, {
+          response = await fetch(`${API_URL}/auth/oauth/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
