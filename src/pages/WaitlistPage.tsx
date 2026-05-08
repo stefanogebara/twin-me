@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useAnalytics } from '../contexts/AnalyticsContext';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL } from '@/services/api/apiBase';
 
 const WaitlistPage = () => {
   const [searchParams] = useSearchParams();

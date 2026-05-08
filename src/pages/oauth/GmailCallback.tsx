@@ -8,6 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { API_URL } from '@/services/api/apiBase';
 
 const GmailCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -55,7 +56,7 @@ const GmailCallback: React.FC = () => {
       }
 
       // Send callback data to backend
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+      const apiUrl = API_URL;
       const token = localStorage.getItem('authToken');
 
       if (!token) {

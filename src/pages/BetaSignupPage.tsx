@@ -2,8 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, ArrowLeft, Check, ClipboardCopy } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL } from '@/services/api/apiBase';
 
 const PLATFORMS = [
   { id: 'spotify', label: 'Spotify' },

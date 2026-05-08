@@ -15,7 +15,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 // ========================================================================
 // Types
@@ -364,7 +364,7 @@ const AdminLLMCosts: React.FC = () => {
     try {
       const token = getAccessToken();
       const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-      const apiUrl = import.meta.env.VITE_API_URL || '';
+      const apiUrl = API_URL;
 
       const [summaryRes, dailyRes, realtimeRes, userRes, deptBudgetRes] = await Promise.all([
         fetch(`${apiUrl}/admin/llm-costs?days=${days}`, { headers }),

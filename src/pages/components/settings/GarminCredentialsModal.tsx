@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_URL } from '@/services/api/apiBase';
 
 interface GarminCredentialsModalProps {
   open: boolean;
@@ -25,7 +26,7 @@ export function GarminCredentialsModal({ open, onClose, onSuccess }: GarminCrede
 
     setLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+      const baseUrl = API_URL;
       const res = await fetch(`${baseUrl}/connectors/garmin/credentials`, {
         method: 'POST',
         headers: {

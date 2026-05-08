@@ -4,7 +4,7 @@ import { Upload, File, X, CheckCircle, AlertCircle, FileText, Video, Music, Imag
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
-import { getAccessToken } from '../../services/api/apiBase';
+import { API_URL, getAccessToken } from '../../services/api/apiBase';
 
 interface UploadedFile {
   fileName: string;
@@ -61,7 +61,7 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
   const [completedFiles, setCompletedFiles] = useState<UploadedFile[]>([]);
   const { toast } = useToast();
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+  const API_BASE_URL = API_URL;
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!twinId || twinId === 'placeholder') {

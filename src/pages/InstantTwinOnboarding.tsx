@@ -227,10 +227,9 @@ const InstantTwinOnboarding = () => {
       if (response.ok && (result.id || result.twin?.id)) {
         setCurrentStep(2);
 
-        const VITE_API_URL = import.meta.env.VITE_API_URL;
         const sigController = new AbortController();
         const sigTimeout = setTimeout(() => sigController.abort(), 15000);
-        fetch(`${VITE_API_URL}/onboarding/instant-signature`, {
+        fetch(`${API_URL}/onboarding/instant-signature`, {
           method: 'POST',
           signal: sigController.signal,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

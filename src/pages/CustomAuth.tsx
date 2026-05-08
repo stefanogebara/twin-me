@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { Loader2, X, Check, Ticket } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL } from '@/services/api/apiBase';
 
 const CustomAuth = () => {
   const navigate = useNavigate();
@@ -12,10 +11,13 @@ const CustomAuth = () => {
   const { signInWithOAuth, isSignedIn, isLoaded } = useAuth();
   const { trackFunnel } = useAnalytics();
 
-  // Redirect already-signed-in users away from auth page
+  // Redirect already-signed-in users away from auth page, unless `?view=public`
+  // is set (lets marketers QA the auth UI while signed-in and supports a
+  // future "sign in as different user" flow without forcing a logout).
   useEffect(() => {
+    if (searchParams.get('view') === 'public') return;
     if (isLoaded && isSignedIn) navigate('/dashboard', { replace: true });
-  }, [isLoaded, isSignedIn, navigate]);
+  }, [isLoaded, isSignedIn, navigate, searchParams]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

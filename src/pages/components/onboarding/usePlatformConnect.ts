@@ -5,7 +5,7 @@
 
 import { useCallback } from 'react';
 import { DataProvider } from '@/types/data-integration';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
@@ -100,7 +100,7 @@ export function usePlatformConnect({
     const platformName = AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name || provider;
     let retryCount = 0;
     const maxRetries = 3;
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+    const baseUrl = API_URL;
 
     const verifyConnection = async () => {
       const nangoIntegrationId = NANGO_PROVIDER_MAP[provider] || provider;
@@ -195,7 +195,7 @@ export function usePlatformConnect({
         description: `Redirecting to ${connector?.name || provider}`,
       });
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+      const baseUrl = API_URL;
 
       // Garmin uses direct credential login (no OAuth developer approval available)
       if (provider === 'garmin') {
@@ -383,7 +383,7 @@ export function usePlatformConnect({
     optimisticDisconnect(provider);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+      const baseUrl = API_URL;
 
       const fetchOptions: RequestInit = {
         method: 'DELETE',
