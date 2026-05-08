@@ -6,6 +6,7 @@
  */
 
 import { supabaseAdmin } from './database.js';
+import { getSoulSignature } from './soulSignatureService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('BrainMigration');
@@ -766,14 +767,9 @@ class BrainMigrationService {
 
     log.info('Processing Soul Signature traits...');
 
-    // Get soul signature
-    const { data: soulSignature, error } = await this.supabase
-      .from('soul_signatures')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !soulSignature) {
+    // Get soul signature via shared accessor (cached, single source of truth).
+    const soulSignature = await getSoulSignature(userId);
+    if (!soulSignature) {
       log.info('No soul signature found for user');
       return;
     }

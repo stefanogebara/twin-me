@@ -13,7 +13,7 @@ const gmailFeatureExtractor = { extractFeatures: async () => ({}) };
 const outlookFeatureExtractor = { extractFeatures: async () => ({}) };
 const linkedinFeatureExtractor = { extractFeatures: async () => ({}) };
 import uniquePatternDetector from '../services/uniquePatternDetector.js';
-import { generateSoulSignature } from '../services/soulSignatureService.js';
+import { generateSoulSignature, getSoulSignature } from '../services/soulSignatureService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('SoulSignature');
@@ -243,19 +243,11 @@ router.get('/archetype', authenticateToken, async (req, res) => {
 
     log.info(`Fetching archetype for user ${userId}`);
 
-    // First try soul_signatures table
-    const { data: signature, error } = await supabaseAdmin
-      .from('soul_signatures')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (signature && !error) {
+    // First try soul_signatures table via shared accessor (cached).
+    const signature = await getSoulSignature(userId);
+    if (signature) {
       log.info(`Found soul signature: ${signature.archetype_name}`);
-      return res.json({
-        success: true,
-        data: signature
-      });
+      return res.json({ success: true, data: signature });
     }
 
     // Fall back to personality_estimates (from 60-question assessment)
@@ -556,12 +548,7 @@ router.post('/generate', authenticateToken, async (req, res) => {
 
     // Check if user already has a soul signature
     if (!force_refresh) {
-      const { data: existing } = await supabaseAdmin
-        .from('soul_signatures')
-        .select('id, created_at')
-        .eq('user_id', userId)
-        .single();
-
+      const existing = await getSoulSignature(userId, { select: 'id, created_at' });
       if (existing) {
         return res.json({
           success: false,

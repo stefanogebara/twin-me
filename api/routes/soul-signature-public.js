@@ -9,6 +9,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
+import { getPublicSoulSignature, getSoulSignature, invalidateSoulSignatureCache } from '../services/soulSignatureService.js';
 
 const log = createLogger('SoulSignaturePublic');
 // Lazy import to avoid crashing if OG image module fails to load
@@ -42,15 +43,10 @@ router.get('/public/:userId', async (req, res) => {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
     }
 
-    // Fetch soul signature only if public
-    const { data: signature, error } = await supabaseAdmin
-      .from('soul_signatures')
-      .select('archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, icon_type, updated_at')
-      .eq('user_id', userId)
-      .eq('is_public', true)
-      .single();
-
-    if (error || !signature) {
+    // Fetch soul signature only if public.
+    // audit-2026-05-08: canonical public accessor for cache reuse.
+    const signature = await getPublicSoulSignature(userId);
+    if (!signature) {
       return res.status(404).json({ success: false, error: 'Soul signature not found or not public' });
     }
 
@@ -108,7 +104,9 @@ router.patch('/visibility', authenticateUser, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to update visibility' });
     }
 
-    // Invalidate OG card cache when visibility changes
+    // Invalidate OG card cache + soul-signature accessor cache when visibility changes
+    // (audit-2026-05-08: writes must invalidate the in-process accessor cache).
+    invalidateSoulSignatureCache(userId);
     await invalidateOgCache(userId).catch(err =>
       log.warn('Cache invalidation failed:', err.message)
     );
@@ -136,13 +134,8 @@ router.get('/share-status', authenticateUser, async (req, res) => {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('soul_signatures')
-      .select('is_public')
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) {
+    const data = await getSoulSignature(userId, { select: 'is_public' });
+    if (!data) {
       return res.json({ success: true, is_public: false, has_signature: false });
     }
 
