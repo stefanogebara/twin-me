@@ -72,8 +72,25 @@ export const DEDUP_WINDOWS_MS = {
 };
 
 /**
+ * Long-window cap for the exact-content check. Some "current_state" facts
+ * are stable across weeks (e.g. "Member of 16 Discord communities") and
+ * should not be re-inserted every cron cycle just because the short window
+ * has expired. The 2026-05-08 audit found 1,957 duplicates (8.3 % of test
+ * user's platform_data) caused by this gap — top dup repeated 41×.
+ */
+const EXACT_CONTENT_DEDUP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+
+/**
  * Check if a similar observation already exists within the appropriate time window.
- * Uses content-type-aware windows when contentType is provided, defaults to 1 hour.
+ *
+ * Two-layer check:
+ *   1. NEAR-DUPLICATE (content-type window): catches semantically similar rows
+ *      written close together — e.g. two "user is listening to indie rock"
+ *      observations within the 30-minute current_state window.
+ *   2. EXACT CONTENT (14-day window): catches identical strings from stable
+ *      facts that the periodic ingestion would otherwise rewrite once per
+ *      cycle. When an exact match is found, the existing row's
+ *      `last_accessed_at` is refreshed so the recency signal survives.
  *
  * @param {string} userId
  * @param {string} platform
@@ -85,6 +102,32 @@ export async function isDuplicate(userId, platform, content, contentType) {
     const supabase = await getSupabase();
     if (!supabase) return false;
 
+    // Layer 2: exact-content match within the long window (cheaper to query
+    // because we filter on the indexed user_id + memory_type + content).
+    const longCutoff = new Date(Date.now() - EXACT_CONTENT_DEDUP_WINDOW_MS).toISOString();
+    const { data: exactRows } = await supabase
+      .from('user_memories')
+      .select('id, last_accessed_at')
+      .eq('user_id', userId)
+      .eq('memory_type', 'platform_data')
+      .eq('content', content)
+      .gte('created_at', longCutoff)
+      .limit(1);
+
+    if (exactRows && exactRows.length > 0) {
+      // Touch last_accessed_at so retrieval recency reflects "we still see
+      // this fact today" without bloating the table with another row.
+      const id = exactRows[0].id;
+      supabase
+        .from('user_memories')
+        .update({ last_accessed_at: new Date().toISOString() })
+        .eq('id', id)
+        .then(() => {})
+        .catch(err => log.warn('Failed to touch existing memory on dedup hit', { error: err?.message, id }));
+      return true;
+    }
+
+    // Layer 1: near-duplicate match within the type-specific short window.
     const windowMs = (contentType && DEDUP_WINDOWS_MS[contentType]) || DEDUP_WINDOWS_MS.current_state;
     const cutoff = new Date(Date.now() - windowMs).toISOString();
 
