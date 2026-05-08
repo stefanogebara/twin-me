@@ -388,14 +388,15 @@ import sseRoutes from './routes/sse.js';
 import queueDashboardRoutes from './routes/queue-dashboard.js';
 import cronPatternLearningHandler from './routes/cron-pattern-learning.js';
 import cronObservationIngestionHandler from './routes/cron-observation-ingestion.js';
-import debugPlatformFetchHandler from './routes/debug-platform-fetch.js';
+// Test/debug route imports moved to dynamic imports gated by NODE_ENV at the
+// mount sites — see below. Top-level imports execute on every prod cold start
+// even when the route is never mounted, parsing those modules + their
+// transitive deps for nothing. Dynamic import keeps prod cold starts lean.
 import soulSignatureRoutes from './routes/soul-signature.js';
 import soulInsightsRoutes from './routes/soul-insights.js';
-import testExtractionRoutes from './routes/test-extraction.js';
 import calendarOAuthRoutes from './routes/calendar-oauth.js';
 import spotifyOAuthRoutes from './routes/spotify-oauth.js';
 import intelligentTwinRoutes from './routes/intelligent-twin.js';
-import testPatternLearningRoutes from './routes/test-pattern-learning.js';
 import onboardingQuestionsRoutes from './routes/onboarding-questions.js';
 import bigFiveRoutes from './routes/big-five.js';
 import platformInsightsRoutes from './routes/platform-insights.js';
@@ -459,7 +460,6 @@ import emailUnsubscribeRoutes from './routes/email-unsubscribe.js';
 import personalityProfileRoutes from './routes/personality-profile.js';
 import systemHealthRoutes from './routes/system-health.js';
 import healthRoutes from './routes/health.js';
-import testEvidencePipelineRoutes from './routes/test-evidence-pipeline.js';
 import finetuningRoutes from './routes/finetuning.js';
 import betaPublicRoutes from './routes/beta-public.js';
 import betaSignupRoutes from './routes/beta.js';
@@ -584,8 +584,10 @@ app.use('/api/sse', sseRoutes); // Server-Sent Events for real-time updates
 app.use('/api/queues', queueDashboardRoutes); // Bull Board job queue dashboard
 app.use('/api/soul-signature', soulSignatureRoutes); // Soul Signature Analysis with Claude AI
 app.use('/api/soul-insights', soulInsightsRoutes); // User-friendly insights from graph metrics
-// Test/debug routes - only available in development
+// Test/debug routes - only available in development. Dynamic import so the
+// route module isn't parsed in production cold starts.
 if (process.env.NODE_ENV === 'development') {
+  const { default: testExtractionRoutes } = await import('./routes/test-extraction.js');
   app.use('/api/test-extraction', testExtractionRoutes); // Demo data extraction endpoints
 }
 app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
@@ -594,6 +596,7 @@ app.use('/api/oauth/spotify', spotifyOAuthRoutes); // Spotify OAuth connect endp
 app.use('/api/spotify', spotifyOAuthRoutes); // Spotify playback and playlist endpoints
 app.use('/api/twin', intelligentTwinRoutes); // Intelligent Twin Engine routes (context, today-insights, music)
 if (process.env.NODE_ENV === 'development') {
+  const { default: testPatternLearningRoutes } = await import('./routes/test-pattern-learning.js');
   app.use('/api/test-pattern-learning', testPatternLearningRoutes); // Pattern learning test/debug endpoints
 }
 app.use('/api/onboarding', onboardingQuestionsRoutes); // Personality questionnaire for personalization
@@ -721,6 +724,7 @@ app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for dige
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
 app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
 if (process.env.NODE_ENV === 'development') {
+  const { default: debugPlatformFetchHandler } = await import('./routes/debug-platform-fetch.js');
   app.use('/api/debug/platform-fetch', debugPlatformFetchHandler); // Diagnostic: direct fetcher call
 }
 
@@ -728,6 +732,7 @@ app.use('/api/finetuning', finetuningRoutes); // Behavioral finetuning (together
 app.use('/api/chat', finetuningRoutes); // Chat feedback endpoint (POST /api/chat/feedback) — shared router
 app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
 if (process.env.NODE_ENV === 'development') {
+  const { default: testEvidencePipelineRoutes } = await import('./routes/test-evidence-pipeline.js');
   app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes); // Evidence pipeline debugging
 }
 
