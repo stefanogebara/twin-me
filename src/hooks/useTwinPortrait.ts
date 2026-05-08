@@ -9,9 +9,8 @@
 import { useQuery } from '@tanstack/react-query';
 import type { TwinPortraitData } from '../pages/components/soul-portrait/types';
 import { DEMO_TWIN_PORTRAIT } from '../services/demoDataService';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL;
 
 async function fetchPortrait(): Promise<TwinPortraitData> {
   const token = getAccessToken();

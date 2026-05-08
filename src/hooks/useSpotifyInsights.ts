@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
+import { API_URL } from '@/services/api/apiBase';
 export interface SpotifyArtist {
   name: string;
   plays: number;

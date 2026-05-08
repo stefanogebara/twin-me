@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { ArrowRight, Brain, Music, Calendar } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
+import { API_URL } from '@/services/api/apiBase';
 interface AwakeningScreenProps {
   onEnter: () => void;
 }

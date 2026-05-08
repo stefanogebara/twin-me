@@ -8,7 +8,7 @@ import { DataProvider } from '@/types/data-integration';
 import { PlatformStatusData } from './onboardingTypes';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { PlatformTile } from '../../onboarding/components/PlatformTile';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
 import GoogleWorkspaceConnect from '../settings/GoogleWorkspaceConnect';
@@ -67,7 +67,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   const [pitchHooks, setPitchHooks] = useState<Record<string, string>>({});
   useEffect(() => {
     if (isDemoMode || !userId) return;
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+
     const token = getAccessToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;

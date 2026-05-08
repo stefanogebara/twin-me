@@ -1,9 +1,8 @@
 // src/components/PaywallModal.tsx
 import React, { useState } from 'react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const PLANS = [
   {

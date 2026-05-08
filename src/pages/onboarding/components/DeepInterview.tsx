@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useVoiceInterview, type OrbVoiceState } from '../../../hooks/useVoiceInterview';
 import SoulOrb from './SoulOrb';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import ModeSelectionScreen from './interview/ModeSelectionScreen';
 import InterviewCompletion from './interview/InterviewCompletion';
 import ChatInputArea from './interview/ChatInputArea';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+
 const ELEVENLABS_AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || '';
 
 

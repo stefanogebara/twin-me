@@ -7,10 +7,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { MessageCircle, Check, Loader2, ExternalLink } from 'lucide-react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { TWIN_WHATSAPP_DISPLAY, TWIN_WHATSAPP_LINK } from '@/lib/whatsappConstants';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = getAccessToken();

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, Loader2, ChevronRight } from 'lucide-react';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 interface Platform {
   id: string;

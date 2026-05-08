@@ -1,9 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Check, Lock, ArrowRight, X } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
-import { getAccessToken } from '@/services/api/apiBase';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 interface GoogleWorkspaceConnectProps {
   connectorStatus: Record<string, any>;

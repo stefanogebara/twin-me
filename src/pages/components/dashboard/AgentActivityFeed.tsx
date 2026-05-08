@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, CheckCircle2, XCircle, Clock, Zap } from 'lucide-react';
-import { getAccessToken, isDemoMode } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const getAuthHeaders = () => {
   const token = getAccessToken();

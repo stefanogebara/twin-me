@@ -3,8 +3,8 @@ import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { safeRedirect } from '@/lib/safeRedirect';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
+import { API_URL } from '@/services/api/apiBase';
 interface PlatformCardProps {
   name: string;
   description: string;

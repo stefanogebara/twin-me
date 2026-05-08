@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { useDemo } from '../contexts/DemoContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
 import { Download, Info, ArrowRight, Send, ExternalLink, Check, Brain } from 'lucide-react';
@@ -16,7 +16,6 @@ import ChatImportCard from './components/settings/ChatImportCard';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import TwinIntelligence from './components/settings/TwinIntelligence';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 const getAuthHeaders = () => {
   const token = getAccessToken();

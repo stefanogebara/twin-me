@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 import { AlertTriangle, X, RefreshCw, Bell } from 'lucide-react';
 import { PLATFORM_DISPLAY_NAMES } from '@/lib/platformNames';
@@ -44,7 +44,6 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
   const { data: platformStatus } = usePlatformStatus(user?.id);
 

@@ -3,10 +3,9 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import { enrichmentService } from '@/services/enrichmentService';
 import type { PlatformDataPoint } from '@/services/enrichmentService';
 import TwinLearningOverlay from './TwinLearningOverlay';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 interface Platform {
   id: string;

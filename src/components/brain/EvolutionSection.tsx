@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import { TrendingUp, ArrowRight, Calendar } from 'lucide-react';
 import { BigFiveRadarChart } from '../PersonalityRadarChart';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 // Types
 interface PersonalitySnapshot {
@@ -127,7 +127,6 @@ export function EvolutionSection({ compact = false }: EvolutionSectionProps) {
   const [data, setData] = useState<EvolutionData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = import.meta.env.VITE_API_URL as string;
 
   useEffect(() => {
     const token = getAccessToken();

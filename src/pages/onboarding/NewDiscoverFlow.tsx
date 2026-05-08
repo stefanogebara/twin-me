@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { enrichmentService, QuickEnrichmentData, EnrichmentData, PersonalizedQuestion, OnboardingBriefing } from '@/services/enrichmentService';
 import ParticleField from './components/ParticleField';
 import PlatformConnectStep from './components/PlatformConnectStep';
@@ -12,7 +12,6 @@ import RevealPhase from './components/RevealPhase';
 import DeepeningPhase from './components/DeepeningPhase';
 import OnboardingExplainer from './components/OnboardingExplainer';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3004/api';
 
 // Infer name from email
 const inferNameFromEmail = (email: string): string => {
