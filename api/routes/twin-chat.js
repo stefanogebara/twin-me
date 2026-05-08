@@ -13,7 +13,7 @@ import express from 'express';
 import { complete, stream as streamLLM, TIER_CHAT } from '../services/llmGateway.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { serverDb, supabaseAdmin } from '../services/database.js';
+import { supabaseAdmin } from '../services/database.js';
 import { getMonthlyUsage } from './chat-usage.js';
 import { PLAN_DISPLAY_NAMES } from '../services/subscriptionService.js';
 
@@ -42,11 +42,10 @@ import {
 } from '../services/memoryStreamService.js';
 import { shouldTriggerReflection, generateReflections, seedReflections } from '../services/reflectionEngine.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
-import { getTwinSummary } from '../services/twinSummaryService.js';
-import { getUndeliveredInsights, markInsightsDelivered } from '../services/proactiveInsights.js';
+import { markInsightsDelivered } from '../services/proactiveInsights.js';
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
 import { getFeatureFlags } from '../services/featureFlagsService.js';
-import { checkChatRateLimit, CHAT_RATE_LIMIT_MAX, CHAT_RATE_LIMIT_WINDOW_MS } from '../services/chatRateLimiter.js';
+import { checkChatRateLimit } from '../services/chatRateLimiter.js';
 import { trackChatMessage } from '../services/twinSessionTracker.js';
 import { runCitationPipeline } from '../services/citationExtractionService.js';
 import { strengthenCoCitedLinks } from '../services/memoryLinksService.js';
@@ -74,7 +73,7 @@ const router = express.Router();
 
 // Platform data cache - prevents redundant API calls during conversations
 
-import { TWIN_BASE_INSTRUCTIONS, MAX_DYNAMIC_CONTEXT_CHARS, deduplicateByTheme, buildTwinSystemPrompt } from '../services/twinSystemPromptBuilder.js';
+import { deduplicateByTheme, buildTwinSystemPrompt } from '../services/twinSystemPromptBuilder.js';
 import { maybeBuildAmbientHint } from '../services/ambientInterviewService.js';
 const MAX_ADDITIONAL_CONTEXT_CHARS = 12000; // ~3K tokens for writing profile, memories, history
 // P6: Dead platform fetchers removed — all platform data is now fetched by twinContextBuilder.js
