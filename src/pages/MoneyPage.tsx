@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Upload, FileText, AlertCircle, Loader2, TrendingDown, Sparkles, RefreshCw } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Loader2, TrendingDown, Sparkles, RefreshCw, Music } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
   uploadStatement,
@@ -488,7 +488,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
               }}
               title={`Música valence ${ec.music_valence.toFixed(2)}`}
             >
-              ♪ {ec.music_valence < 0.3 ? 'triste' : ec.music_valence > 0.6 ? 'feliz' : 'neutro'}
+              <Music className="w-3 h-3 inline-block mr-1 -mt-0.5" /> {ec.music_valence < 0.3 ? 'triste' : ec.music_valence > 0.6 ? 'feliz' : 'neutro'}
             </span>
           )}
           {ec?.recovery_score !== null && ec?.recovery_score !== undefined && (

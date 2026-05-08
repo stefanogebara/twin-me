@@ -408,8 +408,8 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
       {/* Completed Files Summary */}
       {completedFiles.length > 0 && (
         <div className="bg-green-900/20 border border-green-800/30 rounded-lg p-4">
-          <h4 className="font-medium text-green-800 mb-2">
-            ✅ Successfully Uploaded ({completedFiles.length} files)
+          <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4" /> Successfully Uploaded ({completedFiles.length} files)
           </h4>
           <div className="space-y-1">
             {completedFiles.map((file, index) => (

@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { Sparkles, TrendingUp, Heart, Lightbulb } from 'lucide-react';
+import { Sparkles, TrendingUp, Heart, Lightbulb, Music } from 'lucide-react';
 
 interface TwinReflectionProps {
   reflection: string;
@@ -367,7 +367,7 @@ export const TrackCard: React.FC<TrackCardProps> = ({
         className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: `${colors.spotifyGreen}20` }}
       >
-        <span style={{ color: colors.spotifyGreen, fontSize: '18px' }}>♪</span>
+        <Music className="w-[18px] h-[18px]" style={{ color: colors.spotifyGreen }} />
       </div>
 
       <div className="flex-1 min-w-0">
