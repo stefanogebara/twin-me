@@ -31,8 +31,15 @@ const log = createLogger('CronTwinSummaryRefresh');
 
 // Only pre-warm summaries older than 5 hours (slightly beyond the 4h TTL)
 const REFRESH_THRESHOLD_HOURS = 5;
-// Hard cap: each generateTwinSummary takes ~3-5s, so 10 users = 30-50s max
-const MAX_USERS_PER_RUN = 10;
+// Hard cap: each generateTwinSummary takes ~3-5s.
+// Backend audit HIGH-9: cron was running 56.6s avg / 58.5s max — 1.5s shy
+// of the 60s Vercel timeout. Lowered from 10 → 7 and added a wall-clock
+// budget below so we always stop with margin even if some users are slow.
+const MAX_USERS_PER_RUN = 7;
+// Stop processing once total elapsed time exceeds this — leaves >10s
+// margin before the Vercel 60s function timeout regardless of how slow
+// any individual generateTwinSummary call ends up being.
+const TIME_BUDGET_MS = 45 * 1000;
 // Active = had any memory in the last 14 days
 const ACTIVE_WINDOW_DAYS = 14;
 
@@ -99,11 +106,22 @@ export default async function handler(req, res) {
       .in('id', toRefresh);
     const userNameMap = new Map((userRows || []).map(u => [u.id, u.display_name || u.full_name || 'This person']));
 
-    // Sequential refresh: predictable load, avoids thundering herd on DeepSeek
+    // Sequential refresh: predictable load, avoids thundering herd on DeepSeek.
+    // Stops early if we run out of time budget — leftover users get picked up
+    // by the next daily run (still inside the 24h stale-serve window).
     let refreshed = 0;
+    let stoppedEarly = false;
     const errors = [];
 
     for (const userId of toRefresh) {
+      if (Date.now() - startTime > TIME_BUDGET_MS) {
+        stoppedEarly = true;
+        log.warn('Time budget exhausted — deferring remaining users to next run', {
+          processed: refreshed + errors.length,
+          remaining: toRefresh.length - (refreshed + errors.length),
+        });
+        break;
+      }
       const userName = userNameMap.get(userId) || 'This person';
       try {
         await generateTwinSummary(userId, userName);
@@ -123,6 +141,7 @@ export default async function handler(req, res) {
       needsRefresh: needsRefresh.length,
       refreshed,
       capped,
+      stoppedEarly,
       errors: errors.length,
     });
 
@@ -132,6 +151,7 @@ export default async function handler(req, res) {
       needsRefresh: needsRefresh.length,
       refreshed,
       capped,
+      stoppedEarly,
       errors,
       durationMs,
     });
