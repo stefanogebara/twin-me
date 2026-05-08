@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDemo } from '@/contexts/DemoContext';
-import { getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
 import { EvidenceSection } from './components/EvidenceSection';
@@ -89,7 +89,9 @@ const DiscordInsightsPage: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3004';
+  // Use API_URL from apiBase — same-origin /api in browser, localhost in dev.
+  // Previous fallback dropped /api and produced 404s when VITE_API_URL was unset.
+  const API_BASE = API_URL;
 
   const colors = {
     text: 'var(--foreground)',
@@ -132,6 +134,7 @@ const DiscordInsightsPage: React.FC = () => {
         setError(data.error || 'Failed to load insights');
       }
     } catch (err) {
+      if (isAbortError(err)) return;
       console.error('Failed to fetch Discord insights:', err);
       setError('Unable to read your community world right now');
     } finally {
