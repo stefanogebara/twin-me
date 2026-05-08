@@ -33,11 +33,21 @@ router.all('/', async (req, res) => {
 
     log.info('Starting run');
 
-    // Find users with more than 5,000 memories (archive candidates)
-    const { data: candidates, error: candidatesErr } = await supabaseAdmin.rpc(
-      'get_users_with_many_memories',
-      { p_min_count: 5001 }
-    ).catch(() => ({ data: null, error: new Error('RPC not available, using fallback') }));
+    // Find users with more than 5,000 memories (archive candidates).
+    // PostgrestBuilder is thenable but does NOT implement .catch — must use try/catch.
+    let candidates = null;
+    let candidatesErr = null;
+    try {
+      const result = await supabaseAdmin.rpc(
+        'get_users_with_many_memories',
+        { p_min_count: 5001 }
+      );
+      candidates = result.data;
+      candidatesErr = result.error;
+    } catch (rpcErr) {
+      candidatesErr = rpcErr;
+      log.warn('RPC get_users_with_many_memories unavailable, using fallback', { error: rpcErr.message });
+    }
 
     let userIds = [];
 
