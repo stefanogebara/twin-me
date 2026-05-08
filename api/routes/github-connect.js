@@ -15,6 +15,7 @@ import express from 'express';
 import axios from 'axios';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
+import { encryptToken } from '../services/encryption.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('GitHubConnect');
@@ -87,14 +88,15 @@ router.post('/connect', authenticateUser, async (req, res) => {
     });
   }
 
-  // Upsert config
+  // Upsert config. PAT is encrypted at rest with AES-256-GCM (matches Spotify/Google pattern).
   try {
+    const encryptedAccessToken = encryptToken(access_token);
     const { error } = await supabaseAdmin
       .from('user_github_config')
       .upsert({
         user_id: userId,
         github_username: githubUsername,
-        access_token,
+        access_token: encryptedAccessToken,
         scopes,
         connected_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });

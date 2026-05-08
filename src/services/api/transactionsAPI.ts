@@ -348,7 +348,9 @@ export async function setTransactionFeedback(transactionId: string, isStressDriv
 }
 
 export async function getTimelineAnalysis(): Promise<TimelineDay[]> {
-  const res = await authFetch('/timeline-analysis');
+  // audit-2026-05-08 frontend HIGH-1: route is mounted at /api/transactions/timeline-analysis,
+  // not /api/timeline-analysis (server.js:626 mounts transactionsRoutes at /api/transactions).
+  const res = await authFetch('/transactions/timeline-analysis');
   if (!res.ok) return [];
   const json = await res.json();
   return (json.days || []).map((d: TimelineDay) => ({

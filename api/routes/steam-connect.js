@@ -150,7 +150,10 @@ router.post('/connect', authenticateUser, async (req, res) => {
     return res.json({ success: true, steamId, personaName });
   } catch (err) {
     log.error('Steam connect error:', err.message);
-    return res.status(500).json({ error: 'Failed to connect Steam', message: err.message });
+    return res.status(500).json({
+      error: 'Failed to connect Steam',
+      message: process.env.NODE_ENV !== 'production' ? err.message : 'Failed to connect Steam',
+    });
   }
 });
 

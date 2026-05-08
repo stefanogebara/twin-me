@@ -12,6 +12,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { parseBankStatement } from '../services/transactions/parserDispatcher.js';
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
+import { syncAllSignals } from '../services/transactions/platformSignalExtractor.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
 import { detectAndMarkRecurring } from '../services/transactions/recurrenceDetector.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
@@ -20,14 +21,28 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('transactions-api');
 const router = express.Router();
 
+/**
+ * Build a 500 error body that never leaks Postgres / 3rd-party error text to
+ * the client in production. Caller is responsible for logging the full
+ * err.message server-side; this helper just shapes the response so table /
+ * column / constraint names and token shapes don't end up in browser DevTools
+ * or referrer chains.
+ */
+function safeError(staticMessage, err) {
+  return process.env.NODE_ENV !== 'production'
+    ? { success: false, error: err?.message || staticMessage }
+    : { success: false, error: staticMessage };
+}
+
 // File upload config — memory storage, 10MB max. CSV/OFX text files are tiny.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const ok = /\.(csv|ofx|txt)$/i.test(file.originalname) ||
-      ['text/csv', 'text/plain', 'application/x-ofx', 'application/octet-stream'].includes(file.mimetype);
-    if (!ok) return cb(new Error('Only CSV or OFX files are supported'));
+    const ok = /\.(csv|ofx|txt|xlsx)$/i.test(file.originalname) ||
+      ['text/csv', 'text/plain', 'application/x-ofx', 'application/octet-stream',
+       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.mimetype);
+    if (!ok) return cb(new Error('Only CSV, OFX or XLSX files are supported'));
     cb(null, true);
   },
 });
@@ -97,6 +112,14 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
       log.warn(`recurrence detector failed (non-fatal): ${err.message}`);
     }
 
+    // Sync GitHub + Gmail timestamped signals so the tagger can join them.
+    // Non-blocking — failures don't affect the upload response.
+    try {
+      await syncAllSignals(userId);
+    } catch (err) {
+      log.warn(`signal sync failed (non-fatal): ${err.message}`);
+    }
+
     // Await tagging synchronously so the response reflects final state.
     // Vercel kills serverless lambdas after response returns — fire-and-forget
     // tagging gets truncated. Batch tagger is ~2-3s for 20 rows (prefetches
@@ -121,7 +144,38 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
     });
   } catch (err) {
     log.error('upload error', err);
-    return res.status(500).json({ success: false, error: err.message || 'upload failed' });
+    return res.status(500).json(safeError('upload failed', err));
+  }
+});
+
+/**
+ * POST /api/transactions/sync-signals
+ * Pulls fresh GitHub events + Gmail message timestamps into user_platform_data,
+ * then re-tags all existing transactions with the richer signal set.
+ */
+router.post('/sync-signals', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    const signals = await syncAllSignals(userId);
+
+    // Re-tag all existing transactions
+    const { data: txns } = await supabaseAdmin
+      .from('user_transactions')
+      .select('id')
+      .eq('user_id', userId);
+
+    const ids = (txns || []).map(t => t.id);
+    let tagResult = { tagged: 0, errors: 0 };
+    if (ids.length) {
+      tagResult = await tagTransactionsBatch(userId, ids);
+    }
+
+    return res.json({ success: true, signals, tagged: tagResult.tagged, tag_errors: tagResult.errors });
+  } catch (err) {
+    log.error('sync-signals error', err);
+    return res.status(500).json(safeError('request failed', err));
   }
 });
 
@@ -169,7 +223,7 @@ router.get('/', authenticateUser, async (req, res) => {
     return res.json({ success: true, transactions: flattened, limit, offset });
   } catch (err) {
     log.error('list error', err);
-    return res.status(500).json({ success: false, error: err.message || 'list failed' });
+    return res.status(500).json(safeError('list failed', err));
   }
 });
 
@@ -261,7 +315,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('summary error', err);
-    return res.status(500).json({ success: false, error: err.message || 'summary failed' });
+    return res.status(500).json(safeError('summary failed', err));
   }
 });
 
@@ -323,7 +377,7 @@ router.post('/retag', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('retag error', err);
-    return res.status(500).json({ success: false, error: err.message || 'retag failed' });
+    return res.status(500).json(safeError('retag failed', err));
   }
 });
 
@@ -359,7 +413,7 @@ router.get('/by-category', authenticateUser, async (req, res) => {
     return res.json({ success: true, window_days: 30, breakdown });
   } catch (err) {
     log.error('by-category error', err);
-    return res.status(500).json({ success: false, error: err.message || 'by-category failed' });
+    return res.status(500).json(safeError('by-category failed', err));
   }
 });
 
@@ -379,7 +433,7 @@ router.get('/patterns', authenticateUser, async (req, res) => {
     return res.json({ success: true, ...result });
   } catch (err) {
     log.error('patterns error', err);
-    return res.status(500).json({ success: false, error: err.message || 'patterns failed' });
+    return res.status(500).json(safeError('patterns failed', err));
   }
 });
 
@@ -496,7 +550,7 @@ router.get('/stress-shop-score', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('stress-shop-score error', err);
-    return res.status(500).json({ success: false, error: err.message || 'score failed' });
+    return res.status(500).json(safeError('score failed', err));
   }
 });
 
@@ -579,7 +633,7 @@ router.get('/savings', authenticateUser, async (req, res) => {
     });
   } catch (err) {
     log.error('savings error', err);
-    return res.status(500).json({ success: false, error: err.message || 'savings failed' });
+    return res.status(500).json(safeError('savings failed', err));
   }
 });
 
@@ -613,7 +667,7 @@ router.post('/nudge-outcome', authenticateUser, async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     log.error('nudge-outcome error', err);
-    return res.status(500).json({ success: false, error: err.message || 'nudge-outcome failed' });
+    return res.status(500).json(safeError('nudge-outcome failed', err));
   }
 });
 

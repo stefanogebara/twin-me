@@ -361,13 +361,15 @@ async function prefetchPlatformDataForBatch(userId, transactions) {
     return expandHistoryRows(data || []);
   };
 
-  const [biology, music, calendar] = await Promise.all([
+  const [biology, music, calendar, github, gmail] = await Promise.all([
     fetchOne(['whoop', 'oura', 'garmin', 'fitbit'], null),
     fetchOne(['spotify'], ['recent_play', 'recently_played', 'track']),
     fetchOne(['calendar', 'google_calendar'], ['event', 'events', 'recent_event', 'upcoming_event']),
+    fetchOne(['github'], ['event']),
+    fetchOne(['google_gmail'], ['message']),
   ]);
 
-  return { biology, music, calendar };
+  return { biology, music, calendar, github, gmail };
 }
 
 /**
@@ -418,30 +420,55 @@ function computeFromBundle(userId, tx, bundle) {
     return t && Math.abs(t.getTime() - centerMs) <= 12 * MS_PER_HOUR;
   }).length;
 
-  // Composite stress score (same math as single-row path)
+  // GitHub activity — commit/PR/issue events in ±6h window
+  // High coding activity around a purchase = focused work state, possible stress signal
+  const GITHUB_WINDOW_MS = 6 * MS_PER_HOUR;
+  const githubLoad = (bundle.github || []).filter(r => {
+    const t = getEffectiveEventTime(r);
+    return t && Math.abs(t.getTime() - centerMs) <= GITHUB_WINDOW_MS;
+  }).length;
+
+  // Gmail — inbox messages received in ±2h window
+  // High email volume = communication pressure
+  const gmailLoad = (bundle.gmail || []).filter(r => {
+    const t = getEffectiveEventTime(r);
+    return t && Math.abs(t.getTime() - centerMs) <= windowMs;
+  }).length;
+
+  // Composite stress score
   let stressScore = null;
   let signalsFound = 0;
   const components = [];
 
   if (biology.recovery !== null) {
-    components.push({ weight: 0.45, value: 1 - biology.recovery / 100 });
+    components.push({ weight: 0.40, value: 1 - biology.recovery / 100 });
     signalsFound++;
   } else if (biology.hrv !== null) {
     const hrvStress = Math.max(0, Math.min(1, 1 - (biology.hrv - 20) / 80));
-    components.push({ weight: 0.45, value: hrvStress });
+    components.push({ weight: 0.40, value: hrvStress });
     signalsFound++;
   }
   // Calendar: prefer proximity (+/- 2h) — if zero, use the broader 12h daily-load as a
   // lighter-weight fallback signal. 4+ events in 12h is meaningful daily stress.
   if (calendarLoad > 0) {
-    components.push({ weight: 0.30, value: Math.min(1, calendarLoad / 3) });
+    components.push({ weight: 0.25, value: Math.min(1, calendarLoad / 3) });
     signalsFound++;
   } else if (dailyCalendarLoad >= 3) {
-    components.push({ weight: 0.15, value: Math.min(1, (dailyCalendarLoad - 2) / 5) });
+    components.push({ weight: 0.12, value: Math.min(1, (dailyCalendarLoad - 2) / 5) });
     signalsFound++;
   }
   if (musicValence !== null) {
-    components.push({ weight: 0.25, value: 1 - musicValence });
+    components.push({ weight: 0.20, value: 1 - musicValence });
+    signalsFound++;
+  }
+  // GitHub: 3+ events in 6h = active coding session = moderate stress signal
+  if (githubLoad > 0) {
+    components.push({ weight: 0.10, value: Math.min(1, githubLoad / 5) });
+    signalsFound++;
+  }
+  // Gmail: 3+ emails in 2h = high communication load
+  if (gmailLoad > 0) {
+    components.push({ weight: 0.05, value: Math.min(1, gmailLoad / 5) });
     signalsFound++;
   }
   if (biology.sleep !== null) signalsFound++;

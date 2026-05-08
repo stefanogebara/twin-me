@@ -12,12 +12,19 @@
 import crypto from 'crypto';
 import { parseNubankCsv, detectNubankVariant } from './nubankCsvParser.js';
 import { parseOfx, decodeOfxBuffer } from './ofxParser.js';
+import { parseSantanderXlsx } from './santanderXlsxParser.js';
 
 /**
  * Classify file format from a small preview of the content.
  * @returns 'ofx' | 'csv_nubank' | 'csv_generic' | 'unknown'
  */
-export async function detectFormat(input) {
+export async function detectFormat(input, filename = '') {
+  // XLSX: detect by magic bytes (PK zip header) or file extension
+  if (Buffer.isBuffer(input) && input[0] === 0x50 && input[1] === 0x4B) {
+    return 'xlsx';
+  }
+  if (/\.xlsx$/i.test(filename)) return 'xlsx';
+
   const text = Buffer.isBuffer(input) ? await decodeOfxBuffer(input) : String(input);
   const head = text.slice(0, 400).trim();
 
@@ -58,7 +65,12 @@ function sha256Hex(input) {
 export async function parseBankStatement(input, options = {}) {
   const { filename = '' } = options;
   const fileHash = sha256Hex(input);
-  const format = await detectFormat(input);
+  const format = await detectFormat(input, filename);
+
+  if (format === 'xlsx') {
+    const result = parseSantanderXlsx(input);
+    return { format, ...result, fileHash };
+  }
 
   if (format === 'ofx') {
     const result = await parseOfx(input);

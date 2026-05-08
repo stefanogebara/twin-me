@@ -120,8 +120,11 @@ router.get('/callback', callbackLimiter, async (req, res) => {
 
     return res.redirect('/money?truelayer_connected=1');
   } catch (err) {
+    // Never put err.message in a redirect URL — it lands in browser history,
+    // referrer headers, and analytics. Use a static error code; full detail
+    // stays server-side in the log.
     log.error(`callback: ${err.message}`);
-    return res.redirect('/money?truelayer_error=' + encodeURIComponent(err.message));
+    return res.redirect('/money?truelayer_error=callback_failed');
   }
 });
 

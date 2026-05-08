@@ -222,9 +222,16 @@ router.post('/webhook', async (req, res) => {
     return res.sendStatus(403);
   }
 
-  // Use raw body for HMAC verification (not JSON.stringify which may reorder keys)
-  const rawBody = req.rawBody || JSON.stringify(req.body);
-  if (!verifyKapsoSignature(signature, rawBody)) {
+  // HMAC must be computed against the EXACT bytes the sender signed. JSON.stringify
+  // reorders keys, normalizes whitespace, and re-encodes non-ASCII — any of which
+  // breaks the signature for valid payloads OR (worse) accidentally matches a
+  // crafted payload whose serialization happens to round-trip. Fail closed if
+  // rawBody capture is missing instead of falling back.
+  if (!req.rawBody) {
+    log.error('rawBody missing — refusing to verify signature without it (check express.raw middleware order)');
+    return res.sendStatus(500);
+  }
+  if (!verifyKapsoSignature(signature, req.rawBody)) {
     log.warn('Webhook signature verification failed');
     return res.sendStatus(403);
   }

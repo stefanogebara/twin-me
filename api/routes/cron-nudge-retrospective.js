@@ -126,7 +126,10 @@ router.all('/', async (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) {
     log.error(`cron failed: ${err.message}\n${err.stack}`);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      success: false,
+      error: process.env.NODE_ENV !== 'production' ? err.message : 'cron failed',
+    });
   }
 });
 

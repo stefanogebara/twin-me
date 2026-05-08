@@ -5,8 +5,30 @@
 
 import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
+import { decryptToken } from '../encryption.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
+
+/**
+ * Decrypt a stored PAT, with a one-time fallback for legacy plaintext rows
+ * written before the 2026-05-08 encrypt-at-rest migration. Encrypted values
+ * are `iv:authTag:ciphertext` (3 hex segments). Plaintext PATs (`ghp_...`,
+ * `github_pat_...`) do not match that format.
+ */
+function readPATFromConfig(stored) {
+  if (!stored) return null;
+  // Encrypted-format detection: 3 colon-separated segments, all hex.
+  const parts = stored.split(':');
+  const looksEncrypted = parts.length === 3 && parts.every(p => /^[0-9a-f]+$/i.test(p));
+  if (!looksEncrypted) {
+    return stored; // legacy plaintext row — will be re-encrypted on next /connect
+  }
+  try {
+    return decryptToken(stored);
+  } catch {
+    return stored; // best-effort: don't break ingestion if decrypt fails
+  }
+}
 
 const log = createLogger('ObservationIngestion');
 
@@ -101,7 +123,7 @@ async function fetchGitHubObservations(userId) {
       .single();
 
     if (patConfig?.access_token) {
-      accessToken = patConfig.access_token;
+      accessToken = readPATFromConfig(patConfig.access_token);
       githubUsername = patConfig.github_username || null;
     }
   }

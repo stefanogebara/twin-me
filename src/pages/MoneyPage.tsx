@@ -140,7 +140,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
       <input
         id="money-upload"
         type="file"
-        accept=".csv,.ofx,text/csv,application/x-ofx"
+        accept=".csv,.ofx,.xlsx,text/csv,application/x-ofx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={onFileInput}
         disabled={uploading}
         style={{ display: 'none' }}
@@ -174,7 +174,7 @@ function UploadZone({ onUpload, onError }: UploadZoneProps) {
           lineHeight: 1.5,
         }}
       >
-        Nubank, Itaú, Bradesco, Santander — CSV ou OFX.<br />
+        Nubank, Itaú, Bradesco, Santander — CSV, OFX ou XLSX.<br />
         Seus dados ficam privados. Nada sai da sua conta.
       </p>
     </label>
