@@ -23,6 +23,7 @@ import { complete, TIER_CHAT } from '../services/llmGateway.js';
 import { getMemoryStats } from '../services/memoryStreamService.js';
 import { getTwinSummary } from '../services/twinSummaryService.js';
 import { deduplicateByTheme } from '../services/twinSystemPromptBuilder.js';
+import { getSoulSignature } from '../services/soulSignatureService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('TwinChatHistory');
@@ -216,15 +217,10 @@ router.get('/intro', authenticateUser, async (req, res) => {
       return res.json({ success: true, intro: null, reason: 'not_first_visit' });
     }
 
-    // Fetch soul signature
-    const { data: sig, error: sigErr } = await supabaseAdmin
-      .from('soul_signatures')
-      .select('archetype_name, archetype_subtitle, narrative, defining_traits')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    if (sigErr && sigErr.code !== 'PGRST116') log.error('Soul signature fetch error', { error: sigErr });
+    // Fetch soul signature (latest row, via shared accessor — 90s in-process cache)
+    const sig = await getSoulSignature(userId, {
+      select: 'archetype_name, archetype_subtitle, narrative, defining_traits',
+    });
 
     // Fetch display name
     const { data: userRow, error: userRowErr } = await supabaseAdmin

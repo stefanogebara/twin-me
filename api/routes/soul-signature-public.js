@@ -9,7 +9,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
-import { getPublicSoulSignature, setSoulSignatureVisibility } from '../services/soulSignatureService.js';
+import { getPublicSoulSignature, setSoulSignatureVisibility, getSoulSignatureVisibility } from '../services/soulSignatureService.js';
 
 const log = createLogger('SoulSignaturePublic');
 // Lazy import to avoid crashing if OG image module fails to load
@@ -123,21 +123,17 @@ router.get('/share-status', authenticateUser, async (req, res) => {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('soul_signatures')
-      .select('is_public')
-      .eq('user_id', userId)
-      .single();
-
-    if (error || !data) {
+    const visibility = await getSoulSignatureVisibility(userId);
+    if (!visibility.ok || !visibility.hasSignature) {
       return res.json({ success: true, is_public: false, has_signature: false });
     }
 
+    const isPublic = visibility.isPublic === true;
     return res.json({
       success: true,
-      is_public: data.is_public || false,
+      is_public: isPublic,
       has_signature: true,
-      share_url: data.is_public ? `/api/s/${userId}` : null,
+      share_url: isPublic ? `/api/s/${userId}` : null,
     });
   } catch (error) {
     log.error('Error:', error);

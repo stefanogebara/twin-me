@@ -9,6 +9,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+import { getAllSoulSignatures } from '../services/soulSignatureService.js';
 
 const log = createLogger('Account');
 
@@ -127,8 +128,8 @@ router.get('/export', authenticateUser, async (req, res) => {
       supabaseAdmin.from('platform_connections').select('platform, status, connected_at, last_sync_at').eq('user_id', userId),
       // Platform data summaries
       supabaseAdmin.from('user_platform_data').select('platform, data_type, data, extracted_at').eq('user_id', userId).order('extracted_at', { ascending: false }).limit(50000),
-      // Soul signature
-      supabaseAdmin.from('soul_signatures').select('archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, is_public, reveal_level, created_at, updated_at').eq('user_id', userId),
+      // Soul signature (history — GDPR export wants every row, not just the latest)
+      getAllSoulSignatures(userId, { columns: 'archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, is_public, reveal_level, created_at, updated_at' }).then(data => ({ data })),
       // Personality scores
       supabaseAdmin.from('personality_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, data_sources, created_at').eq('user_id', userId),
       // Twin conversations

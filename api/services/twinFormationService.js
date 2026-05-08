@@ -13,7 +13,7 @@
 
 import { supabaseAdmin } from './database.js';
 import { generateChatResponse } from './anthropicService.js';
-import { upsertSoulSignature } from './soulSignatureService.js';
+import { upsertSoulSignature, getSoulSignature } from './soulSignatureService.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('TwinFormation');
@@ -283,13 +283,8 @@ What does this reveal about their personality or habits?`;
    */
   async getTwin(userId) {
     try {
-      const { data: signature, error } = await supabaseAdmin
-        .from('soul_signatures')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error || !signature) {
+      const signature = await getSoulSignature(userId);
+      if (!signature) {
         return { success: false, error: 'Twin not found' };
       }
 

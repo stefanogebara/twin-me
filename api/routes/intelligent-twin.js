@@ -19,6 +19,7 @@ import userContextAggregator from '../services/userContextAggregator.js';
 import intelligentMusicService from '../services/intelligentMusicService.js';
 import spotifyInsightGenerator from '../services/spotifyInsightGenerator.js';
 import specialistOrchestrator from '../services/specialists/SpecialistOrchestrator.js';
+import { getAllSoulSignatures } from '../services/soulSignatureService.js';
 import { crossPlatformInferenceService } from '../services/crossPlatformInferenceService.js';
 import purposeLearningService from '../services/purposeLearningService.js';
 import { createLogger } from '../services/logger.js';
@@ -380,13 +381,11 @@ router.get('/evolution', authenticateUser, async (req, res) => {
       .limit(30);
     if (snapErr) throw snapErr;
 
-    // 2. Soul signature history (archetype evolution)
-    const { data: signatures, error: sigErr } = await supabase
-      .from('soul_signatures')
-      .select('archetype_name, archetype_subtitle, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: true });
-    if (sigErr) throw sigErr;
+    // 2. Soul signature history (archetype evolution — chronological order for chart)
+    const signatures = await getAllSoulSignatures(userId, {
+      columns: 'archetype_name, archetype_subtitle, created_at',
+      order: 'asc',
+    });
 
     // 3. Weekly memory growth: count memories per ISO week for the last 12 weeks
     const twelveWeeksAgo = new Date(Date.now() - 84 * 24 * 60 * 60 * 1000).toISOString();

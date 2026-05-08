@@ -168,6 +168,59 @@ export async function setSoulSignatureVisibility(userId, isPublic) {
 }
 
 /**
+ * Read-only symmetric companion to setSoulSignatureVisibility — returns
+ * whether the user's signature is currently public. Returns null when the
+ * user has no signature row, so callers can distinguish "not public" from
+ * "no signature at all".
+ *
+ * NOT cached — visibility flips trigger cache invalidation but the cached
+ * row is the full signature, not this single boolean. Cheap point read.
+ */
+export async function getSoulSignatureVisibility(userId) {
+  if (!userId) return { ok: false, error: new Error('userId required') };
+  const { data, error } = await supabaseAdmin
+    .from('soul_signatures')
+    .select('is_public')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) {
+    log.warn('getSoulSignatureVisibility failed', { userId, error: error.message });
+    return { ok: false, error };
+  }
+  return { ok: true, isPublic: data?.is_public ?? null, hasSignature: !!data };
+}
+
+/**
+ * Fetch ALL soul-signature rows for a user (history). Use when callers need
+ * the archetype-evolution timeline or a GDPR-style export — getSoulSignature
+ * returns only the latest row.
+ *
+ * NOT cached — history queries are infrequent and re-running them is cheap
+ * compared to risking a stale slice.
+ *
+ * @param {string} userId
+ * @param {object} [opts]
+ * @param {string} [opts.columns='*'] — column list (e.g. 'archetype_name, created_at')
+ * @param {'asc'|'desc'} [opts.order='desc'] — sort by created_at
+ * @returns {Promise<Array<object>>} empty array on error or no rows
+ */
+export async function getAllSoulSignatures(userId, opts = {}) {
+  if (!userId) return [];
+  const columns = opts.columns || '*';
+  const ascending = opts.order === 'asc';
+  const { data, error } = await supabaseAdmin
+    .from('soul_signatures')
+    .select(columns)
+    .eq('user_id', userId)
+    .order('created_at', { ascending });
+  if (error) {
+    log.warn('getAllSoulSignatures failed', { userId, error: error.message });
+    return [];
+  }
+  return data || [];
+}
+
+/**
  * Look up a user's signature ONLY when it's been marked as publicly visible.
  *
  * audit-2026-05-08 architecture HIGH (pass 2): used by `og-image`,
