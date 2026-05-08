@@ -47,6 +47,7 @@ import { getUndeliveredInsights, markInsightsDelivered } from '../services/proac
 import { buildPersonaBlock } from '../services/personaBlockBuilder.js';
 import { getFeatureFlags } from '../services/featureFlagsService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
+import { checkChatRateLimit, CHAT_RATE_LIMIT_MAX, CHAT_RATE_LIMIT_WINDOW_MS } from '../services/chatRateLimiter.js';
 import { runCitationPipeline } from '../services/citationExtractionService.js';
 import { strengthenCoCitedLinks } from '../services/memoryLinksService.js';
 import { fileQueryInsightIfValuable } from '../services/wikiCompilationService.js';
@@ -67,125 +68,9 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('TwinChat');
 const router = express.Router();
 
-// ====================================================================
-// Per-user chat rate limit: 200 messages per user per hour
-// Bumped 2026-04-23 from 50 → 200 to reduce friction during power-user
-// bursts (Q&A sessions, back-to-back agentic skill triggers). Still tight
-// enough to catch runaway loops or compromised accounts.
-// ====================================================================
-const CHAT_RATE_LIMIT_MAX = 200;
-const CHAT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-// Map<userId, { timestamps: number[] }>
-// ONLY used when REDIS_URL is not configured (local dev without Redis).
-const chatRateLimitMap = new Map();
-
-// Interval IDs for cleanup — prevent accumulation on hot-reload
-let _chatRateLimitCleanupInterval = null;
-
-// Warn once at startup if Redis is not configured so it's visible in dev logs
-if (!process.env.REDIS_URL) {
-  log.warn('REDIS_URL is not set — chat rate limiting is in-memory only (not safe for multi-instance/serverless deployments)');
-}
-
-// Periodic cleanup of expired entries to prevent memory leaks (in-memory fallback only).
-//
-// Backend audit HIGH-4: don't run this on Vercel — each invocation is a fresh
-// lambda instance, so the timer is useless (caches never accumulate across calls)
-// AND it adds work to every cold start. Local dev (where the in-memory fallback
-// actually matters) keeps the cleanup. Skip on Vercel and when REDIS_URL is set
-// (Redis sliding window is the real rate limiter; the Map is unused).
-if (!process.env.VERCEL && !process.env.REDIS_URL && !_chatRateLimitCleanupInterval) {
-  _chatRateLimitCleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [userId, entry] of chatRateLimitMap.entries()) {
-      const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
-      if (fresh.length === 0) {
-        chatRateLimitMap.delete(userId);
-      } else {
-        entry.timestamps = fresh;
-      }
-    }
-  }, 10 * 60 * 1000); // Clean up every 10 minutes
-  // Don't keep the event loop alive just for this cleanup
-  _chatRateLimitCleanupInterval.unref?.();
-}
-
-/**
- * Check if a user has exceeded the per-hour chat rate limit.
- * Uses Redis sorted sets for serverless-safe sliding window.
- *
- * Fail-closed policy: when REDIS_URL is configured but the Redis call fails
- * (network error, timeout, etc.), the request is DENIED rather than silently
- * falling through to an in-memory store that resets on every cold start.
- * The in-memory fallback is ONLY used when REDIS_URL is not configured at all
- * (i.e. local dev without Redis).
- *
- * Returns { allowed: boolean, used: number, limit: number, retryAfterMs: number | null }
- */
-async function checkChatRateLimit(userId) {
-  const now = Date.now();
-  const windowStart = now - CHAT_RATE_LIMIT_WINDOW_MS;
-  const redisConfigured = Boolean(process.env.REDIS_URL);
-
-  // Try Redis first (cross-instance, survives cold starts)
-  try {
-    const client = getRedisClient();
-    if (client && isRedisAvailable()) {
-      const key = `chatRateLimit:${userId}`;
-      // Sliding window: store each message timestamp as score in a sorted set
-      const pipe = client.pipeline();
-      pipe.zremrangebyscore(key, '-inf', windowStart); // Remove expired entries
-      pipe.zadd(key, now, `${now}-${Math.random()}`); // Add current message
-      pipe.zcard(key); // Count messages in window
-      pipe.zrange(key, 0, 0, 'WITHSCORES'); // Get oldest for retry-after
-      pipe.expire(key, Math.ceil(CHAT_RATE_LIMIT_WINDOW_MS / 1000)); // Auto-expire key
-      const results = await pipe.exec();
-      const used = results[2][1]; // zcard result
-      if (used > CHAT_RATE_LIMIT_MAX) {
-        const oldestScore = parseFloat(results[3][1][1] || now);
-        const retryAfterMs = CHAT_RATE_LIMIT_WINDOW_MS - (now - oldestScore);
-        return { allowed: false, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: Math.max(0, retryAfterMs) };
-      }
-      return { allowed: true, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
-    }
-  } catch (redisErr) {
-    if (redisConfigured) {
-      // Fail-closed: Redis is expected but unavailable. Deny the request rather than
-      // bypassing the rate limit via an in-memory store that resets on cold starts.
-      log.warn('Redis rate limit check failed — denying request (fail-closed)', { error: redisErr });
-      return { allowed: false, used: 0, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null, reason: 'rate_limit_unavailable' };
-    }
-    // REDIS_URL not configured: fall through to in-memory (dev mode only)
-    log.warn('Redis rate limit check failed, using in-memory fallback (dev mode)', { error: redisErr });
-  }
-
-  // Safety net: if Redis is configured but client not yet initialized (no exception thrown),
-  // fail closed rather than silently allowing through.
-  if (redisConfigured) {
-    log.warn('Redis configured but client not ready — denying request (fail-closed)');
-    return { allowed: false, used: 0, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null, reason: 'rate_limit_unavailable' };
-  }
-
-  // In-memory fallback — only reached when REDIS_URL is not configured
-  const entry = chatRateLimitMap.get(userId);
-
-  if (!entry) {
-    chatRateLimitMap.set(userId, { timestamps: [now] });
-    return { allowed: true, used: 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
-  }
-
-  const fresh = entry.timestamps.filter(ts => now - ts < CHAT_RATE_LIMIT_WINDOW_MS);
-
-  if (fresh.length >= CHAT_RATE_LIMIT_MAX) {
-    const oldestInWindow = Math.min(...fresh);
-    const retryAfterMs = CHAT_RATE_LIMIT_WINDOW_MS - (now - oldestInWindow);
-    return { allowed: false, used: fresh.length, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs };
-  }
-
-  chatRateLimitMap.set(userId, { timestamps: [...fresh, now] });
-  return { allowed: true, used: fresh.length + 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
-}
+// Per-user chat rate limit (200 msg/h) extracted to ../services/chatRateLimiter.js
+// — Redis-backed on prod, in-memory fallback on local dev only.
+// See line 50 above for the import. Audit ARCH-1 (1672-LOC monolith reduction).
 
 // Platform data cache - prevents redundant API calls during conversations
 
