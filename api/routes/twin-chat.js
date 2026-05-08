@@ -88,8 +88,14 @@ if (!process.env.REDIS_URL) {
   log.warn('REDIS_URL is not set — chat rate limiting is in-memory only (not safe for multi-instance/serverless deployments)');
 }
 
-// Periodic cleanup of expired entries to prevent memory leaks (in-memory fallback only)
-if (!_chatRateLimitCleanupInterval) {
+// Periodic cleanup of expired entries to prevent memory leaks (in-memory fallback only).
+//
+// Backend audit HIGH-4: don't run this on Vercel — each invocation is a fresh
+// lambda instance, so the timer is useless (caches never accumulate across calls)
+// AND it adds work to every cold start. Local dev (where the in-memory fallback
+// actually matters) keeps the cleanup. Skip on Vercel and when REDIS_URL is set
+// (Redis sliding window is the real rate limiter; the Map is unused).
+if (!process.env.VERCEL && !process.env.REDIS_URL && !_chatRateLimitCleanupInterval) {
   _chatRateLimitCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [userId, entry] of chatRateLimitMap.entries()) {
@@ -101,6 +107,8 @@ if (!_chatRateLimitCleanupInterval) {
       }
     }
   }, 10 * 60 * 1000); // Clean up every 10 minutes
+  // Don't keep the event loop alive just for this cleanup
+  _chatRateLimitCleanupInterval.unref?.();
 }
 
 /**
