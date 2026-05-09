@@ -104,3 +104,25 @@ export const handleAPIError = (error: unknown): string => {
   }
   return 'An unknown error occurred';
 };
+
+/**
+ * Detect AbortError thrown by AbortController / React 18 StrictMode cleanup.
+ *
+ * audit-2026-05-08 Frontend MED-1: every page-level fetch should branch on
+ * this so the StrictMode double-effect doesn't (a) flip the UI to an error
+ * state, (b) flood the console with `Failed to fetch ...`, or (c) trip
+ * Sentry/PostHog with phantom errors.
+ *
+ * Pattern at the call site:
+ *   try { await authFetch(...) }
+ *   catch (err) {
+ *     if (isAbortError(err)) return;     // benign — drop it
+ *     // ...real error handling...
+ *   }
+ */
+export const isAbortError = (error: unknown): boolean => {
+  if (!error) return false;
+  if (typeof error !== 'object') return false;
+  const name = (error as { name?: unknown }).name;
+  return name === 'AbortError';
+};
