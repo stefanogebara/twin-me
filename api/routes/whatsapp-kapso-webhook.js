@@ -239,15 +239,18 @@ router.post('/webhook', async (req, res) => {
     return res.sendStatus(403);
   }
 
-  // 2. Dedup using X-Idempotency-Key
-  const idempotencyKey = req.headers['x-idempotency-key'];
-  if (idempotencyKey && processedKeys.has(idempotencyKey)) {
-    log.info('Duplicate webhook skipped', { idempotencyKey });
+  // 2. Dedup using X-Idempotency-Key when present, otherwise fall back to
+  // a content-hash of the raw body. audit-2026-05-09 S-L3: Kapso doesn't
+  // always send the header — without a fallback, identical retries
+  // (network timeout → Kapso resends same payload) would both run the
+  // full LLM pipeline and write duplicate memories.
+  const idempotencyKey = req.headers['x-idempotency-key']
+    || `body-sha256:${crypto.createHash('sha256').update(rawBody).digest('hex')}`;
+  if (processedKeys.has(idempotencyKey)) {
+    log.info('Duplicate webhook skipped', { idempotencyKey, source: req.headers['x-idempotency-key'] ? 'header' : 'body-hash' });
     return res.sendStatus(200);
   }
-  if (idempotencyKey) {
-    processedKeys.set(idempotencyKey, Date.now());
-  }
+  processedKeys.set(idempotencyKey, Date.now());
 
   // 3. Return 200 immediately — process async
   res.sendStatus(200);

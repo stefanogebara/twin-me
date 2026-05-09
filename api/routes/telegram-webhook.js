@@ -230,13 +230,8 @@ function setupBotHandlers() {
     processedMessages.add(msgId);
     setTimeout(() => processedMessages.delete(msgId), DEDUP_TTL_MS);
 
-    // Rate limit check
-    if (isRateLimited(chatId)) {
-      await ctx.reply('Slow down a bit. Too many messages.');
-      return;
-    }
-
-    // Look up user by chat_id
+    // Look up user by chat_id (linked-account check) — must happen before
+    // rate limit so the limiter can key on TwinMe userId, not Telegram chatId.
     const { data: channel } = await supabaseAdmin
       .from('messaging_channels')
       .select('user_id')
@@ -250,6 +245,16 @@ function setupBotHandlers() {
     }
 
     const userId = channel.user_id;
+
+    // audit-2026-05-09 S-L2: rate limit AFTER lookup, key on TwinMe userId.
+    // The previous chatId-keyed limiter let a user with multiple linked
+    // Telegram accounts bypass the per-user cap. The downstream
+    // checkChatRateLimit (200/h) is the cost backstop; this 20/min layer
+    // is the burst guard.
+    if (isRateLimited(userId)) {
+      await ctx.reply('Slow down a bit. Too many messages.');
+      return;
+    }
 
     try {
       // Show typing indicator — refresh every 4s since it expires after 5s.
