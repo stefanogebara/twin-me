@@ -3,6 +3,7 @@ import { MessageCircle, User, Plug, BookOpen } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDashboardContext } from '@/hooks/useDashboardContext';
 import { useProactiveInsights } from '@/hooks/useProactiveInsights';
+import { useAuth } from '@/contexts/AuthContext';
 import { DashboardGreeting } from './components/dashboard-v2/DashboardGreeting';
 import { BetaOnboardingChecklist } from './components/dashboard-v2/BetaOnboardingChecklist';
 import { HeroInsight } from './components/dashboard-v2/HeroInsight';
@@ -25,6 +26,7 @@ const QUICK_ACTIONS = [
 export function DashboardV2() {
   useDocumentTitle('Dashboard');
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data, isLoading, isError, refetch } = useDashboardContext();
   const { insights, markEngaged, submitFeedback, feedbackPendingId } = useProactiveInsights();
 
@@ -109,7 +111,7 @@ export function DashboardV2() {
         streak={data.greeting.streak}
       />
 
-      <ExpiredTokenBanner />
+      <ExpiredTokenBanner userId={user?.id} />
 
       {/* 1. Morning Briefing — dominant, full-width hero */}
       <div className="-mx-1 sm:-mx-2">
