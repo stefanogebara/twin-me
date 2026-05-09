@@ -1239,12 +1239,14 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
 
   const combined = [...topReflections, ...factResults, ...platformResults, ...conversationResults];
 
-  // Graph expansion: expand context using Zettelkasten memory_links (A-MEM, Xu et al., 2025)
-  // Fetches 1-hop linked memories for the top retrieved reflections to enrich context
-  const expanded = await _expandWithMemoryLinks(userId, combined, 5).catch(err => {
-    log.warn('Graph expansion failed', { error: err });
-    return combined;
-  });
+  // Cache the base result immediately so concurrent requests for the same user+query
+  // get a hit fast. Graph expansion is best-effort enrichment (1-hop A-MEM links)
+  // and runs in the background — its result will overwrite the cache when it lands.
+  _diverseMemoryCache.set(queryKey, { data: combined, ts: Date.now() });
+  if (_diverseMemoryCache.size > 50) {
+    const oldest = [..._diverseMemoryCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+    if (oldest) _diverseMemoryCache.delete(oldest[0]);
+  }
 
   log.info('Diverse retrieval complete', {
     reflections: topReflections.length,
@@ -1253,18 +1255,23 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     conversations: conversationResults.length,
     semanticConv: semanticConvResults.length,
     recentConv: recentConvResults.length,
-    graphLinked: expanded.length - combined.length,
   });
 
-  // Cache result for burst conversations (2-minute TTL)
-  _diverseMemoryCache.set(queryKey, { data: expanded, ts: Date.now() });
-  // Evict old entries (max 50 cached queries)
-  if (_diverseMemoryCache.size > 50) {
-    const oldest = [..._diverseMemoryCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
-    if (oldest) _diverseMemoryCache.delete(oldest[0]);
-  }
+  // audit-2026-05-09 C1 fix: Graph expansion was awaited synchronously here,
+  // adding 1-2 DB roundtrips to the critical path. Under cold-start pgbouncer
+  // queueing this pushed retrieveDiverseMemories past the 7s global breaker in
+  // twinContextBuilder, so memories defaulted to []. Now: return base results
+  // immediately, run expansion as fire-and-forget for next-request cache warm.
+  _expandWithMemoryLinks(userId, combined, 5)
+    .then(expanded => {
+      if (expanded.length > combined.length) {
+        _diverseMemoryCache.set(queryKey, { data: expanded, ts: Date.now() });
+        log.debug('Graph expansion cached', { userId, added: expanded.length - combined.length });
+      }
+    })
+    .catch(err => log.warn('Graph expansion failed (background)', { error: err?.message }));
 
-  return expanded;
+  return combined;
 }
 
 /**
