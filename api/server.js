@@ -340,7 +340,8 @@ app.use(express.json({
     // and the HMAC always mismatches → every signed POST returns 403.
     if (req.originalUrl.startsWith('/api/whatsapp/webhook') ||
         req.originalUrl.startsWith('/api/whatsapp-twin/webhook') ||
-        req.originalUrl.startsWith('/api/telegram/webhook')) {
+        req.originalUrl.startsWith('/api/telegram/webhook') ||
+        req.originalUrl.startsWith('/api/nango-webhooks')) {
       req.rawBody = buf.toString('utf8');
     }
   },

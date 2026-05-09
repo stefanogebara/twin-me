@@ -259,7 +259,7 @@ const Index = () => {
             className="grid grid-cols-1 md:grid-cols-3 gap-5"
           >
             {[
-              { value: '10', label: 'Platform integrations', sub: 'Spotify, GitHub, Calendar & more' },
+              { value: '10', label: 'Platform integrations', sub: 'Spotify, YouTube, Discord, Reddit, Twitch & more' },
               { value: '5-layer', label: 'Personality portrait', sub: 'From your real data' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (

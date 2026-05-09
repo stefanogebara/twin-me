@@ -4,7 +4,7 @@ const FEATURES = [
   { title: 'Deep Memory',        body: 'Every interaction stored with cognitive-science retrieval weighting — recency, importance, and relevance.' },
   { title: 'Real-time Insights',  body: 'Your twin notices patterns you miss. Proactive insights surface before you ask.' },
   { title: 'Privacy First',       body: 'You control exactly what your twin knows. The privacy spectrum dashboard gives you granular control.' },
-  { title: 'Cross-platform',      body: 'Spotify, YouTube, Gmail, Calendar, Discord, LinkedIn, GitHub, Whoop — your digital footprints paint the real picture.' },
+  { title: 'Cross-platform',      body: 'Spotify, YouTube, Gmail, Calendar, Discord, LinkedIn, GitHub, Reddit, Twitch, Whoop — your digital footprints paint the real picture.' },
 ];
 
 export default function DiscoverFeatures() {

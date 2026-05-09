@@ -44,7 +44,20 @@ function verifyWebhookSignature(req) {
     return false;
   }
 
-  const payload = JSON.stringify(req.body);
+  // audit-2026-05-09 S-H2: must HMAC the raw bytes Nango signed, not a
+  // re-serialized form. JSON.stringify on the parsed body re-orders keys,
+  // changes float precision, and re-escapes non-ASCII — so the digest
+  // diverges from Nango's whenever any of those conditions hits and the
+  // verify quietly returns 401. Path is now in server.js's rawBody
+  // allowlist so req.rawBody is populated. Fall back to JSON.stringify only
+  // if rawBody is somehow absent (cold-config edge) and log it loudly.
+  let payload;
+  if (typeof req.rawBody === 'string') {
+    payload = req.rawBody;
+  } else {
+    log.warn('Nango webhook missing rawBody — falling back to JSON.stringify (HMAC may mismatch)');
+    payload = JSON.stringify(req.body);
+  }
   const expectedSignature = crypto
     .createHmac('sha256', webhookSecret)
     .update(payload)
