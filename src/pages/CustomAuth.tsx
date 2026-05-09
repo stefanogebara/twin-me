@@ -33,11 +33,13 @@ const CustomAuth = () => {
     trackFunnel('auth_page_viewed', {});
 
     // Surface session-expired message from AuthContext init redirect (2026-04-22)
+    // audit-2026-05-09 F-H1: were Portuguese strings — landing page is English
+    // by default, English-speaking users were seeing PT-BR copy on the auth page.
     const urlError = searchParams.get('error');
     if (urlError === 'session_expired') {
-      setError('Sua sessão expirou. Faça login novamente.');
+      setError('Your session expired. Please sign in again.');
     } else if (urlError === 'invalid_state') {
-      setError('Algo deu errado com o login. Tente novamente.');
+      setError('Something went wrong with sign-in. Please try again.');
     }
 
     const urlCode = searchParams.get('invite');
@@ -211,7 +213,7 @@ For privacy concerns: privacy@twinme.me`
         <div className="flex items-center gap-2 mb-10">
           <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
             <img
-              src="/images/backgrounds/flower.png"
+              src="/images/backgrounds/flower.webp"
               alt="TwinMe"
               className="w-full h-full object-cover"
             />
@@ -434,7 +436,7 @@ For privacy concerns: privacy@twinme.me`
       <div
         className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
         style={{
-          backgroundImage: "url('/images/cosmic-v2/stage3-arrival.jpg')",
+          backgroundImage: "url('/images/cosmic-v2/stage3-arrival.webp')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           borderRadius: '24px',

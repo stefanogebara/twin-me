@@ -24,6 +24,31 @@ import { crossPlatformInferenceService } from '../services/crossPlatformInferenc
 import purposeLearningService from '../services/purposeLearningService.js';
 import { createLogger } from '../services/logger.js';
 import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
+import { checkChatRateLimit } from '../services/chatRateLimiter.js';
+
+// audit-2026-05-09 S-H4: per-user gate shared with web chat (200/h). These
+// endpoints fan out into LLM pipelines (recommendations / insights /
+// science-analysis) and were only behind the global IP-based aiLimiter
+// (50/15min) — a single logged-in user could rack up runaway OpenRouter
+// cost from one tab. Returns true when the request should proceed; sends
+// the 429 response and returns false when blocked.
+async function gateLlmRateLimit(req, res, label) {
+  const userId = req.user?.id;
+  if (!userId) return true; // authenticateUser middleware handles 401 separately
+  const rateLimit = await checkChatRateLimit(userId);
+  if (!rateLimit.allowed) {
+    const retryMinutes = Math.ceil((rateLimit.retryAfterMs || 0) / 60000);
+    log.info('LLM endpoint rate-limited', { userId, label, used: rateLimit.used, limit: rateLimit.limit });
+    res.status(429).json({
+      success: false,
+      error: 'hourly_rate_limit',
+      message: `You've used ${rateLimit.used}/${rateLimit.limit} of your hourly LLM budget. Please wait ${retryMinutes || 'a few'} min.`,
+      retryAfter: retryMinutes,
+    });
+    return false;
+  }
+  return true;
+}
 
 // Cache TTL for insights: 15 min (reduces 13s LLM call on every request)
 // Uses Redis (persists across Vercel cold starts) with in-memory fallback when Redis unavailable
@@ -174,6 +199,8 @@ router.get('/recommendations', authenticateUser, async (req, res) => {
       });
     }
 
+    if (!(await gateLlmRateLimit(req, res, 'recommendations'))) return;
+
     log.info(`Getting recommendations for user ${userId}`);
 
     const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
@@ -215,6 +242,8 @@ router.get('/insights', authenticateUser, async (req, res) => {
         error: 'User authentication required'
       });
     }
+
+    if (!(await gateLlmRateLimit(req, res, 'insights'))) return;
 
     log.info(`Getting insights for user ${userId}`);
 
@@ -1104,6 +1133,8 @@ router.get('/science-analysis', authenticateUser, async (req, res) => {
         error: 'User authentication required'
       });
     }
+
+    if (!(await gateLlmRateLimit(req, res, 'science-analysis'))) return;
 
     log.info(`Running science-backed analysis for user ${userId}`);
 
