@@ -557,6 +557,13 @@ app.use('/api/auth', authRoutes);
 app.use('/oauth', oauthCallbackRoutes); // Unified OAuth callback handler
 
 // User preferences (notification settings)
+// audit-2026-05-09 S-H3: never return raw Supabase err.message to clients —
+// it exposes table/column/constraint/RLS-policy names. Generic message in prod;
+// detail only when NODE_ENV !== 'production' for dev debugging.
+const _prefsErrPayload = (err, fallback) => ({
+  success: false,
+  error: process.env.NODE_ENV === 'production' ? fallback : (err?.message || fallback),
+});
 app.get('/api/users/preferences', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id || req.user?.userId;
@@ -566,10 +573,14 @@ app.get('/api/users/preferences', authenticateUser, async (req, res) => {
       .select('email_digest_unsubscribed')
       .eq('id', userId)
       .single();
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) {
+      log.warn('preferences GET db error', { userId, error: error.message });
+      return res.status(500).json(_prefsErrPayload(error, 'Failed to fetch preferences'));
+    }
     res.json({ success: true, preferences: { email_digest_unsubscribed: data?.email_digest_unsubscribed || false } });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message || 'Failed to fetch preferences' });
+    log.warn('preferences GET threw', { userId: req.user?.id, error: err?.message });
+    res.status(500).json(_prefsErrPayload(err, 'Failed to fetch preferences'));
   }
 });
 app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
@@ -584,10 +595,14 @@ app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
       .from('users')
       .update({ email_digest_unsubscribed })
       .eq('id', userId);
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) {
+      log.warn('preferences PATCH db error', { userId, error: error.message });
+      return res.status(500).json(_prefsErrPayload(error, 'Failed to update preferences'));
+    }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message || 'Failed to update preferences' });
+    log.warn('preferences PATCH threw', { userId: req.user?.id, error: err?.message });
+    res.status(500).json(_prefsErrPayload(err, 'Failed to update preferences'));
   }
 });
 app.use('/api/dashboard/context', dashboardContextRoutes);
