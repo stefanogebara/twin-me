@@ -195,8 +195,14 @@ export const optionalAuth = async (req, res, next) => {
             ...payload
           };
         } catch (verifyError) {
-          // For optional auth, we don't fail on invalid tokens
-          log.warn('Optional auth token verification failed', { error: verifyError });
+          // For optional auth, we don't fail on invalid tokens.
+          // audit-2026-05-09 S-L5: log only message + name, not the full
+          // error object — some jsonwebtoken versions include the rejected
+          // token fragment in stack traces, which would put a token in logs.
+          log.warn('Optional auth token verification failed', {
+            error: verifyError?.message,
+            name: verifyError?.name,
+          });
         }
       }
     }

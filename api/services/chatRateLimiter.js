@@ -28,8 +28,16 @@ export const CHAT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const chatRateLimitMap = new Map();
 let _cleanupInterval = null;
 
+// audit-2026-05-09 S-M5: REDIS_URL must be set in production. The in-memory
+// fallback resets per-lambda on Vercel, so without Redis the rate limiter
+// silently becomes a no-op cross-instance — runaway-loop detection breaks
+// without anything in the logs flagging it. Fail loud at boot in production.
 if (!process.env.REDIS_URL) {
-  log.warn('REDIS_URL is not set - chat rate limiting is in-memory only (not safe for multi-instance/serverless deployments)');
+  if (process.env.NODE_ENV === 'production') {
+    log.error('REDIS_URL is not set in production — chat rate limiter is effectively disabled. Configure Redis or runaway-loop detection breaks.');
+  } else {
+    log.warn('REDIS_URL is not set - chat rate limiting is in-memory only (not safe for multi-instance/serverless deployments)');
+  }
 }
 
 // Periodic cleanup of expired entries (in-memory fallback only).

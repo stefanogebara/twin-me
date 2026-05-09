@@ -87,10 +87,16 @@ export async function getSoulSignature(userId, opts = {}) {
       expiresAt: Date.now() + SOUL_SIGNATURE_CACHE_TTL_MS,
     });
     // Bound the cache so a long-lived dev process doesn't leak across users.
+    // audit-2026-05-09 S-L4: was evicting only 1 entry per overflow, doing
+    // an O(n log n) sort on each cache write past the bound. Evict 10% of
+    // oldest in one pass so the sort-cost amortizes properly.
     if (_soulSignatureCache.size > 500) {
-      const oldest = [..._soulSignatureCache.entries()]
-        .sort((a, b) => a[1].expiresAt - b[1].expiresAt)[0];
-      if (oldest) _soulSignatureCache.delete(oldest[0]);
+      const sortedByAge = [..._soulSignatureCache.entries()]
+        .sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+      const toEvict = Math.max(1, Math.floor(sortedByAge.length * 0.1));
+      for (let i = 0; i < toEvict; i++) {
+        _soulSignatureCache.delete(sortedByAge[i][0]);
+      }
     }
     return data || null;
   } catch (err) {

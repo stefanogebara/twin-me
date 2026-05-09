@@ -36,10 +36,22 @@ export default async function handler(req, res) {
   try {
     // Allow scoping to specific users via query/body param for manual testing
     // e.g. POST /api/cron/ingest-observations?userIds=uid1,uid2
+    // audit-2026-05-09 S-M4: validate UUID shape before passing to the
+    // ingestion function — defense-in-depth in case CRON_SECRET is ever
+    // compromised. Reject early with 400 if any candidate id is malformed.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const userIdsParam = req.query?.userIds || req.body?.userIds;
-    const targetUserIds = userIdsParam
+    const candidateIds = userIdsParam
       ? (typeof userIdsParam === 'string' ? userIdsParam.split(',').map(s => s.trim()).filter(Boolean) : userIdsParam)
       : null;
+    if (Array.isArray(candidateIds) && candidateIds.length > 0) {
+      const bad = candidateIds.filter(id => !UUID_RE.test(id));
+      if (bad.length > 0) {
+        log.warn('Rejecting cron run — userIds contains non-UUID values', { badCount: bad.length });
+        return res.status(400).json({ success: false, error: 'userIds must be UUIDs' });
+      }
+    }
+    const targetUserIds = candidateIds;
 
     // Early-exit: skip the full ingestion loop if no users have connected platforms.
     // One cheap COUNT query saves the 3 parallel SELECT queries + per-user processing loop

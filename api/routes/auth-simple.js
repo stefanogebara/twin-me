@@ -14,6 +14,21 @@ import { authenticateUser } from '../middleware/auth.js';
 
 const log = createLogger('Auth');
 
+// audit-2026-05-09 S-M1: redact email PII in log lines so log-drain breaches
+// don't expose beta-applicant identities. Keeps the domain visible (lets ops
+// group by provider when triaging mass-rejection patterns) and a 2-char prefix
+// from the local-part (lets ops disambiguate two reports from the same domain
+// without revealing the full handle).
+function redactEmail(email) {
+  if (!email || typeof email !== 'string') return null;
+  const at = email.indexOf('@');
+  if (at < 0) return '***';
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  const prefix = local.slice(0, 2);
+  return `${prefix}***@${domain}`;
+}
+
 // ====================================================================
 // Shared: Resolve the canonical app URL for OAuth redirects
 // Priority: APP_URL env > twinme.me detection > vercel.app detection > VITE_APP_URL > localhost
@@ -166,9 +181,13 @@ if (JWT_SECRET.length < 32) {
 }
 
 function generateTokenPair(user, client = 'web') {
-  // Mobile clients get a longer-lived JWT since they store it securely
-  // and use refresh tokens for re-authentication
-  const expiresIn = client === 'mobile' ? '7d' : '30m';
+  // audit-2026-05-08 Security MED-1: shrunk mobile lifetime from 7d to 2h.
+  // 7d was a stolen-token disaster on Vercel where the in-memory blacklist
+  // is per-function-instance and effectively empty. Mobile clients call
+  // /api/auth/refresh with their httpOnly cookie when the access token
+  // expires — same flow as web — so a 2h window keeps UX intact while
+  // capping blast radius of leaked tokens.
+  const expiresIn = client === 'mobile' ? '2h' : '30m';
   const accessToken = jwt.sign(
     { id: user.id, email: user.email },
     JWT_SECRET,
@@ -845,7 +864,7 @@ async function exchangeGoogleCode(code, appUrl, overrideRedirectUri = null) {
 
     // nOAuth protection: reject unverified emails to prevent account takeover
     if (userData.verified_email === false) {
-      log.warn('OAuth rejected: email not verified', { email: userData.email });
+      log.warn('OAuth rejected: email not verified', { email: redactEmail(userData.email) });
       return null;
     }
 
@@ -1001,14 +1020,14 @@ router.get('/oauth/callback', async (req, res) => {
         resolvedInviteCode = inviteCode || preInvite?.code;
 
         if (!resolvedInviteCode) {
-          log.info('New user rejected (no invite code)', { email: userData.email });
+          log.info('New user rejected (no invite code)', { email: redactEmail(userData.email) });
           betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
           return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}`);
         }
 
         const validation = await betaInviteService.validateInviteCode(resolvedInviteCode);
         if (!validation.valid) {
-          log.info('New user rejected (invalid invite)', { email: userData.email, error: validation.error });
+          log.info('New user rejected (invalid invite)', { email: redactEmail(userData.email), error: validation.error });
           betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'invalid_invite').catch(() => {});
           return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(userData.email)}&error=${encodeURIComponent(validation.error)}`);
         }
@@ -1259,19 +1278,19 @@ router.post('/oauth/callback', async (req, res) => {
           resolvedInviteCodePost = inviteCode || preInvite?.code;
 
           if (!resolvedInviteCodePost) {
-            log.info('New user rejected via POST (no invite)', { email: userData.email });
+            log.info('New user rejected via POST (no invite)', { email: redactEmail(userData.email) });
             betaInviteService.addToWaitlist(userData.email, `${userData.firstName || ''} ${userData.lastName || ''}`.trim(), 'rejected_signup').catch(() => {});
             return res.status(403).json({ success: false, error: 'Beta invite code required', waitlist: true });
           }
 
           const validation = await betaInviteService.validateInviteCode(resolvedInviteCodePost);
           if (!validation.valid) {
-            log.info('New user rejected via POST (invalid invite)', { email: userData.email });
+            log.info('New user rejected via POST (invalid invite)', { email: redactEmail(userData.email) });
             return res.status(403).json({ success: false, error: validation.error, waitlist: true });
           }
         }
         if (discoveryBypass) {
-          log.info('Discovery-confirmed user bypassing beta gate', { email: userData.email });
+          log.info('Discovery-confirmed user bypassing beta gate', { email: redactEmail(userData.email) });
         }
 
         // Create new user

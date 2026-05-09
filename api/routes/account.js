@@ -39,7 +39,18 @@ const router = express.Router();
  * - analytics_events, analytics_sessions, llm_usage_log
  */
 router.get('/profile', authenticateUser, async (req, res) => {
-  return res.json({ success: true, user: req.user });
+  // audit-2026-05-09 S-L1: explicit allowlist instead of returning the full
+  // decoded JWT payload. Internal claims like iat/exp/sub aren't useful to
+  // the client and shouldn't be exposed.
+  const u = req.user || {};
+  return res.json({
+    success: true,
+    user: {
+      id: u.id || u.userId || null,
+      email: u.email || null,
+      firstName: u.firstName || null,
+    },
+  });
 });
 
 router.delete('/', authenticateUser, async (req, res) => {

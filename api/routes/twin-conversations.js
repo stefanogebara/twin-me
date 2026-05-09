@@ -119,7 +119,7 @@ router.get('/history', authenticateUser, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Conversation not found' });
     }
 
-    const { data: messagesData } = await serverDb.getMessagesByConversation(conversationId, 50);
+    const { data: messagesData } = await serverDb.getMessagesByConversation(conversationId, 50, userId);
 
     res.json({
       success: true,

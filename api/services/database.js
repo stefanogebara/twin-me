@@ -378,13 +378,43 @@ export const serverDb = {
     return { data, error: null };
   },
 
-  async getMessagesByConversation(conversationId, limit = 50) {
+  async getMessagesByConversation(conversationId, limit = 50, userId = null) {
     const dbCheck = checkDbAvailable();
     if (dbCheck) return dbCheck;
 
+    // audit-2026-05-09 S-M6: defense-in-depth ownership re-check. Service role
+    // bypasses RLS, so without this a logic bug in the caller's ownership
+    // check would expose another user's messages. Verify the conversation
+    // belongs to userId before returning rows. userId is optional (legacy
+    // callers without the param keep working) but recommended for any new
+    // code path.
+    if (userId) {
+      const { data: convo, error: convoErr } = await supabaseAdmin
+        .from('twin_conversations')
+        .select('id')
+        .eq('id', conversationId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (convoErr) {
+        console.error('[Database] Ownership check failed', convoErr.message);
+        return { data: null, error: convoErr };
+      }
+      if (!convo) {
+        // Caller's ownership check already failed-or-not — empty here is
+        // consistent: no rows returned, no info leak about whether the
+        // conversation exists for some other user.
+        return { data: [], error: null };
+      }
+    }
+
+    // audit-2026-05-09 deep-dive: was querying legacy `messages` table which
+    // is not where chats persist. twin-chat.js writes to `twin_messages` with
+    // role='user'|'assistant'|'system'. Fixed to query the correct table and
+    // re-shape into the historical caller contract (id, content, is_user_message,
+    // created_at) so existing /api/chat/history responses don't break the FE.
     const { data, error } = await supabaseAdmin
-      .from('messages')
-      .select('*')
+      .from('twin_messages')
+      .select('id, role, content, created_at, metadata')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true })
       .limit(limit);
@@ -393,7 +423,19 @@ export const serverDb = {
       log.error('Error fetching messages:', error);
       return { data: [], error };
     }
-    return { data, error: null };
+
+    // Backward-compat shape for the route handler that still reads
+    // `is_user_message`. Replace gradually with role-aware code.
+    const reshaped = (data || []).map(m => ({
+      id: m.id,
+      content: m.content,
+      is_user_message: m.role === 'user',
+      role: m.role,
+      created_at: m.created_at,
+      metadata: m.metadata,
+    }));
+
+    return { data: reshaped, error: null };
   },
 
   // Student Profile operations
