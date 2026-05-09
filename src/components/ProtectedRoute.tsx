@@ -44,7 +44,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           {/* Pulsing brand mark */}
           <div className="relative">
             <img
-              src="/images/backgrounds/flower-hero.png"
+              src="/images/backgrounds/flower-hero.webp"
               alt="Twin Me"
               className="w-12 h-12 animate-pulse"
               style={{ objectFit: 'contain' }}
@@ -69,8 +69,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <>{children}</>;
   }
 
-  // Not signed in - redirect to auth page
-  return <Navigate to={fallbackPath} state={{ from: location }} replace />;
+  // Not signed in - redirect to auth page.
+  // audit-2026-05-09 F-M3: also serialize the original path into a
+  // ?redirect= query param so the auth page can route back after sign-in
+  // even on a full-page reload (state.from only survives SPA navigation).
+  // Skip for the root '/' since that's the default landing post-auth.
+  const intendedPath = location.pathname + (location.search || '') + (location.hash || '');
+  const redirectQuery =
+    intendedPath && intendedPath !== '/' && intendedPath !== '/auth'
+      ? `?redirect=${encodeURIComponent(intendedPath)}`
+      : '';
+  return (
+    <Navigate
+      to={`${fallbackPath}${redirectQuery}`}
+      state={{ from: location }}
+      replace
+    />
+  );
 };
 
 export default ProtectedRoute;

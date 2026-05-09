@@ -16,7 +16,17 @@ const CustomAuth = () => {
   // future "sign in as different user" flow without forcing a logout).
   useEffect(() => {
     if (searchParams.get('view') === 'public') return;
-    if (isLoaded && isSignedIn) navigate('/dashboard', { replace: true });
+    if (isLoaded && isSignedIn) {
+      // audit-2026-05-09 F-M3: honor ?redirect= for already-signed-in users
+      // hitting /auth (e.g. came from a deep link). Allow only same-origin
+      // relative paths so this can't be turned into an open-redirect vector.
+      const redirectTo = searchParams.get('redirect');
+      const safeRedirect =
+        redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+          ? redirectTo
+          : '/dashboard';
+      navigate(safeRedirect, { replace: true });
+    }
   }, [isLoaded, isSignedIn, navigate, searchParams]);
 
   const [loading, setLoading] = useState(false);

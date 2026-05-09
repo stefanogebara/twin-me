@@ -263,7 +263,7 @@ const Index = () => {
               { value: '5-layer', label: 'Personality portrait', sub: 'From your real data' },
               { value: '< 60s', label: 'Time to first insight', sub: 'After connecting' },
             ].map((stat, i) => (
-              <div key={i} className="glass-stat-standalone bg-white/[0.03] border border-white/[0.08] rounded-[20px] py-8 px-7 text-center relative overflow-hidden">
+              <div key={i} className="glass-stat-standalone bg-white/[0.06] border border-white/[0.10] rounded-[20px] py-8 px-7 text-center relative overflow-hidden">
                 <div
                   className="font-heading text-[52px] font-semibold leading-[1.05] text-[#F5F0EB] mb-2.5 tracking-[-0.03em]"
                 >
