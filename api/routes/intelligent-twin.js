@@ -243,8 +243,6 @@ router.get('/insights', authenticateUser, async (req, res) => {
       });
     }
 
-    if (!(await gateLlmRateLimit(req, res, 'insights'))) return;
-
     log.info(`Getting insights for user ${userId}`);
 
     // Return cached result if fresh (avoids 13s LLM call on every request)
@@ -255,6 +253,11 @@ router.get('/insights', authenticateUser, async (req, res) => {
       log.info(`Returning cached insights for user ${userId}`);
       return res.json(cached);
     }
+
+    // audit-2026-05-09 self-audit: rate-limit AFTER cache check so dashboard
+    // auto-fetches that hit the warm cache don't burn the user's chat budget.
+    // Only the actual LLM-call branch is metered.
+    if (!(await gateLlmRateLimit(req, res, 'insights'))) return;
 
     const insights = await intelligentTwinEngine.generateInsightsAndRecommendations(userId, {
       includeMusic: false

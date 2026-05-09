@@ -72,7 +72,7 @@ export const GlassOrb: React.FC<{
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   gradient?: string;
-}> = ({ size = 'md', className = '', gradient = 'from-indigo-500/30 to-purple-500/30' }) => {
+}> = ({ size = 'md', className = '', gradient = 'from-amber-700/30 to-amber-500/30' }) => {
   const sizeClasses = {
     sm: 'w-24 h-24',
     md: 'w-48 h-48',

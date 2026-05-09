@@ -69,18 +69,31 @@ export async function checkChatRateLimit(userId) {
     const client = getRedisClient();
     if (client && isRedisAvailable()) {
       const key = `chatRateLimit:${userId}`;
+      // audit-2026-05-09 self-audit: pipeline used to ZADD then ZCARD —
+      // a denied request still burned a slot. Now: speculative ZADD with
+      // a tracked member, then if over the limit, ZREM the just-added
+      // member so the count reflects only allowed requests. One extra
+      // Redis op on overage; zero on the happy path.
+      const member = `${now}-${Math.random()}`;
       const pipe = client.pipeline();
       pipe.zremrangebyscore(key, '-inf', windowStart);
-      pipe.zadd(key, now, `${now}-${Math.random()}`);
+      pipe.zadd(key, now, member);
       pipe.zcard(key);
       pipe.zrange(key, 0, 0, 'WITHSCORES');
       pipe.expire(key, Math.ceil(CHAT_RATE_LIMIT_WINDOW_MS / 1000));
       const results = await pipe.exec();
       const used = results[2][1];
       if (used > CHAT_RATE_LIMIT_MAX) {
+        // Undo the speculative add so the next request sees the true count.
+        // Best-effort: a failed ZREM here only inflates the counter by 1
+        // for the rest of the hour, which is conservative (denies one extra
+        // legitimate request) — never the inverse.
+        client.zrem(key, member).catch(err =>
+          log.warn('zrem after rate-limit denial failed', { error: err?.message })
+        );
         const oldestScore = parseFloat(results[3][1][1] || now);
         const retryAfterMs = CHAT_RATE_LIMIT_WINDOW_MS - (now - oldestScore);
-        return { allowed: false, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: Math.max(0, retryAfterMs) };
+        return { allowed: false, used: used - 1, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: Math.max(0, retryAfterMs) };
       }
       return { allowed: true, used, limit: CHAT_RATE_LIMIT_MAX, retryAfterMs: null };
     }
