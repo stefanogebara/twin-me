@@ -252,7 +252,13 @@ What does this reveal about their personality or habits?`;
       });
       if (!result.ok) throw result.error;
 
-      // Save reflections
+      // Save reflections.
+      // audit-2026-05-09 D-M2: reflection_history table was created with a
+      // composite unique on (user_id, platform, reflection_type) so the
+      // formation-snapshot upsert path doesn't collide with the append-only
+      // observation path used by reflectionStore.js. Tag every formation
+      // record with reflection_type='formation_snapshot' to hit the correct
+      // partial unique index.
       if (twinData.reflections.length > 0) {
         const reflectionRecords = twinData.reflections.map(r => ({
           user_id: userId,
@@ -260,12 +266,13 @@ What does this reveal about their personality or habits?`;
           title: r.title,
           content: r.content,
           feature_count: r.featureCount,
-          generated_at: r.generatedAt
+          generated_at: r.generatedAt,
+          reflection_type: 'formation_snapshot',
         }));
 
         const { error: reflectionErr } = await supabaseAdmin
           .from('reflection_history')
-          .upsert(reflectionRecords, { onConflict: 'user_id,platform' });
+          .upsert(reflectionRecords, { onConflict: 'user_id,platform,reflection_type' });
         if (reflectionErr) log.warn('Failed to upsert reflection history:', reflectionErr.message);
       }
 
