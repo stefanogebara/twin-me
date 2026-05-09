@@ -367,9 +367,10 @@ router.post('/webhook', async (req, res) => {
       }
 
       // Sanitize phone — webhook payload is attacker-controllable. Allow only
-      // E.164 chars (+ and digits). Anything else gets stripped before we put
-      // it into a Supabase .or() filter, which is string-interpolated and
-      // could otherwise be used to alter the OR clause.
+      // E.164 chars (+ and digits). Anything else gets stripped. We pair this
+      // with .in([...]) below (parameterized) instead of .or() (string-interp)
+      // for defense-in-depth: even if sanitization regex relaxes in the
+      // future, the lookup can't be turned into a PostgREST filter injection.
       const rawPhone = msg.from;
       if (!rawPhone) continue;
       const phone = String(rawPhone).replace(/[^\d+]/g, '');
@@ -393,12 +394,18 @@ router.post('/webhook', async (req, res) => {
       const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
       const phoneWithout = phone.startsWith('+') ? phone.slice(1) : phone;
 
-      const { data: channel } = await supabaseAdmin
+      // audit-2026-05-09 S-H1: previously used .or(`channel_id.eq.${...},...`)
+      // which string-interpolates user-controllable input into PostgREST
+      // filter syntax. Switched to .in([...]) which is parameterized — the
+      // values are sent as a typed array, never concatenated into the URL
+      // filter expression.
+      const { data: channels } = await supabaseAdmin
         .from('messaging_channels')
         .select('user_id, preferences')
         .eq('channel', 'whatsapp')
-        .or(`channel_id.eq.${phoneWithPlus},channel_id.eq.${phoneWithout}`)
-        .single();
+        .in('channel_id', [phoneWithPlus, phoneWithout])
+        .limit(1);
+      const channel = channels?.[0] || null;
 
       if (!channel) {
         log.warn('No messaging_channels match', { phone });
