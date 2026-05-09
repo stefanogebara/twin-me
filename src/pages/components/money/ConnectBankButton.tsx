@@ -29,7 +29,16 @@ export function ConnectBankButton({ onConnected }: Props) {
     try {
       const res = await getPluggyConnectToken();
       if (!res.success || !res.connectToken) {
-        setError(res.error || 'Não foi possível iniciar a conexão bancária');
+        // audit-2026-05-08 C1: friendlier message when the integration isn't
+        // configured (dev or prod-misconfig). Direct user to CSV upload below.
+        if (res.code === 'PLUGGY_NOT_CONFIGURED') {
+          setError(
+            'Vinculação bancária BR está temporariamente indisponível. ' +
+            'Use o upload de extrato CSV/OFX abaixo enquanto isso.',
+          );
+        } else {
+          setError(res.error || 'Não foi possível iniciar a conexão bancária');
+        }
         return;
       }
       setEnvironment(res.environment || 'sandbox');
@@ -61,7 +70,16 @@ export function ConnectBankButton({ onConnected }: Props) {
     try {
       const res = await getTrueLayerAuthUrl();
       if (!res.success || !res.authUrl) {
-        setError(res.error || 'Não foi possível iniciar a conexão EU/UK');
+        // audit-2026-05-08 C1: same pattern as Pluggy — show friendly message
+        // and point user to CSV upload when TL isn't configured.
+        if (res.code === 'TRUELAYER_NOT_CONFIGURED') {
+          setError(
+            'Vinculação bancária EU/UK está temporariamente indisponível. ' +
+            'Use o upload de extrato CSV/OFX abaixo enquanto isso.',
+          );
+        } else {
+          setError(res.error || 'Não foi possível iniciar a conexão EU/UK');
+        }
         return;
       }
       // Full-page redirect: TrueLayer's consent page is not widget-embeddable.

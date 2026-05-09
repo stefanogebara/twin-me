@@ -8,6 +8,7 @@
 
 import express from 'express';
 import multer from 'multer';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { parseBankStatement } from '../services/transactions/parserDispatcher.js';
@@ -34,6 +35,35 @@ function safeError(staticMessage, err) {
     : { success: false, error: staticMessage };
 }
 
+/**
+ * audit-2026-05-08 M1: parse a `window` or `window_days` query param into a
+ * concrete day count. Accepts:
+ *   ?window_days=30   (numeric, original contract)
+ *   ?window=30d
+ *   ?window=12w        (weeks)
+ *   ?window=3mo | 12mo (months ≈ 30 days each)
+ *   ?window=1y         (years)
+ * Falls back to `defaultDays` on invalid/missing input. Clamped to [1, 365].
+ */
+function parseWindowDays(query, defaultDays = 30) {
+  const raw = query?.window_days ?? query?.window;
+  if (raw === undefined || raw === null || raw === '') return defaultDays;
+  if (typeof raw === 'number') return Math.min(Math.max(Math.round(raw), 1), 365);
+  const s = String(raw).trim().toLowerCase();
+  // Plain integer like "30"
+  if (/^\d+$/.test(s)) return Math.min(Math.max(parseInt(s, 10), 1), 365);
+  // <N><unit> form
+  const m = s.match(/^(\d+)\s*(d|day|days|w|week|weeks|m|mo|month|months|y|year|years)$/);
+  if (!m) return defaultDays;
+  const n = parseInt(m[1], 10);
+  const unit = m[2];
+  let days = n;
+  if (unit.startsWith('w')) days = n * 7;
+  else if (unit === 'm' || unit.startsWith('mo')) days = n * 30;
+  else if (unit.startsWith('y')) days = n * 365;
+  return Math.min(Math.max(days, 1), 365);
+}
+
 // File upload config — memory storage, 10MB max. CSV/OFX text files are tiny.
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -42,16 +72,80 @@ const upload = multer({
     const ok = /\.(csv|ofx|txt|xlsx)$/i.test(file.originalname) ||
       ['text/csv', 'text/plain', 'application/x-ofx', 'application/octet-stream',
        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'].includes(file.mimetype);
-    if (!ok) return cb(new Error('Only CSV, OFX or XLSX files are supported'));
+    if (!ok) {
+      // audit-2026-05-08 M2: tag the error so the route handler can map to 415
+      // instead of leaking 500 + errorType: MulterError to the client.
+      const err = new Error('Only CSV, OFX or XLSX files are supported');
+      err.code = 'UNSUPPORTED_FILE_TYPE';
+      return cb(err);
+    }
     cb(null, true);
   },
+});
+
+/**
+ * audit-2026-05-08 M2: convert multer's LIMIT_FILE_SIZE → 413 and our
+ * UNSUPPORTED_FILE_TYPE → 415. Without this wrapper, multer surfaces both
+ * as 500s with `errorType: "MulterError"` leaking into the JSON body.
+ *
+ * Express middleware semantics: if the wrapped middleware (multer) calls
+ * next(err), we intercept here. If it succeeds, we call next() with no
+ * error so the actual route handler runs.
+ */
+function uploadSingleFile(field) {
+  const inner = upload.single(field);
+  return (req, res, next) => {
+    inner(req, res, (err) => {
+      if (!err) return next();
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          error: 'File is too large. The maximum size is 10 MB.',
+          code: 'LIMIT_FILE_SIZE',
+        });
+      }
+      if (err.code === 'UNSUPPORTED_FILE_TYPE') {
+        return res.status(415).json({
+          success: false,
+          error: 'Only CSV, OFX or XLSX files are supported',
+          code: 'UNSUPPORTED_FILE_TYPE',
+        });
+      }
+      // Anything else: 400 with a generic message; never leak errorType.
+      return res.status(400).json({
+        success: false,
+        error: 'Upload failed',
+        detail: process.env.NODE_ENV !== 'production' ? err.message : undefined,
+      });
+    });
+  };
+}
+
+/**
+ * audit-2026-05-08 M3: per-user rate limit on /retag. Each call SELECTs up to
+ * 500 rows + N UPDATEs + recurrence detector + tag batch — about 1-3 seconds
+ * of Vercel time and several hundred Supabase queries. A misbehaving client
+ * could pin a function and degrade the DB for everyone. 5 retags / 15 minutes
+ * per user is generous (the FE invokes this on demand, typically when the
+ * user just connected a new integration).
+ */
+const retagLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Key by user.id when authenticated (which they are — authenticateUser
+  // runs before this); fall back to IP using the helper that handles IPv6
+  // properly so we don't trip ERR_ERL_KEY_GEN_IPV6.
+  keyGenerator: (req, res) => req.user?.id || ipKeyGenerator(req, res),
+  message: { success: false, error: 'too_many_retag_requests', code: 'RATE_LIMITED' },
 });
 
 /**
  * POST /api/transactions/upload
  * multipart/form-data with a `file` field (CSV or OFX).
  */
-router.post('/upload', authenticateUser, upload.single('file'), async (req, res) => {
+router.post('/upload', authenticateUser, uploadSingleFile('file'), async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
@@ -72,8 +166,42 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
       });
     }
 
+    // audit-2026-05-08 H3: reject obviously-malformed amounts BEFORE persisting.
+    // Real-world transactions are not in the millions and aren't sub-cent.
+    // Out-of-range rows poison summary/savings totals and break UI rendering.
+    // We surface them as parse_errors so the user sees what was dropped.
+    const MAX_TX_AMOUNT = 1_000_000;        // BRL/USD/EUR — single tx > 1M is parser garbage
+    const MIN_TX_AMOUNT = 0.01;             // sub-cent rows are noise (FX rounding artifacts, etc.)
+    const validationErrors = [];
+    const validTxns = [];
+    for (const t of parsed.transactions) {
+      const n = Number(t.amount);
+      if (!Number.isFinite(n)) {
+        validationErrors.push(`Skipped non-numeric amount for ${t.external_id || t.merchant_raw}: ${t.amount}`);
+        continue;
+      }
+      const abs = Math.abs(n);
+      if (abs > MAX_TX_AMOUNT) {
+        validationErrors.push(`Skipped out-of-range amount ${n} for ${t.merchant_raw} (>${MAX_TX_AMOUNT})`);
+        continue;
+      }
+      if (abs < MIN_TX_AMOUNT) {
+        validationErrors.push(`Skipped sub-cent amount ${n} for ${t.merchant_raw}`);
+        continue;
+      }
+      validTxns.push(t);
+    }
+    if (!validTxns.length) {
+      return res.status(400).json({
+        success: false,
+        error: 'No valid transactions in file (all amounts were out of range)',
+        detail: [...parsed.errors, ...validationErrors],
+        format: parsed.format,
+      });
+    }
+
     // Annotate rows for insert — normalize merchant + infer category at ingest time
-    const rows = parsed.transactions.map((t) => {
+    const rows = validTxns.map((t) => {
       const { brand, category } = normalizeMerchant(t.merchant_raw);
       return {
         user_id: userId,
@@ -139,7 +267,9 @@ router.post('/upload', authenticateUser, upload.single('file'), async (req, res)
       inserted: insertedIds.length,
       tagged: tagResult.tagged,
       tag_errors: tagResult.errors,
-      parse_errors: parsed.errors,
+      // audit-2026-05-08 H3: include validation errors alongside parser errors
+      // so the user sees which rows were dropped for being out of range.
+      parse_errors: [...parsed.errors, ...validationErrors],
       file_hash: parsed.fileHash,
     });
   } catch (err) {
@@ -236,7 +366,9 @@ router.get('/summary', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // audit-2026-05-08 M1: respect ?window or ?window_days; fall back to 30 days.
+    const windowDays = parseWindowDays(req.query, 30);
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabaseAdmin
       .from('user_transactions')
@@ -249,7 +381,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
         )
       `)
       .eq('user_id', userId)
-      .gte('transaction_date', thirtyDaysAgo);
+      .gte('transaction_date', since);
 
     if (error) throw error;
 
@@ -301,7 +433,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
 
     return res.json({
       success: true,
-      window_days: 30,
+      window_days: windowDays,
       transaction_count: rows.length,
       total_outflow: Math.round(totalOutflow * 100) / 100,
       total_inflow: Math.round(totalInflow * 100) / 100,
@@ -324,7 +456,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
  * Re-runs emotion tagging for all user transactions. Useful after connecting
  * a new platform (Whoop, Spotify, Calendar) — picks up new signals.
  */
-router.post('/retag', authenticateUser, async (req, res) => {
+router.post('/retag', authenticateUser, retagLimiter, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
@@ -349,14 +481,23 @@ router.post('/retag', authenticateUser, async (req, res) => {
         }
       }
     }
+    // audit-2026-05-08 M3: parallelize the backfill UPDATEs in chunks of 10
+    // instead of looping sequentially. 500 rows could otherwise spend ~1-2 s
+    // serially on the DB; 10× concurrency drops it to ~100-200 ms.
     let backfilled = 0;
-    for (const u of backfillUpdates) {
-      const { error: updErr } = await supabaseAdmin
-        .from('user_transactions')
-        .update({ merchant_normalized: u.merchant_normalized, category: u.category })
-        .eq('id', u.id)
-        .eq('user_id', userId);
-      if (!updErr) backfilled++;
+    const BACKFILL_CONCURRENCY = 10;
+    for (let i = 0; i < backfillUpdates.length; i += BACKFILL_CONCURRENCY) {
+      const part = backfillUpdates.slice(i, i + BACKFILL_CONCURRENCY);
+      const results = await Promise.all(
+        part.map((u) =>
+          supabaseAdmin
+            .from('user_transactions')
+            .update({ merchant_normalized: u.merchant_normalized, category: u.category })
+            .eq('id', u.id)
+            .eq('user_id', userId),
+        ),
+      );
+      for (const r of results) if (!r.error) backfilled++;
     }
 
     // Re-detect recurring before tagging so the rule picks up newly-recurring patterns
@@ -389,14 +530,16 @@ router.get('/by-category', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    // audit-2026-05-08 M1: respect ?window or ?window_days; fall back to 30 days.
+    const windowDays = parseWindowDays(req.query, 30);
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabaseAdmin
       .from('user_transactions')
       .select('amount, category')
       .eq('user_id', userId)
       .lt('amount', 0) // outflows only
-      .gte('transaction_date', thirtyDaysAgo);
+      .gte('transaction_date', since);
 
     if (error) throw error;
 
@@ -410,7 +553,7 @@ router.get('/by-category', authenticateUser, async (req, res) => {
       .map(([category, total]) => ({ category, total: Math.round(total * 100) / 100 }))
       .sort((a, b) => b.total - a.total);
 
-    return res.json({ success: true, window_days: 30, breakdown });
+    return res.json({ success: true, window_days: windowDays, breakdown });
   } catch (err) {
     log.error('by-category error', err);
     return res.status(500).json(safeError('by-category failed', err));
@@ -463,13 +606,18 @@ router.get('/stress-shop-score', authenticateUser, async (req, res) => {
     const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
-    // Use the same prefetch pattern as the batch tagger.
+    // audit-2026-05-08 M4: previously this query pulled THIRTY DAYS of platform
+    // data and filtered in-memory, which was 1.9 s p95 even for sparse users.
+    // The widest window we actually use is biology @ 24h. We give 48h of
+    // extraction-lag slack so a Whoop row that was synced last night for an
+    // event this morning still shows up. ~15× less data than the old query.
+    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
     const { data: rows, error } = await supabaseAdmin
       .from('user_platform_data')
       .select('platform, data_type, raw_data, extracted_at')
       .eq('user_id', userId)
       .in('platform', ['whoop', 'oura', 'garmin', 'fitbit', 'spotify', 'calendar', 'google_calendar'])
-      .gte('extracted_at', new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      .gte('extracted_at', fortyEightHoursAgo.toISOString())
       .order('extracted_at', { ascending: false })
       .limit(500);
 
@@ -569,7 +717,9 @@ router.get('/savings', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
 
-    const windowDays = Math.min(Number(req.query.window_days) || 30, 365);
+    // audit-2026-05-08 M1: parseWindowDays accepts both ?window_days=N and
+    // ?window=30d|3mo|1y so the FE has one consistent way to ask.
+    const windowDays = parseWindowDays(req.query, 30);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     // Pull nudge outcomes from the platform-data stream
@@ -713,7 +863,9 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
 
-    const windowDays = Math.min(Number(req.query.window_days) || 30, 365);
+    // audit-2026-05-08 M1: parseWindowDays accepts both ?window_days=N and
+    // ?window=30d|3mo|1y so the FE has one consistent way to ask.
+    const windowDays = parseWindowDays(req.query, 30);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: nudges, error } = await supabaseAdmin
@@ -790,6 +942,24 @@ router.post('/:id/feedback', authenticateUser, async (req, res) => {
     if (typeof is_stress_driven !== 'boolean') {
       return res.status(400).json({ success: false, error: 'is_stress_driven must be boolean' });
     }
+
+    // audit-2026-05-08 H1: verify the transaction exists AND belongs to this
+    // user before accepting feedback. transaction_feedback.transaction_id is
+    // TEXT (no FK) so the DB will not protect us — we have to. Without this
+    // check, any authed user could insert phantom feedback rows for arbitrary
+    // UUIDs (or any string), polluting downstream nudge-effectiveness rollups.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(transactionId)) {
+      return res.status(400).json({ success: false, error: 'invalid transaction id' });
+    }
+    const { data: tx, error: ownErr } = await supabaseAdmin
+      .from('user_transactions')
+      .select('id')
+      .eq('id', transactionId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (ownErr) throw ownErr;
+    if (!tx) return res.status(404).json({ success: false, error: 'transaction not found' });
 
     const { error } = await supabaseAdmin
       .from('transaction_feedback')

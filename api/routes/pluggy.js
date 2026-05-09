@@ -24,6 +24,16 @@ const router = express.Router();
 
 router.use(authenticateUser);
 
+// audit-2026-05-08 C1: emit one warn line at module-init if creds are missing
+// so engineers don't waste time chasing a silent 500. Idempotent — env reads
+// only.
+if (!pluggy.isPluggyConfigured()) {
+  log.warn('Pluggy disabled: PLUGGY_CLIENT_ID or PLUGGY_CLIENT_SECRET unset. /pluggy/connect-token will return 503.');
+}
+if (!tl.isTrueLayerConfigured()) {
+  log.warn('TrueLayer disabled: TRUELAYER_CLIENT_ID or TRUELAYER_CLIENT_SECRET unset. TL revoke on disconnect will be skipped.');
+}
+
 /**
  * POST /connect-token
  * Returns a 30-min connect_token the widget uses to authenticate the user
@@ -37,6 +47,17 @@ router.post('/connect-token', async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    // audit-2026-05-08 C1: short-circuit when credentials are missing — return
+    // 503 + a stable code so the FE can render a "feature unavailable" hint
+    // instead of a generic "failed to create connect token" error.
+    if (!pluggy.isPluggyConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: 'bank linking is currently unavailable',
+        code: 'PLUGGY_NOT_CONFIGURED',
+      });
+    }
 
     const { itemId = null } = req.body || {};
 
@@ -62,6 +83,15 @@ router.post('/connect-token', async (req, res) => {
       environment: process.env.PLUGGY_ENV || 'sandbox',
     });
   } catch (err) {
+    // audit-2026-05-08 C1: a thrown PLUGGY_NOT_CONFIGURED (e.g. envs went
+    // missing mid-runtime) should still surface as 503, not 500.
+    if (err?.code === 'PLUGGY_NOT_CONFIGURED') {
+      return res.status(503).json({
+        success: false,
+        error: 'bank linking is currently unavailable',
+        code: 'PLUGGY_NOT_CONFIGURED',
+      });
+    }
     log.error(`connect-token failed: ${err.message}`);
     return res.status(500).json({
       success: false,

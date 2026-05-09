@@ -26,11 +26,21 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 let cachedApiKey = null;
 let cachedApiKeyExpiresAt = 0;
 
+/**
+ * audit-2026-05-08 C1: cheap env predicate so callers can short-circuit with
+ * a graceful 503 instead of the leaky 500 we used to return.
+ */
+export function isPluggyConfigured() {
+  return Boolean(process.env.PLUGGY_CLIENT_ID && process.env.PLUGGY_CLIENT_SECRET);
+}
+
 function assertCredentials() {
   const clientId = process.env.PLUGGY_CLIENT_ID;
   const clientSecret = process.env.PLUGGY_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error('PLUGGY_CLIENT_ID and PLUGGY_CLIENT_SECRET must be set');
+    const err = new Error('PLUGGY_CLIENT_ID and PLUGGY_CLIENT_SECRET must be set');
+    err.code = 'PLUGGY_NOT_CONFIGURED';
+    throw err;
   }
   return { clientId, clientSecret };
 }

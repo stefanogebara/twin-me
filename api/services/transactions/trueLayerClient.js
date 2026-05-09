@@ -33,11 +33,21 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 // refresh-token rotation.
 const SCOPE = 'info accounts balance transactions cards offline_access';
 
+/**
+ * audit-2026-05-08 C1: cheap env predicate so callers can short-circuit with
+ * a graceful 503 instead of the leaky 500 we used to return.
+ */
+export function isTrueLayerConfigured() {
+  return Boolean(process.env.TRUELAYER_CLIENT_ID && process.env.TRUELAYER_CLIENT_SECRET);
+}
+
 function assertCredentials() {
   const clientId = process.env.TRUELAYER_CLIENT_ID;
   const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error('TRUELAYER_CLIENT_ID and TRUELAYER_CLIENT_SECRET must be set');
+    const err = new Error('TRUELAYER_CLIENT_ID and TRUELAYER_CLIENT_SECRET must be set');
+    err.code = 'TRUELAYER_NOT_CONFIGURED';
+    throw err;
   }
   return { clientId, clientSecret };
 }

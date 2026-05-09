@@ -259,6 +259,8 @@ export interface ConnectTokenResponse {
   connectToken?: string;
   environment?: 'sandbox' | 'production';
   error?: string;
+  // audit-2026-05-08 C1: stable error code surfaced for UI fallback messaging
+  code?: 'PLUGGY_NOT_CONFIGURED' | string;
 }
 
 /**
@@ -272,10 +274,18 @@ export async function getPluggyConnectToken(itemId?: string): Promise<ConnectTok
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(itemId ? { itemId } : {}),
   });
+  // audit-2026-05-08 C1: even on !ok we want to read the body so we can pick up
+  // the structured `code` (e.g. PLUGGY_NOT_CONFIGURED -> graceful UI hint).
+  let body: ConnectTokenResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON body is fine */ }
   if (!res.ok) {
-    return { success: false, error: `Failed to create connect token (${res.status})` };
+    return {
+      success: false,
+      error: body?.error || `Failed to create connect token (${res.status})`,
+      code: body?.code,
+    };
   }
-  return res.json();
+  return body || { success: false, error: 'empty response' };
 }
 
 export async function listBankConnections(): Promise<BankConnection[]> {
@@ -312,6 +322,8 @@ export interface TrueLayerAuthUrlResponse {
   success: boolean;
   authUrl?: string;
   error?: string;
+  // audit-2026-05-08 C1: stable error code surfaced for UI fallback messaging
+  code?: 'TRUELAYER_NOT_CONFIGURED' | string;
 }
 
 /**
@@ -325,8 +337,17 @@ export async function getTrueLayerAuthUrl(providers?: string): Promise<TrueLayer
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(providers ? { providers } : {}),
   });
-  if (!res.ok) return { success: false, error: `auth-url failed (${res.status})` };
-  return res.json();
+  // audit-2026-05-08 C1: read body on !ok too, to surface structured `code`.
+  let body: TrueLayerAuthUrlResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON is fine */ }
+  if (!res.ok) {
+    return {
+      success: false,
+      error: body?.error || `auth-url failed (${res.status})`,
+      code: body?.code,
+    };
+  }
+  return body || { success: false, error: 'empty response' };
 }
 
 export async function syncTrueLayerConnection(id: string): Promise<boolean> {

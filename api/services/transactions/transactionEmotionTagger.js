@@ -534,52 +534,81 @@ function computeFromBundle(userId, tx, bundle) {
  *
  * Optimised: one prefetch query per data domain, then per-transaction compute
  * in memory. For 20 transactions we now hit the DB ~3 times instead of ~80.
+ *
+ * audit-2026-05-08 H2: Supabase/PostgREST has implicit limits on both `.in()`
+ * filter URL length and upsert payload size — sending 5000 rows in one
+ * request silently fails the whole batch (`fetch failed`). We chunk both the
+ * SELECT and the UPSERT.
+ *
+ * Chunk size 200 is calibrated for the SELECT path: `.in('id', ids)` builds
+ * a URL like `?id=in.(uuid1,uuid2,…)` — 200 UUIDs ≈ 8 KB, well under the
+ * 16 KB upstream proxy limit. The upsert is body-based and would tolerate
+ * larger chunks, so 200 is the binding constraint.
  */
+const TAG_BATCH_CHUNK = 200;
+
+function chunk(arr, size) {
+  if (!Array.isArray(arr) || arr.length <= size) return [arr || []];
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
 export async function tagTransactionsBatch(userId, transactionIds) {
   if (!transactionIds?.length) return { tagged: 0, errors: 0 };
 
-  const { data: txns, error } = await supabaseAdmin
-    .from('user_transactions')
-    .select('id, transaction_date, amount, category, merchant_normalized, is_recurring')
-    .eq('user_id', userId)
-    .in('id', transactionIds);
-
-  if (error) {
-    log.warn(`fetch transactions failed: ${error.message}`);
-    return { tagged: 0, errors: transactionIds.length };
+  // ---- 1. Fetch transactions in chunks to stay under PostgREST's `.in()` cap
+  const allTxns = [];
+  let fetchErrors = 0;
+  for (const ids of chunk(transactionIds, TAG_BATCH_CHUNK)) {
+    const { data: txns, error } = await supabaseAdmin
+      .from('user_transactions')
+      .select('id, transaction_date, amount, category, merchant_normalized, is_recurring')
+      .eq('user_id', userId)
+      .in('id', ids);
+    if (error) {
+      log.warn(`fetch transactions chunk failed: ${error.message}`);
+      fetchErrors += ids.length;
+      continue;
+    }
+    allTxns.push(...(txns || []));
   }
 
-  const bundle = await prefetchPlatformDataForBatch(userId, txns || []);
+  const bundle = await prefetchPlatformDataForBatch(userId, allTxns);
   log.info(
     `prefetched for user ${userId}: bio=${bundle.biology.length} music=${bundle.music.length} cal=${bundle.calendar.length}`,
   );
 
+  // ---- 2. Compute emotional context rows in memory
   const rows = [];
-  let errors = 0;
-  for (const tx of txns || []) {
+  let computeErrors = 0;
+  for (const tx of allTxns) {
     try {
       const ctx = computeFromBundle(userId, tx, bundle);
       if (ctx) rows.push(ctx);
     } catch (err) {
-      errors++;
+      computeErrors++;
       log.warn(`tag failed for ${tx.id}: ${err.message}`);
     }
   }
 
+  // ---- 3. Upsert in chunks. A single failed chunk doesn't doom the others.
   let tagged = 0;
-  if (rows.length) {
+  let upsertErrors = 0;
+  for (const part of chunk(rows, TAG_BATCH_CHUNK)) {
+    if (!part.length) continue;
     const { error: upsertErr } = await supabaseAdmin
       .from('transaction_emotional_context')
-      .upsert(rows, { onConflict: 'transaction_id' });
-
+      .upsert(part, { onConflict: 'transaction_id' });
     if (upsertErr) {
-      log.warn(`upsert emotional context failed: ${upsertErr.message}`);
-      errors += rows.length;
+      log.warn(`upsert emotional context chunk (${part.length}) failed: ${upsertErr.message}`);
+      upsertErrors += part.length;
     } else {
-      tagged = rows.length;
+      tagged += part.length;
     }
   }
 
+  const errors = fetchErrors + computeErrors + upsertErrors;
   log.info(`tagged ${tagged}/${transactionIds.length} transactions (${errors} errors) for user ${userId}`);
   return { tagged, errors };
 }

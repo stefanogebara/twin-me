@@ -48,6 +48,16 @@ function redirectUriForEnv() {
 router.post('/auth-url', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;
+    // audit-2026-05-08 C1: stable 503 code when TL is not configured so the
+    // FE can show a non-scary "feature unavailable" message that points to
+    // CSV upload as a fallback.
+    if (!tl.isTrueLayerConfigured()) {
+      return res.status(503).json({
+        success: false,
+        error: 'EU/UK bank linking is currently unavailable',
+        code: 'TRUELAYER_NOT_CONFIGURED',
+      });
+    }
     const { providers } = req.body || {};
     const nonce = crypto.randomBytes(12).toString('hex');
     const state = encryptState({ userId, nonce, t: Date.now() }, 'truelayer');
@@ -58,6 +68,13 @@ router.post('/auth-url', authenticateUser, async (req, res) => {
     });
     return res.json({ success: true, authUrl: url });
   } catch (err) {
+    if (err?.code === 'TRUELAYER_NOT_CONFIGURED') {
+      return res.status(503).json({
+        success: false,
+        error: 'EU/UK bank linking is currently unavailable',
+        code: 'TRUELAYER_NOT_CONFIGURED',
+      });
+    }
     log.error(`auth-url: ${err.message}`);
     return res.status(500).json({ success: false, error: 'failed to build auth url' });
   }
