@@ -144,12 +144,27 @@ router.post('/:actionId/execute', authenticateUser, async (req, res) => {
 
     log.info('Confirmed write action executed', { userId, actionId, tool: toolName, elapsedMs });
 
+    // audit-2026-05-09 S-H5: never expose raw toolResult.error / .message to
+    // the client — they can include third-party API error bodies, internal
+    // service URLs, or stack traces. Log the detail server-side and return
+    // a generic message. NODE_ENV gate keeps dev debugging useful.
+    const failed = toolResult.success === false;
+    if (failed) {
+      log.warn('Tool execution returned failure', {
+        userId, actionId, tool: toolName,
+        toolError: toolResult.error || toolResult.message,
+      });
+    }
     return res.json({
-      success: toolResult.success !== false,
+      success: !failed,
       actionId,
       toolName,
-      data: toolResult.success !== false ? (toolResult.data || toolResult) : null,
-      error: toolResult.success === false ? (toolResult.error || toolResult.message) : null,
+      data: !failed ? (toolResult.data || toolResult) : null,
+      error: failed
+        ? (process.env.NODE_ENV === 'production'
+            ? 'Tool execution failed'
+            : (toolResult.error || toolResult.message || 'Tool execution failed'))
+        : null,
       elapsedMs,
     });
   } catch (err) {
