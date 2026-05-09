@@ -12,7 +12,6 @@ import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider, useAnalytics } from "./contexts/AnalyticsContext";
 import ErrorNotification from "./components/ui/ErrorNotification";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { DemoProvider } from "./contexts/DemoContext";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
@@ -21,7 +20,6 @@ import { SunProvider } from "./contexts/SunContext";
 import { DayNightBackground } from "./components/DayNightBackground";
 import { ClassicBackground } from "./components/ClassicBackground";
 import { BackgroundModeProvider, useBackgroundMode } from "./contexts/BackgroundModeContext";
-import DemoBanner from "./components/DemoBanner";
 
 // Eager-loaded (critical path: landing, auth, 404)
 import Index from "./pages/Index";
@@ -113,7 +111,6 @@ const App = () => {
     <SunProvider>
     <AppBackground />
     <div style={{ position: "relative", zIndex: 1 }}>
-    <DemoProvider>
       <ErrorBoundary showHomeButton>
         <ErrorProvider>
           <LoadingProvider>
@@ -138,7 +135,6 @@ const App = () => {
                       <PostHogPageTracker />
                       <SidebarProvider>
                       <NavigationProvider>
-                      <DemoBanner variant="top" />
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><img src="/images/backgrounds/flower-hero.png" alt="Loading" className="w-12 h-12 animate-pulse" /></div>}>
           <Routes>
             {/* Authentication */}
@@ -491,7 +487,6 @@ const App = () => {
         </LoadingProvider>
       </ErrorProvider>
     </ErrorBoundary>
-    </DemoProvider>
     </div>
     </SunProvider>
     </BackgroundModeProvider>

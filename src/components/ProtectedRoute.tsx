@@ -1,6 +1,5 @@
 import React, { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useDemo } from '../contexts/DemoContext';
 import { Navigate, useLocation } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -18,22 +17,17 @@ interface ProtectedRouteProps {
  * The key is that we wait for `isLoaded` to be true, which only happens
  * AFTER token verification completes. This prevents the "session expired"
  * feeling that occurred when content was shown before verification.
+ *
+ * 2026-05-10: demo-mode bypass removed. The previous branch granted access
+ * to anyone with `localStorage.demo_mode === 'true'`; the only path past
+ * this gate now is a real signed-in user.
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   fallbackPath = '/auth'
 }) => {
-  const { isSignedIn, isLoaded, isDemoMode: authDemoMode, needsOnboarding } = useAuth();
-  const { isDemoMode: demoDemoMode } = useDemo();
+  const { isSignedIn, isLoaded, needsOnboarding } = useAuth();
   const location = useLocation();
-
-  // Demo mode: only grant access if explicitly activated via "Try Demo" button.
-  // Both contexts are checked because DemoContext state updates immediately on enterDemoMode(),
-  // while AuthContext's isDemoMode (which reads localStorage) may lag by one render cycle.
-  // NOTE: This is NOT a silent fallback — demo mode requires an explicit user action.
-  if (authDemoMode || demoDemoMode) {
-    return <>{children}</>;
-  }
 
   // Wait for auth verification to complete before making any decisions
   // This prevents showing content then redirecting (the "session expired" feeling)

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { discoveryScan } from '../services/enrichmentService';
-import { useDemo } from '../contexts/DemoContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { getAccessToken } from '@/services/api/apiBase';
 import DiscoverNav from './components/discover/DiscoverNav';
@@ -28,7 +27,6 @@ export default function DiscoverLanding() {
   const [billingAnnual, setBillingAnnual] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const { enterDemoMode } = useDemo();
   const { trackFunnel } = useAnalytics();
 
   // Discovery scan state
@@ -214,11 +212,6 @@ export default function DiscoverLanding() {
     navigate(`/auth?email=${encodeURIComponent(emailValue)}&redirect=/soul-reveal`);
   };
 
-  const handleEnterDemo = () => {
-    enterDemoMode();
-    navigate('/dashboard');
-  };
-
   return (
     <div
       className="min-h-screen overflow-x-hidden"
@@ -267,7 +260,6 @@ export default function DiscoverLanding() {
         onDiscover={handleDiscover}
         onResetPhase={handleResetPhase}
         onNavigateAuth={handleNavigateAuth}
-        onEnterDemo={handleEnterDemo}
         onConfirmYes={handleConfirmYes}
         onConfirmNo={handleConfirmNo}
         onCorrectionSubmit={handleCorrectionSubmit}

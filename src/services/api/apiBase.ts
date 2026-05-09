@@ -55,10 +55,13 @@ export const getAuthHeaders = (): AuthHeaders => {
 
 /**
  * Check if app is in demo mode.
- * Centralised so every fetch path can short-circuit without hitting the server.
+ *
+ * 2026-05-10: demo mode has been removed. This helper is kept exported so any
+ * existing callers compile, but it now permanently returns `false`. Real
+ * fetches always run; the synthetic `demoResponse` path below is dead code
+ * pending a janitorial pass.
  */
-export const isDemoMode = (): boolean =>
-  localStorage.getItem('demo_mode') === 'true';
+export const isDemoMode = (): boolean => false;
 
 /**
  * Build a synthetic Response that looks like a successful (but empty) API reply.

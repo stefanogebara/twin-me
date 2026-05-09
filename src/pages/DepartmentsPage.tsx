@@ -105,7 +105,8 @@ const DepartmentsPage: React.FC = () => {
     document.body.classList.add('page-departments');
     return () => document.body.classList.remove('page-departments');
   }, []);
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false.
+  const isDemoMode = false;
 
   // Local optimistic state for department changes
   const [localDepts, setLocalDepts] = useState<Department[] | null>(null);

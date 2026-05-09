@@ -28,7 +28,6 @@ interface DiscoverHeroProps {
   onDiscover: () => void;
   onResetPhase: () => void;
   onNavigateAuth: (email: string) => void;
-  onEnterDemo: () => void;
   onConfirmYes?: () => void;
   onConfirmNo?: () => void;
   onCorrectionSubmit?: (data: { name: string; linkedin: string; website: string }) => void;
@@ -49,7 +48,6 @@ export default function DiscoverHero({
   onDiscover,
   onResetPhase,
   onNavigateAuth,
-  onEnterDemo,
   onConfirmYes,
   onConfirmNo,
   onCorrectionSubmit,
@@ -127,13 +125,6 @@ export default function DiscoverHero({
           {error && (
             <p className="text-xs mt-2 text-center" style={{ color: '#ef4444' }}>{error}</p>
           )}
-          <button
-            onClick={onEnterDemo}
-            className="mt-4 text-xs transition-opacity hover:opacity-70 w-full text-center"
-            style={{ color: T.TEXT_SEC, fontFamily: "'Inter', sans-serif", background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            or try the demo
-          </button>
         </div>
       )}
 

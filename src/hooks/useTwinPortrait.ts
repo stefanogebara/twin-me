@@ -33,7 +33,8 @@ async function fetchPortrait(): Promise<TwinPortraitData> {
 }
 
 export function useTwinPortrait(enabled = true) {
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false.
+  const isDemoMode = false;
 
   return useQuery<TwinPortraitData>({
     queryKey: ['twin-portrait', isDemoMode ? 'demo' : 'live'],

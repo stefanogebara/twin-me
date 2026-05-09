@@ -32,7 +32,8 @@ const FALLBACK_DEPARTMENTS: Department[] = [
 export function DepartmentWidget() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false.
+  const isDemoMode = false;
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
 

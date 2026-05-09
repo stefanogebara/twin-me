@@ -25,7 +25,8 @@ export interface NudgeFeedbackPayload {
 export function useProactiveInsights() {
   const queryClient = useQueryClient();
 
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false.
+  const isDemoMode = false;
 
   const query = useQuery<ProactiveInsight[]>({
     queryKey: QUERY_KEY,

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ArrowRight, Brain, Database, Bell, Shield, Menu, X, MessageCircle, Target, BookOpen, Sparkles } from 'lucide-react';
 import { useAuth, SignInButton } from '../contexts/AuthContext';
-import { useDemo } from '../contexts/DemoContext';
 
 import { InlineEvidence } from '../components/landing/InlineEvidence';
 import CosmicHero from '../components/landing/CosmicHero';
@@ -90,7 +89,6 @@ const Index = () => {
   useLenis();
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
-  const { enterDemoMode } = useDemo();
   const [activeService, setActiveService] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   /* Auto-cycle services every 4s */
@@ -216,7 +214,6 @@ const Index = () => {
         isLoaded={isLoaded}
         onDashboard={() => navigate('/dashboard')}
         onDiscover={() => navigate('/discover')}
-        onDemo={() => { enterDemoMode(); navigate('/dashboard'); }}
       />
 
       {/* ────────────── PLATFORMS STRIP — chapter: threads of your life ────────────── */}

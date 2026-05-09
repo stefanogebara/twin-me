@@ -117,7 +117,8 @@ async function fetchHeatmap(): Promise<Array<{ date: string; count: number }>> {
 }
 
 export function useDashboardContext() {
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false. Real fetch always runs.
+  const isDemoMode = false;
 
   return useQuery<DashboardContext>({
     queryKey: ['dashboard-context'],
@@ -127,7 +128,8 @@ export function useDashboardContext() {
 }
 
 export function useDashboardHeatmap() {
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false. Real fetch always runs.
+  const isDemoMode = false;
 
   return useQuery({
     queryKey: ['dashboard-heatmap'],

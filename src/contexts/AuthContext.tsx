@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { DEMO_USER } from '../services/demoDataService';
 import { setAccessToken, getAccessToken, clearAccessToken, authFetch } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 
@@ -7,11 +6,10 @@ import { API_URL } from '@/services/api/apiBase';
 /**
  * AuthContext - Authentication Management
  *
- * DEMO MODE SUPPORT:
- * - Demo mode is enabled when localStorage has 'demo_mode' = 'true'
- * - Demo mode uses DEMO_USER from demoDataService
- * - Demo mode is clearly marked with isDemoMode flag
- * - All API calls should check isDemoMode before making real requests
+ * 2026-05-10: demo-mode auth bypass removed. The `isDemoMode` field is kept
+ * on the context for backward compat with consumers that branch on it, but
+ * it is now permanently `false` — there's no path to enter demo mode and
+ * no localStorage flag is read here.
  *
  * REAL AUTH:
  * - Uses short-lived access tokens plus refresh-cookie recovery
@@ -66,17 +64,9 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // DEMO MODE: Check if demo mode is active
-  // This allows users to explore the platform without connecting real accounts
-  const isDemoMode = localStorage.getItem('demo_mode') === 'true';
-
-  // Optimistic initialization: Check localStorage for cached user data or demo user
+  // Optimistic initialization: rehydrate cached user data so the UI doesn't
+  // flicker between "signed out" and "signed in" while we verify the token.
   const getCachedUser = (): User | null => {
-    // DEMO MODE: If in demo mode, return demo user immediately
-    if (isDemoMode) {
-      return DEMO_USER;
-    }
-
     try {
       const cachedUser = localStorage.getItem('auth_user');
       return cachedUser ? JSON.parse(cachedUser) : null;
@@ -91,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true); // Start true — we're verifying on mount
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  // Guard against concurrent checkAuth calls (StrictMode double-mount, demo-mode events)
+  // Guard against concurrent checkAuth calls (StrictMode double-mount).
   const verifyInFlightRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -148,24 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     initAuth();
 
-    // Listen for demo mode changes (cross-tab via 'storage', same-tab via custom event)
-    const handleDemoModeChange = () => {
-      const demoActive = localStorage.getItem('demo_mode') === 'true';
-      if (demoActive) {
-        setUser(DEMO_USER);
-        setIsLoaded(true);
-        setIsLoading(false);
-      } else {
-        setUser(null);
-        checkAuth();
-      }
-    };
-
-    window.addEventListener('storage', handleDemoModeChange);
-    window.addEventListener('demo-mode-change', handleDemoModeChange);
     return () => {
-      window.removeEventListener('storage', handleDemoModeChange);
-      window.removeEventListener('demo-mode-change', handleDemoModeChange);
       // Abort any in-flight verify request on unmount (StrictMode cleanup)
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -176,14 +149,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    // DEMO MODE: Skip real auth check if in demo mode
-    if (localStorage.getItem('demo_mode') === 'true') {
-      setUser(DEMO_USER);
-      setIsLoaded(true);
-      setIsLoading(false);
-      return;
-    }
-
     const token = getAccessToken();
 
     if (!token) {
@@ -309,7 +274,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Clear all auth-related keys (auth_token removed — no longer stored in localStorage)
     ['auth_user', 'auth_provider', 'twinme_account_created'].forEach(k => localStorage.removeItem(k));
-    // Clear per-user session keys
+    // Clear per-user session keys. `demo_mode` stays in the cleanup list so
+    // any leftover legacy flag from before the 2026-05-10 demo removal gets
+    // wiped on sign-out.
     ['twin_chat_history', 'soul-signature-onboarding', 'twinme_interview_progress', 'demo_mode'].forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
     queryClient.clear();
@@ -373,7 +340,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Set up automatic token refresh before expiration
   useEffect(() => {
-    if (!user || localStorage.getItem('demo_mode') === 'true') {
+    if (!user) {
       return;
     }
 
@@ -438,7 +405,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoaded,
     isSignedIn: !!user,
     isLoading,
-    isDemoMode: localStorage.getItem('demo_mode') === 'true',
+    // Demo mode permanently disabled (2026-05-10). Kept on the type for
+    // backward compat — every consumer always sees `false`.
+    isDemoMode: false,
     needsOnboarding,
     setNeedsOnboarding,
     signOut,

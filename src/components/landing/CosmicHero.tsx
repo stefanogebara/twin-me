@@ -7,7 +7,6 @@ type CosmicHeroProps = {
   isLoaded: boolean;
   onDashboard: () => void;
   onDiscover: () => void;
-  onDemo: () => void;
 };
 
 /**
@@ -102,7 +101,7 @@ function StarField({ active }: { active: boolean }) {
   );
 }
 
-const CosmicHero = ({ isSignedIn, isLoaded, onDashboard, onDiscover, onDemo }: CosmicHeroProps) => {
+const CosmicHero = ({ isSignedIn, isLoaded, onDashboard, onDiscover }: CosmicHeroProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = useReducedMotion();
   const [isMobile, setIsMobile] = useState(false);
@@ -328,20 +327,12 @@ const CosmicHero = ({ isSignedIn, isLoaded, onDashboard, onDiscover, onDemo }: C
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
-              <>
-                <button
-                  onClick={onDiscover}
-                  className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5"
-                >
-                  Discover yourself <ArrowRight className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={onDemo}
-                  className="text-xs bg-none border-none cursor-pointer text-[#C9C4BF] transition-colors hover:text-[#F5F0EB]"
-                >
-                  or try the demo
-                </button>
-              </>
+              <button
+                onClick={onDiscover}
+                className="font-sans bg-[#F5F0EB] text-[var(--primary-foreground)] rounded-full py-[14px] px-7 text-xs font-normal transition-all duration-150 inline-flex items-center gap-2 tracking-[0.02em] hover:opacity-85 hover:-translate-y-0.5"
+              >
+                Discover yourself <ArrowRight className="w-4 h-4" />
+              </button>
             )}
           </div>
         </Stage>

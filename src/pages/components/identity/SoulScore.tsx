@@ -269,7 +269,8 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
 /* ------------------------------------------------------------------ */
 
 const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }) => {
-  const isDemoMode = typeof window !== 'undefined' && localStorage.getItem('demo_mode') === 'true';
+  // 2026-05-10: demo mode removed — always false.
+  const isDemoMode = false;
 
   // Real memory count — the only reliable data source
   const { data: memorySummary } = useQuery({
