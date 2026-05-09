@@ -105,7 +105,7 @@ export default function DiscoverHero({
                 type="email"
                 value={email}
                 onChange={(e) => onEmailChange(e.target.value)}
-                placeholder="Enter your email to discover yourself"
+                placeholder="Enter your email to start"
                 className="flex-1 bg-transparent outline-none text-sm"
                 style={{
                   color: T.FG,
