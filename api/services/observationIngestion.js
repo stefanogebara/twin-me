@@ -388,8 +388,15 @@ async function runObservationIngestion(options = {}) {
 
     log.info('Found users with connections', { users: userPlatforms.size, connections: allConnections.length, pc: pcResult.length, nango: nangoResult.length });
 
-    // Global timeout guard — stop processing before Vercel kills us (60s limit)
-    const GLOBAL_TIMEOUT_MS = 50_000;
+    // Global timeout guard — stop processing before Vercel kills us (60s limit).
+    // audit-2026-05-09 B-M1: bumped down from 50_000 → 40_000. Cron data
+    // showed max_ms = 56,514 ms despite the 50s budget — the check fires only
+    // BETWEEN users, so one user with a slow Gmail/Outlook fetch (30s
+    // platform timeout + observation processing) could blow through the
+    // budget by 6.5s and hit Vercel's 60s 504. 40s gives ~20s headroom for
+    // tail-latency users to complete their started work and stops a 2nd user
+    // from starting if the 1st was slow.
+    const GLOBAL_TIMEOUT_MS = 40_000;
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
     // Round-robin: rotate which user starts first so all users get serviced.
@@ -410,7 +417,26 @@ async function runObservationIngestion(options = {}) {
         let userObsCount = 0;
 
         // ---- Phase 1: Parallel platform fetch (all platforms concurrently) ----
-        const PER_PLATFORM_TIMEOUT_MS = 15_000;
+        // audit-2026-05-08 backend HIGH-3: 15s was too tight for Gmail/Outlook —
+        // 1.2% of cron runs failed with timeouts which is what kept spotify/github
+        // marked "expired" in production. Slow Workspace platforms get 30s; the
+        // rest stay at 15s. Anything missing from the map defaults to 20s.
+        const PLATFORM_TIMEOUT_MS = {
+          google_gmail: 30_000,
+          gmail: 30_000,
+          outlook: 30_000,
+          google_calendar: 25_000,
+          calendar: 25_000,
+          spotify: 20_000,
+          github: 20_000,
+          whoop: 20_000,
+          linkedin: 20_000,
+          discord: 15_000,
+          reddit: 15_000,
+          youtube: 20_000,
+          twitch: 15_000,
+        };
+        const DEFAULT_TIMEOUT_MS = 20_000;
         const platformFetchResults = {};
         await Promise.all(
           platforms.map(async (platform) => {
@@ -419,11 +445,12 @@ async function runObservationIngestion(options = {}) {
               platformFetchResults[platform] = { observations: [], error: null };
               return;
             }
+            const timeoutMs = PLATFORM_TIMEOUT_MS[platform] ?? DEFAULT_TIMEOUT_MS;
             try {
               const obs = await Promise.race([
                 fetcher(userId),
                 new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error(`${platform} fetch timeout (${PER_PLATFORM_TIMEOUT_MS / 1000}s)`)), PER_PLATFORM_TIMEOUT_MS)
+                  setTimeout(() => reject(new Error(`${platform} fetch timeout (${timeoutMs / 1000}s)`)), timeoutMs)
                 ),
               ]);
               platformFetchResults[platform] = { observations: obs || [], error: null };
@@ -438,8 +465,16 @@ async function runObservationIngestion(options = {}) {
           elapsed: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
         });
 
-        // Single dedup pre-fetch for ALL platforms (1 DB query instead of N)
-        const batchWindowMs = DEDUP_WINDOWS_MS.daily_summary; // 24 hours
+        // Single dedup pre-fetch for ALL platforms (1 DB query instead of N).
+        //
+        // audit-2026-05-08 backend HIGH-4: previous window was `daily_summary`
+        // (24h). Stable platform_data observations such as "Recently liked
+        // YouTube videos: ..." are emitted by every daily ingestion run, so a
+        // 24h window let identical content land 41 times across 41 days for
+        // the test user. Widen to the longest window (7 days) so the per-
+        // contentType targeted check below becomes a redundant safety net
+        // rather than a load-bearing dedup mechanism.
+        const batchWindowMs = DEDUP_WINDOWS_MS.weekly_summary; // 7 days
         const batchCutoff = new Date(Date.now() - batchWindowMs).toISOString();
         const dedupSupabase = await getSupabase();
         const existingHashes = new Set();
@@ -450,7 +485,7 @@ async function runObservationIngestion(options = {}) {
             .eq('user_id', userId)
             .eq('memory_type', 'platform_data')
             .gte('created_at', batchCutoff)
-            .limit(2000);
+            .limit(5000);
           for (const mem of (recentMems || [])) {
             const memPlatform = mem.metadata?.source || mem.metadata?.platform || '';
             existingHashes.add(contentHash(memPlatform, mem.content || ''));
