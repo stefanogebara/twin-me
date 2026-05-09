@@ -1653,6 +1653,7 @@ export interface ConversationLogEntry {
   topicsDetected?: string[];
   intent?: string;
   sessionId?: string;
+  soulSignatureId?: string | null;
 }
 
 /**
@@ -1860,12 +1861,32 @@ export async function logConversation(entry: ConversationLogEntry): Promise<stri
       formalityScore: writingAnalysis.formalityScore
     });
 
+    // audit-2026-05-09 C2 fix: soul_signature_id was NULL on every row in this
+    // table because no insert site ever wrote it. Look it up at log-write time
+    // when the caller didn't pass one in (latest signature for the user).
+    let soulSignatureId = entry.soulSignatureId ?? null;
+    if (!soulSignatureId) {
+      try {
+        const { data: sigRow } = await supabase
+          .from('soul_signatures')
+          .select('id')
+          .eq('user_id', entry.userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        soulSignatureId = sigRow?.id ?? null;
+      } catch {
+        // FK is nullable — log without if lookup fails
+      }
+    }
+
     const { data, error } = await supabase
       .from('mcp_conversation_logs')
       .insert({
         user_id: entry.userId,
         user_message: entry.userMessage,
         twin_response: entry.twinResponse,
+        soul_signature_id: soulSignatureId,
         platforms_context: entry.platformsContext,
         brain_stats: entry.brainStats,
         writing_analysis: writingAnalysis,

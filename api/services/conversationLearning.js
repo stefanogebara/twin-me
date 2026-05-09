@@ -203,6 +203,7 @@ export async function logConversationToDatabase({
   twinResponse = null,
   source = 'twinme_web',
   conversationId = null,
+  soulSignatureId = null,
   renderedSystemPrompt = null,
   platformsContext = {},
   brainStats = {},
@@ -223,6 +224,7 @@ export async function logConversationToDatabase({
         user_message: userMessage,
         twin_response: twinResponse,
         mcp_client: source,
+        soul_signature_id: soulSignatureId,
         platforms_context: platformsContext,
         brain_stats: {
           ...(brainStats || {}),

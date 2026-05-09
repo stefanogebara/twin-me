@@ -1225,6 +1225,7 @@ RULES:
         twinResponse: assistantMessage,
         source: 'twinme_web',
         conversationId,
+        soulSignatureId: soulSignature?.id ?? null,
         renderedSystemPrompt: renderedSystemPromptText,
         platformsContext: {
           spotify: !!platformData.spotify,
