@@ -14,6 +14,30 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Permissions-Policy", "value": "geolocation=(self), camera=(), microphone=()" }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/icons/3d/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+      ]
+    },
+    {
+      "source": "/(.*\\.(woff2?|ttf|otf|eot))",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
     }
   ],
   "functions": {
@@ -61,10 +85,6 @@
     {
       "path": "/api/cron/ingest-observations",
       "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/claude-sync/process-analysis",
-      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/memory-archive",
