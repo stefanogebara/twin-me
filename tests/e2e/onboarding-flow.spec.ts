@@ -32,6 +32,22 @@ function makeJWT(userId = USER_ID): string {
 async function injectAuth(page: Page, userId = USER_ID) {
   const token = makeJWT(userId);
   const isNew = userId === NEW_USER_ID;
+  const refreshUser = isNew
+    ? { id: userId, email: 'cmgebara@gmail.com', first_name: 'Christian', name: 'Christian Gebara', email_verified: true }
+    : { id: userId, email: 'stefanogebara@gmail.com', first_name: 'Stefano', name: 'Stefano Gebara', email_verified: true };
+
+  // Intercept /api/auth/refresh — see helpers.ts for the full rationale.
+  // AuthContext's currentAccessToken is null on every page load (XSS protection),
+  // so it calls /auth/refresh first thing. Without an httpOnly cookie that returns
+  // 400 and we get redirected to /auth?error=session_expired.
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, accessToken: token, user: refreshUser }),
+    });
+  });
+
   await page.goto(APP);
   await page.evaluate(([t, uid, newUser]) => {
     localStorage.removeItem('demo_mode');

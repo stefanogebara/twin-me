@@ -4,11 +4,20 @@
  * Constants, auth injection, console error collection, and screenshot utilities
  * used across all E2E test specs.
  *
- * Auth pattern: JWT injected into localStorage via page.addInitScript() before
- * any navigation, matching the proven pattern from smoke-core-loop.spec.ts.
+ * Auth pattern: JWT minted fresh each run + injected into localStorage AND
+ * surfaced via an intercepted /api/auth/refresh response. The intercept is
+ * critical: AuthContext's in-memory currentAccessToken is null on every page
+ * load (XSS protection — the real value lives in an httpOnly refresh cookie),
+ * so the first thing AuthContext does on mount is POST /api/auth/refresh to
+ * rehydrate. Without the cookie that the test runner can't set, that call
+ * returns 400 and AuthContext redirects to /auth?error=session_expired —
+ * which is exactly what the pre-fix Playwright suite kept failing on.
+ *
+ * We mint here (not from .env.test) so tokens never go stale between runs.
  */
 
 import { Page, ConsoleMessage } from '@playwright/test';
+import jwt from 'jsonwebtoken';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -20,36 +29,77 @@ export const TEST_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 export const TEST_USER_EMAIL = 'stefanogebara@gmail.com';
 export const SCREENSHOT_DIR = 'tests/e2e/screenshots';
 
-// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
-const TEST_TOKEN =
-  process.env.TEST_AUTH_TOKEN;
+const TEST_USER = Object.freeze({
+  id: TEST_USER_ID,
+  email: TEST_USER_EMAIL,
+  name: 'Test User',
+  first_name: 'Stefano',
+  email_verified: true,
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth Injection
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Inject auth token + cached user into localStorage before any page navigation.
- * Must be called BEFORE page.goto().
+ * Mint a fresh JWT against the live JWT_SECRET. Used to seed both the
+ * localStorage token AND the intercepted /auth/refresh response so the
+ * frontend's rehydrate path succeeds without a real httpOnly cookie.
  *
- * We inject both auth_token AND auth_user because the AuthContext verifies
- * the token against the backend on mount. If the backend is down, it falls
- * back to the cached user. Without auth_user, a network error clears auth
- * and redirects to /auth.
+ * @throws if JWT_SECRET is not in the environment — the test config loads
+ *         .env so this should always be present during a Playwright run.
+ */
+export function mintTestToken(expiresIn: string = '30m'): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET is required to mint a test token. Make sure playwright.config.ts loads .env before tests run.',
+    );
+  }
+  return jwt.sign({ id: TEST_USER_ID, email: TEST_USER_EMAIL }, secret, { expiresIn });
+}
+
+/**
+ * Inject auth state into the page before any navigation. Must be called
+ * BEFORE page.goto().
+ *
+ * Does three things:
+ *   1. Intercepts POST /api/auth/refresh to return a freshly-minted JWT
+ *      and the cached user. This lets AuthContext's initAuth() rehydrate
+ *      the in-memory access token even though the test runner can't set
+ *      the real httpOnly refresh cookie.
+ *   2. Seeds auth_token + auth_user in localStorage so the AuthContext's
+ *      cached-user fallback works during the brief window before the
+ *      verify call returns.
+ *   3. Both writes happen as addInitScript so they survive same-origin
+ *      navigations within the test.
  */
 export async function injectAuth(page: Page): Promise<void> {
-  const authData = JSON.stringify({
-    token: TEST_TOKEN,
-    user: JSON.stringify({
-      id: TEST_USER_ID,
-      email: TEST_USER_EMAIL,
-      name: 'Test User',
-    }),
+  const token = mintTestToken();
+
+  // (1) Intercept the refresh endpoint. AuthContext's currentAccessToken
+  // is null on every page load (XSS protection — not persisted to
+  // localStorage). It calls /auth/refresh first thing on mount; if that
+  // fails it wipes auth and redirects to /auth?error=session_expired.
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        accessToken: mintTestToken(),
+        user: TEST_USER,
+      }),
+    });
   });
+
+  // (2) Seed localStorage. auth_user lets AuthContext show cached state
+  // during the brief verify-in-flight window without flashing /auth.
+  const authData = JSON.stringify({ token, user: JSON.stringify(TEST_USER) });
   await page.addInitScript((data: string) => {
-    const { token, user } = JSON.parse(data);
-    window.localStorage.setItem('auth_token', token);
-    window.localStorage.setItem('auth_user', user);
+    const { token: t, user: u } = JSON.parse(data);
+    window.localStorage.setItem('auth_token', t);
+    window.localStorage.setItem('auth_user', u);
   }, authData);
 }
 

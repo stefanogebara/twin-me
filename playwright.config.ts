@@ -2,8 +2,12 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env.test for TEST_AUTH_TOKEN and other test-specific vars
+// Load .env.test first so test-specific overrides win, then .env for the
+// shared secrets the test helpers need to mint fresh JWTs (JWT_SECRET).
+// dotenv only sets vars that aren't already in process.env, so .env can't
+// clobber .env.test values.
 dotenv.config({ path: path.resolve(import.meta.dirname, '.env.test') });
+dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
 
 /**
  * Playwright Configuration for Twin AI Learn

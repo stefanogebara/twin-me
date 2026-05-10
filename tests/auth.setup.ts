@@ -1,40 +1,76 @@
 /**
  * Authentication Setup for Playwright Tests
  *
- * Injects a pre-minted JWT for the test user into localStorage.
- * The app uses Google OAuth — we bypass it with a known-good token.
+ * Mints a fresh JWT for the test user, intercepts /api/auth/refresh so
+ * the React AuthContext rehydrates cleanly, and saves the resulting page
+ * state for tests that consume `storageState`.
+ *
+ * Why the intercept is necessary: AuthContext's currentAccessToken is held
+ * in-memory only (XSS protection — never persisted to localStorage). On
+ * page load it calls /api/auth/refresh to rehydrate that variable from
+ * the httpOnly refresh cookie. The test runner can't set that cookie, so
+ * without the intercept every page load redirects to /auth?error=session_expired
+ * before any assertion runs.
  */
 
 import { test as setup } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const authFile = path.join(__dirname, '../playwright/.auth/user.json');
 
-// Use TEST_AUTH_TOKEN env var (set in .env.test or CI) — NEVER hardcode JWTs in source
-// To generate: node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({id:'167c27b5-a40b-49fb-8d00-deb1b1c57f4d',email:'stefanogebara@gmail.com'},process.env.JWT_SECRET,{expiresIn:'30d'}))"
-const TEST_TOKEN = process.env.TEST_AUTH_TOKEN || (() => {
-  throw new Error('TEST_AUTH_TOKEN env var is required. Generate a fresh JWT and set it in .env.test');
-})();
+const TEST_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
+const TEST_USER_EMAIL = 'stefanogebara@gmail.com';
+
+const TEST_USER = Object.freeze({
+  id: TEST_USER_ID,
+  email: TEST_USER_EMAIL,
+  name: 'Test User',
+  first_name: 'Stefano',
+  email_verified: true,
+});
+
+function mintToken(expiresIn = '30m'): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is required. playwright.config.ts must load .env before tests run.');
+  }
+  return jwt.sign({ id: TEST_USER_ID, email: TEST_USER_EMAIL }, secret, { expiresIn });
+}
 
 setup('authenticate', async ({ page }) => {
-  console.log('🔐 Setting up authentication with pre-minted JWT...');
+  console.log('🔐 Setting up authentication with freshly-minted JWT...');
 
-  // Navigate to app to initialize localStorage
-  await page.goto('/');
-  await page.waitForLoadState('domcontentloaded');
+  // Intercept the refresh call BEFORE any navigation so AuthContext's
+  // initAuth() succeeds on first load.
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        accessToken: mintToken(),
+        user: TEST_USER,
+      }),
+    });
+  });
 
-  // Inject the auth token
-  await page.evaluate((token) => {
-    localStorage.setItem('auth_token', token);
-  }, TEST_TOKEN);
+  // Seed localStorage with token + cached user so AuthContext's brief
+  // pre-verify render uses the right values.
+  const token = mintToken();
+  await page.addInitScript(
+    ({ t, u }: { t: string; u: string }) => {
+      window.localStorage.setItem('auth_token', t);
+      window.localStorage.setItem('auth_user', u);
+    },
+    { t: token, u: JSON.stringify(TEST_USER) },
+  );
 
-  console.log('💾 Auth token stored in localStorage');
-
-  // Verify auth works by navigating to a protected page
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  // Give the AuthContext mount effect time to run /auth/refresh + /auth/verify.
   await page.waitForTimeout(2000);
 
   const currentUrl = page.url();
@@ -44,7 +80,6 @@ setup('authenticate', async ({ page }) => {
     console.log('⚠️ Redirected to:', currentUrl);
   }
 
-  // Save signed-in state
   await page.context().storageState({ path: authFile });
   console.log('💾 Authentication state saved to:', authFile);
 });

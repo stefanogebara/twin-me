@@ -26,6 +26,28 @@ const TEST_TOKEN =
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function injectAuthToken(page: Page): Promise<void> {
+  // AuthContext's in-memory access token is null on page load (XSS protection),
+  // so it calls /api/auth/refresh first thing on mount. Without the httpOnly
+  // refresh cookie (which the test runner can't set), that 400s and the page
+  // redirects to /auth?error=session_expired. Intercept the call to return
+  // the same JWT we just put in localStorage so AuthContext succeeds.
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        accessToken: TEST_TOKEN,
+        user: {
+          id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d',
+          email: 'stefanogebara@gmail.com',
+          name: 'Test User',
+          first_name: 'Stefano',
+          email_verified: true,
+        },
+      }),
+    });
+  });
   await page.addInitScript((token: string) => {
     window.localStorage.setItem('auth_token', token);
   }, TEST_TOKEN);
