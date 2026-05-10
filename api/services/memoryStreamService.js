@@ -1157,8 +1157,15 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
   const [reflectionResults, factResults, platformResults, semanticConvResults, recentConvResults] = await Promise.all([
-    // Reflections: semantic search over-fetches, then we cap at maxReflections
-    retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, options).catch(err => {
+    // Reflections: semantic search over-fetches, then we cap at maxReflections.
+    // audit-2026-05-10 C1 follow-up: skip HyDE on the reflections track —
+    // it adds a 2-3s LLM round-trip before any DB query and was the most
+    // common cause of retrieveDiverseMemories blowing the 7s global circuit
+    // breaker in twinContextBuilder (memories defaulted to []). The
+    // conversations track at line ~1196 already skips HyDE; reflections
+    // pick up the same pattern. Plain embedding-based retrieval is good
+    // enough at the budgets we use (maxReflections * 2 over-fetch + dedup).
+    retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, { ...options, skipHyDE: true }).catch(err => {
       log.warn('Diverse reflections fetch failed', { error: err });
       return [];
     }),
