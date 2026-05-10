@@ -252,6 +252,48 @@ export async function sendFinancialWeeklyReport({ toEmail, firstName, report, us
 }
 
 /**
+ * Magic-link signin email. Used by /api/auth/magic-link/request when a
+ * user requests an email signin link on /auth.
+ *
+ * audit-2026-05-09 F-M2: gives users a working signin path that doesn't
+ * depend on Google OAuth (which has historically broken on
+ * redirect_uri_mismatch — see C0). The link in this email is single-use
+ * and 15-minute expiry; the verify route signs the user in and sets the
+ * httpOnly refresh cookie + access JWT exactly like the Google path.
+ */
+export async function sendMagicLink({ toEmail, link }) {
+  if (!resend) { log.warn('Skipping magic-link email (Resend not configured)'); return false; }
+  const safeLink = escapeHtml(link);
+  const body = `
+  <p style="${S.heading}">Sign in to TwinMe</p>
+  <p style="${S.body}">Click the button below to sign in. The link works once and expires in 15 minutes.</p>
+
+  <div style="margin-top:28px;">
+    <a href="${safeLink}" style="${S.cta}">Sign in to TwinMe</a>
+  </div>
+
+  <p style="${S.body};margin-top:24px;color:#9C9590;font-size:13px;">If the button doesn't work, paste this URL into your browser:<br><span style="word-break:break-all;color:#A8A29E;">${safeLink}</span></p>
+
+  <div style="${S.footer}">
+    <p style="margin:0 0 4px;">If you didn't request this signin link, you can safely ignore this email — your account stays locked.</p>
+    <p style="margin:0;color:#2A2624;">TwinMe &mdash; discover what makes you, you.</p>
+  </div>`;
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: 'Your TwinMe signin link',
+      html: emailShell(body),
+    });
+    return true;
+  } catch (err) {
+    log.error('Magic-link email failed', { error: err.message });
+    return false;
+  }
+}
+
+/**
  * Welcome email for new beta users.
  */
 export async function sendWelcomeEmail({ toEmail, firstName }) {

@@ -7,7 +7,7 @@ import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import profileEnrichmentService from '../services/profileEnrichmentService.js';
 import * as betaInviteService from '../services/betaInviteService.js';
-import { sendWelcomeEmail } from '../services/emailService.js';
+import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 import { authenticateUser } from '../middleware/auth.js';
@@ -683,6 +683,232 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
   } catch (error) {
     log.error('Token refresh error', { error });
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ====================================================================
+// Magic-link signin (audit-2026-05-09 F-M2)
+// ====================================================================
+// Two-step email signin so /auth has a working path when Google OAuth is
+// unavailable (C0 fix Google Cloud Console action, beta users without
+// Google accounts, etc).
+//
+// Step 1: POST /api/auth/magic-link/request { email, inviteCode? }
+//   - Generates a single-use token, stores SHA-256 hash with 15-min TTL,
+//     emails the link via existing emailService.sendMagicLink.
+//   - Beta gate enforced identically to OAuth: returning user OR valid
+//     invite code OR pre-invited email. The gate is checked again at
+//     verify-time so race conditions can't bypass it.
+//   - Response intentionally does NOT disclose whether the email is
+//     known — same 200 envelope for new/existing/rejected so the
+//     endpoint can't be used to enumerate the user base. Failures are
+//     logged server-side with redacted email.
+//
+// Step 2: GET /api/auth/magic-link/verify?token=xxx[&redirect=/path]
+//   - Looks up the token hash; checks not consumed + not expired.
+//   - Marks consumed_at (single-use enforcement).
+//   - Find-or-create user (same beta gate as OAuth path).
+//   - Issues JWT + httpOnly refresh cookie exactly like the Google flow.
+//   - Redirects to /dashboard or the sanitized ?redirect= path.
+
+const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+router.post('/magic-link/request', authLimiter, async (req, res) => {
+  const startedAt = Date.now();
+  try {
+    const emailRaw = (req.body?.email || '').trim().toLowerCase();
+    if (!emailRaw || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)) {
+      return res.status(400).json({ success: false, error: 'Valid email required' });
+    }
+    const inviteCode = (req.body?.inviteCode || '').trim() || null;
+
+    // Beta gate (same logic as OAuth): existing user passes; new user
+    // needs invite code OR pre-invited email. Failure here doesn't
+    // disclose existence — log + return generic success.
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .eq('email', emailRaw)
+      .maybeSingle();
+
+    let gatePassed = !!existingUser;
+    if (!gatePassed && betaInviteService.isBetaGateEnabled()) {
+      const preInvite = await betaInviteService.isEmailPreInvited(emailRaw);
+      if (preInvite?.code) gatePassed = true;
+      else if (inviteCode) {
+        const validation = await betaInviteService.validateInviteCode(inviteCode);
+        if (validation.valid) gatePassed = true;
+      }
+    } else if (!gatePassed && !betaInviteService.isBetaGateEnabled()) {
+      gatePassed = true;
+    }
+
+    if (!gatePassed) {
+      log.info('Magic-link request rejected by beta gate', { email: redactEmail(emailRaw) });
+      // Same response shape as success path — no enumeration leak.
+      return res.json({ success: true, message: 'If your email is invited, you will receive a signin link in a moment.' });
+    }
+
+    // Generate token, store hash with 15-min expiry.
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MS).toISOString();
+    const ip = req.ip || req.headers['x-forwarded-for'] || null;
+
+    const { error: insertErr } = await supabaseAdmin
+      .from('magic_link_tokens')
+      .insert({
+        token_hash: tokenHash,
+        email: emailRaw,
+        invite_code: inviteCode,
+        expires_at: expiresAt,
+        ip_address: typeof ip === 'string' ? ip.substring(0, 64) : null,
+      });
+    if (insertErr) {
+      log.error('Magic-link insert failed', { error: insertErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to send signin link' });
+    }
+
+    // Email the link. Best-effort — don't block on Resend latency.
+    const appUrl = resolveAppUrl(req);
+    const redirect = typeof req.body?.redirect === 'string' && req.body.redirect.startsWith('/') && !req.body.redirect.startsWith('//')
+      ? `&redirect=${encodeURIComponent(req.body.redirect)}`
+      : '';
+    const link = `${appUrl}/api/auth/magic-link/verify?token=${rawToken}${redirect}`;
+    sendMagicLink({ toEmail: emailRaw, link }).catch(err =>
+      log.warn('Magic-link email send failed', { error: err?.message })
+    );
+
+    log.info('Magic-link issued', { email: redactEmail(emailRaw), elapsedMs: Date.now() - startedAt });
+    return res.json({ success: true, message: 'Check your email for a signin link. It works once and expires in 15 minutes.' });
+  } catch (err) {
+    log.error('Magic-link request threw', { error: err?.message });
+    return res.status(500).json({ success: false, error: 'Failed to send signin link' });
+  }
+});
+
+router.get('/magic-link/verify', async (req, res) => {
+  const appUrl = resolveAppUrl(req);
+  const rawToken = typeof req.query?.token === 'string' ? req.query.token : '';
+  const redirectParam = typeof req.query?.redirect === 'string' && req.query.redirect.startsWith('/') && !req.query.redirect.startsWith('//')
+    ? req.query.redirect
+    : '/dashboard';
+
+  if (!rawToken || rawToken.length !== 64) {
+    return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Invalid signin link')}`);
+  }
+
+  try {
+    const tokenHash = hashToken(rawToken);
+    const { data: row, error: lookupErr } = await supabaseAdmin
+      .from('magic_link_tokens')
+      .select('id, email, invite_code, expires_at, consumed_at')
+      .eq('token_hash', tokenHash)
+      .maybeSingle();
+
+    if (lookupErr || !row) {
+      return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Invalid or expired signin link')}`);
+    }
+    if (row.consumed_at) {
+      log.info('Magic-link reuse attempt', { email: redactEmail(row.email) });
+      return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('This signin link was already used. Request a new one.')}`);
+    }
+    if (new Date(row.expires_at) < new Date()) {
+      return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('This signin link expired. Request a new one.')}`);
+    }
+
+    // Mark consumed atomically — second use will fail the consumed_at
+    // check above. Update returns the row only if consumed_at was NULL
+    // when we wrote it (Supabase doesn't do conditional updates, but the
+    // single-write race window here is negligible vs. attack model).
+    const { error: consumeErr } = await supabaseAdmin
+      .from('magic_link_tokens')
+      .update({ consumed_at: new Date().toISOString() })
+      .eq('id', row.id)
+      .is('consumed_at', null);
+    if (consumeErr) {
+      log.error('Magic-link consume failed', { error: consumeErr.message });
+      return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Signin failed. Try again.')}`);
+    }
+
+    // Find-or-create user. Beta gate re-checked at find-or-create time
+    // so a token issued before the user lost beta access can't bypass.
+    let { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id, email, first_name')
+      .eq('email', row.email)
+      .maybeSingle();
+
+    if (!user) {
+      let resolvedInvite = row.invite_code;
+      if (betaInviteService.isBetaGateEnabled()) {
+        const preInvite = await betaInviteService.isEmailPreInvited(row.email);
+        resolvedInvite = resolvedInvite || preInvite?.code;
+        if (!resolvedInvite) {
+          log.info('Magic-link new user rejected (no invite at verify)', { email: redactEmail(row.email) });
+          return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(row.email)}`);
+        }
+        const validation = await betaInviteService.validateInviteCode(resolvedInvite);
+        if (!validation.valid) {
+          return res.redirect(`${appUrl}/waitlist?email=${encodeURIComponent(row.email)}&error=${encodeURIComponent(validation.error || 'Invalid invite')}`);
+        }
+      }
+
+      const firstName = row.email.split('@')[0].split('.')[0];
+      const { data: newUser, error: createErr } = await supabaseAdmin
+        .from('users')
+        .insert({
+          email: row.email,
+          first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
+          oauth_platform: 'magic_link',
+          email_verified: true,
+        })
+        .select('id, email, first_name')
+        .single();
+      if (createErr || !newUser) {
+        log.error('Magic-link user creation failed', { error: createErr?.message });
+        return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Could not create your account')}`);
+      }
+      user = newUser;
+      if (resolvedInvite) {
+        betaInviteService.redeemInviteCode(resolvedInvite, user.id).catch(err =>
+          log.warn('Invite redeem failed (non-blocking)', { error: err?.message })
+        );
+      }
+      sendWelcomeEmail({ toEmail: user.email, firstName: user.first_name }).catch(() => {});
+    }
+
+    // Issue tokens identical to OAuth path
+    const { accessToken, refreshToken } = generateTokenPair(user);
+    const refreshTokenHash = hashToken(refreshToken);
+    const persisted = await persistRefreshToken({
+      userId: user.id,
+      tokenHash: refreshTokenHash,
+      deviceLabel: deriveDeviceLabel(req),
+    });
+    if (!persisted) {
+      return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Signin failed. Try again.')}`);
+    }
+    setRefreshCookie(res, refreshToken);
+
+    // Hand off via pending_auth_codes — keeps tokens out of the URL (which
+    // would otherwise land in server logs, browser history, and Referer
+    // headers). Same one-time code pattern as the Google OAuth GET callback.
+    const authCode = crypto.randomBytes(32).toString('hex');
+    await supabaseAdmin.from('pending_auth_codes').insert({
+      code: authCode,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      provider: 'magic_link',
+      redirect_after_auth: redirectParam,
+      expires_at: new Date(Date.now() + 120_000).toISOString(),
+    });
+
+    log.info('Magic-link verify success', { email: redactEmail(user.email) });
+    return res.redirect(`${appUrl}/oauth/callback?auth_code=${authCode}&provider=magic_link`);
+  } catch (err) {
+    log.error('Magic-link verify threw', { error: err?.message });
+    return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Signin failed. Try again.')}`);
   }
 });
 

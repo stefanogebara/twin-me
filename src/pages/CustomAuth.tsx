@@ -118,6 +118,47 @@ const CustomAuth = () => {
     }
   };
 
+  // audit-2026-05-09 F-M2: magic-link email signin so /auth has a working path
+  // even when Google OAuth is unavailable. Beta gate is enforced server-side
+  // identically to the OAuth path.
+  const [email, setEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false);
+
+  const handleMagicLinkRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+    setMagicLinkLoading(true);
+    setError('');
+    trackFunnel('auth_initiated', { provider: 'magic_link', has_invite: inviteValid });
+    try {
+      const redirectAfterAuth = searchParams.get('redirect') || undefined;
+      const res = await fetch(`${API_URL}/auth/magic-link/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: trimmed,
+          inviteCode: inviteCode || undefined,
+          redirect: redirectAfterAuth,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMagicLinkSent(true);
+      } else {
+        setError(data.error || 'Could not send signin link. Try again in a moment.');
+      }
+    } catch {
+      setError('Network error. Check your connection and try again.');
+    } finally {
+      setMagicLinkLoading(false);
+    }
+  };
+
   const modalContent = {
     terms: {
       title: 'Terms of Service',
@@ -390,6 +431,68 @@ For privacy concerns: privacy@twinme.me`
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)', fontFamily: "'Inter', sans-serif" }}>
             New user? Enter your beta invite code above
           </p>
+        )}
+
+        {/* audit-2026-05-09 F-M2: magic-link email signin (fallback path) */}
+        <div className="mt-5 flex items-center gap-3" aria-hidden="true">
+          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
+          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>or</span>
+          <div className="flex-1" style={{ borderTop: '1px solid var(--border-glass)' }} />
+        </div>
+
+        {magicLinkSent ? (
+          <div
+            className="mt-5 rounded-[12px] px-4 py-3.5 text-sm text-center"
+            style={{
+              backgroundColor: 'var(--glass-surface-bg)',
+              border: '1px solid var(--glass-surface-border)',
+              color: 'var(--foreground)',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Check your email for a signin link.<br/>
+            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+              It works once and expires in 15 minutes.
+            </span>
+          </div>
+        ) : (
+          <form onSubmit={handleMagicLinkRequest} className="mt-5 flex flex-col gap-2.5">
+            <input
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full h-12 px-4 rounded-full text-sm outline-none transition-colors"
+              style={{
+                backgroundColor: 'var(--glass-surface-bg)',
+                border: '1px solid var(--glass-surface-border)',
+                color: 'var(--foreground)',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={magicLinkLoading || !email.trim()}
+              className="w-full flex items-center justify-center gap-2 h-12 rounded-full text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{
+                backgroundColor: 'var(--glass-surface-bg)',
+                border: '1px solid var(--glass-surface-border)',
+                color: 'var(--foreground)',
+                fontFamily: "'Inter', sans-serif",
+                cursor: magicLinkLoading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {magicLinkLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <span>Email me a signin link</span>
+              )}
+            </button>
+          </form>
         )}
 
         {/* Divider */}
