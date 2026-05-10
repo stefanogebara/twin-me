@@ -504,9 +504,14 @@ async function _fetchSoulSignature(userId) {
   const cached = getCached(cacheKey);
   if (cached !== undefined) return cached;
 
+  // audit-2026-05-10 C2 follow-up: include `id` in the select so callers
+  // (twin-chat.js logConversationToDatabase) can pass it through to
+  // mcp_conversation_logs.soul_signature_id. Without it the C2 write-path
+  // fix from 020e7ca6 silently wrote NULL because soulSignature?.id was
+  // undefined at the time of the insert.
   const { data, error } = await supabaseAdmin
     .from('soul_signatures')
-    .select('archetype_name, archetype_subtitle, narrative, defining_traits, created_at, updated_at')
+    .select('id, archetype_name, archetype_subtitle, narrative, defining_traits, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
