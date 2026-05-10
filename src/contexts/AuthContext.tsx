@@ -122,7 +122,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // any future '/oauth/*' subroute from auth. Only '/oauth/callback'
           // legitimately needs to load without a JWT (the callback component
           // sets the token itself via POST /api/auth/oauth/callback).
-          const PUBLIC_EXACT = ['/auth', '/login', '/discover', '/', '/oauth/callback'];
+          const PUBLIC_EXACT = [
+            '/auth', '/login', '/discover', '/', '/oauth/callback',
+            // Legal pages must be reachable without auth — they show up in
+            // signup flows, beta-invite emails, and external links.
+            '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
+          ];
           const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/'];
           const isPublicRoute =
             PUBLIC_EXACT.includes(pathname) ||

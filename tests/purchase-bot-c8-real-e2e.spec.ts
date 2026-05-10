@@ -40,6 +40,15 @@ function signPayload(body: string): string {
 test.describe('C8 — real production E2E (sends one real WhatsApp message)', () => {
   test.setTimeout(60_000);
 
+  // This test fires a real WhatsApp message at the linked phone via production.
+  // Skip by default — only run when explicitly opted in via TWINME_RUN_C8_REAL=true.
+  // Without the opt-in, the broader e2e suite would either spam a real phone or
+  // fail on missing prod secrets, neither of which is the intent for routine CI.
+  test.skip(
+    process.env.TWINME_RUN_C8_REAL !== 'true',
+    'C8 fires a real WhatsApp message. Set TWINME_RUN_C8_REAL=true to opt in.'
+  );
+
   test('signed purchase intent → reflection lands in DB + WA send fires', async () => {
     expect(SECRET, 'missing prod secret').toBeTruthy();
     expect(PHONE_NUMBER_ID, 'missing TWINME_WHATSAPP_PHONE_NUMBER_ID').toBeTruthy();

@@ -1,14 +1,21 @@
 /**
  * Phase 4/5/6 verification:
  *   4 — Onboarding starts at welcome (no explainer)
- *   5 — Demo dashboard: SoulSummaryCard, InsightsFeed, DepartmentWidget populated
+ *   5 — Demo dashboard: SoulSummaryCard, InsightsFeed, DepartmentWidget populated [OBSOLETE — demo mode removed 2026-05-10]
  *   6 — Sidebar has no Departments item
+ *
+ * NOTE: Phase 5 tests below relied on `demo_mode` localStorage which was
+ * permanently removed from AuthContext on 2026-05-10 (see comment at top of
+ * src/contexts/AuthContext.tsx). They're skipped here pending a rewrite that
+ * uses real auth + seeded fixtures instead. Phase 4 and Phase 6 still work
+ * because they test public/auth-respecting routes.
  */
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://localhost:8086';
 
-// Activate demo mode before each test
+// LEGACY shim — demo mode no longer activates the demo dashboard. Tests using
+// this function should be either rewritten to inject real auth or skipped.
 async function setDemoMode(page: import('@playwright/test').Page) {
   await page.addInitScript(() => {
     localStorage.setItem('demo_mode', 'true');
@@ -32,45 +39,33 @@ test('Phase 4 — onboarding starts at welcome, no explainer', async ({ page }) 
   });
 });
 
-test('Phase 5 — demo dashboard: SoulSummaryCard has content', async ({ page }) => {
+test.skip('Phase 5 — demo dashboard: SoulSummaryCard has content', async ({ page }) => {
+  // OBSOLETE: demo_mode removed 2026-05-10. Rewrite with real auth + seeded fixture.
   await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(3000);
-  await page.screenshot({ path: 'test-screenshots/phase5-dashboard-soul.png', fullPage: true });
-
-  // SoulSummaryCard should show the demo statement
   const soulCard = page.getByText('Creative synthesizer', { exact: false });
   await expect(soulCard).toBeVisible({ timeout: 5000 });
-  console.log('SoulSummaryCard demo text: visible');
 });
 
-test('Phase 5 — demo dashboard: InsightsFeed shows demo insights', async ({ page }) => {
+test.skip('Phase 5 — demo dashboard: InsightsFeed shows demo insights', async ({ page }) => {
+  // OBSOLETE: demo_mode removed 2026-05-10. Rewrite with real auth + seeded fixture.
   await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(3000);
-  await page.screenshot({ path: 'test-screenshots/phase5-dashboard-insights.png', fullPage: true });
-
-  // InsightsFeed should show demo insights (not null)
   const insightsSection = page.getByText('What your twin noticed', { exact: false });
   await expect(insightsSection).toBeVisible({ timeout: 5000 });
-  console.log('InsightsFeed section heading: visible');
-
-  // One of the demo insights
   const demoInsight = page.getByText('Spotify listening dropped', { exact: false });
   await expect(demoInsight).toBeVisible({ timeout: 5000 });
-  console.log('Demo insight text: visible');
 });
 
-test('Phase 5 — demo dashboard: DepartmentWidget rendered', async ({ page }) => {
+test.skip('Phase 5 — demo dashboard: DepartmentWidget rendered', async ({ page }) => {
+  // OBSOLETE: demo_mode removed 2026-05-10. Rewrite with real auth + seeded fixture.
   await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(3000);
-  await page.screenshot({ path: 'test-screenshots/phase5-dashboard-dept.png', fullPage: true });
-
-  // DepartmentWidget shows "YOUR AI TEAM" label
   const aiTeamLabel = page.getByText('YOUR AI TEAM', { exact: false });
   await expect(aiTeamLabel).toBeVisible({ timeout: 5000 });
-  console.log('DepartmentWidget YOUR AI TEAM label: visible');
 });
 
 test('Phase 6 — sidebar has no Departments nav item', async ({ page }) => {

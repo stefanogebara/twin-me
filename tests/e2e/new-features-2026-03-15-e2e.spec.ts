@@ -146,7 +146,7 @@ test.describe('Personality Drift Alert', () => {
     }
   });
 
-  test('Drift API endpoint responds correctly', async ({ request }) => {
+  test('Drift API endpoint responds with 410 Gone (OCEAN drift retired)', async ({ request }) => {
     if (!AUTH_TOKEN) {
       test.skip(true, 'No auth token — skipping API test');
       return;
@@ -154,49 +154,31 @@ test.describe('Personality Drift Alert', () => {
 
     // Pre-check backend health to avoid 30s+ hang when DB is down
     const healthCheck = await request.get(`${API}/health`, { timeout: 5000 }).catch(() => null);
-    if (healthCheck) {
-      try {
-        const health = await healthCheck.json();
-        if (health.status !== 'ok') {
-          console.log('⚠ Backend DB unavailable — skipping drift API test');
-          test.skip(true, 'Backend DB unhealthy');
-          return;
-        }
-      } catch {
-        // health endpoint returned non-JSON — skip
-        test.skip(true, 'Backend health check failed');
-        return;
-      }
-    } else {
+    if (!healthCheck) {
       test.skip(true, 'Backend unreachable');
       return;
     }
 
+    // GET /api/personality-profile/drift was retired — see api/routes/personality-profile.js.
+    // The endpoint now returns 410 Gone with an explanatory message. Soul-signature layers
+    // replaced the OCEAN drift mechanism. This test verifies the retirement is stable.
     const response = await request.get(`${API}/personality-profile/drift`, {
       headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
       timeout: 15000,
     });
 
-    expect(response.status()).toBe(200);
+    expect(response.status()).toBe(410);
     const body = await response.json();
-    expect(body.success).toBe(true);
-
-    if (body.reason === 'insufficient_data') {
-      expect(body.drifted).toBe(false);
-      console.log('○ Drift check: insufficient data (expected for new users)');
-    } else {
-      expect(typeof body.similarity).toBe('number');
-      expect(body.similarity).toBeGreaterThanOrEqual(0);
-      expect(body.similarity).toBeLessThanOrEqual(1);
-      console.log(`✓ Drift check: similarity=${body.similarity.toFixed(3)}, drifted=${body.drifted}`);
-    }
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('drift removed');
+    console.log(`✓ Drift API correctly returns 410: ${body.error}`);
   });
 });
 
 test.describe('Previously Fixed Issues Verification', () => {
   test('Landing page nav links have href attributes (E-L1 fix)', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const servicesLink = page.locator('a[href="#services"]');
     const featuresLink = page.locator('a[href="#features"]');
@@ -209,7 +191,7 @@ test.describe('Previously Fixed Issues Verification', () => {
 
   test('WhatsApp removed from landing page platforms (U-M5 fix)', async ({ page }) => {
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const whatsapp = page.locator('text=WhatsApp');
     expect(await whatsapp.count()).toBe(0);
@@ -217,7 +199,7 @@ test.describe('Previously Fixed Issues Verification', () => {
 
   test('/terms-of-service redirects to /terms (U-H1 fix)', async ({ page }) => {
     await page.goto(`${BASE}/terms-of-service`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     expect(page.url()).toContain('/terms');
     await expect(page.getByRole('heading', { name: 'Terms of Service' })).toBeVisible();
@@ -226,7 +208,7 @@ test.describe('Previously Fixed Issues Verification', () => {
   test('No horizontal overflow on mobile landing page (U-H2 fix)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto(BASE);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     const viewportWidth = await page.evaluate(() => window.innerWidth);

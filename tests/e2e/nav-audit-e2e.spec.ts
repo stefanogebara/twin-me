@@ -6,32 +6,22 @@ import { test, expect } from '@playwright/test';
 import { injectAuth, screenshot, SCREENSHOT_DIR } from './helpers';
 
 test.describe('Nav Audit', () => {
-  test('Test 1: /goals route does not load Goals page (redirects or 404)', async ({ page }) => {
+  test('Test 1: /goals route loads (re-added after goal-tracking redesign)', async ({ page }) => {
     await injectAuth(page);
     await page.goto('/goals', { waitUntil: 'load' });
     await page.waitForTimeout(1500);
 
     const url = page.url();
-    const bodyText = await page.locator('body').innerText().catch(() => '');
-
     await screenshot(page, 'test1-goals-route');
 
-    // Should NOT remain on /goals (prototype/goals is a different route — acceptable)
-    const isOnMainGoals = url.endsWith('/goals') || url.includes('/goals?') || url.includes('/goals#');
-    expect(isOnMainGoals, `Expected redirect away from /goals but stayed at: ${url}`).toBe(false);
-
-    // Should be on dashboard, not-found, or auth
-    const isExpectedDestination =
-      url.includes('/dashboard') ||
-      url.includes('/auth') ||
-      bodyText.toLowerCase().includes('not found') ||
-      bodyText.toLowerCase().includes("page doesn't exist") ||
-      bodyText.toLowerCase().includes('go home');
-
-    expect(isExpectedDestination, `Expected /goals to redirect to dashboard/auth/404 but ended up at: ${url}`).toBe(true);
+    // /goals is a real route (App.tsx). Either stays on /goals (logged-in) or redirects to /auth.
+    // The earlier "must redirect away from /goals" expectation was from the 2026-03 window when
+    // the route was temporarily removed.
+    const isAcceptable = url.includes('/goals') || url.includes('/auth');
+    expect(isAcceptable, `Expected /goals or /auth, got: ${url}`).toBe(true);
   });
 
-  test('Test 2: Sidebar has Connect item that navigates to /get-started', async ({ page }) => {
+  test('Test 2: Sidebar Connect item navigates to /connect (primary) or /get-started (legacy)', async ({ page }) => {
     await injectAuth(page);
     await page.goto('/dashboard', { waitUntil: 'load' });
     // Wait for sidebar to render (auth API resolves, then sidebar mounts)
@@ -51,7 +41,9 @@ test.describe('Nav Audit', () => {
     const url = page.url();
     await screenshot(page, 'test2b-after-connect-click');
 
-    expect(url, 'Clicking Connect should navigate to /get-started').toContain('/get-started');
+    // App.tsx mounts the same Connect page on BOTH /connect (primary nav) and /get-started (legacy alias).
+    const isConnectRoute = url.includes('/connect') || url.includes('/get-started');
+    expect(isConnectRoute, `Clicking Connect should navigate to /connect or /get-started but got: ${url}`).toBe(true);
   });
 
   test('Test 3: Sidebar has exactly the correct nav items with no Goals item', async ({ page }) => {
