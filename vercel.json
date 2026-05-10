@@ -115,6 +115,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/soul-signature-regen",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/cron/memory-forgetting",
       "schedule": "0 3 * * 0"
     },
