@@ -423,6 +423,34 @@ export function formatBlocksForPrompt(blocks) {
 }
 
 /**
+ * Convenience wrapper for the chat route: fetch blocks, format them for the
+ * system prompt, and (on first chat) kick off async initialization. Never
+ * throws — returns null on any failure so the chat path stays defensive.
+ */
+export async function loadCoreBlocksForPrompt(userId) {
+  try {
+    const blocks = await getBlocks(userId);
+    if (Object.keys(blocks).length === 0) {
+      initializeBlocks(userId).catch(err =>
+        log.warn('Core memory init failed (non-fatal)', { error: err?.message })
+      );
+      return null;
+    }
+    const text = formatBlocksForPrompt(blocks);
+    if (text) {
+      log.debug('Core memory blocks loaded', {
+        chars: text.length,
+        blocks: Object.keys(blocks).filter(k => blocks[k]?.content?.length > 0),
+      });
+    }
+    return text || null;
+  } catch (err) {
+    log.warn('Core memory block fetch failed (non-fatal)', { error: err?.message });
+    return null;
+  }
+}
+
+/**
  * Get blocks that rarely change (cache-friendly for KV-cache hits).
  * soul_signature is immutable; human changes only after session reflection.
  */
