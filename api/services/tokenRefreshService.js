@@ -219,8 +219,62 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       log.warn(`Failed to mark ${platform} token as expired:`, expiredErr.message);
     }
 
+    // audit-2026-05-10 D-M3: queue a reauth nudge so the user gets surfaced
+    // notification via the existing deliver-insights cron (which pushes to
+    // WhatsApp/Telegram channels). Dedup window 7 days so we don't spam
+    // when the cron retries refresh many times. Best-effort — never let a
+    // notification failure mask the original refresh error to the caller.
+    enqueueReauthNudge(userId, platform).catch(err =>
+      log.warn('Failed to enqueue reauth nudge', { userId, platform, error: err?.message })
+    );
+
     return null;
   }
+}
+
+const PLATFORM_DISPLAY_NAMES = {
+  spotify: 'Spotify',
+  google_calendar: 'Google Calendar',
+  google_gmail: 'Gmail',
+  youtube: 'YouTube',
+  discord: 'Discord',
+  linkedin: 'LinkedIn',
+  github: 'GitHub',
+  reddit: 'Reddit',
+  twitch: 'Twitch',
+  whoop: 'WHOOP',
+  strava: 'Strava',
+  outlook: 'Outlook',
+};
+
+async function enqueueReauthNudge(userId, platform) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: existing } = await supabaseAdmin
+    .from('proactive_insights')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('category', 'reauth_needed')
+    .gte('created_at', sevenDaysAgo)
+    .contains('metadata', { platform })
+    .limit(1);
+  if (existing && existing.length > 0) {
+    log.info('Reauth nudge already queued in last 7d — skipping', { userId, platform });
+    return;
+  }
+  const displayName = PLATFORM_DISPLAY_NAMES[platform] || platform;
+  const { error: insertErr } = await supabaseAdmin
+    .from('proactive_insights')
+    .insert({
+      user_id: userId,
+      insight: `Your ${displayName} connection expired. Reconnect to keep your twin learning from your activity.`,
+      urgency: 'medium',
+      category: 'reauth_needed',
+      metadata: { platform, displayName, source: 'token-refresh-failure' },
+      sources: ['platform_connections'],
+      delivered: false,
+    });
+  if (insertErr) throw new Error(insertErr.message);
+  log.info('Reauth nudge queued', { userId, platform });
 }
 
 // Nango-managed tokens use placeholder values - don't try to refresh them ourselves
