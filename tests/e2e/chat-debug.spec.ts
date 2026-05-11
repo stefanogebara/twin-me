@@ -24,6 +24,14 @@ async function injectAuth(page: Page): Promise<void> {
   }, TOKEN);
 }
 
+// Dev debug spec — hits production by default, depends on stale TEST_AUTH_TOKEN
+// and dumps class names for selector hunting. Not a regression test. Skip
+// unless explicitly opted in.
+test.skip(
+  process.env.TWINME_RUN_DEBUG_SPECS !== 'true',
+  'chat-debug is a developer selector-hunt tool. Set TWINME_RUN_DEBUG_SPECS=true to opt in.',
+);
+
 test("chat deep dive", async ({ page }) => {
   await injectAuth(page);
   await page.goto(BASE_URL + "/talk-to-twin");

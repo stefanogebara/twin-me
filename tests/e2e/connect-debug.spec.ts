@@ -23,6 +23,13 @@ async function injectAuth(page: Page) {
   }, TOKEN);
 }
 
+// Dev debug spec — hits production by default, depends on stale TEST_AUTH_TOKEN.
+// Not a regression test. Skip unless explicitly opted in.
+test.skip(
+  process.env.TWINME_RUN_DEBUG_SPECS !== 'true',
+  'connect-debug is a developer selector-hunt tool. Set TWINME_RUN_DEBUG_SPECS=true to opt in.',
+);
+
 test("connect page deep dive", async ({ page }) => {
   await injectAuth(page);
   await page.goto(BASE_URL + "/connect");

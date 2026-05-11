@@ -5,6 +5,12 @@ import { test, expect } from '@playwright/test';
  * Tests the digital twin creation flow
  */
 
+// /get-started + /onboarding require auth and this spec doesn't inject any.
+// Pages redirect to /auth so input + button selectors never resolve. Real
+// onboarding coverage lives in tests/e2e/onboarding-flow.spec.ts (full mode
+// with auth injection + mode-select handling). Skip the legacy stubs here.
+test.skip(true, 'Auth-gated routes without auth injection; covered by e2e/onboarding-flow.spec.ts.');
+
 test.describe('Instant Twin Onboarding', () => {
   test('should load onboarding page', async ({ page }) => {
     await page.goto('/get-started');

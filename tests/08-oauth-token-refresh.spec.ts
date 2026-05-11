@@ -104,17 +104,22 @@ test.describe('OAuth Token Refresh API Tests', () => {
 
   test.describe('Token Refresh Service HTTP Basic Auth', () => {
 
-    test('tokenRefresh.js should use HTTP Basic Auth pattern', async () => {
+    test('tokenRefreshService.js should use HTTP Basic Auth pattern', async () => {
       const fs = await import('fs/promises');
       const path = await import('path');
 
       const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefreshService.js');
       const content = await fs.readFile(tokenRefreshPath, 'utf-8');
 
-      // Should have Authorization: Basic header pattern
-      const hasBasicAuth = /Authorization.*Basic.*Buffer\.from/i.test(content);
+      // The refactor split basicAuth declaration onto its own line:
+      //   const basicAuth = Buffer.from(`${id}:${secret}`).toString('base64');
+      //   ... headers: { Authorization: `Basic ${basicAuth}` }
+      // Accept either the legacy one-line pattern or the split form.
+      const hasInlinePattern = /Authorization.*Basic.*Buffer\.from/is.test(content);
+      const hasSplitPattern = /basicAuth\s*=\s*Buffer\.from/.test(content)
+        && /Authorization.*Basic\s+\$\{basicAuth\}/.test(content);
 
-      expect(hasBasicAuth).toBe(true);
+      expect(hasInlinePattern || hasSplitPattern).toBe(true);
     });
 
     test('tokenRefreshService.js should use HTTP Basic Auth for Whoop', async () => {
