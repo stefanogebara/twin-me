@@ -9,6 +9,7 @@
  */
 
 import { test, expect, Page, ConsoleMessage } from '@playwright/test';
+import jwt from 'jsonwebtoken';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -17,9 +18,22 @@ import { test, expect, Page, ConsoleMessage } from '@playwright/test';
 const BASE_URL = 'http://localhost:8086';
 const SCREENSHOT_DIR = 'tests/e2e/screenshots';
 
-// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
-const TEST_TOKEN =
-  process.env.TEST_AUTH_TOKEN;
+// Mint a fresh JWT per test run — relying on .env.test TEST_AUTH_TOKEN is
+// brittle (the token expires and quietly starts failing /api/auth/verify,
+// which then redirects to /auth?redirect=/dashboard). JWT_SECRET is loaded
+// by playwright.config.ts so this works in both local and CI.
+function mintFreshJwt(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET not in env — playwright.config.ts must load .env before tests run');
+  }
+  return jwt.sign(
+    { id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d', email: 'stefanogebara@gmail.com' },
+    secret,
+    { expiresIn: '30m' },
+  );
+}
+const TEST_TOKEN = mintFreshJwt();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
