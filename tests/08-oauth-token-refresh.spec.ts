@@ -16,7 +16,7 @@ test.describe('OAuth Token Refresh API Tests', () => {
 
     test('Whoop refresh endpoint should be accessible', async ({ request }) => {
       // Whoop refresh is at /api/health/refresh/whoop
-      const response = await request.post('http://localhost:3001/api/health/refresh/whoop', {
+      const response = await request.post('http://localhost:3004/api/health/refresh/whoop', {
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -27,7 +27,7 @@ test.describe('OAuth Token Refresh API Tests', () => {
 
     test('Platform insights refresh should be available', async ({ request }) => {
       // The insights refresh endpoint handles token refresh internally
-      const response = await request.post('http://localhost:3001/api/insights/spotify/refresh', {
+      const response = await request.post('http://localhost:3004/api/insights/spotify/refresh', {
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -43,7 +43,7 @@ test.describe('OAuth Token Refresh API Tests', () => {
       const path = await import('path');
 
       // Check tokenRefresh.js
-      const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefresh.js');
+      const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefreshService.js');
       const tokenRefreshContent = await fs.readFile(tokenRefreshPath, 'utf-8');
 
       // CRITICAL: Whoop refresh must use Authorization header with Basic auth
@@ -57,7 +57,7 @@ test.describe('OAuth Token Refresh API Tests', () => {
       const fs = await import('fs/promises');
       const path = await import('path');
 
-      const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefresh.js');
+      const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefreshService.js');
       const content = await fs.readFile(tokenRefreshPath, 'utf-8');
 
       // Find the Whoop refresh section
@@ -108,7 +108,7 @@ test.describe('OAuth Token Refresh API Tests', () => {
       const fs = await import('fs/promises');
       const path = await import('path');
 
-      const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefresh.js');
+      const tokenRefreshPath = path.join(process.cwd(), 'api', 'services', 'tokenRefreshService.js');
       const content = await fs.readFile(tokenRefreshPath, 'utf-8');
 
       // Should have Authorization: Basic header pattern
@@ -170,7 +170,7 @@ test.describe('OAuth Token Refresh API Tests', () => {
 test.describe('OAuth Callback Endpoints Exist', () => {
 
   test('Spotify callback endpoint exists', async ({ request }) => {
-    const response = await request.get('http://localhost:3001/api/spotify/callback', {
+    const response = await request.get('http://localhost:3004/api/spotify/callback', {
       params: { code: 'test', state: 'test' }
     });
 
@@ -180,7 +180,7 @@ test.describe('OAuth Callback Endpoints Exist', () => {
   });
 
   test('Whoop callback endpoint exists', async ({ request }) => {
-    const response = await request.get('http://localhost:3001/api/health/oauth/callback/whoop', {
+    const response = await request.get('http://localhost:3004/api/health/oauth/callback/whoop', {
       params: { code: 'test', state: 'test' }
     });
 
@@ -188,7 +188,7 @@ test.describe('OAuth Callback Endpoints Exist', () => {
   });
 
   test('Calendar callback endpoint exists', async ({ request }) => {
-    const response = await request.get('http://localhost:3001/api/calendar/callback', {
+    const response = await request.get('http://localhost:3004/api/calendar/callback', {
       params: { code: 'test', state: 'test' }
     });
 
@@ -200,7 +200,7 @@ test.describe('Platform Insight Endpoints', () => {
 
   test('Insights API exists for platforms', async ({ request }) => {
     // Test that the insights route is mounted
-    const response = await request.get('http://localhost:3001/api/insights/status');
+    const response = await request.get('http://localhost:3004/api/insights/status');
 
     // Any response indicates the route is mounted
     expect(response.status()).toBeDefined();

@@ -12,7 +12,7 @@ test('TTFT: deep tier emotional message', async ({ browser }) => {
   const context = await browser.newContext({ storageState: AUTH_STATE });
   const page = await context.newPage();
 
-  await page.goto('http://localhost:8086/talk-to-twin', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:8086/talk-to-twin', { waitUntil: 'domcontentloaded' });
 
   const textarea = page.locator('textarea').first();
   await textarea.waitFor({ state: 'visible', timeout: 15000 });

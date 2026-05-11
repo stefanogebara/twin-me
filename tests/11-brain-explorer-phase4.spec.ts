@@ -9,39 +9,50 @@
  */
 
 import { test, expect } from '@playwright/test';
-// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
+import jwt from 'jsonwebtoken';
 
-// Test configuration
 const BASE_URL = 'http://localhost:8086';
 const API_URL = 'http://127.0.0.1:3004';
+const TEST_USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
+const TEST_USER_EMAIL = 'stefanogebara@gmail.com';
 
-// Generate a fresh JWT token for testing
-function generateTestToken(): string {
-  // This is the test user token - in a real scenario this would come from auth
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(JSON.stringify({
-    userId: '7ea395ce-be1d-4565-bce1-35e2c6bc7817',
-    email: 'stefano@twinme.ai',
-    iat: now,
-    exp: now + 7200 // 2 hours
-  })).toString('base64url');
-  // This is a test signature - will need real JWT secret
-  return `${header}.${payload}.test-signature`;
+function mintTestToken(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET not in env — playwright.config.ts must load .env');
+  }
+  return jwt.sign({ id: TEST_USER_ID, email: TEST_USER_EMAIL }, secret, { expiresIn: '30m' });
 }
+
+// /brain-explorer route was renamed/removed during the brain page redesign —
+// only /brain exists now. Skip the entire suite until tests are updated to
+// target the new route + assert against the current BrainPage UI.
+test.skip(true, '/brain-explorer route no longer exists; tests target the old phase-4 UI.');
 
 test.describe('Brain Explorer Phase 4 Features', () => {
   test.beforeEach(async ({ page }) => {
-    // Set authentication token
-    await page.addInitScript(() => {
-      const token = process.env.TEST_AUTH_TOKEN;
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('user', JSON.stringify({
-        id: '7ea395ce-be1d-4565-bce1-35e2c6bc7817',
-        email: 'stefano@twinme.ai',
-        name: 'Stefano'
-      }));
+    const token = mintTestToken();
+    const user = {
+      id: TEST_USER_ID,
+      email: TEST_USER_EMAIL,
+      name: 'Test User',
+      first_name: 'Stefano',
+      email_verified: true,
+    };
+    // Intercept /auth/refresh — same pattern as helpers.ts. Without this,
+    // AuthContext's in-memory access token is null on page load, /refresh
+    // 400s without an httpOnly cookie, and the page redirects to /auth.
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, accessToken: token, user }),
+      });
     });
+    await page.addInitScript(({ t, u }: { t: string; u: string }) => {
+      window.localStorage.setItem('auth_token', t);
+      window.localStorage.setItem('auth_user', u);
+    }, { t: token, u: JSON.stringify(user) });
   });
 
   test('should load Brain Explorer page', async ({ page }) => {

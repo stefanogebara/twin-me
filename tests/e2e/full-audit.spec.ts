@@ -23,6 +23,14 @@ const PAGES = [
   { name: '14-discover',       path: '/discover',         auth: false },
 ];
 
+// Full platform audit — opt-in only via RUN_HEAVY_AUDITS=true.
+// Generates dozens of full-page screenshots and crashes worker processes
+// when run as part of the routine chromium-project suite.
+test.skip(
+  process.env.RUN_HEAVY_AUDITS !== 'true',
+  'full-audit is a heavy production audit. Set RUN_HEAVY_AUDITS=true to opt in.',
+);
+
 test.describe('Full Platform Audit', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(SS_DIR)) fs.mkdirSync(SS_DIR, { recursive: true });

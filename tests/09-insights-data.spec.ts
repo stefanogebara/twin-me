@@ -211,7 +211,7 @@ test.describe('API Response Structure', () => {
 
   test('Insights API routes should be mounted', async ({ request }) => {
     // Test that the insights route is available
-    const response = await request.get('http://localhost:3001/api/insights/health');
+    const response = await request.get('http://localhost:3004/api/insights/health');
 
     // Any response code indicates the API is mounted
     expect(response.status()).toBeDefined();

@@ -59,6 +59,13 @@ async function injectAuth(page: Page): Promise<void> {
   );
 }
 
+// Dated production-audit snapshot — opt-in only via RUN_HEAVY_AUDITS=true.
+// Same rationale as prod-audit-2026-04-19.
+test.skip(
+  process.env.RUN_HEAVY_AUDITS !== 'true',
+  'comprehensive-audit-2026-03-02 is a dated production audit. Set RUN_HEAVY_AUDITS=true to opt in.',
+);
+
 test.describe.serial('Comprehensive Platform Audit 2026-03-02', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(SS_DIR)) {

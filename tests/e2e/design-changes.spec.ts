@@ -34,7 +34,7 @@ test.describe('DiscoverLanding design', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('background is warm cream #fcf6ef (not black)', async ({ page }) => {

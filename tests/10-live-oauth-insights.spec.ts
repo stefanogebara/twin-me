@@ -56,7 +56,7 @@ test.describe('Live Whoop OAuth Tests', () => {
 
   test('Whoop API should return data without auth errors', async ({ request }) => {
     // Test the Whoop refresh endpoint directly
-    const response = await request.post('http://localhost:3001/api/health/refresh/whoop', {
+    const response = await request.post('http://localhost:3004/api/health/refresh/whoop', {
       headers: { 'Content-Type': 'application/json' }
     });
 
@@ -146,7 +146,7 @@ test.describe('Live Insights Data Tests', () => {
 test.describe('Insights API Data Structure Tests', () => {
 
   test('Spotify reflection API should return visualization data fields', async ({ request }) => {
-    const response = await request.get('http://localhost:3001/api/insights/spotify/reflection');
+    const response = await request.get('http://localhost:3004/api/insights/spotify/reflection');
 
     // Check response (may be 401 without auth, but structure should be consistent)
     console.log('Spotify reflection API status:', response.status());
@@ -166,7 +166,7 @@ test.describe('Insights API Data Structure Tests', () => {
   });
 
   test('Whoop reflection API should return metrics and history', async ({ request }) => {
-    const response = await request.get('http://localhost:3001/api/insights/whoop/reflection');
+    const response = await request.get('http://localhost:3004/api/insights/whoop/reflection');
 
     console.log('Whoop reflection API status:', response.status());
 
@@ -184,7 +184,7 @@ test.describe('Insights API Data Structure Tests', () => {
   });
 
   test('Calendar reflection API should return event data', async ({ request }) => {
-    const response = await request.get('http://localhost:3001/api/insights/calendar/reflection');
+    const response = await request.get('http://localhost:3004/api/insights/calendar/reflection');
 
     console.log('Calendar reflection API status:', response.status());
 
@@ -206,7 +206,7 @@ test.describe('Token Refresh Mechanism Tests', () => {
 
   test('Token lifecycle job should be running', async ({ request }) => {
     // Check server health/status
-    const response = await request.get('http://localhost:3001/api/health');
+    const response = await request.get('http://localhost:3004/api/health');
 
     expect(response.status()).toBe(200);
 
@@ -216,7 +216,7 @@ test.describe('Token Refresh Mechanism Tests', () => {
 
   test('Whoop token refresh should use correct auth method', async ({ request }) => {
     // Make a refresh request and verify no "invalid_client" error
-    const response = await request.post('http://localhost:3001/api/health/refresh/whoop', {
+    const response = await request.post('http://localhost:3004/api/health/refresh/whoop', {
       headers: {
         'Content-Type': 'application/json'
       }

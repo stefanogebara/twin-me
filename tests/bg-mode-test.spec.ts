@@ -4,7 +4,7 @@ const BASE = 'http://localhost:8086';
 
 async function setMode(page: Page, mode: 'natural' | 'dark') {
   await page.evaluate((m) => localStorage.setItem('bg_mode', m), mode);
-  await page.reload({ waitUntil: 'networkidle' });
+  await page.reload({ waitUntil: 'domcontentloaded' });
 }
 
 async function shot(page: Page, name: string) {
@@ -24,9 +24,9 @@ test.describe('Background Mode — natural vs dark', () => {
   });
 
   test('Landing page — natural mode shows photo background', async ({ page }) => {
-    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('bg_mode', 'natural'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1000);
 
     // Background container should exist (the outer fixed wrapper)
@@ -41,17 +41,17 @@ test.describe('Background Mode — natural vs dark', () => {
   });
 
   test('Landing page — dark mode shows gradient (no photo)', async ({ page }) => {
-    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('bg_mode', 'dark'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(800);
     await shot(page, 'landing-dark');
   });
 
   test('Auth page — natural mode: glass panel visible over photo', async ({ page }) => {
-    await page.goto(`${BASE}/auth`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/auth`, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('bg_mode', 'natural'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(800);
 
     // Verify background fixed layer exists
@@ -67,17 +67,17 @@ test.describe('Background Mode — natural vs dark', () => {
   });
 
   test('Auth page — dark mode', async ({ page }) => {
-    await page.goto(`${BASE}/auth`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/auth`, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('bg_mode', 'dark'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(600);
     await shot(page, 'auth-dark');
   });
 
   test('Text readability — heading has sufficient contrast in natural mode', async ({ page }) => {
-    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('bg_mode', 'natural'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(800);
 
     // Check hero heading is visible (not transparent, not matching bg)
@@ -92,9 +92,9 @@ test.describe('Background Mode — natural vs dark', () => {
   test('No page has a full-screen solid white or black div blocking background', async ({ page }) => {
     const routes = ['/', '/auth'];
     for (const route of routes) {
-      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle' });
+      await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.setItem('bg_mode', 'natural'));
-      await page.reload({ waitUntil: 'networkidle' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
 
       // Check for full-screen solid divs that block the photo
       const blocker = await page.evaluate(() => {
@@ -131,12 +131,12 @@ test.describe('Background Mode — natural vs dark', () => {
   });
 
   test('Mode toggle persists across navigation', async ({ page }) => {
-    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.evaluate(() => localStorage.setItem('bg_mode', 'dark'));
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
 
     // Navigate to auth
-    await page.goto(`${BASE}/auth`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/auth`, { waitUntil: 'domcontentloaded' });
 
     const stored = await page.evaluate(() => localStorage.getItem('bg_mode'));
     expect(stored).toBe('dark');
@@ -153,7 +153,7 @@ test.describe('Background Mode — natural vs dark', () => {
 
     for (const mode of modes) {
       for (const route of routes) {
-        await page.goto(`${BASE}${route.path}`, { waitUntil: 'networkidle' });
+        await page.goto(`${BASE}${route.path}`, { waitUntil: 'domcontentloaded' });
         await setMode(page, mode);
         await page.waitForTimeout(600);
         await shot(page, `${route.name}-${mode}-final`);

@@ -49,6 +49,13 @@ async function auditPage(
   return { errors, notFounds, url, title };
 }
 
+// Dated production-audit snapshot — opt-in only. Same rationale as
+// prod-audit-2026-04-19 — heavy parallel screenshots crash workers.
+test.skip(
+  process.env.RUN_HEAVY_AUDITS !== 'true',
+  'frontend-e2e-audit-2026-03-14 is a dated production audit. Set RUN_HEAVY_AUDITS=true to opt in.',
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Suite: Public / Unauthenticated Routes
 // ─────────────────────────────────────────────────────────────────────────────

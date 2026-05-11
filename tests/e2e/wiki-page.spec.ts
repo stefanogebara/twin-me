@@ -24,7 +24,7 @@ test.describe('Wiki Knowledge Base Page', () => {
   });
 
   test('wiki page loads and shows domain cards', async ({ page }) => {
-    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     // Wait for content to appear (not loading skeleton)
     await page.waitForTimeout(3000);
@@ -77,7 +77,7 @@ test.describe('Wiki Knowledge Base Page', () => {
   });
 
   test('wiki page has version badges and timestamps', async ({ page }) => {
-    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(3000);
 
     // Check for version badges (v1, v2, etc.)
@@ -92,7 +92,7 @@ test.describe('Wiki Knowledge Base Page', () => {
   });
 
   test('cross-reference links are clickable', async ({ page }) => {
-    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(3000);
 
     // Find cross-reference buttons (they have domain labels like "Personality", "Lifestyle")
@@ -115,7 +115,7 @@ test.describe('Wiki Knowledge Base Page', () => {
   });
 
   test('sidebar has Knowledge nav link', async ({ page }) => {
-    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForTimeout(2000);
 
     // Look for the Knowledge sidebar item

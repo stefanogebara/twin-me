@@ -11,7 +11,7 @@ test.describe('Twin Chat — post jazz-purge eval', () => {
       localStorage.setItem('auth_token', token);
     }, TOKEN);
     await page.goto(`${BASE_URL}/talk-to-twin`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('chat page loads and shows input', async ({ page }) => {

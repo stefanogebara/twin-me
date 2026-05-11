@@ -44,6 +44,16 @@ async function ss(page: Page, name: string): Promise<void> {
   console.log("Screenshot:", name);
 }
 
+// Dated production audit — historical snapshot taker, not a regression test.
+// Skip the whole file by default; opt in via RUN_HEAVY_AUDITS=true when
+// running a fresh production audit. Without this gate, parallel runs spawn
+// dozens of full-page screenshots against production and crash worker
+// processes (code=143 / browser-context-closed cascades).
+test.skip(
+  process.env.RUN_HEAVY_AUDITS !== 'true',
+  'prod-audit-2026-04-19 is a dated production audit. Set RUN_HEAVY_AUDITS=true to opt in.',
+);
+
 test.describe("PAGE 1: Dashboard", () => {
   test.beforeEach(async ({ page }) => { await injectAuth(page); });
 

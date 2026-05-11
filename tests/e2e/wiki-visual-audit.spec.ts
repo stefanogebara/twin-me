@@ -21,7 +21,7 @@ test('wiki visual audit -- desktop + mobile + scroll', async ({ browser }) => {
 
   // Desktop viewport
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 20000 });
+  await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForTimeout(4000);
 
   // Screenshot 1: Desktop hero (top of page)
@@ -43,14 +43,14 @@ test('wiki visual audit -- desktop + mobile + scroll', async ({ browser }) => {
 
   // Screenshot 5: Mobile viewport
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 20000 });
+  await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForTimeout(3000);
   await page.screenshot({ path: 'test-screenshots/wiki-mobile-top.png' });
   await page.screenshot({ path: 'test-screenshots/wiki-mobile-full.png', fullPage: true });
 
   // Screenshot 6: Tablet viewport
   await page.setViewportSize({ width: 768, height: 1024 });
-  await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'networkidle', timeout: 20000 });
+  await page.goto(`${BASE_URL}/wiki`, { waitUntil: 'domcontentloaded', timeout: 20000 });
   await page.waitForTimeout(3000);
   await page.screenshot({ path: 'test-screenshots/wiki-tablet.png' });
 

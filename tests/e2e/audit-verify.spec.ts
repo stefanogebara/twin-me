@@ -4,7 +4,7 @@ test.use({ storageState: 'playwright/.auth/user.json' });
 
 test('dashboard skeleton loader exists in DOM', async ({ page }) => {
   await page.goto('http://localhost:8086/dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   // Check wiki CTA visible (memoryCount should be > 10 for test user)
   const wikiBtnText = await page.locator('text=Your Knowledge Base').count();
   console.log('Wiki CTA count:', wikiBtnText);
@@ -14,7 +14,7 @@ test('dashboard skeleton loader exists in DOM', async ({ page }) => {
 
 test('bottom nav has Connect instead of Wiki', async ({ page }) => {
   await page.goto('http://localhost:8086/dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   // Check bottom nav items
   const connectNav = await page.locator('nav button:has-text("Connect")').first();
   const wikiNav = await page.locator('nav button:has-text("Wiki")').first();
@@ -27,7 +27,7 @@ test('bottom nav has Connect instead of Wiki', async ({ page }) => {
 test('identity page has back button on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); // iPhone 14
   await page.goto('http://localhost:8086/identity');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
   const backBtn = await page.locator('button:has(svg)').filter({ hasText: /back/i }).count();
   console.log('Back button count:', backBtn);
@@ -37,7 +37,7 @@ test('identity page has back button on mobile', async ({ page }) => {
 
 test('TwinStats heading DOM text is Your Twin not YOUR TWIN', async ({ page }) => {
   await page.goto('http://localhost:8086/dashboard');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   await page.waitForTimeout(2000);
   // CSS text-transform:uppercase may make "Your Twin" visually render as "YOUR TWIN",
   // but DOM text should be "Your Twin". Check DOM text, not visible text.
