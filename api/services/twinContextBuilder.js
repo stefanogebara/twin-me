@@ -80,9 +80,22 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     });
   };
 
-  // Circuit breaker: if any single fetch hangs, cap total context build at 7s
-  // Uses individual tracked promises so the circuit breaker preserves already-resolved results
-  const CONTEXT_TIMEOUT_MS = 7000;
+  // Circuit breaker: if any single fetch hangs, cap total context build.
+  // Uses individual tracked promises so the circuit breaker preserves
+  // already-resolved results.
+  //
+  // audit-2026-05-11 C1 follow-up: bumped 7s → 10s. Post-deploy verification
+  // showed has_memory_stream success rate climbed from 0% → 75% after the
+  // HyDE-skip + graph-expansion-async fixes, but ~25% of cold-start
+  // conversations still missed memories. retrieveDiverseMemories now has a
+  // per-leg 5s timeout (memoryStreamService.js withLegTimeout) so any single
+  // slow leg returns [] silently while the other 4 still contribute — but
+  // the merge + cache write after the inner Promise.all also costs ~500ms,
+  // and other fetches in this list (twinSummary, wikiPages, calibration)
+  // can themselves be slow on cold-start pgbouncer queueing. 10s leaves
+  // 3s of margin for the slow-but-recoverable tail while still being far
+  // under the 60s Vercel function cap.
+  const CONTEXT_TIMEOUT_MS = 10000;
 
   const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], []];
 

@@ -1154,6 +1154,30 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
   const semanticConvBudget = Math.max(1, Math.round(maxConversations * 0.6));
   const recentConvBudget = maxConversations - semanticConvBudget;
 
+  // audit-2026-05-11 C1 follow-up: per-leg timeout for the inner Promise.all.
+  // Without this, a single slow leg (cold-start pgbouncer queueing can spike
+  // any DB query to 10-16s — proactiveInsights p100 = 16.4s was the prior
+  // observation) drags the whole Promise.all and the parent
+  // twinContextBuilder global breaker fires at 10s, leaving memories=[].
+  // Each leg now races against a 5s budget; slow legs return [] silently and
+  // the other legs' results still make it into the merge. Partial memory
+  // context > no memory context.
+  const PER_LEG_TIMEOUT_MS = 5000;
+  const withLegTimeout = (label, promise) => {
+    let timer;
+    const timeout = new Promise(resolve => {
+      timer = setTimeout(() => {
+        log.warn(`Memory leg timeout: ${label} exceeded ${PER_LEG_TIMEOUT_MS}ms — using empty`);
+        resolve([]);
+      }, PER_LEG_TIMEOUT_MS);
+    });
+    return Promise.race([
+      promise.then(v => { clearTimeout(timer); return v; },
+                   e => { clearTimeout(timer); log.warn(`Memory leg threw: ${label}`, { error: e?.message }); return []; }),
+      timeout,
+    ]);
+  };
+
   const SELECT_COLS = 'id, content, memory_type, importance_score, metadata, created_at, last_accessed_at';
 
   const [reflectionResults, factResults, platformResults, semanticConvResults, recentConvResults] = await Promise.all([
@@ -1165,66 +1189,69 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     // conversations track at line ~1196 already skips HyDE; reflections
     // pick up the same pattern. Plain embedding-based retrieval is good
     // enough at the budgets we use (maxReflections * 2 over-fetch + dedup).
-    retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, { ...options, skipHyDE: true }).catch(err => {
-      log.warn('Diverse reflections fetch failed', { error: err });
-      return [];
-    }),
+    withLegTimeout('reflections',
+      retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, { ...options, skipHyDE: true })
+    ),
 
     // Facts: top by importance (most salient facts about the user)
-    supabaseAdmin
-      .from('user_memories')
-      .select(SELECT_COLS)
-      .eq('user_id', userId)
-      .eq('memory_type', 'fact')
-      .order('importance_score', { ascending: false })
-      .limit(maxFacts)
-      .then(({ data, error }) => {
-        if (error) log.warn('Diverse facts fetch failed', { error });
-        return data || [];
-      }),
+    withLegTimeout('facts',
+      supabaseAdmin
+        .from('user_memories')
+        .select(SELECT_COLS)
+        .eq('user_id', userId)
+        .eq('memory_type', 'fact')
+        .order('importance_score', { ascending: false })
+        .limit(maxFacts)
+        .then(({ data, error }) => {
+          if (error) log.warn('Diverse facts fetch failed', { error });
+          return data || [];
+        })
+    ),
 
     // Platform data: most recent activity observations (reduced from 7→4, live data already injected by fetchTwinContext)
-    supabaseAdmin
-      .from('user_memories')
-      .select(SELECT_COLS)
-      .eq('user_id', userId)
-      .eq('memory_type', 'platform_data')
-      .order('created_at', { ascending: false })
-      .limit(maxPlatformData)
-      .then(({ data, error }) => {
-        if (error) log.warn('Diverse platform_data fetch failed', { error });
-        return data || [];
-      }),
+    withLegTimeout('platform_data',
+      supabaseAdmin
+        .from('user_memories')
+        .select(SELECT_COLS)
+        .eq('user_id', userId)
+        .eq('memory_type', 'platform_data')
+        .order('created_at', { ascending: false })
+        .limit(maxPlatformData)
+        .then(({ data, error }) => {
+          if (error) log.warn('Diverse platform_data fetch failed', { error });
+          return data || [];
+        })
+    ),
 
     // Semantic track: type-scoped vector search within conversations only.
     // Normalization happens within the conversation pool so they're not
     // outranked by reflections during min-max scoring.
     semanticConvBudget > 0
-      ? retrieveMemories(userId, query, semanticConvBudget * 2, 'default', {
-          memoryTypes: ['conversation'],
-          skipHyDE: true,
-        })
-          .then(results => results.filter(m => m.memory_type === 'conversation').slice(0, semanticConvBudget))
-          .catch(err => {
-            log.warn('Semantic conversation fetch failed', { error: err });
-            return [];
+      ? withLegTimeout('semantic_conv',
+          retrieveMemories(userId, query, semanticConvBudget * 2, 'default', {
+            memoryTypes: ['conversation'],
+            skipHyDE: true,
           })
+            .then(results => results.filter(m => m.memory_type === 'conversation').slice(0, semanticConvBudget))
+        )
       : Promise.resolve([]),
 
     // Recency track: most recent conversations by created_at regardless of topic.
     // Gives the twin thread continuity — it always knows what was just discussed.
     recentConvBudget > 0
-      ? supabaseAdmin
-          .from('user_memories')
-          .select(SELECT_COLS)
-          .eq('user_id', userId)
-          .eq('memory_type', 'conversation')
-          .order('created_at', { ascending: false })
-          .limit(recentConvBudget)
-          .then(({ data, error }) => {
-            if (error) log.warn('Recent conversation fetch failed', { error });
-            return data || [];
-          })
+      ? withLegTimeout('recent_conv',
+          supabaseAdmin
+            .from('user_memories')
+            .select(SELECT_COLS)
+            .eq('user_id', userId)
+            .eq('memory_type', 'conversation')
+            .order('created_at', { ascending: false })
+            .limit(recentConvBudget)
+            .then(({ data, error }) => {
+              if (error) log.warn('Recent conversation fetch failed', { error });
+              return data || [];
+            })
+        )
       : Promise.resolve([]),
   ]);
 
