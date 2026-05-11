@@ -280,12 +280,14 @@ const EnhancedFileUpload: React.FC<EnhancedFileUploadProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // CLAUDE.md: NEVER navy blue. Use warm-amber for video + documents to keep
+  // file-type icons consistent with the dark + amber/copper palette.
   const getFileIcon = (fileType: string) => {
     if (fileType.includes('audio')) return <Music className="w-6 h-6 text-purple-500" />;
-    if (fileType.includes('video')) return <Video className="w-6 h-6 text-blue-500" />;
+    if (fileType.includes('video')) return <Video className="w-6 h-6 text-[var(--accent-amber)]" />;
     if (fileType.includes('image')) return <Image className="w-6 h-6 text-green-500" />;
     if (fileType.includes('pdf')) return <FileText className="w-6 h-6 text-red-500" />;
-    if (fileType.includes('word') || fileType.includes('document')) return <FileText className="w-6 h-6 text-blue-400" />;
+    if (fileType.includes('word') || fileType.includes('document')) return <FileText className="w-6 h-6 text-[var(--accent-amber)]" />;
     return <File className="w-6 h-6 text-muted-foreground" />;
   };
 

@@ -121,20 +121,22 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   { label: 'All', days: 365 },
 ];
 
+// CLAUDE.md: NEVER navy blue. Use warm-amber for the primary "chat" tier
+// (matches the dominant orb color on the dark gradient).
 const TIER_COLORS: Record<string, string> = {
-  chat: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  chat: 'bg-[rgba(193,126,44,0.20)] text-[var(--accent-amber)] border-[rgba(193,126,44,0.30)]',
   analysis: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   extraction: 'bg-green-500/20 text-green-400 border-green-500/30',
 };
 
 const TIER_DOT_COLORS: Record<string, string> = {
-  chat: 'bg-blue-400',
+  chat: 'bg-[var(--accent-amber)]',
   analysis: 'bg-yellow-400',
   extraction: 'bg-green-400',
 };
 
 const TIER_BAR_COLORS: Record<string, string> = {
-  chat: '#3B82F6',
+  chat: '#c17e2c', // --accent-amber
   analysis: '#EAB308',
   extraction: '#22C55E',
 };

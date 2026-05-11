@@ -106,7 +106,7 @@ export function ConversationControls({
                 className="w-full px-4 py-2 text-left flex items-center gap-2 text-sm transition-colors hover:bg-white/10"
                 style={{ color: 'var(--foreground)' }}
               >
-                <FileText className="w-4 h-4 text-blue-500" />
+                <FileText className="w-4 h-4 text-[var(--accent-amber)]" />
                 <span>Export as Text</span>
               </button>
               <button

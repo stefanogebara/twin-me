@@ -57,7 +57,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         />
       </button>
 
-      {/* Floating Pill Sidebar */}
+      {/* Flat sidebar — straight edges, no rounded pill (CLAUDE.md preference) */}
       <CollapsibleSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}

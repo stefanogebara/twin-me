@@ -98,7 +98,7 @@ export function ContextualQuickActions({
             label: 'Compare artists',
             icon: BarChart3,
             action: () => onAction('compare-artists'),
-            color: 'text-blue-400'
+            color: 'text-[var(--accent-amber)]'
           },
           {
             id: 'mood-trends',
@@ -124,7 +124,7 @@ export function ContextualQuickActions({
             label: 'Learning paths',
             icon: TrendingUp,
             action: () => onAction('learning-paths'),
-            color: 'text-blue-400'
+            color: 'text-[var(--accent-amber)]'
           },
           {
             id: 'watch-time',
@@ -150,7 +150,7 @@ export function ContextualQuickActions({
             label: 'Language breakdown',
             icon: BarChart3,
             action: () => onAction('language-breakdown'),
-            color: 'text-blue-400'
+            color: 'text-[var(--accent-amber)]'
           },
           {
             id: 'contribution-graph',

@@ -62,10 +62,11 @@ const CARD_STYLE = {
 
 const TABLE_BORDER = '1px solid var(--border-glass)';
 
+// CLAUDE.md: NEVER navy blue. Use warm-amber + purple-accent from the design tokens.
 const CATEGORY_COLORS: Record<string, string> = {
   bug: 'bg-red-500/20 text-red-400 border-red-500/30',
-  feature: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  ux: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  feature: 'bg-[rgba(193,126,44,0.20)] text-[var(--accent-amber)] border-[rgba(193,126,44,0.30)]',
+  ux: 'bg-[rgba(93,92,174,0.20)] text-[var(--accent-purple)] border-[rgba(93,92,174,0.30)]',
   general: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
 };
 

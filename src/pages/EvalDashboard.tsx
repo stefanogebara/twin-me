@@ -68,7 +68,7 @@ const ScoreButton = ({ value, current, onClick }: { value: number; current: numb
     onClick={onClick}
     className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${
       current === value
-        ? 'bg-indigo-600 text-white'
+        ? 'bg-[var(--accent-amber)] text-[#110f0f]'
         : 'bg-white/8 text-muted-foreground hover:bg-white/10'
     }`}
   >
@@ -229,8 +229,8 @@ export default function EvalDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-900/20 flex items-center justify-center">
-              <ClipboardCheck className="w-5 h-5 text-indigo-400" />
+            <div className="w-10 h-10 rounded-xl bg-[rgba(193,126,44,0.18)] flex items-center justify-center">
+              <ClipboardCheck className="w-5 h-5 text-[var(--accent-amber)]" />
             </div>
             <div>
               <h1 className="text-xl font-semibold text-foreground">Twin Accuracy Eval</h1>
@@ -297,7 +297,7 @@ export default function EvalDashboard() {
                     title={flag.enabled ? 'Disable' : 'Enable'}
                   >
                     {flag.enabled
-                      ? <ToggleRight className="w-8 h-8 text-indigo-400" />
+                      ? <ToggleRight className="w-8 h-8 text-[var(--accent-amber)]" />
                       : <ToggleLeft className="w-8 h-8 text-muted-foreground" />}
                   </button>
                 </div>
@@ -325,7 +325,7 @@ export default function EvalDashboard() {
           <button
             onClick={() => runMutation.mutate()}
             disabled={runMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--accent-amber)] text-[#110f0f] rounded-lg text-sm font-medium hover:opacity-85 transition-colors disabled:opacity-60"
           >
             {runMutation.isPending
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Running 10 questions...</>
@@ -345,7 +345,7 @@ export default function EvalDashboard() {
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-muted-foreground">Score Responses</h2>
               {activeRun.total_score !== null && (
-                <div className="px-3 py-1 bg-indigo-900/20 text-indigo-700 rounded-lg text-sm font-bold">
+                <div className="px-3 py-1 bg-[rgba(193,126,44,0.18)] text-[var(--accent-amber)] rounded-lg text-sm font-bold">
                   {activeRun.total_score.toFixed(1)}%
                 </div>
               )}
@@ -406,13 +406,13 @@ export default function EvalDashboard() {
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Optional notes about this eval run..."
                 rows={2}
-                className="w-full text-sm border rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                className="w-full text-sm border rounded-lg p-3 resize-none text-muted-foreground placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--accent-amber)]"
                 style={{ borderColor: 'var(--border-glass)', backgroundColor: 'rgba(255,255,255,0.02)' }}
               />
               <button
                 onClick={() => scoreMutation.mutate()}
                 disabled={scoreMutation.isPending || scoredCount === 0}
-                className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                className="mt-3 flex items-center gap-2 px-4 py-2.5 bg-[var(--accent-amber)] text-[#110f0f] rounded-lg text-sm font-medium hover:opacity-85 transition-colors disabled:opacity-60"
               >
                 {scoreMutation.isPending
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>

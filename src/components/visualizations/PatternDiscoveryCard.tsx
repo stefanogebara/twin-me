@@ -15,10 +15,11 @@ interface PatternDiscoveryCardProps {
 export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscoveryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Get gradient based on confidence level
+  // Get gradient based on confidence level.
+  // CLAUDE.md: NEVER navy blue — use the warm-amber accent for medium-confidence.
   const getConfidenceGradient = (confidence: number): string => {
     if (confidence >= 90) return 'from-green-500/10 to-green-500/5';
-    if (confidence >= 70) return 'from-blue-500/10 to-blue-500/5';
+    if (confidence >= 70) return 'from-[rgba(193,126,44,0.12)] to-[rgba(193,126,44,0.06)]';
     if (confidence >= 50) return 'from-stone-500/10 to-stone-500/5';
     return 'from-stone-500/10 to-stone-500/5';
   };
@@ -122,14 +123,14 @@ export function PatternDiscoveryCard({ pattern, className = '' }: PatternDiscove
         </div>
       </div>
 
-      {/* Confidence progress bar */}
+      {/* Confidence progress bar — amber for mid-confidence (CLAUDE.md: NEVER navy blue) */}
       <div className="h-1 bg-white/10">
         <div
           className={`h-full transition-all duration-1000 ${
             pattern.confidence >= 90
               ? 'bg-green-500'
               : pattern.confidence >= 70
-              ? 'bg-blue-500'
+              ? 'bg-[var(--accent-amber)]'
               : pattern.confidence >= 50
               ? 'bg-stone-500'
               : 'bg-stone-500'

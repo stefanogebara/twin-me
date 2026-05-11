@@ -149,7 +149,7 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
     success: <CheckCircle className="w-5 h-5 text-green-400" />,
     error: <XCircle className="w-5 h-5 text-red-400" />,
     warning: <AlertCircle className="w-5 h-5 text-muted-foreground" />,
-    info: <Info className="w-5 h-5 text-blue-400" />,
+    info: <Info className="w-5 h-5 text-[var(--accent-amber)]" />,
     loading: <Loader2 className="w-5 h-5 text-[var(--accent-vibrant)] animate-spin" />,
     default: null,
   };
@@ -259,7 +259,7 @@ export function ToastExamples() {
             }
           );
         }}
-        className="px-4 py-2 bg-blue-600 text-white rounded"
+        className="px-4 py-2 bg-[var(--accent-amber)] text-[#110f0f] rounded"
       >
         Show Promise
       </button>

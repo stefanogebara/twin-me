@@ -117,12 +117,14 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 </span>
               )}
 
+              {/* CLAUDE.md: NEVER navy blue. Recovery uses green (health signal),
+                  calendar uses warm-amber (matches the gradient palette). */}
               {crossPlatformContext?.recovery && (
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: 'rgba(0, 180, 216, 0.1)',
-                    color: '#0284c7'
+                    backgroundColor: 'rgba(34, 197, 94, 0.10)',
+                    color: '#22c55e'
                   }}
                 >
                   <Activity className="h-3 w-3" />
@@ -134,8 +136,8 @@ export const EvidenceSection: React.FC<EvidenceSectionProps> = ({
                 <span
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
                   style={{
-                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
-                    color: '#2563eb'
+                    backgroundColor: 'rgba(193, 126, 44, 0.12)',
+                    color: 'var(--accent-amber)'
                   }}
                 >
                   <Calendar className="h-3 w-3" />
