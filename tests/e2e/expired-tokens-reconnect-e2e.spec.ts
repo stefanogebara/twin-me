@@ -58,7 +58,7 @@ test.describe('Expired Token Reconnect UI', () => {
 
   test('ExpiredTokenBanner appears with broken platform names', async ({ page }) => {
     await page.goto(`${BASE_URL}/get-started`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500); // let platform status API resolve
 
     await screenshot(page, '01-get-started-full');
@@ -78,7 +78,7 @@ test.describe('Expired Token Reconnect UI', () => {
 
   test('Reconnect button exists for broken platforms and triggers OAuth', async ({ page }) => {
     await page.goto(`${BASE_URL}/get-started`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
     await screenshot(page, '02-before-reconnect-click');
@@ -92,7 +92,7 @@ test.describe('Expired Token Reconnect UI', () => {
 
   test('Connected platforms (Spotify, Whoop) still show Manage — not Reconnect', async ({ page }) => {
     await page.goto(`${BASE_URL}/get-started`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
     const manageButtons = page.getByRole('button', { name: 'Manage' });
@@ -104,7 +104,7 @@ test.describe('Expired Token Reconnect UI', () => {
 
   test('Reconnect banner button navigates to /get-started (already there)', async ({ page }) => {
     await page.goto(`${BASE_URL}/get-started`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
     // The amber banner has a small "Reconnect" pill that links back to /get-started
@@ -123,7 +123,7 @@ test.describe('Expired Token Reconnect UI', () => {
     const popupPromise = page.waitForEvent('popup', { timeout: 5000 }).catch(() => null);
 
     await page.goto(`${BASE_URL}/get-started`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
     await screenshot(page, '03-ready-to-click-reconnect');
