@@ -14,7 +14,7 @@ test.describe('Live Whoop OAuth Tests', () => {
   test('Whoop connection should show as connected (not expired)', async ({ page }) => {
     // Navigate to get-started page where platform connections are shown
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for Whoop in the platform list
     const pageContent = await page.textContent('body');
@@ -35,7 +35,7 @@ test.describe('Live Whoop OAuth Tests', () => {
   test('Whoop insights page should load without token errors', async ({ page }) => {
     // Navigate to Whoop insights
     await page.goto('/insights/whoop');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for page to fully load
     await page.waitForTimeout(2000);
@@ -76,7 +76,7 @@ test.describe('Live Insights Data Tests', () => {
 
   test('Spotify insights page should display visualization data', async ({ page }) => {
     await page.goto('/insights/spotify');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     const pageContent = await page.textContent('body');
@@ -98,7 +98,7 @@ test.describe('Live Insights Data Tests', () => {
 
   test('Whoop insights page should load correctly (no auth errors)', async ({ page }) => {
     await page.goto('/insights/whoop');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     const pageContent = await page.textContent('body');
@@ -125,7 +125,7 @@ test.describe('Live Insights Data Tests', () => {
 
   test('Calendar insights page should display events', async ({ page }) => {
     await page.goto('/insights/calendar');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     const pageContent = await page.textContent('body');

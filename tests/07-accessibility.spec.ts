@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Accessibility', () => {
   test('should have proper heading hierarchy', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Check for h1
     const h1 = page.locator('h1');
@@ -18,7 +18,7 @@ test.describe('Accessibility', () => {
 
   test('should have alt text for images', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const images = page.locator('img');
     const count = await images.count();
@@ -36,7 +36,7 @@ test.describe('Accessibility', () => {
 
   test('should support keyboard navigation', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Try tabbing through interactive elements
     await page.keyboard.press('Tab');
@@ -48,7 +48,7 @@ test.describe('Accessibility', () => {
 
   test('should have proper button roles', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const buttons = page.getByRole('button');
     const count = await buttons.count();
@@ -59,7 +59,7 @@ test.describe('Accessibility', () => {
 
   test('should have semantic HTML', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Check for semantic elements
     const nav = page.locator('nav');
@@ -76,7 +76,7 @@ test.describe('Accessibility', () => {
 
   test('should have sufficient color contrast', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Take screenshot for manual review
     await page.screenshot({ path: 'test-results/contrast-check.png' });

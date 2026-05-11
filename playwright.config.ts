@@ -15,6 +15,12 @@ dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
  */
 export default defineConfig({
   testDir: './tests',
+  // Only match Playwright specs (*.spec.ts). The tests/ tree also holds 52
+  // Vitest unit tests (*.test.js / *.test.ts) and Playwright was loading them
+  // too, hitting a "Cannot redefine property: Symbol($$jest-matchers-object)"
+  // crash inside @vitest/expect on every chromium-project test discovery.
+  // Per-project testMatch entries (auth.setup.ts, etc.) override this.
+  testMatch: /.*\.spec\.ts$/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

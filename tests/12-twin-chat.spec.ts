@@ -88,7 +88,7 @@ test.describe('Twin Chat', () => {
 
   test('should load the TalkToTwin page', async ({ page }) => {
     await page.goto(`${BASE_URL}/talk-to-twin`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should show the chat interface (not redirected to login)
     const url = page.url();
@@ -114,7 +114,7 @@ test.describe('Twin Chat', () => {
 
   test('should allow typing in chat input', async ({ page }) => {
     await page.goto(`${BASE_URL}/talk-to-twin`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1500);
 
     const textarea = page.locator('textarea').first();
@@ -133,7 +133,7 @@ test.describe('Twin Chat', () => {
     }
 
     await page.goto(`${BASE_URL}/talk-to-twin`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     const textarea = page.locator('textarea').first();

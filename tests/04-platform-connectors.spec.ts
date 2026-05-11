@@ -10,7 +10,7 @@ test.describe('Platform Connectors', () => {
   // Note: Full OAuth flow testing requires authenticated sessions
   test('should show available platforms', async ({ page }) => {
     await page.goto('/soul-signature');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageContent = await page.textContent('body');
 
@@ -25,7 +25,7 @@ test.describe('Platform Connectors', () => {
 
   test('should have connect buttons for platforms', async ({ page }) => {
     await page.goto('/soul-signature');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for connect buttons
     const connectButtons = page.getByRole('button', { name: /connect/i });
@@ -37,7 +37,7 @@ test.describe('Platform Connectors', () => {
 
   test('should show platform icons', async ({ page }) => {
     await page.goto('/soul-signature');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Check for SVG or icon elements
     const svgs = page.locator('svg');
@@ -48,7 +48,7 @@ test.describe('Platform Connectors', () => {
 
   test('should display platform categories', async ({ page }) => {
     await page.goto('/soul-signature');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageContent = await page.textContent('body');
 
@@ -64,7 +64,7 @@ test.describe('Platform Connectors', () => {
 
   test('should show GitHub connector with correct details', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Click "Show More" button to reveal GitHub connector
     const showMoreButton = page.getByRole('button', { name: /show.*more/i });
@@ -88,7 +88,7 @@ test.describe('Platform Connectors', () => {
 
   test('should show Gmail connector with correct details', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageContent = await page.textContent('body');
 

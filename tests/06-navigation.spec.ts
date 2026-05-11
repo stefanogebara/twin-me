@@ -18,7 +18,7 @@ test.describe('Navigation', () => {
   for (const route of routes) {
     test(`should load ${route} without errors`, async ({ page }) => {
       await page.goto(route);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check page loaded
       const body = page.locator('body');
@@ -43,11 +43,11 @@ test.describe('Navigation', () => {
   test('should navigate between pages', async ({ page }) => {
     // Navigate from home → discover to verify routing works
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('body')).toBeVisible();
 
     await page.goto('/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('body')).toBeVisible();
 
     // Verify we ended up somewhere meaningful (not a blank page)
@@ -60,10 +60,10 @@ test.describe('Navigation', () => {
     const firstUrl = page.url();
 
     await page.goto('/discover');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await page.goBack();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Should be back at first page
     expect(page.url()).toContain(new URL(firstUrl).pathname);
@@ -76,7 +76,7 @@ test.describe('Navigation', () => {
     const logoLink = page.locator('a[href="/"]').or(page.locator('nav a').first());
     if (await logoLink.isVisible()) {
       await logoLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should navigate to home
       const url = page.url();

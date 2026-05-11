@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Instant Twin Onboarding', () => {
   test('should load onboarding page', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const body = page.locator('body');
     await expect(body).toBeVisible();
@@ -16,7 +16,7 @@ test.describe('Instant Twin Onboarding', () => {
 
   test('should show onboarding steps', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageContent = await page.textContent('body');
 
@@ -33,7 +33,7 @@ test.describe('Instant Twin Onboarding', () => {
 
   test('should have platform selection', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for platform selection UI
     const checkboxes = page.locator('input[type="checkbox"]');
@@ -48,7 +48,7 @@ test.describe('Instant Twin Onboarding', () => {
 
   test('should show twin name input', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for text inputs
     const inputs = page.locator('input[type="text"]');
@@ -63,7 +63,7 @@ test.describe('Instant Twin Onboarding', () => {
 
   test('should have extraction progress indicator', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const pageContent = await page.textContent('body');
 
@@ -73,7 +73,7 @@ test.describe('Instant Twin Onboarding', () => {
 
   test('should validate required fields', async ({ page }) => {
     await page.goto('/get-started');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Try to find and click next/submit button
     const nextButton = page.getByRole('button', { name: /next|continue|submit|create/i });
