@@ -146,16 +146,25 @@ test.describe('Personality Drift Alert', () => {
     }
   });
 
-  test('Drift API endpoint responds with 410 Gone (OCEAN drift retired)', async ({ request }) => {
-    if (!AUTH_TOKEN) {
-      test.skip(true, 'No auth token — skipping API test');
+  test('Drift API endpoint responds with 410 Gone (OCEAN drift retired)', async ({ request }, testInfo) => {
+    // Mint a fresh JWT — the .env.test TEST_AUTH_TOKEN may be expired, which
+    // is why this test was returning 401 instead of 410 on parallel runs.
+    const jwt = await import('jsonwebtoken');
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      testInfo.skip(true, 'JWT_SECRET not loaded — cannot mint test token');
       return;
     }
+    const freshToken = jwt.default.sign(
+      { id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d', email: 'stefanogebara@gmail.com' },
+      secret,
+      { expiresIn: '30m' },
+    );
 
     // Pre-check backend health to avoid 30s+ hang when DB is down
     const healthCheck = await request.get(`${API}/health`, { timeout: 5000 }).catch(() => null);
     if (!healthCheck) {
-      test.skip(true, 'Backend unreachable');
+      testInfo.skip(true, 'Backend unreachable');
       return;
     }
 
@@ -163,7 +172,7 @@ test.describe('Personality Drift Alert', () => {
     // The endpoint now returns 410 Gone with an explanatory message. Soul-signature layers
     // replaced the OCEAN drift mechanism. This test verifies the retirement is stable.
     const response = await request.get(`${API}/personality-profile/drift`, {
-      headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+      headers: { Authorization: `Bearer ${freshToken}` },
       timeout: 15000,
     });
 

@@ -145,6 +145,18 @@ test.describe.serial('Smoke: Core User Loop', () => {
     await injectAuthToken(page);
     await page.goto(`${BASE_URL}/dashboard`);
     await waitForPageLoad(page, 12000);
+
+    // Auth state can lag the initial navigation under parallel load — give the
+    // /auth/refresh intercept + /auth/verify round-trip a moment to land before
+    // we check the URL. Without this, ProtectedRoute can fire its redirect
+    // before AuthContext has the user.
+    await page.waitForURL(/\/dashboard/, { timeout: 8000 }).catch(() => {
+      // If we're still on /auth?redirect=..., wait a bit longer and let
+      // AuthContext finish — but don't fail here, let the URL assertion below
+      // produce the helpful error message.
+      return page.waitForTimeout(2000);
+    });
+
     await screenshot(page, 'smoke-02-dashboard-initial');
 
     // Should NOT redirect to /auth
