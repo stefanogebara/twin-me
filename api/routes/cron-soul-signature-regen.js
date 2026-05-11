@@ -59,19 +59,13 @@ router.all('/', async (req, res) => {
 
     if (sigErr) {
       log.error('Failed to fetch stale signatures', { error: sigErr.message });
-      await logCronExecution('soul-signature-regen', 'error', {
-        durationMs: Date.now() - startTime,
-        errorMessage: sigErr.message,
-      });
+      await logCronExecution('soul-signature-regen', 'error', Date.now() - startTime, null, sigErr.message);
       return res.status(500).json({ success: false, error: 'fetch_failed' });
     }
 
     if (!staleSigs || staleSigs.length === 0) {
       log.info('No stale signatures found');
-      await logCronExecution('soul-signature-regen', 'success', {
-        durationMs: Date.now() - startTime,
-        resultData: { ...stats, reason: 'no_stale_signatures' },
-      });
+      await logCronExecution('soul-signature-regen', 'success', Date.now() - startTime, { ...stats, reason: 'no_stale_signatures' });
       return res.json({ success: true, ...stats });
     }
 
@@ -112,10 +106,7 @@ router.all('/', async (req, res) => {
 
     if (eligible.length === 0) {
       log.info('No users met memory-delta + active-platform threshold');
-      await logCronExecution('soul-signature-regen', 'success', {
-        durationMs: Date.now() - startTime,
-        resultData: { ...stats, reason: 'no_eligible_users' },
-      });
+      await logCronExecution('soul-signature-regen', 'success', Date.now() - startTime, { ...stats, reason: 'no_eligible_users' });
       return res.json({ success: true, ...stats });
     }
 
@@ -147,18 +138,12 @@ router.all('/', async (req, res) => {
       }
     }
 
-    await logCronExecution('soul-signature-regen', 'success', {
-      durationMs: Date.now() - startTime,
-      resultData: stats,
-    });
+    await logCronExecution('soul-signature-regen', 'success', Date.now() - startTime, stats);
     return res.json({ success: true, ...stats });
 
   } catch (err) {
     log.error('Cron threw', { error: err?.message });
-    await logCronExecution('soul-signature-regen', 'error', {
-      durationMs: Date.now() - startTime,
-      errorMessage: err?.message || 'unknown',
-    });
+    await logCronExecution('soul-signature-regen', 'error', Date.now() - startTime, null, err?.message || 'unknown');
     return res.status(500).json({ success: false, error: 'cron_threw' });
   }
 });
