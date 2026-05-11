@@ -69,13 +69,13 @@ router.all('/', async (req, res) => {
 
     if (error) {
       log.error(`query connections failed: ${error.message}`);
-      await logCronExecution('pluggy-sync', 'error', { error: error.message });
+      await logCronExecution('pluggy-sync', 'error', Date.now() - startTime, null, error.message);
       return res.status(500).json({ success: false, error: 'query_failed' });
     }
 
     if (!connections?.length) {
       log.info('no active connections to sync');
-      await logCronExecution('pluggy-sync', 'success', { synced: 0 });
+      await logCronExecution('pluggy-sync', 'success', Date.now() - startTime, { synced: 0 });
       return res.json({ success: true, synced: 0 });
     }
 
@@ -114,11 +114,10 @@ router.all('/', async (req, res) => {
     const duration = Date.now() - startTime;
     log.info(`synced ${synced}/${connections.length} connections, ingested ${ingested} tx, ${errors.length} errors, ${duration}ms`);
 
-    await logCronExecution('pluggy-sync', 'success', {
+    await logCronExecution('pluggy-sync', 'success', duration, {
       synced,
       ingested,
       errors: errors.length,
-      duration_ms: duration,
     });
 
     return res.json({
@@ -130,7 +129,7 @@ router.all('/', async (req, res) => {
     });
   } catch (err) {
     log.error(`cron failed: ${err.message}`);
-    await logCronExecution('pluggy-sync', 'error', { error: err.message });
+    await logCronExecution('pluggy-sync', 'error', Date.now() - startTime, null, err.message);
     return res.status(500).json({
       success: false,
       error: 'cron_failed',

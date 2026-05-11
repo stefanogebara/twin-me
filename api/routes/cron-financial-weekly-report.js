@@ -123,19 +123,13 @@ router.all('/', async (req, res) => {
     const duration = Date.now() - startTime;
     log.info('cron complete', { duration_ms: duration, ...results });
 
-    await logCronExecution('financial-weekly-report', 'success', {
-      duration_ms: duration,
-      ...results,
-    });
+    await logCronExecution('financial-weekly-report', 'success', duration, results);
 
     return res.json({ success: true, duration_ms: duration, ...results });
   } catch (err) {
     const duration = Date.now() - startTime;
     log.error('cron crashed', err);
-    await logCronExecution('financial-weekly-report', 'error', {
-      duration_ms: duration,
-      error: err.message,
-    });
+    await logCronExecution('financial-weekly-report', 'error', duration, null, err.message);
     return res.status(500).json({ error: err.message });
   }
 });
