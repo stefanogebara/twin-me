@@ -125,17 +125,11 @@ test.describe('Frontend Insight Pages Structure', () => {
     expect(content).toContain('listeningHours');
   });
 
-  test('WhoopInsightsPage should expect correct data fields', async () => {
-    const fs = await import('fs/promises');
-    const path = await import('path');
-
-    const pagePath = path.join(process.cwd(), 'src', 'pages', 'insights', 'WhoopInsightsPage.tsx');
-    const content = await fs.readFile(pagePath, 'utf-8');
-
-    // Should reference these visualization data fields
-    expect(content).toContain('currentMetrics');
-    expect(content).toContain('sleepBreakdown');
-    expect(content).toContain('history7Day');
+  test.skip('WhoopInsightsPage should expect correct data fields', async () => {
+    // OBSOLETE: WhoopInsightsPage.tsx was removed in the insights consolidation
+    // (the live src/pages/insights/ tree no longer contains a Whoop page).
+    // Whoop is now part of the dashboard summary surface, not a standalone
+    // insights page. Skip until the test is rewritten against the new shape.
   });
 
   test('CalendarInsightsPage should expect correct data fields', async () => {

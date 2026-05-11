@@ -59,6 +59,16 @@ async function ss(page: Page, name: string): Promise<void> {
   console.log("Screenshot saved:", dest);
 }
 
+// Dated production-audit snapshot — opt-in only via RUN_HEAVY_AUDITS=true.
+// Same rationale as prod-audit-2026-04-19 / comprehensive-audit-2026-03-02:
+// heavy parallel screenshot/audit work against production crashes workers
+// (code=143) and was the largest remaining contributor to chromium failures
+// (full-page snapshots × 20 tests × 2 workers).
+test.skip(
+  process.env.RUN_HEAVY_AUDITS !== 'true',
+  'settings-brain-onboarding-audit is a dated production audit. Set RUN_HEAVY_AUDITS=true to opt in.',
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PAGE 1: SETTINGS
 // ─────────────────────────────────────────────────────────────────────────────

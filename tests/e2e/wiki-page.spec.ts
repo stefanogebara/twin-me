@@ -10,6 +10,15 @@ import { test, expect } from '@playwright/test';
 const BASE_URL = process.env.TEST_BASE_URL || 'https://twin-ai-learn.vercel.app';
 const JWT_TOKEN = process.env.TEST_AUTH_TOKEN || '';
 
+// Production wiki page test — hits twin-ai-learn.vercel.app, depends on
+// compiled wiki pages being present + auth token being valid. The
+// shorter wiki-smoke.spec.ts covers the same surface against local backend.
+// Skip unless explicitly opted in.
+test.skip(
+  process.env.TWINME_RUN_PROD_WIKI !== 'true',
+  'wiki-page.spec hits production. Use wiki-smoke.spec for local coverage. Set TWINME_RUN_PROD_WIKI=true to opt in.',
+);
+
 test.describe('Wiki Knowledge Base Page', () => {
 
   test.beforeEach(async ({ page }) => {

@@ -9,6 +9,7 @@
  */
 
 import { test, expect, Page, ConsoleMessage } from '@playwright/test';
+import jwt from 'jsonwebtoken';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -19,10 +20,21 @@ const API_URL = 'http://127.0.0.1:3004/api';
 const SCREENSHOT_DIR = 'tests/e2e/screenshots';
 const TEST_EMAIL = 'stefanogebara@gmail.com';
 
-// Pre-minted JWT for test user (30-day validity from 2026-03-02)
-// User: stefanogebara@gmail.com | ID: 167c27b5-a40b-49fb-8d00-deb1b1c57f4d
-// Set TEST_AUTH_TOKEN env var (never hardcode JWTs in source)
-const TEST_TOKEN = process.env.TEST_AUTH_TOKEN;
+// Mint a fresh JWT each run instead of relying on the static .env.test token
+// (which expires and silently 401s — the cause of all the "expected 400 got
+// 401" failures in this suite). JWT_SECRET is loaded by playwright.config.ts.
+function mintTestToken(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET not in env — playwright.config.ts must load .env');
+  }
+  return jwt.sign(
+    { id: '167c27b5-a40b-49fb-8d00-deb1b1c57f4d', email: TEST_EMAIL },
+    secret,
+    { expiresIn: '30m' },
+  );
+}
+const TEST_TOKEN = mintTestToken();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

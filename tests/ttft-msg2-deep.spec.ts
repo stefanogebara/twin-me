@@ -7,6 +7,14 @@ import { test, expect } from '@playwright/test';
 
 const AUTH_STATE = 'playwright/.auth/user.json';
 
+// Performance benchmark, not a regression test. Measures time-to-first-token
+// for a DEEP-tier emotional message. Depends on the LLM being warm + fast.
+// Skip unless explicitly opted in.
+test.skip(
+  process.env.TWINME_RUN_TTFT !== 'true',
+  'TTFT benchmark — set TWINME_RUN_TTFT=true to opt in.',
+);
+
 test('TTFT: deep tier emotional message', async ({ browser }) => {
   test.setTimeout(150000); // 150 seconds - DEEP tier needs more time
   const context = await browser.newContext({ storageState: AUTH_STATE });

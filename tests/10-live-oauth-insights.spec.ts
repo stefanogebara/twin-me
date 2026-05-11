@@ -9,6 +9,14 @@ import { test, expect } from '@playwright/test';
  * 3. All platform data flows correctly
  */
 
+// OBSOLETE: /insights/whoop route was removed in the insights consolidation
+// (current /insights/* tree is spotify, calendar, youtube, web, discord,
+// linkedin only). Plus tests don't inject auth so /get-started bounces to
+// /auth. Live-OAuth debugging is now done via direct API smoke tests
+// against http://localhost:3004/api/health/refresh/whoop. Skip until tests
+// are rewritten against the current insights routing.
+test.skip(true, '/insights/whoop route removed; tests bounce off auth without injection.');
+
 test.describe('Live Whoop OAuth Tests', () => {
 
   test('Whoop connection should show as connected (not expired)', async ({ page }) => {

@@ -154,7 +154,13 @@ test.describe('TRIBE v2 API Endpoints', () => {
 
 // ── UI Tests ───────────────────────────────────────────────────────────
 
+// OBSOLETE UI tests — the Identity page was redesigned (now shows a
+// first-time RevealOverlay + soul-signature archetype, no "Personality
+// Dimensions" section). The TRIBE v2 API endpoints above still work and
+// are validated by the other tests in this file; only the UI assertions
+// against the old Identity layout are stale.
 test.describe('TRIBE v2 UI Components', () => {
+  test.skip(true, 'Identity page redesigned — Personality Dimensions section removed.');
   test.use({ storageState: 'playwright/.auth/user.json' });
 
   test('Identity page shows Personality Dimensions section', async ({ page }) => {

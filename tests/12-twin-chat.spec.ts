@@ -74,16 +74,28 @@ test.describe('Twin Chat', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    // Inject valid auth token
-    await page.addInitScript(({ t, userId, email }) => {
-      localStorage.setItem('auth_token', t);
-      localStorage.setItem('user', JSON.stringify({
-        id: userId,
-        email,
-        name: 'Stefano',
-        full_name: 'Stefano Gebara',
-      }));
-    }, { t: token, userId: TEST_USER_ID, email: TEST_USER_EMAIL });
+    const user = {
+      id: TEST_USER_ID,
+      email: TEST_USER_EMAIL,
+      name: 'Stefano',
+      first_name: 'Stefano',
+      full_name: 'Stefano Gebara',
+      email_verified: true,
+    };
+    // Intercept /auth/refresh so AuthContext rehydrates without the httpOnly
+    // cookie (same pattern as tests/e2e/helpers.ts).
+    await page.route('**/api/auth/refresh', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, accessToken: token, user }),
+      });
+    });
+    // Use the correct localStorage keys: auth_token + auth_user (not "user").
+    await page.addInitScript(({ t, u }: { t: string; u: string }) => {
+      window.localStorage.setItem('auth_token', t);
+      window.localStorage.setItem('auth_user', u);
+    }, { t: token, u: JSON.stringify(user) });
   });
 
   test('should load the TalkToTwin page', async ({ page }) => {

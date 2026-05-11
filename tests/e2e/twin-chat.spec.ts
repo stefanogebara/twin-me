@@ -4,6 +4,15 @@ import { test, expect } from '@playwright/test';
 const TOKEN = process.env.TEST_AUTH_TOKEN;
 const BASE_URL = 'https://twin-ai-learn.vercel.app';
 
+// Production data + LLM eval — hits twin-ai-learn.vercel.app and asserts
+// specific artists appear / specific hallucinations don't. This is an LLM
+// quality eval, not a regression test, and depends on production state.
+// Skip unless explicitly opted in via TWINME_RUN_LLM_EVAL=true.
+test.skip(
+  process.env.TWINME_RUN_LLM_EVAL !== 'true',
+  'LLM behavior eval against production. Set TWINME_RUN_LLM_EVAL=true to opt in.',
+);
+
 test.describe('Twin Chat — post jazz-purge eval', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(BASE_URL);
