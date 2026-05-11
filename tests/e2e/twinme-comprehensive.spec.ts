@@ -131,6 +131,20 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
+// Comprehensive multi-page audit suite (25 tests across 13 page describes,
+// each navigating + screenshotting + hitting backend APIs against
+// Stefano's live account). Heavy and data-state-dependent: many tests
+// assert specific platform-connection counts, goal counts, memory counts,
+// etc. that fluctuate with the live data. Worker-OOM cascades are common
+// when running it in parallel with other browser-heavy tests.
+//
+// Skip by default — set TWINME_RUN_COMPREHENSIVE_AUDIT=true to opt in
+// (same pattern as the dated prod-audit + frontend-audit specs).
+test.skip(
+  process.env.TWINME_RUN_COMPREHENSIVE_AUDIT !== 'true',
+  'twinme-comprehensive is a heavy multi-page audit. Set TWINME_RUN_COMPREHENSIVE_AUDIT=true to opt in.',
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Discover Landing — /discover (unauthenticated)
 // ─────────────────────────────────────────────────────────────────────────────
