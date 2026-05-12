@@ -860,7 +860,7 @@ router.get('/magic-link/verify', async (req, res) => {
         .insert({
           email: row.email,
           first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
-          oauth_platform: 'magic_link',
+          oauth_provider: 'magic_link',
           email_verified: true,
         })
         .select('id, email, first_name')
@@ -878,18 +878,18 @@ router.get('/magic-link/verify', async (req, res) => {
       sendWelcomeEmail({ toEmail: user.email, firstName: user.first_name }).catch(() => {});
     } else {
       // Bug H11 fix (audit-2026-05-12): existing users who previously signed
-      // in via Google OAuth keep oauth_platform='google' forever, so /settings
+      // in via Google OAuth keep oauth_provider='google' forever, so /settings
       // displays "Authentication: Managed via Google OAuth" even after they
       // signed in via magic_link. Adopt last-signin-method-wins semantics:
-      // overwrite oauth_platform on every successful magic-link verify.
+      // overwrite oauth_provider on every successful magic-link verify.
       // Non-blocking — if the UPDATE fails we still issue the session so the
       // user isn't locked out; the stale label is a UI bug, not an auth bug.
       const { error: updateErr } = await supabaseAdmin
         .from('users')
-        .update({ oauth_platform: 'magic_link', updated_at: new Date().toISOString() })
+        .update({ oauth_provider: 'magic_link', updated_at: new Date().toISOString() })
         .eq('id', user.id);
       if (updateErr) {
-        log.warn('Magic-link oauth_platform update failed (non-blocking)', { error: updateErr.message, userId: user.id });
+        log.warn('Magic-link oauth_provider update failed (non-blocking)', { error: updateErr.message, userId: user.id });
       }
     }
 
@@ -1282,7 +1282,7 @@ router.get('/oauth/callback', async (req, res) => {
           email: userData.email,
           first_name: userData.firstName,
           last_name: userData.lastName,
-          oauth_platform: provider,
+          oauth_provider: provider,
           picture_url: userData.picture,
           email_verified: true,
         })
