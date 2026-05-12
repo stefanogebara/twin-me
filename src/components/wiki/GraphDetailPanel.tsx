@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { SelectedNode, DomainNode, PlatformNode, EntityNode, GraphStats } from './graphTypes';
 import { DOMAIN_CONFIG, PLATFORM_CONFIG, ENTITY_CATEGORY_CONFIG } from './graphConstants';
 import { renderWikiMarkdown } from './wikiMarkdownRenderer';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 
 function getTimeAgo(timestamp: string): string {
   const diff = Date.now() - new Date(timestamp).getTime();
@@ -55,7 +56,13 @@ const GraphDetailPanel: React.FC<GraphDetailPanelProps> = ({
   );
 };
 
-const OverviewState: React.FC<{ stats: GraphStats }> = ({ stats }) => (
+const OverviewState: React.FC<{ stats: GraphStats }> = ({ stats }) => {
+  // Platform count comes from the unified /api/platforms/summary endpoint
+  // (audit 2026-05-12 H1) so /wiki agrees with /dashboard, /identity, etc.
+  // Graph-derived platformCount only reflects platforms with compiled wiki
+  // content, which lagged behind connected count by 1-2.
+  const { data: platforms } = usePlatformsSummary();
+  return (
   <motion.div
     initial={{ opacity: 0, x: 12 }}
     animate={{ opacity: 1, x: 0 }}
@@ -76,7 +83,7 @@ const OverviewState: React.FC<{ stats: GraphStats }> = ({ stats }) => (
 
     <div className="grid grid-cols-2 gap-3">
       <StatCard label="Domains" value={stats.domainCount} />
-      <StatCard label="Platforms" value={stats.platformCount} />
+      <StatCard label="Platforms" value={platforms?.total ?? stats.platformCount} />
       <StatCard label="Entities" value={stats.entityCount ?? 0} />
       <StatCard label="Connections" value={stats.crossrefCount} />
     </div>
@@ -93,7 +100,8 @@ const OverviewState: React.FC<{ stats: GraphStats }> = ({ stats }) => (
       </p>
     </div>
   </motion.div>
-);
+  );
+};
 
 const StatCard: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <div

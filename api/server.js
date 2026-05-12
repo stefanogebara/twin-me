@@ -547,6 +547,10 @@ app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
+// /api/platforms/summary alias — same router. Canonical platform count
+// endpoint consumed by /dashboard, /identity, /connect, /wiki, settings
+// sidebar, chat header (audit 2026-05-12 H1).
+app.use('/api/platforms', connectorsRoutes);
 app.use('/api/data-verification', dataVerificationRoutes);
 app.use('/api/mcp', mcpRoutes);
 // Both entertainment routers intentionally share the /api/entertainment path;

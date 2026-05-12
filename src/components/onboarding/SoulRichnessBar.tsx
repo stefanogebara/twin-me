@@ -1,5 +1,6 @@
 // src/components/onboarding/SoulRichnessBar.tsx
 import React from 'react';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 
 // Weights reflect data richness per platform (active integrations only).
 // Unknown/future platforms default to 5. Bar caps at 100%.
@@ -23,7 +24,12 @@ const label = (s: number) =>
   s < 80 ? 'Your soul is taking shape' : 'Deeply understood';
 
 const SoulRichnessBar: React.FC<{ connectedPlatforms: string[]; isLoading?: boolean }> = ({ connectedPlatforms, isLoading }) => {
-  const score = Math.min(100, connectedPlatforms.reduce((s, p) => s + (WEIGHTS[p] ?? 5), 0));
+  // Canonical summary tells us which connected platforms are fresh vs stale/expired
+  // (audit 2026-05-12 M5). 100% should only be reachable with all-active.
+  const { data: summary } = usePlatformsSummary();
+  const rawScore = Math.min(100, connectedPlatforms.reduce((s, p) => s + (WEIGHTS[p] ?? 5), 0));
+  const hasUnhealthy = (summary?.total ?? 0) > 0 && (summary?.active ?? 0) < (summary?.total ?? 0);
+  const score = hasUnhealthy ? Math.min(rawScore, 95) : rawScore;
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">

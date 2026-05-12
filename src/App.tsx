@@ -272,6 +272,8 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+            {/* Sidebar nav labels this entry "Knowledge"; mirror the label to a real URL. */}
+            <Route path="/knowledge" element={<Navigate to="/wiki" replace />} />
             <Route path="/goals" element={
               <ProtectedRoute>
                 <SidebarLayout>

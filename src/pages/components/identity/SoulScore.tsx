@@ -6,7 +6,7 @@
  * and 6 domain contributor cards in a responsive grid.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import {
@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { authFetch } from '@/services/api/apiBase';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -290,19 +291,19 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
     ? JSON.parse(localStorage.getItem('auth_user') || '{}')?.id
     : null;
 
-  // Connected platforms
-  const { data: connectors } = useQuery({
-    queryKey: ['connectors', 'status', userId],
-    queryFn: async () => {
-      if (!userId) return {};
-      const res = await authFetch(`/connectors/status/${userId}`);
-      if (!res.ok) return {};
-      const json = await res.json();
-      return (json.data || {}) as Record<string, { connected: boolean }>;
-    },
-    staleTime: 5 * 60 * 1000,
-    enabled: !!userId && !isDemoMode,
-  });
+  // Connected platforms — canonical platforms summary (audit 2026-05-12 H1).
+  // Replaces the previous per-page /connectors/status fetch that disagreed with
+  // /wiki, /dashboard, etc.
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!userId && !isDemoMode });
+
+  // Backward-compatible connector map for ContributorCard locked/unlocked logic.
+  const connectors = useMemo(() => {
+    const map: Record<string, { connected: boolean; tokenExpired: boolean }> = {};
+    for (const p of platformsSummary?.breakdown ?? []) {
+      map[p.platform] = { connected: true, tokenExpired: p.state === 'expired' };
+    }
+    return map;
+  }, [platformsSummary]);
 
   // ── Demo mode: realistic synthetic data ──────────────────────────────
   if (isDemoMode) {
@@ -358,17 +359,30 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
     );
   }
 
-  const connectedPlatforms = Object.entries(connectors || {})
-    .filter(([, v]: [string, any]) => v?.connected && !v?.tokenExpired)
-    .map(([k]) => k.toLowerCase());
+  // Platform-level inputs from the canonical summary.
+  // - connectedPlatforms (unlocks the contributor card): includes ALL connected
+  //   regardless of token state, so the user can see what they've linked even
+  //   when a token has expired.
+  // - activeCount (feeds the Soul Score numerator): only platforms that are
+  //   ACTUALLY syncing — token valid and last sync within 7 days. This is the
+  //   audit-2026-05-12 M5 fix: previously a 100% score was possible even with
+  //   every platform stale or expired.
+  const connectedPlatforms = Object.keys(connectors || {}).map((k) => k.toLowerCase());
   const platformCount = connectedPlatforms.length;
+  const activeCount = platformsSummary?.active ?? platformCount;
+  const totalCount = platformsSummary?.total ?? platformCount;
   const memoryCount = memorySummary?.total ?? 0;
   // Axes: assume present if user has connected platforms (ICA runs after extraction)
   const axesCount = platformCount > 0 ? 1 : 0;
-  // Multimodal: count distinct platform categories (proxy by platform count, cap at 4)
-  const multimodalCount = Math.min(platformCount, 4);
+  // Multimodal: count distinct platform categories (proxy by ACTIVE platform count, cap at 4)
+  const multimodalCount = Math.min(activeCount, 4);
 
-  const score = computeSoulScore(platformCount, memoryCount, axesCount, multimodalCount);
+  // Score uses active (not total) so stale/expired platforms don't pad it.
+  const rawScore = computeSoulScore(activeCount, memoryCount, axesCount, multimodalCount);
+  // M5: if ANY connected platform is stale or expired, cap at 95% — a perfect
+  // score should only be reachable when every connected platform is fresh.
+  const hasUnhealthy = totalCount > 0 && activeCount < totalCount;
+  const score = hasUnhealthy ? Math.min(rawScore, 95) : rawScore;
   const connectedSet = new Set(connectedPlatforms);
 
   return (

@@ -1239,6 +1239,105 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
 });
 
 /**
+ * GET /api/connectors/summary
+ * GET /api/platforms/summary (alias mounted in server.js)
+ *
+ * Canonical single source of truth for "how many platforms is the user
+ * connected to" used across /dashboard, /identity, /connect, /wiki, the
+ * settings sidebar, and the chat header. Every other surface should consume
+ * this to avoid the drift bug where /wiki said 9, /identity said 10, and
+ * /talk-to-twin said 11 for the same user (audit 2026-05-12 H1).
+ *
+ * A platform is considered:
+ *   - active:  connected, token NOT expired, last_sync within STALE_DAYS days
+ *   - expired: connected but token expired (or status='expired'/'token_expired')
+ *   - stale:   connected, token OK, but hasn't synced in >= STALE_DAYS
+ *   - total:   active + expired + stale
+ *
+ * Response: { success, total, active, expired, stale, breakdown: [{platform, state}] }
+ */
+const STALE_DAYS = 7;
+
+router.get('/summary', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const now = Date.now();
+    const staleThresholdMs = STALE_DAYS * 24 * 60 * 60 * 1000;
+
+    const [pcResult, nangoResult] = await Promise.all([
+      supabaseAdmin
+        .from('platform_connections')
+        .select('platform, status, last_sync_at, last_sync_status, token_expires_at, access_token, connected_at')
+        .eq('user_id', userId),
+      supabaseAdmin
+        .from('nango_connection_mappings')
+        .select('platform, status, last_synced_at, updated_at, created_at')
+        .eq('user_id', userId)
+        .in('status', ['connected', 'active']),
+    ]);
+
+    const breakdown = [];
+    const seen = new Set();
+
+    for (const c of pcResult.data || []) {
+      const isNangoManaged = c.access_token === 'NANGO_MANAGED';
+      const tokenExpired =
+        c.status === 'expired' ||
+        c.status === 'token_expired' ||
+        c.status === 'needs_reauth' ||
+        c.status === 'requires_reauth' ||
+        c.last_sync_status === 'requires_reauth' ||
+        (c.status === 'error' && c.last_sync_status === 'auth_error') ||
+        (!isNangoManaged && c.token_expires_at && new Date(c.token_expires_at).getTime() < now);
+
+      // Only count platforms the user has actually connected (not just empty rows).
+      const isConnected = !!c.connected_at;
+      if (!isConnected) continue;
+
+      let state;
+      if (tokenExpired) {
+        state = 'expired';
+      } else {
+        const lastSync = c.last_sync_at ? new Date(c.last_sync_at).getTime() : null;
+        const isStale = lastSync && now - lastSync > staleThresholdMs;
+        const isPartial = c.last_sync_status === 'partial' || c.last_sync_status === 'error';
+        state = isStale || isPartial ? 'stale' : 'active';
+      }
+
+      breakdown.push({ platform: c.platform, state });
+      seen.add(c.platform);
+    }
+
+    for (const n of nangoResult.data || []) {
+      if (seen.has(n.platform)) continue;
+      const lastSync = n.last_synced_at ? new Date(n.last_synced_at).getTime() : null;
+      const isStale = lastSync && now - lastSync > staleThresholdMs;
+      breakdown.push({ platform: n.platform, state: isStale ? 'stale' : 'active' });
+    }
+
+    const counts = breakdown.reduce(
+      (acc, b) => {
+        acc[b.state]++;
+        return acc;
+      },
+      { active: 0, expired: 0, stale: 0 }
+    );
+
+    res.json({
+      success: true,
+      total: breakdown.length,
+      active: counts.active,
+      expired: counts.expired,
+      stale: counts.stale,
+      breakdown,
+    });
+  } catch (error) {
+    log.error('Error getting platform summary', { error });
+    res.status(500).json({ success: false, error: 'Failed to get platform summary' });
+  }
+});
+
+/**
  * POST /api/connectors/reset/:userId
  * Reset all connections for a user (for fresh page loads)
  */
