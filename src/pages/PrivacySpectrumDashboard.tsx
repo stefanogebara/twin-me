@@ -131,6 +131,7 @@ const ClusterRow: React.FC<ClusterRowProps> = ({ cluster, onPrivacyChange, onTog
           onValueChange={handleSliderChange}
           onValueCommit={handleSliderCommit}
           style={{ '--slider-color': color } as React.CSSProperties}
+          aria-label={`${cluster.name} privacy level`}
         />
       </div>
 

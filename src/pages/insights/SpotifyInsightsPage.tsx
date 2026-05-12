@@ -239,6 +239,7 @@ const SpotifyInsightsPage: React.FC = () => {
               border: '1px solid var(--border)',
               color: 'rgba(255,255,255,0.5)'
             }}
+            aria-label="Back to dashboard"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>

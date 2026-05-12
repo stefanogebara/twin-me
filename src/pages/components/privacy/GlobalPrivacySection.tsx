@@ -87,6 +87,7 @@ const GlobalPrivacySection: React.FC<GlobalPrivacySectionProps> = ({
       onValueChange={onSliderChange}
       onValueCommit={onSliderCommit}
       style={{ marginBottom: 16 }}
+      aria-label="Global privacy level"
     />
 
     {/* Preset buttons */}

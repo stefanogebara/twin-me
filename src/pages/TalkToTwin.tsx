@@ -259,6 +259,10 @@ const TalkToTwin = () => {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role !== 'assistant') return undefined;
 
+    // Defensive: backend regression or upstream change could put non-string
+    // content into the message stream (action proposals, structured data).
+    // Don't crash the whole chat render on that — just skip the suggestion.
+    if (typeof lastMsg.content !== 'string') return undefined;
     const content = lastMsg.content.toLowerCase();
     if (content.includes('spotify') || content.includes('music') || content.includes('listening'))
       return 'What does my music taste say about me?';

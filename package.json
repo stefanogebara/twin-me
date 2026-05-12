@@ -136,6 +136,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.55.1",
     "@types/node": "^22.16.5",

@@ -33,6 +33,7 @@ export const InsightsPageHeader: React.FC<InsightsPageHeaderProps> = ({
           onClick={onBack}
           className="p-2 rounded-lg"
           style={{ border: '1px solid var(--glass-surface-border)' }}
+          aria-label="Back"
         >
           <ArrowLeft className="w-5 h-5" style={{ color: textColor }} />
         </button>
@@ -69,6 +70,7 @@ export const InsightsPageHeader: React.FC<InsightsPageHeaderProps> = ({
         className="p-2 rounded-lg"
         title="Get a fresh observation"
         style={{ border: '1px solid var(--glass-surface-border)' }}
+        aria-label={isRefreshing ? 'Refreshing' : 'Refresh observation'}
       >
         <RefreshCw
           className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
