@@ -241,21 +241,34 @@ const TwinIntelligence: React.FC = () => {
           </div>
           {(loadingReadiness || (!readiness && !readinessError)) ? (
             <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          ) : (
-            <span className="text-sm tabular-nums" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter, sans-serif' }}>
-              {readiness.conversations.toLocaleString('en-US')} / {readiness.conversationsRequired || 50}
-            </span>
-          )}
+          ) : (() => {
+            // audit-2026-05-12 M8: the old denominator (`conversationsRequired || 50`)
+            // was a tiny fixed target that real beta users were already 60x past,
+            // producing nonsense readouts like "3,062 / 50". Until model training
+            // exposes a real progress metric, show just the count. If the backend
+            // sets a non-trivial target (>= count), surface it as progress.
+            const count = readiness.conversations || 0;
+            const target = readiness.conversationsRequired || 0;
+            const showProgress = target > count;
+            return (
+              <span className="text-sm tabular-nums" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: 'Inter, sans-serif' }}>
+                {showProgress
+                  ? `${count.toLocaleString('en-US')} / ${target.toLocaleString('en-US')}`
+                  : `${count.toLocaleString('en-US')} ${count === 1 ? 'message' : 'messages'}`}
+              </span>
+            );
+          })()}
         </div>
 
-        {/* Progress bar */}
-        {readiness && !readiness.model && (
+        {/* Progress bar — only render while target > count (otherwise the bar
+            would always be 100% and add no information). */}
+        {readiness && !readiness.model && (readiness.conversationsRequired || 0) > (readiness.conversations || 0) && (
           <div className="mt-1 mb-2 ml-7">
             <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${Math.min(100, ((readiness.conversations || 0) / (readiness.conversationsRequired || 50)) * 100)}%`,
+                  width: `${Math.min(100, ((readiness.conversations || 0) / (readiness.conversationsRequired || 1)) * 100)}%`,
                   background: readiness.eligible
                     ? 'rgba(120,200,170,0.6)'
                     : 'rgba(130,170,255,0.4)',

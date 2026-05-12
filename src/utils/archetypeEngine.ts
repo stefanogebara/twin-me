@@ -16,6 +16,25 @@ export interface Archetype {
   signature: [number, number, number, number, number];
 }
 
+/**
+ * Normalize an archetype display name. Handles two recurring data-quality bugs
+ * surfaced by audit-2026-05-12 M1:
+ *   1. Backend payloads where the article and noun got concatenated without
+ *      a space ("TheStrategist", "TheArchitect") because of an upstream
+ *      template literal missing the space — insert one.
+ *   2. Double/odd whitespace from LLM-generated archetype names — collapse.
+ */
+export function formatArchetypeName(raw: string | null | undefined): string {
+  if (!raw) return '';
+  return raw
+    .trim()
+    // "TheStrategist" → "The Strategist". Only matches when "The" is glued
+    // directly to another uppercase letter, so existing well-formed names
+    // ("The Strategist", "The Debugging Composer") are untouched.
+    .replace(/^The([A-Z])/, 'The $1')
+    .replace(/\s+/g, ' ');
+}
+
 const ARCHETYPES: Archetype[] = [
   {
     name: 'The Architect',

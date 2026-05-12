@@ -727,7 +727,10 @@ function NudgesTab({ nudgeStats, currency }: { nudgeStats: NudgeStats | null; cu
 }
 
 export default function MoneyPage() {
-  useDocumentTitle('Money · TwinMe');
+  // audit-2026-05-12 M3: hook already appends " | Twin Me", so passing
+  // "Money · TwinMe" produced "Money · TwinMe | Twin Me" (brand duplicated,
+  // two spellings). Pass just the page label.
+  useDocumentTitle('Money');
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<TransactionsSummary | null>(null);

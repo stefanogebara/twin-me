@@ -17,7 +17,7 @@ import { useLenis } from '@/hooks/useLenis';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 import { IdentityData, PersonalityProfile } from './components/identity/types';
-import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers } from '@/utils/archetypeEngine';
+import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, formatArchetypeName } from '@/utils/archetypeEngine';
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
 import TemporalComparison from './components/identity/TemporalComparison';
@@ -666,7 +666,7 @@ const IdentityPage: React.FC = () => {
                     lineHeight: 1.1,
                   }}
                 >
-                  {archetypeResult.archetype.name}
+                  {formatArchetypeName(archetypeResult.archetype.name)}
                 </h1>
                 <p
                   className="mt-3 text-[15px] leading-relaxed"
@@ -706,7 +706,7 @@ const IdentityPage: React.FC = () => {
                 <button
                   onClick={() =>
                     handleSuggestion(
-                      `Tell me what "${archetypeResult.archetype.name}" actually means about how I live — the real evidence from my data, not a generic description.`
+                      `Tell me what "${formatArchetypeName(archetypeResult.archetype.name)}" actually means about how I live — the real evidence from my data, not a generic description.`
                     )
                   }
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[100px] text-sm font-medium transition-all duration-150 hover:opacity-85 active:scale-[0.97]"
@@ -1154,7 +1154,7 @@ const IdentityPage: React.FC = () => {
       <AnimatePresence>
         {showReveal && archetypeResult && (
           <RevealOverlay
-            archetypeName={archetypeResult.archetype.name}
+            archetypeName={formatArchetypeName(archetypeResult.archetype.name)}
             tagline={archetypeResult.archetype.tagline}
             onDismiss={dismissReveal}
           />

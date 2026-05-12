@@ -68,7 +68,8 @@ const PortfolioPage: React.FC = () => {
           setPortfolio(result.portfolio);
           // Set page title
           const name = result.portfolio.first_name || 'Someone';
-          document.title = `${name}'s Soul Signature | TwinMe`;
+          // audit-2026-05-12 M3: canonical brand spelling is "Twin Me".
+          document.title = `${name}'s Soul Signature | Twin Me`;
         } else {
           setNotFound(true);
         }
