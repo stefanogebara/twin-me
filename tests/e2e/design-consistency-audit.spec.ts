@@ -8,15 +8,16 @@
  *   - body background = #13121a (or sun-driven gradient — never solid navy)
  *   - body font-family includes Geist or Inter (UI text)
  *   - h1/h2 hero font-family includes Instrument Serif where present
- *   - Glass surfaces use rgba(255,255,255,0.06) background
- *   - Sidebar nav active state uses --accent-vibrant-glow (not navy)
- *   - No navy blue (#1e3a8a, #1e40af, #2563eb, etc.) on solid backgrounds
+ *   - Glass surfaces (computed backdrop-filter blur >= 16px) are present
+ *   - Sidebar outer container is FLAT (no border-radius)
+ *   - Primary CTAs use pill geometry (rounded-full or border-radius >= 100px)
+ *   - No navy blue on chrome surfaces >= 80x80px (small brand dots OK)
  *
  * Output:
  *   - tests/e2e/screenshots/design-audit/<route>.png
  *   - tests/e2e/screenshots/design-audit/report.json
  *
- * Opt-in: set TWINME_RUN_DESIGN_AUDIT=true. Heavy (visits 14+ routes).
+ * Opt-in: set TWINME_RUN_DESIGN_AUDIT=true. Heavy (visits 18+ routes).
  */
 
 import { test, expect } from '@playwright/test';
@@ -41,7 +42,11 @@ interface DesignTokens {
   h1Text: string | null;
   glassSurfaceCount: number;
   sidebarPresent: boolean;
-  sidebarActiveBg: string | null;
+  sidebarOuterRadius: string | null;
+  sidebarFlat: boolean | null;
+  primaryButtonRadii: string[];
+  primaryButtonPillCount: number;
+  nonPillCtaSamples: Array<{ radius: string; text: string; html: string }>;
   navyBlueLeaks: Array<{ selector: string; bg: string; color: string; html: string }>;
   cssVarBackground: string;
   cssVarAccentAmber: string;
@@ -63,11 +68,14 @@ const ROUTES_TO_AUDIT = [
   '/privacy-spectrum',
   '/insights/spotify',
   '/insights/calendar',
+  '/pricing',
+  '/departments',
+  '/get-started',
+  '/journal',
 ] as const;
 
 async function extractTokens(page: import('@playwright/test').Page, route: string): Promise<DesignTokens> {
   return await page.evaluate((routeArg) => {
-    // Inline navy-ish detector — blue dominates red and green, blue is bright
     const isNavyish = (rgb: string): boolean => {
       const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       if (!match) return false;
@@ -77,42 +85,118 @@ async function extractTokens(page: import('@playwright/test').Page, route: strin
       return b > 100 && b > r * 1.5 && b > g * 1.3 && r < 80;
     };
 
+    const parsePx = (v: string | null | undefined): number => {
+      if (!v) return 0;
+      const m = v.match(/(\d+(?:\.\d+)?)px/);
+      return m ? parseFloat(m[1]) : 0;
+    };
+
     const body = document.body;
     const html = document.documentElement;
     const bodyStyles = window.getComputedStyle(body);
     const htmlStyles = window.getComputedStyle(html);
 
-    const h1 = document.querySelector('h1, h2[class*="serif"], [class*="text-heading"]') as HTMLElement | null;
+    // Hero/heading font: try multiple selectors in priority order
+    const h1 = document.querySelector('h1') as HTMLElement | null
+      ?? document.querySelector('[class*="text-heading"]') as HTMLElement | null
+      ?? document.querySelector('[style*="Instrument"]') as HTMLElement | null;
     const h1Styles = h1 ? window.getComputedStyle(h1) : null;
 
-    const glassEls = Array.from(document.querySelectorAll<HTMLElement>('[class*="backdrop-blur"]'));
+    // Glass surface count: detect computed backdrop-filter blur (>= 16px) on
+    // any element with a visible bg. Catches inline styles AND Tailwind classes.
+    let glassSurfaceCount = 0;
+    const candidates = document.querySelectorAll('*');
+    const maxScan = Math.min(candidates.length, 1500);
+    for (let i = 0; i < maxScan; i++) {
+      const el = candidates[i] as HTMLElement;
+      const cs = window.getComputedStyle(el);
+      const filter = cs.backdropFilter || (cs as unknown as { webkitBackdropFilter?: string }).webkitBackdropFilter || '';
+      if (filter && filter !== 'none') {
+        const blurMatch = filter.match(/blur\((\d+(?:\.\d+)?)px\)/);
+        if (blurMatch && parseFloat(blurMatch[1]) >= 16) {
+          glassSurfaceCount++;
+        }
+      }
+    }
 
-    const sidebar = document.querySelector('nav[class*="sidebar"], [class*="Sidebar"], aside') as HTMLElement | null;
-    const sidebarActive = sidebar?.querySelector('[class*="active"], [aria-current="page"]') as HTMLElement | null;
+    // Sidebar — try multiple selectors; the actual sidebar is a <nav> with
+    // role="navigation" inside a flat <div> container.
+    const sidebarNav = document.querySelector('nav[role="navigation"][aria-label*="Main"], nav[aria-label*="navigation" i]') as HTMLElement | null;
+    let sidebarOuterRadius: string | null = null;
+    let sidebarFlat: boolean | null = null;
+    if (sidebarNav) {
+      // Walk up to find the flat container (the fixed-positioned outer)
+      let outer: HTMLElement | null = sidebarNav;
+      while (outer && outer !== document.body) {
+        const cs = window.getComputedStyle(outer);
+        if (cs.position === 'fixed' && cs.left === '0px' && cs.top === '0px') {
+          break;
+        }
+        outer = outer.parentElement;
+      }
+      if (outer && outer !== document.body) {
+        const cs = window.getComputedStyle(outer);
+        sidebarOuterRadius = `${cs.borderTopLeftRadius}/${cs.borderTopRightRadius}/${cs.borderBottomRightRadius}/${cs.borderBottomLeftRadius}`;
+        // Flat = all four corners 0px
+        sidebarFlat = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius]
+          .every(r => parsePx(r) === 0);
+      }
+    }
 
-    // Only flag navy backgrounds on meaningfully-sized surfaces. Tiny
-    // elements (status dots, brand icons, platform identification chips)
-    // legitimately use platform brand colors — that's not a CLAUDE.md
-    // violation, that's required for brand recognition. Threshold: 80px
-    // in each dimension catches actual chrome surfaces (cards, panels,
-    // buttons) without flagging 6px dots or 44px logo tiles.
+    const primaryButtonRadii: string[] = [];
+    let primaryButtonPillCount = 0;
+    const nonPillCtaSamples: Array<{ radius: string; text: string; html: string }> = [];
+    const buttons = document.querySelectorAll('button');
+    const maxBtn = Math.min(buttons.length, 40);
+    for (let i = 0; i < maxBtn; i++) {
+      const btn = buttons[i] as HTMLElement;
+      const cs = window.getComputedStyle(btn);
+      const rect = btn.getBoundingClientRect();
+      if (rect.width < 80 || rect.height < 32) continue;
+      const text = (btn.textContent || '').trim();
+      if (text.length < 2) continue;
+      const bg = cs.backgroundColor;
+      // Primary CTA has SOLID light fill: rgb(245,...) OR rgba(...) with alpha >= 0.5.
+      // Glass buttons use rgba(255,255,255,0.06-0.10) — those match the rgb but
+      // need to be excluded by alpha to avoid false positives.
+      const rgbaMatch = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (!rgbaMatch) continue;
+      const [, rs, gs, bs, alphaStr] = rgbaMatch;
+      const rv = parseInt(rs, 10), gv = parseInt(gs, 10), bvNum = parseInt(bs, 10);
+      const alpha = alphaStr !== undefined ? parseFloat(alphaStr) : 1;
+      const isLight = rv >= 240 && gv >= 240 && bvNum >= 240 && alpha >= 0.5;
+      if (!isLight) continue;
+      const radius = cs.borderTopLeftRadius;
+      const radiusPx = parsePx(radius);
+      const isPill = radiusPx >= 100 || radiusPx >= rect.height / 2;
+      primaryButtonRadii.push(radius);
+      if (isPill) {
+        primaryButtonPillCount++;
+      } else if (nonPillCtaSamples.length < 3) {
+        nonPillCtaSamples.push({
+          radius,
+          text: text.slice(0, 40),
+          html: btn.outerHTML.slice(0, 300),
+        });
+      }
+      if (primaryButtonRadii.length >= 5) break;
+    }
+
+    // Navy-on-surface detector (size-filtered)
     const SURFACE_MIN_PX = 80;
     const navyLeaks: Array<{ selector: string; bg: string; color: string; html: string }> = [];
-    const allEls = document.querySelectorAll('*');
-    for (let i = 0; i < Math.min(allEls.length, 500); i++) {
-      const el = allEls[i] as HTMLElement;
+    for (let i = 0; i < Math.min(candidates.length, 800); i++) {
+      const el = candidates[i] as HTMLElement;
       const cs = window.getComputedStyle(el);
       const bg = cs.backgroundColor;
       if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent' || !isNavyish(bg)) continue;
-
       const rect = el.getBoundingClientRect();
       if (rect.width < SURFACE_MIN_PX || rect.height < SURFACE_MIN_PX) continue;
-
       const tag = el.tagName.toLowerCase();
       const cls = (el.className || '').toString().slice(0, 80);
       const parent = el.parentElement;
-      const html = (parent?.outerHTML ?? el.outerHTML).slice(0, 400);
-      navyLeaks.push({ selector: `${tag}.${cls}`, bg, color: cs.color, html });
+      const htmlSnippet = (parent?.outerHTML ?? el.outerHTML).slice(0, 400);
+      navyLeaks.push({ selector: `${tag}.${cls}`, bg, color: cs.color, html: htmlSnippet });
       if (navyLeaks.length >= 5) break;
     }
 
@@ -124,9 +208,13 @@ async function extractTokens(page: import('@playwright/test').Page, route: strin
       rootFontSize: htmlStyles.fontSize,
       h1FontFamily: h1Styles?.fontFamily ?? null,
       h1Text: h1?.textContent?.trim().slice(0, 60) ?? null,
-      glassSurfaceCount: glassEls.length,
-      sidebarPresent: !!sidebar,
-      sidebarActiveBg: sidebarActive ? window.getComputedStyle(sidebarActive).backgroundColor : null,
+      glassSurfaceCount,
+      sidebarPresent: !!sidebarNav,
+      sidebarOuterRadius,
+      sidebarFlat,
+      primaryButtonRadii,
+      primaryButtonPillCount,
+      nonPillCtaSamples,
       navyBlueLeaks: navyLeaks,
       cssVarBackground: htmlStyles.getPropertyValue('--background').trim(),
       cssVarAccentAmber: htmlStyles.getPropertyValue('--accent-amber').trim(),
@@ -136,7 +224,7 @@ async function extractTokens(page: import('@playwright/test').Page, route: strin
 }
 
 test.describe('Design Consistency Audit', () => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
 
   test('every page matches platform design tokens', async ({ page }) => {
     await fs.mkdir(AUDIT_DIR, { recursive: true });
@@ -163,7 +251,10 @@ test.describe('Design Consistency Audit', () => {
           issues.push(`${route}: body font "${tokens.bodyFontFamily}" missing Geist/Inter`);
         }
         if (tokens.navyBlueLeaks.length > 0) {
-          issues.push(`${route}: ${tokens.navyBlueLeaks.length} navy-blue element(s): ${tokens.navyBlueLeaks.map(l => l.bg).join(', ')}`);
+          issues.push(`${route}: ${tokens.navyBlueLeaks.length} navy-blue surface(s): ${tokens.navyBlueLeaks.map(l => l.bg).join(', ')}`);
+        }
+        if (tokens.sidebarPresent && tokens.sidebarFlat === false) {
+          issues.push(`${route}: sidebar outer container has border-radius "${tokens.sidebarOuterRadius}" (CLAUDE.md requires FLAT)`);
         }
 
         await page.screenshot({
