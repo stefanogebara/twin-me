@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 
 interface ChatUsage {
   used: number;
-  limit: number;
-  remaining: number;
+  // Audit bug C2 (2026-05-12): max-tier returns limit=null from /api/chat/usage.
+  // Banner must skip the denominator display when there's no numeric cap.
+  limit: number | null;
+  remaining: number | null;
   tier: string;
+  unlimited?: boolean;
 }
 
 interface LimitReachedBannerProps {
@@ -55,7 +58,10 @@ export const LimitReachedBanner: React.FC<LimitReachedBannerProps> = ({ chatUsag
             fontFamily: 'Inter, sans-serif',
           }}
         >
-          {chatUsage.used}/{chatUsage.limit} messages used
+          {/* Audit bug C2: guard against null limit (unlimited tiers). */}
+          {typeof chatUsage.limit === 'number'
+            ? `${chatUsage.used}/${chatUsage.limit} messages used`
+            : `${chatUsage.used} messages used`}
         </span>
       )}
 

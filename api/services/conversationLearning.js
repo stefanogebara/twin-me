@@ -207,6 +207,12 @@ export async function logConversationToDatabase({
   renderedSystemPrompt = null,
   platformsContext = {},
   brainStats = {},
+  // Audit bug H10 (2026-05-12): cold-start latency (ms spent in
+  // fetchChatPreFlight) and the final memory_count after MMR rerank.
+  // Previously both were unset → all rows had cold_start_ms=null,
+  // memory_count=null, blinding the recent twin-perf work.
+  coldStartMs = null,
+  memoryCount = null,
 }) {
   if (!userId || !userMessage) {
     return null;
@@ -235,6 +241,8 @@ export async function logConversationToDatabase({
         intent,
         sentiment: writingAnalysis.sentiment,
         rendered_system_prompt: renderedSystemPrompt,
+        cold_start_ms: Number.isFinite(coldStartMs) ? coldStartMs : null,
+        memory_count: Number.isFinite(memoryCount) ? memoryCount : null,
         analyzed_at: new Date().toISOString(),
       })
       .select('id')

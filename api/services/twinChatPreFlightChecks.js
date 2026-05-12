@@ -89,6 +89,16 @@ async function checkRateLimit(userId) {
   };
 }
 
+// Unlimited tiers short-circuit BOTH the monthly quota and the per-user
+// rate limiter. Audit bug C2 (2026-05-12): max-plan user hit 429 because the
+// per-minute limiter still fired even though their monthly quota was
+// Infinity, and the UI then rendered TWO conflicting copy strings
+// simultaneously ("Take a breath..." + "You've reached this month's limit").
+// Tier gate lives here so it stays consistent if the route grows new checks.
+function isUnlimitedTier(plan) {
+  return plan === 'max';
+}
+
 export async function runChatPreFlightChecks({ userId }) {
   const [featureFlags, sub, usage] = await Promise.all([
     getFeatureFlags(userId).catch(() => ({})),
@@ -107,11 +117,16 @@ export async function runChatPreFlightChecks({ userId }) {
     if (!paywall.ok) return paywall;
   }
 
-  const quota = checkMonthlyQuota(usage);
-  if (!quota.ok) return quota;
+  // Max tier (unlimited) bypasses both the monthly quota and the hourly
+  // rate limiter. The route is still abuse-protected by upstream auth,
+  // pre-flight feature flags, and the 50s SSE timeout.
+  if (!isUnlimitedTier(sub.plan)) {
+    const quota = checkMonthlyQuota(usage);
+    if (!quota.ok) return quota;
 
-  const rate = await checkRateLimit(userId);
-  if (!rate.ok) return rate;
+    const rate = await checkRateLimit(userId);
+    if (!rate.ok) return rate;
+  }
 
   return {
     ok: true,

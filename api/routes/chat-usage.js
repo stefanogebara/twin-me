@@ -16,7 +16,11 @@ const log = createLogger('ChatUsage');
 const router = express.Router();
 
 /**
- * Get the user's current monthly chat usage (plan-aware)
+ * Get the user's current monthly chat usage (plan-aware).
+ *
+ * Note: returns `limit: Infinity` for unlimited tiers (max plan). The
+ * REST handler below normalizes this to `null` for JSON serialization;
+ * pre-flight quota checks consume the raw Infinity value directly.
  */
 async function getMonthlyUsage(userId) {
   if (!supabaseAdmin) return { used: 0, limit: 50, tier: 'free' };
@@ -52,17 +56,26 @@ async function getMonthlyUsage(userId) {
 
 /**
  * GET /api/chat/usage
- * Returns current monthly chat usage for the authenticated user
+ * Returns current monthly chat usage for the authenticated user.
+ *
+ * Audit bug C2 (2026-05-12): JSON.stringify converts Infinity to null, which
+ * leaks into the UI as "35/ messages used" with an empty denominator. For
+ * unlimited tiers we explicitly emit `unlimited: true` and `limit: null` so
+ * the client can render "X messages" without a broken fraction.
  */
 router.get('/usage', authenticateUser, async (req, res) => {
   try {
     const userId = req.user?.id;
     const usage = await getMonthlyUsage(userId);
+    const unlimited = usage.limit === Infinity;
 
     return res.json({
       success: true,
-      ...usage,
-      remaining: Math.max(0, usage.limit - usage.used),
+      used: usage.used,
+      limit: unlimited ? null : usage.limit,
+      tier: usage.tier,
+      unlimited,
+      remaining: unlimited ? null : Math.max(0, usage.limit - usage.used),
       reset_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toISOString(),
     });
   } catch (error) {

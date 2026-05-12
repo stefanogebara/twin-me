@@ -325,11 +325,33 @@ const TalkToTwin = () => {
 
       if (response.status === 429) {
         const data = await response.json().catch(() => ({}));
-        setLimitReached(true);
-        if (data.usage) setChatUsage({ used: data.usage.used, limit: data.usage.limit, remaining: 0, tier: data.usage.tier });
-        setMessages(prev => prev.map(m =>
-          m.id === userMessage.id ? { ...m, failed: true, errorType: 'rate_limit' as const } : m
-        ));
+        // Audit bug C2 (2026-05-12): 429 covers BOTH the hourly per-user
+        // rate limit (transient) and the monthly plan quota (permanent
+        // until reset). Previously we always rendered both states at once.
+        // Now branch on the structured error code so the UI shows exactly
+        // one message.
+        const isMonthlyLimit = data.error === 'monthly_limit_reached';
+        if (isMonthlyLimit) {
+          setLimitReached(true);
+          if (data.usage) {
+            setChatUsage({
+              used: data.usage.used,
+              limit: data.usage.limit,
+              remaining: 0,
+              tier: data.usage.tier,
+            });
+          }
+          // Remove the user's pending bubble — the LimitReachedBanner
+          // covers the failure copy.
+          setMessages(prev => prev.filter(m => m.id !== userMessage.id));
+        } else {
+          // Hourly rate limit (or unspecified 429): transient. Don't
+          // permanently lock the input; show the inline "Take a breath" hint.
+          setMessages(prev => prev.map(m =>
+            m.id === userMessage.id ? { ...m, failed: true, errorType: 'rate_limit' as const } : m
+          ));
+        }
+        setIsTyping(false);
         return;
       }
 

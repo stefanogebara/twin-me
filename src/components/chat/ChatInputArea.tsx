@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Loader2 } from 'lucide-react';
 import { PlatformLogo } from '@/components/PlatformLogos';
 
+// Audit bug C2 (2026-05-12): unlimited tiers (max) return limit=null /
+// remaining=null. All consumers must guard against null before rendering.
 interface ChatUsage {
   used: number;
-  limit: number;
-  remaining: number;
+  limit: number | null;
+  remaining: number | null;
   tier: string;
+  unlimited?: boolean;
 }
 
 interface ChatInputAreaProps {
@@ -121,7 +124,7 @@ export const ChatInputArea = forwardRef<HTMLTextAreaElement, ChatInputAreaProps>
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {chatUsage && chatUsage.limit != null && chatUsage.limit !== Infinity && (
+            {chatUsage && typeof chatUsage.limit === 'number' && typeof chatUsage.remaining === 'number' && (
               <span
                 className="text-xs whitespace-nowrap"
                 style={{

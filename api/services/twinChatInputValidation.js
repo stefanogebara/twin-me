@@ -1,9 +1,14 @@
 /**
  * Twin Chat Input Validation
  * ==========================
- * Validates the chat request body and (on first message) creates a new
- * twin_conversations row. Returns either cleaned inputs or a ready-to-send
- * error response.
+ * Validates the chat request body. Returns either cleaned inputs or a
+ * ready-to-send error response.
+ *
+ * Conversation auto-create used to live here but was moved to a dedicated
+ * helper that the route calls AFTER pre-flight gates pass (audit bug H4,
+ * 2026-05-12): a failed send (rate-limit 429, gateway 503) was leaving an
+ * empty twin_conversations row with the user's message as its title and
+ * zero messages, polluting the conversation list.
  *
  * Extracted from POST /api/chat/message during the 2026-05-09 monolith trim
  * (audit ARCH-1).
@@ -21,7 +26,14 @@ function deriveConversationTitle(message) {
   return raw.substring(0, 60) + (raw.length > 60 ? '...' : '');
 }
 
-async function autoCreateConversation(userId, message) {
+/**
+ * Create a new twin_conversations row.
+ *
+ * Called by the route POST /api/chat/message AFTER pre-flight gates pass
+ * (feature flags, freemium paywall, monthly quota, hourly rate limit).
+ * Returns the new conversation id, or null on insert failure.
+ */
+export async function autoCreateConversation(userId, message) {
   try {
     const title = deriveConversationTitle(message);
     const { data: newConv, error: convError } = await supabaseAdmin
@@ -38,7 +50,7 @@ async function autoCreateConversation(userId, message) {
   }
 }
 
-export async function validateChatInput({ userId, body }) {
+export async function validateChatInput({ userId: _userId, body }) {
   const { message: rawMessage, conversationId: rawConversationId } = body || {};
   const message = typeof rawMessage === 'string' ? rawMessage : '';
 
@@ -61,10 +73,8 @@ export async function validateChatInput({ userId, body }) {
     };
   }
 
-  let conversationId = rawConversationId || null;
-  if (!conversationId) {
-    conversationId = await autoCreateConversation(userId, message);
-  }
-
-  return { ok: true, message, conversationId };
+  // Note: conversationId here is whatever the client sent. The route is
+  // responsible for calling autoCreateConversation() AFTER pre-flight gates
+  // pass — see audit bug H4. We intentionally do NOT create a row here.
+  return { ok: true, message, conversationId: rawConversationId || null };
 }

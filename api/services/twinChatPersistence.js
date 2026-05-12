@@ -89,6 +89,12 @@ export async function persistChatTurn({
   memories,
   writingProfile,
   chatSource,
+  // Audit bug H10 (2026-05-12): telemetry for context-build latency + how
+  // many memories made it into the final prompt. Persisted into the
+  // dedicated mcp_conversation_logs columns (added by the
+  // 20260512_add_cold_start_telemetry_to_logs migration).
+  coldStartMs = null,
+  memoryCount = null,
 }) {
   const lzScore = lzComplexity(assistantMessage);
 
@@ -117,6 +123,8 @@ export async function persistChatTurn({
         has_memory_stream: memories?.length > 0,
         has_writing_profile: !!writingProfile,
       },
+      coldStartMs,
+      memoryCount,
     }).catch(err => log.warn('Failed to log conversation', { error: err?.message })),
 
     !evalMode

@@ -4,11 +4,15 @@ import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
 
 const API_BASE = API_URL;
 
+// Audit bug C2 (2026-05-12): unlimited tiers return limit=null, remaining=null
+// from /api/chat/usage. Frontend must guard against null when rendering
+// fractions like "X/Y messages used" — see ChatInputArea + LimitReachedBanner.
 interface ChatUsage {
   used: number;
-  limit: number;
-  remaining: number;
+  limit: number | null;
+  remaining: number | null;
   tier: string;
+  unlimited?: boolean;
 }
 
 interface ContextItem {
@@ -106,8 +110,20 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          setChatUsage({ used: data.used, limit: data.limit, remaining: data.remaining, tier: data.tier });
-          setLimitReached(data.remaining <= 0 && data.tier === 'free');
+          setChatUsage({
+            used: data.used,
+            limit: data.limit ?? null,
+            remaining: data.remaining ?? null,
+            tier: data.tier,
+            unlimited: !!data.unlimited,
+          });
+          // Only the free tier surfaces the "limit reached" banner up-front.
+          // Paid plans hit the gate via a 429 from the chat endpoint instead,
+          // and unlimited tiers (max) never hit it. Audit bug C2.
+          const remaining = data.remaining;
+          setLimitReached(
+            !data.unlimited && data.tier === 'free' && typeof remaining === 'number' && remaining <= 0
+          );
         }
       }
     } catch { /* non-blocking */ }

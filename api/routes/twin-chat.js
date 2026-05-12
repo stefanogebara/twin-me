@@ -20,7 +20,7 @@ import { classifyMessageTier, CHAT_TIER_LIGHT, CHAT_TIER_DEEP } from '../service
 import { condenseIfNeeded } from '../services/contextCondenser.js';
 import { injectTaskIntentBlocks } from '../services/taskIntentInjector.js';
 import { runWorkspaceActionChain } from '../services/workspaceActionChain.js';
-import { validateChatInput } from '../services/twinChatInputValidation.js';
+import { validateChatInput, autoCreateConversation } from '../services/twinChatInputValidation.js';
 import { runChatPreFlightChecks } from '../services/twinChatPreFlightChecks.js';
 import { createStreamController } from '../services/twinChatStreamController.js';
 import { fetchChatPreFlight } from '../services/twinChatPreFlight.js';
@@ -61,8 +61,11 @@ router.post('/message', authenticateUser, async (req, res) => {
     const userId = req.user.id;
     const { context } = req.body || {};
 
-    // Input validation + auto-create conversation extracted to
-    // ../services/twinChatInputValidation.js.
+    // Input validation extracted to ../services/twinChatInputValidation.js.
+    // NB: this NO LONGER creates a conversation row — see audit bug H4
+    // (2026-05-12). A failed pre-flight (429 / 403) used to leave an empty
+    // twin_conversations row behind. Conversation creation now happens
+    // after pre-flight passes.
     const validated = await validateChatInput({ userId, body: req.body });
     if (!validated.ok) {
       return res.status(validated.status).json(validated.body);
@@ -76,6 +79,13 @@ router.post('/message', authenticateUser, async (req, res) => {
     const preFlight = await runChatPreFlightChecks({ userId });
     if (!preFlight.ok) {
       return res.status(preFlight.status).json(preFlight.body);
+    }
+
+    // Audit bug H4: create the conversation row only AFTER pre-flight
+    // gates pass. Avoids orphan conversations on rate-limit / quota / paywall
+    // rejections.
+    if (!conversationId) {
+      conversationId = await autoCreateConversation(userId, message);
     }
     const { featureFlags } = preFlight;
     const {
@@ -99,7 +109,11 @@ router.post('/message', authenticateUser, async (req, res) => {
     let routingTier = null;
 
     chatLog('Starting fetchTwinContext');
-    // Pre-flight context fan-out extracted to ../services/twinChatPreFlight.js.
+    // Audit bug H10 (2026-05-12): measure cold-start latency here. The
+    // pre-flight context fan-out is the dominant cost of a chat turn and
+    // is what the recent per-leg-timeout + HyDE-skip work was tuning. The
+    // value is persisted into mcp_conversation_logs.cold_start_ms below.
+    const coldStartBegin = Date.now();
     let twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock;
     try {
       ({ twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock } =
@@ -107,6 +121,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     } finally {
       stream.clearHeartbeat();
     }
+    const coldStartMs = Date.now() - coldStartBegin;
     chatLog('fetchTwinContext complete');
     if (twinContext.timings) {
       log.info('Chat context timings', {
@@ -320,6 +335,8 @@ router.post('/message', authenticateUser, async (req, res) => {
       userId, message, assistantMessage, conversationId, evalMode,
       routedModel, routingTier, systemPrompt, soulSignature, platformData,
       memories, writingProfile, chatSource,
+      coldStartMs,
+      memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
     });
 
     // Post-response side effects extracted to twinChatPipeline.js.
