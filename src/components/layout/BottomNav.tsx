@@ -75,6 +75,7 @@ export const BottomNav: React.FC = () => {
           const active = isActive(item.path);
           return (
             <button
+              type="button"
               key={item.id}
               onClick={() => handleNav(item.path)}
               aria-label={`Navigate to ${item.label}`}
@@ -95,6 +96,7 @@ export const BottomNav: React.FC = () => {
           );
         })}
         <button
+          type="button"
           onClick={() => setDrawerOpen(false)}
           className="flex flex-col items-center justify-center gap-1 py-3 px-3 rounded-2xl transition-all duration-150 active:scale-95"
           style={{ color: 'rgba(245,245,244,0.3)' }}
@@ -123,6 +125,7 @@ export const BottomNav: React.FC = () => {
           const active = isActive(item.path);
           return (
             <button
+              type="button"
               key={item.id}
               onClick={() => handleNav(item.path)}
               aria-label={`Navigate to ${item.label}`}
@@ -150,6 +153,7 @@ export const BottomNav: React.FC = () => {
 
         {/* More tab */}
         <button
+          type="button"
           onClick={() => setDrawerOpen(prev => !prev)}
           aria-label="More navigation options"
           aria-expanded={drawerOpen}

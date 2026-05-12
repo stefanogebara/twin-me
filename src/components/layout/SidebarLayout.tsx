@@ -38,6 +38,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     >
       {/* Mobile Menu Button - Only visible on small screens */}
       <button
+        type="button"
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed top-4 left-4 z-50 p-3 rounded-2xl lg:hidden transition-all duration-150 ease-out active:scale-95"
         style={{
