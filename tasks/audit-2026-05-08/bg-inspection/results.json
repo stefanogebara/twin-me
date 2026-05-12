@@ -1,0 +1,315 @@
+[
+  {
+    "surface": "landing-stage1",
+    "note": "CosmicHero stage 1 (aux-starry-clouds)",
+    "scrollY": 0,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 7629
+    },
+    "cropEntropy": 899808,
+    "fetched": [
+      {
+        "url": "/images/cosmic/aux-starry-clouds@2x.webp",
+        "ct": "image/webp",
+        "size": "2328590"
+      },
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic-v2/stage5-horizon@2x.webp",
+        "ct": "image/webp",
+        "size": "1093272"
+      },
+      {
+        "url": "/images/cosmic/01-space-earth@2x.webp",
+        "ct": "image/webp",
+        "size": "950128"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      }
+    ]
+  },
+  {
+    "surface": "landing-stage2",
+    "note": "CosmicHero stage 2 (01-space-earth)",
+    "scrollY": 900,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 7455
+    },
+    "cropEntropy": 945044,
+    "fetched": [
+      {
+        "url": "/images/cosmic-v2/section11-twin-meeting@2x.webp",
+        "ct": "image/webp",
+        "size": "306244"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      },
+      {
+        "url": "/images/cosmic/04-aurora@2x.webp",
+        "ct": "image/webp",
+        "size": "1571500"
+      },
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic/01-space-earth@2x.webp",
+        "ct": "image/webp",
+        "size": "950128"
+      }
+    ]
+  },
+  {
+    "surface": "landing-stage3",
+    "note": "CosmicHero stage 3 (stage3-arrival)",
+    "scrollY": 1800,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 7351
+    },
+    "cropEntropy": 1017684,
+    "fetched": [
+      {
+        "url": "/images/cosmic/aux-starry-clouds@2x.webp",
+        "ct": "image/webp",
+        "size": "2328590"
+      },
+      {
+        "url": "/images/cosmic-v2/stage3-arrival@2x.webp",
+        "ct": "image/webp",
+        "size": "782106"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      },
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic-v2/stage5-horizon@2x.webp",
+        "ct": "image/webp",
+        "size": "1093272"
+      }
+    ]
+  },
+  {
+    "surface": "landing-stage4",
+    "note": "CosmicHero stage 4 (04-aurora)",
+    "scrollY": 2700,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 7576
+    },
+    "cropEntropy": 986487,
+    "fetched": [
+      {
+        "url": "/images/cosmic/01-space-earth@2x.webp",
+        "ct": "image/webp",
+        "size": "950128"
+      },
+      {
+        "url": "/images/cosmic/04-aurora@2x.webp",
+        "ct": "image/webp",
+        "size": "1571500"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      },
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic-v2/stage5-horizon@2x.webp",
+        "ct": "image/webp",
+        "size": "1093272"
+      }
+    ]
+  },
+  {
+    "surface": "landing-stage5",
+    "note": "CosmicHero stage 5 (stage5-horizon)",
+    "scrollY": 3600,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 6979
+    },
+    "cropEntropy": 1075536,
+    "fetched": [
+      {
+        "url": "/images/cosmic/aux-starry-clouds@2x.webp",
+        "ct": "image/webp",
+        "size": "2328590"
+      },
+      {
+        "url": "/images/cosmic-v2/stage3-arrival@2x.webp",
+        "ct": "image/webp",
+        "size": "782106"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      },
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic-v2/stage5-horizon@2x.webp",
+        "ct": "image/webp",
+        "size": "1093272"
+      }
+    ]
+  },
+  {
+    "surface": "landing-chapter-landscape",
+    "note": ".chapter-landscape (section6-landscape)",
+    "scrollY": 4600,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 6861
+    },
+    "cropEntropy": 960572,
+    "fetched": [
+      {
+        "url": "/images/cosmic-v2/stage5-horizon@2x.webp",
+        "ct": "image/webp",
+        "size": "1093272"
+      },
+      {
+        "url": "/images/cosmic/aux-starry-clouds@2x.webp",
+        "ct": "image/webp",
+        "size": "2328590"
+      },
+      {
+        "url": "/images/cosmic/01-space-earth@2x.webp",
+        "ct": "image/webp",
+        "size": "950128"
+      },
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic/04-aurora@2x.webp",
+        "ct": "image/webp",
+        "size": "1571500"
+      }
+    ]
+  },
+  {
+    "surface": "landing-chapter-meadow",
+    "note": ".chapter-meadow (section8-meadow)",
+    "scrollY": 5800,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 6359
+    },
+    "cropEntropy": 827694,
+    "fetched": [
+      {
+        "url": "/images/cosmic/aux-starry-clouds@2x.webp",
+        "ct": "image/webp",
+        "size": "2328590"
+      },
+      {
+        "url": "/images/cosmic/04-aurora@2x.webp",
+        "ct": "image/webp",
+        "size": "1571500"
+      },
+      {
+        "url": "/images/cosmic-v2/stage3-arrival@2x.webp",
+        "ct": "image/webp",
+        "size": "782106"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      },
+      {
+        "url": "/images/cosmic/01-space-earth@2x.webp",
+        "ct": "image/webp",
+        "size": "950128"
+      }
+    ]
+  },
+  {
+    "surface": "landing-chapter-twin",
+    "note": ".chapter-twin (section11-twin-meeting)",
+    "scrollY": 8000,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 5868
+    },
+    "cropEntropy": 906332,
+    "fetched": [
+      {
+        "url": "/images/cosmic-v2/section8-meadow@2x.webp",
+        "ct": "image/webp",
+        "size": "931694"
+      },
+      {
+        "url": "/images/cosmic-v2/section11-twin-meeting@2x.webp",
+        "ct": "image/webp",
+        "size": "306244"
+      },
+      {
+        "url": "/images/cosmic/01-space-earth@2x.webp",
+        "ct": "image/webp",
+        "size": "950128"
+      },
+      {
+        "url": "/images/cosmic-v2/stage5-horizon@2x.webp",
+        "ct": "image/webp",
+        "size": "1093272"
+      },
+      {
+        "url": "/images/cosmic-v2/section6-landscape@2x.webp",
+        "ct": "image/webp",
+        "size": "706622"
+      }
+    ]
+  },
+  {
+    "surface": "auth-signin",
+    "note": "CustomAuth right panel (stage3-arrival)",
+    "scrollY": 0,
+    "fullScreenshot": {
+      "dim": "2880×1800",
+      "sizeKB": 4893
+    },
+    "cropEntropy": 724038,
+    "fetched": [
+      {
+        "url": "/images/cosmic-v2/stage3-arrival@2x.webp",
+        "ct": "image/webp",
+        "size": "782106"
+      }
+    ]
+  }
+]
