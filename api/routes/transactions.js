@@ -44,8 +44,12 @@ function safeError(staticMessage, err) {
  *   ?window=3mo | 12mo (months ≈ 30 days each)
  *   ?window=1y         (years)
  * Falls back to `defaultDays` on invalid/missing input. Clamped to [1, 365].
+ *
+ * audit-2026-05-12 H7: default raised from 30 → 90. Users upload statements
+ * with transactions stretching back 1-3 months; a 30-day window made /money
+ * silently drop most of the data (visible list ≠ totals card ≠ chart).
  */
-function parseWindowDays(query, defaultDays = 30) {
+function parseWindowDays(query, defaultDays = 90) {
   const raw = query?.window_days ?? query?.window;
   if (raw === undefined || raw === null || raw === '') return defaultDays;
   if (typeof raw === 'number') return Math.min(Math.max(Math.round(raw), 1), 365);
@@ -367,7 +371,7 @@ router.get('/summary', authenticateUser, async (req, res) => {
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
 
     // audit-2026-05-08 M1: respect ?window or ?window_days; fall back to 30 days.
-    const windowDays = parseWindowDays(req.query, 30);
+    const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabaseAdmin
@@ -408,14 +412,26 @@ router.get('/summary', authenticateUser, async (req, res) => {
       else { totalInflow += t.amount; b.inflow += t.amount; }
 
       const ec = Array.isArray(t.emotional_context) ? t.emotional_context[0] : t.emotional_context;
-      if (ec?.is_stress_shop_candidate) {
+      // audit-2026-05-12 H7: "Compras impulsivas" was always 0 because the
+      // `is_stress_shop_candidate` flag is a stricter heuristic (requires
+      // multiple co-occurring signals) and rarely fires. The card semantics
+      // are "transactions made under high stress", which matches the
+      // computed_stress_score >= STRESS_HIGH threshold the rest of the
+      // codebase uses. Either flag now counts.
+      const isHighStressDebit =
+        t.amount < 0 &&
+        ec?.computed_stress_score !== null &&
+        ec?.computed_stress_score !== undefined &&
+        ec.computed_stress_score >= STRESS_HIGH;
+
+      if (ec?.is_stress_shop_candidate || isHighStressDebit) {
         stressShopCount++;
         if (t.amount < 0) {
           stressShopTotal += Math.abs(t.amount);
           b.stress_shop_total += Math.abs(t.amount);
         }
       }
-      if (ec?.computed_stress_score !== null && ec?.computed_stress_score >= STRESS_HIGH && t.amount < 0) {
+      if (isHighStressDebit) {
         highStressOutflow += Math.abs(t.amount);
       }
     }
@@ -531,7 +547,7 @@ router.get('/by-category', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
     // audit-2026-05-08 M1: respect ?window or ?window_days; fall back to 30 days.
-    const windowDays = parseWindowDays(req.query, 30);
+    const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await supabaseAdmin
@@ -719,7 +735,7 @@ router.get('/savings', authenticateUser, async (req, res) => {
 
     // audit-2026-05-08 M1: parseWindowDays accepts both ?window_days=N and
     // ?window=30d|3mo|1y so the FE has one consistent way to ask.
-    const windowDays = parseWindowDays(req.query, 30);
+    const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     // Pull nudge outcomes from the platform-data stream
@@ -865,7 +881,7 @@ router.get('/nudge-stats', authenticateUser, async (req, res) => {
 
     // audit-2026-05-08 M1: parseWindowDays accepts both ?window_days=N and
     // ?window=30d|3mo|1y so the FE has one consistent way to ask.
-    const windowDays = parseWindowDays(req.query, 30);
+    const windowDays = parseWindowDays(req.query, 90);
     const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     const { data: nudges, error } = await supabaseAdmin
@@ -986,10 +1002,57 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
 
-    const { data, error } = await supabaseAdmin.rpc('get_spending_timeline', { p_user_id: userId });
+    const windowDays = parseWindowDays(req.query, 90);
+    const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+    // audit-2026-05-12 H7: the legacy `get_spending_timeline` RPC hard-coded a
+    // 30-day window so the chart silently chopped older transactions out. The
+    // y-axis topped out at the highest 30-day-recent spend (often R$ 100)
+    // while the totals card disagreed. Computing inline keeps one window
+    // applied to every panel on /money.
+    const { data: rows, error } = await supabaseAdmin
+      .from('user_transactions')
+      .select(`
+        transaction_date,
+        amount,
+        emotional_context:transaction_emotional_context (
+          computed_stress_score, is_stress_shop_candidate
+        )
+      `)
+      .eq('user_id', userId)
+      .lt('amount', 0)
+      .gte('transaction_date', since);
+
     if (error) throw error;
 
-    return res.json({ success: true, days: data || [] });
+    // Group by UTC day. Match the original RPC shape:
+    //   { day, spend, stress_avg, stress_shop_count, tx_count }
+    const byDay = new Map();
+    for (const r of rows || []) {
+      const day = new Date(r.transaction_date).toISOString().slice(0, 10);
+      const bucket = byDay.get(day) || { day, spend: 0, _stressTotal: 0, _stressN: 0, stress_shop_count: 0, tx_count: 0 };
+      bucket.spend += Math.abs(r.amount);
+      bucket.tx_count += 1;
+      const ec = Array.isArray(r.emotional_context) ? r.emotional_context[0] : r.emotional_context;
+      if (ec?.computed_stress_score !== null && ec?.computed_stress_score !== undefined) {
+        bucket._stressTotal += ec.computed_stress_score;
+        bucket._stressN += 1;
+      }
+      if (ec?.is_stress_shop_candidate) bucket.stress_shop_count += 1;
+      byDay.set(day, bucket);
+    }
+
+    const days = [...byDay.values()]
+      .map((b) => ({
+        day: b.day,
+        spend: Math.round(b.spend * 100) / 100,
+        stress_avg: b._stressN ? Math.round((b._stressTotal / b._stressN) * 1000) / 1000 : null,
+        stress_shop_count: b.stress_shop_count,
+        tx_count: b.tx_count,
+      }))
+      .sort((a, b) => (a.day < b.day ? -1 : 1));
+
+    return res.json({ success: true, days, window_days: windowDays });
   } catch (err) {
     log.error('timeline-analysis error', err);
     return res.status(500).json({ success: false, error: 'timeline analysis failed' });
