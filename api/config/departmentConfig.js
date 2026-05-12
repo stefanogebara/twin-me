@@ -24,7 +24,7 @@ export const DEPARTMENTS = Object.freeze({
     platforms: ['gmail'],
     tools: ['gmail_send', 'gmail_reply', 'gmail_draft'],
     llmTier: 'TIER_ANALYSIS',
-    color: '#3B82F6',
+    color: '#14B8A6',
   },
   scheduling: {
     name: 'Scheduling',

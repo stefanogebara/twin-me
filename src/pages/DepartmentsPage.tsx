@@ -30,7 +30,7 @@ import { useDashboardContext } from '@/hooks/useDashboardContext';
 const DEFAULT_DEPARTMENTS: Department[] = [
   {
     name: 'communications',
-    config: { name: 'Communications', description: 'Drafts and sends emails in your voice', icon: 'Mail', color: '#3B82F6' },
+    config: { name: 'Communications', description: 'Drafts and sends emails in your voice', icon: 'Mail', color: '#14B8A6' },
     autonomyLevel: 0,
     budget: { spent: 0, total: 0.15 },
     actionsThisWeek: 0,

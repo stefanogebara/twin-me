@@ -20,7 +20,7 @@ const DISABLED_COLOR = 'rgba(255,255,255,0.08)';
 
 // Fallback departments matching real departmentConfig.js names
 const FALLBACK_DEPARTMENTS: Department[] = [
-  { name: 'communications', config: { name: 'Communications', description: 'Email drafts in your voice', icon: 'Mail', color: '#3B82F6' }, autonomyLevel: 1, budget: { spent: 0.04, total: 0.15 }, actionsThisWeek: 12, isEnabled: true },
+  { name: 'communications', config: { name: 'Communications', description: 'Email drafts in your voice', icon: 'Mail', color: '#14B8A6' }, autonomyLevel: 1, budget: { spent: 0.04, total: 0.15 }, actionsThisWeek: 12, isEnabled: true },
   { name: 'scheduling', config: { name: 'Scheduling', description: 'Calendar optimization', icon: 'Calendar', color: '#8B5CF6' }, autonomyLevel: 1, budget: { spent: 0.02, total: 0.10 }, actionsThisWeek: 5, isEnabled: true },
   { name: 'health', config: { name: 'Health', description: 'Recovery analysis', icon: 'HeartPulse', color: '#EF4444' }, autonomyLevel: 1, budget: { spent: 0.01, total: 0.05 }, actionsThisWeek: 3, isEnabled: true },
   { name: 'content', config: { name: 'Content', description: 'Posts in your style', icon: 'PenLine', color: '#F59E0B' }, autonomyLevel: 1, budget: { spent: 0.03, total: 0.10 }, actionsThisWeek: 8, isEnabled: true },

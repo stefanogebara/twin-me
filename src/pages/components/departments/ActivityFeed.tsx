@@ -10,7 +10,7 @@ import React, { useState } from 'react';
 import type { ActivityItem } from '@/services/api/departmentsAPI';
 
 const DEPT_COLORS: Record<string, string> = {
-  communications: '#3B82F6',
+  communications: '#14B8A6',
   scheduling: '#8B5CF6',
   health: '#EF4444',
   content: '#F59E0B',

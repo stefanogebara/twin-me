@@ -66,7 +66,7 @@ const OverviewSection: React.FC<OverviewSectionProps> = ({
       <StatCard
         label="Avg. privacy"
         value={averagePrivacy}
-        color="#3B82F6"
+        color="#F59E0B"
       />
       <StatCard
         label="Global level"

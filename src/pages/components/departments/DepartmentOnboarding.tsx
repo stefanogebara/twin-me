@@ -30,7 +30,7 @@ const QUICK_TEMPLATES: QuickTemplate[] = [
     preview: 'Emails + Calendar + Research',
     cost: '~$0.40/month API usage',
     Icon: Zap,
-    color: '#3B82F6',
+    color: '#14B8A6',
   },
   {
     id: 'health',
