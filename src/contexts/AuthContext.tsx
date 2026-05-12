@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { setAccessToken, getAccessToken, clearAccessToken, authFetch } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
+import { singleFlight } from '@/utils/singleFlight';
 
 import { API_URL } from '@/services/api/apiBase';
 /**
@@ -50,6 +51,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // observed burst of 5+ 401s during normal navigation when no valid refresh
 // cookie exists (e.g. user cleared cookies but auth_user lingered in localStorage).
 let refreshDisabledForSession = false;
+
+// In-flight de-duplication for /auth/refresh — see singleFlight() and Bug C1
+// notes in AuthProvider.refreshAccessToken below.
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -303,8 +307,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetAuthState();
   };
 
-  // Refresh access token using httpOnly refresh token cookie
-  const refreshAccessToken = async (): Promise<boolean> => {
+  // Refresh access token using httpOnly refresh token cookie.
+  //
+  // Bug C1 fix (audit-2026-05-12): wrapped in singleFlight() to collapse
+  // concurrent callers (React 18 StrictMode double-effect, multiple components
+  // mounting simultaneously after a hard nav) into a single network round-trip.
+  //
+  // Why this matters: the server rotates the refresh-token on every successful
+  // /auth/refresh. Two parallel calls means call #2 sees the already-rotated
+  // (now-invalid) RT, returns 401, trips refreshDisabledForSession, and the
+  // user lands on /auth?error=session_expired despite call #1 having succeeded.
+  // After magic-link signin, OAuthCallback does window.location.href = '/dashboard'
+  // which loses the in-memory access token across the hard nav — AuthProvider
+  // remounts, initAuth() fires refreshAccessToken(), StrictMode double-mounts,
+  // and we have the race.
+  //
+  // useRef ensures the singleFlight instance is stable across React renders.
+  const refreshAccessTokenImpl = async (): Promise<boolean> => {
     // If a previous refresh attempt in this session already failed, skip — the
     // refresh cookie is missing/invalid and retrying will just burn rate limit
     // and produce more 401s in the console.
@@ -342,6 +361,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     }
   };
+  // Stable singleFlight wrapper — created once, never replaced. Calls the
+  // CURRENT impl via a ref so the wrapper always sees fresh state setters
+  // (React useState setters are identity-stable so this is mostly defensive).
+  const refreshImplRef = useRef(refreshAccessTokenImpl);
+  refreshImplRef.current = refreshAccessTokenImpl;
+  const refreshSingleFlightRef = useRef<ReturnType<typeof singleFlight<boolean>> | null>(null);
+  if (!refreshSingleFlightRef.current) {
+    refreshSingleFlightRef.current = singleFlight(() => refreshImplRef.current());
+  }
+  const refreshAccessToken = (): Promise<boolean> => refreshSingleFlightRef.current!();
 
   // Set up automatic token refresh before expiration
   useEffect(() => {
