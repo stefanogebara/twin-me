@@ -1,32 +1,43 @@
 /**
- * Santander BR connect-flow diagnostic
- * ====================================
+ * Bank connect-flow diagnostic (Pluggy BR — sandbox + production safe)
+ * =====================================================================
  *
- * Drives the "Conectar banco BR" button on /money as far as Playwright can
- * without real bank credentials. CPF is read from the TEST_CPF env var and
- * never committed.
+ * Drives the "Conectar banco BR" button on /money. Behavior branches on
+ * which Pluggy environment the backend returns:
  *
- * What this test actually verifies:
- *   1. Auth flow works on /money
- *   2. "Conectar banco BR" button is present
- *   3. Clicking the button hits POST /api/transactions/pluggy/connect-token
- *   4. The frontend handles each possible backend response:
- *      - 503 PLUGGY_NOT_CONFIGURED → friendly "indisponível" message + CSV fallback
- *      - 200 success → Pluggy widget mounts in an iframe
- *      - 500/other → generic error message
- *   5. If the widget mounts and we can reach the bank search, we type
- *      "Santander" and the CPF, then STOP (no password — that'd risk a
- *      Santander lockout, and we don't have the credential anyway).
+ *  - 503 PLUGGY_NOT_CONFIGURED → verify the frontend's friendly fallback,
+ *    report config gap, exit clean.
  *
- * This is a diagnostic spec — it surfaces what state the user actually sees
- * when they click the button. It does NOT assert "must succeed" because the
- * outcome depends on whether Pluggy is configured.
+ *  - 200 + environment="sandbox" → drive the FULL flow including password,
+ *    using Pluggy's documented sandbox test users. There's no real bank
+ *    behind these — zero lockout risk. End-to-end smoke for the connect +
+ *    webhook + BankConnectionsList pipeline.
+ *
+ *  - 200 + environment="production" → drive up to CPF entry, then HALT
+ *    before password. Real credentials would risk Santander fraud-lockout
+ *    and we don't typically have them in CI anyway.
+ *
+ * CPF and password are read from env vars and never committed. Sandbox has
+ * documented defaults so the test runs without secrets when Pluggy is in
+ * sandbox mode.
+ *
+ * Setup (for sandbox end-to-end):
+ *   1. Sign up free at https://dashboard.pluggy.ai
+ *   2. Dashboard → API → copy CLIENT_ID + CLIENT_SECRET
+ *   3. Add to .env:
+ *        PLUGGY_CLIENT_ID=...
+ *        PLUGGY_CLIENT_SECRET=...
+ *        PLUGGY_ENV=sandbox
+ *   4. Restart npm run server:dev
  *
  * Run:
- *   TWINME_RUN_SANTANDER_DIAG=true TEST_CPF=<your CPF> npx playwright test \
- *     tests/e2e/santander-connect-flow.spec.ts --project=chromium --headed
+ *   TWINME_RUN_SANTANDER_DIAG=true \
+ *   TEST_CPF=<11 digits> \
+ *   [TEST_BANK_USERNAME=user-ok] [TEST_BANK_PASSWORD=password-ok] \
+ *     npx playwright test tests/e2e/santander-connect-flow.spec.ts \
+ *     --project=chromium --reporter=line
  *
- * Headed by default so the user can see what's happening — drop --headed for CI.
+ * Drop --headed for CI; add it for visual debugging.
  */
 
 import { test, expect, Page } from '@playwright/test';
@@ -187,8 +198,21 @@ test.describe('Santander BR connect flow — diagnostic', () => {
 
     await snap(page, '03-widget-mounted');
 
-    // ── Step 6: search Santander, enter CPF, stop before password
-    // Pluggy's UI has a search input + bank list. Try a few common locators.
+    // ── Step 6: determine environment (sandbox vs production)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const env = (connectTokenBody as any)?.environment ?? 'unknown';
+    const isSandbox = env === 'sandbox';
+    findings.push({
+      step: 'Pluggy environment',
+      ok: env === 'sandbox' || env === 'production',
+      detail: `environment="${env}"${isSandbox ? ' — driving full sandbox flow' : ' — halting before password'}`,
+    });
+
+    // ── Step 7: search a bank.
+    // In sandbox, target the Pluggy Bank or Santander Sandbox connector
+    // (no real bank — safe to drive to completion).
+    // In production, target Santander (real bank — stop before password).
+    const searchTerm = isSandbox ? 'Pluggy' : 'Santander';
     const searchInputs = [
       pluggyIframe.getByPlaceholder(/Buscar|Search|banco|bank/i),
       pluggyIframe.locator('input[type="search"]'),
@@ -197,57 +221,124 @@ test.describe('Santander BR connect flow — diagnostic', () => {
     let typedSearch = false;
     for (const loc of searchInputs) {
       if (await loc.isVisible().catch(() => false)) {
-        await loc.fill('Santander');
+        await loc.fill(searchTerm);
         typedSearch = true;
         break;
       }
     }
     findings.push({
-      step: 'Typed "Santander" into widget search',
+      step: `Typed "${searchTerm}" into widget search`,
       ok: typedSearch,
       detail: typedSearch ? 'OK' : 'No search input found in widget',
     });
     await page.waitForTimeout(1500);
-    await snap(page, '04-santander-search');
+    await snap(page, '04-bank-search');
 
-    if (typedSearch) {
-      const santanderOption = pluggyIframe.getByText(/Santander/i).first();
-      if (await santanderOption.isVisible().catch(() => false)) {
-        await santanderOption.click();
-        findings.push({ step: 'Clicked Santander option', ok: true, detail: 'OK' });
-        await page.waitForTimeout(1500);
-        await snap(page, '05-santander-selected');
-
-        // Some Pluggy connectors prompt for CPF before username/password
-        const cpfInput = pluggyIframe.locator('input').first();
-        if (await cpfInput.isVisible().catch(() => false)) {
-          // Only fill if the field accepts numbers (likely CPF)
-          await cpfInput.fill(cpf);
-          findings.push({
-            step: 'Filled CPF in widget',
-            ok: true,
-            detail: `Filled (masked: ${maskCpf(cpf)})`,
-          });
-          await snap(page, '06-cpf-filled');
-        }
-      } else {
-        findings.push({
-          step: 'Santander option in dropdown',
-          ok: false,
-          detail: 'Search typed but Santander result not visible — Pluggy connector list may not include it',
-        });
-      }
+    if (!typedSearch) {
+      await writeSummary(findings, { connectTokenStatus, connectTokenBody, pageErrors, consoleErrors });
+      return;
     }
 
-    // STOP HERE — going further requires the user's actual Santander password,
-    // which we don't have. Continuing risks fraud-detection lockout.
+    // ── Step 8: pick the connector
+    const connectorRegex = isSandbox ? /Pluggy|Sandbox/i : /Santander/i;
+    const connectorOption = pluggyIframe.getByText(connectorRegex).first();
+    const connectorVisible = await connectorOption.isVisible({ timeout: 3000 }).catch(() => false);
     findings.push({
-      step: 'Halted before password',
-      ok: true,
-      detail: 'Intentional — password step requires real credentials and risks bank lockout',
+      step: `Connector "${isSandbox ? 'Pluggy/Sandbox' : 'Santander'}" visible in list`,
+      ok: connectorVisible,
+      detail: connectorVisible ? 'OK' : 'Connector not in Pluggy list — connector inventory may have changed',
     });
 
-    await snap(page, '07-final');
+    if (!connectorVisible) {
+      await snap(page, '05-no-connector');
+      await writeSummary(findings, { connectTokenStatus, connectTokenBody, pageErrors, consoleErrors });
+      return;
+    }
+
+    await connectorOption.click();
+    await page.waitForTimeout(2000);
+    await snap(page, '05-connector-selected');
+
+    // ── Step 9: credentials form
+    // Pluggy renders bank-specific input fields. We try CPF first (some BR
+    // banks need it), then fall back to username/password by order.
+    //
+    // Sandbox default credentials (Pluggy's documented test users):
+    //   user-ok / password-ok            → instant success
+    //   user-mfa-2step / password-mfa-2step → MFA flow
+    //
+    // Production: never auto-fill password — overridden only when user
+    // explicitly sets TEST_BANK_PASSWORD and we're in sandbox.
+    const username = process.env.TEST_BANK_USERNAME || (isSandbox ? 'user-ok' : '');
+    const password = process.env.TEST_BANK_PASSWORD || (isSandbox ? 'password-ok' : '');
+
+    // Try CPF input first if visible (some connectors prompt for it)
+    const cpfInput = pluggyIframe.locator('input[name*="cpf" i], input[placeholder*="CPF" i]').first();
+    if (await cpfInput.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await cpfInput.fill(cpf);
+      findings.push({ step: 'Filled CPF', ok: true, detail: `(masked: ${maskCpf(cpf)})` });
+      await snap(page, '06-cpf');
+    }
+
+    // Username / login field
+    const userInput = pluggyIframe.locator(
+      'input[name*="user" i], input[name*="login" i], input[placeholder*="usuário" i], input[type="text"]',
+    ).first();
+    if (await userInput.isVisible({ timeout: 1500 }).catch(() => false) && username) {
+      await userInput.fill(username);
+      findings.push({ step: 'Filled username', ok: true, detail: isSandbox ? `sandbox default: ${username}` : 'from TEST_BANK_USERNAME' });
+      await snap(page, '07-username');
+    }
+
+    if (!isSandbox) {
+      // Production: HALT here. No password entry, no submission.
+      findings.push({
+        step: 'Halted before password (production)',
+        ok: true,
+        detail: 'Intentional — real credentials risk Santander fraud-lockout',
+      });
+      await snap(page, '08-halted-prod');
+      await writeSummary(findings, { connectTokenStatus, connectTokenBody, pageErrors, consoleErrors });
+      return;
+    }
+
+    // ── Step 10: SANDBOX-ONLY — password + submit + connection completes
+    const passwordInput = pluggyIframe.locator('input[type="password"]').first();
+    if (await passwordInput.isVisible({ timeout: 2000 }).catch(() => false) && password) {
+      await passwordInput.fill(password);
+      findings.push({ step: 'Filled sandbox password', ok: true, detail: 'sandbox default' });
+      await snap(page, '08-password');
+    }
+
+    // Submit — connector buttons can be labeled "Continuar" / "Conectar" / "Continue"
+    const submitButton = pluggyIframe.getByRole('button', { name: /Continuar|Continue|Conectar|Connect|Confirmar/i }).first();
+    if (await submitButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await submitButton.click();
+      findings.push({ step: 'Clicked submit', ok: true, detail: 'OK' });
+    }
+
+    // Wait for connection to settle — Pluggy widget closes on success,
+    // BankConnectionsList back on /money should pick up the new item.
+    await page.waitForTimeout(8000);
+    await snap(page, '09-after-submit');
+
+    // ── Step 11: verify the connection appeared in BankConnectionsList
+    // The list renders connector_name + a status chip. After a successful
+    // sandbox link, the chip should read "sincronizado" or "sincronizando".
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3000);
+    await snap(page, '10-money-after-link');
+
+    const connectionListed = await page.getByText(/Pluggy|Sandbox/i).first().isVisible({ timeout: 5000 }).catch(() => false);
+    const statusChip = await page.getByText(/sincronizad[oa]|sincronizando/i).first().isVisible({ timeout: 5000 }).catch(() => false);
+    findings.push({
+      step: 'Bank appears in BankConnectionsList after link',
+      ok: connectionListed,
+      detail: connectionListed
+        ? `OK — chip status visible: ${statusChip}`
+        : 'Connection did not appear — webhook may not have fired or list query failed',
+    });
+
     await writeSummary(findings, { connectTokenStatus, connectTokenBody, pageErrors, consoleErrors });
   });
 });
