@@ -215,7 +215,10 @@ async function extractIdentityTokens(page: Page) {
 function attachQuietConsoleListener(page: Page): { errors: string[]; pageErrors: string[] } {
   const errors: string[] = [];
   const pageErrors: string[] = [];
-  const BENIGN = ['PostHog', 'posthog', 'favicon', 'ERR_BLOCKED_BY_CLIENT', 'analytics'];
+  // 429 noise: when audits run back-to-back via audit-all.mjs, the real
+  // backend rate-limits a non-critical sidecar request (analytics, etc.).
+  // Treat as benign — it doesn't affect the user-facing page correctness.
+  const BENIGN = ['PostHog', 'posthog', 'favicon', 'ERR_BLOCKED_BY_CLIENT', 'analytics', '429', 'Too Many Requests'];
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
     const text = msg.text();

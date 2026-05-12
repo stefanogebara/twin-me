@@ -15,7 +15,15 @@
     "security:db": "node scripts/security/run-supabase-regression.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "audit:all": "node scripts/audit-all.mjs",
+    "audit:design": "node scripts/audit-all.mjs --only=design",
+    "audit:console": "node scripts/audit-all.mjs --only=console",
+    "audit:money": "node scripts/audit-all.mjs --only=money",
+    "audit:chat": "node scripts/audit-all.mjs --only=chat",
+    "audit:identity": "node scripts/audit-all.mjs --only=identity",
+    "audit:a11y": "node scripts/audit-all.mjs --only=a11y",
+    "audit:pages": "node scripts/audit-all.mjs --only=money,chat,identity"
   },
   "dependencies": {
     "@bull-board/api": "^6.13.1",

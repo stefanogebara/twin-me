@@ -1,6 +1,9 @@
 # Autoresearch results (generated, large)
 scripts/autoresearch-results/
 
+# Master audit runner results (per-run, regenerable)
+audit-results/
+
 # Secrets / deploy hooks
 DEPLOY_HOOK_URL.txt
 

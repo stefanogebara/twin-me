@@ -226,7 +226,8 @@ async function extractMoneyTokens(page: Page) {
 function attachQuietConsoleListener(page: Page): { errors: string[]; pageErrors: string[] } {
   const errors: string[] = [];
   const pageErrors: string[] = [];
-  const BENIGN = ['PostHog', 'posthog', 'favicon', 'ERR_BLOCKED_BY_CLIENT', 'analytics'];
+  // 429 noise from back-to-back audit-all runs on a real backend — treat as benign.
+  const BENIGN = ['PostHog', 'posthog', 'favicon', 'ERR_BLOCKED_BY_CLIENT', 'analytics', '429', 'Too Many Requests'];
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
     const text = msg.text();

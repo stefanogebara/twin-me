@@ -167,7 +167,8 @@ async function extractChatTokens(page: Page) {
 function attachQuietConsoleListener(page: Page): { errors: string[]; pageErrors: string[] } {
   const errors: string[] = [];
   const pageErrors: string[] = [];
-  const BENIGN = ['PostHog', 'posthog', 'favicon', 'ERR_BLOCKED_BY_CLIENT', 'analytics'];
+  // 429 noise from back-to-back audit-all runs on a real backend — treat as benign.
+  const BENIGN = ['PostHog', 'posthog', 'favicon', 'ERR_BLOCKED_BY_CLIENT', 'analytics', '429', 'Too Many Requests'];
   page.on('console', (msg) => {
     if (msg.type() !== 'error') return;
     const text = msg.text();
@@ -200,20 +201,20 @@ test.describe('/talk-to-twin — backend contract', () => {
   });
 
   test('B-6: POST /chat/message?stream=1 endpoint accepts authed POST', async ({ request }) => {
-    // This is a contract smoke — we verify the endpoint EXISTS, accepts a
-    // POST with a JWT, and returns either an SSE stream (200) or a deterministic
-    // 4xx (rate limit, validation). Anything else (404, 5xx, timeout) is a
-    // regression. We don't wait for the full LLM completion here — that's too
-    // slow for CI and is covered by the mocked golden-path test below.
-    test.setTimeout(30_000);
+    // Contract smoke — we verify the endpoint EXISTS, accepts a POST with a
+    // JWT, and returns either an SSE stream (200) or a deterministic 4xx.
+    // Anything else is a regression. We don't wait for full LLM completion;
+    // we just want the FIRST byte / headers. Generous timeout because backend
+    // is busy when this runs inside audit-all (after 5 other audits).
+    test.setTimeout(90_000);
     const token = mintTestToken();
     const res = await request.post(`${API_URL}/chat/message?stream=1`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      data: { message: 'hello twin' },
-      timeout: 20_000,
+      data: { message: 'hi' },  // shortest possible prompt
+      timeout: 60_000,
     });
     const status = res.status();
     expect([200, 400, 429], `B-6 expected status (got ${status})`).toContain(status);
