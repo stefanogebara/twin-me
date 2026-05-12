@@ -270,6 +270,20 @@ const CosmicHero = ({ isSignedIn, isLoaded, onDashboard, onDiscover }: CosmicHer
 
         <StarField active={starsActive} />
 
+        {/* 2026-05-12 Option B: SVG-noise grain overlay. fractalNoise turbulence
+            blended in 'overlay' mode against the painted Ghibli stages gives
+            them a film-grain texture — masks any residual flatness from the
+            AI-generated source while preserving the painterly aesthetic. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            mixBlendMode: 'overlay',
+          }}
+        />
+
         {/* Soft vignette so content stays readable — lighter than before */}
         <div
           aria-hidden

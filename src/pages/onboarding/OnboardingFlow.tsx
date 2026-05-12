@@ -95,6 +95,17 @@ const OnboardingFlow: React.FC = () => {
             'linear-gradient(180deg, rgba(19,18,26,0.55) 0%, rgba(19,18,26,0.75) 100%)',
         }}
       />
+      {/* 2026-05-12 Option B: SVG noise grain overlay — gives the painted
+          onboarding backgrounds a film-grain texture, masks residual flatness. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          mixBlendMode: 'overlay',
+        }}
+      />
       <div className="relative z-10">
     <Suspense fallback={<LoadingFallback />}>
       {/* Progress dots — hidden on welcome (intro) and awakening (finale) */}

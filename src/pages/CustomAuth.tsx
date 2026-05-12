@@ -568,6 +568,17 @@ For privacy concerns: privacy@twinme.me`
               'linear-gradient(180deg, rgba(19,18,26,0.30) 0%, rgba(19,18,26,0.12) 50%, rgba(40,20,30,0.22) 100%)',
           }}
         />
+        {/* 2026-05-12 Option B: SVG noise grain — film-grain texture over painted bg */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            mixBlendMode: 'overlay',
+            borderRadius: '24px',
+          }}
+        />
         {/* Decorative ring */}
         <div
           className="relative w-20 h-20 rounded-full mb-10 flex-shrink-0"
