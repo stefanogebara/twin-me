@@ -32,9 +32,13 @@ export function ConnectBankButton({ onConnected }: Props) {
         // audit-2026-05-08 C1: friendlier message when the integration isn't
         // configured (dev or prod-misconfig). Direct user to CSV upload below.
         if (res.code === 'PLUGGY_NOT_CONFIGURED') {
+          // In dev mode the user IS the operator — surface the actionable
+          // configuration step instead of the production-facing "indisponível".
+          const isDev = import.meta.env?.DEV === true;
           setError(
-            'Vinculação bancária BR está temporariamente indisponível. ' +
-            'Use o upload de extrato CSV/OFX abaixo enquanto isso.',
+            isDev
+              ? 'Pluggy não configurado. Adicione PLUGGY_CLIENT_ID e PLUGGY_CLIENT_SECRET no .env, reinicie o backend e tente de novo. (Conta grátis em dashboard.pluggy.ai)'
+              : 'Vinculação bancária BR está temporariamente indisponível. Use o upload de extrato CSV/OFX abaixo enquanto isso.',
           );
         } else {
           setError(res.error || 'Não foi possível iniciar a conexão bancária');
@@ -73,9 +77,12 @@ export function ConnectBankButton({ onConnected }: Props) {
         // audit-2026-05-08 C1: same pattern as Pluggy — show friendly message
         // and point user to CSV upload when TL isn't configured.
         if (res.code === 'TRUELAYER_NOT_CONFIGURED') {
+          // Dev-mode actionable hint; production message kept friendly.
+          const isDev = import.meta.env?.DEV === true;
           setError(
-            'Vinculação bancária EU/UK está temporariamente indisponível. ' +
-            'Use o upload de extrato CSV/OFX abaixo enquanto isso.',
+            isDev
+              ? 'TrueLayer não configurado. Adicione TRUELAYER_CLIENT_ID e TRUELAYER_CLIENT_SECRET no .env, reinicie o backend e tente de novo.'
+              : 'Vinculação bancária EU/UK está temporariamente indisponível. Use o upload de extrato CSV/OFX abaixo enquanto isso.',
           );
         } else {
           setError(res.error || 'Não foi possível iniciar a conexão EU/UK');
