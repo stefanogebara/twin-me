@@ -119,8 +119,14 @@ export async function hasRecentBriefingEmail(userId) {
 
 /**
  * Record that a briefing email was sent (for cooldown tracking).
+ *
+ * Sets both `delivered: true` AND `delivered_at` so downstream audit queries
+ * that filter on `delivered_at IS NOT NULL` correctly count this as a real
+ * delivery. Prior to this, briefing_email rows had `delivered=true` but
+ * `delivered_at=NULL`, causing the H8 audit (19 created / 0 delivered).
  */
 export async function recordBriefingEmailSent(userId) {
+  const now = new Date().toISOString();
   await supabaseAdmin
     .from('proactive_insights')
     .insert({
@@ -129,6 +135,7 @@ export async function recordBriefingEmailSent(userId) {
       urgency: 'low',
       category: 'briefing_email',
       delivered: true,
+      delivered_at: now,
     });
 }
 
