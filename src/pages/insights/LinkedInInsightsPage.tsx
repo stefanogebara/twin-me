@@ -83,10 +83,12 @@ const LinkedInInsightsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchInsights();
+    const controller = new AbortController();
+    fetchInsights(controller.signal);
+    return () => controller.abort();
   }, [isDemoMode]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = async (signal?: AbortSignal) => {
     if (isDemoMode) {
       setError(null);
       setInsights(getDemoLinkedInInsights());
@@ -104,6 +106,7 @@ const LinkedInInsightsPage: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE}/insights/linkedin`, {
         headers: { Authorization: `Bearer ${authToken}` },
+        signal,
       });
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -117,10 +120,12 @@ const LinkedInInsightsPage: React.FC = () => {
       }
     } catch (err) {
       if (isAbortError(err)) return;
+      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
+      if (signal?.aborted) return;
       console.error('Failed to fetch LinkedIn insights:', err);
       setError('Unable to read your professional profile right now');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 

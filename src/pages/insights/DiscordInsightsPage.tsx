@@ -101,10 +101,12 @@ const DiscordInsightsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchInsights();
+    const controller = new AbortController();
+    fetchInsights(controller.signal);
+    return () => controller.abort();
   }, [isDemoMode]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = async (signal?: AbortSignal) => {
     if (isDemoMode) {
       setError(null);
       setInsights(getDemoDiscordInsights());
@@ -122,6 +124,7 @@ const DiscordInsightsPage: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE}/insights/discord`, {
         headers: { Authorization: `Bearer ${authToken}` },
+        signal,
       });
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -135,10 +138,13 @@ const DiscordInsightsPage: React.FC = () => {
       }
     } catch (err) {
       if (isAbortError(err)) return;
+      // Yield a microtask so React cleanup can flip signal.aborted, then re-check.
+      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
+      if (signal?.aborted) return;
       console.error('Failed to fetch Discord insights:', err);
       setError('Unable to read your community world right now');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 

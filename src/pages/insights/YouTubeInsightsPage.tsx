@@ -171,10 +171,12 @@ const YouTubeInsightsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchInsights();
+    const controller = new AbortController();
+    fetchInsights(controller.signal);
+    return () => controller.abort();
   }, [isDemoMode]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = async (signal?: AbortSignal) => {
     if (isDemoMode) {
       setError(null);
       setInsights(getDemoYouTubeInsights());
@@ -191,7 +193,8 @@ const YouTubeInsightsPage: React.FC = () => {
 
     try {
       const response = await fetch(`${API_BASE}/insights/youtube`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        signal,
       });
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -208,10 +211,14 @@ const YouTubeInsightsPage: React.FC = () => {
       // StrictMode unmounts the effect on the first run — it's not a real error,
       // don't pollute the console or flip the UI to an error state.
       if (isAbortError(err)) return;
+      // Browser may cancel with TypeError before AbortController fires.
+      // Yield a microtask so cleanup can flip signal.aborted, then re-check.
+      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
+      if (signal?.aborted) return;
       console.error('Failed to fetch YouTube insights:', err);
       setError('Unable to connect to your content world right now');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 

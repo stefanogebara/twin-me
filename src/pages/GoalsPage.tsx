@@ -183,26 +183,36 @@ export default function GoalsPage() {
   const [adding, setAdding] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     if (!isSignedIn) return;
     setLoading(true);
     try {
       const [activeGoals, suggestedGoals, completedGoals] = await Promise.all([
-        fetchGoals('active'),
-        fetchGoalSuggestions(),
-        fetchGoals('completed'),
+        fetchGoals('active', signal),
+        fetchGoalSuggestions(signal),
+        fetchGoals('completed', signal),
       ]);
+      if (signal?.aborted) return;
       setActive(activeGoals);
       setSuggestions(suggestedGoals);
       setCompleted(completedGoals.slice(0, 5));
     } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') return;
+      // Yield a microtask so React cleanup can flip signal.aborted (browser
+      // cancels in-flight fetches with TypeError before cleanup runs).
+      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
+      if (signal?.aborted) return;
       console.error('Failed to load goals:', err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [isSignedIn]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   // Auto-trigger suggestion generation when the user lands on a dead page:
   // no active goals AND no pending suggestions. Runs once per mount.

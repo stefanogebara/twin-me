@@ -31,15 +31,15 @@ async function json<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-export async function fetchGoals(status?: string): Promise<Goal[]> {
+export async function fetchGoals(status?: string, signal?: AbortSignal): Promise<Goal[]> {
   const params = status ? `?status=${status}` : '';
-  const res = await authFetch(`/goals${params}`);
+  const res = await authFetch(`/goals${params}`, { signal });
   const data = await json<{ goals: Goal[] }>(res);
   return data.goals ?? [];
 }
 
-export async function fetchGoalSuggestions(): Promise<Goal[]> {
-  const res = await authFetch('/goals/suggestions');
+export async function fetchGoalSuggestions(signal?: AbortSignal): Promise<Goal[]> {
+  const res = await authFetch('/goals/suggestions', { signal });
   const data = await json<{ suggestions: Goal[] }>(res);
   return data.suggestions ?? [];
 }

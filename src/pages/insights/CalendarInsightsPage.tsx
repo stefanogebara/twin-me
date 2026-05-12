@@ -203,10 +203,12 @@ const CalendarInsightsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchInsights();
+    const controller = new AbortController();
+    fetchInsights(controller.signal);
+    return () => controller.abort();
   }, [isDemoMode]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = async (signal?: AbortSignal) => {
     if (isDemoMode) {
       setError(null);
       setInsights(getDemoInsights());
@@ -223,7 +225,8 @@ const CalendarInsightsPage: React.FC = () => {
 
     try {
       const response = await fetch(`${API_BASE}/insights/calendar`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        signal,
       });
 
       if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -237,10 +240,16 @@ const CalendarInsightsPage: React.FC = () => {
       }
     } catch (err) {
       if (isAbortError(err)) return;
+      // Browser cancels in-flight requests at the network layer when the user
+      // navigates away, throwing TypeError BEFORE our AbortController cleanup
+      // fires. Yield a microtask so cleanup can flip signal.aborted, then
+      // re-check before logging.
+      if (signal && !signal.aborted) await new Promise((r) => setTimeout(r, 0));
+      if (signal?.aborted) return;
       console.error('Failed to fetch Calendar insights:', err);
       setError('Unable to read your time patterns right now');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
