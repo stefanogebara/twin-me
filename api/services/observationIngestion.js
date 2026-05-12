@@ -417,51 +417,62 @@ async function runObservationIngestion(options = {}) {
         let userObsCount = 0;
 
         // ---- Phase 1: Parallel platform fetch (all platforms concurrently) ----
-        // audit-2026-05-08 backend HIGH-3: 15s was too tight for Gmail/Outlook —
-        // 1.2% of cron runs failed with timeouts which is what kept spotify/github
-        // marked "expired" in production. Slow Workspace platforms get 30s; the
-        // rest stay at 15s. Anything missing from the map defaults to 20s.
-        const PLATFORM_TIMEOUT_MS = {
-          google_gmail: 30_000,
-          gmail: 30_000,
-          outlook: 30_000,
-          google_calendar: 25_000,
-          calendar: 25_000,
-          spotify: 20_000,
-          github: 20_000,
-          whoop: 20_000,
-          linkedin: 20_000,
-          discord: 15_000,
-          reddit: 15_000,
-          youtube: 20_000,
-          twitch: 15_000,
-        };
-        const DEFAULT_TIMEOUT_MS = 20_000;
+        // audit-2026-05-12 H9: previous timeouts allowed gmail/outlook up to 30s
+        // and calendar up to 25s. With a 40s per-user budget that meant a single
+        // slow Workspace fetch could eat the user's entire budget and Vercel
+        // killed the function at 51.9s wall time. Cap every platform at 15s so
+        // the slowest platform never exceeds the per-user budget — under
+        // Promise.allSettled, faster platforms still complete in their own time
+        // and the slow one just rejects with a tracked timeout error.
+        const PER_PLATFORM_TIMEOUT_MS = 15_000;
         const platformFetchResults = {};
-        await Promise.all(
+        // Per-user per-platform timing for cron_executions.result_data so we
+        // can see which platforms are timing out at audit time.
+        const platformTimings = {};
+        const settled = await Promise.allSettled(
           platforms.map(async (platform) => {
             const fetcher = PLATFORM_FETCHERS[platform];
             if (!fetcher) {
               platformFetchResults[platform] = { observations: [], error: null };
-              return;
+              return { platform, status: 'no_fetcher', ms: 0 };
             }
-            const timeoutMs = PLATFORM_TIMEOUT_MS[platform] ?? DEFAULT_TIMEOUT_MS;
+            const platformStart = Date.now();
             try {
               const obs = await Promise.race([
                 fetcher(userId),
                 new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error(`${platform} fetch timeout (${timeoutMs / 1000}s)`)), timeoutMs)
+                  setTimeout(
+                    () => reject(new Error(`${platform} fetch timeout (${PER_PLATFORM_TIMEOUT_MS / 1000}s)`)),
+                    PER_PLATFORM_TIMEOUT_MS,
+                  ),
                 ),
               ]);
+              const ms = Date.now() - platformStart;
               platformFetchResults[platform] = { observations: obs || [], error: null };
+              return { platform, status: 'ok', ms, count: (obs || []).length };
             } catch (err) {
+              const ms = Date.now() - platformStart;
               platformFetchResults[platform] = { observations: [], error: err };
+              return { platform, status: ms >= PER_PLATFORM_TIMEOUT_MS ? 'timeout' : 'error', ms, error: err.message };
             }
-          })
+          }),
         );
+        for (const r of settled) {
+          // Promise.allSettled always resolves; map result onto platformTimings.
+          // The inner async fn already catches its own errors so r.status here
+          // should always be 'fulfilled' and r.value contains the timing entry.
+          if (r.status === 'fulfilled' && r.value) {
+            platformTimings[r.value.platform] = r.value;
+          }
+        }
+        // Surface per-platform failures into stats so cronLogger persists them
+        // into cron_executions.result_data for post-hoc diagnosis.
+        stats.platformTimings = stats.platformTimings || {};
+        stats.platformTimings[userId] = platformTimings;
         log.info('Parallel fetch complete', {
           userId: userId.slice(0, 8),
           platforms: platforms.length,
+          timings: platformTimings,
           elapsed: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
         });
 
