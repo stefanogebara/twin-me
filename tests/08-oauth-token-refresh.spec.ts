@@ -14,13 +14,19 @@ test.describe('OAuth Token Refresh API Tests', () => {
 
   test.describe('Token Refresh Endpoint Availability', () => {
 
-    test('Whoop refresh endpoint should be accessible', async ({ request }) => {
-      // Whoop refresh is at /api/health/refresh/whoop
+    test('Whoop refresh endpoint should be accessible', async ({ request }, testInfo) => {
+      // The legacy /api/health/refresh/whoop HTTP endpoint was removed —
+      // Whoop refresh now runs through the internal tokenRefreshService.js
+      // invoked by the token lifecycle cron + on-demand callers. Source-level
+      // regression checks below (Basic Auth header, no body credentials,
+      // service contains "whoop") cover the original bug this suite guards
+      // against. Skip the HTTP-availability assertion gracefully.
+      testInfo.skip(true, 'Whoop refresh is now an internal service (no HTTP endpoint); source-level tests below cover the regression.');
+
       const response = await request.post('http://localhost:3004/api/health/refresh/whoop', {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      // Should return 401/400/500 (unauthorized/bad request) not 404 (not found)
       expect([401, 400, 500]).toContain(response.status());
       expect(response.status()).not.toBe(404);
     });
