@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
-# Replace the lanczos-only @2x.webp variants with REAL super-resolution using
-# Real-ESRGAN-x4plus-anime (trained on painterly/anime art — perfect for the
-# Ghibli-style AI backgrounds).
+# Real-ESRGAN super-resolution for full-bleed backgrounds — TARGET-DIMENSION
+# aware. Previous pipeline (d9a3f7f7) downsampled to 2× source, which left
+# cosmic/* portraits at 1472 wide — far short of the 2880 physical px needed
+# for a 1440 CSS px viewport at DPR=2. This version aims at retina-coverage
+# dimensions for each source category:
 #
-# Pipeline per source:
-#   1. realesrgan-ncnn-vulkan ×4  → temporary PNG with actual generated detail
-#   2. ffmpeg lanczos downscale     → 2× WebP at exact retina target size
+#   cosmic-v2/* (1376×768 landscape native, full-bleed chapter backgrounds)
+#     → ESRGAN ×4 → 5504×3072 → downscale to 3840 wide (4K retina target)
 #
-# Why ×4 then downscale: ESRGAN's training is optimized for ×4. Downsampling
-# from 4× to 2× via lanczos preserves detail better than ESRGAN ×2 directly.
+#   cosmic/* (~736×~1500 portrait native, parallax hero + service tabs)
+#     → ESRGAN ×4 → ~2944×~5900 → keep full output (no downscale)
 #
-# Net: lanczos-only @2x.webp = smooth blur over pixelated upscale.
-#      ESRGAN @2x.webp = actual detail synthesized by a neural net.
+# Larger files, but the user reported the previous pass still looked
+# pixelated — and the math says they were right. 2× of a 736px source is
+# 1472, then the browser stretches that to ~2880 physical, giving ~2×
+# upscale in render. Now @2x.webp ships native-pixel-correct for a 1440px
+# CSS viewport at DPR=2.
 
 set -euo pipefail
 
@@ -20,57 +24,38 @@ FFMPEG="/c/Users/stefa/Downloads/ffmpeg-2025-01-20-git-504df09c34-full_build/ffm
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP=$(mktemp -d)
 
-esrgan_to_2x_webp() {
+# Encode an already-upscaled ESRGAN PNG → @2x.webp at a SPECIFIC target width.
+# Height auto-scales to preserve aspect.
+esrgan_to_webp() {
   local src="$1"
-  local out_2x="${src%.*}@2x.webp"
+  local target_w="$2"
+  local out="${src%.*}@2x.webp"
   local base=$(basename "$src" | sed 's/\.[^.]*$//')
   local tmp_png="$TMP/${base}-x4.png"
 
-  # Read source dims for the downscale target (× 2)
-  read sw sh < <(node -e "
-    const buf = require('fs').readFileSync('$src');
-    function dim(b){
-      if (b[0]===0x89 && b[1]===0x50) return [b.readUInt32BE(16), b.readUInt32BE(20)];
-      if (b[0]===0xFF && b[1]===0xD8) {
-        let i=2;
-        while (i<b.length) {
-          if (b[i]!==0xFF) return [0,0];
-          const m=b[i+1], len=b.readUInt16BE(i+2);
-          if (m>=0xC0 && m<=0xCF && m!==0xC4 && m!==0xC8 && m!==0xCC) return [b.readUInt16BE(i+7), b.readUInt16BE(i+5)];
-          i+=2+len;
-        }
-      }
-      return [0,0];
-    }
-    const [w,h]=dim(buf);
-    console.log(w+' '+h);
-  ")
-  local tw=$(( sw * 2 ))
-  local th=$(( sh * 2 ))
-
-  echo "  $(basename "$src")  ${sw}x${sh} -> ESRGAN-x4 -> downscale ${tw}x${th} -> .webp"
+  echo "  $(basename "$src")  -> ESRGAN-x4 -> WebP at ${target_w}w"
 
   # 1. ESRGAN ×4 with anime-tuned model
   "$ESRGAN" -i "$src" -o "$tmp_png" -s 4 -n realesrgan-x4plus-anime -f png 2>/dev/null
 
-  # 2. Downscale to retina target + WebP encode
+  # 2. Downscale (or pass-through) to target width
   "$FFMPEG" -hide_banner -loglevel error -y \
     -i "$tmp_png" \
-    -vf "scale=${tw}:${th}:flags=lanczos" \
-    -c:v libwebp -quality 92 -compression_level 6 \
-    "$out_2x"
+    -vf "scale=${target_w}:-1:flags=lanczos" \
+    -c:v libwebp -quality 90 -compression_level 6 \
+    "$out"
 
   rm -f "$tmp_png"
 }
 
 cd "$ROOT"
 
-# All cosmic-v2 (1376×768)
+# cosmic-v2 (1376×768) — target 4K width for 1920px CSS viewport coverage
 for f in public/images/cosmic-v2/*.jpg; do
-  esrgan_to_2x_webp "$f"
+  esrgan_to_webp "$f" 3840
 done
 
-# The cosmic/ files actually referenced in code
+# cosmic (~736×~1500) — keep full 4× output ≈ 2944 wide
 for f in \
   public/images/cosmic/aux-starry-clouds.jpg \
   public/images/cosmic/01-space-earth.jpg \
@@ -78,10 +63,15 @@ for f in \
   public/images/cosmic/02-nebula.jpg \
   public/images/cosmic/07-ocean-birds.jpg \
   public/images/cosmic/aux-forest-cranes.jpg; do
-  esrgan_to_2x_webp "$f"
+  esrgan_to_webp "$f" 2944
 done
 
 rmdir "$TMP" 2>/dev/null || true
 
 echo ""
-echo "Done. Real-ESRGAN @2x.webp variants regenerated next to originals."
+echo "Done. @2x.webp dimensions:"
+for f in public/images/cosmic-v2/*@2x.webp public/images/cosmic/*@2x.webp; do
+  dim=$("$FFMPEG" -hide_banner -loglevel error -i "$f" 2>&1 | grep -oE '[0-9]+x[0-9]+' | head -1)
+  kb=$(( $(wc -c < "$f") / 1024 ))
+  printf "  %-50s %-12s %dKB\n" "${f#public/images/}" "$dim" "$kb"
+done
