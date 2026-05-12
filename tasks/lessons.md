@@ -157,3 +157,22 @@ For any multi-step user flow:
 - Consistent event prefix so PostHog funnel builder groups automatically
 
 Expected measurement outcomes for the 12→3 onboarding (7-day window): completion rate vs baseline, drop-off cluster by step, voice vs text split, median think-time per step.
+
+---
+
+## 2026-05-12 — Real-ESRGAN: anime-tuned model over-smooths painterly art
+
+**Incident**: Three back-to-back ship attempts (lanczos upscale → ESRGAN anime model → larger ESRGAN anime model) all failed the user's "looks pixelated" complaint. Spent ~3 hours and 4 deploys before pausing to actually inspect the output.
+
+**Diagnostic**: Encoded the same 600×400 crop from both models' 4× output to PNG. PNG size is a proxy for high-frequency content (lossless format, no compression of detail):
+- Lanczos-only crop: 224 KB
+- ESRGAN `realesrgan-x4plus-anime` crop: **45 KB (5× less detail)**
+- ESRGAN `realesrgan-x4plus` (photo) crop: **222 KB (preserves detail + adds synthesis)**
+
+The anime model is trained to clean up noisy anime scans — it aggressively removes "noise" which on painterly Ghibli-style sources looks like the actual art. Photo model retains detail then adds plausible refinement.
+
+**Rule**:
+- For AI-generated painterly art / illustrations / non-anime content: use `realesrgan-x4plus` (photo model), NOT `realesrgan-x4plus-anime`.
+- Anime model ONLY for genuine anime/manga sources with hard line art and flat fills.
+- When debugging "still looks blurry" after upscale: compare PNG-encoded crops between models. Smaller PNG = more smoothing = less detail. The visual differences can be subtle but the entropy never lies.
+- Default verification step: before shipping an upscale pass, eyeball the @2x output AND check the PNG-crop entropy ratio against the source. If output entropy ≤ 50% of source, the model is over-smoothing.

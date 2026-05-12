@@ -35,14 +35,24 @@ esrgan_to_webp() {
 
   echo "  $(basename "$src")  -> ESRGAN-x4 -> WebP at ${target_w}w"
 
-  # 1. ESRGAN ×4 with anime-tuned model
-  "$ESRGAN" -i "$src" -o "$tmp_png" -s 4 -n realesrgan-x4plus-anime -f png 2>/dev/null
+  # 1. ESRGAN ×4 with photo-tuned model.
+  #
+  # IMPORTANT (2026-05-10 diagnostic): we previously used realesrgan-x4plus-anime
+  # because the sources are AI-generated painterly art. That model OVER-SMOOTHS
+  # to remove noise from low-quality anime scans — measured: same crop area
+  # encoded to PNG was 45 KB (anime) vs 222 KB (photo), i.e. 5× less detail.
+  # For full-bleed display where sharpness matters, the photo model preserves
+  # the original detail AND synthesizes plausible high-frequency content.
+  "$ESRGAN" -i "$src" -o "$tmp_png" -s 4 -n realesrgan-x4plus -f png 2>/dev/null
 
   # 2. Downscale (or pass-through) to target width
+  # WebP quality 95 (was 90): the photo-model output has high-frequency
+  # detail that q90 was flattening — bumping the bit budget preserves
+  # synthesized edges + texture at ~30% file-size cost.
   "$FFMPEG" -hide_banner -loglevel error -y \
     -i "$tmp_png" \
     -vf "scale=${target_w}:-1:flags=lanczos" \
-    -c:v libwebp -quality 90 -compression_level 6 \
+    -c:v libwebp -quality 95 -compression_level 6 \
     "$out"
 
   rm -f "$tmp_png"
