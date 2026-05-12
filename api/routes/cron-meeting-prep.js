@@ -15,6 +15,7 @@ import { supabaseAdmin } from '../services/database.js';
 import { getValidAccessToken } from '../services/tokenRefreshService.js';
 import { generateBriefing } from '../services/meetingPrep/meetingPrepService.js';
 import { createLogger } from '../services/logger.js';
+import { logCronExecution } from '../services/cronLogger.js';
 
 const log = createLogger('CronMeetingPrep');
 const router = express.Router();
@@ -104,9 +105,16 @@ router.all('/', async (req, res) => {
     const duration = Date.now() - startTime;
     log.info('Meeting prep cron complete', { briefingsGenerated, errors, duration });
 
+    await logCronExecution('meeting-prep', 'success', duration, {
+      users: userIds.length,
+      briefingsGenerated,
+      errors,
+    });
+
     return res.json({ success: true, briefingsGenerated, errors, duration });
   } catch (err) {
     log.error('Meeting prep cron crashed', { error: err.message });
+    await logCronExecution('meeting-prep', 'error', Date.now() - startTime, null, err.message);
     return res.status(500).json({ success: false, error: process.env.NODE_ENV !== 'production' ? err.message : 'Internal cron error' });
   }
 });

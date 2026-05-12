@@ -26,6 +26,7 @@ import express from 'express';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
+import { logCronExecution } from '../services/cronLogger.js';
 
 const log = createLogger('cron-nudge-retro');
 const router = express.Router();
@@ -117,15 +118,18 @@ export async function runNudgeRetrospectiveSweep() {
 }
 
 router.all('/', async (req, res) => {
+  const startTime = Date.now();
   const authResult = verifyCronSecret(req);
   if (!authResult.authorized) {
     return res.status(authResult.status).json({ error: authResult.error });
   }
   try {
     const result = await runNudgeRetrospectiveSweep();
+    await logCronExecution('nudge-retrospective', 'success', Date.now() - startTime, result);
     res.json({ success: true, ...result });
   } catch (err) {
     log.error(`cron failed: ${err.message}\n${err.stack}`);
+    await logCronExecution('nudge-retrospective', 'error', Date.now() - startTime, null, err.message);
     res.status(500).json({
       success: false,
       error: process.env.NODE_ENV !== 'production' ? err.message : 'cron failed',
