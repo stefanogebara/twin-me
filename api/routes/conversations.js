@@ -60,14 +60,20 @@ const handleValidationErrors = (req, res, next) => {
 
 // GET /api/conversations - Get all conversations for the authenticated user
 // Supports pagination: ?page=1&limit=20 (default 20, max 50)
+//
+// audit-2026-05-12 H3: This previously read from the legacy `conversations`
+// table (long-deprecated, never written to by the current twin chat pipeline)
+// and returned an empty list, while /api/chat/conversations (which reads
+// `twin_conversations`) returned the real list. The same user saw 0 messages
+// in the chat header. Now both paths agree by reading `twin_conversations`.
 router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req, res) => {
   try {
     const userId = req.user.id;
     const { page, limit, offset } = parsePagination(req);
 
-    const { data: conversations, count, error } = await supabaseAdmin
-      .from('conversations')
-      .select('*', { count: 'exact' })
+    const { data: rows, count, error } = await supabaseAdmin
+      .from('twin_conversations')
+      .select('id, title, mode, updated_at, created_at', { count: 'exact' })
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -80,9 +86,31 @@ router.get('/', authenticateUser, userRateLimit(100, 15 * 60 * 1000), async (req
       });
     }
 
+    // Hydrate with the last message preview to match the shape returned by
+    // /api/chat/conversations so callers can swap endpoints freely.
+    const conversations = await Promise.all(
+      (rows || []).map(async (conv) => {
+        const { data: lastMsg } = await supabaseAdmin
+          .from('twin_messages')
+          .select('content, role, created_at')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        return {
+          id: conv.id,
+          title: conv.title,
+          lastMessage: lastMsg?.content?.substring(0, 100) || null,
+          lastMessageRole: lastMsg?.role || null,
+          updatedAt: conv.updated_at,
+          createdAt: conv.created_at,
+        };
+      })
+    );
+
     res.json({
       success: true,
-      conversations: conversations || [],
+      conversations,
       pagination: buildPaginationMeta(page, limit, count || 0),
       timestamp: new Date().toISOString()
     });
