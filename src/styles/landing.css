@@ -149,9 +149,33 @@
 }
 .chapter-bg > * { position: relative; z-index: 2; }
 
-.chapter-landscape::before { background-image: url('/images/cosmic-v2/section6-landscape.jpg'); }
-.chapter-meadow::before    { background-image: url('/images/cosmic-v2/section8-meadow.jpg'); }
-.chapter-twin::before      { background-image: url('/images/cosmic-v2/section11-twin-meeting.jpg'); }
+/* 2026-05-10: WebP + 2× retina variants so the AI-generated 1376×768 source
+ * doesn't visibly pixelate on Retina (2× DPI) displays. Browsers pick the
+ * highest-density variant they need from image-set(). The original .jpg is
+ * kept as a final fallback for the rare browser that doesn't support
+ * image-set() OR WebP. Modern Chrome/Safari/Firefox support both. */
+.chapter-landscape::before {
+  background-image: url('/images/cosmic-v2/section6-landscape.jpg');
+  background-image: image-set(
+    url('/images/cosmic-v2/section6-landscape.webp') 1x,
+    url('/images/cosmic-v2/section6-landscape@2x.webp') 2x
+  );
+}
+.chapter-meadow::before {
+  background-image: url('/images/cosmic-v2/section8-meadow.jpg');
+  background-image: image-set(
+    url('/images/cosmic-v2/section8-meadow.webp') 1x,
+    url('/images/cosmic-v2/section8-meadow@2x.webp') 2x
+  );
+}
+.chapter-twin::before {
+  background-image: url('/images/cosmic-v2/section11-twin-meeting.jpg');
+  background-image: image-set(
+    url('/images/cosmic-v2/section11-twin-meeting.webp') 1x,
+    url('/images/cosmic-v2/section11-twin-meeting@2x.webp') 2x
+  );
+}
+
 
 
 /* Gentler overlay on CTA so the painted twin scene reads as emotional payoff */

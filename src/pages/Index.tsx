@@ -35,13 +35,35 @@ const PLATFORMS = [
 ];
 
 /* ── Card images: cosmic / nature ladder tied to section meaning ──
- * object-position is tuned per-image for landscape (1.4:1) cropping. */
+ * object-position is tuned per-image for landscape (1.4:1) cropping.
+ * 2026-05-10: WebP variants for each — 1x for normal displays + @2x
+ * lanczos-upscaled for Retina. Wired via <img srcset> below. */
 const CARD_IMAGES = {
-  connect:  { src: '/images/cosmic/02-nebula.jpg',        pos: 'center 40%' }, // connection to vast
-  discover: { src: '/images/cosmic/aux-forest-cranes.jpg', pos: 'center 30%' }, // patterns in nature
-  share:    { src: '/images/cosmic/04-aurora.jpg',         pos: 'center 55%' }, // voice / atmosphere
-  control:  { src: '/images/cosmic/07-ocean-birds.jpg',    pos: 'center 50%' }, // choose your depth
-  cta:      { src: '/images/cosmic-v2/section11-twin-meeting.jpg', pos: 'center 40%' }, // the twin emerges
+  connect:  {
+    src:    '/images/cosmic/02-nebula.webp',
+    src2x:  '/images/cosmic/02-nebula@2x.webp',
+    pos: 'center 40%',
+  },
+  discover: {
+    src:    '/images/cosmic/aux-forest-cranes.webp',
+    src2x:  '/images/cosmic/aux-forest-cranes@2x.webp',
+    pos: 'center 30%',
+  },
+  share:    {
+    src:    '/images/cosmic/04-aurora.webp',
+    src2x:  '/images/cosmic/04-aurora@2x.webp',
+    pos: 'center 55%',
+  },
+  control:  {
+    src:    '/images/cosmic/07-ocean-birds.webp',
+    src2x:  '/images/cosmic/07-ocean-birds@2x.webp',
+    pos: 'center 50%',
+  },
+  cta:      {
+    src:    '/images/cosmic-v2/section11-twin-meeting.webp',
+    src2x:  '/images/cosmic-v2/section11-twin-meeting@2x.webp',
+    pos: 'center 40%',
+  },
 };
 
 /* ── Service tab data ── */
@@ -53,6 +75,7 @@ const SERVICES = [
     heading: 'Connect',
     desc: 'Link your platforms. Spotify, Calendar, Whoop, YouTube, and more. Your data becomes your twin\'s memory.',
     img: CARD_IMAGES.connect.src,
+    img2x: CARD_IMAGES.connect.src2x,
     imgPos: CARD_IMAGES.connect.pos,
   },
   {
@@ -62,6 +85,7 @@ const SERVICES = [
     heading: 'Understand',
     desc: 'AI maps your personality, habits, and patterns across every platform. Patterns you never noticed about yourself.',
     img: CARD_IMAGES.discover.src,
+    img2x: CARD_IMAGES.discover.src2x,
     imgPos: CARD_IMAGES.discover.pos,
   },
   {
@@ -71,6 +95,7 @@ const SERVICES = [
     heading: 'Twin Chat',
     desc: 'Talk to a twin that actually knows you — your memory, your patterns, your voice. Ask anything, get answers grounded in your real data.',
     img: CARD_IMAGES.share.src,
+    img2x: CARD_IMAGES.share.src2x,
     imgPos: CARD_IMAGES.share.pos,
   },
   {
@@ -80,6 +105,7 @@ const SERVICES = [
     heading: 'Control',
     desc: 'Set autonomy levels per department. From "just suggest" to "act on my behalf." Your privacy spectrum, your rules.',
     img: CARD_IMAGES.control.src,
+    img2x: CARD_IMAGES.control.src2x,
     imgPos: CARD_IMAGES.control.pos,
   },
 ];
@@ -323,6 +349,7 @@ const Index = () => {
                   >
                     <img
                       src={SERVICES[activeService].img}
+                      srcSet={`${SERVICES[activeService].img} 1x, ${SERVICES[activeService].img2x} 2x`}
                       alt={SERVICES[activeService].heading}
                       className="absolute inset-0 w-full h-full object-cover"
                       style={{ objectPosition: SERVICES[activeService].imgPos }}
@@ -538,6 +565,7 @@ const Index = () => {
           >
             <img
               src={CARD_IMAGES.cta.src}
+              srcSet={`${CARD_IMAGES.cta.src} 1x, ${CARD_IMAGES.cta.src2x} 2x`}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
               style={{ objectPosition: CARD_IMAGES.cta.pos }}

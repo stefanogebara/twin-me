@@ -19,12 +19,41 @@ type CosmicHeroProps = {
  * Stage 4: Body       (04-aurora)         — atmospheric rose aurora
  * Stage 5: Twin       (06-cloud-dune)     — earth-scale grounding
  */
+// 2026-05-10: each stage carries a src (1x JPG fallback) plus a `srcWebp`
+// pair (1x + 2x WebP) so we can wire image-set() for retina-sharp rendering.
+// The pixelation on Retina displays was the 1376×768 sources stretched to
+// viewport-fill — the @2x.webp variants are lanczos-upscaled to 2752×1536.
 const STAGES = [
-  { src: '/images/cosmic/aux-starry-clouds.jpg',    pos: 'center' },
-  { src: '/images/cosmic/01-space-earth.jpg',       pos: 'center' },
-  { src: '/images/cosmic-v2/stage3-arrival.jpg',    pos: 'center' },
-  { src: '/images/cosmic/04-aurora.jpg',            pos: 'center 55%' },
-  { src: '/images/cosmic-v2/stage5-horizon.jpg',    pos: 'center' },
+  {
+    src: '/images/cosmic/aux-starry-clouds.jpg',
+    webp1x: '/images/cosmic/aux-starry-clouds.webp',
+    webp2x: '/images/cosmic/aux-starry-clouds@2x.webp',
+    pos: 'center',
+  },
+  {
+    src: '/images/cosmic/01-space-earth.jpg',
+    webp1x: '/images/cosmic/01-space-earth.webp',
+    webp2x: '/images/cosmic/01-space-earth@2x.webp',
+    pos: 'center',
+  },
+  {
+    src: '/images/cosmic-v2/stage3-arrival.jpg',
+    webp1x: '/images/cosmic-v2/stage3-arrival.webp',
+    webp2x: '/images/cosmic-v2/stage3-arrival@2x.webp',
+    pos: 'center',
+  },
+  {
+    src: '/images/cosmic/04-aurora.jpg',
+    webp1x: '/images/cosmic/04-aurora.webp',
+    webp2x: '/images/cosmic/04-aurora@2x.webp',
+    pos: 'center 55%',
+  },
+  {
+    src: '/images/cosmic-v2/stage5-horizon.jpg',
+    webp1x: '/images/cosmic-v2/stage5-horizon.webp',
+    webp2x: '/images/cosmic-v2/stage5-horizon@2x.webp',
+    pos: 'center',
+  },
 ];
 
 /** Star particle layer — canvas-based. Rendered INSIDE sticky container so it's
@@ -198,7 +227,11 @@ const CosmicHero = ({ isSignedIn, isLoaded, onDashboard, onDiscover }: CosmicHer
             className="absolute inset-0"
             style={{
               opacity: stageOpacities[i],
-              backgroundImage: `url(${stage.src})`,
+              // 2026-05-10: image-set() lets the browser pick the @2x WebP
+              // on Retina displays. Unprefixed image-set has been supported
+              // by Chrome/Edge since 2019, Safari 14.1+ (2021), Firefox 88+
+              // (2020) — i.e. every browser this app targets.
+              backgroundImage: `image-set(url(${stage.webp1x}) 1x, url(${stage.webp2x}) 2x)`,
               backgroundSize: 'cover',
               backgroundPosition: stage.pos,
               willChange: 'opacity',

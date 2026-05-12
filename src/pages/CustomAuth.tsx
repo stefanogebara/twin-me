@@ -545,11 +545,14 @@ For privacy concerns: privacy@twinme.me`
       </div>
       </div>
 
-      {/* Right panel — Ghibli cosmic "arrival" still (matches hero chapter III) */}
+      {/* Right panel — Ghibli cosmic "arrival" still (matches hero chapter III).
+          2026-05-10: image-set serves the @2x lanczos upscale to Retina so the
+          1376×768 source doesn't visibly pixelate on full-bleed display. */}
       <div
         className="hidden lg:flex relative flex-1 m-4 ml-0 flex-col items-center justify-center px-12 overflow-hidden"
         style={{
-          backgroundImage: "url('/images/cosmic-v2/stage3-arrival.webp')",
+          backgroundImage:
+            "image-set(url('/images/cosmic-v2/stage3-arrival.webp') 1x, url('/images/cosmic-v2/stage3-arrival@2x.webp') 2x)",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           borderRadius: '24px',

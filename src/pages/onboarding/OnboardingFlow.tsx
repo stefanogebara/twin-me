@@ -61,19 +61,24 @@ const OnboardingFlow: React.FC = () => {
   //   interview  -> landscape     (descent to earth — teal hills, amber river)
   //   platforms  -> meadow        (connecting — golden-hour path)
   //   awakening  -> twin meeting  (emotional peak — silhouettes at sunset)
-  const stepBg: Record<Step, string> = {
-    welcome: '/images/cosmic-v2/stage3-arrival.jpg',
-    interview: '/images/cosmic-v2/section6-landscape.jpg',
-    platforms: '/images/cosmic-v2/section8-meadow.jpg',
-    awakening: '/images/cosmic-v2/section11-twin-meeting.jpg',
+  // 2026-05-10: each step carries a 1x WebP + 2x WebP pair so Retina
+  // displays get the sharp upscale via image-set(). The JPG is dropped from
+  // the prod path now — every browser this app targets supports WebP +
+  // unprefixed image-set() (Chrome 2019+, Safari 14.1+, Firefox 88+).
+  const stepBg: Record<Step, { x1: string; x2: string }> = {
+    welcome:    { x1: '/images/cosmic-v2/stage3-arrival.webp',       x2: '/images/cosmic-v2/stage3-arrival@2x.webp' },
+    interview:  { x1: '/images/cosmic-v2/section6-landscape.webp',   x2: '/images/cosmic-v2/section6-landscape@2x.webp' },
+    platforms:  { x1: '/images/cosmic-v2/section8-meadow.webp',      x2: '/images/cosmic-v2/section8-meadow@2x.webp' },
+    awakening:  { x1: '/images/cosmic-v2/section11-twin-meeting.webp', x2: '/images/cosmic-v2/section11-twin-meeting@2x.webp' },
   };
+  const bg = stepBg[step];
 
   return (
     <div
       className="relative"
       style={{
         minHeight: '100vh',
-        backgroundImage: `url(${stepBg[step]})`,
+        backgroundImage: `image-set(url(${bg.x1}) 1x, url(${bg.x2}) 2x)`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
