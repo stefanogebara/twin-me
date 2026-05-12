@@ -6,6 +6,60 @@ Per CLAUDE.md workflow rule #3 ("Self-Improvement Loop"): update this file after
 
 ---
 
+## 2026-05-11 — Untracked-but-imported files cause silent 17h prod outages
+
+**Incident**: Every `/api/*` endpoint returned `FUNCTION_INVOCATION_FAILED` for 17 hours. Root cause: `api/services/beta-feedback.js` existed on disk locally and was imported by `api/server.js`, but was never `git add`-ed. The Vercel webhook accepted the push, Vite build passed (Vite only validates the frontend module graph), and lambda boot crashed with `ERR_MODULE_NOT_FOUND` on cold start. No dashboard signal — the import path is only checked at lambda boot, which happens AFTER deploy success is reported.
+
+**Why it slipped**: The file appeared via a linter side-effect that created it without staging. Local dev kept working because the file was on disk. CI didn't catch it because there's no boot-time sanity test on the api lambda.
+
+**Rule**:
+- Before any push that touches `api/server.js` route registration or service imports: cross-reference `git ls-tree -r HEAD --name-only` against the list of relative imports under `api/`. Any `from './x.js'` whose resolved target is NOT in `ls-tree` output → unstaged dependency, do not push.
+- Implementation note: the scanner belongs in `scripts/` (path: `scripts/check-untracked-imports.cjs`) and should walk every tracked `.js` under `api/`, regex-match relative imports, and assert the target appears in tracked files. Exit 1 with a fix-list on miss. Wire as a git pre-push hook so it fires automatically.
+- "Vite build green" never implies "lambda boots green". Treat the two as independent gates.
+
+---
+
+## 2026-05-11 — `vercel.json` regex syntax silently rejects webhook deploys
+
+**Incident**: A push that included a font-caching rewrite like `/(.*\.(woff2?|ttf|otf|eot))` (path-to-regexp pattern with `?` quantifier and nested capture groups) made the Vercel webhook drop the deploy silently. The dashboard showed no failed build, no error event, no notification — the webhook just 4xx'd server-side and never created a deployment. Three subsequent fix-commits stacked up before we noticed pushes weren't producing deploys.
+
+**Why it slipped**: path-to-regexp 6 (which Vercel uses) does not support the `?` quantifier or nested capture groups. The Vercel build container parses `vercel.json` at deploy creation time, but the rejection happens in the webhook handler, BEFORE a deployment row exists — so there's nothing visible in the dashboard. `vercel --prod` from the CLI shows the parse error immediately.
+
+**Rule**:
+- For any change to `vercel.json` rewrites/headers/redirects: run `vercel deploy --prod --no-wait` (or `vercel build` locally with the Vercel CLI) BEFORE git push. Webhook silently dropping deploys means you cannot rely on "push and check the dashboard" as validation.
+- When you need to match multiple file extensions, write N separate rules (`/:path*.woff`, `/:path*.woff2`, etc.) instead of one regex alternation. The path-to-regexp wildcard syntax is limited — don't fight it.
+- If a push went through but no deployment shows up within ~60s, immediately check `vercel.json` recently changed and run the CLI deploy to see the actual error. Do not push more commits assuming the webhook will pick them up.
+
+---
+
+## 2026-05-11 — `logCronExecution` signature mismatch silently no-ops the insert
+
+**Incident**: Three cron files (`cron-soul-signature-regen.js`, `cron-pluggy-sync.js`, `cron-financial-weekly-report.js`) called `logCronExecution(jobName, status, { durationMs, resultData })` — passing an options object as the third argument. The helper expects positional args: `logCronExecution(jobName, status, executionTimeMs, resultData, errorMessage)`. When `executionTimeMs` is an object, the `INSERT INTO cron_executions` runs with `execution_time_ms = '[object Object]'`, the typecast fails, supabase-js returns the error in the rejected promise, and the wrapper catches it without re-throwing — every insert was a silent no-op. The crons themselves succeeded; only the observability row was missing.
+
+**Why it slipped**: The shape mismatch is invisible without an observability row to look at. We were looking for the row to confirm cron runs, found nothing, and assumed the cron wasn't firing — sent us on a multi-hour wild goose chase auditing the Vercel cron schedule, the `verifyCronSecret` gate, and the path-to-regexp routing before we read the logger's source and noticed the call sites were wrong.
+
+**Rule**:
+- When introducing a new shared helper that other files will adopt: pick positional args XOR a single options object — never both. If you're going to support an options object, validate it at runtime and throw on shape mismatch so the failure is loud.
+- For any helper called from many files: add a unit test that imports each call site and asserts the call signature compiles. TypeScript would have caught this — these are `.js` files, so we need a runtime equivalent.
+- When a cron "isn't running": before suspecting the scheduler, grep call sites of the observability logger for shape mismatches. Cron schedule is the LAST thing to check, not the first.
+
+---
+
+## 2026-05-11 — First-pass perf fixes need empirical validation before declaring done
+
+**Incident**: Two follow-up bugs surfaced after declaring perf work "done":
+- **C1**: Memory-stream cold-start latency fix initially only addressed `graph-expansion-async` and lifted `has_memory_stream` from 0% → 75%. Declared done. Real bottleneck was the HyDE LLM call on the reflections retrieval track (2-3s on cold lambdas, which serialized inside the 7s breaker). Required a second fix adding `skipHyDE: true` to reflections + per-leg `withLegTimeout(label, promise)` 5s timeout on all 5 inner Promise.all legs, plus breaker bump 7s → 10s.
+- **C2**: `soul_signature_id` write-path was correct, but `_fetchSoulSignature` SELECT list didn't include `id` — so the row read back into `twinContextBuilder` had `undefined` for the id, and the link write inserted NULL. Declared done after fixing the write path; the SELECT bug shipped to prod.
+
+**Why it slipped**: Both first-pass fixes addressed the most visible symptom (the function that timed out, the column that was missing) without tracing through every value-flow path. C1 ignored the parallel retrieval legs; C2 ignored that the read query was the bottleneck.
+
+**Rule**:
+- After any perf or correctness fix, run post-deploy SQL to compare a PRE-fix baseline against a POST-fix sample on real cold-start traffic. Not "I tested it locally", not "the metric improved on the warm path". Cold-start latency only manifests on Vercel's lambda boot.
+- For data-flow bugs: trace the value through every SELECT, INSERT, and helper between the write site and the read site. If a column needs to be present at any downstream step, it must be in every SELECT list — search for the column name across the entire service file before declaring fixed.
+- "Declare done" requires evidence (a SQL row count, a latency histogram, a log line), not absence of new error reports. Absence of evidence ≠ evidence of fix.
+
+---
+
 ## 2026-04-30 — `proactive_insights` has a 20h cooldown trigger that drops inserts silently
 
 **Incident**: Built `POST /api/insights/inbox/refresh` for the dashboard inbox card. Endpoint completed without error but the row never persisted. `.select().single()` returned PGRST116 ("Cannot coerce the result to a single JSON object"). Stale memory tried `service_role bypasses RLS` — yes, but RLS isn't the gate here.
