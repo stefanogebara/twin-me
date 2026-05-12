@@ -19,6 +19,13 @@ interface PlatformTileProps {
   color?: string;
   /** Optional personalized one-liner shown above the generic description. */
   pitchHook?: string | null;
+  /**
+   * audit-2026-05-12 H6: connected platforms that need a nudge but aren't
+   * full-blown expired. e.g. last_sync > 7 days, or last_sync_status='partial'.
+   * Renders a small inline "needs attention" badge — does NOT change the
+   * connect/reconnect button. Pass `null` or omit for healthy platforms.
+   */
+  attention?: string | null;
   onConnect: () => void;
   onManage?: () => void;
 }
@@ -33,6 +40,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
   comingSoon,
   color,
   pitchHook,
+  attention,
   onConnect,
   onManage,
 }) => {
@@ -93,6 +101,21 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
               className="w-3.5 h-3.5 flex-shrink-0"
               style={{ color: '#FBBF24' }}
             />
+          )}
+          {!needsReconnect && attention && (
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
+              style={{
+                background: 'rgba(251,191,36,0.10)',
+                color: 'rgba(251,191,36,0.85)',
+                border: '1px solid rgba(251,191,36,0.18)',
+                fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                letterSpacing: 0,
+              }}
+              title={attention}
+            >
+              Needs attention
+            </span>
           )}
         </div>
         {pitchHook && !connected && (

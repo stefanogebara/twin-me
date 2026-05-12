@@ -4,8 +4,11 @@
  */
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
+import { authFetch } from '@/services/api/apiBase';
 
 interface GenerateCTAProps {
   connectedServices: DataProvider[];
@@ -24,6 +27,24 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
   onGenerate,
   onSkip,
 }) => {
+  const navigate = useNavigate();
+
+  // audit-2026-05-12 M10: when the user already has a generated archetype,
+  // "Reveal Your Soul Archetype" is misleading — there's nothing to reveal.
+  // Switch the CTA to take them straight to /identity. The original
+  // onGenerate flow is still available via /identity → re-roll.
+  const { data: existingSignature } = useQuery({
+    queryKey: ['soul-signature', 'has-archetype'],
+    queryFn: async () => {
+      const res = await authFetch('/soul-signature');
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json?.data?.archetype_name ? true : false;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const hasArchetype = existingSignature === true;
+
   if (connectedServices.length === 0) return null;
 
   return (
@@ -45,7 +66,7 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
           </span>
         </div>
         <button
-          onClick={onGenerate}
+          onClick={hasArchetype ? () => navigate('/identity') : onGenerate}
           disabled={isGenerating || connectedServices.length === 0}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-[14px] font-medium transition-all duration-150 hover:opacity-90 disabled:opacity-50"
           style={{
@@ -59,6 +80,11 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               Discovering your archetype...
+            </>
+          ) : hasArchetype ? (
+            <>
+              View your Soul Signature
+              <ArrowRight className="w-4 h-4" />
             </>
           ) : (
             <>

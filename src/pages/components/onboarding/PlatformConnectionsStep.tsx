@@ -8,6 +8,7 @@ import { DataProvider } from '@/types/data-integration';
 import { PlatformStatusData } from './onboardingTypes';
 import { AVAILABLE_CONNECTORS } from '../../onboarding/components/connectorConfig';
 import { PlatformTile } from '../../onboarding/components/PlatformTile';
+import { Link2 } from 'lucide-react';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import SoulRichnessBar from '../../../components/onboarding/SoulRichnessBar';
 import { DataUploadPanel } from '@/components/brain/DataUploadPanel';
@@ -61,7 +62,33 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   disconnectService,
   navigate,
 }) => {
+  // For the DISCOVERY sections (unconnected tiles) we still hide coming-soon
+  // entries. But the CONNECTED list MUST show every row from the DB, even
+  // those marked comingSoon in the catalog (e.g. github, reddit, whoop, twitch)
+  // — otherwise platforms the user actually connected silently disappear from
+  // /connect (audit-2026-05-12 H5).
   const availableConnectors = AVAILABLE_CONNECTORS.filter(c => !c.comingSoon);
+  const connectorByProvider = new Map(AVAILABLE_CONNECTORS.map(c => [c.provider, c]));
+  // STALE_DAYS keeps the threshold in lockstep with /api/platforms/summary.
+  const STALE_DAYS = 7;
+  const STALE_MS = STALE_DAYS * 24 * 60 * 60 * 1000;
+  const computeAttention = (provider: string): string | null => {
+    const status = platformStatusData[provider];
+    if (!status) return null;
+    if (status.tokenExpired) return null; // surfaced via needsReconnect already
+    if (status.status === 'partial' || status.status === 'error') {
+      return 'Last sync was partial — some data may be missing.';
+    }
+    if (status.lastSync) {
+      const lastSyncMs = new Date(status.lastSync).getTime();
+      const ageMs = Date.now() - lastSyncMs;
+      if (ageMs > STALE_MS) {
+        const days = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+        return `No sync in ${days}d — try reconnecting if data feels stale.`;
+      }
+    }
+    return null;
+  };
 
   // Personalized pitch hooks — fetched once per mount. Silent fallback on failure.
   const [pitchHooks, setPitchHooks] = useState<Record<string, string>>({});
@@ -109,31 +136,41 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
         return !status?.tokenExpired && status?.status !== 'token_expired';
       })} />
 
-      {/* Connected Section */}
+      {/* Connected Section — list every platform_connections row for the user,
+          including providers marked comingSoon in the catalog (H5). */}
       {connectedServices.length > 0 && (
         <>
           <SectionLabel label="Connected" />
           <div className="space-y-2">
-            {sort(availableConnectors)
-              .filter(c => connectedServices.includes(c.provider))
-              .map(c => {
-                const status = platformStatusData[c.provider];
-                const needsReconnect = status?.tokenExpired || status?.status === 'token_expired';
-                return (
-                  <PlatformTile
-                    key={c.provider}
-                    name={c.name}
-                    description={c.description}
-                    icon={c.icon}
-                    color={c.color}
-                    connected={true}
-                    needsReconnect={needsReconnect}
-                    syncing={connectingProvider === c.provider}
-                    onConnect={() => connectService(c.provider)}
-                    onManage={() => disconnectService(c.provider)}
-                  />
-                );
-              })}
+            {connectedServices.map(provider => {
+              const c = connectorByProvider.get(provider);
+              const status = platformStatusData[provider];
+              const needsReconnect = status?.tokenExpired || status?.status === 'token_expired';
+              const attention = computeAttention(provider);
+              // Fallback presentation for platforms missing from the catalog —
+              // shouldn't normally happen, but keeps connected rows visible.
+              const display = c ?? {
+                name: provider.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
+                description: 'Connected via OAuth.',
+                icon: <Link2 className="w-6 h-6" />,
+                color: 'rgba(255,255,255,0.45)',
+              };
+              return (
+                <PlatformTile
+                  key={provider}
+                  name={display.name}
+                  description={display.description}
+                  icon={display.icon}
+                  color={display.color}
+                  connected={true}
+                  needsReconnect={needsReconnect}
+                  syncing={connectingProvider === provider}
+                  attention={attention}
+                  onConnect={() => connectService(provider as typeof activeConnections[number])}
+                  onManage={() => disconnectService(provider as typeof activeConnections[number])}
+                />
+              );
+            })}
           </div>
           <Divider />
         </>
