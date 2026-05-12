@@ -106,14 +106,19 @@ export default async function handler(req, res) {
       .in('id', toRefresh);
     const userNameMap = new Map((userRows || []).map(u => [u.id, u.display_name || u.full_name || 'This person']));
 
-    // Sequential refresh: predictable load, avoids thundering herd on DeepSeek.
-    // Stops early if we run out of time budget — leftover users get picked up
-    // by the next daily run (still inside the 24h stale-serve window).
+    // Batched-parallel refresh (audit-2026-05-12 M11):
+    // Previous sequential loop ran 7 users × 3-5s each = 21-35s + DB overhead,
+    // which the 2026-05-12 06:01 run pushed to 52.6s — only ~7s shy of the
+    // Vercel 60s kill. Process up to BATCH_SIZE users concurrently to drop
+    // wall-time to ~slowest-in-batch. BATCH_SIZE=3 caps simultaneous DeepSeek
+    // calls (each generateTwinSummary fires 5 parallel summarize calls internally,
+    // so 3×5=15 concurrent calls — within OpenRouter rate-limit headroom).
+    const BATCH_SIZE = 3;
     let refreshed = 0;
     let stoppedEarly = false;
     const errors = [];
 
-    for (const userId of toRefresh) {
+    for (let i = 0; i < toRefresh.length; i += BATCH_SIZE) {
       if (Date.now() - startTime > TIME_BUDGET_MS) {
         stoppedEarly = true;
         log.warn('Time budget exhausted — deferring remaining users to next run', {
@@ -122,14 +127,31 @@ export default async function handler(req, res) {
         });
         break;
       }
-      const userName = userNameMap.get(userId) || 'This person';
-      try {
-        await generateTwinSummary(userId, userName);
-        refreshed++;
-        log.info('Summary refreshed', { userId: userId.slice(0, 8) });
-      } catch (err) {
-        errors.push({ userId: userId.slice(0, 8), error: process.env.NODE_ENV !== 'production' ? err.message : 'refresh failed' });
-        log.warn('Summary refresh failed (non-fatal)', { userId: userId.slice(0, 8), error: err.message });
+
+      const batch = toRefresh.slice(i, i + BATCH_SIZE);
+      const settled = await Promise.allSettled(
+        batch.map((userId) => {
+          const userName = userNameMap.get(userId) || 'This person';
+          return generateTwinSummary(userId, userName).then(
+            () => ({ userId, status: 'ok' }),
+            (err) => ({ userId, status: 'error', error: err.message }),
+          );
+        }),
+      );
+      for (const r of settled) {
+        // Inner .then catches errors so allSettled always sees fulfilled.
+        if (r.status !== 'fulfilled') continue;
+        const v = r.value;
+        if (v.status === 'ok') {
+          refreshed++;
+          log.info('Summary refreshed', { userId: v.userId.slice(0, 8) });
+        } else {
+          errors.push({
+            userId: v.userId.slice(0, 8),
+            error: process.env.NODE_ENV !== 'production' ? v.error : 'refresh failed',
+          });
+          log.warn('Summary refresh failed (non-fatal)', { userId: v.userId.slice(0, 8), error: v.error });
+        }
       }
     }
 
