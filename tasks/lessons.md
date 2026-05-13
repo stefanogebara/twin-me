@@ -6,6 +6,76 @@ Per CLAUDE.md workflow rule #3 ("Self-Improvement Loop"): update this file after
 
 ---
 
+## 2026-05-13 — PostgREST silently drops writes to non-existent columns
+
+**Incident**: Yesterday's H11 fix added `oauth_platform: 'magic_link'` to two user INSERT/UPDATE sites in `api/routes/auth-simple.js`. The deploy went green, the user row was created, `/settings` continued displaying "Managed via Google OAuth" anyway. The actual column name on `public.users` is `oauth_provider`. PostgREST/supabase-js sent the unknown key, the DB silently dropped it, no error returned, no log written. Discovered only when end-to-end verifying via a real browser /settings nav — curl-level testing wouldn't have caught it (no UI to inspect, and the INSERT returned success).
+
+**Why it slipped**: An LLM-generated fix (Agent A inherited the typo from pre-existing code on line 863). Three call sites all wrote `oauth_platform`, all silently NULL-ed the column. The fix passed code review because the code *looked* right. PostgREST + supabase-js do not warn on unknown columns — keys that don't exist on the table are dropped server-side without complaint.
+
+**Rule**:
+- Any backend write that should change UI must be verified by reading the UI live, not just by checking the INSERT/UPDATE response. PostgREST's silent-drop pattern means the response is shaped as success even when the column write didn't land.
+- For shared user objects (the `users` table), enumerate the columns once in a TS/JS type and have every write site reference that source. A `UsersTable` type or `UPDATABLE_USER_COLUMNS = new Set([...])` constant rejects typos at the call site.
+- When fixing a "frontend doesn't reflect backend" complaint, the failure is just as likely to be a write-side typo as a read-side bug. Check the actual column value in the DB before assuming the read path is wrong.
+
+---
+
+## 2026-05-13 — Two parallel systems computing the same user-facing concept
+
+**Incident**: `/identity` page rendered "The Strategist" while `soul_signatures.archetype_name` (the DB) stored "The Debugging Composer". Two complete archetype-naming systems existed: (1) a backend LLM-driven cron (`cron-soul-signature-regen.js`) that wrote rich names like "The Debugging Composer" using the full memory stream, (2) a frontend cosine catalog (`archetypeEngine.ts`) that picked from 10 hardcoded OCEAN signatures. Both ran on every page load; the frontend always won the h1 render because IdentityPage only fetched `/soul-signature/layers` and computed locally, never reading `/soul-signature/archetype`. Twin chat already used the stored name via `twinContextBuilder` — so the twin and the UI silently disagreed about which archetype this user was.
+
+**Why it slipped**: Each system was reasonable in isolation. The cosine catalog predated the LLM-driven cron and was never deleted when the cron shipped. Both files have plausible names. No test asserted that the rendered archetype matches the stored archetype.
+
+**Rule**:
+- When two pieces of code compute the same user-facing concept, designate ONE as source of truth in writing (a comment in both files pointing to each other works) and have the other become a clearly-labeled FALLBACK.
+- For any data with a backend-stored canonical version, the frontend should read it first and only compute locally on miss. "Already used by the twin chat context" is the strongest signal that something is the canonical version.
+- After shipping a new system that supersedes an old one (here: the regen cron superseded the catalog), grep for every consumer of the old system and either delete or downgrade them to fallback-only.
+
+---
+
+## 2026-05-13 — Host-only refresh cookies silently break apex/www sessions
+
+**Incident**: `setRefreshCookie` set `refresh_token` as a host-only cookie (no `Domain` attribute). A session created on `www.twinme.me` wasn't sent on requests to bare `twinme.me`. Users typing the URL without "www" were redirected to `/auth?error=session_expired` on every page load despite holding a valid session on the other host. Confirmed via curl: cookie jar from www, replay on apex, request body returns "Invalid refresh token".
+
+**Why it slipped**: The default `res.cookie()` config in Express omits the `Domain` attribute, making the cookie host-only. This is fine if you ONLY ever serve from one host. TwinMe serves from both `twinme.me` and `www.twinme.me` (Vercel apex+canonical), and the canonical-redirect (apex → www, 307) preserves cookies only if they're domain-scoped. The bug was invisible to anyone who only ever typed `www.twinme.me` directly.
+
+**Rule**:
+- Any product served from both apex and www MUST set `Domain=.<eTLD+1>` on session cookies. Default host-only is broken for this topology.
+- Vercel preview deploys (`twin-ai-learn-*.vercel.app`) and localhost MUST remain host-only — browsers reject mismatched Domain attrs. Use a `resolveCookieDomain(req)` helper that returns `.twinme.me` only when `host.endsWith('twinme.me')`.
+- On logout, `res.clearCookie` must fire twice: once host-only (for legacy pre-fix cookies that already exist in user browsers) and once domain-scoped. Otherwise users who logged in post-fix see the domain cookie survive logout.
+
+---
+
+## 2026-05-13 — Browser test mocks shadow real production gaps
+
+**Incident**: While verifying H11 on `/settings`, my Playwright auth interceptor returned a user object built from memory:
+```js
+const user = { id, email, firstName, lastName, ... emailVerified: true };
+```
+That object was missing `oauthProvider`. When the page rendered, it showed the fallback label "Managed via OAuth" because `user.oauthProvider` was `undefined`. I almost concluded the fix was broken. The fix was actually correct — my mock was incomplete.
+
+**Why it slipped**: Test mocks shape themselves around what the test expects to see, not around what the real server returns. A real `/api/auth/verify` response now includes `oauthProvider` (the H11 fix threaded it through `buildAuthUser`). My mock, written before that fix, didn't.
+
+**Rule**:
+- When a UI fix passes server-side verification (curl, DB inspect) but fails browser verification, suspect the test mock first. Browser mocks are easier to forget to update than real backend code.
+- For audit verification specifically: do at least one final pass with NO interceptors / NO mocks (clear all routes, log out, log in via the real flow). Yesterday's mocked Playwright runs missed the cookie-domain bug entirely; the bug only surfaced once I exercised the actual signin endpoint with curl.
+- When updating a `buildAuthUser`-shaped helper, grep for every place a test constructs a User object and add the new field. Otherwise the test surface and the prod surface drift apart.
+
+---
+
+## 2026-05-13 — Spinner copy reads as broken even when the request resolves
+
+**Incident**: Dashboard `MorningBriefingCard` showed a small "Preparing your briefing..." spinner for ~6s on cold loads. Users (including me) read this as a perma-load even though the underlying `/morning-briefing/generate` always resolved within 6-12s. The original audit even mislabeled it as "perma-loading" because the wait felt indefinite.
+
+**Why it slipped**: A spinner-only loading state offers no progress signal — the brain reads "spinning forever" indistinguishably from "spinning for a while". The word "Preparing" reinforces the feeling that the system is doing one thing and might never finish. Even a 6-second wait feels broken under these conditions.
+
+**Rule**:
+- For any loading state >2s, render a structural skeleton (header + section placeholders matching the final layout) instead of a spinner. The user reads "here's what's coming, it's loading in" rather than "stuck".
+- Use `aria-busy="true"` + `aria-label` on the skeleton container so screen readers communicate the state.
+- For data that has a server-side cache (proactive_insights, soul_signatures, etc), pair the skeleton with TanStack Query and `staleTime: 30min+` so the SECOND visit hydrates from cache in milliseconds.
+- Audit findings phrased as "X never loads" / "X perma-loads" should be re-verified with a 30+ second wait before fixing. Many become "X loads in N seconds, feels too slow".
+
+---
+
 ## 2026-05-11 — Untracked-but-imported files cause silent 17h prod outages
 
 **Incident**: Every `/api/*` endpoint returned `FUNCTION_INVOCATION_FAILED` for 17 hours. Root cause: `api/services/beta-feedback.js` existed on disk locally and was imported by `api/server.js`, but was never `git add`-ed. The Vercel webhook accepted the push, Vite build passed (Vite only validates the frontend module graph), and lambda boot crashed with `ERR_MODULE_NOT_FOUND` on cold start. No dashboard signal — the import path is only checked at lambda boot, which happens AFTER deploy success is reported.
