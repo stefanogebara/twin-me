@@ -16,6 +16,7 @@ import {
   BookOpen,
   Building2,
   Wallet,
+  CalendarCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
   { id: 'departments',  label: 'Departments',     icon: Building2,     path: '/departments' },
+  { id: 'meetings',     label: 'Meetings',        icon: CalendarCheck, path: '/meetings' },
   { id: 'money',        label: 'Money',           icon: Wallet,        path: '/money' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },

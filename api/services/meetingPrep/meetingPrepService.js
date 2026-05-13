@@ -70,14 +70,35 @@ function formatDuration(gcalEvent) {
   return Math.round((end - start) / 60000);
 }
 
-async function storeBriefing(userId, eventId, etag, briefing, rawJson) {
+async function storeBriefing(userId, eventId, etag, briefing, rawJson, gcalEvent = null) {
+  // Embed event metadata into briefing_json under _meta so the GET endpoint
+  // can render upcoming/past meetings without re-hitting Google Calendar.
+  // Old rows without _meta still work — frontend handles missing values.
+  const enriched = gcalEvent ? {
+    ...rawJson,
+    _meta: {
+      summary: gcalEvent.summary || null,
+      startTime: gcalEvent.start?.dateTime || gcalEvent.start?.date || null,
+      endTime: gcalEvent.end?.dateTime || gcalEvent.end?.date || null,
+      location: gcalEvent.location || null,
+      hangoutLink: gcalEvent.hangoutLink || null,
+      meetingUrl: gcalEvent.conferenceData?.entryPoints?.[0]?.uri || null,
+      attendees: (gcalEvent.attendees || []).map((a) => ({
+        email: a.email,
+        name: a.displayName || null,
+        responseStatus: a.responseStatus || null,
+        organizer: !!a.organizer,
+      })),
+    },
+  } : rawJson;
+
   await supabaseAdmin.from('meeting_briefings').upsert(
     {
       user_id: userId,
       event_id: eventId,
       event_etag: etag,
       headline: briefing.headline,
-      briefing_json: rawJson,
+      briefing_json: enriched,
       generated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id,event_id' }
@@ -184,7 +205,7 @@ export async function generateBriefing(userId, gcalEvent) {
   const briefing = await generateBriefingForEvent(userId, gcalEvent);
 
   const [, insightRow] = await Promise.all([
-    storeBriefing(userId, eventId, etag, briefing, briefing),
+    storeBriefing(userId, eventId, etag, briefing, briefing, gcalEvent),
     storeAsProactiveInsight(userId, briefing, gcalEvent.summary || 'upcoming meeting'),
   ]);
 
@@ -227,7 +248,7 @@ export async function generateBriefingForChat(userId, params) {
     const briefing = await generateBriefingForEvent(userId, gcalEvent);
 
     if (eventId) {
-      await storeBriefing(userId, eventId, gcalEvent.etag, briefing, briefing).catch(() => {});
+      await storeBriefing(userId, eventId, gcalEvent.etag, briefing, briefing, gcalEvent).catch(() => {});
     }
 
     return { success: true, briefing };

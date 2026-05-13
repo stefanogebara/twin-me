@@ -63,6 +63,7 @@ const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(() => import("./pages/MoneyPage"));
+const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 
@@ -290,6 +291,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <MoneyPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Meeting Prep Agent — surfaces briefings cron-meeting-prep produces */}
+            <Route path="/meetings" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <MeetingsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
