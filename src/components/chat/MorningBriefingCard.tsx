@@ -5,8 +5,9 @@
  * health/music sections, actionable suggestion. Dark glass aesthetic.
  */
 
-import React, { useState, useEffect } from 'react';
-import { Calendar, Moon, Music, Sparkles, ArrowRight, Loader2, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { Calendar, Moon, Music, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '@/services/api/apiBase';
 
 interface BriefingData {
@@ -38,62 +39,108 @@ function getLocationTime(): { location: string; time: string; label: string } {
   return { location: city, time: timeStr, label };
 }
 
+// Skeleton block — visible structure during load so the user reads
+// "briefing is coming, here's its shape" instead of spinner anxiety.
+const SkeletonLine: React.FC<{ width: string; height?: number }> = ({ width, height = 12 }) => (
+  <div
+    className="rounded-md animate-pulse"
+    style={{
+      width,
+      height,
+      backgroundColor: 'rgba(255,255,255,0.06)',
+    }}
+  />
+);
+
 const MorningBriefingCard: React.FC<MorningBriefingCardProps> = ({ onAskTwin }) => {
-  const [briefing, setBriefing] = useState<BriefingData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const fetchBriefing = async () => {
-    setLoading(true);
-    setError(false);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    try {
-      const res = await authFetch('/morning-briefing/generate', { signal: controller.signal });
-      if (!res.ok) throw new Error('Failed');
-      const json = await res.json();
-      if (json.success && json.briefing) {
-        setBriefing(json.briefing);
-      } else {
-        setError(true);
+  // useQuery (audit-2026-05-13): shared cache across all surfaces that render
+  // this card. 30-min staleTime — server already caches briefings in
+  // proactive_insights, this just keeps the client from refetching on every
+  // dashboard navigation. Refetch is still available via the refresh button.
+  const { data: briefing, isLoading, isError, refetch } = useQuery<BriefingData | null>({
+    queryKey: ['morning-briefing'],
+    queryFn: async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      try {
+        const res = await authFetch('/morning-briefing/generate', { signal: controller.signal });
+        if (!res.ok) throw new Error('Failed');
+        const json = await res.json();
+        if (json.success && json.briefing) return json.briefing as BriefingData;
+        throw new Error('No briefing in response');
+      } finally {
+        clearTimeout(timer);
       }
-    } catch {
-      setError(true);
-    } finally {
-      clearTimeout(timer);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchBriefing(); }, []);
+    },
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
+  });
 
   const { location, time, label } = getLocationTime();
 
-  if (loading) {
+  // Loading state — render full structural skeleton (header, greeting,
+  // schedule, recovery, music, suggestion) so the user sees the briefing's
+  // shape immediately, not just a spinner.
+  if (isLoading) {
     return (
       <div
-        className="rounded-[20px] px-6 py-8 flex items-center justify-center"
+        className="rounded-[24px] overflow-hidden relative"
         style={{
-          backgroundColor: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          backgroundImage:
+            'radial-gradient(ellipse 80% 60% at 0% 0%, rgba(210,145,55,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(93,92,174,0.08) 0%, transparent 60%)',
+          border: '1px solid rgba(255,255,255,0.12)',
           backdropFilter: 'blur(42px)',
           WebkitBackdropFilter: 'blur(42px)',
-          minHeight: 200,
         }}
       >
-        <div className="flex items-center gap-3">
-          <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.3)' }} />
-          <span className="text-[15px]" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}>
-            Preparing your briefing...
+        <div className="px-7 pt-6 pb-3 flex items-center justify-between">
+          <span
+            className="text-[11px] tracking-[0.12em] uppercase"
+            style={{ color: 'rgba(255,255,255,0.30)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+          >
+            {location}{location ? ' — ' : ''}{time}{' — '}{label}
           </span>
+        </div>
+        <div className="px-7">
+          <div className="flex items-center gap-2">
+            <div className="flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+            <div className="flex gap-1">
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }} />
+            </div>
+            <div className="flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+          </div>
+        </div>
+        <div className="px-7 pt-5 pb-2">
+          <SkeletonLine width="55%" height={32} />
+          <div className="mt-3">
+            <SkeletonLine width="90%" />
+          </div>
+        </div>
+        <div className="px-7 pb-7 pt-4 space-y-5" aria-busy="true" aria-label="Loading your briefing">
+          {[Calendar, Moon, Music, Sparkles].map((Icon, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.20)' }} />
+              <div className="flex-1 space-y-2">
+                <SkeletonLine width="22%" height={10} />
+                <SkeletonLine width={i === 3 ? '75%' : '60%'} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  if (error || !briefing) {
+  if (isError || !briefing) {
     return null;
   }
+
+  const fetchBriefing = () => { void refetch(); };
 
   const hasSchedule = briefing.schedule_summary && !briefing.schedule_summary.includes('wide open') && !briefing.schedule_summary.includes('No schedule');
   const hasRest = !!briefing.rest;
