@@ -68,6 +68,12 @@ const AUDITS = [
     env: 'TWINME_RUN_IDENTITY_AUDIT',
   },
   {
+    id: 'pluggy',
+    name: '/pluggy/register contract (5 specs)',
+    spec: 'tests/e2e/pluggy-register-endpoint.spec.ts',
+    env: 'TWINME_RUN_PLUGGY_REGISTER_AUDIT',
+  },
+  {
     id: 'a11y',
     name: 'Accessibility sweep (18 routes, axe-core)',
     spec: 'tests/e2e/accessibility-sweep.spec.ts',

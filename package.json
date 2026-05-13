@@ -23,6 +23,7 @@
     "audit:chat": "node scripts/audit-all.mjs --only=chat",
     "audit:identity": "node scripts/audit-all.mjs --only=identity",
     "audit:a11y": "node scripts/audit-all.mjs --only=a11y",
+    "audit:pluggy": "node scripts/audit-all.mjs --only=pluggy",
     "audit:pages": "node scripts/audit-all.mjs --only=money,chat,identity",
     "pluggy:setup": "node scripts/pluggy-setup.mjs"
   },
