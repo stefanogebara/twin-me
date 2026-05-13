@@ -46,6 +46,7 @@ import {
   seedItemTransactions,
   ingestTransactionsByIds,
   resolveUserIdForItem,
+  upsertConnectionFromItem,
 } from './services/transactions/pluggyIngestion.js';
 import { createLogger } from './services/logger.js';
 
@@ -85,24 +86,8 @@ function isDuplicateEvent(eventId) {
   return false;
 }
 
-async function upsertConnectionFromItem(userId, item) {
-  if (!userId || !item?.id) return;
-  const row = {
-    user_id: userId,
-    pluggy_item_id: item.id,
-    connector_id: item.connector?.id ?? 0,
-    connector_name: item.connector?.name || 'Unknown Bank',
-    status: item.status || 'UNKNOWN',
-    status_detail: item.executionStatus ? { executionStatus: item.executionStatus } : null,
-    last_synced_at: item.lastUpdatedAt || new Date().toISOString(),
-    consent_expires_at: item.consentExpiresAt || null,
-    updated_at: new Date().toISOString(),
-  };
-  const { error } = await supabaseAdmin
-    .from('user_bank_connections')
-    .upsert(row, { onConflict: 'pluggy_item_id' });
-  if (error) log.warn(`upsert connection ${item.id}: ${error.message}`);
-}
+// upsertConnectionFromItem moved to pluggyIngestion.js so the /pluggy/register
+// route can reuse it as a webhook-delivery fallback. Same idempotent upsert.
 
 async function handleItemEvent(event, payload) {
   const itemId = payload.itemId;

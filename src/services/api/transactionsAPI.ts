@@ -288,6 +288,46 @@ export async function getPluggyConnectToken(itemId?: string): Promise<ConnectTok
   return body || { success: false, error: 'empty response' };
 }
 
+/**
+ * Webhook-delivery fallback: ask the backend to fetch the freshly-created
+ * Pluggy item and ingest it into our DB. Identical to what the webhook does,
+ * but invoked directly from the widget success callback so it works:
+ *   (a) in local dev where Pluggy can't reach localhost
+ *   (b) in production when a webhook is missed (idempotent — re-running is safe)
+ */
+export interface RegisterItemResponse {
+  success: boolean;
+  connection?: {
+    id: string;
+    connector_name: string;
+    status: string;
+    last_synced_at: string | null;
+    pluggy_item_id: string;
+    provider: string;
+  };
+  seededTransactions?: number | null;
+  error?: string;
+  code?: string;
+}
+
+export async function registerPluggyItem(itemId: string): Promise<RegisterItemResponse> {
+  const res = await authFetch('/transactions/pluggy/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId }),
+  });
+  let body: RegisterItemResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    return {
+      success: false,
+      error: body?.error || `register failed (${res.status})`,
+      code: body?.code,
+    };
+  }
+  return body || { success: false, error: 'empty response' };
+}
+
 export async function listBankConnections(): Promise<BankConnection[]> {
   const res = await authFetch('/transactions/pluggy/connections');
   if (!res.ok) return [];

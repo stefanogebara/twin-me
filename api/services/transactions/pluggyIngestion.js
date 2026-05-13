@@ -300,3 +300,32 @@ export async function ingestTransactionsByIds(userId, pluggyItemId, transactionI
 }
 
 export { resolveUserIdForItem };
+
+/**
+ * Insert/update the user_bank_connections row from a Pluggy item.
+ *
+ * Extracted from webhook-pluggy.js so the same code path can be invoked
+ * (a) by the webhook lambda when Pluggy fires item/created and
+ * (b) by the /pluggy/register route as a webhook-delivery fallback
+ * (also enables local dev testing without ngrok).
+ *
+ * Idempotent — upserts on pluggy_item_id.
+ */
+export async function upsertConnectionFromItem(userId, item) {
+  if (!userId || !item?.id) return;
+  const row = {
+    user_id: userId,
+    pluggy_item_id: item.id,
+    connector_id: item.connector?.id ?? 0,
+    connector_name: item.connector?.name || 'Unknown Bank',
+    status: item.status || 'UNKNOWN',
+    status_detail: item.executionStatus ? { executionStatus: item.executionStatus } : null,
+    last_synced_at: item.lastUpdatedAt || new Date().toISOString(),
+    consent_expires_at: item.consentExpiresAt || null,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await supabaseAdmin
+    .from('user_bank_connections')
+    .upsert(row, { onConflict: 'pluggy_item_id' });
+  if (error) log.warn(`upsert connection ${item.id}: ${error.message}`);
+}

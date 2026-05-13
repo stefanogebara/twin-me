@@ -17,6 +17,7 @@ import { supabaseAdmin } from '../services/database.js';
 import * as pluggy from '../services/transactions/pluggyClient.js';
 import * as tl from '../services/transactions/trueLayerClient.js';
 import { decryptToken } from '../services/encryption.js';
+import { upsertConnectionFromItem, seedItemTransactions } from '../services/transactions/pluggyIngestion.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('pluggy-routes');
@@ -186,6 +187,98 @@ router.delete('/connections/:id', async (req, res) => {
  *   - truelayer: /api/truelayer/sync/:id owns the pull-side refresh path;
  *     here we return a redirect hint so the frontend can call that instead.
  */
+/**
+ * POST /register
+ *
+ * Webhook-delivery fallback: after the Connect Widget reports success on
+ * the frontend, the client POSTs the item id here. We then run the same
+ * ingestion path the webhook runs in production:
+ *   1. Fetch the item from Pluggy (authoritative status + connector info)
+ *   2. Verify the item's clientUserId matches the authed user
+ *      (prevents one user from claiming another user's items)
+ *   3. Upsert user_bank_connections
+ *   4. Seed the last 90 days of transactions
+ *
+ * Why this exists:
+ *   - Local dev: Pluggy can't deliver webhooks to localhost. Without this,
+ *     a sandbox link via the widget never produces a DB row.
+ *   - Production: webhook delivery isn't 100%. This is the resilience
+ *     path — idempotent, so calling it after a webhook already arrived
+ *     is a no-op.
+ *
+ * Body: { itemId: string }
+ */
+router.post('/register', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    if (!pluggy.isPluggyConfigured()) {
+      return res.status(503).json({ success: false, error: 'pluggy not configured', code: 'PLUGGY_NOT_CONFIGURED' });
+    }
+
+    const { itemId } = req.body || {};
+    if (!itemId || typeof itemId !== 'string') {
+      return res.status(400).json({ success: false, error: 'itemId is required' });
+    }
+
+    let item;
+    try {
+      item = await pluggy.getItem(itemId);
+    } catch (pluggyErr) {
+      // Pluggy returns 400 for malformed UUIDs and 404 for unknown items.
+      // Surface those as user-fixable 4xx instead of swallowing into 500.
+      if (pluggyErr?.status === 400) {
+        return res.status(400).json({ success: false, error: 'invalid itemId format' });
+      }
+      if (pluggyErr?.status === 404) {
+        return res.status(404).json({ success: false, error: 'item not found in pluggy' });
+      }
+      throw pluggyErr;
+    }
+    if (!item?.id) {
+      return res.status(404).json({ success: false, error: 'item not found in pluggy' });
+    }
+
+    // Ownership: Pluggy echoes the clientUserId we passed at connect_token creation.
+    // Reject if it doesn't match — prevents Mallory from registering Alice's itemId.
+    const itemUserId = item.clientUserId;
+    if (itemUserId && itemUserId !== userId) {
+      log.warn(`register: itemId ${itemId} clientUserId=${itemUserId} but auth user=${userId}`);
+      return res.status(403).json({ success: false, error: 'item belongs to a different user' });
+    }
+
+    await upsertConnectionFromItem(userId, item);
+
+    // Best-effort seed; non-fatal if it fails (cron-pluggy-sync runs daily as backup)
+    let seededCount = null;
+    try {
+      const seed = await seedItemTransactions(userId, itemId);
+      seededCount = seed?.inserted ?? null;
+    } catch (seedErr) {
+      log.warn(`seed transactions for ${itemId} failed (non-fatal): ${seedErr.message}`);
+    }
+
+    // Return the freshly-created/updated connection row so the FE can update its list
+    const { data: row } = await supabaseAdmin
+      .from('user_bank_connections')
+      .select('id, connector_name, status, last_synced_at, pluggy_item_id, provider')
+      .eq('pluggy_item_id', itemId)
+      .eq('user_id', userId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    return res.json({ success: true, connection: row, seededTransactions: seededCount });
+  } catch (err) {
+    log.error(`register failed: ${err.message}`);
+    return res.status(500).json({
+      success: false,
+      error: 'failed to register item',
+      detail: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
+  }
+});
+
 router.post('/sync/:id', async (req, res) => {
   try {
     const userId = req.user?.id;

@@ -11,7 +11,7 @@
 import React, { useState, useCallback } from 'react';
 import { PluggyConnect } from 'react-pluggy-connect';
 import { Wallet, Loader2, Globe } from 'lucide-react';
-import { getPluggyConnectToken, getTrueLayerAuthUrl } from '@/services/api/transactionsAPI';
+import { getPluggyConnectToken, getTrueLayerAuthUrl, registerPluggyItem } from '@/services/api/transactionsAPI';
 
 interface Props {
   onConnected?: (itemId: string) => void;
@@ -55,11 +55,25 @@ export function ConnectBankButton({ onConnected }: Props) {
   }, []);
 
   const handleSuccess = useCallback(
-    (itemData: { item?: { id?: string } }) => {
+    async (itemData: { item?: { id?: string } }) => {
       setConnectToken(null);
-      if (itemData?.item?.id) {
-        onConnected?.(itemData.item.id);
+      const itemId = itemData?.item?.id;
+      if (!itemId) return;
+
+      // Webhook-delivery fallback: register the item with our backend now
+      // so the connection row exists even when Pluggy can't reach our
+      // webhook URL (local dev) or misses a delivery (prod resilience).
+      // Idempotent — if the webhook already arrived first, this is a no-op.
+      try {
+        const result = await registerPluggyItem(itemId);
+        if (!result.success) {
+          console.warn('[ConnectBankButton] register fallback failed (non-fatal):', result.error);
+        }
+      } catch (err) {
+        console.warn('[ConnectBankButton] register fallback threw (non-fatal):', err);
       }
+
+      onConnected?.(itemId);
     },
     [onConnected],
   );
