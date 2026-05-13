@@ -265,19 +265,42 @@ async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
 }
 
 /**
+ * Resolve the cookie Domain attribute for the current request.
+ *
+ * audit-2026-05-13: previously the refresh_token cookie was host-only,
+ * so a session created on `www.twinme.me` wasn't sent on requests to
+ * the bare apex `twinme.me`, breaking login for users who type the
+ * URL without `www`. Setting `domain=.twinme.me` makes the cookie
+ * apply to both. Vercel preview deploys and localhost stay host-only
+ * (browsers reject `.localhost` and per-deploy-URL Domain attrs).
+ *
+ * Returns undefined for any host where we don't want to set Domain,
+ * which causes res.cookie to omit the attribute entirely (host-only).
+ */
+function resolveCookieDomain(req) {
+  if (process.env.COOKIE_DOMAIN) return process.env.COOKIE_DOMAIN;
+  const host = (req?.get?.('host') || '').toLowerCase();
+  if (host.endsWith('twinme.me')) return '.twinme.me';
+  return undefined;
+}
+
+/**
  * Set refresh token as an httpOnly cookie.
  * - httpOnly: JS cannot read it (XSS-safe)
  * - secure: only sent over HTTPS in production
  * - sameSite strict: prevents CSRF
  * - path restricted to /api/auth: only sent to auth endpoints
+ * - domain: `.twinme.me` for prod so apex + www share the session
  */
-function setRefreshCookie(res, refreshToken) {
+function setRefreshCookie(res, refreshToken, req) {
+  const domain = resolveCookieDomain(req);
   res.cookie('refresh_token', refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     path: '/api/auth',
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    ...(domain ? { domain } : {}),
   });
 }
 
@@ -444,7 +467,7 @@ router.post('/signup', authLimiter, async (req, res) => {
       })
       .catch(err => log.error('Enrichment failed (non-blocking)', { error: err }));
 
-    setRefreshCookie(res, refreshToken);
+    setRefreshCookie(res, refreshToken, req);
 
     res.json({
       success: true,
@@ -517,7 +540,7 @@ router.post('/signin', authLimiter, async (req, res) => {
       return res.status(500).json({ success: false, error: 'Failed to persist session. Please try again.' });
     }
 
-    setRefreshCookie(res, refreshToken);
+    setRefreshCookie(res, refreshToken, req);
 
     res.json({
       success: true,
@@ -673,7 +696,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
       }
     }
 
-    setRefreshCookie(res, newRefreshToken);
+    setRefreshCookie(res, newRefreshToken, req);
 
     res.json({
       success: true,
@@ -905,7 +928,7 @@ router.get('/magic-link/verify', async (req, res) => {
     if (!persisted) {
       return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Signin failed. Try again.')}`);
     }
-    setRefreshCookie(res, refreshToken);
+    setRefreshCookie(res, refreshToken, req);
 
     // Hand off via pending_auth_codes — keeps tokens out of the URL (which
     // would otherwise land in server logs, browser history, and Referer
@@ -972,7 +995,13 @@ router.post('/logout', async (req, res) => {
         // Token expired or invalid — still clear on best effort
       }
     }
+    // Clear both host-only (legacy, pre 2026-05-13) and domain-scoped cookies
+    // so users on the apex see their session end properly after logout.
+    const cookieDomain = resolveCookieDomain(req);
     res.clearCookie('refresh_token', { path: '/api/auth' });
+    if (cookieDomain) {
+      res.clearCookie('refresh_token', { path: '/api/auth', domain: cookieDomain });
+    }
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -1628,7 +1657,7 @@ router.post('/oauth/callback', async (req, res) => {
 
       log.info('Returning auth success with token');
 
-      setRefreshCookie(res, refreshToken);
+      setRefreshCookie(res, refreshToken, req);
 
       // Build response data
       const responseData = {
@@ -1690,7 +1719,7 @@ router.get('/oauth/claim', oauthClaimLimiter, async (req, res) => {
 
   // Set refresh token as httpOnly cookie instead of exposing in response body
   if (session.refresh_token) {
-    setRefreshCookie(res, session.refresh_token);
+    setRefreshCookie(res, session.refresh_token, req);
   }
 
   return res.json({
