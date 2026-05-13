@@ -36,7 +36,10 @@ export const GenerateCTA: React.FC<GenerateCTAProps> = ({
   const { data: existingSignature } = useQuery({
     queryKey: ['soul-signature', 'has-archetype'],
     queryFn: async () => {
-      const res = await authFetch('/soul-signature');
+      // Bug discovered audit-2026-05-13: previous version hit /soul-signature
+      // (the API root info envelope), which has no archetype_name. The actual
+      // archetype lives at /soul-signature/archetype.
+      const res = await authFetch('/soul-signature/archetype');
       if (!res.ok) return null;
       const json = await res.json();
       return json?.data?.archetype_name ? true : false;

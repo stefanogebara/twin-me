@@ -517,9 +517,24 @@ const Settings = () => {
             {user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not set'}
           </span>
         </SettingsRow>
-        <SettingsRow label="Authentication" description="Managed via Google OAuth">
+        <SettingsRow
+          label="Authentication"
+          description={
+            user?.oauthProvider === 'magic_link'
+              ? 'Signed in via email magic link'
+              : user?.oauthProvider === 'google'
+                ? 'Managed via Google OAuth'
+                : user?.oauthProvider
+                  ? `Managed via ${user.oauthProvider}`
+                  : 'Managed via OAuth'
+          }
+        >
           <span className="text-[14px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Google
+            {user?.oauthProvider === 'magic_link'
+              ? 'Email'
+              : user?.oauthProvider
+                ? user.oauthProvider.charAt(0).toUpperCase() + user.oauthProvider.slice(1)
+                : 'OAuth'}
           </span>
         </SettingsRow>
         <SettingsRow label="Timezone" description="Used for morning briefings and greetings">

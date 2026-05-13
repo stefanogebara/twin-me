@@ -27,6 +27,7 @@ interface User {
   profileImageUrl?: string;
   createdAt?: string;
   created_at?: string;
+  oauthProvider?: string | null;
 }
 
 interface AuthContextType {

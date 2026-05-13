@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWeather, getLocalHour, formatDateInTimezone } from '@/hooks/useWeather';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 // MorningBriefingCard removed — chat empty state should be clean and minimal
 
 function getGreeting(firstName: string, hour: number): string {
@@ -82,7 +83,12 @@ export const ChatEmptyState = ({
   const greeting = getGreeting(firstName, localHour);
   const dateStr = formatDateInTimezone(timezone);
 
-  const platformCount = connectedPlatforms.length;
+  // H1 fix (audit-2026-05-12): use canonical platforms summary so the empty-state
+  // chip ("N platforms connected") matches the footer chip ("N Platforms") and
+  // every other surface (/connect, /identity, /wiki). Falls back to
+  // connectedPlatforms.length while the summary loads.
+  const { data: platformsSummary } = usePlatformsSummary();
+  const platformCount = platformsSummary?.total ?? connectedPlatforms.length;
 
   const chips = useMemo(() => {
     const slot = getTimeSlot(localHour);

@@ -320,6 +320,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
       </div>
 
       <motion.h1
+        aria-label={archetypeName}
         className="relative z-10 text-center"
         style={{
           fontFamily: "'Instrument Serif', Georgia, serif",

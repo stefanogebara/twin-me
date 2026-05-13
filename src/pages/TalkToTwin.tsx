@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
+import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
 import { useChatSession } from '../hooks/useChatSession';
 import { useToast } from '@/components/ui/use-toast';
 import { SpotifyLogo, GoogleCalendarLogo, YoutubeLogo, DiscordLogo, LinkedinLogo, GithubLogo, RedditLogo, TwitchLogo, WhoopLogo, GmailLogo } from '@/components/PlatformLogos';
@@ -103,6 +104,10 @@ const TalkToTwin = () => {
     connectedCount,
     isLoading: isLoadingPlatforms
   } = usePlatformStatus(user?.id);
+  // H1 fix (audit-2026-05-12): canonical source so the chat footer chip
+  // matches /connect, /identity, /wiki and the empty-state copy.
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
+  const canonicalPlatformCount = platformsSummary?.total ?? connectedCount;
   const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
   const {
     calendarEvents: sidebarCalendarEvents,
@@ -767,7 +772,7 @@ const TalkToTwin = () => {
             .find(m => m.role === 'assistant' && m.contextUsed?.proactiveInsights?.length)
             ?.contextUsed?.proactiveInsights ?? []
         }
-        platformCount={connectedCount}
+        platformCount={canonicalPlatformCount}
         messageCount={messages.filter(m => !m.failed).length}
         onMorningBriefing={() => handleQuickAction('Give me my morning briefing')}
         mobileOpen={showRightSidebar}

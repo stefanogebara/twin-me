@@ -300,6 +300,7 @@ function buildAuthUser(user) {
     created_at: user.created_at || null,
     emailVerified: user.email_verified ?? undefined,
     email_verified: user.email_verified ?? undefined,
+    oauthProvider: user.oauth_provider || null,
   };
 }
 
@@ -476,7 +477,7 @@ router.post('/signin', authLimiter, async (req, res) => {
     // Get user
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name, password_hash, created_at, email_verified')
+      .select('id, email, first_name, last_name, password_hash, created_at, email_verified, oauth_provider')
       .eq('email', normalizedEmail)
       .single();
 
@@ -547,7 +548,7 @@ router.get('/verify', authenticateUser, async (req, res) => {
 
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name, created_at, email_verified')
+      .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider')
       .eq('id', userId)
       .single();
 
@@ -601,7 +602,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
       tokenRowId = tokenRow.id;
       const { data: userRow } = await supabaseAdmin
         .from('users')
-        .select('id, email, first_name, last_name, created_at, email_verified')
+        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider')
         .eq('id', tokenRow.user_id)
         .single();
       user = userRow || null;
@@ -614,7 +615,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
     if (!user) {
       const { data: legacyUser } = await supabaseAdmin
         .from('users')
-        .select('id, email, first_name, last_name, created_at, email_verified')
+        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider')
         .eq('refresh_token_hash', tokenHash)
         .single();
       user = legacyUser || null;
