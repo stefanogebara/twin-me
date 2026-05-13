@@ -42,6 +42,10 @@ function mintToken(expiresIn = '30m'): string {
 }
 
 setup('authenticate', async ({ page }) => {
+  // Vite's first-cold-compile of /dashboard pulls many lazy chunks; the
+  // default 30s setup timeout flakes here when the dev cache is empty.
+  // 90s is plenty for cold and irrelevant for warm runs.
+  setup.setTimeout(90_000);
   console.log('🔐 Setting up authentication with freshly-minted JWT...');
 
   // Intercept the refresh call BEFORE any navigation so AuthContext's

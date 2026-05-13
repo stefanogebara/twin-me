@@ -106,14 +106,15 @@ test.describe('Santander BR connect flow — diagnostic', () => {
 
     await page.goto(`${BASE_URL}/money`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('load');
-    // Vite dev-server may be HMR-recompiling after a recent source edit — give
-    // the lazy MoneyPage chunk room to settle before probing the UI.
-    await page.waitForTimeout(3500);
-    await snap(page, '01-money-loaded');
 
+    // Cold Vite dev-server compiles the lazy MoneyPage chunk on first hit, which
+    // can take 30+ seconds. Wait actively for the H1 to appear using waitFor()
+    // — note: locator.isVisible() does NOT honor its timeout option (it's a
+    // snapshot check). Use locator.waitFor() for actual timeout-based waiting.
     const moneyHeader = page.getByRole('heading', { name: /^Money$/i, level: 1 });
-    // Wait actively rather than snapshot-probe — chunks can be slow after HMR.
-    const moneyHeaderVisible = await moneyHeader.isVisible({ timeout: 10_000 }).catch(() => false);
+    await moneyHeader.waitFor({ state: 'visible', timeout: 60_000 }).catch(() => {});
+    const moneyHeaderVisible = await moneyHeader.isVisible();
+    await snap(page, '01-money-loaded');
     findings.push({
       step: '/money page loaded with header',
       ok: moneyHeaderVisible,
@@ -122,7 +123,8 @@ test.describe('Santander BR connect flow — diagnostic', () => {
 
     // ── Step 2: locate the Conectar banco BR button
     const connectButton = page.getByRole('button', { name: /Conectar banco BR/i });
-    const buttonVisible = await connectButton.isVisible({ timeout: 5000 }).catch(() => false);
+    await connectButton.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+    const buttonVisible = await connectButton.isVisible();
     findings.push({
       step: 'Conectar banco BR button visible',
       ok: buttonVisible,
@@ -197,6 +199,18 @@ test.describe('Santander BR connect flow — diagnostic', () => {
     }
 
     await snap(page, '03-widget-mounted');
+
+    // ── Step 5b: dismiss Pluggy's intro/onboarding modal if present.
+    // The widget opens with a "Demo uso a Pluggy para se conectar às suas
+    // contas" splash that has a Continuar / Continue button before the
+    // bank list appears.
+    const introContinue = pluggyIframe.getByRole('button', { name: /Continuar|Continue|Começar|Get started|Avançar/i }).first();
+    if (await introContinue.isVisible().catch(() => false)) {
+      console.log('[diag] Dismissing Pluggy intro modal');
+      await introContinue.click().catch(() => {});
+      await page.waitForTimeout(1500);
+      await snap(page, '03b-after-intro');
+    }
 
     // ── Step 6: determine environment (sandbox vs production)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -310,12 +324,26 @@ test.describe('Santander BR connect flow — diagnostic', () => {
       await snap(page, '08-password');
     }
 
-    // Submit — connector buttons can be labeled "Continuar" / "Conectar" / "Continue"
-    const submitButton = pluggyIframe.getByRole('button', { name: /Continuar|Continue|Conectar|Connect|Confirmar/i }).first();
-    if (await submitButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await submitButton.click();
-      findings.push({ step: 'Clicked submit', ok: true, detail: 'OK' });
+    // Pluggy's sandbox NeoPluggy connector has MULTIPLE consent screens
+    // ("Continuar" intro → "Conectar" authorize → external mock auth →
+    // back to widget). Click any submit-shaped button repeatedly until
+    // we either see no more such buttons or the widget closes.
+    const submitRegex = /Continuar|Continue|Conectar|Connect|Confirmar|Authorize|Autorizar|Sim|Yes/i;
+    let submitClicks = 0;
+    for (let i = 0; i < 6; i++) {
+      const submitButton = pluggyIframe.getByRole('button', { name: submitRegex }).first();
+      const visible = await submitButton.isVisible({ timeout: 1500 }).catch(() => false);
+      if (!visible) break;
+      await submitButton.click().catch(() => {});
+      submitClicks++;
+      await page.waitForTimeout(2500);
+      await snap(page, `08-submit-${i + 1}`);
     }
+    findings.push({
+      step: 'Clicked through Pluggy consent screens',
+      ok: submitClicks > 0,
+      detail: `${submitClicks} submit click(s) made`,
+    });
 
     // Wait for connection to settle — Pluggy widget closes on success,
     // BankConnectionsList back on /money should pick up the new item.
