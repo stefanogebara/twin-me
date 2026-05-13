@@ -4,6 +4,9 @@ scripts/autoresearch-results/
 # Master audit runner results (per-run, regenerable)
 audit-results/
 
+# Playwright persistent profile (Pluggy setup script) — contains session cookies
+.playwright-user-data/
+
 # Secrets / deploy hooks
 DEPLOY_HOOK_URL.txt
 

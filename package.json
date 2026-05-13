@@ -23,7 +23,8 @@
     "audit:chat": "node scripts/audit-all.mjs --only=chat",
     "audit:identity": "node scripts/audit-all.mjs --only=identity",
     "audit:a11y": "node scripts/audit-all.mjs --only=a11y",
-    "audit:pages": "node scripts/audit-all.mjs --only=money,chat,identity"
+    "audit:pages": "node scripts/audit-all.mjs --only=money,chat,identity",
+    "pluggy:setup": "node scripts/pluggy-setup.mjs"
   },
   "dependencies": {
     "@bull-board/api": "^6.13.1",
