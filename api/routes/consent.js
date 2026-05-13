@@ -1,5 +1,12 @@
 import express from 'express';
-import supabase from '../config/supabase.js';
+// audit-2026-05-14: swap from the anon-key client (default export) to the
+// service-role client. user_consents has an RLS policy
+// `(user_id = auth.uid())` but the route uses public.users.id (not auth.uid),
+// and the anon client never carries an auth.uid context anyway, so every
+// query was 500ing with an RLS denial. authenticateUser middleware already
+// gates the route — bypassing RLS at the DB level is the correct pattern
+// (same as every other backend route under api/routes/).
+import { supabaseAdmin as supabase } from '../config/supabase.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 
