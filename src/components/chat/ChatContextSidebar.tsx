@@ -358,7 +358,11 @@ export const ChatContextSidebar = ({
     <>
       {/* Desktop sidebar: always in DOM, collapsible */}
       <div className="relative hidden lg:flex flex-shrink-0">
-        {/* Collapse/expand toggle */}
+        {/* Collapse/expand toggle.
+            audit-2026-05-13 M2: data-testid + aria-expanded give automated
+            probes a stable selector regardless of which way the button is
+            currently pointing. aria-label still swaps with state so screen
+            reader users hear the action that will happen on click. */}
         <button
           onClick={toggleCollapsed}
           className="absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center rounded-full transition-all duration-200 hover:scale-110"
@@ -368,6 +372,8 @@ export const ChatContextSidebar = ({
             color: 'rgba(255,255,255,0.4)',
           }}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          data-testid="context-sidebar-collapse-toggle"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? (

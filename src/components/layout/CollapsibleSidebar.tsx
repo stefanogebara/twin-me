@@ -309,12 +309,21 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 )}
               </button>
 
-              {/* Collapse/Expand toggle — desktop only */}
+              {/* Collapse/Expand toggle — desktop only.
+                  audit-2026-05-13 M2: data-testid is a stable handle for
+                  automated probes. aria-label swaps with state so screen
+                  reader users hear the action that will happen on click,
+                  but a selector like [aria-label*="Collapse"] only matches
+                  in one state. data-testid + aria-expanded give audits a
+                  reliable selector regardless of which way the button is
+                  currently pointing. */}
               <button
                 type="button"
                 onClick={toggleCollapse}
                 className="hidden lg:flex w-full items-center justify-center py-2 rounded-full hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out"
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-expanded={!isCollapsed}
+                data-testid="sidebar-collapse-toggle"
                 title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 {isCollapsed
