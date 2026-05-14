@@ -499,7 +499,18 @@ export async function complete({
       tokens: usage.total_tokens, cost: cost.toFixed(4), latencyMs,
     });
 
-    const result = { content, model, usage, cost, cacheHit: false };
+    // audit-2026-05-13 H2: derive cache_hit from the response usage rather
+    // than hardcoding false. cached_tokens > 0 means the prompt prefix hit
+    // Anthropic / OpenRouter prompt caching. The Redis full-response cache
+    // is a separate concept handled earlier in this function (~line 462)
+    // which sets cacheHit: true on its own short-circuit path.
+    //
+    // Before this fix, llm_usage_log.cache_hit was always false for cache-
+    // miss-but-prompt-prefix-cached calls. The talk-to-twin live audit
+    // measured 45.6% of input tokens served from prompt cache while
+    // cache_hit reported 0 hits — masking real cache effectiveness.
+    const promptCacheHit = (usage.cached_tokens || 0) > 0;
+    const result = { content, model, usage, cost, cacheHit: promptCacheHit };
 
     // Cache result (unless caller opted out)
     if (ttl > 0 && !skipCache) {
@@ -507,8 +518,8 @@ export async function complete({
       await cacheSet(cacheKey, result, ttl);
     }
 
-    // Log to Supabase
-    logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit: false, latencyMs });
+    // Log to Supabase — cache_hit reflects whether the prompt prefix hit cache
+    logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit: promptCacheHit, latencyMs });
 
     // Circuit breaker success (4B)
     recordCircuitBreakerSuccess();
@@ -649,19 +660,23 @@ export async function stream({
     clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
     const cost = calculateCost(model, usage);
+    // audit-2026-05-13 H2: same fix as the non-streaming path above —
+    // derive cache_hit from cached_tokens instead of hardcoding false.
+    const promptCacheHit = (usage.cached_tokens || 0) > 0;
 
     log.info('LLM stream complete', {
       serviceName: serviceName || 'unknown', tier, model,
-      tokens: usage.total_tokens, cost: cost.toFixed(4), latencyMs,
+      tokens: usage.total_tokens, cachedTokens: usage.cached_tokens,
+      cacheHit: promptCacheHit, cost: cost.toFixed(4), latencyMs,
     });
 
     // Log to Supabase
-    logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit: false, latencyMs });
+    logUsage({ userId, serviceName, model, tier, usage, cost, cacheHit: promptCacheHit, latencyMs });
 
     // Circuit breaker success (4B)
     recordCircuitBreakerSuccess();
 
-    return { content: fullContent, model, usage, cost, cacheHit: false };
+    return { content: fullContent, model, usage, cost, cacheHit: promptCacheHit };
 
   } catch (error) {
     const latencyMs = Date.now() - startTime;
