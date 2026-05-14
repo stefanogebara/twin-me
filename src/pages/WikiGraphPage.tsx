@@ -87,9 +87,16 @@ const WikiGraphPage: React.FC = () => {
           onNodeClick={handleNodeClick}
         />
 
-        {/* Domain Nav Pills -- Floating bottom center */}
+        {/* Domain Nav Pills -- Floating bottom center.
+            audit-2026-05-14 mobile: the 5-pill nowrap row is ~465px wide; on a
+            390px viewport, centering via -translate-x-1/2 bled "Personality"
+            off the left edge and "Motivation" off the right, with no way to
+            scroll to them. max-w caps the pill to the viewport and overflow-x
+            turns it into a scroll strip on narrow screens (no-op on desktop
+            where the row already fits). Webkit scrollbar hidden to keep the
+            rounded-pill chrome clean. */}
         <div
-          className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-1.5 py-1 z-10"
+          className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-1.5 py-1 z-10 max-w-[calc(100vw-1rem)] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{
             background: 'rgba(19,18,26,0.85)',
             backdropFilter: 'blur(42px)',
@@ -105,7 +112,7 @@ const WikiGraphPage: React.FC = () => {
               <button
                 key={domain}
                 onClick={() => handleDomainClick(domain)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all duration-150"
+                className="flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all duration-150"
                 style={{
                   background: isActive ? `${config.color}22` : 'transparent',
                   border: isActive ? `1px solid ${config.color}44` : '1px solid transparent',
