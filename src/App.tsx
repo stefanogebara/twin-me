@@ -26,6 +26,10 @@ import Index from "./pages/Index";
 import CustomAuth from "./pages/CustomAuth";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
+// audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
+// mobile users see the chat shell (header + composer placeholder) within
+// the first paint instead of waiting on a centered loading spinner.
+import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 
 // Lazy-loaded pages (code-split into separate chunks)
 const loadDashboardV2 = () => import("./pages/DashboardV2");
@@ -408,12 +412,17 @@ const App = () => {
               </ProtectedRoute>
             } />
 
-            {/* Chat with Twin */}
+            {/* Chat with Twin -- H1: route-local Suspense with a chat-shape
+                skeleton so the composer placeholder is visible from the
+                first paint on mobile (the global fallback was hiding the
+                input region for >3.5s on slow connections). */}
             <Route path="/talk-to-twin" element={
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>
-                    <TalkToTwin />
+                    <Suspense fallback={<TalkToTwinSkeleton />}>
+                      <TalkToTwin />
+                    </Suspense>
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
