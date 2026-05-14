@@ -36,11 +36,44 @@ const USER_EMAIL_DOMAINS = new Set(); // populated per-call from user's own emai
 const LOOK_AHEAD_MIN_HOURS = 0;
 const LOOK_AHEAD_MAX_HOURS = 26;
 
+// Generic calendar-block titles that aren't real appointments — focus time,
+// lunch holds, "busy" exports from other calendars, etc. Briefing these is
+// noise. Matched case-insensitively against the whole title.
+const GENERIC_BLOCK_PATTERNS = [
+  /^busy$/i,
+  /^blocked?$/i,
+  /^focus(\s*time)?$/i,
+  /^lunch$/i,
+  /^break$/i,
+  /^hold$/i,
+  /^ooo$/i,
+  /^out of office$/i,
+  /^dnd$/i,
+  /^do not disturb$/i,
+  /^free$/i,
+  /^tentative$/i,
+  /^private$/i,
+];
+
+function isGenericBlock(summary) {
+  if (!summary) return true; // untitled events aren't worth briefing
+  const trimmed = summary.trim();
+  return GENERIC_BLOCK_PATTERNS.some((p) => p.test(trimmed));
+}
+
 /**
- * Scan the user's Google Calendar for upcoming events (0-26h ahead) that
- * have at least one EXTERNAL attendee. Internal-only meetings are skipped
- * to keep the briefing signal high (you don't need a briefing for your
- * own standup). Shared by the cron and the on-demand /scan endpoint.
+ * Scan the user's Google Calendar for upcoming events worth briefing
+ * (0-26h ahead). Briefs ANY real timed appointment — multi-person business
+ * meetings AND solo appointments (a doctor, a hairdresser, a 1:1) — because
+ * a real personal calendar is mostly the latter and they're all worth
+ * walking in prepared for.
+ *
+ * Skips: all-day events (no dateTime), events the user has declined,
+ * and generic calendar blocks (focus time, "busy", lunch holds).
+ *
+ * Shared by the cron and the on-demand /scan endpoint.
+ * (Kept the name fetchUpcomingExternalEvents for import compat — the
+ *  behaviour is now "all real meetings", not "external-attendee only".)
  */
 export async function fetchUpcomingExternalEvents(userId) {
   const tokenResult = await getValidAccessToken(userId, 'google_calendar');
@@ -70,15 +103,24 @@ export async function fetchUpcomingExternalEvents(userId) {
     .select('email')
     .eq('id', userId)
     .single();
-
   const userEmail = userRow?.email || '';
-  const userDomain = userEmail.split('@')[1];
 
   return (data.items || []).filter((event) => {
-    const attendees = event.attendees || [];
-    return attendees.some(
-      (a) => a.email !== userEmail && !a.resource && (!userDomain || !a.email.endsWith(`@${userDomain}`)),
-    );
+    // Timed events only — all-day events (start.date instead of dateTime)
+    // are usually birthdays, OOO, multi-day trips — not appointments to prep.
+    if (!event.start?.dateTime) return false;
+
+    // Skip generic calendar blocks (focus time, busy, lunch).
+    if (isGenericBlock(event.summary)) return false;
+
+    // Skip events the user explicitly declined.
+    const selfAttendee = (event.attendees || []).find((a) => a.email === userEmail || a.self);
+    if (selfAttendee?.responseStatus === 'declined') return false;
+
+    // Everything else — solo appointments AND multi-person meetings — is
+    // worth a briefing. Attendee research just runs lighter when there
+    // are no other attendees.
+    return true;
   });
 }
 
