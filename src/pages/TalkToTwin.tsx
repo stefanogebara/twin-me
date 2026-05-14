@@ -31,6 +31,12 @@ interface ActionEvent {
   status: 'executing' | 'complete' | 'failed';
   data?: any;
   elapsedMs?: number;
+  // audit-2026-05-13 follow-up: backend now bounds each tool to 30s and
+  // surfaces a degraded result instead of hanging the whole stream.
+  // The UI uses these flags to render a "data lookup timed out" badge
+  // rather than a generic failure.
+  timedOut?: boolean;
+  degraded?: boolean;
 }
 
 interface ProposalEvent {
@@ -455,6 +461,11 @@ const TalkToTwin = () => {
                       status: event.success ? 'complete' as const : 'failed' as const,
                       data: event.data,
                       elapsedMs: event.elapsedMs,
+                      // Carry the new degraded / timedOut flags through so
+                      // downstream renderers can surface a tasteful
+                      // "data lookup timed out" badge.
+                      timedOut: !!event.timedOut,
+                      degraded: !!event.degraded,
                     } : a
                   )
                 } : m

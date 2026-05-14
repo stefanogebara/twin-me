@@ -22,6 +22,52 @@ const log = createLogger('WorkspaceActionChain');
 
 const MAX_ACTION_CHAIN_DEPTH = 3;
 
+// audit-2026-05-13 follow-up: 30s budget per tool execution. The
+// talk-to-twin live audit found ~26% of tool-routed queries hitting
+// the previous 50s stream timeout — many of those were single slow
+// tool calls (recovery score, transaction lookup) hanging the whole
+// chat turn. Bounding each tool keeps a slow data lookup from killing
+// the conversation. On timeout, we feed a synthetic "timed out" result
+// back to the LLM so it can degrade gracefully ("couldn't pull X this
+// time, but...") rather than the user seeing a hard stream-close error.
+const TOOL_EXECUTION_TIMEOUT_MS = 30000;
+
+/**
+ * Race a promise against a deadline. Resolves with the promise value or
+ * rejects with a tagged TOOL_TIMEOUT error. The cancel timer always
+ * clears regardless of which side wins.
+ */
+function withTimeout(promise, ms, tag) {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error(`tool timeout: ${tag} exceeded ${ms}ms`);
+      err.code = 'TOOL_TIMEOUT';
+      err.tag = tag;
+      err.budgetMs = ms;
+      reject(err);
+    }, ms);
+  });
+  return Promise.race([
+    promise.finally(() => clearTimeout(timer)),
+    deadline,
+  ]);
+}
+
+/**
+ * Build the synthetic result block that gets fed to the follow-up LLM
+ * call when a tool exceeds its budget. The phrasing is deliberately
+ * direct so the twin says "I couldn't fetch X this time" rather than
+ * trying to make up the missing data.
+ */
+function buildTimeoutResultBlock(toolName, budgetMs) {
+  return [
+    `TOOL_RESULT [${toolName}]: TIMED OUT after ${Math.round(budgetMs / 1000)}s.`,
+    'The data lookup did not return in time. Do NOT invent or guess the data.',
+    'Acknowledge briefly that you could not fetch this and continue with what you already know about the user. Suggest they retry if they specifically need this data point.',
+  ].join('\n');
+}
+
 const FOLLOW_UP_FORMATTING_INSTRUCTIONS = [
   'Incorporate these results using this EXACT format:',
   '- Use a plain text heading for the topic (no emojis)',
@@ -55,14 +101,16 @@ export async function runWorkspaceActionChain({
   isStreaming,
   res,
   chatLog,
+  traceId,
   onChainStart,
 }) {
   let assistantMessage = initialMessage;
   let chainDepth = 0;
+  let degraded = false;
   let detectedActions = parseActions(assistantMessage);
 
   if (detectedActions.length === 0) {
-    return { assistantMessage, chainDepth };
+    return { assistantMessage, chainDepth, degraded };
   }
 
   if (typeof onChainStart === 'function') onChainStart();
@@ -79,8 +127,38 @@ export async function runWorkspaceActionChain({
         try { res.write(`data: ${JSON.stringify({ type: 'action_start', tool: action.toolName, params: action.params })}\n\n`); } catch { /* ignore */ }
       }
 
-      const actionResult = await executeAction(userId, action);
-      const resultBlock = formatActionResult(actionResult);
+      // audit-2026-05-13 follow-up: bound each tool to 30s. A single slow
+      // data lookup used to hang the whole chat stream until the 55s
+      // controller timeout fired, leaving the user with a "try again"
+      // error and no twin response at all. With the budget, we now feed
+      // a synthetic "timed out" result back to the LLM so the twin can
+      // degrade gracefully and keep the conversation flowing.
+      let actionResult;
+      try {
+        actionResult = await withTimeout(
+          executeAction(userId, action),
+          TOOL_EXECUTION_TIMEOUT_MS,
+          action.toolName,
+        );
+      } catch (timeoutErr) {
+        if (timeoutErr.code !== 'TOOL_TIMEOUT') throw timeoutErr;
+        log.warn('Tool execution exceeded budget — degrading', {
+          traceId, userId, tool: action.toolName, budgetMs: TOOL_EXECUTION_TIMEOUT_MS,
+        });
+        degraded = true;
+        actionResult = {
+          success: false,
+          timedOut: true,
+          degraded: true,
+          elapsedMs: TOOL_EXECUTION_TIMEOUT_MS,
+          data: null,
+          error: 'tool_execution_timeout',
+          // Pre-formatted block so we don't try to render an empty payload
+          // through formatActionResult (which expects success data).
+          _resultBlockOverride: buildTimeoutResultBlock(action.toolName, TOOL_EXECUTION_TIMEOUT_MS),
+        };
+      }
+      const resultBlock = actionResult._resultBlockOverride || formatActionResult(actionResult);
 
       if (isStreaming) {
         const actionEvent = actionResult.pendingConfirmation
@@ -92,7 +170,18 @@ export async function runWorkspaceActionChain({
               description: actionResult.description || `Action "${action.toolName}" requires your approval`,
               department: actionResult.department || action.toolName.split('_')[0] || 'workspace',
             }
-          : { type: 'action_result', tool: action.toolName, success: actionResult.success, data: actionResult.data, elapsedMs: actionResult.elapsedMs };
+          : {
+              type: 'action_result',
+              tool: action.toolName,
+              success: actionResult.success,
+              data: actionResult.data,
+              elapsedMs: actionResult.elapsedMs,
+              // Surface degradation to the client so the UI can render
+              // a "data lookup timed out" badge instead of a generic
+              // failure or, worse, hiding the failure entirely.
+              ...(actionResult.timedOut && { timedOut: true }),
+              ...(actionResult.degraded && { degraded: true }),
+            };
         try { res.write(`data: ${JSON.stringify(actionEvent)}\n\n`); } catch { /* ignore */ }
       }
 
@@ -131,11 +220,18 @@ export async function runWorkspaceActionChain({
 
       if (actionResult.pendingConfirmation) {
         detectedActions = [];
+      } else if (actionResult.timedOut) {
+        // Don't chain another tool call after a budget overrun — the
+        // follow-up LLM call above already produced the graceful "I
+        // couldn't fetch this" response. Chaining further on missing
+        // data would burn more time without recovering the lost info.
+        detectedActions = [];
       } else {
         detectedActions = parseActions(assistantMessage);
       }
     } catch (actionErr) {
       log.warn('Workspace action execution failed (non-fatal)', {
+        traceId,
         error: actionErr.message,
         tool: action.toolName,
         chainDepth,
@@ -149,5 +245,5 @@ export async function runWorkspaceActionChain({
     try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: assistantMessage })}\n\n`); } catch { /* ignore */ }
   }
 
-  return { assistantMessage, chainDepth };
+  return { assistantMessage, chainDepth, degraded };
 }

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Calendar, FolderSearch, FileText, Table2, Users,
-  Check, ChevronLeft, ChevronRight, Trash2, Pencil,
+  Check, ChevronLeft, ChevronRight, Trash2, Pencil, Clock,
 } from 'lucide-react';
 
 interface ActionEvent {
@@ -11,6 +11,10 @@ interface ActionEvent {
   status: 'executing' | 'complete' | 'failed';
   data?: any;
   elapsedMs?: number;
+  // audit-2026-05-13 follow-up: backend now bounds each tool to 30s and
+  // surfaces a degraded result instead of hanging the whole stream.
+  timedOut?: boolean;
+  degraded?: boolean;
 }
 
 interface WorkspaceActionCardProps {
@@ -229,6 +233,36 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
   }
 
   if (action.status === 'failed') {
+    // audit-2026-05-13 follow-up: distinguish budget timeouts from
+    // generic failures. Timeouts get an amber clock badge + honest
+    // "data lookup timed out" copy so the user understands the twin
+    // is responding from what it already knows rather than guessing.
+    if (action.timedOut) {
+      return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+          style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+        >
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4" style={{ color: 'rgba(217,119,6,0.7)' }} aria-hidden="true" />
+            <span
+              className="text-[11px] uppercase tracking-[0.15em] font-medium"
+              style={{ color: 'rgba(217,119,6,0.7)' }}
+            >
+              {config.label} lookup timed out
+            </span>
+          </div>
+          <div
+            className="text-[12px] mt-1 ml-6"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+          >
+            Your twin continued without this data. Retry to fetch it.
+          </div>
+        </motion.div>
+      );
+    }
     return (
       <motion.div
         initial={{ opacity: 0 }}
