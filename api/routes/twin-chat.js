@@ -10,6 +10,7 @@
  */
 
 import express from 'express';
+import crypto from 'crypto';
 import { authenticateUser } from '../middleware/auth.js';
 import { buildContextSourcesMeta } from '../services/twinContextBuilder.js';
 import { classifyNeuropil } from '../services/neuropilRouter.js';
@@ -55,11 +56,24 @@ const MAX_ADDITIONAL_CONTEXT_CHARS = 12000;
  */
 router.post('/message', authenticateUser, async (req, res) => {
   const chatStartTime = Date.now();
-  const chatLog = (label) => log.debug(label, { elapsedMs: Date.now() - chatStartTime });
+  // audit-2026-05-13 follow-up: per-request trace ID. 8-char hex is wide
+  // enough to be unique in a few-million-row window and short enough to
+  // grep cleanly. Set as a response header so the client can attach it
+  // to crash reports / user complaints and we can pivot from a single
+  // log line back to the full request.
+  const traceId = crypto.randomBytes(4).toString('hex');
+  res.setHeader('X-Twin-Trace-Id', traceId);
+  const chatLog = (label) => log.debug(label, { traceId, elapsedMs: Date.now() - chatStartTime });
+  // Structured per-hop timing emission. Use info level (above debug) so
+  // hops appear in prod logs by default. Tagged with the same traceId
+  // so a single request can be reconstructed end-to-end.
+  const hopLog = (hop, extra = {}) =>
+    log.info('chat.hop', { traceId, hop, elapsedMs: Date.now() - chatStartTime, ...extra });
   let stream = null;
   try {
     const userId = req.user.id;
     const { context } = req.body || {};
+    hopLog('start', { userId, messageLen: req.body?.message?.length || 0 });
 
     // Input validation extracted to ../services/twinChatInputValidation.js.
     // NB: this NO LONGER creates a conversation row — see audit bug H4
@@ -78,8 +92,10 @@ router.post('/message', authenticateUser, async (req, res) => {
     // rate limit) extracted to ../services/twinChatPreFlightChecks.js.
     const preFlight = await runChatPreFlightChecks({ userId });
     if (!preFlight.ok) {
+      hopLog('preflight_blocked', { status: preFlight.status });
       return res.status(preFlight.status).json(preFlight.body);
     }
+    hopLog('preflight_passed');
 
     // Audit bug H4: create the conversation row only AFTER pre-flight
     // gates pass. Avoids orphan conversations on rate-limit / quota / paywall
@@ -97,34 +113,44 @@ router.post('/message', authenticateUser, async (req, res) => {
     // ../services/twinChatStreamController.js.
     const isStreaming = req.query.stream === '1';
     stream = createStreamController({ res, isStreaming, userId, chatStartTime });
+    hopLog('sse_bootstrapped', { isStreaming });
 
     // Classify neuropil domain BEFORE context fetch so we can route retrieval
     const neuropilResult = useConnectomeNeuropils ? classifyNeuropil(message) : { neuropilId: null, weights: null, budgets: null, confidence: 0 };
     if (neuropilResult.neuropilId) {
       chatLog(`Neuropil: ${neuropilResult.neuropilId} (confidence=${neuropilResult.confidence})`);
     }
+    hopLog('neuropil_classified', { neuropilId: neuropilResult.neuropilId, confidence: neuropilResult.confidence });
 
     // Routing vars (populated by smart-routing after context fetch)
     let routedModel = null;
     let routingTier = null;
 
     chatLog('Starting fetchTwinContext');
+    hopLog('context_fetch_start');
     // Audit bug H10 (2026-05-12): measure cold-start latency here. The
     // pre-flight context fan-out is the dominant cost of a chat turn and
     // is what the recent per-leg-timeout + HyDE-skip work was tuning. The
     // value is persisted into mcp_conversation_logs.cold_start_ms below.
     const coldStartBegin = Date.now();
     let twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock;
+    let preflightLegTimings = null;
     try {
-      ({ twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock } =
+      ({ twinContext, userLocation, personalityProfile, soulLayers, oracleDraft, workspaceBlock, _legTimings: preflightLegTimings } =
         await fetchChatPreFlight({ userId, message, context, neuropilResult, usePersonalityOracle }));
     } finally {
       stream.clearHeartbeat();
     }
     const coldStartMs = Date.now() - coldStartBegin;
     chatLog('fetchTwinContext complete');
+    hopLog('context_fetch_done', {
+      coldStartMs,
+      ...(preflightLegTimings || {}),
+      ...(twinContext.timings || {}),
+    });
     if (twinContext.timings) {
       log.info('Chat context timings', {
+        traceId,
         totalContextMs: Date.now() - chatStartTime,
         ...twinContext.timings
       });
@@ -189,11 +215,17 @@ router.post('/message', authenticateUser, async (req, res) => {
     const conversationHistoryPromise = fetchConversationHistory(userId, conversationId);
     const creativityBoostPromise = fetchCreativityBoost(userId, conversationId);
 
+    const parallelMetaStart = Date.now();
     const [expertResult, conversationHistory, creativityResult] = await Promise.all([
       expertRoutingPromise,
       conversationHistoryPromise,
       creativityBoostPromise,
     ]);
+    hopLog('parallel_meta_done', {
+      parallelMetaMs: Date.now() - parallelMetaStart,
+      historyMsgs: conversationHistory?.length || 0,
+      expertDomain: expertResult?.routingResult?.domain || null,
+    });
 
     const expertRoutingResult = expertResult?.routingResult || null;
     const expertMemories = expertResult?.expertMemories || [];
@@ -235,7 +267,8 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Log total system prompt size for monitoring
     const totalSystemChars = systemPrompt.reduce((sum, block) => sum + (block.text?.length || 0), 0);
     const estimatedTokens = Math.ceil(totalSystemChars / 4);
-    log.info('System prompt built', { chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
+    log.info('System prompt built', { traceId, chars: totalSystemChars, estimatedTokens, historyMsgs: conversationHistory.length });
+    hopLog('prompt_assembled', { chars: totalSystemChars, estTokens: estimatedTokens });
 
     // Task intent classification + system-prompt injection extracted to
     // ../services/taskIntentInjector.js.
@@ -277,6 +310,8 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // First LLM call extracted to ../services/twinFirstLlmCall.js. Helper
     // throws on gateway failure; route maps to the right HTTP/SSE response.
+    const llmStart = Date.now();
+    hopLog('llm_first_call_start', { tier: routingTier, model: routedModel });
     try {
       const firstCall = await runFirstLlmCall({
         isStreaming, systemPrompt, llmMessages, userId, routingTier, routedModel,
@@ -284,7 +319,9 @@ router.post('/message', authenticateUser, async (req, res) => {
         neurotransmitterMode, workspaceActionsEnabled, res, chatLog,
       });
       assistantMessage = firstCall.assistantMessage;
+      hopLog('llm_first_call_done', { llmMs: Date.now() - llmStart, replyChars: assistantMessage?.length || 0 });
     } catch (llmError) {
+      hopLog('llm_first_call_failed', { llmMs: Date.now() - llmStart, error: llmError?.message?.slice(0, 200) });
       stream.clearTimeoutTimer();
       if (stream.timedOut()) return;
       log.error('LLM Gateway failed', { error: llmError, streaming: isStreaming });
@@ -307,6 +344,7 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Workspace action chain extracted to ../services/workspaceActionChain.js.
     if (workspaceActionsEnabled && assistantMessage) {
+      const chainStart = Date.now();
       const chainResult = await runWorkspaceActionChain({
         userId,
         initialMessage: assistantMessage,
@@ -316,17 +354,25 @@ router.post('/message', authenticateUser, async (req, res) => {
         isStreaming,
         res,
         chatLog,
+        traceId,
         onChainStart: () => stream.extendTimeout(115000, 'Action took too long. Please try again.'),
       });
       assistantMessage = chainResult.assistantMessage;
+      hopLog('action_chain_done', {
+        chainMs: Date.now() - chainStart,
+        depth: chainResult.chainDepth,
+        degraded: chainResult.degraded || false,
+      });
     }
 
     const llmMs = Date.now() - chatStartTime - contextBuildMs;
     log.info('Chat complete', {
+      traceId,
       totalMs: Date.now() - chatStartTime,
       contextMs: contextBuildMs,
       llmMs,
     });
+    hopLog('done', { totalMs: Date.now() - chatStartTime, contextMs: contextBuildMs, llmMs });
 
     // Persistence (LZ score, twin_messages rows, unified conversation log,
     // memory stream write) extracted to ../services/twinChatPersistence.js.

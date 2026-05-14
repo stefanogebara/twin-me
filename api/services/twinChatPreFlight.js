@@ -58,6 +58,17 @@ async function fetchUserLocation(userId) {
   }
 }
 
+/**
+ * Record-and-await helper: invokes a sidecar fetch and records its wall
+ * time into `timings[key]`. The audit-2026-05-13 follow-up wired these
+ * leg timings into the chat hop log so the per-request trace shows
+ * which preflight leg dominates on slow requests.
+ */
+function timeLeg(timings, key, fn) {
+  const t0 = Date.now();
+  return fn().finally(() => { timings[key] = Date.now() - t0; });
+}
+
 export async function fetchChatPreFlight({
   userId,
   message,
@@ -75,32 +86,40 @@ export async function fetchChatPreFlight({
   let soulLayers = null;
   let oracleDraft = null;
   let workspaceBlock = null;
+  const _legTimings = {};
 
   const sidecars = [
-    fetchUserLocation(userId).then(loc => { userLocation = loc; }),
-    getProfile(userId)
-      .then(p => { personalityProfile = p; })
-      .catch(err => { log.warn('Personality profile fetch failed', { error: err?.message }); }),
-    getSoulSignatureLayers(userId)
-      .then(layers => { soulLayers = layers; })
-      .catch(err => { log.warn('Soul signature layers fetch failed', { error: err?.message }); }),
-    buildWorkspaceActionsPrompt(userId)
-      .then(block => { workspaceBlock = block; })
-      .catch(() => { /* non-fatal */ }),
+    timeLeg(_legTimings, 'legUserLocationMs', () =>
+      fetchUserLocation(userId).then(loc => { userLocation = loc; })),
+    timeLeg(_legTimings, 'legPersonalityMs', () =>
+      getProfile(userId)
+        .then(p => { personalityProfile = p; })
+        .catch(err => { log.warn('Personality profile fetch failed', { error: err?.message }); })),
+    timeLeg(_legTimings, 'legSoulLayersMs', () =>
+      getSoulSignatureLayers(userId)
+        .then(layers => { soulLayers = layers; })
+        .catch(err => { log.warn('Soul signature layers fetch failed', { error: err?.message }); })),
+    timeLeg(_legTimings, 'legWorkspacePromptMs', () =>
+      buildWorkspaceActionsPrompt(userId)
+        .then(block => { workspaceBlock = block; })
+        .catch(() => { /* non-fatal */ })),
   ];
 
   if (usePersonalityOracle) {
     sidecars.push(
-      getOracleDraft(userId, message)
-        .then(draft => { oracleDraft = draft; })
-        .catch(() => { /* graceful fallback — oracle is optional */ })
+      timeLeg(_legTimings, 'legOracleDraftMs', () =>
+        getOracleDraft(userId, message)
+          .then(draft => { oracleDraft = draft; })
+          .catch(() => { /* graceful fallback — oracle is optional */ }))
     );
   }
 
+  const twinCtxStart = Date.now();
   const [twinContext] = await Promise.all([
     fetchTwinContext(userId, message, contextOptions),
     ...sidecars,
   ]);
+  _legTimings.legTwinContextMs = Date.now() - twinCtxStart;
 
   return {
     twinContext,
@@ -109,5 +128,6 @@ export async function fetchChatPreFlight({
     soulLayers,
     oracleDraft,
     workspaceBlock,
+    _legTimings,
   };
 }
