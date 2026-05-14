@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWeather, getLocalHour, formatDateInTimezone } from '@/hooks/useWeather';
 import { usePlatformsSummary } from '@/hooks/usePlatformsSummary';
+import {
+  generateSuggestionChips,
+  type CalendarEventLike,
+  type ProactiveInsightLike,
+  type RecentEmailLike,
+} from './generateSuggestionChips';
 // MorningBriefingCard removed — chat empty state should be clean and minimal
 
 function getGreeting(firstName: string, hour: number): string {
@@ -10,41 +16,6 @@ function getGreeting(firstName: string, hour: number): string {
   if (hour >= 12 && hour < 18) return `Good Afternoon, ${firstName}`;
   if (hour >= 18 && hour < 22) return `Good Evening, ${firstName}`;
   return `Good Night, ${firstName}`;
-}
-
-// NO EMOJIS per CLAUDE.md — chips use plain text only
-const TIME_BASED_CHIPS: Record<string, string[]> = {
-  morning: [
-    'Check my emails',
-    "What's on my calendar?",
-    'Morning briefing',
-    'What patterns do you see?',
-  ],
-  afternoon: [
-    'What does my music say about me?',
-    "How's my recovery?",
-    'Check my emails',
-    'Draft an email for me',
-  ],
-  evening: [
-    "How's my sleep been?",
-    'What does my music say about me?',
-    'What patterns do you see?',
-    "What's tomorrow look like?",
-  ],
-  night: [
-    "How's my sleep been?",
-    'What patterns do you see?',
-    'What does my music say about me?',
-    'Tell me something surprising about myself',
-  ],
-};
-
-function getTimeSlot(hour: number): string {
-  if (hour >= 6 && hour < 12) return 'morning';
-  if (hour >= 12 && hour < 18) return 'afternoon';
-  if (hour >= 18 && hour < 24) return 'evening';
-  return 'night';
 }
 
 interface Platform {
@@ -63,6 +34,11 @@ interface ChatEmptyStateProps {
   insightsCount?: number;
   showInterviewChip?: boolean;
   onStartInterview?: () => void;
+  // audit-2026-05-13 L1: signal data for dynamic chips. All optional — when
+  // omitted, generateSuggestionChips falls back to time-based defaults.
+  pendingInsights?: ProactiveInsightLike[];
+  calendarEvents?: CalendarEventLike[];
+  recentEmails?: RecentEmailLike[];
 }
 
 export const ChatEmptyState = ({
@@ -71,6 +47,9 @@ export const ChatEmptyState = ({
   insightsCount = 0,
   showInterviewChip = false,
   onStartInterview,
+  pendingInsights,
+  calendarEvents,
+  recentEmails,
 }: ChatEmptyStateProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -90,10 +69,19 @@ export const ChatEmptyState = ({
   const { data: platformsSummary } = usePlatformsSummary();
   const platformCount = platformsSummary?.total ?? connectedPlatforms.length;
 
-  const chips = useMemo(() => {
-    const slot = getTimeSlot(localHour);
-    return TIME_BASED_CHIPS[slot];
-  }, [localHour]);
+  // audit-2026-05-13 L1: chips now react to today's signals (high-urgency
+  // proactive insights, meeting-heavy day, email triage opportunity) and
+  // fall back to the time-of-day defaults when no signals dominate.
+  const chips = useMemo(
+    () => generateSuggestionChips({
+      hour: localHour,
+      pendingInsights,
+      calendarEvents,
+      recentEmails,
+      max: 3,
+    }),
+    [localHour, pendingInsights, calendarEvents, recentEmails],
+  );
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-4 sm:px-6 min-h-[40vh] sm:min-h-[60vh]">

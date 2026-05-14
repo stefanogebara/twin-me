@@ -719,6 +719,12 @@ const TalkToTwin = () => {
               insightsCount={pendingInsights.length}
               showInterviewChip={showInterviewChip}
               onStartInterview={() => setShowInterview(true)}
+              // audit-2026-05-13 L1: pass today's signals so the empty-state
+              // chips can highlight what the twin already noticed rather
+              // than rotating through static, generic copy.
+              pendingInsights={pendingInsights}
+              calendarEvents={sidebarCalendarEvents}
+              recentEmails={sidebarRecentEmails}
             />
           ) : (
             <MessageList
