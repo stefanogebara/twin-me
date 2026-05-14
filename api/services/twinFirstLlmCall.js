@@ -76,6 +76,14 @@ export async function runFirstLlmCall({
     const bufferForActions = workspaceActionsEnabled;
     const bufferedChunks = [];
 
+    // audit-2026-05-13 bottleneck follow-up: capture TTFT (time to first
+    // chunk) separately from total LLM time. The hop_timings ladder showed
+    // llm_first_call taking 43s for a 47-char response — we need to know
+    // whether that's prefill latency (huge gap to first token) or slow
+    // generation. Returning both lets the route emit them as hop extras.
+    const llmCallStart = Date.now();
+    let firstChunkMs = null;
+
     const result = await streamLLM({
       tier: TIER_CHAT,
       system: systemPrompt,
@@ -89,6 +97,7 @@ export async function runFirstLlmCall({
       serviceName,
       modelOverride: routedModel,
       onChunk: (chunk) => {
+        if (firstChunkMs === null) firstChunkMs = Date.now() - llmCallStart;
         if (bufferForActions) {
           bufferedChunks.push(chunk);
         } else {
@@ -96,6 +105,7 @@ export async function runFirstLlmCall({
         }
       },
     });
+    const llmTotalMs = Date.now() - llmCallStart;
     chatLog?.('Streaming LLM call complete');
 
     const assistantMessage = result.content || FALLBACK_MESSAGE;
@@ -105,10 +115,11 @@ export async function runFirstLlmCall({
       try { res.write(`data: ${JSON.stringify({ type: 'chunk', content: cleanText })}\n\n`); } catch { /* gone */ }
     }
 
-    return { assistantMessage };
+    return { assistantMessage, ttftMs: firstChunkMs, totalLlmMs: llmTotalMs };
   }
 
   chatLog?.('Starting LLM call');
+  const llmCallStart = Date.now();
 
   const useReranker = process.env.ENABLE_PERSONALITY_RERANKER === 'true'
     && personalityProfile?.personality_embedding
@@ -146,9 +157,13 @@ export async function runFirstLlmCall({
       modelOverride: routedModel,
     });
   }
+  const llmTotalMs = Date.now() - llmCallStart;
   chatLog?.('LLM call complete');
 
-  return { assistantMessage: result.content || FALLBACK_MESSAGE };
+  // Buffered path has no streaming chunks, so TTFT == totalMs (the gateway
+  // returned the full response in one shot). Surfacing both lets the route
+  // distinguish stream vs buffered in the same hop schema.
+  return { assistantMessage: result.content || FALLBACK_MESSAGE, ttftMs: llmTotalMs, totalLlmMs: llmTotalMs };
 }
 
 export function classifyGatewayError(err) {

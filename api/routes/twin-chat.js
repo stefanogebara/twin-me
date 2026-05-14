@@ -328,7 +328,18 @@ router.post('/message', authenticateUser, async (req, res) => {
         neurotransmitterMode, workspaceActionsEnabled, res, chatLog,
       });
       assistantMessage = firstCall.assistantMessage;
-      hopLog('llm_first_call_done', { llmMs: Date.now() - llmStart, replyChars: assistantMessage?.length || 0 });
+      // audit-2026-05-13 bottleneck follow-up: surface TTFT (time-to-first-
+      // chunk) separately from totalMs so we can tell prefill-latency
+      // bottlenecks (slow first token) from slow-generation bottlenecks
+      // (fast first token, long stream). For a 47-char response taking
+      // 43s, a 40s TTFT means prefill is the lever; a 2s TTFT means the
+      // model is throttling generation somewhere downstream.
+      hopLog('llm_first_call_done', {
+        llmMs: Date.now() - llmStart,
+        replyChars: assistantMessage?.length || 0,
+        ttftMs: firstCall.ttftMs ?? null,
+        totalLlmMs: firstCall.totalLlmMs ?? null,
+      });
     } catch (llmError) {
       hopLog('llm_first_call_failed', { llmMs: Date.now() - llmStart, error: llmError?.message?.slice(0, 200) });
       stream.clearTimeoutTimer();
