@@ -29,6 +29,59 @@ const log = createLogger('MeetingPrepService');
 
 const USER_EMAIL_DOMAINS = new Set(); // populated per-call from user's own email
 
+// Look-ahead window for the calendar scan. Widened from the original 2-4h
+// to 0-26h so the dashboard's 24h "next meeting" card actually has
+// something to show, and a meeting 30 min out that somehow wasn't briefed
+// still gets caught. Idempotency (event_id + etag) prevents re-briefing.
+const LOOK_AHEAD_MIN_HOURS = 0;
+const LOOK_AHEAD_MAX_HOURS = 26;
+
+/**
+ * Scan the user's Google Calendar for upcoming events (0-26h ahead) that
+ * have at least one EXTERNAL attendee. Internal-only meetings are skipped
+ * to keep the briefing signal high (you don't need a briefing for your
+ * own standup). Shared by the cron and the on-demand /scan endpoint.
+ */
+export async function fetchUpcomingExternalEvents(userId) {
+  const tokenResult = await getValidAccessToken(userId, 'google_calendar');
+  if (!tokenResult.success) return [];
+
+  const now = new Date();
+  const minTime = new Date(now.getTime() + LOOK_AHEAD_MIN_HOURS * 3600000).toISOString();
+  const maxTime = new Date(now.getTime() + LOOK_AHEAD_MAX_HOURS * 3600000).toISOString();
+
+  const params = new URLSearchParams({
+    timeMin: minTime,
+    timeMax: maxTime,
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '20',
+  });
+
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+    { headers: { Authorization: `Bearer ${tokenResult.accessToken}` } },
+  );
+  if (!res.ok) return [];
+
+  const data = await res.json();
+  const { data: userRow } = await supabaseAdmin
+    .from('users')
+    .select('email')
+    .eq('id', userId)
+    .single();
+
+  const userEmail = userRow?.email || '';
+  const userDomain = userEmail.split('@')[1];
+
+  return (data.items || []).filter((event) => {
+    const attendees = event.attendees || [];
+    return attendees.some(
+      (a) => a.email !== userEmail && !a.resource && (!userDomain || !a.email.endsWith(`@${userDomain}`)),
+    );
+  });
+}
+
 async function fetchCalendarEvent(userId, eventId) {
   const tokenResult = await getValidAccessToken(userId, 'google_calendar');
   if (!tokenResult.success) return null;

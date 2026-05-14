@@ -114,6 +114,38 @@ export async function createMeetingRecap(briefingId: string): Promise<RecapRespo
   }
 }
 
+export interface ScanResponse {
+  success: boolean;
+  scanned?: number;
+  briefingsGenerated?: number;
+  error?: string;
+  code?: string;
+}
+
+/**
+ * On-demand: scan the user's calendar now and generate briefings for any
+ * upcoming external meetings that aren't briefed yet. Powers the
+ * "Atualizar" button — no waiting for the 30-min cron.
+ */
+export async function scanMeetings(): Promise<ScanResponse> {
+  try {
+    const res = await authFetch('/meeting-briefings/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    let body: ScanResponse | null = null;
+    try { body = await res.json(); } catch { /* non-JSON */ }
+    if (!res.ok) {
+      return { success: false, error: body?.error || `scan failed (${res.status})`, code: body?.code };
+    }
+    return body || { success: false, error: 'empty response' };
+  } catch (err) {
+    if (isAbortError(err)) throw err;
+    return { success: false, error: err instanceof Error ? err.message : 'unknown error' };
+  }
+}
+
 export async function fetchMeetingBriefings(signal?: AbortSignal): Promise<MeetingBriefingsResponse> {
   try {
     const res = await authFetch('/meeting-briefings', { signal });

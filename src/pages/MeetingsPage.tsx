@@ -12,7 +12,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Calendar, Clock, Users, AlertCircle, Sparkles, Mail, CalendarPlus, RefreshCw, CheckSquare, ArrowRight, Heart, Loader2, ExternalLink, Check } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { fetchMeetingBriefings, createMeetingRecap, type MeetingBriefing, type RecapResponse } from '@/services/api/meetingBriefingsAPI';
+import { fetchMeetingBriefings, createMeetingRecap, scanMeetings, type MeetingBriefing, type RecapResponse } from '@/services/api/meetingBriefingsAPI';
 import { isAbortError } from '@/services/api/apiBase';
 
 const GLASS: React.CSSProperties = {
@@ -681,30 +681,61 @@ export default function MeetingsPage() {
   const [undated, setUndated] = useState<MeetingBriefing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+
+  const load = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchMeetingBriefings(signal);
+      if (!res.success) {
+        setError(res.error || 'Falha ao carregar briefings');
+        return;
+      }
+      setUpcoming(res.upcoming || []);
+      setRecent(res.recent || []);
+      setUndated(res.undated || []);
+    } catch (err) {
+      if ((err as { name?: string })?.name === 'AbortError') return;
+      if (!signal?.aborted) setError(err instanceof Error ? err.message : 'unknown error');
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
-    (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetchMeetingBriefings(controller.signal);
-        if (!res.success) {
-          setError(res.error || 'Falha ao carregar briefings');
-          return;
-        }
-        setUpcoming(res.upcoming || []);
-        setRecent(res.recent || []);
-        setUndated(res.undated || []);
-      } catch (err) {
-        if ((err as { name?: string })?.name === 'AbortError') return;
-        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'unknown error');
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    })();
+    load(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [load]);
+
+  // "Atualizar" — scan the calendar now, then reload the list.
+  const handleScan = useCallback(async () => {
+    setScanning(true);
+    setScanNote(null);
+    try {
+      const res = await scanMeetings();
+      if (!res.success) {
+        setScanNote(res.error || 'Não foi possível escanear o calendário');
+        return;
+      }
+      const generated = res.briefingsGenerated ?? 0;
+      const scanned = res.scanned ?? 0;
+      setScanNote(
+        generated > 0
+          ? `${generated} ${generated === 1 ? 'reunião nova preparada' : 'reuniões novas preparadas'}`
+          : scanned > 0
+            ? `${scanned} ${scanned === 1 ? 'reunião já estava' : 'reuniões já estavam'} em dia`
+            : 'Nenhuma reunião externa nas próximas 26h',
+      );
+      await load();
+    } catch {
+      setScanNote('Erro ao escanear o calendário');
+    } finally {
+      setScanning(false);
+    }
+  }, [load]);
 
   const hasAny = upcoming.length + recent.length + undated.length > 0;
   const hero = useMemo(() => upcoming[0] ?? null, [upcoming]);
@@ -713,7 +744,7 @@ export default function MeetingsPage() {
   return (
     <div className="max-w-[760px] mx-auto px-4 sm:px-6 pb-24">
       {/* Header */}
-      <div className="pt-6 mb-1">
+      <div className="flex items-baseline justify-between gap-3 pt-6 mb-1">
         <h1
           style={{
             fontFamily: "'Instrument Serif', Georgia, serif",
@@ -725,7 +756,37 @@ export default function MeetingsPage() {
         >
           Meetings
         </h1>
+        <button
+          type="button"
+          onClick={handleScan}
+          disabled={scanning}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.65)',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            flexShrink: 0,
+          }}
+          title="Escaneia seu Google Calendar agora e prepara as reuniões das próximas 26h"
+        >
+          <RefreshCw className={`w-3 h-3 ${scanning ? 'animate-spin' : ''}`} />
+          {scanning ? 'Escaneando…' : 'Atualizar'}
+        </button>
       </div>
+      {scanNote && (
+        <p
+          className="mb-1"
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 12,
+            color: 'rgba(255,255,255,0.50)',
+          }}
+        >
+          {scanNote}
+        </p>
+      )}
       <p
         className="mb-6"
         style={{

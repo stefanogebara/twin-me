@@ -12,10 +12,43 @@
 
 import { retrieveMemories } from '../memoryStreamService.js';
 import { webSearch } from '../webSearchService.js';
+import { getEmails } from '../googleWorkspaceActions.js';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('AttendeeResearcher');
+
+/**
+ * Pull the user's recent Gmail history with this attendee — the real
+ * "last touchpoint" signal. Memory-stream history is sparse and lossy;
+ * the actual email thread subjects + snippets + dates are the
+ * authoritative record of what's been discussed.
+ *
+ * Gmail's `q` supports `(from:X OR to:X)` — that catches both directions
+ * of the thread. Returns up to 3 most-recent, formatted compactly.
+ */
+async function getEmailHistory(userId, email) {
+  if (!email) return [];
+  try {
+    const res = await getEmails(userId, {
+      query: `(from:${email} OR to:${email})`,
+      maxResults: 5,
+    });
+    if (!res.success || !Array.isArray(res.emails)) return [];
+    return res.emails
+      .filter((e) => e.subject || e.snippet)
+      .slice(0, 3)
+      .map((e) => {
+        const when = e.date ? new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        const subject = (e.subject || '(no subject)').slice(0, 80);
+        const snippet = (e.snippet || '').slice(0, 120);
+        return `${when ? `[${when}] ` : ''}"${subject}"${snippet ? ` — ${snippet}` : ''}`;
+      });
+  } catch (err) {
+    log.debug('getEmailHistory failed (non-fatal)', { email, error: err.message });
+    return [];
+  }
+}
 
 async function getContactInfo(userId, email) {
   try {
@@ -50,9 +83,10 @@ async function getMemoriesAboutPerson(userId, name, email) {
 async function researchAttendee(userId, attendee) {
   const { email, name, isExternal } = attendee;
 
-  const [contactInfo, pastMemories] = await Promise.all([
+  const [contactInfo, pastMemories, emailHistory] = await Promise.all([
     getContactInfo(userId, email),
     getMemoriesAboutPerson(userId, name, email),
+    getEmailHistory(userId, email),
   ]);
 
   const displayName = name || contactInfo?.name || email.split('@')[0];
@@ -81,13 +115,18 @@ async function researchAttendee(userId, attendee) {
 
   const [personSearch, companySearch] = await Promise.all(searchPromises);
 
+  // Merge memory-stream history + real Gmail thread history. Gmail entries
+  // are the authoritative record so they lead; memory fills gaps.
+  const pastInteractions = [...emailHistory, ...pastMemories].slice(0, 5);
+
   return {
     email,
     name: displayName,
     company: company || null,
     title: contactInfo?.title || null,
     linkedin: contactInfo?.linkedin_url || null,
-    pastInteractions: pastMemories,
+    pastInteractions,
+    emailThreadCount: emailHistory.length,
     personBackground: personSearch.map(r => `${r.title}: ${r.description}`).filter(Boolean),
     companyContext: companySearch.map(r => `${r.title}: ${r.description}`).filter(Boolean),
   };

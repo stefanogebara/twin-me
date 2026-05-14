@@ -29,6 +29,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { generateRecapEmail } from '../services/meetingPrep/meetingDebriefService.js';
+import { generateBriefing, fetchUpcomingExternalEvents } from '../services/meetingPrep/meetingPrepService.js';
 import { draftEmail } from '../services/googleWorkspaceActions.js';
 import { createLogger } from '../services/logger.js';
 
@@ -119,6 +120,58 @@ router.get('/', async (req, res) => {
   } catch (err) {
     log.error(`unhandled: ${err.message}`);
     res.status(500).json({ success: false, error: 'failed to fetch briefings' });
+  }
+});
+
+/**
+ * POST /scan
+ *
+ * On-demand calendar scan + brief. Triggers the same logic the
+ * cron-meeting-prep cron runs, but for the calling user RIGHT NOW —
+ * so they don't have to wait up to 30 min for the next cron tick.
+ *
+ * Powers the "Atualizar" button on the /meetings page. Idempotent:
+ * generateBriefing skips events already briefed at the same etag, so
+ * spamming the button is cheap.
+ *
+ * Returns: { success, scanned, briefingsGenerated }
+ */
+router.post('/scan', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    let events;
+    try {
+      events = await fetchUpcomingExternalEvents(userId);
+    } catch (scanErr) {
+      log.error('scan: calendar fetch failed', { error: scanErr.message });
+      return res.status(502).json({
+        success: false,
+        error: 'could not read your calendar — is Google Calendar connected?',
+        code: 'CALENDAR_FETCH_FAILED',
+      });
+    }
+
+    let briefingsGenerated = 0;
+    for (const event of events) {
+      try {
+        const result = await generateBriefing(userId, event);
+        if (result) briefingsGenerated++;
+      } catch (briefErr) {
+        log.warn('scan: briefing failed for event', { eventId: event.id, error: briefErr.message });
+      }
+    }
+
+    log.info('on-demand scan complete', { userId, scanned: events.length, briefingsGenerated });
+    return res.json({
+      success: true,
+      scanned: events.length,
+      briefingsGenerated,
+    });
+  } catch (err) {
+    log.error(`scan unhandled: ${err.message}`);
+    res.status(500).json({ success: false, error: 'scan failed' });
   }
 });
 
