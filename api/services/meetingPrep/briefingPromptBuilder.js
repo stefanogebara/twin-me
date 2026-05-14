@@ -40,6 +40,8 @@ export function buildBriefingPrompt({ event, attendeeResearch, userContext }) {
     return parts.join('\n');
   }).join('\n\n---\n\n');
 
+  const isSolo = attendeeResearch.length === 0;
+
   return `You are preparing a pre-meeting briefing for ${userContext.name || 'the user'}.
 
 MEETING DETAILS
@@ -49,11 +51,11 @@ Duration: ${event.durationMinutes} minutes
 Description: ${event.description || 'None'}
 
 ATTENDEE RESEARCH
-${attendeeSections || 'No external attendees found.'}
+${attendeeSections || `No other attendees on the invite — this is a SOLO appointment (a personal appointment, a 1:1 the user booked manually, a recurring session). There is no one to "research" — DO NOT invent an attendee. Build the briefing entirely from the meeting title + the user's own context below: what should they bring, what should they remember from last time, what's the one thing to get out of this appointment.`}
 
 USER CONTEXT
 ${userContext.recentMemories.length > 0
-  ? `Recent relevant context from the user's memory:\n${userContext.recentMemories.map(m => `- ${m}`).join('\n')}`
+  ? `Recent relevant context from the user's memory${isSolo ? ' (this is your main signal for a solo appointment — lean on it)' : ''}:\n${userContext.recentMemories.map(m => `- ${m}`).join('\n')}`
   : 'No specific prior context found.'}
 
 Generate a meeting briefing as a JSON object with EXACTLY this structure:
@@ -84,7 +86,7 @@ Rules:
 - Be specific and actionable, not generic platitudes
 - Use actual names and company names from the research
 - If you have no data for a field, use null (not empty strings)
-- talkingPoints: 3-5 items
+- talkingPoints: 3-5 items${isSolo ? ' — for a solo appointment, these are what the USER should raise/ask/bring, drawn from their own context' : ''}
 - watchOuts: 1-3 items (skip if genuinely nothing notable)
-- Output ONLY the JSON object, no markdown, no preamble`;
+${isSolo ? '- attendees: return an empty array [] — there is no one to research, do not fabricate a person\n' : ''}- Output ONLY the JSON object, no markdown, no preamble`;
 }

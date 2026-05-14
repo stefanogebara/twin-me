@@ -18,6 +18,7 @@ export const EXTENDED_TOOL_NAMES = [
   'spotify_queue',
   'spotify_play_track',
   'meeting_prep',
+  'get_meeting_prep',
 ];
 
 export function registerExtendedTools() {
@@ -219,7 +220,7 @@ export function registerExtendedTools() {
   registerTool({
     name: 'meeting_prep',
     platform: null,
-    description: 'Generate a pre-meeting briefing: attendee background, company context, past touchpoints from memory, talking points, and watch-outs.',
+    description: 'Generate a FRESH pre-meeting briefing for ONE specific meeting: attendee background, company context, past touchpoints from memory, talking points, and watch-outs. Use this when the user asks to prep for a specific named meeting that may not be briefed yet.',
     category: 'productivity',
     parameters: {
       type: 'object',
@@ -234,6 +235,33 @@ export function registerExtendedTools() {
     executor: async (userId, params) => {
       const { generateBriefingForChat } = await import('../meetingPrep/meetingPrepService.js');
       return generateBriefingForChat(userId, params);
+    },
+  });
+
+  // ========================================================================
+  // GET MEETING PREP — Read already-generated briefings (Level 1)
+  // ========================================================================
+  registerTool({
+    name: 'get_meeting_prep',
+    platform: null,
+    description: 'List the meeting briefings the twin has ALREADY prepared (from the meeting-prep cron + calendar scan). Use this when the user asks broadly — "what\'s my prep for tomorrow?", "what meetings do I have?", "am I ready for this week?". Returns upcoming + recently-ended meetings with their briefings. Does NOT regenerate — it reads what already exists, so it\'s fast. For prepping ONE specific un-briefed meeting, use meeting_prep instead.',
+    category: 'productivity',
+    parameters: {
+      type: 'object',
+      properties: {
+        timeframe: {
+          type: 'string',
+          enum: ['upcoming', 'recent', 'all'],
+          description: 'Which briefings to return. "upcoming" = meetings that haven\'t happened yet (default), "recent" = meetings that already ended, "all" = both.',
+        },
+      },
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'meeting_prep',
+    executor: async (userId, params) => {
+      const { listMeetingBriefingsForChat } = await import('../meetingPrep/meetingPrepService.js');
+      return listMeetingBriefingsForChat(userId, params?.timeframe || 'upcoming');
     },
   });
 

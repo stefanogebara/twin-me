@@ -215,17 +215,71 @@ async function storeAsProactiveInsight(userId, briefing, eventSummary) {
   return data;
 }
 
-async function buildUserContext(userId, eventSummary) {
-  const memories = await retrieveMemories(
-    userId,
-    `meeting ${eventSummary} upcoming context priorities`,
-    5,
-    { weights: [0.8, 0.7, 1.0] }
-  ).catch(() => []);
+// Honorifics + generic appointment words to strip when deriving the
+// memory-search query from a solo-appointment title. "Dra Ana Academia da
+// Mente" → "Ana Academia Mente" → still a strong semantic anchor.
+const TITLE_STOPWORDS = new Set([
+  'dr', 'dra', 'dr.', 'dra.', 'sr', 'sra', 'sr.', 'sra.', 'mr', 'mrs', 'ms',
+  'reuniao', 'reunião', 'meeting', 'call', 'sync', 'catchup', 'catch-up',
+  'com', 'with', 'de', 'da', 'do', 'the', 'a', 'o', 'e', '1:1', '1on1',
+  'consulta', 'sessao', 'sessão', 'appointment', 'appt',
+]);
 
-  return {
-    recentMemories: memories.map(m => m.content).slice(0, 5),
-  };
+function deriveMemoryQuery(eventSummary) {
+  if (!eventSummary) return '';
+  return eventSummary
+    .split(/\s+/)
+    .filter((w) => w && !TITLE_STOPWORDS.has(w.toLowerCase().replace(/[.,]/g, '')))
+    .join(' ')
+    .trim();
+}
+
+/**
+ * Build the user's own context for the briefing.
+ *
+ * For meetings with external attendees, a single broad retrieval is enough —
+ * the attendee research carries most of the weight.
+ *
+ * For SOLO appointments (no other attendees — a doctor, a 1:1, a personal
+ * appointment), there's no attendee research to lean on, so we do richer
+ * retrieval: the raw title (direct semantic match) AND a stopword-stripped
+ * keyword query, deduped, more memories. This is what makes "Dra Ana
+ * Academia da Mente" prep actually reference the user's past reflections
+ * and health context instead of generic filler.
+ */
+async function buildUserContext(userId, eventSummary, attendeeCount = 0) {
+  const isSolo = attendeeCount === 0;
+
+  if (!isSolo) {
+    const memories = await retrieveMemories(
+      userId,
+      `meeting ${eventSummary} upcoming context priorities`,
+      5,
+      { weights: [0.8, 0.7, 1.0] },
+    ).catch(() => []);
+    return { recentMemories: memories.map((m) => m.content).slice(0, 5) };
+  }
+
+  // Solo appointment — two retrievals, deduped, deeper.
+  const keywordQuery = deriveMemoryQuery(eventSummary);
+  const [byTitle, byKeyword] = await Promise.all([
+    retrieveMemories(userId, eventSummary, 6, { weights: [0.5, 0.7, 1.0] }).catch(() => []),
+    keywordQuery && keywordQuery !== eventSummary
+      ? retrieveMemories(userId, keywordQuery, 6, { weights: [0.4, 0.7, 1.0] }).catch(() => [])
+      : Promise.resolve([]),
+  ]);
+
+  // Dedupe by content, keep order (title-match first — it's the strongest signal).
+  const seen = new Set();
+  const merged = [];
+  for (const m of [...byTitle, ...byKeyword]) {
+    const c = (m.content || '').trim();
+    if (!c || seen.has(c)) continue;
+    seen.add(c);
+    merged.push(c);
+  }
+
+  return { recentMemories: merged.slice(0, 8) };
 }
 
 async function generateBriefingForEvent(userId, gcalEvent) {
@@ -237,7 +291,7 @@ async function generateBriefingForEvent(userId, gcalEvent) {
 
   const [attendeeResearch, userContext] = await Promise.all([
     researchAttendees(userId, attendees),
-    buildUserContext(userId, gcalEvent.summary || ''),
+    buildUserContext(userId, gcalEvent.summary || '', attendees.length),
   ]);
 
   const eventPayload = {
@@ -351,4 +405,78 @@ export async function generateBriefingForChat(userId, params) {
     log.error('generateBriefingForChat failed', { error: err.message });
     return { success: false, error: err.message };
   }
+}
+
+/**
+ * Read already-generated briefings for the twin chat's get_meeting_prep
+ * tool. Reads from meeting_briefings (no LLM regeneration) and returns a
+ * compact, twin-speakable shape split into upcoming / recent.
+ *
+ * timeframe: 'upcoming' | 'recent' | 'all'
+ */
+export async function listMeetingBriefingsForChat(userId, timeframe = 'upcoming') {
+  const windowMs = 14 * 24 * 60 * 60 * 1000;
+  const since = new Date(Date.now() - windowMs).toISOString();
+
+  const { data, error } = await supabaseAdmin
+    .from('meeting_briefings')
+    .select('event_id, generated_at, headline, briefing_json')
+    .eq('user_id', userId)
+    .gte('generated_at', since)
+    .order('generated_at', { ascending: false })
+    .limit(40);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  const now = Date.now();
+  const compact = (row) => {
+    const bj = row.briefing_json || {};
+    const meta = bj._meta || {};
+    return {
+      title: meta.summary || bj.headline || 'meeting',
+      startTime: meta.startTime || null,
+      headline: bj.headline || null,
+      talkingPoints: Array.isArray(bj.talkingPoints) ? bj.talkingPoints.slice(0, 4) : [],
+      watchOuts: Array.isArray(bj.watchOuts) ? bj.watchOuts.slice(0, 3) : [],
+      attendees: Array.isArray(bj.attendees)
+        ? bj.attendees.map((a) => a.name).filter(Boolean)
+        : [],
+      hasDebrief: !!bj.debrief,
+      debriefSummary: bj.debrief?.summary || null,
+    };
+  };
+
+  const upcoming = [];
+  const recent = [];
+  for (const row of data || []) {
+    const meta = row.briefing_json?._meta || {};
+    const startMs = meta.startTime ? new Date(meta.startTime).getTime() : null;
+    const item = compact(row);
+    if (startMs !== null && startMs >= now) upcoming.push(item);
+    else recent.push(item);
+  }
+  upcoming.sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0));
+
+  if (timeframe === 'upcoming') {
+    return {
+      success: true,
+      timeframe,
+      count: upcoming.length,
+      meetings: upcoming,
+      note: upcoming.length === 0
+        ? 'No upcoming meetings have been briefed. The user can hit "Atualizar" on the /meetings page to scan their calendar now.'
+        : undefined,
+    };
+  }
+  if (timeframe === 'recent') {
+    return { success: true, timeframe, count: recent.length, meetings: recent.slice(0, 10) };
+  }
+  return {
+    success: true,
+    timeframe: 'all',
+    upcoming,
+    recent: recent.slice(0, 10),
+  };
 }
