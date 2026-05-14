@@ -9,10 +9,10 @@
  * time — this is a read-only surface for already-computed briefings.
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar, Clock, Users, AlertCircle, Sparkles, Mail, CalendarPlus, RefreshCw, CheckSquare, ArrowRight, Heart } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { Calendar, Clock, Users, AlertCircle, Sparkles, Mail, CalendarPlus, RefreshCw, CheckSquare, ArrowRight, Heart, Loader2, ExternalLink, Check } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { fetchMeetingBriefings, type MeetingBriefing } from '@/services/api/meetingBriefingsAPI';
+import { fetchMeetingBriefings, createMeetingRecap, type MeetingBriefing, type RecapResponse } from '@/services/api/meetingBriefingsAPI';
 import { isAbortError } from '@/services/api/apiBase';
 
 const GLASS: React.CSSProperties = {
@@ -200,12 +200,57 @@ function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['bri
   );
 }
 
+/**
+ * Build a pre-filled Google Calendar "create event" URL from briefing data.
+ * Client-side only — opens GCal's create form with title + attendees +
+ * description pre-populated. The user picks the time and hits save, so the
+ * actual calendar invite only goes out when THEY confirm it.
+ */
+function buildFollowUpUrl(briefing: MeetingBriefing): string {
+  const base = briefing.summary || briefing.briefing?.headline || 'Reunião';
+  const text = `Follow-up: ${base}`;
+  const attendeeEmails = (briefing.attendees || [])
+    .filter((a) => a.email && !a.organizer)
+    .map((a) => a.email);
+  const debrief = briefing.briefing?.debrief;
+  const detailLines: string[] = [];
+  if (debrief?.summary) detailLines.push(debrief.summary);
+  if (debrief?.followUpsRecommended?.length) {
+    detailLines.push('', 'Próximos passos:');
+    debrief.followUpsRecommended.forEach((f) => detailLines.push(`- ${f}`));
+  }
+  const params = new URLSearchParams({ action: 'TEMPLATE', text });
+  if (detailLines.length) params.set('details', detailLines.join('\n'));
+  if (attendeeEmails.length) params.set('add', attendeeEmails.join(','));
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero: boolean }) {
   const b = briefing.briefing || {};
   const title = briefing.summary || briefing.headline || 'Reunião sem título';
   const until = timeUntil(briefing.startTime);
   const range = formatTimeRange(briefing.startTime, briefing.endTime);
   const hasDebrief = !!b.debrief;
+
+  // Phase 3 — recap email action state
+  const [recapState, setRecapState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [recap, setRecap] = useState<RecapResponse | null>(null);
+
+  const handleRecap = useCallback(async () => {
+    setRecapState('loading');
+    try {
+      const result = await createMeetingRecap(briefing.id);
+      if (result.success) {
+        setRecap(result);
+        setRecapState('done');
+      } else {
+        setRecap(result);
+        setRecapState('error');
+      }
+    } catch {
+      setRecapState('error');
+    }
+  }, [briefing.id]);
 
   return (
     <div
@@ -409,7 +454,7 @@ function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero:
         </div>
       )}
 
-      {/* Action row (Phase 2/3 placeholders — wired to twin chat for now) */}
+      {/* Action row */}
       <div className="flex flex-wrap items-center gap-2 mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         {briefing.meetingUrl && (
           <a
@@ -428,39 +473,151 @@ function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero:
             <Calendar className="w-3 h-3" /> Abrir reunião
           </a>
         )}
+
+        {/* Recap email — enabled once the meeting has a debrief */}
         <button
           type="button"
-          disabled
-          title="Em breve — twin envia um e-mail de recap após a reunião"
+          onClick={handleRecap}
+          disabled={!hasDebrief || recapState === 'loading'}
+          title={hasDebrief
+            ? 'O twin redige um e-mail de recap a partir do debrief'
+            : 'Disponível depois que o debrief pós-reunião for gerado'}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-colors disabled:opacity-40"
           style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.10)',
-            color: 'rgba(255,255,255,0.65)',
+            background: hasDebrief ? 'rgba(193,126,44,0.14)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${hasDebrief ? 'rgba(193,126,44,0.30)' : 'rgba(255,255,255,0.10)'}`,
+            color: hasDebrief ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.65)',
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 12,
             fontWeight: 500,
+            cursor: hasDebrief && recapState !== 'loading' ? 'pointer' : 'default',
           }}
         >
-          <Mail className="w-3 h-3" /> Recap por e-mail
+          {recapState === 'loading'
+            ? <><Loader2 className="w-3 h-3 animate-spin" /> Redigindo…</>
+            : recapState === 'done'
+              ? <><Check className="w-3 h-3" /> Recap pronto</>
+              : <><Mail className="w-3 h-3" /> Recap por e-mail</>}
         </button>
-        <button
-          type="button"
-          disabled
-          title="Em breve — twin propõe horário pra próxima"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-colors disabled:opacity-40"
+
+        {/* Follow-up — pre-filled Google Calendar create form, client-side */}
+        <a
+          href={buildFollowUpUrl(briefing)}
+          target="_blank"
+          rel="noreferrer"
+          title="Abre o Google Calendar com título e convidados pré-preenchidos — você escolhe o horário"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-colors"
           style={{
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.10)',
-            color: 'rgba(255,255,255,0.65)',
+            color: 'rgba(255,255,255,0.75)',
             fontFamily: "'Geist', 'Inter', sans-serif",
             fontSize: 12,
             fontWeight: 500,
           }}
         >
           <CalendarPlus className="w-3 h-3" /> Agendar follow-up
-        </button>
+        </a>
       </div>
+
+      {/* Recap preview — appears after the twin drafts the email */}
+      {(recapState === 'done' || recapState === 'error') && recap && (
+        <div
+          className="mt-4 p-4 rounded-[14px]"
+          style={{
+            background: recapState === 'error'
+              ? 'rgba(220,38,38,0.06)'
+              : 'rgba(193,126,44,0.06)',
+            border: `1px solid ${recapState === 'error' ? 'rgba(220,38,38,0.20)' : 'rgba(193,126,44,0.20)'}`,
+          }}
+        >
+          {recapState === 'error' ? (
+            <p
+              style={{
+                fontFamily: "'Geist', 'Inter', sans-serif",
+                fontSize: 13,
+                color: 'rgba(254,202,202,0.95)',
+                lineHeight: 1.4,
+              }}
+            >
+              {recap.error || 'Não foi possível gerar o recap.'}
+            </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <p style={{ ...LABEL, color: 'rgba(232,160,80,0.85)' }}>
+                  <Mail className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Rascunho do twin
+                </p>
+                {recap.gmailUrl && (
+                  <a
+                    href={recap.gmailUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 transition-opacity hover:opacity-70"
+                    style={{
+                      fontFamily: "'Geist', 'Inter', sans-serif",
+                      fontSize: 11.5,
+                      fontWeight: 500,
+                      color: 'rgba(232,160,80,0.95)',
+                    }}
+                  >
+                    Abrir no Gmail <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+              {recap.to && (
+                <p
+                  style={{
+                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontSize: 12,
+                    color: 'rgba(255,255,255,0.50)',
+                    marginBottom: 4,
+                  }}
+                >
+                  Para: {recap.to}
+                </p>
+              )}
+              <p
+                style={{
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: 'var(--foreground)',
+                  marginBottom: 8,
+                }}
+              >
+                {recap.subject}
+              </p>
+              <pre
+                style={{
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontSize: 12.5,
+                  color: 'rgba(255,255,255,0.78)',
+                  lineHeight: 1.55,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  margin: 0,
+                }}
+              >
+                {recap.body}
+              </pre>
+              {recap.note && (
+                <p
+                  style={{
+                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontSize: 11.5,
+                    color: 'rgba(255,255,255,0.45)',
+                    marginTop: 8,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {recap.note}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

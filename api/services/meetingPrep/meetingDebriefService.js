@@ -200,6 +200,97 @@ export async function generateDebrief(userId, briefingRow) {
 }
 
 /**
+ * Generate a recap email (subject + plain-text body) from a meeting's
+ * debrief. Phase 3: the twin doesn't just observe — it drafts the
+ * follow-up email for the user, who reviews + sends.
+ *
+ * Returns { subject, body, to } where `to` is the first external
+ * attendee. Throws if the briefing has no debrief yet.
+ */
+export async function generateRecapEmail(userId, briefingRow) {
+  const briefingJson = briefingRow.briefing_json || {};
+  const debrief = briefingJson.debrief;
+  if (!debrief) {
+    throw new Error('no debrief yet — recap needs a post-meeting debrief first');
+  }
+
+  const meta = briefingJson._meta || {};
+  const attendees = Array.isArray(meta.attendees) ? meta.attendees : [];
+  // Recipient: first non-organizer attendee with an email. Organizer is
+  // usually the user themselves.
+  const recipient = attendees.find((a) => a.email && !a.organizer) || attendees.find((a) => a.email);
+  const to = recipient?.email || null;
+  const recipientName = recipient?.name || (to ? to.split('@')[0] : 'there');
+
+  const userInfo = await supabaseAdmin
+    .from('users')
+    .select('first_name, name')
+    .eq('id', userId)
+    .single();
+  const senderName = userInfo?.data?.first_name || userInfo?.data?.name || '';
+
+  const meetingTitle = meta.summary || briefingJson.headline || 'our meeting';
+
+  const prompt = `Write a concise, warm post-meeting recap email.
+
+MEETING: ${meetingTitle}
+RECIPIENT: ${recipientName}
+SENDER: ${senderName || '(the user)'}
+
+DEBRIEF (the twin's read of what happened):
+Summary: ${debrief.summary || '(none)'}
+Likely covered: ${(debrief.likelyCovered || []).join('; ') || '(none)'}
+Action items: ${(debrief.probableActionItems || []).map((ai) => `[${ai.owner}] ${ai.task}`).join('; ') || '(none)'}
+Recommended follow-ups: ${(debrief.followUpsRecommended || []).join('; ') || '(none)'}
+
+Write the email as JSON with EXACTLY this structure:
+{
+  "subject": "<short subject line, e.g. 'Recap: <meeting topic>'>",
+  "body": "<plain-text email body>"
+}
+
+Rules for the body:
+- Open with a brief, warm greeting to ${recipientName}
+- 1-2 sentence recap of what was discussed
+- A short bulleted list of action items (use "- " bullets), each tagged with who owns it
+- Close with a forward-looking line and a sign-off from ${senderName || 'the sender'}
+- Keep it under 150 words — recap emails should be skimmable
+- Plain text only, no markdown headers, no preamble
+- Do NOT invent specifics that aren't in the debrief — keep it honest and slightly tentative where the debrief is tentative
+Output ONLY the JSON object.`;
+
+  let result;
+  try {
+    result = await complete({
+      tier: TIER_ANALYSIS,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 600,
+      temperature: 0.4,
+    });
+  } catch (err) {
+    log.warn('TIER_ANALYSIS failed for recap, falling back to TIER_CHAT', { error: err.message });
+    result = await complete({
+      tier: TIER_CHAT,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 600,
+      temperature: 0.4,
+    });
+  }
+
+  const text = result.content?.trim() || '';
+  const jsonMatch = text.match(/\{[\s\S]+\}/);
+  if (!jsonMatch) throw new Error('LLM returned no JSON for recap email');
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return {
+    subject: parsed.subject || `Recap: ${meetingTitle}`,
+    body: parsed.body || debrief.summary || '',
+    to,
+    recipientName,
+  };
+}
+
+/**
  * Find prep'd meetings that ended 30-180 min ago and don't have a debrief
  * yet. Window is forgiving (180 min) so a missed cron run still picks
  * the meeting up next time.

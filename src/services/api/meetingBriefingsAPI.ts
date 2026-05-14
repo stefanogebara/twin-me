@@ -75,6 +75,45 @@ export interface MeetingBriefingsResponse {
   error?: string;
 }
 
+export interface RecapResponse {
+  success: boolean;
+  subject?: string;
+  body?: string;
+  to?: string | null;
+  draftId?: string | null;
+  gmailUrl?: string | null;
+  note?: string;
+  error?: string;
+  code?: string;
+}
+
+/**
+ * Phase 3 agentic action: ask the twin to draft a post-meeting recap email
+ * from the debrief and save it as a Gmail draft. Does NOT send.
+ */
+export async function createMeetingRecap(briefingId: string): Promise<RecapResponse> {
+  try {
+    const res = await authFetch(`/meeting-briefings/${briefingId}/recap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    let body: RecapResponse | null = null;
+    try { body = await res.json(); } catch { /* non-JSON */ }
+    if (!res.ok) {
+      return {
+        success: false,
+        error: body?.error || `recap failed (${res.status})`,
+        code: body?.code,
+      };
+    }
+    return body || { success: false, error: 'empty response' };
+  } catch (err) {
+    if (isAbortError(err)) throw err;
+    return { success: false, error: err instanceof Error ? err.message : 'unknown error' };
+  }
+}
+
 export async function fetchMeetingBriefings(signal?: AbortSignal): Promise<MeetingBriefingsResponse> {
   try {
     const res = await authFetch('/meeting-briefings', { signal });
