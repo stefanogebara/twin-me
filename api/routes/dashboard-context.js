@@ -31,8 +31,30 @@ const STREAK_TTL = 3600;    // 1 hr — changes at most once per day
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getTimeOfDay() {
-  const hour = new Date().getHours();
+// audit-2026-05-14: was `new Date().getHours()` — the Vercel lambda runs in
+// UTC, so a user in Europe/Paris at 12:47 local (10:47 UTC) got "morning"
+// while the /morning-briefing endpoint (which DOES honor the user's tz)
+// said "Good Afternoon" on the same dashboard. Compute the hour in the
+// user's stored timezone; fall back to UTC only when tz is missing/invalid.
+function getTimeOfDay(timezone) {
+  let hour;
+  try {
+    if (timezone) {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: 'numeric',
+        hour12: false,
+      }).formatToParts(new Date());
+      const hourPart = parts.find(p => p.type === 'hour');
+      hour = hourPart ? parseInt(hourPart.value, 10) : new Date().getHours();
+      // Intl can emit "24" for midnight in hour12:false — normalize.
+      if (hour === 24) hour = 0;
+    } else {
+      hour = new Date().getHours();
+    }
+  } catch {
+    hour = new Date().getHours();
+  }
   if (hour < 12) return 'morning';
   if (hour < 18) return 'afternoon';
   return 'evening';
@@ -170,11 +192,11 @@ router.get('/', authenticateUser, async (req, res) => {
       safeRun(async () => {
         const { data: userRow } = await supabaseAdmin
           .from('users')
-          .select('first_name')
+          .select('first_name, timezone')
           .eq('id', userId)
           .single();
         const name = userRow?.first_name || firstName(req.user.name, req.user.email);
-        return { name, timeOfDay: getTimeOfDay() };
+        return { name, timeOfDay: getTimeOfDay(userRow?.timezone) };
       }),
 
       // 2. Hero insight
