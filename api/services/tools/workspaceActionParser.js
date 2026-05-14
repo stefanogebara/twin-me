@@ -144,7 +144,10 @@ To use an action, include it in your response EXACTLY like this:
 [ACTION: tool_name key="value"]
 
 RULES:
-- MEETING PREP (HIGHEST PRIORITY): When the user says "prep me for [meeting]", "brief me on [meeting]", "what should I know about [meeting]", or "prep me for my next meeting" — you MUST use [ACTION: meeting_prep]. NEVER search Gmail. NEVER answer from calendar context alone. Even if there are NO calendar events visible (disconnected/expired token), still use meeting_prep with just a summary. Even if you see "Dimension Prep Notes" in the calendar, IGNORE it and use meeting_prep instead — it does deeper independent research.
+- MEETING PREP (HIGHEST PRIORITY): Meeting questions ALWAYS go through a meeting action — NEVER answer them from calendar context alone. The calendar context shows that an event EXISTS; it does NOT tell you whether the twin has already briefed it. Answering "you're not prepped" from calendar context is WRONG and misleads the user. There are TWO meeting actions — pick by intent:
+  - get_meeting_prep — for BROAD questions about meetings or readiness: "what meetings do I have?", "what's my prep for tomorrow?", "am I prepped?", "am I ready for this week?", "what's coming up?", "what's on my plate?". It reads the briefings the twin has ALREADY generated (fast — no regeneration). Pass timeframe="upcoming" (default), "recent" (meetings that ended), or "all".
+  - meeting_prep — for prepping ONE SPECIFIC meeting: "prep me for [meeting]", "brief me on [meeting]", "what should I know about my call with X". It generates a FRESH deep briefing for that one meeting. Always pass BOTH eventId (from [eventId:...] tags) AND summary so it can fall back gracefully. Even if there are NO calendar events visible (disconnected/expired token), still use meeting_prep with just a summary. If you see "Dimension Prep Notes" in the calendar, IGNORE it and use meeting_prep — it does deeper independent research.
+  NEVER search Gmail for meeting prep. When unsure which to use: broad/plural/"am I ready" → get_meeting_prep; one named meeting → meeting_prep.
 - Use actions when the user asks about their emails, schedule, files, contacts, GitHub, Spotify, or anything requiring real-time information
 - Use web_search for any question that requires current facts, news, or background on a person/company
 - You can use ONE action per response. After you get results, you may use another.
@@ -207,6 +210,21 @@ Examples:
   User: "yes"
   You: Queued! [ACTION: spotify_queue uri="spotify:track:70LcF31zb1H0PyJoS1Sx1r"]
 
+  User: "What meetings do I have coming up?"
+  You: [ACTION: get_meeting_prep timeframe="upcoming"]
+
+  User: "Am I prepped for this week?"
+  You: [ACTION: get_meeting_prep timeframe="upcoming"]
+
+  User: "What's my prep for tomorrow?"
+  You: [ACTION: get_meeting_prep timeframe="upcoming"]
+
+  User: "What meetings do I have coming up and am I prepped?"
+  You: [ACTION: get_meeting_prep timeframe="upcoming"]
+
+  User: "How did my recent meetings go?"
+  You: [ACTION: get_meeting_prep timeframe="recent"]
+
   User: "Prep me for my meeting with Paula tonight"
   (context shows: "Paula & Stefano [eventId:abc123] at 9 PM")
   You: [ACTION: meeting_prep eventId="abc123" summary="Meeting with Paula & Stefano"]
@@ -222,10 +240,9 @@ Examples:
   (no calendar events visible OR calendar disconnected)
   You: [ACTION: meeting_prep summary="next external meeting"]
 
-  User: "Brief me on my meetings this week"
-  You: [ACTION: meeting_prep summary="meetings this week"]
-
-  IMPORTANT: When the user asks to be prepped for a meeting, ALWAYS use meeting_prep — even if the calendar shows a "Dimension Prep Notes" event. Do NOT search Gmail for those notes; meeting_prep does deeper research than Dimension. ALWAYS include both eventId AND summary so the tool can fall back gracefully.`;
+  IMPORTANT — the two meeting actions:
+  - Broad question ("what meetings do I have", "am I prepped", "am I ready this week", "what's coming up") → get_meeting_prep. It reads briefings the twin ALREADY generated, so it knows the real prep status. NEVER answer these from calendar context — the calendar can't tell you what's been briefed.
+  - One specific meeting to prep ("prep me for X", "brief me on X") → meeting_prep. Generates a fresh deep briefing. Include both eventId AND summary. Even if the calendar shows a "Dimension Prep Notes" event, IGNORE it and use meeting_prep — it does deeper research than Dimension. Do NOT search Gmail for meeting prep.`;
 }
 
 /**

@@ -133,6 +133,38 @@ const FACTUAL_PATTERNS = [
   /^(do i have|is there|are there|did i|have i|was i)/i,
 ];
 
+// Agentic meeting / prep intent -> STANDARD (never LIGHT).
+//
+// audit-2026-05-14: "what meetings do I have coming up and am I prepped?"
+// was classified LIGHT (9 words, no STANDARD keyword) and routed to
+// Gemini 2.5 Flash, which did not fire the get_meeting_prep action — the
+// twin answered from calendar context and told the user it hadn't prepped
+// anything when it actually had. These queries are AGENTIC: they only
+// answer correctly if the model invokes a meeting tool. Route them to at
+// least STANDARD (DeepSeek), a stronger instruction-follower than Flash.
+// The prompt fix in workspaceActionParser.js makes any model fire the
+// action; this is defense-in-depth so meeting intent never hits the
+// weakest tier. Checked BEFORE the LIGHT/FACTUAL phase so "do i have any
+// meetings tomorrow" isn't swallowed by FACTUAL_PATTERNS.
+const MEETING_KEYWORDS = new Set([
+  'meeting', 'meetings', 'prep', 'prepped', 'prepare', 'preparing',
+  'briefing', 'briefed', 'agenda',
+]);
+
+// Readiness phrases that signal agentic prep intent even without a meeting
+// keyword — "am I ready for this week?" is almost always a prep-status check.
+// Kept tight: each phrase is a near-unambiguous readiness probe. (Genuinely
+// emotional variants like "am I ready for a relationship" hit DEEP first via
+// the emotional-keyword check, which runs above this phase.)
+const AGENTIC_PREP_PHRASES = [
+  'am i ready',
+  'am i prepped',
+  'am i prepared',
+  'am i set for',
+  'ready for the week',
+  'ready for tomorrow',
+];
+
 // ====================================================================
 // Classification Engine
 // ====================================================================
@@ -191,6 +223,21 @@ export function classifyMessageTier(message, conversationHistory = []) {
   if (conversationHistory.length >= 10) {
     // 10 messages = 5 user+assistant exchanges
     return buildResult(CHAT_TIER_DEEP, `deep conversation: ${conversationHistory.length} messages in history`);
+  }
+
+  // --- Phase 1.5: Agentic meeting / prep intent -> STANDARD ---
+  // Must run before the LIGHT/FACTUAL phase: meeting queries are agentic
+  // (only correct if a meeting tool fires) and must never hit the weakest
+  // model. DEEP still wins above this — e.g. "I'm anxious about my meeting"
+  // routes DEEP via the emotional-keyword check.
+  const meetingHits = words.filter(w => MEETING_KEYWORDS.has(w));
+  if (meetingHits.length >= 1) {
+    return buildResult(CHAT_TIER_STANDARD, `meeting/prep intent: ${meetingHits[0]}`);
+  }
+  for (const phrase of AGENTIC_PREP_PHRASES) {
+    if (lower.includes(phrase)) {
+      return buildResult(CHAT_TIER_STANDARD, `prep-readiness phrase: "${phrase}"`);
+    }
   }
 
   // --- Phase 2: Check for LIGHT signals ---

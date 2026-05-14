@@ -6,6 +6,23 @@ Per CLAUDE.md workflow rule #3 ("Self-Improvement Loop"): update this file after
 
 ---
 
+## 2026-05-14 — Registering a chat tool ≠ the twin will use it
+
+**Incident**: The `get_meeting_prep` chat tool was fully registered in `extendedTools.js` (correct definition, skill enabled, surfaced by `getAvailableTools`) and shipped with the meetings-agent feature. But in a live audit, asking the twin "what meetings do I have coming up and am I prepped?" — a near-verbatim match for the tool's own description — produced `action_chain_done depth:0`: **zero tools called**. The twin answered from the calendar context already in the 54k-char prompt and told the user nothing was prepped, when in fact "Dra Ana Academia da Mente" had a full briefing (the dashboard card proved it). The twin actively misinformed the user.
+
+**Root cause**: Twin chat tool-calling is **prompt-engineered, not native function-calling**. `buildWorkspaceActionsPrompt` in `workspaceActionParser.js` builds a system-prompt block with three parts: an auto-generated `Available actions:` list (just name + description), a `RULES:` section, and an `Examples:` section. The model only reliably fires `[ACTION: tool_name]` tags for tools that appear in **RULES + EXAMPLES** — the bare auto-list is necessary but not sufficient, especially for the LIGHT tier (Gemini 2.5 Flash). `get_meeting_prep` was added to the registry but the prompt's rules + examples were never updated — they only covered the sibling `meeting_prep` tool. So a weak model with calendar context inline took the easy path and never fired the action.
+
+**Why it slipped**: "the tool is registered and the unit test for the executor passes" felt like done. Nobody asked "does the prompt actually teach the model when to fire it?" The two layers — tool *registry* and tool *prompt* — drift independently, and only the prompt drives selection.
+
+**Rule**:
+- When adding a tool to `extendedTools.js` (or any tool the twin chat can call), you MUST also update `buildWorkspaceActionsPrompt`: add a RULE describing when to fire it and at least one worked `[ACTION: tool_name ...]` EXAMPLE. A tool with no rule + no example is effectively invisible to weak models.
+- If two tools are easily confused (here: `meeting_prep` regenerates ONE meeting, `get_meeting_prep` lists ALREADY-prepped meetings), the prompt must explicitly disambiguate by intent, with examples for both directions.
+- Guard against the specific failure mode in the prompt: if a tool exists precisely because inline context is insufficient (calendar shows events exist, not whether they're briefed), the prompt must say "NEVER answer from [inline context] alone — use the tool."
+- Agentic queries (ones only correct if a tool fires) should not route to the weakest model tier. `chatRouter.js` now routes meeting/prep intent to STANDARD minimum — apply the same logic to any future agentic intent.
+- Verification standard: a tool is not "done" until a live chat query that should trigger it shows the action firing (`action_chain_done depth >= 1`), not just until the executor unit test passes.
+
+---
+
 ## 2026-05-13 — PostgREST silently drops writes to non-existent columns
 
 **Incident**: Yesterday's H11 fix added `oauth_platform: 'magic_link'` to two user INSERT/UPDATE sites in `api/routes/auth-simple.js`. The deploy went green, the user row was created, `/settings` continued displaying "Managed via Google OAuth" anyway. The actual column name on `public.users` is `oauth_provider`. PostgREST/supabase-js sent the unknown key, the DB silently dropped it, no error returned, no log written. Discovered only when end-to-end verifying via a real browser /settings nav — curl-level testing wouldn't have caught it (no UI to inspect, and the INSERT returned success).
