@@ -13,7 +13,24 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('TwinChatStream');
 
-const DEFAULT_TIMEOUT_MS = 50000;
+// audit-2026-05-13 C1: the talk-to-twin live audit found that ~26% of
+// tool-routed queries (recovery score, money summary, multilingual wellbeing,
+// calendar-write) consistently hit the previous 50s timeout. Stream close
+// timestamps clustered at 50.7-50.9s on every failure, confirming this
+// hard-coded budget was firing rather than upstream latency causing the
+// stream to legitimately end with content.
+//
+// Express request timeout for /chat/message is 60s (api/server.js:274) and
+// Vercel maxDuration is 60s, so 55s leaves a 5s safety margin for a clean
+// SSE error event to flush before the platform kills the function. This
+// recovers 5 extra seconds for the LLM/tool-call portion of any chat turn.
+//
+// If 55s still proves too tight, the real fix is to find why specific query
+// types take >55s (likely context-build fan-out on certain neuropil routes)
+// rather than bumping the budget further — that would require changing
+// Express + Vercel maxDuration together and is governed by the project's
+// $-cost rule keeping function duration ≤ 60s.
+const DEFAULT_TIMEOUT_MS = 55000;
 const HEARTBEAT_INTERVAL_MS = 2000;
 
 const DEFAULT_TIMEOUT_BLOCKING_BODY = {
