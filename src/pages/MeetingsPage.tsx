@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { Calendar, Clock, Users, AlertCircle, Sparkles, Mail, CalendarPlus, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Users, AlertCircle, Sparkles, Mail, CalendarPlus, RefreshCw, CheckSquare, ArrowRight, Heart } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { fetchMeetingBriefings, type MeetingBriefing } from '@/services/api/meetingBriefingsAPI';
 import { isAbortError } from '@/services/api/apiBase';
@@ -55,11 +55,157 @@ function formatTimeRange(start: string | null, end: string | null): string {
   return `${dayFmt.format(s)} · ${timeFmt.format(s)}`;
 }
 
+function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['briefing']['debrief']> }) {
+  return (
+    <div
+      className="mb-5 p-4 rounded-[14px]"
+      style={{
+        background: 'linear-gradient(135deg, rgba(93,92,174,0.12) 0%, rgba(255,255,255,0.03) 75%)',
+        border: '1px solid rgba(93,92,174,0.28)',
+      }}
+    >
+      <p style={{ ...LABEL, color: 'rgba(165,164,224,0.90)', marginBottom: 8 }}>
+        <RefreshCw className="w-3 h-3 inline-block mr-1.5 -mt-0.5" /> Depois da reunião — leitura do twin
+      </p>
+
+      {debrief.summary && (
+        <p
+          className="mb-3"
+          style={{
+            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontSize: 16,
+            color: 'rgba(255,255,255,0.85)',
+            lineHeight: 1.4,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {debrief.summary}
+        </p>
+      )}
+
+      {debrief.likelyCovered && debrief.likelyCovered.length > 0 && (
+        <div className="mb-3">
+          <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>Provavelmente abordado</p>
+          <ul className="space-y-1">
+            {debrief.likelyCovered.map((t, i) => (
+              <li
+                key={i}
+                className="pl-3"
+                style={{
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontSize: 12.5,
+                  color: 'rgba(255,255,255,0.75)',
+                  lineHeight: 1.5,
+                  borderLeft: '2px solid rgba(93,92,174,0.4)',
+                }}
+              >
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {debrief.probableActionItems && debrief.probableActionItems.length > 0 && (
+        <div className="mb-3">
+          <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>
+            <CheckSquare className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Ações prováveis
+          </p>
+          <div className="space-y-1.5">
+            {debrief.probableActionItems.map((ai, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-2 px-2.5 py-1.5 rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.03)' }}
+              >
+                <span
+                  className="px-1.5 py-0.5 rounded-full flex-shrink-0"
+                  style={{
+                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontSize: 9.5,
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    background: ai.owner === 'me' ? 'rgba(193,126,44,0.18)' : 'rgba(255,255,255,0.06)',
+                    color: ai.owner === 'me' ? 'rgba(232,160,80,0.95)' : 'rgba(255,255,255,0.55)',
+                  }}
+                >
+                  {ai.owner === 'me' ? 'você' : ai.owner}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'Geist', 'Inter', sans-serif",
+                    fontSize: 12.5,
+                    color: 'rgba(255,255,255,0.85)',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {ai.task}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {debrief.followUpsRecommended && debrief.followUpsRecommended.length > 0 && (
+        <div className="mb-3">
+          <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>
+            <ArrowRight className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Próximos passos sugeridos
+          </p>
+          <ul className="space-y-1">
+            {debrief.followUpsRecommended.map((f, i) => (
+              <li
+                key={i}
+                className="pl-3"
+                style={{
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontSize: 12.5,
+                  color: 'rgba(255,255,255,0.80)',
+                  lineHeight: 1.5,
+                  borderLeft: '2px solid rgba(232,160,80,0.4)',
+                }}
+              >
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {debrief.relationshipNotes && debrief.relationshipNotes.length > 0 && (
+        <div>
+          <p style={{ ...LABEL, fontSize: 10, marginBottom: 6 }}>
+            <Heart className="w-3 h-3 inline-block mr-1 -mt-0.5" /> Pra lembrar
+          </p>
+          <div className="space-y-1.5">
+            {debrief.relationshipNotes.map((rn, i) => (
+              <p
+                key={i}
+                style={{
+                  fontFamily: "'Geist', 'Inter', sans-serif",
+                  fontSize: 12.5,
+                  color: 'rgba(255,255,255,0.72)',
+                  lineHeight: 1.5,
+                }}
+              >
+                <span style={{ fontWeight: 500, color: 'rgba(255,255,255,0.88)' }}>{rn.person}:</span>{' '}
+                {rn.note}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero: boolean }) {
   const b = briefing.briefing || {};
   const title = briefing.summary || briefing.headline || 'Reunião sem título';
   const until = timeUntil(briefing.startTime);
   const range = formatTimeRange(briefing.startTime, briefing.endTime);
+  const hasDebrief = !!b.debrief;
 
   return (
     <div
@@ -121,6 +267,16 @@ function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero:
           }}
         >
           {b.headline}
+        </p>
+      )}
+
+      {/* Post-meeting debrief — leads when present. The prep content below
+          becomes reference ("what the twin prepped") once the debrief lands. */}
+      {hasDebrief && b.debrief && <DebriefSection debrief={b.debrief} />}
+
+      {hasDebrief && (
+        <p style={{ ...LABEL, fontSize: 10, marginBottom: 8, color: 'rgba(255,255,255,0.35)' }}>
+          O que o twin preparou antes
         </p>
       )}
 

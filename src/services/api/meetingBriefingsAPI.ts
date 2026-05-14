@@ -14,6 +14,25 @@ export interface BriefingAttendeeResearch {
   lastTouchpoint: string | null;
 }
 
+export interface DebriefActionItem {
+  owner: string; // "me" or an attendee name
+  task: string;
+}
+
+export interface DebriefRelationshipNote {
+  person: string;
+  note: string;
+}
+
+export interface MeetingDebrief {
+  summary: string;
+  likelyCovered?: string[];
+  probableActionItems?: DebriefActionItem[];
+  followUpsRecommended?: string[];
+  relationshipNotes?: DebriefRelationshipNote[];
+  generatedAt?: string;
+}
+
 export interface BriefingPayload {
   headline: string;
   attendees?: BriefingAttendeeResearch[];
@@ -21,6 +40,8 @@ export interface BriefingPayload {
   talkingPoints?: string[];
   watchOuts?: string[];
   myContext?: string | null;
+  /** Present once the post-meeting debrief cron has run for this meeting. */
+  debrief?: MeetingDebrief;
 }
 
 export interface CalendarAttendee {

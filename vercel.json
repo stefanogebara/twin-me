@@ -139,6 +139,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/meeting-debrief",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/evening-recap",
       "schedule": "0 23 * * *"
     },

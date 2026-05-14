@@ -507,6 +507,7 @@ import cronNudgeInactiveRoutes from './routes/cron-nudge-inactive.js';
 import cronDepartmentExecuteRoutes from './routes/cron-department-execute.js';
 import cronAgentActionsCleanupRoutes from './routes/cron-agent-actions-cleanup.js';
 import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
+import cronMeetingDebriefRoutes from './routes/cron-meeting-debrief.js';
 import wikiRoutes from './routes/wiki.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
@@ -735,6 +736,7 @@ app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals
 app.use('/api/cron/agent-actions-cleanup', cronAgentActionsCleanupRoutes); // Daily 2am UTC: soft-expire pending proposals older than 7 days
 app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-meeting briefings for upcoming external meetings
+app.use('/api/cron/meeting-debrief', cronMeetingDebriefRoutes); // Every 30 min: post-meeting debriefs for meetings that just ended
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)
