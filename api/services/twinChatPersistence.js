@@ -95,6 +95,12 @@ export async function persistChatTurn({
   // 20260512_add_cold_start_telemetry_to_logs migration).
   coldStartMs = null,
   memoryCount = null,
+  // audit-2026-05-13 trace-id follow-up: per-request trace ID and the
+  // per-hop timing ladder. Persisted to mcp_conversation_logs.trace_id +
+  // hop_timings (migration 20260514_chat_hop_timings) so we can query
+  // the slow tail by trace ID without needing Vercel log drains.
+  traceId = null,
+  hopTimings = null,
 }) {
   const lzScore = lzComplexity(assistantMessage);
 
@@ -125,6 +131,8 @@ export async function persistChatTurn({
       },
       coldStartMs,
       memoryCount,
+      traceId,
+      hopTimings,
     }).catch(err => log.warn('Failed to log conversation', { error: err?.message })),
 
     !evalMode

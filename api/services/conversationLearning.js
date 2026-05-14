@@ -213,6 +213,10 @@ export async function logConversationToDatabase({
   // memory_count=null, blinding the recent twin-perf work.
   coldStartMs = null,
   memoryCount = null,
+  // audit-2026-05-13 trace-id follow-up: per-request trace ID + per-hop
+  // timing ladder. Persisted via migration 20260514_chat_hop_timings.
+  traceId = null,
+  hopTimings = null,
 }) {
   if (!userId || !userMessage) {
     return null;
@@ -243,6 +247,8 @@ export async function logConversationToDatabase({
         rendered_system_prompt: renderedSystemPrompt,
         cold_start_ms: Number.isFinite(coldStartMs) ? coldStartMs : null,
         memory_count: Number.isFinite(memoryCount) ? memoryCount : null,
+        trace_id: typeof traceId === 'string' && traceId.length > 0 ? traceId : null,
+        hop_timings: Array.isArray(hopTimings) && hopTimings.length > 0 ? hopTimings : null,
         analyzed_at: new Date().toISOString(),
       })
       .select('id')

@@ -67,8 +67,17 @@ router.post('/message', authenticateUser, async (req, res) => {
   // Structured per-hop timing emission. Use info level (above debug) so
   // hops appear in prod logs by default. Tagged with the same traceId
   // so a single request can be reconstructed end-to-end.
-  const hopLog = (hop, extra = {}) =>
-    log.info('chat.hop', { traceId, hop, elapsedMs: Date.now() - chatStartTime, ...extra });
+  // audit-2026-05-13 trace-id follow-up: also accumulate hops into an
+  // array so persistChatTurn can write the timing ladder to
+  // mcp_conversation_logs.hop_timings — gives us a queryable record of
+  // every chat turn's per-hop budget, which the Vercel MCP can't surface
+  // because it truncates structured payloads.
+  const hopTimings = [];
+  const hopLog = (hop, extra = {}) => {
+    const elapsedMs = Date.now() - chatStartTime;
+    hopTimings.push({ hop, elapsedMs, ...extra });
+    log.info('chat.hop', { traceId, hop, elapsedMs, ...extra });
+  };
   let stream = null;
   try {
     const userId = req.user.id;
@@ -383,6 +392,11 @@ router.post('/message', authenticateUser, async (req, res) => {
       memories, writingProfile, chatSource,
       coldStartMs,
       memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
+      // audit-2026-05-13 trace-id follow-up: persist hop timings so we can
+      // diagnose the slow-tail bottleneck via Supabase queries instead of
+      // truncated Vercel runtime logs.
+      traceId,
+      hopTimings,
     });
 
     // Post-response side effects extracted to twinChatPipeline.js.
