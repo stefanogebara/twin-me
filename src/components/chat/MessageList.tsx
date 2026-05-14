@@ -9,13 +9,19 @@ import { WorkspaceActionCard } from './WorkspaceActionCard';
 import { DepartmentProposalBubble, type ProposalData, type ProposalStatus } from './DepartmentProposalBubble';
 import { ProposalSummaryCard } from './ProposalSummaryCard';
 import { DepartmentSuggestionCard, parseDepartmentSuggestions } from './DepartmentSuggestionCard';
+import { ThinkingIndicator } from './ThinkingIndicator';
 
 type ChatErrorType = 'timeout' | 'rate_limit' | 'network' | 'generic';
 
 function getErrorMessage(errorType?: ChatErrorType): string {
   switch (errorType) {
     case 'timeout':
-      return "Your twin is taking longer than usual. Try again \u2014 the first message after a while can be slow.";
+      // audit-2026-05-13: was "the first message after a while can be slow"
+      // \u2014 misleading because the failure is reproducible on tool-routed
+      // queries (recovery score, money summary, calendar write) regardless
+      // of session age. New copy is honest about the data lookup rather
+      // than blaming session warmup.
+      return "Couldn't fetch your data this time. Try a different angle, or retry in a moment.";
     case 'rate_limit':
       return "You've sent too many messages. Take a breath and try again in a minute.";
     case 'network':
@@ -436,32 +442,10 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
           );
         })}
 
-        {isTyping && (
-          <div className="flex flex-col items-start py-2" role="status" aria-label="Twin is thinking">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{
-                  backgroundColor: 'var(--accent-vibrant)',
-                  animation: 'thinking-pulse 1.5s ease-in-out infinite',
-                }}
-                aria-hidden="true"
-              />
-              <span
-                className="text-[13px] font-medium"
-                style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif' }}
-              >
-                Thinking...
-              </span>
-            </div>
-            <style>{`
-              @keyframes thinking-pulse {
-                0%, 100% { opacity: 0.3; transform: scale(0.85); }
-                50% { opacity: 1; transform: scale(1.15); }
-              }
-            `}</style>
-          </div>
-        )}
+        {/* M1 fix (audit-2026-05-13): progressive copy escalates after 4s
+            and 10s so the user knows the system is working during long
+            cold-start TTFTs (greeting probe was 11s, math probe was 22s). */}
+        {isTyping && <ThinkingIndicator />}
 
         <div ref={ref} />
       </div>
