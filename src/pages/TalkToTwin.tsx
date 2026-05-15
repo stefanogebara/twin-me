@@ -113,7 +113,11 @@ const TalkToTwin = () => {
   // H1 fix (audit-2026-05-12): canonical source so the chat footer chip
   // matches /connect, /identity, /wiki and the empty-state copy.
   const { data: platformsSummary } = usePlatformsSummary({ enabled: !!user?.id });
-  const canonicalPlatformCount = platformsSummary?.total ?? connectedCount;
+  // audit-2026-05-15 H1: prefer .active (excludes expired/stale connections)
+  // for the canonical "X platforms" chip. The audit found Spotify expired
+  // 16d ago but the count chip kept showing it. Falls back to .total then
+  // local count for older Summary payloads.
+  const canonicalPlatformCount = platformsSummary?.active ?? platformsSummary?.total ?? connectedCount;
   const { undelivered: pendingInsights, markEngaged } = useProactiveInsights();
   const {
     calendarEvents: sidebarCalendarEvents,

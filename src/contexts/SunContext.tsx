@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { useSunPosition, type SunState } from '../hooks/useSunPosition';
 import { computeSkyGradients } from '../utils/skyGradients';
 import { useTheme } from './ThemeContext';
+import { useAuth } from './AuthContext';
 import { authFetch, getAccessToken } from '../services/api/apiBase';
 
 const SunContext = createContext<SunState | undefined>(undefined);
@@ -29,6 +30,12 @@ const RESOLVED_TZ_CACHE_KEY = 'twinme_resolved_tz_v1';
 export function SunProvider({ children }: { children: React.ReactNode }) {
   const sunState = useSunPosition();
   const { resolvedTheme } = useTheme();
+  // audit-2026-05-15 H11: gate location POST on signed-in state. Previously
+  // SunProvider would POST /api/location/current on any page where it was
+  // mounted (everywhere — it wraps the app), including /auth + /. With a
+  // stored-but-expired token in localStorage, every navigation fired a
+  // 401 into Vercel error logs. Now we only post when authenticated.
+  const { isSignedIn } = useAuth();
   const lastPostedRef = useRef<string>('');
   const [resolvedTimezone, setResolvedTimezone] = useState<string | null>(() => {
     try {
@@ -71,9 +78,13 @@ export function SunProvider({ children }: { children: React.ReactNode }) {
     const { location, sunPhase } = sunState;
     const key = `${location.latitude.toFixed(2)},${location.longitude.toFixed(2)},${location.source},${sunPhase},${resolvedTimezone || ''}`;
 
-    // Skip if nothing meaningful changed or if using default timezone fallback
+    // Skip if nothing meaningful changed or if using default timezone fallback.
+    // audit-2026-05-15 H11: also skip when not signed in — the API rejects
+    // unauthenticated POSTs with 401, and that noise was hitting Vercel logs
+    // on every page load while the user was on /auth or /.
     if (key === lastPostedRef.current) return;
     if (location.source === 'default') return;
+    if (!isSignedIn) return;
 
     lastPostedRef.current = key;
 
@@ -112,7 +123,7 @@ export function SunProvider({ children }: { children: React.ReactNode }) {
       }, 2000);
       return () => clearInterval(retryId);
     }
-  }, [sunState, resolvedTimezone]);
+  }, [sunState, resolvedTimezone, isSignedIn]);
 
   return (
     <SunContext.Provider value={sunState}>

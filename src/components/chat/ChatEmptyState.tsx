@@ -67,7 +67,15 @@ export const ChatEmptyState = ({
   // every other surface (/connect, /identity, /wiki). Falls back to
   // connectedPlatforms.length while the summary loads.
   const { data: platformsSummary } = usePlatformsSummary();
-  const platformCount = platformsSummary?.total ?? connectedPlatforms.length;
+  // audit-2026-05-15 H1: use `.active` not `.total` so the "X platforms
+  // connected" chip excludes expired/stale connections. The audit found
+  // Spotify expired 16d ago but the chip still showed it as connected —
+  // misleading users into thinking their soul signature was up-to-date
+  // when 4 of 10 platforms were actually silent.
+  const platformCount = platformsSummary?.active ?? platformsSummary?.total ?? connectedPlatforms.length;
+  const expiredCount = platformsSummary?.expired ?? 0;
+  const staleCount = platformsSummary?.stale ?? 0;
+  const needsReconnect = expiredCount + staleCount;
 
   // audit-2026-05-13 L1: chips now react to today's signals (high-urgency
   // proactive insights, meeting-heavy day, email triage opportunity) and
@@ -138,6 +146,19 @@ export const ChatEmptyState = ({
             )
           }
         </p>
+      )}
+
+      {/* audit-2026-05-15 H1: surface expired/stale platforms instead of
+          silently counting them as connected. Without this, users see
+          "11 platforms connected" while 4 have been silent for 16+ days. */}
+      {needsReconnect > 0 && (
+        <button
+          onClick={() => navigate('/connect')}
+          className="text-center mb-6 text-[12px] transition-opacity hover:opacity-80"
+          style={{ color: 'rgba(217,119,6,0.7)' }}
+        >
+          {needsReconnect} platform{needsReconnect > 1 ? 's need' : ' needs'} reconnection →
+        </button>
       )}
 
       {/* Subtitle for no platforms */}
