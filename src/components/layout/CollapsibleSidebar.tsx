@@ -208,11 +208,15 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     aria-label={`Navigate to ${item.label}`}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
+                      // audit-2026-05-15 C4: nav items must be FLAT (straight
+                      // edges) per CLAUDE.md design rule. rounded-md (6px)
+                      // preserves a soft corner without the pill shape that
+                      // violated the design system on every route.
                       "w-full flex items-center transition-all duration-150 ease-out active:scale-[0.97]",
                       isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5",
                       active
-                        ? "rounded-full font-medium"
-                        : "rounded-full hover:bg-[rgba(255,255,255,0.08)]"
+                        ? "rounded-md font-medium"
+                        : "rounded-md hover:bg-[rgba(255,255,255,0.08)]"
                     )}
                     style={active ? {
                       background: 'var(--accent-vibrant-glow)',
@@ -250,7 +254,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 type="button"
                 onClick={handleSignOut}
                 className={cn(
-                  "w-full flex items-center rounded-full opacity-70 hover:opacity-100 hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out active:scale-[0.97]",
+                  // audit-2026-05-15 C4: rounded-md keeps sidebar FLAT.
+                  "w-full flex items-center rounded-md opacity-70 hover:opacity-100 hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out active:scale-[0.97]",
                   isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5"
                 )}
                 aria-label="Sign out"
@@ -276,7 +281,10 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                 type="button"
                 onClick={() => handleNavigate('/settings')}
                 className={cn(
-                  "w-full flex items-center rounded-full hover:bg-[rgba(255,255,255,0.08)] transition-colors",
+                  // audit-2026-05-15 C4: rounded-md keeps sidebar FLAT. The
+                  // user avatar inside (w-8 h-8 rounded-full) is still a
+                  // circle because that's an avatar treatment, not a nav pill.
+                  "w-full flex items-center rounded-md hover:bg-[rgba(255,255,255,0.08)] transition-colors",
                   isCollapsed ? "justify-center px-0 py-2.5" : "gap-3 px-4 py-2.5"
                 )}
                 aria-label={`Open settings for ${user?.firstName || user?.email || 'user'}`}
@@ -320,7 +328,7 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               <button
                 type="button"
                 onClick={toggleCollapse}
-                className="hidden lg:flex w-full items-center justify-center py-2 rounded-full hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out"
+                className="hidden lg:flex w-full items-center justify-center py-2 rounded-md hover:bg-[rgba(255,255,255,0.08)] transition-all duration-150 ease-out"
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 aria-expanded={!isCollapsed}
                 data-testid="sidebar-collapse-toggle"
