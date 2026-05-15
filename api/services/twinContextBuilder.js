@@ -119,10 +119,25 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       return null;
     })),
 
-    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights, { contextVector }).catch(err => {
-      log.warn('Memory retrieval failed:', err.message);
-      return [];
-    })),
+    // audit-2026-05-13 bottleneck follow-up: pull retrieveDiverseMemories'
+    // per-leg durations onto the parent timings record so the hop_timings
+    // ladder shows reflections / facts / platform_data / semantic_conv /
+    // recent_conv breakdowns. The function attaches _legDurations as a
+    // non-enumerable property on the returned array.
+    timed('memories', retrieveDiverseMemories(userId, userMessage, memoryBudgets, memoryWeights, { contextVector })
+      .then(combined => {
+        const legs = combined?._legDurations;
+        if (legs && typeof legs === 'object') {
+          for (const [k, v] of Object.entries(legs)) {
+            timings[`memLeg_${k}`] = v;
+          }
+        }
+        return combined;
+      })
+      .catch(err => {
+        log.warn('Memory retrieval failed:', err.message);
+        return [];
+      })),
 
     timed('twinSummary', getTwinSummary(userId).catch(err => {
       log.warn('Twin summary fetch failed:', err.message);

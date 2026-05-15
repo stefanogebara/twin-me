@@ -1163,17 +1163,33 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
   // the other legs' results still make it into the merge. Partial memory
   // context > no memory context.
   const PER_LEG_TIMEOUT_MS = 5000;
+  // audit-2026-05-13 bottleneck follow-up: capture per-leg duration so the
+  // hop_timings ladder can show which memory sub-leg dominates. Previously
+  // only timeouts were logged; healthy-but-slow legs were invisible.
+  // legDurations is returned alongside the merged memories so the caller
+  // can fold it into the parent timings record.
+  const legDurations = {};
   const withLegTimeout = (label, promise) => {
+    const legStart = Date.now();
     let timer;
     const timeout = new Promise(resolve => {
       timer = setTimeout(() => {
+        legDurations[label] = Date.now() - legStart;
         log.warn(`Memory leg timeout: ${label} exceeded ${PER_LEG_TIMEOUT_MS}ms — using empty`);
         resolve([]);
       }, PER_LEG_TIMEOUT_MS);
     });
     return Promise.race([
-      promise.then(v => { clearTimeout(timer); return v; },
-                   e => { clearTimeout(timer); log.warn(`Memory leg threw: ${label}`, { error: e?.message }); return []; }),
+      promise.then(v => {
+        clearTimeout(timer);
+        legDurations[label] = Date.now() - legStart;
+        return v;
+      }, e => {
+        clearTimeout(timer);
+        legDurations[label] = Date.now() - legStart;
+        log.warn(`Memory leg threw: ${label}`, { error: e?.message });
+        return [];
+      }),
       timeout,
     ]);
   };
@@ -1289,6 +1305,17 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     conversations: conversationResults.length,
     semanticConv: semanticConvResults.length,
     recentConv: recentConvResults.length,
+    legDurations,
+  });
+
+  // audit-2026-05-13 bottleneck follow-up: attach the per-leg durations
+  // to the result array (non-enumerable property so existing consumers
+  // that iterate or stringify the array don't see it). Caller pulls it
+  // off via combined._legDurations and folds into hop_timings.
+  Object.defineProperty(combined, '_legDurations', {
+    value: legDurations,
+    enumerable: false,
+    configurable: true,
   });
 
   // audit-2026-05-09 C1 fix: Graph expansion was awaited synchronously here,
