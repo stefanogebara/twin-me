@@ -233,6 +233,12 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   });
 
   let contextResults;
+  // audit-2026-05-13 bottleneck follow-up: track whether the circuit breaker
+  // tripped so the hop_timings ladder can show it. Hop log can't be called
+  // from inside this module (no logger pattern here), so we surface it via
+  // the returned timings record — the route layer can fold it into the
+  // context_fetch_done hop_timings entry.
+  let circuitBreakerTripped = false;
   try {
     contextResults = await Promise.race([
       Promise.all(fetchPromises),
@@ -242,6 +248,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     ]);
   } catch (timeoutErr) {
     if (timeoutErr.message === 'fetchTwinContext timeout') {
+      circuitBreakerTripped = true;
       log.warn(`Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
       // Use already-resolved values; fall back to defaults for still-pending promises.
       // This avoids the prior bug of await Promise.allSettled() which waited for all promises.
@@ -250,6 +257,14 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       throw timeoutErr;
     }
   }
+  timings._circuitBreakerTripped = circuitBreakerTripped;
+  timings._circuitBreakerMs = CONTEXT_TIMEOUT_MS;
+  // audit-2026-05-13 bottleneck follow-up: mark the boundary between the
+  // parallel-fetch race and the post-processing tail (enrichment fallback,
+  // platform priorities, etc.). If the breaker tripped at 10s but the hop
+  // shows 12.3s elapsed at context_fetch_done, the gap is post-processing.
+  const postProcessingStart = Date.now();
+  timings._fanoutMs = postProcessingStart - ctxStart;
 
   const [
     soulSignature,
@@ -296,6 +311,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     }
   }
 
+  timings._postProcessingMs = Date.now() - postProcessingStart;
   log.info('Context build complete', { totalMs: Date.now() - ctxStart, timings });
 
   return {
