@@ -67,17 +67,49 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   const ctxStart = Date.now();
   const ctxLog = (label) => log.info(`${label} (${Date.now() - ctxStart}ms)`);
 
-  // Wrap each fetch with timing
+  // Wrap each fetch with timing.
+  //
+  // audit-2026-05-15 follow-up: each leg now races against a 6s budget,
+  // mirroring the per-sidecar timeout pattern in twinChatPreFlight.js (C3).
+  // The audit found voiceExamples spiking to 8.4s on cold cache (3 parallel
+  // JSONB queries across 19k memories) and dragging the whole Promise.all
+  // past the 10s parent breaker. With per-leg timeouts, no single leg can
+  // hold the fan-out beyond its budget — the slowest healthy legs are
+  // bounded so the parent breaker only fires if multiple legs are bad.
+  //
+  // 6s gives a comfortable margin over the typical p95 healthy leg time
+  // (300-1500ms) while protecting against the cold-DB-query tail. On
+  // timeout the leg's caller .catch() returns a default (empty array,
+  // null, etc.) and the chat continues without that leg's data.
   const timings = {};
+  const PER_LEG_TIMEOUT_MS = 6000;
   const timed = (label, promise) => {
     const start = Date.now();
-    return promise.then(r => {
-      timings[label] = Date.now() - start;
-      return r;
-    }).catch(err => {
-      timings[label] = Date.now() - start;
-      throw err;
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        timings[label] = Date.now() - start;
+        timings[`${label}TimedOut`] = true;
+        log.warn(`twinContext leg timeout: ${label} exceeded ${PER_LEG_TIMEOUT_MS}ms — using default`);
+        reject(new Error(`${label}_leg_timeout`));
+      }, PER_LEG_TIMEOUT_MS);
     });
+    return Promise.race([
+      promise.then(r => {
+        clearTimeout(timer);
+        if (timings[`${label}TimedOut`] !== true) {
+          timings[label] = Date.now() - start;
+        }
+        return r;
+      }, err => {
+        clearTimeout(timer);
+        if (timings[`${label}TimedOut`] !== true) {
+          timings[label] = Date.now() - start;
+        }
+        throw err;
+      }),
+      timeoutPromise,
+    ]);
   };
 
   // Circuit breaker: if any single fetch hangs, cap total context build.
