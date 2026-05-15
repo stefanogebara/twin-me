@@ -338,13 +338,19 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
           lineHeight: 1.15,
         }}
       >
+        {/* audit-2026-05-15 H10: shortened the reveal timeline. Previously
+            the first word didn't appear until t=2s, and the Explore button
+            at t=5s — Agent 3 flagged the 2-4s empty-black-screen period
+            as reading like a broken page. Cascade now starts at 0.4s and
+            wraps in ~2s total, preserving the cinematic feel while
+            killing the "is this stuck?" perception. */}
         {words.map((word, i) => (
           <motion.span
             key={i}
             className="inline-block mr-[0.3em]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2 + i * 0.35, duration: 0.6, ease: 'easeOut' }}
+            transition={{ delay: 0.4 + i * 0.25, duration: 0.5, ease: 'easeOut' }}
           >
             {word}
           </motion.span>
@@ -356,7 +362,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         style={{ color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', sans-serif", maxWidth: 400 }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 4, duration: 0.8 }}
+        transition={{ delay: 1.5, duration: 0.6 }}
       >
         {tagline}
       </motion.p>
@@ -370,7 +376,7 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 5, duration: 0.6 }}
+        transition={{ delay: 2.2, duration: 0.5 }}
         onClick={onDismiss}
       >
         <Sparkles className="w-4 h-4" />
