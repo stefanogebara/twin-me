@@ -208,9 +208,20 @@ router.post('/message', authenticateUser, async (req, res) => {
     const neurotransmitterMode = promptAssembly.neurotransmitterMode;
     const emotionalState = promptAssembly.emotionalState;
 
-    // P1: Start async operations EARLY so they run in parallel with sync work below
+    // P1: Start async operations EARLY so they run in parallel with sync work below.
+    // audit-2026-05-13 bottleneck follow-up: inspect-chat-traces CLI surfaced
+    // parallel_meta_done = 7.1s on trace 174d0d8c. Adding per-leg timing
+    // here splits it into expertRoutingMs / historyMs / creativityMs so the
+    // next slow-tail row shows which sub-promise was the dragger.
+    const parallelMetaStart = Date.now();
+    const legTimings = { expertRoutingMs: null, historyMs: null, creativityMs: null };
+    const timeLeg = (key, p) => {
+      const t0 = Date.now();
+      return p.finally(() => { legTimings[key] = Date.now() - t0; });
+    };
+
     const expertRoutingPromise = useExpertRouting
-      ? classifyQueryDomain(message)
+      ? timeLeg('expertRoutingMs', classifyQueryDomain(message)
           .then(async (routingResult) => {
             if (routingResult.expertId && routingResult.domain !== 'general') {
               const expertMems = await retrieveExpertMemories(userId, routingResult.expertId, message, 6);
@@ -218,13 +229,12 @@ router.post('/message', authenticateUser, async (req, res) => {
             }
             return { routingResult, expertMemories: [] };
           })
-          .catch(err => { log.warn('Expert routing failed (non-fatal)', { error: err }); return null; })
+          .catch(err => { log.warn('Expert routing failed (non-fatal)', { error: err }); return null; }))
       : Promise.resolve(null);
 
-    const conversationHistoryPromise = fetchConversationHistory(userId, conversationId);
-    const creativityBoostPromise = fetchCreativityBoost(userId, conversationId);
+    const conversationHistoryPromise = timeLeg('historyMs', fetchConversationHistory(userId, conversationId));
+    const creativityBoostPromise = timeLeg('creativityMs', fetchCreativityBoost(userId, conversationId));
 
-    const parallelMetaStart = Date.now();
     const [expertResult, conversationHistory, creativityResult] = await Promise.all([
       expertRoutingPromise,
       conversationHistoryPromise,
@@ -234,6 +244,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       parallelMetaMs: Date.now() - parallelMetaStart,
       historyMsgs: conversationHistory?.length || 0,
       expertDomain: expertResult?.routingResult?.domain || null,
+      ...legTimings,
     });
 
     const expertRoutingResult = expertResult?.routingResult || null;
