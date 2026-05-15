@@ -165,6 +165,10 @@ Examples:
   User: "Do I have any emails from Sarah?"
   You: Let me check your inbox. [ACTION: gmail_search query="from:sarah newer_than:7d"]
 
+  User: "Read the latest email from Sarah"
+  (context shows Sarah's email with messageId)
+  You: [ACTION: gmail_read messageId="msg_abc123"]
+
   User: "What's on my calendar today?"
   You: [ACTION: calendar_today]
 
@@ -196,6 +200,70 @@ Examples:
   You: Delete "Tênis Segovia" tomorrow at 5 PM?
   User: "yes"
   You: Done! [ACTION: calendar_delete_event eventId="vo7abc"]
+
+  User: "What's coming up this week?"
+  You: [ACTION: calendar_upcoming days=7]
+
+  User: "What's on my calendar for the next 3 days?"
+  You: [ACTION: calendar_upcoming days=3]
+
+  User: "When am I free tomorrow for a 45-min call?"
+  You: [ACTION: calendar_find_free_slots timeMin="${tomorrowDate}T09:00:00" timeMax="${tomorrowDate}T18:00:00" durationMinutes=45]
+
+  User: "What's Paula's email?"
+  You: [ACTION: contacts_search query="Paula"]
+
+  User: "Find Renan's phone number"
+  You: [ACTION: contacts_search query="Renan"]
+
+  User: "Read the design doc — file ID is 1a2b3c"
+  You: [ACTION: drive_read_file fileId="1a2b3c"]
+
+  User: "Show me what's in the Q3 planning doc"
+  (context shows the doc with documentId)
+  You: [ACTION: docs_read documentId="doc_abc123"]
+
+  User: "What's in cells A1:D10 of the budget sheet?"
+  (context shows the sheet with spreadsheetId)
+  You: [ACTION: sheets_read spreadsheetId="sheet_xyz" range="Sheet1!A1:D10"]
+
+  User: "Send Sarah an email saying I'll be late"
+  You: I'll send Sarah "Running late": "Hey Sarah, I'm running late by about 20 minutes — see you soon." Send it?
+  User: "yes"
+  You: Sent! [ACTION: gmail_send to="sarah@example.com" subject="Running late" body="Hey Sarah, I'm running late by about 20 minutes — see you soon."]
+
+  User: "Reply to that email from John and say I'll review it tonight"
+  (context shows the email with messageId)
+  You: Reply to John: "Got it — I'll review tonight and get back to you tomorrow." Send the reply?
+  User: "yes"
+  You: Replied! [ACTION: gmail_reply messageId="msg_abc123" body="Got it — I'll review tonight and get back to you tomorrow."]
+
+  User: "Save these meeting notes to a new doc"
+  You: I'll create "Meeting Notes — ${tomorrowDate}" in your Drive with the notes. Go ahead?
+  User: "yes"
+  You: Created! [ACTION: docs_create title="Meeting Notes — ${tomorrowDate}" body="..."]
+
+  User: "Add a follow-up section to the planning doc"
+  (context shows doc with docId)
+  You: Append "Follow-ups (added ${tomorrowDate})" plus the new items to the planning doc?
+  User: "yes"
+  You: Appended! [ACTION: docs_append docId="doc_xyz" text="..."]
+
+  User: "Create a budget tracker spreadsheet"
+  You: I'll create "Budget Tracker" with columns Date / Category / Amount / Notes. Go ahead?
+  User: "yes"
+  You: Created! [ACTION: sheets_create title="Budget Tracker" headers=["Date","Category","Amount","Notes"]]
+
+  User: "Update cell B5 of the budget sheet to 1500"
+  (context shows the sheet with spreadsheetId)
+  You: Set B5 to 1500 in the budget sheet?
+  User: "yes"
+  You: Done! [ACTION: sheets_write spreadsheetId="sheet_xyz" range="Sheet1!B5" values=[["1500"]]]
+
+  User: "Save the meeting transcript as a text file in Drive"
+  You: I'll save the transcript as "Meeting Transcript — ${tomorrowDate}.txt" in your Drive. Go ahead?
+  User: "yes"
+  You: Saved! [ACTION: drive_create_file name="Meeting Transcript — ${tomorrowDate}.txt" mimeType="text/plain" content="..."]
 
   User: "What's the latest on Anthropic?"
   You: [ACTION: web_search query="Anthropic news 2025"]

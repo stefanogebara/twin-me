@@ -181,6 +181,7 @@ describe('buildWorkspaceActionsPrompt — get_meeting_prep wiring (audit-2026-05
  * surface the drift before it ships.
  */
 import { EXTENDED_TOOL_NAMES } from '../../../api/services/tools/extendedTools.js';
+import { GOOGLE_WORKSPACE_TOOL_NAMES } from '../../../api/services/tools/googleWorkspaceTools.js';
 
 const ALL_TOOLS = [
   ...MEETING_TOOLS,
@@ -199,6 +200,22 @@ describe('buildWorkspaceActionsPrompt — extended tools coverage (audit-2026-05
 
   it.each(EXTENDED_TOOL_NAMES)(
     'extended tool %s has at least one [ACTION: ...] example in the prompt',
+    async (toolName) => {
+      mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+      const prompt = await buildWorkspaceActionsPrompt('user-1');
+      const pattern = new RegExp(`\\[ACTION:\\s*${toolName}\\b`);
+      expect(prompt).toMatch(pattern);
+    },
+  );
+
+  // audit-2026-05-15 v3: same coverage guard for the much larger Google
+  // Workspace registry. 13 of 21 tools previously had zero examples in
+  // the prompt — same class of silent-invisibility bug, just hiding in
+  // the bigger set. Loop locks the invariant: a new gmail_/calendar_/
+  // drive_/docs_/sheets_/contacts_ tool can't ship without a paired
+  // worked example.
+  it.each(GOOGLE_WORKSPACE_TOOL_NAMES)(
+    'google workspace tool %s has at least one [ACTION: ...] example in the prompt',
     async (toolName) => {
       mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
       const prompt = await buildWorkspaceActionsPrompt('user-1');
