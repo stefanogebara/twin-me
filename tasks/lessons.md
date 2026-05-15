@@ -6,6 +6,22 @@ Per CLAUDE.md workflow rule #3 ("Self-Improvement Loop"): update this file after
 
 ---
 
+## 2026-05-15 — One missing example IS a bug; audit ALL tools, not just the broken one
+
+**Follow-on to the 2026-05-14 entry below.** After fixing `get_meeting_prep`, I audited every name in `EXTENDED_TOOL_NAMES` (the 7 extended tools registered for twin chat) against the EXAMPLES block in `workspaceActionParser.js`. Two more tools had the same silent-invisibility bug:
+
+- **`github_search_issues`**: 0 mentions in the prompt. Same exact failure mode as `get_meeting_prep` was — registered, executor works, completely invisible to the model.
+- **`spotify_play_track`**: Mentioned in the write-action confirm rule but **zero worked `[ACTION: ...]` examples**. Models learn the calling shape from examples; without one, weaker models won't fire it.
+
+**Why it slipped (again)**: The 2026-05-14 fix was scoped narrowly to the one tool that failed live. Sibling bugs of the same class hide behind any tool nobody happened to query yet. "Verification standard: live chat shows action_chain_done depth >= 1" only catches the path the user actually walks.
+
+**Rule (strengthened from the 2026-05-14 lesson)**:
+- When you find a bug of the form "registered but not in prompt," do not stop at the one tool. Iterate over the **complete registry** (`EXTENDED_TOOL_NAMES` and `GOOGLE_WORKSPACE_TOOL_NAMES`) and confirm every name has at least one `[ACTION: <name> ...]` worked example. The cost of grepping 7 names is trivial; the cost of leaving a second instance is another silent-misinform incident.
+- Lock the invariant in a test, not a checklist. `workspaceActionsPrompt.test.js` now has an `it.each(EXTENDED_TOOL_NAMES)` coverage suite that fails CI if any registered tool lacks an example in the prompt. Drift surfaces before deploy, not after the next live audit.
+- Bugs cluster by *class*, not by feature. The 2026-05-14 fix patched one symptom; this entry patches the class. After any "X had bug Y" fix, ask: "What's the full population of things that could have bug Y?" and write a coverage test that spans the population.
+
+---
+
 ## 2026-05-14 — Registering a chat tool ≠ the twin will use it
 
 **Incident**: The `get_meeting_prep` chat tool was fully registered in `extendedTools.js` (correct definition, skill enabled, surfaced by `getAvailableTools`) and shipped with the meetings-agent feature. But in a live audit, asking the twin "what meetings do I have coming up and am I prepped?" — a near-verbatim match for the tool's own description — produced `action_chain_done depth:0`: **zero tools called**. The twin answered from the calendar context already in the 54k-char prompt and told the user nothing was prepped, when in fact "Dra Ana Academia da Mente" had a full briefing (the dashboard card proved it). The twin actively misinformed the user.

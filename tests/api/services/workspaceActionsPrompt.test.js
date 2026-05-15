@@ -165,3 +165,60 @@ describe('buildWorkspaceActionsPrompt — get_meeting_prep wiring (audit-2026-05
     expect(prompt).toMatch(/timeframe="(upcoming|recent|all)"/);
   });
 });
+
+/**
+ * Coverage-completeness guard (audit-2026-05-15).
+ *
+ * Sibling bug class to the get_meeting_prep miss: a tool registered in
+ * extendedTools.js but missing from the prompt's EXAMPLES block is
+ * effectively invisible to weak models. The auto-listed "Available
+ * actions" block alone is not enough — weak models need a worked
+ * [ACTION: ...] example to learn the calling shape.
+ *
+ * This suite locks in coverage: every name in EXTENDED_TOOL_NAMES must
+ * appear as at least one [ACTION: <name>] example in the prompt. If a
+ * future tool is added without a paired example, these tests fail and
+ * surface the drift before it ships.
+ */
+import { EXTENDED_TOOL_NAMES } from '../../../api/services/tools/extendedTools.js';
+
+const ALL_TOOLS = [
+  ...MEETING_TOOLS,
+  { name: 'web_search', platform: null, description: 'Search the web.', category: 'research', parameters: { type: 'object', properties: { query: { type: 'string', description: 'q' } } } },
+  { name: 'github_list_prs', platform: 'github', description: 'List PRs.', category: 'development', parameters: { type: 'object', properties: {} } },
+  { name: 'github_search_issues', platform: 'github', description: 'Search GitHub issues.', category: 'development', parameters: { type: 'object', properties: { query: { type: 'string', description: 'q' } } } },
+  { name: 'spotify_queue', platform: 'spotify', description: 'Queue a track.', category: 'music', parameters: { type: 'object', properties: { uri: { type: 'string', description: 'u' } } } },
+  { name: 'spotify_play_track', platform: 'spotify', description: 'Play a track.', category: 'music', parameters: { type: 'object', properties: { uri: { type: 'string', description: 'u' } } } },
+];
+
+describe('buildWorkspaceActionsPrompt — extended tools coverage (audit-2026-05-15)', () => {
+  beforeEach(() => {
+    mockGetAvailableTools.mockReset();
+  });
+
+  it.each(EXTENDED_TOOL_NAMES)(
+    'extended tool %s has at least one [ACTION: ...] example in the prompt',
+    async (toolName) => {
+      mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+      const prompt = await buildWorkspaceActionsPrompt('user-1');
+      const pattern = new RegExp(`\\[ACTION:\\s*${toolName}\\b`);
+      expect(prompt).toMatch(pattern);
+    },
+  );
+
+  it('write-action confirmation rule lists every Spotify write tool', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    // Both spotify writes must be named in the "confirm with the user first" rule.
+    expect(prompt).toMatch(/spotify_queue/);
+    expect(prompt).toMatch(/spotify_play_track/);
+  });
+
+  it('github_search_issues example demonstrates the repo filter param', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    // At least one example must show how to pass repo="owner/name" — the
+    // most useful and least-obvious param on the tool.
+    expect(prompt).toMatch(/\[ACTION:\s*github_search_issues[^\]]*repo="/);
+  });
+});

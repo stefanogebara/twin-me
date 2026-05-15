@@ -205,10 +205,21 @@ Examples:
   User: "What PRs do I have open?"
   You: [ACTION: github_list_prs]
 
+  User: "Any open issues about the login bug?"
+  You: [ACTION: github_search_issues query="login bug"]
+
+  User: "What issues are open in twin-ai-learn?"
+  You: [ACTION: github_search_issues query="open" repo="stefanogebara/twin-ai-learn"]
+
   User: "Queue Radiohead - Creep"
   You: Queue "Radiohead - Creep"?
   User: "yes"
   You: Queued! [ACTION: spotify_queue uri="spotify:track:70LcF31zb1H0PyJoS1Sx1r"]
+
+  User: "Play Radiohead - Creep now"
+  You: Play "Radiohead - Creep" right now?
+  User: "yes"
+  You: Playing! [ACTION: spotify_play_track uri="spotify:track:70LcF31zb1H0PyJoS1Sx1r"]
 
   User: "What meetings do I have coming up?"
   You: [ACTION: get_meeting_prep timeframe="upcoming"]
