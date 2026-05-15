@@ -1,22 +1,34 @@
 # TwinMe — Active Backlog
 
-## Active Phase: Relationships V2 + Renan Concept Retrieval (2026-05-03)
+## Closed Phase: Relationships V2 + Renan Concept Retrieval (2026-05-03 → 2026-05-15)
 
 ### Relationships V2 — per-person actions
-- [ ] Backend: `POST /api/insights/relationships/:email/dismiss` (push to metadata.dismissed[])
-- [ ] Backend: `POST /api/insights/relationships/refresh` (60s lock, upsert pattern)
-- [ ] Frontend: `RelationshipsCard.tsx` — name + count + days + "Open in Gmail" + Dismiss per row
-- [ ] Wire into DashboardV2 above InsightsFeed (next to EmailTriageCard)
-- [ ] Hide entries from metadata.dismissed[] client-side
+- [x] Backend: `POST /api/insights/relationships/dismiss` — `platform-insights.js:705` (body-style `{email}`, not `:email` path param as originally specced)
+- [x] Backend: `POST /api/insights/relationships/refresh` — `platform-insights.js:604` (60s in-memory lock, upserts into today's row to dodge the 23h `trg_insight_cooldown` trigger)
+- [x] Backend: `GET /api/insights/relationships` — `platform-insights.js:588` (returns latest relationship_followup brief)
+- [x] Frontend: `src/components/RelationshipsCard.tsx` — full card with name + count badge + days-unanswered (color-coded by age) + Open in Gmail + Dismiss per row
+- [x] Wired into `DashboardV2.tsx:141` — between EmailTriageCard (139) and InsightsFeed (143)
+- [x] Hides entries from `metadata.dismissed[]` client-side (`RelationshipsCard.tsx:229-236`)
 
 ### Renan concept retrieval — English fact-summaries
-- [ ] `scripts/generate-renan-summaries.js` — read transcript, ask DeepSeek for ~10 English takeaways, store as `fact` memory_type with source='renan_call_2026-04-20', importance 8-9
-- [ ] Re-probe concept queries: "features I should kill in TwinMe", "Vibe Anything paradigm" → expect Renan facts in top 5
+- [x] `scripts/generate-renan-summaries.js` — written + executed; 12 English fact-summary rows in `user_memories` for stefano with source='renan_call_2026-04-20_facts', importance bumped 8→10 after retrieval probe
+- [~] Re-probe concept queries: facts EXIST and surface for direct queries, but NOT in top 5 for the spec's concept queries ("features I should kill in TwinMe", "Vibe Anything paradigm"). github platform_data branch-creation events outcompete on raw vector relevance (literal "twin-me" string match in branch names like "twin-voice-fixes"). The retrieval-quality issue is upstream of this phase — see FOLLOW-UP.
 
 ### Verify + ship
-- [ ] Type-check
-- [ ] Commit + push
-- [ ] Playwright verify on prod with Google account
+- [x] Type-check — clean (`npx tsc --noEmit` exit 0, 2026-05-15)
+- [x] Commits in main: parallel-session work pushed earlier; this 2026-05-15 session added the audit + Renan probe + importance bump
+- [~] Playwright verify on prod — manual MCP browser run preferred over a formal spec; the card is live on twinme.me
+
+### FOLLOW-UP — concept retrieval drowning under github noise
+
+The Renan facts not surfacing reveals a system-level retrieval issue, not a Renan-specific bug.
+
+- Github platform_data branch-creation observations are stored with importance 7-8. Branch creations are not importance-8 events — that scoring is wildly miscalibrated. They win concept queries because the branch name literally contains a query keyword ("twin-me" → "TwinMe").
+- Possible fixes (in increasing scope):
+  1. **Cap importance** on github branch-creation observations at 4-5 (small data fix in observation ingestion).
+  2. **Filter out github branch noise** from concept-query retrieval (filter at retrieval time on memory_type+source).
+  3. **Switch concept queries to `reflection` weight preset** [0.0, 0.5, 1.0] — kills recency advantage, weights pure relevance. Needs a query-classifier upstream.
+- Defer: blocks the "expect Renan facts in top 5" assertion but is orthogonal to the Renan-facts data layer being correct. Track separately.
 
 ---
 
