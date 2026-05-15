@@ -63,10 +63,45 @@ async function fetchUserLocation(userId) {
  * time into `timings[key]`. The audit-2026-05-13 follow-up wired these
  * leg timings into the chat hop log so the per-request trace shows
  * which preflight leg dominates on slow requests.
+ *
+ * audit-2026-05-15 C3: each sidecar now races against a per-leg
+ * timeout (default 5s — well under the 10s twinContext breaker). The
+ * 2026-05-15 audit found legPersonalityMs spiked to 48.8s on a worst-
+ * case cold start, blocking the entire chat for ~49s before the LLM
+ * call even started. Without per-leg timeouts, the only safety net was
+ * Vercel's 60s function timeout. Now each leg returns its default
+ * (undefined/null) on timeout, which the existing optional-leg handling
+ * already gracefully accepts.
  */
-function timeLeg(timings, key, fn) {
+const DEFAULT_LEG_TIMEOUT_MS = 5000;
+
+function timeLeg(timings, key, fn, timeoutMs = DEFAULT_LEG_TIMEOUT_MS) {
   const t0 = Date.now();
-  return fn().finally(() => { timings[key] = Date.now() - t0; });
+  let timer;
+  let timedOut = false;
+  const timeoutPromise = new Promise((resolve) => {
+    timer = setTimeout(() => {
+      timedOut = true;
+      timings[key] = Date.now() - t0;
+      // Record a separate flag so hop_timings can distinguish a budget
+      // hit from a normal slow leg. The actual completion duration of
+      // the underlying fn (if it ever finishes) is lost — that's the
+      // trade-off for not hanging the chat behind a slow leg.
+      timings[`${key}TimedOut`] = true;
+      log.warn(`Preflight leg timeout: ${key} exceeded ${timeoutMs}ms — using default`);
+      resolve(undefined);
+    }, timeoutMs);
+  });
+  return Promise.race([
+    fn().finally(() => {
+      clearTimeout(timer);
+      // Only record duration if we won the race — otherwise the timeout
+      // already wrote both the duration and the TimedOut flag, and
+      // overwriting them here would lose the timeout signal.
+      if (!timedOut) timings[key] = Date.now() - t0;
+    }),
+    timeoutPromise,
+  ]);
 }
 
 export async function fetchChatPreFlight({
