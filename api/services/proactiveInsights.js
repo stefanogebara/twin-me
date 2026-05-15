@@ -25,6 +25,7 @@ import { sendPushToUser } from './pushNotificationService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
 import { scoreForInsightSelection } from './inSilicoEngine.js';
+import { stripEmoji } from '../utils/stripEmoji.js';
 
 const log = createLogger('ProactiveInsights');
 
@@ -330,16 +331,20 @@ async function generateProactiveInsights(userId) {
       const validDepartments = ['communications', 'scheduling', 'health', 'content', 'finance', 'research', 'social'];
       const itemCategory = validCategories.includes(item.category) ? item.category : null;
       if (await isInsightDuplicate(userId, item.insight, itemCategory)) continue;
+      // audit-2026-05-15 H7: strip emojis at generation time. The audit
+      // found a "🤑" leaking through to the chat sidebar from a stored
+      // insight. Even though the generation prompt instructs no emojis,
+      // models occasionally include them in JSON output — defense in depth.
       const insertData = {
         user_id: userId,
-        insight: item.insight.substring(0, 500),
+        insight: stripEmoji(item.insight).substring(0, 500),
         urgency: ['low', 'medium', 'high'].includes(item.urgency) ? item.urgency : 'low',
         category: validCategories.includes(item.category) ? item.category : null,
         department: validDepartments.includes(item.department) ? item.department : null,
       };
       // Populate nudge_action when category is 'nudge'
       if (item.category === 'nudge' && item.nudge_action) {
-        insertData.nudge_action = item.nudge_action.substring(0, 300);
+        insertData.nudge_action = stripEmoji(item.nudge_action).substring(0, 300);
       }
       // Provenance: detect which platforms this insight references so the UI
       // can surface source chips. Combines LLM-mentioned platforms + any
@@ -391,7 +396,9 @@ async function generateProactiveInsights(userId) {
             const corrSources = _extractSourcesFromText(item.insight);
             await supabaseAdmin.from('proactive_insights').insert({
               user_id: userId,
-              insight: item.insight.substring(0, 500),
+              // audit-2026-05-15 H7: emoji strip on the secondary correlation
+              // insight path too — same defense-in-depth as the main path above.
+              insight: stripEmoji(item.insight).substring(0, 500),
               urgency: 'low',
               category: 'trend',
               ...(corrSources.length > 0 ? { sources: corrSources } : {}),

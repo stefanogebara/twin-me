@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Mail, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useWeather, getLocalHour, formatDateInTimezone } from '../../hooks/useWeather';
+import { stripEmoji } from '../../utils/stripEmoji';
 
 const COLLAPSED_KEY = 'chat_sidebar_collapsed';
 
@@ -209,17 +210,23 @@ function SidebarContent({
                       : undefined,
                 }}
               >
+                {/* audit-2026-05-15 H7: strip emojis from external content.
+                    The audit found "🤑" in an email subject leaking into
+                    the sidebar — emails come from outside our system so
+                    we can't control their content. stripEmoji is cheap
+                    enough to run on every render (fast path returns
+                    unchanged if no emoji present). */}
                 <span
                   className="text-[12px] block truncate"
                   style={{ color: 'rgba(255,255,255,0.35)' }}
                 >
-                  {email.sender}
+                  {stripEmoji(email.sender)}
                 </span>
                 <span
                   className="text-[13px] block truncate"
                   style={{ color: 'rgba(255,255,255,0.6)' }}
                 >
-                  {email.subject}
+                  {stripEmoji(email.subject)}
                 </span>
               </div>
             ))
@@ -264,7 +271,10 @@ function SidebarContent({
                       : undefined,
                 }}
               >
-                {item.insight}
+                {/* audit-2026-05-15 H7: defense in depth — also strip
+                    emojis from LLM-generated insight text. Generation-side
+                    fix is in proactiveInsights.js. */}
+                {stripEmoji(item.insight)}
               </p>
             ))}
           </div>
