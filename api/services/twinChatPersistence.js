@@ -22,53 +22,59 @@ import { createLogger } from './logger.js';
 
 const log = createLogger('TwinChatPersistence');
 
-function attachLzScoreToLastMessage(conversationId, lzScore) {
-  if (!conversationId) return;
-  supabaseAdmin
-    .from('twin_messages')
-    .select('id, metadata')
-    .eq('conversation_id', conversationId)
-    .eq('role', 'assistant')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
-    .then(({ data: msg }) => {
-      if (!msg) return null;
-      const meta = { ...(msg.metadata || {}), lz_complexity: lzScore };
-      return supabaseAdmin.from('twin_messages').update({ metadata: meta }).eq('id', msg.id);
-    })
-    .catch(() => { /* non-fatal */ });
-}
-
-function insertTwinMessageRows({
-  conversationId, message, assistantMessage, routedModel, routingTier,
+/**
+ * Insert both turn rows (user + assistant) in a single transactional write.
+ *
+ * audit-2026-05-15 C1: previously the user and assistant rows were fired
+ * as two independent .insert() calls without await, and a separate
+ * attachLzScoreToLastMessage() did a follow-up SELECT+UPDATE to attach
+ * the complexity score. The audit found 85.8% of twin_conversations had
+ * ZERO twin_messages rows — both inserts were failing silently with
+ * errors only visible to log.warn. Making this awaited + batched:
+ *   1. Surfaces the actual error (we now return it to the caller)
+ *   2. Two DB round-trips collapse to one (faster + atomic)
+ *   3. lz_complexity is included in assistant metadata at insert time,
+ *      removing the separate read+update entirely
+ */
+async function insertTwinMessageRows({
+  conversationId, message, assistantMessage, routedModel, routingTier, lzScore,
 }) {
-  if (!conversationId) return;
+  if (!conversationId) return { ok: false, reason: 'no_conversation_id' };
 
-  supabaseAdmin
-    .from('twin_messages')
-    .insert({
+  const rows = [
+    {
       conversation_id: conversationId,
       role: 'user',
       content: message,
       metadata: {},
-    })
-    .then(() => {})
-    .catch(err => log.warn('Failed to save user message', { error: err.message }));
-
-  supabaseAdmin
-    .from('twin_messages')
-    .insert({
+    },
+    {
       conversation_id: conversationId,
       role: 'assistant',
       content: assistantMessage,
       metadata: {
         model: routedModel || 'unknown',
         tier: routingTier || 'unknown',
+        lz_complexity: lzScore,
       },
-    })
-    .then(() => {})
-    .catch(err => log.warn('Failed to save assistant message', { error: err.message }));
+    },
+  ];
+
+  const { error } = await supabaseAdmin.from('twin_messages').insert(rows);
+  if (error) {
+    // Surface the actual error so the next orphaned-conversation incident
+    // is diagnosable. Was hidden behind log.warn for months — the audit
+    // discovered 333 of 388 conversations had zero messages before this
+    // came to light.
+    log.error('Failed to save twin_messages rows', {
+      conversationId,
+      error: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    return { ok: false, reason: error.message, code: error.code };
+  }
+  return { ok: true };
 }
 
 function renderSystemPromptText(systemPrompt) {
@@ -104,12 +110,22 @@ export async function persistChatTurn({
 }) {
   const lzScore = lzComplexity(assistantMessage);
 
-  attachLzScoreToLastMessage(conversationId, lzScore);
-  insertTwinMessageRows({
-    conversationId, message, assistantMessage, routedModel, routingTier,
-  });
-
+  // audit-2026-05-15 C1: twin_messages inserts are now awaited and batched
+  // alongside the unified-conversation log + memory-stream writes. Previously
+  // these were fire-and-forget and silently failed, leaving 85.8% of
+  // twin_conversations orphaned. lz_complexity is included in the assistant
+  // row's metadata at insert time, eliminating the separate
+  // attachLzScoreToLastMessage SELECT+UPDATE round-trip.
   await Promise.all([
+    insertTwinMessageRows({
+      conversationId, message, assistantMessage, routedModel, routingTier, lzScore,
+    }).catch(err => {
+      // Should be unreachable — insertTwinMessageRows catches its own errors
+      // and returns { ok: false }. Defensive guard against a future regression.
+      log.error('insertTwinMessageRows threw unexpectedly', { error: err?.message });
+      return { ok: false };
+    }),
+
     logConversationToDatabase({
       userId,
       userMessage: message,
