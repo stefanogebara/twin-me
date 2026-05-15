@@ -262,6 +262,7 @@ async function generateProactiveInsights(userId) {
       }],
       maxTokens: INSIGHT_MAX_TOKENS || 250,
       temperature: INSIGHT_TEMPERATURE || 0.65,
+      userId,
       serviceName: 'proactiveInsights-generate',
     });
 

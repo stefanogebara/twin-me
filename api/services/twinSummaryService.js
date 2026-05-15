@@ -41,7 +41,9 @@ const pendingGenerations = new Map();
  * @param {string} userName - The user's name for context
  * @returns {string} A concise summary sentence
  */
-async function summarizeMemories(memories, aspect, userName, voiceSamples = []) {
+// audit-2026-05-15 C2: userId added so llm_usage_log carries attribution.
+// Was previously NULL for ~66 calls/day, hiding per-user summary costs.
+async function summarizeMemories(memories, aspect, userName, voiceSamples = [], userId = null) {
   if (!memories || memories.length === 0) {
     return '';
   }
@@ -67,6 +69,7 @@ async function summarizeMemories(memories, aspect, userName, voiceSamples = []) 
       }],
       maxTokens: 200,
       temperature: 0.5,
+      userId,
       serviceName: 'twinSummary-summarize'
     });
 
@@ -142,11 +145,11 @@ async function generateTwinSummary(userId, userName = 'This person') {
 
   // Summarize each domain in parallel, passing voice samples so phrasings survive
   const [personality, lifestyle, culturalIdentity, socialDynamicsRaw, motivation] = await Promise.all([
-    summarizeMemories(personalityMemories, 'emotional patterns and personality', userName, voiceSamples),
-    summarizeMemories(lifestyleMemories, 'daily rhythms and lifestyle patterns', userName, voiceSamples),
-    summarizeMemories(culturalMemories, 'cultural identity and aesthetic preferences', userName, voiceSamples),
-    summarizeMemories(socialMemories, 'social dynamics and communication style', userName, voiceSamples),
-    summarizeMemories(motivationMemories, 'motivations and work patterns', userName, voiceSamples),
+    summarizeMemories(personalityMemories, 'emotional patterns and personality', userName, voiceSamples, userId),
+    summarizeMemories(lifestyleMemories, 'daily rhythms and lifestyle patterns', userName, voiceSamples, userId),
+    summarizeMemories(culturalMemories, 'cultural identity and aesthetic preferences', userName, voiceSamples, userId),
+    summarizeMemories(socialMemories, 'social dynamics and communication style', userName, voiceSamples, userId),
+    summarizeMemories(motivationMemories, 'motivations and work patterns', userName, voiceSamples, userId),
   ]);
 
   // Social dynamics fallback: if primary retrieval returned no usable summary,
@@ -166,7 +169,7 @@ async function generateTwinSummary(userId, userName = 'This person') {
 
       if (expertSocialRaw && expertSocialRaw.length > 0) {
         const fallbackMemories = expertSocialRaw.map(r => ({ content: r.content }));
-        socialDynamics = await summarizeMemories(fallbackMemories, 'social dynamics and communication style', userName);
+        socialDynamics = await summarizeMemories(fallbackMemories, 'social dynamics and communication style', userName, [], userId);
         log.info('socialDynamics fallback from expert memories', { count: expertSocialRaw.length });
       }
     } catch (sdErr) {

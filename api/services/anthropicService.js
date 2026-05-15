@@ -59,19 +59,24 @@ export async function generateChatResponse(options) {
  * Generate non-streaming response
  */
 async function generateNonStreamingResponse(options) {
-  const { systemPrompt, messages, maxTokens, temperature } = options;
+  const { systemPrompt, messages, maxTokens, temperature, userId } = options;
 
   // Convert array-format system prompt to string for gateway
   const systemString = Array.isArray(systemPrompt)
     ? systemPrompt.map(b => b.text || b).join('\n')
     : systemPrompt;
 
+  // audit-2026-05-15 C2: forward userId so llm_usage_log carries attribution.
+  // Wrappers like this one were a major source of NULL user_id rows because
+  // callers can supply userId but the wrapper ate it before reaching the
+  // gateway.
   const result = await complete({
     tier: TIER_ANALYSIS,
     system: systemString,
     messages,
     maxTokens,
     temperature,
+    userId,
     serviceName: 'anthropicService'
   });
 
@@ -88,19 +93,21 @@ async function generateNonStreamingResponse(options) {
  * Generate streaming response
  */
 async function streamChatResponse(options) {
-  const { systemPrompt, messages, maxTokens, temperature, onStream } = options;
+  const { systemPrompt, messages, maxTokens, temperature, onStream, userId } = options;
 
   // Convert array-format system prompt to string for gateway
   const systemString = Array.isArray(systemPrompt)
     ? systemPrompt.map(b => b.text || b).join('\n')
     : systemPrompt;
 
+  // audit-2026-05-15 C2: forward userId so llm_usage_log carries attribution.
   const result = await llmStream({
     tier: TIER_CHAT,
     system: systemString,
     messages,
     maxTokens,
     temperature,
+    userId,
     serviceName: 'anthropicService-stream',
     onChunk: (chunk) => {
       if (onStream) {

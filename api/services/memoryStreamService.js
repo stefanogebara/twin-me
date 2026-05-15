@@ -43,8 +43,13 @@ Rating:`;
 /**
  * Rate a memory's importance 1-10 using the cheapest LLM tier.
  * Cost: ~$0.0001 per call.
+ *
+ * audit-2026-05-15 C2: accept userId so llm_usage_log rows carry the
+ * attribution. Was previously NULL — top contributor to the 94.5% NULL
+ * user_id rate in the table. Callers should always have userId in scope
+ * (rateImportance only runs inside addMemory(userId, ...)).
  */
-async function rateImportance(content) {
+async function rateImportance(content, userId = null) {
   try {
     const result = await complete({
       tier: TIER_EXTRACTION,
@@ -54,6 +59,7 @@ async function rateImportance(content) {
       }],
       maxTokens: 5,
       temperature: 0,
+      userId,
       serviceName: 'memoryStream-importance'
     });
 
@@ -333,7 +339,7 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     // Generate embedding and importance score in parallel
     let [embedding, importanceScore] = await Promise.all([
       options.skipEmbedding ? null : generateEmbedding(content),
-      options.skipImportance ? (options.importanceScore || 5) : rateImportance(content),
+      options.skipImportance ? (options.importanceScore || 5) : rateImportance(content, userId),
     ]);
 
     // Importance floors: conversations floor at 7 (same minimum as reflections) so
@@ -696,8 +702,11 @@ function startMemoryDbBackoff(error, context) {
  * The embedding of this hypothetical memory is semantically closer
  * to real memories than a bare question embedding (HyDE technique).
  * Cost: ~$0.0001 per call (TIER_EXTRACTION).
+ *
+ * audit-2026-05-15 C2: accept userId so llm_usage_log carries the
+ * attribution. Was previously NULL (261 calls/day on test user).
  */
-async function generateHypotheticalMemory(query) {
+async function generateHypotheticalMemory(query, userId = null) {
   // Check cache first
   if (hydeCache.has(query)) return hydeCache.get(query);
 
@@ -710,6 +719,7 @@ async function generateHypotheticalMemory(query) {
       }],
       max_tokens: 150,
       temperature: 0.3,
+      userId,
       serviceName: 'memoryStream-hyde',
     });
 
@@ -771,7 +781,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     // Generate query embedding + optional HyDE embedding in parallel
     // skipHyDE: callers doing bulk signal gathering pass this to avoid 1-3s LLM overhead per call
     const useHyDE = HYDE_ENABLED && !options.skipHyDE;
-    const hydeText = useHyDE ? await generateHypotheticalMemory(query) : null;
+    const hydeText = useHyDE ? await generateHypotheticalMemory(query, userId) : null;
     const embeddingPromises = [generateEmbedding(query)];
     if (hydeText) embeddingPromises.push(generateEmbedding(hydeText));
     const [queryEmbedding, hydeEmbedding] = await Promise.all(embeddingPromises);
