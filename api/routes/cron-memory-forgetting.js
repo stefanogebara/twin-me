@@ -306,6 +306,51 @@ router.all('/', async (req, res) => {
       stats.errors.push(`tier6: ${t6Err.message}`);
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Tier 7 — Stale proactive_insights: >7 days old + delivered=false.
+    // ─────────────────────────────────────────────────────────────────────
+    // audit-2026-05-15 H4 follow-up: the delivery channel for proactive
+    // insights is the next chat turn. Users who don't chat for 7+ days
+    // accumulate undelivered insights indefinitely, crowding out fresh
+    // ones. Marking stale ones as expired (delivered=true with a metadata
+    // flag) keeps them queryable but stops them blocking the sidebar.
+    // Backfill of pre-existing stuck rows applied in
+    // database/migrations/20260515_h4_proactive_insights_backfill.sql.
+    try {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: staleInsights, error: staleErr } = await supabaseAdmin
+        .from('proactive_insights')
+        .select('id, metadata')
+        .eq('delivered', false)
+        .lte('created_at', sevenDaysAgo)
+        .limit(BATCH_SIZE);
+
+      if (staleErr) throw staleErr;
+
+      if (staleInsights?.length > 0) {
+        // Build per-row metadata patches so we preserve existing keys.
+        const now = new Date().toISOString();
+        for (const row of staleInsights) {
+          const patched = {
+            ...(row.metadata || {}),
+            expired_at: now,
+            expiry_reason: 'stale_7d_cron',
+          };
+          await supabaseAdmin
+            .from('proactive_insights')
+            .update({ delivered: true, delivered_at: now, metadata: patched })
+            .eq('id', row.id);
+        }
+        stats.tier7InsightsExpired = staleInsights.length;
+        log.info('Tier 7 expired stale insights', { count: staleInsights.length });
+      } else {
+        stats.tier7InsightsExpired = 0;
+      }
+    } catch (t7Err) {
+      log.warn('Tier 7 error', { error: t7Err.message });
+      stats.errors.push(`tier7: ${t7Err.message}`);
+    }
+
     const durationMs = Date.now() - startTime;
     log.info('Weekly pass complete', { durationMs, t1: stats.tier1Archived, t2: stats.tier2Archived, t3: stats.tier3Decayed, t4Decayed: stats.tier4LinksDecayed, t4Deleted: stats.tier4LinksDeleted, t5: stats.tier5Shifted, t5Users: stats.tier5UsersProcessed, t6: stats.tier6ReflectionsArchived });
 

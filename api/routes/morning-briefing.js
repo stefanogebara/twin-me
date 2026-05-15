@@ -149,6 +149,12 @@ async function cacheBriefing(userId, briefing) {
         urgency: 'low',
         category: 'morning_briefing_cache',
         delivered: true,
+        // audit-2026-05-15 H4: was setting delivered=true without
+        // delivered_at, which broke downstream queries that filter on
+        // "delivered AND delivered_at IS NOT NULL" or order by delivery
+        // time. This was the source of the 27-row delivered/delivered_at
+        // mismatch the audit flagged.
+        delivered_at: new Date().toISOString(),
         metadata: { briefing },
       });
   } catch (err) {
