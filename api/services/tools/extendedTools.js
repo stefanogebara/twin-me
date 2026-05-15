@@ -15,6 +15,7 @@ export const EXTENDED_TOOL_NAMES = [
   'web_search',
   'github_list_prs',
   'github_search_issues',
+  'spotify_search',
   'spotify_queue',
   'spotify_play_track',
   'meeting_prep',
@@ -140,6 +141,58 @@ export function registerExtendedTools() {
         updatedAt: i.updated_at,
       }));
       return { success: true, count: issues.length, issues };
+    },
+  });
+
+  // ========================================================================
+  // SPOTIFY — Read (Level 1)
+  // ========================================================================
+
+  registerTool({
+    name: 'spotify_search',
+    platform: 'spotify',
+    description: 'Search Spotify for a track, album, or playlist and return the top results with their URIs. ALWAYS call this BEFORE spotify_queue or spotify_play_track to resolve a song name into the real Spotify URI — never invent URIs.',
+    category: 'music',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query, e.g. "Bohemian Rhapsody Queen"' },
+        type: { type: 'string', description: 'Optional: "track" (default), "album", or "playlist"' },
+        limit: { type: 'number', description: 'Optional: max results, default 5, max 10' },
+      },
+      required: ['query'],
+    },
+    requiresConnection: true,
+    minAutonomyLevel: 1,
+    skillName: 'spotify_actions',
+    executor: async (userId, params) => {
+      const { getValidAccessToken } = await import('../tokenRefreshService.js');
+      const tokenResult = await getValidAccessToken(userId, 'spotify');
+      if (!tokenResult.success) return { success: false, error: 'Spotify not connected' };
+
+      const type = (params.type || 'track').toLowerCase();
+      if (!['track', 'album', 'playlist'].includes(type)) {
+        return { success: false, error: `Invalid type: ${type}. Use track, album, or playlist.` };
+      }
+      const limit = Math.min(Math.max(parseInt(params.limit, 10) || 5, 1), 10);
+
+      const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(params.query)}&type=${type}&limit=${limit}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+      });
+      if (!res.ok) return { success: false, error: `Spotify API error: ${res.status}` };
+
+      const data = await res.json();
+      const bucket = data[`${type}s`]?.items || [];
+      const results = bucket.map(item => ({
+        uri: item.uri,
+        name: item.name,
+        artists: (item.artists || []).map(a => a.name).join(', ') || null,
+        album: item.album?.name || null,
+        durationMs: item.duration_ms ?? null,
+        externalUrl: item.external_urls?.spotify || null,
+      }));
+      return { success: true, type, count: results.length, results };
     },
   });
 

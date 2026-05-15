@@ -187,6 +187,7 @@ const ALL_TOOLS = [
   { name: 'web_search', platform: null, description: 'Search the web.', category: 'research', parameters: { type: 'object', properties: { query: { type: 'string', description: 'q' } } } },
   { name: 'github_list_prs', platform: 'github', description: 'List PRs.', category: 'development', parameters: { type: 'object', properties: {} } },
   { name: 'github_search_issues', platform: 'github', description: 'Search GitHub issues.', category: 'development', parameters: { type: 'object', properties: { query: { type: 'string', description: 'q' } } } },
+  { name: 'spotify_search', platform: 'spotify', description: 'Search Spotify.', category: 'music', parameters: { type: 'object', properties: { query: { type: 'string', description: 'q' } } } },
   { name: 'spotify_queue', platform: 'spotify', description: 'Queue a track.', category: 'music', parameters: { type: 'object', properties: { uri: { type: 'string', description: 'u' } } } },
   { name: 'spotify_play_track', platform: 'spotify', description: 'Play a track.', category: 'music', parameters: { type: 'object', properties: { uri: { type: 'string', description: 'u' } } } },
 ];
@@ -220,5 +221,85 @@ describe('buildWorkspaceActionsPrompt — extended tools coverage (audit-2026-05
     // At least one example must show how to pass repo="owner/name" — the
     // most useful and least-obvious param on the tool.
     expect(prompt).toMatch(/\[ACTION:\s*github_search_issues[^\]]*repo="/);
+  });
+});
+
+/**
+ * Spotify URI-parroting fix (audit-2026-05-15 follow-up).
+ *
+ * Discovered during live verification of the previous fix: with no
+ * spotify_search tool, the model would learn the calling shape from the
+ * spotify_play_track example perfectly — and then copy the EXAMPLE URI
+ * verbatim when asked to play any song. User asks for "Bohemian
+ * Rhapsody", twin plays Radiohead - Creep (the URI from the example).
+ *
+ * Fix: register spotify_search and rewrite the spotify examples to show
+ * the chain (search first → confirm → play/queue with URI from result).
+ * Plus an explicit "SPOTIFY URI RULE" in RULES forbidding URI parroting.
+ *
+ * These tests lock in the fix so a future refactor can't silently revert.
+ */
+describe('buildWorkspaceActionsPrompt — spotify URI-parroting guard (audit-2026-05-15 v2)', () => {
+  beforeEach(() => {
+    mockGetAvailableTools.mockReset();
+  });
+
+  it('has an explicit SPOTIFY URI RULE that forbids URI parroting', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    expect(prompt).toMatch(/SPOTIFY URI RULE/i);
+    // Must explicitly say NEVER copy from examples — the exact failure mode.
+    expect(prompt).toMatch(/never copy[^\n]*example/i);
+  });
+
+  it('teaches spotify_search via at least one [ACTION: spotify_search ...] example', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    expect(prompt).toMatch(/\[ACTION:\s*spotify_search/);
+  });
+
+  it('shows the search-first chain for queue (search then queue)', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    // Find the spotify_queue example and verify a spotify_search call
+    // appears BEFORE it in the prompt (search-first chain).
+    const queueIdx = prompt.indexOf('[ACTION: spotify_queue');
+    const searchIdx = prompt.indexOf('[ACTION: spotify_search');
+    expect(queueIdx).toBeGreaterThan(0);
+    expect(searchIdx).toBeGreaterThan(0);
+    expect(searchIdx).toBeLessThan(queueIdx);
+  });
+
+  it('shows the search-first chain for play (search then play)', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    // The play example must be preceded by a spotify_search example, not
+    // followed by a raw URI that the model can copy.
+    const playIdx = prompt.indexOf('[ACTION: spotify_play_track');
+    expect(playIdx).toBeGreaterThan(0);
+    const beforePlay = prompt.slice(0, playIdx);
+    expect(beforePlay).toMatch(/\[ACTION:\s*spotify_search/);
+  });
+
+  it('play example uses a placeholder URI marker, not a raw spotify:track URI', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    // Pull the play example specifically and verify it teaches "use the
+    // uri from the search result", not a copyable hardcoded URI.
+    const playLineMatch = prompt.match(/\[ACTION:\s*spotify_play_track\s+uri="([^"]+)"\]/);
+    expect(playLineMatch).toBeTruthy();
+    const uri = playLineMatch[1];
+    // Either a placeholder (<...>) or explicit instruction text — never a
+    // bare, copy-paste-able spotify:track:XXX URI.
+    expect(uri).not.toMatch(/^spotify:(track|album|playlist):[A-Za-z0-9]+$/);
+  });
+
+  it('queue example also uses a placeholder URI marker', async () => {
+    mockGetAvailableTools.mockResolvedValue(ALL_TOOLS);
+    const prompt = await buildWorkspaceActionsPrompt('user-1');
+    const queueLineMatch = prompt.match(/\[ACTION:\s*spotify_queue\s+uri="([^"]+)"\]/);
+    expect(queueLineMatch).toBeTruthy();
+    const uri = queueLineMatch[1];
+    expect(uri).not.toMatch(/^spotify:(track|album|playlist):[A-Za-z0-9]+$/);
   });
 });
