@@ -31,9 +31,13 @@ import NotFound from "./pages/NotFound";
 // the first paint instead of waiting on a centered loading spinner.
 import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 
-// Lazy-loaded pages (code-split into separate chunks)
+// Lazy-loaded pages (code-split into separate chunks).
+// audit-2026-05-15 H12: MoneyPage chunk is one of the heaviest (147 KB raw)
+// and was showing the global flower-pulse Suspense fallback for ~3s on cold
+// cache. Adding it to the warmup list so navigation doesn't block.
 const loadDashboardV2 = () => import("./pages/DashboardV2");
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
+const loadMoneyPage = () => import("./pages/MoneyPage");
 
 const DashboardV2 = lazy(loadDashboardV2);
 const Settings = lazy(() => import("./pages/Settings"));
@@ -66,7 +70,7 @@ const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
-const MoneyPage = lazy(() => import("./pages/MoneyPage"));
+const MoneyPage = lazy(loadMoneyPage);
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
@@ -99,11 +103,15 @@ const App = () => {
   useExtensionSync();
 
   useEffect(() => {
-    // Warm the two heaviest authenticated routes after boot so route navigation
+    // Warm the heaviest authenticated routes after boot so route navigation
     // doesn't block on first-time dev transforms.
+    // audit-2026-05-15 H12: added MoneyPage — Agent 2 found it flashed the
+    // global flower-pulse Suspense fallback for ~3s on cold cache before
+    // its chunk arrived.
     const prefetchHeavyRoutes = () => {
       void loadDashboardV2();
       void loadTalkToTwin();
+      void loadMoneyPage();
     };
 
     const timer = window.setTimeout(prefetchHeavyRoutes, 0);

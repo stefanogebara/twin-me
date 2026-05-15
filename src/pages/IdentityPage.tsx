@@ -311,8 +311,14 @@ const RevealOverlay: React.FC<{ archetypeName: string; tagline: string; onDismis
         aria-hidden="true"
       >
         <div
-          className="w-[400px] h-[400px] rounded-full"
+          // audit-2026-05-15 H8: was w-[400px] h-[400px] (fixed). Caused
+          // horizontal scroll on viewports <400px. min(400px, 90vw) keeps
+          // the decorative glow proportional on mobile while preserving
+          // the desktop size.
+          className="rounded-full"
           style={{
+            width: 'min(400px, 90vw)',
+            height: 'min(400px, 90vw)',
             background: 'radial-gradient(circle, rgba(232,224,212,0.15) 0%, rgba(232,224,212,0.05) 40%, transparent 70%)',
             animation: 'soulBreathe 4s ease-in-out infinite',
           }}

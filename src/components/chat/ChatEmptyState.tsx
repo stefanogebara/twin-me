@@ -155,7 +155,12 @@ export const ChatEmptyState = ({
         <div className="flex justify-center mb-4">
           <button
             onClick={onStartInterview}
-            className="px-4 py-2.5 rounded-full text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
+            // audit-2026-05-15 H9: suggestion chips use rounded-[46px] per
+            // CLAUDE.md Rule 5 — not rounded-full. data-testid added so
+            // Playwright audits can find chips deterministically (Agent 2's
+            // heuristic scan caught "Sign Out" as a chip otherwise).
+            className="px-4 py-2.5 rounded-[46px] text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
+            data-testid="suggestion-chip"
             style={{
               color: 'rgba(245,245,244,0.7)',
               background: 'rgba(255,255,255,0.06)',
@@ -181,7 +186,10 @@ export const ChatEmptyState = ({
             <button
               key={`chip-${chip.slice(0, 20)}-${idx}`}
               onClick={() => onQuickAction(chip)}
-              className="px-3 sm:px-4 py-2 rounded-full text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
+              // audit-2026-05-15 H9: rounded-[46px] per CLAUDE.md Rule 5.
+              // data-testid for deterministic test selection.
+              className="px-3 sm:px-4 py-2 rounded-[46px] text-[12px] sm:text-[13px] transition-colors duration-150 active:scale-[0.97]"
+              data-testid="suggestion-chip"
               style={{
                 color: 'rgba(255,255,255,0.40)',
                 background: 'transparent',
