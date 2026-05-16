@@ -110,11 +110,15 @@ describe('classifyNeuropil output shape', () => {
     expect(result.budgets).toHaveProperty('platform_data');
   });
 
-  it('retrieval weights are in valid range [0, 1]', () => {
+  // Retrieval weights are non-negative finite floats — there's no hard
+  // upper bound, the dot product is normalised downstream. The personality
+  // neuropil intentionally weights importance at 2.0 (relevance 1.2) to
+  // emphasise identity-style retrieval. Lock the shape, not the value.
+  it('retrieval weights are non-negative finite numbers', () => {
     const result = classifyNeuropil('personality identity values traits soul');
     for (const w of Object.values(result.weights)) {
       expect(w).toBeGreaterThanOrEqual(0);
-      expect(w).toBeLessThanOrEqual(1);
+      expect(Number.isFinite(w)).toBe(true);
     }
   });
 

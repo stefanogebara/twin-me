@@ -34,6 +34,9 @@ vi.mock('../../../api/services/database.js', () => {
       limit: vi.fn(),
       single: vi.fn(),
       update: vi.fn(),
+      // GET /proactive filters out completed nudges with .is('nudge_followed', null).
+      // Without this in the mock chain the route 500s with "query.is is not a function".
+      is: vi.fn(),
       // Make the chain thenable so `const { data, error } = await chain` works
       then: vi.fn((resolve) => resolve({ data: [], error: null })),
     };

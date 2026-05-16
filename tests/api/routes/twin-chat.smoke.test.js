@@ -76,11 +76,16 @@ const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: 
 
 // Import AFTER mocks are declared.
 let twinChatRoutes;
+let twinConversationsRoutes;
 try {
   twinChatRoutes = (await import('../../../api/routes/twin-chat.js')).default;
+  // GET /conversations was extracted out of twin-chat.js into its own
+  // router and mounted in api/server.js at both /api/twin and /api/chat.
+  // Mirror that mount in the test app so /api/chat/conversations resolves.
+  twinConversationsRoutes = (await import('../../../api/routes/twin-conversations.js')).default;
 } catch (err) {
-  // Some transitive import may fail to load in test env; skip suite in that case.
   twinChatRoutes = null;
+  twinConversationsRoutes = null;
   // eslint-disable-next-line no-console
   console.warn('twin-chat import failed:', err.message);
 }
@@ -89,6 +94,7 @@ function createApp() {
   const app = express();
   app.use(express.json());
   app.use('/api/chat', twinChatRoutes);
+  if (twinConversationsRoutes) app.use('/api/chat', twinConversationsRoutes);
   return app;
 }
 

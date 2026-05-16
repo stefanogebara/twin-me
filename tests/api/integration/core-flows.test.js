@@ -247,34 +247,37 @@ describe('Flow 4: Goal suggestions', () => {
 // ── Flow 5: Reflection trigger threshold ────────────────────────────────────
 
 describe('Flow 5: Reflection trigger threshold', () => {
-  it('returns false when importance sum is below threshold (< 40)', async () => {
+  it('returns false when importance sum is below threshold (< 80)', async () => {
     // Mock memoryStreamService to return low importance sum
     const memoryService = await import('../../../api/services/memoryStreamService.js');
     const origFn = memoryService.getRecentImportanceSum;
 
-    // Patch the imported function via the mock
-    supabaseAdmin.rpc.mockResolvedValue({ data: 30, error: null });
+    // Patch the imported function via the mock — below the 80 threshold.
+    supabaseAdmin.rpc.mockResolvedValue({ data: 50, error: null });
 
     const { shouldTriggerReflection } = await import('../../../api/services/reflectionEngine.js');
 
     // Use a unique userId so cooldown doesn't interfere
     const result = await shouldTriggerReflection('threshold-test-user-low-' + Date.now());
 
-    // Result depends on DB mock — 30 < 40 → false
+    // Result depends on DB mock — 50 < 80 → false
     expect(typeof result).toBe('boolean');
   });
 
-  it('IMPORTANCE_THRESHOLD is exported and equals 40', async () => {
+  // Threshold raised from 40 to 80 (reflectionEngine.js): cuts the
+  // reflection cron in half by requiring a denser accumulation of
+  // important observations before kicking off a recursion.
+  it('IMPORTANCE_THRESHOLD is exported and equals 80', async () => {
     const { IMPORTANCE_THRESHOLD } = await import('../../../api/services/reflectionEngine.js');
-    expect(IMPORTANCE_THRESHOLD).toBe(40);
+    expect(IMPORTANCE_THRESHOLD).toBe(80);
   });
 
-  it('threshold logic: sum >= 40 → trigger', () => {
-    const THRESHOLD = 40;
+  it('threshold logic: sum >= 80 → trigger', () => {
+    const THRESHOLD = 80;
     expect(25 >= THRESHOLD).toBe(false);
-    expect(39 >= THRESHOLD).toBe(false);
-    expect(40 >= THRESHOLD).toBe(true);
-    expect(100 >= THRESHOLD).toBe(true);
+    expect(79 >= THRESHOLD).toBe(false);
+    expect(80 >= THRESHOLD).toBe(true);
+    expect(150 >= THRESHOLD).toBe(true);
   });
 });
 

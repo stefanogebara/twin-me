@@ -34,9 +34,13 @@ describe('classifyNeuropil', () => {
     const result = classifyNeuropil('Who am I? I want to understand my personality and values');
     expect(result.neuropilId).toBe('personality');
     expect(result.weights).toBeDefined();
-    expect(result.weights.recency).toBe(0.3);
-    expect(result.weights.importance).toBe(0.8);
-    expect(result.weights.relevance).toBe(1.0);
+    // Personality is an identity-style retrieval — recency is zero,
+    // importance dominates, relevance pulls in semantically-close memories.
+    // These weights are read from api/services/neuropilRouter.js; if you
+    // change the dial there, update here.
+    expect(result.weights.recency).toBe(0.0);
+    expect(result.weights.importance).toBe(2.0);
+    expect(result.weights.relevance).toBe(1.2);
     expect(result.budgets).toBeDefined();
     expect(result.confidence).toBeGreaterThan(0);
   });
@@ -44,8 +48,11 @@ describe('classifyNeuropil', () => {
   it('classifies lifestyle neuropil', () => {
     const result = classifyNeuropil('How did I sleep? What was my recovery and energy like?');
     expect(result.neuropilId).toBe('lifestyle');
-    expect(result.weights.recency).toBe(1.0);
-    expect(result.budgets.platform_data).toBe(10); // lifestyle has most platform_data
+    // Lifestyle keeps recency at 0 in the current design — recent platform
+    // data is surfaced through the platform_data budget bump (10 rows),
+    // not the recency weight.
+    expect(result.weights.recency).toBe(0.0);
+    expect(result.budgets.platform_data).toBe(10);
   });
 
   it('classifies cultural neuropil', () => {

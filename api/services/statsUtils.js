@@ -130,6 +130,31 @@ export function fitLogLinear(xValues, yValues) {
 }
 
 /**
+ * Centroid (component-wise mean) of an array of equal-length vectors.
+ *
+ * Used to collapse a set of embedding vectors to a single representative
+ * point — e.g. the "personality embedding centroid" the soul-signature
+ * voting layer uses to rerank candidate replies. Pure function; empty or
+ * mismatched input returns null so callers can branch defensively rather
+ * than getting NaNs downstream.
+ *
+ * @param {number[][]} vectors
+ * @returns {number[]|null}
+ */
+export function computeCentroid(vectors) {
+  if (!Array.isArray(vectors) || vectors.length === 0) return null;
+  const dim = vectors[0]?.length ?? 0;
+  if (dim === 0) return null;
+  const out = new Array(dim).fill(0);
+  for (const v of vectors) {
+    if (!Array.isArray(v) || v.length !== dim) return null;
+    for (let i = 0; i < dim; i++) out[i] += v[i];
+  }
+  for (let i = 0; i < dim; i++) out[i] /= vectors.length;
+  return out;
+}
+
+/**
  * Cosine similarity between two vectors.
  * @param {number[]} a
  * @param {number[]} b

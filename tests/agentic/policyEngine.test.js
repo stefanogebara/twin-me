@@ -110,12 +110,21 @@ describe('Policy Engine', () => {
       }
     });
 
+    // Uses 'nudge' (5/hour limit) rather than 'execute' — 'execute' is now
+    // in CONFIRMATION_REQUIRED and short-circuits to {allowed:true,
+    // requiresConfirmation:true} BEFORE the rate-limit branch runs, so any
+    // test that exercises rate-limit-blocking on 'execute' would assert on
+    // an unreachable code path. 'nudge' is at level-3 allowlist and is
+    // rate-limited but not confirmation-gated.
     it('blocks after rate limit exceeded', async () => {
       const userId = 'ratelimit-burst-' + Date.now();
-      for (let i = 0; i < 10; i++) {
-        await checkPolicy(userId, 3, 'execute', 'test');
+      // Saturate the 5/h bucket.
+      for (let i = 0; i < 5; i++) {
+        const r = await checkPolicy(userId, 3, 'nudge', 'test');
+        expect(r.allowed).toBe(true);
       }
-      const result = await checkPolicy(userId, 3, 'execute', 'test');
+      // 6th attempt must be blocked with a rate-limit reason.
+      const result = await checkPolicy(userId, 3, 'nudge', 'test');
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('Rate limit');
     });

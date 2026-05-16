@@ -55,7 +55,13 @@ vi.mock('../../../api/middleware/auth.js', () => ({
   },
 }));
 
-describe('C1: Brain page reflections endpoint', () => {
+// Generous per-test timeout: the first test in this describe block
+// triggers a cold dynamic import of intelligent-twin.js which transitively
+// pulls in ~30 modules. Under the full vitest run (840+ tests, cache cold),
+// that import alone has been measured at 3-4s on dev hardware — well past
+// the 5s default test timeout. 30s gives the import comfortable headroom
+// without masking genuine handler regressions (those fail in <100ms).
+describe('C1: Brain page reflections endpoint', { timeout: 30_000 }, () => {
   beforeEach(() => {
     mockData.length = 0;
     vi.clearAllMocks();

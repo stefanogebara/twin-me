@@ -32,8 +32,15 @@ describe('OPENROUTER_MODELS', () => {
     });
   });
 
-  it('chat tier uses claude sonnet', () => {
-    expect(OPENROUTER_MODELS[TIER_CHAT]).toContain('claude');
+  // Chat tier model is intentionally configurable — we've moved between
+  // Claude Sonnet and DeepSeek-V3 in the past based on the cost/quality
+  // tradeoff. Lock the shape (non-empty model ID) rather than a specific
+  // vendor so this test doesn't trip every time the dial is turned.
+  it('chat tier has a non-empty model id', () => {
+    const model = OPENROUTER_MODELS[TIER_CHAT];
+    expect(typeof model).toBe('string');
+    expect(model.length).toBeGreaterThan(0);
+    expect(model).toMatch(/\//); // OpenRouter ids are always vendor/model
   });
 });
 
