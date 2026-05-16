@@ -405,20 +405,37 @@ router.post('/message', authenticateUser, async (req, res) => {
     });
     hopLog('done', { totalMs: Date.now() - chatStartTime, contextMs: contextBuildMs, llmMs });
 
-    // audit-2026-05-15 walkthrough finding: previously persistChatTurn was
-    // awaited BEFORE writing the SSE done event. When a chat hit the 55s
-    // controller timeout (long tool path), Vercel would kill the function
-    // at 60s mid-persistence — the client saw streamed content but neither
-    // the done event nor the DB rows landed (trace 91e82232 reproduced
-    // this in the post-fix walkthrough — 746 chars streamed to client but
-    // zero rows in mcp_conversation_logs or twin_messages).
-    //
-    // Reorder: send the SSE done event FIRST, then await persistence.
-    // The client always gets their response, and persistence runs in the
-    // remaining function budget. If Vercel kills the function mid-persist,
-    // at least the client got their response. The function's HTTP response
-    // can end while async work continues — Node keeps the function alive
-    // until either: (a) async work completes, (b) Vercel SIGKILL at 60s.
+    // Persistence (LZ score, twin_messages rows, unified conversation log,
+    // memory stream write) extracted to ../services/twinChatPersistence.js.
+    const evalMode = req.headers['x-eval-mode'] === 'true';
+    const { lzScore: responseLzScore } = await persistChatTurn({
+      userId, message, assistantMessage, conversationId, evalMode,
+      routedModel, routingTier, systemPrompt, soulSignature, platformData,
+      memories, writingProfile, chatSource,
+      coldStartMs,
+      memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
+      // audit-2026-05-13 trace-id follow-up: persist hop timings so we can
+      // diagnose the slow-tail bottleneck via Supabase queries instead of
+      // truncated Vercel runtime logs.
+      traceId,
+      hopTimings,
+    });
+
+    // Post-response side effects extracted to twinChatPipeline.js.
+    runPostResponseSideEffects({
+      userId, message, assistantMessage, conversationId, memoriesInContext, evalMode,
+    });
+
+    // Mark proactive insights as delivered (non-blocking)
+    if (proactiveInsights && proactiveInsights.length > 0) {
+      markInsightsDelivered(proactiveInsights.map(i => i.id)).catch(err =>
+        log.warn('Failed to mark insights delivered', { error: err })
+      );
+    }
+
+    if (!evalMode) trackChatMessage(userId);
+
+    // Return response
     const responsePayload = {
       success: true,
       message: assistantMessage,
@@ -440,54 +457,6 @@ router.post('/message', authenticateUser, async (req, res) => {
       res.write(`data: ${JSON.stringify({ type: 'done', ...responsePayload })}\n\n`);
       res.end();
     } else {
-      // Non-streaming response handled below in the existing branch — keep
-      // its res.json() call after persistence completes since the JSON
-      // response IS the only thing the client gets in that mode.
-    }
-
-    // Persistence (LZ score, twin_messages rows, unified conversation log,
-    // memory stream write) extracted to ../services/twinChatPersistence.js.
-    // For streaming: client already has its response — this runs in the
-    // function's remaining budget. For non-streaming: still awaited before
-    // res.json() below since the client hasn't seen anything yet.
-    const evalMode = req.headers['x-eval-mode'] === 'true';
-    const persistPromise = persistChatTurn({
-      userId, message, assistantMessage, conversationId, evalMode,
-      routedModel, routingTier, systemPrompt, soulSignature, platformData,
-      memories, writingProfile, chatSource,
-      coldStartMs,
-      memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
-      // audit-2026-05-13 trace-id follow-up: persist hop timings so we can
-      // diagnose the slow-tail bottleneck via Supabase queries instead of
-      // truncated Vercel runtime logs.
-      traceId,
-      hopTimings,
-    }).catch(err => {
-      log.error('persistChatTurn failed', { traceId, error: err?.message });
-      return { lzScore: null };
-    });
-
-    // Post-response side effects: run in parallel with persistence.
-    // These don't block the client response in either mode.
-    runPostResponseSideEffects({
-      userId, message, assistantMessage, conversationId, memoriesInContext, evalMode,
-    });
-
-    if (proactiveInsights && proactiveInsights.length > 0) {
-      markInsightsDelivered(proactiveInsights.map(i => i.id)).catch(err =>
-        log.warn('Failed to mark insights delivered', { error: err })
-      );
-    }
-
-    if (!evalMode) trackChatMessage(userId);
-
-    // For non-streaming: await persistence before res.json() so any errors
-    // surface in the response. Streaming already returned the SSE done
-    // above; just await persistence here so the function keeps running
-    // until persistence completes (or Vercel kills at 60s).
-    await persistPromise;
-
-    if (!isStreaming && !res.destroyed && !res.writableEnded) {
       res.json(responsePayload);
     }
 
