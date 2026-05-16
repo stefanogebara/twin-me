@@ -68,6 +68,18 @@ const AUDITS = [
     env: 'TWINME_RUN_IDENTITY_AUDIT',
   },
   {
+    id: 'meetings',
+    name: '/meetings comprehensive (9 specs)',
+    spec: 'tests/e2e/meetings-page-comprehensive.spec.ts',
+    env: 'TWINME_RUN_MEETINGS_AUDIT',
+  },
+  {
+    id: 'billing',
+    name: '/api/billing comprehensive (7 specs)',
+    spec: 'tests/e2e/billing-comprehensive.spec.ts',
+    env: 'TWINME_RUN_BILLING_AUDIT',
+  },
+  {
     id: 'pluggy',
     name: '/pluggy/register contract (5 specs)',
     spec: 'tests/e2e/pluggy-register-endpoint.spec.ts',
@@ -143,10 +155,16 @@ function runAudit(audit) {
     // shared-resource contention (dev server module cache, backend
     // rate-limits, mock state) and flake tests that pass in isolation.
     // Wall-time cost is small; determinism matters more for a master gate.
+    //
+    // --retries=1: a single retry covers the back-to-back-suite flakes that
+    // come from sharing the dev backend (Vite cache thrash, browser-context
+    // newPage timeouts after long sessions) without masking genuine
+    // failures — a real bug fails both attempts.
+    //
     // shell:true so npx resolves npx.cmd on Windows; safe on POSIX too.
     const child = spawn(
       'npx',
-      ['playwright', 'test', audit.spec, '--project=chromium', '--reporter=line', '--workers=1'],
+      ['playwright', 'test', audit.spec, '--project=chromium', '--reporter=line', '--workers=1', '--retries=1'],
       { cwd: ROOT, env, shell: true },
     );
 

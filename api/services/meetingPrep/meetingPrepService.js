@@ -410,7 +410,10 @@ export async function generateBriefingForChat(userId, params) {
 /**
  * Read already-generated briefings for the twin chat's get_meeting_prep
  * tool. Reads from meeting_briefings (no LLM regeneration) and returns a
- * compact, twin-speakable shape split into upcoming / recent.
+ * compact, twin-speakable shape split into inProgress / upcoming / recent.
+ *
+ * A meeting is "in progress" when it has started but not yet ended — the
+ * twin should talk about it as happening right now, not as past or future.
  *
  * timeframe: 'upcoming' | 'recent' | 'all'
  */
@@ -437,6 +440,7 @@ export async function listMeetingBriefingsForChat(userId, timeframe = 'upcoming'
     return {
       title: meta.summary || bj.headline || 'meeting',
       startTime: meta.startTime || null,
+      endTime: meta.endTime || null,
       headline: bj.headline || null,
       talkingPoints: Array.isArray(bj.talkingPoints) ? bj.talkingPoints.slice(0, 4) : [],
       watchOuts: Array.isArray(bj.watchOuts) ? bj.watchOuts.slice(0, 3) : [],
@@ -448,24 +452,39 @@ export async function listMeetingBriefingsForChat(userId, timeframe = 'upcoming'
     };
   };
 
+  const inProgress = [];
   const upcoming = [];
   const recent = [];
   for (const row of data || []) {
     const meta = row.briefing_json?._meta || {};
     const startMs = meta.startTime ? new Date(meta.startTime).getTime() : null;
+    const endMs = meta.endTime
+      ? new Date(meta.endTime).getTime()
+      : (startMs !== null ? startMs + 60 * 60 * 1000 : null);
     const item = compact(row);
-    if (startMs !== null && startMs >= now) upcoming.push(item);
-    else recent.push(item);
+    if (startMs !== null && startMs <= now && endMs !== null && now < endMs) {
+      inProgress.push(item);
+    } else if (startMs !== null && startMs > now) {
+      upcoming.push(item);
+    } else {
+      recent.push(item);
+    }
   }
+  inProgress.sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0));
   upcoming.sort((a, b) => new Date(a.startTime || 0) - new Date(b.startTime || 0));
 
   if (timeframe === 'upcoming') {
+    // "In progress" meetings are surfaced alongside upcoming — when the user
+    // asks "what's next", a meeting happening right now is the most relevant
+    // answer, not something to bury under "recent".
+    const meetings = [...inProgress, ...upcoming];
     return {
       success: true,
       timeframe,
-      count: upcoming.length,
-      meetings: upcoming,
-      note: upcoming.length === 0
+      count: meetings.length,
+      inProgressCount: inProgress.length,
+      meetings,
+      note: meetings.length === 0
         ? 'No upcoming meetings have been briefed. The user can hit "Atualizar" on the /meetings page to scan their calendar now.'
         : undefined,
     };
@@ -476,6 +495,7 @@ export async function listMeetingBriefingsForChat(userId, timeframe = 'upcoming'
   return {
     success: true,
     timeframe: 'all',
+    inProgress,
     upcoming,
     recent: recent.slice(0, 10),
   };

@@ -9,8 +9,10 @@
  *     Returns:
  *       {
  *         success: true,
- *         upcoming: [Briefing],   // start in the future (next 14d), sorted ascending
- *         recent:   [Briefing],   // start in the past (last 14d), sorted descending
+ *         inProgress: [Briefing],  // started, not yet ended — happening right now
+ *         upcoming:   [Briefing],  // start in the future (next 14d), sorted ascending
+ *         recent:     [Briefing],  // already ended (last 14d), sorted descending
+ *         undated:    [Briefing],  // legacy rows with no schedule info
  *       }
  *
  *     Briefing shape:
@@ -18,7 +20,9 @@
  *         id, eventId, generatedAt, headline,
  *         summary, startTime, endTime, location, meetingUrl,  // from briefing_json._meta
  *         attendees: [{email, name, responseStatus, organizer}],
- *         briefing: { headline, attendees, companyContext, talkingPoints, watchOuts, myContext }
+ *         hasDebrief: boolean,        // a post-meeting debrief has been generated
+ *         debriefPending: boolean,    // ended recently, debrief expected soon (recent only)
+ *         briefing: { headline, attendees, companyContext, talkingPoints, watchOuts, myContext, debrief? }
  *       }
  *
  * Old briefings without _meta have null/empty time fields — the FE renders
@@ -39,6 +43,13 @@ const router = express.Router();
 router.use(authenticateUser);
 
 const WINDOW_DAYS = 14;
+
+// A meeting that ended within this window but has no debrief yet is treated
+// as "debrief pending" — the cron-meeting-debrief job runs every 30 min and
+// picks up meetings that ended 25-180 min ago. Surfacing the pending state
+// closes the gap where the user would otherwise see a stale prep card with
+// no signal that a debrief is on the way.
+const DEBRIEF_PENDING_WINDOW_MIN = 180;
 
 /**
  * Transform a meeting_briefings row into the FE-friendly shape. Tolerates
@@ -61,6 +72,8 @@ function shapeRow(row) {
     hangoutLink: meta.hangoutLink || null,
     meetingUrl: meta.meetingUrl || null,
     attendees: Array.isArray(meta.attendees) ? meta.attendees : [],
+    hasDebrief: !!briefing.debrief,
+    debriefPending: false, // set by the GET handler for recent rows
     briefing: briefingClean,
   };
 }
@@ -89,6 +102,8 @@ router.get('/', async (req, res) => {
 
     const shaped = (data || []).map(shapeRow);
 
+    const nowMs = now.getTime();
+    const inProgress = [];
     const upcoming = [];
     const recent = [];
     const undated = [];
@@ -98,20 +113,37 @@ router.get('/', async (req, res) => {
         undated.push(row);
         continue;
       }
-      // Tolerate windowEnd overrun — show whatever was generated even if it's
-      // for a meeting beyond the typical 14-day window.
-      if (new Date(row.startTime) >= now) {
+      const startMs = new Date(row.startTime).getTime();
+      // endTime can be missing on legacy rows — fall back to a 60-min default
+      // so an in-progress meeting isn't misclassified the moment it starts.
+      const endMs = row.endTime
+        ? new Date(row.endTime).getTime()
+        : startMs + 60 * 60 * 1000;
+
+      if (startMs <= nowMs && nowMs < endMs) {
+        inProgress.push(row);
+      } else if (startMs > nowMs) {
+        // Tolerate windowEnd overrun — show whatever was generated even if it's
+        // for a meeting beyond the typical 14-day window.
         upcoming.push(row);
       } else {
+        // Already ended. Flag the debrief-pending gap: ended within the last
+        // 3h with no debrief yet — the debrief cron will pick it up shortly.
+        const endedMinAgo = (nowMs - endMs) / 60000;
+        if (!row.hasDebrief && endedMinAgo >= 0 && endedMinAgo <= DEBRIEF_PENDING_WINDOW_MIN) {
+          row.debriefPending = true;
+        }
         recent.push(row);
       }
     }
 
+    inProgress.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
     upcoming.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
     recent.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
 
     res.json({
       success: true,
+      inProgress,
       upcoming,
       recent,
       undated,
@@ -122,6 +154,15 @@ router.get('/', async (req, res) => {
     res.status(500).json({ success: false, error: 'failed to fetch briefings' });
   }
 });
+
+// Each briefing is a multi-call LLM pipeline (~20-25s wall time). The scan
+// runs them synchronously so the FE can reload with fresh data, which means
+// the request duration scales linearly with the meeting count. Cap it so a
+// packed calendar can't blow past the platform's HTTP timeout — events past
+// the cap are left for the cron-meeting-prep job (runs every 30 min) or a
+// follow-up scan. Events are ordered by start time, so the cap always briefs
+// the soonest meetings first.
+const MAX_SCAN_BRIEFINGS = 8;
 
 /**
  * POST /scan
@@ -134,7 +175,10 @@ router.get('/', async (req, res) => {
  * generateBriefing skips events already briefed at the same etag, so
  * spamming the button is cheap.
  *
- * Returns: { success, scanned, briefingsGenerated }
+ * Caps work at MAX_SCAN_BRIEFINGS to stay under the HTTP timeout —
+ * deferred meetings are reported back so the FE can tell the user.
+ *
+ * Returns: { success, scanned, briefingsGenerated, deferred }
  */
 router.post('/scan', async (req, res) => {
   try {
@@ -153,8 +197,13 @@ router.post('/scan', async (req, res) => {
       });
     }
 
+    // fetchUpcomingExternalEvents already returns events ordered by start
+    // time, so slicing keeps the soonest meetings.
+    const toBrief = events.slice(0, MAX_SCAN_BRIEFINGS);
+    const deferred = Math.max(0, events.length - toBrief.length);
+
     let briefingsGenerated = 0;
-    for (const event of events) {
+    for (const event of toBrief) {
       try {
         const result = await generateBriefing(userId, event);
         if (result) briefingsGenerated++;
@@ -163,11 +212,14 @@ router.post('/scan', async (req, res) => {
       }
     }
 
-    log.info('on-demand scan complete', { userId, scanned: events.length, briefingsGenerated });
+    log.info('on-demand scan complete', {
+      userId, scanned: events.length, briefingsGenerated, deferred,
+    });
     return res.json({
       success: true,
       scanned: events.length,
       briefingsGenerated,
+      deferred,
     });
   } catch (err) {
     log.error(`scan unhandled: ${err.message}`);

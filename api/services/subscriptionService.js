@@ -77,3 +77,45 @@ export async function requirePlan(userId, minimumPlan) {
   }
   return sub;
 }
+
+/**
+ * Plan-aware monthly chat usage.
+ *
+ * Returns `{ used, limit, tier }` where:
+ *   - `used` counts user-authored conversation memories in the current
+ *     calendar month (one row per user message),
+ *   - `limit` is the plan's chatMessages cap (Infinity for max),
+ *   - `tier` is the DB plan key.
+ *
+ * Audit M3 (2026-05-15): moved here from api/routes/chat-usage.js. Business
+ * logic shouldn't live in route files — anything that imports
+ * getMonthlyUsage now has one obvious home for it (this file, next to
+ * getUserSubscription / getPlanLimits / requirePlan).
+ *
+ * Note: the REST handler that serves /api/chat/usage normalises Infinity to
+ * null for JSON safety; pre-flight quota checks consume the raw Infinity
+ * directly via checkMonthlyQuota.
+ */
+export async function getMonthlyUsage(userId) {
+  if (!supabaseAdmin) return { used: 0, limit: 50, tier: 'free' };
+
+  const sub = await getUserSubscription(userId);
+  const limits = getPlanLimits(sub.plan);
+  const limit = limits.chatMessages;
+
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const { count, error: countErr } = await supabaseAdmin
+    .from('user_memories')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('memory_type', 'conversation')
+    .eq('metadata->>role', 'user')
+    .gte('created_at', monthStart.toISOString());
+
+  if (countErr) throw countErr;
+
+  return { used: count || 0, limit, tier: sub.plan };
+}

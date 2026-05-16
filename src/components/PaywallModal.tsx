@@ -4,12 +4,16 @@ import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { safeRedirect } from '@/lib/safeRedirect';
 
 
+// `key` is the display name sent to /api/billing/checkout. The server maps
+// display names to DB enum values (plus → DB 'pro', pro → DB 'max'). Don't
+// switch these to DB keys ('pro'/'max') — the server's mapping is ambiguous
+// for 'pro' and would charge a Plus click for the $100 Pro tier.
 const PLANS = [
   {
-    key: 'pro', name: 'Plus', price: '$20', period: '/mo',
+    key: 'plus', name: 'Plus', price: '$20', period: '/mo',
     description: 'The ongoing twin relationship',
     features: [
-      '500 messages / month',
+      '1,500 messages / month',
       '5 platform integrations',
       '90-day memory',
       'Expert reflection personas',
@@ -18,7 +22,7 @@ const PLANS = [
     cta: 'Start with Plus', highlight: false,
   },
   {
-    key: 'max', name: 'Pro', price: '$100', period: '/mo',
+    key: 'pro', name: 'Pro', price: '$100', period: '/mo',
     description: 'The deepest mirror',
     features: [
       'Unlimited messages',

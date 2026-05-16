@@ -1,58 +1,19 @@
 /**
  * Chat Usage Routes
  *
- * Tracks monthly chat message usage for freemium gating.
- * Limits are plan-aware: Free=50, Plus=500, Pro=unlimited.
+ * Thin HTTP wrapper around getMonthlyUsage. The actual business logic and
+ * the function used by pre-flight checks live in subscriptionService.js so
+ * imports of the function don't pull in the route file. (Audit M3.)
  */
 
 import express from 'express';
-import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
-import { getUserSubscription, getPlanLimits } from '../services/subscriptionService.js';
+import { getMonthlyUsage } from '../services/subscriptionService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('ChatUsage');
 
 const router = express.Router();
-
-/**
- * Get the user's current monthly chat usage (plan-aware).
- *
- * Note: returns `limit: Infinity` for unlimited tiers (max plan). The
- * REST handler below normalizes this to `null` for JSON serialization;
- * pre-flight quota checks consume the raw Infinity value directly.
- */
-async function getMonthlyUsage(userId) {
-  if (!supabaseAdmin) return { used: 0, limit: 50, tier: 'free' };
-
-  // Get user's plan
-  const sub = await getUserSubscription(userId);
-  const limits = getPlanLimits(sub.plan);
-  const limit = limits.chatMessages;
-
-  const monthStart = new Date();
-  monthStart.setDate(1);
-  monthStart.setHours(0, 0, 0, 0);
-
-  // Count user conversation memories this month from the memory stream.
-  const { count, error: countErr } = await supabaseAdmin
-    .from('user_memories')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('memory_type', 'conversation')
-    .eq('metadata->>role', 'user')
-    .gte('created_at', monthStart.toISOString());
-
-  if (countErr) throw countErr;
-
-  const messageCount = count || 0;
-
-  return {
-    used: messageCount,
-    limit,
-    tier: sub.plan,
-  };
-}
 
 /**
  * GET /api/chat/usage
@@ -84,5 +45,4 @@ router.get('/usage', authenticateUser, async (req, res) => {
   }
 });
 
-export { getMonthlyUsage };
 export default router;

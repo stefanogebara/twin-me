@@ -63,11 +63,17 @@ export interface MeetingBriefing {
   hangoutLink: string | null;
   meetingUrl: string | null;
   attendees: CalendarAttendee[];
+  /** A post-meeting debrief has been generated for this meeting. */
+  hasDebrief: boolean;
+  /** Recent meeting, ended within the last ~3h, debrief expected soon. */
+  debriefPending: boolean;
   briefing: BriefingPayload;
 }
 
 export interface MeetingBriefingsResponse {
   success: boolean;
+  /** Started but not yet ended — happening right now. */
+  inProgress: MeetingBriefing[];
   upcoming: MeetingBriefing[];
   recent: MeetingBriefing[];
   undated: MeetingBriefing[];
@@ -118,6 +124,8 @@ export interface ScanResponse {
   success: boolean;
   scanned?: number;
   briefingsGenerated?: number;
+  /** Meetings found but left for the cron because the scan hit its cap. */
+  deferred?: number;
   error?: string;
   code?: string;
 }
@@ -152,6 +160,7 @@ export async function fetchMeetingBriefings(signal?: AbortSignal): Promise<Meeti
     if (!res.ok) {
       return {
         success: false,
+        inProgress: [],
         upcoming: [],
         recent: [],
         undated: [],
@@ -164,6 +173,7 @@ export async function fetchMeetingBriefings(signal?: AbortSignal): Promise<Meeti
     if (isAbortError(err)) throw err;
     return {
       success: false,
+      inProgress: [],
       upcoming: [],
       recent: [],
       undated: [],

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail, Calendar, FolderSearch, FileText, Table2, Users,
-  Check, ChevronLeft, ChevronRight, Trash2, Pencil, Clock,
+  Check, ChevronLeft, ChevronRight, Trash2, Pencil, Clock, CalendarCheck,
 } from 'lucide-react';
 
 interface ActionEvent {
@@ -37,6 +37,8 @@ const TOOL_CONFIG: Record<string, { icon: typeof Mail; label: string; executingL
   docs_create: { icon: FileText, label: 'Docs', executingLabel: 'Creating document...' },
   sheets_create: { icon: Table2, label: 'Sheets', executingLabel: 'Creating spreadsheet...' },
   contacts_search: { icon: Users, label: 'Contacts', executingLabel: 'Searching contacts...' },
+  get_meeting_prep: { icon: CalendarCheck, label: 'Meeting Prep', executingLabel: 'Checking your meeting prep...' },
+  meeting_prep: { icon: CalendarCheck, label: 'Meeting Prep', executingLabel: 'Prepping your meeting...' },
 };
 
 function getToolConfig(tool: string) {
@@ -62,7 +64,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function isListTool(tool: string): boolean {
-  return ['gmail_search', 'gmail_read', 'calendar_today', 'calendar_upcoming', 'drive_search', 'contacts_search'].includes(tool);
+  return ['gmail_search', 'gmail_read', 'calendar_today', 'calendar_upcoming', 'drive_search', 'contacts_search', 'get_meeting_prep'].includes(tool);
 }
 
 function isWriteTool(tool: string): boolean {
@@ -77,6 +79,7 @@ function getResultItems(data: any): any[] {
   if (data.events) return data.events;
   if (data.files) return data.files;
   if (data.contacts) return data.contacts;
+  if (data.meetings) return data.meetings;
   if (data.results) return data.results;
   return [];
 }
@@ -175,11 +178,55 @@ function ContactItem({ item, isLast }: { item: any; isLast: boolean }) {
   );
 }
 
+function MeetingItem({ item, isLast }: { item: any; isLast: boolean }) {
+  // Shape from listMeetingBriefingsForChat(): { title, startTime, headline,
+  // talkingPoints[], watchOuts[], attendees[], hasDebrief, debriefSummary }.
+  const when = item.startTime
+    ? new Date(item.startTime).toLocaleString(undefined, {
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      })
+    : '';
+  const firstPoint = Array.isArray(item.talkingPoints) ? item.talkingPoints[0] : null;
+  return (
+    <div
+      className="py-2"
+      style={{ borderBottom: isLast ? undefined : '1px solid rgba(255,255,255,0.04)' }}
+    >
+      <div className="flex justify-between items-start gap-2">
+        <span className="text-[13px] font-medium" style={{ color: '#F5F5F4' }}>
+          {item.title || 'Meeting'}
+        </span>
+        {when && (
+          <span className="text-[11px] ml-2 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            {when}
+          </span>
+        )}
+      </div>
+      {item.headline && (
+        <div className="text-[12px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          {item.headline}
+        </div>
+      )}
+      {firstPoint && (
+        <div className="text-[12px] line-clamp-1 mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          {firstPoint}
+        </div>
+      )}
+      {item.hasDebrief && (
+        <div className="text-[11px] mt-0.5" style={{ color: 'rgba(165,164,224,0.85)' }}>
+          Debrief ready
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResultItem({ item, tool, isLast }: { item: any; tool: string; isLast: boolean }) {
   if (tool.startsWith('gmail')) return <EmailItem item={item} isLast={isLast} />;
   if (tool.startsWith('calendar')) return <CalendarItem item={item} isLast={isLast} />;
   if (tool.startsWith('drive')) return <DriveItem item={item} isLast={isLast} />;
   if (tool.startsWith('contacts')) return <ContactItem item={item} isLast={isLast} />;
+  if (tool === 'get_meeting_prep') return <MeetingItem item={item} isLast={isLast} />;
   return <DriveItem item={item} isLast={isLast} />;
 }
 
@@ -384,6 +431,34 @@ export function WorkspaceActionCard({ action }: WorkspaceActionCardProps) {
             </motion.div>
           )}
         </AnimatePresence>
+      </motion.div>
+    );
+  }
+
+  // meeting_prep returns a single fresh briefing ({ success, briefing }) \u2014
+  // not a list. Surface the headline so the card carries real signal
+  // instead of a bare tool name.
+  if (action.tool === 'meeting_prep' && action.data?.briefing?.headline) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="bg-[rgba(255,255,255,0.06)] rounded-[20px] border border-[rgba(255,255,255,0.06)] px-5 py-4 mb-3"
+        style={{ boxShadow: 'inset 0 0 7px 1px rgba(255,255,255,0.1)' }}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Icon className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.4)' }} />
+          <span
+            className="text-[11px] uppercase tracking-[0.15em] font-medium"
+            style={{ color: 'rgba(255,255,255,0.4)' }}
+          >
+            {config.label}
+            {action.elapsedMs != null ? ` \u00b7 ${action.elapsedMs}ms` : ''}
+          </span>
+        </div>
+        <div className="text-[13px]" style={{ color: '#F5F5F4' }}>
+          {action.data.briefing.headline}
+        </div>
       </motion.div>
     );
   }

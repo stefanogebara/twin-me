@@ -3,8 +3,8 @@
  * ============================
  * Runs the four gating checks every chat message clears before expensive work:
  *   1. Feature flags
- *   2. Subscription (free plan: 1 reply, then paywall)
- *   3. Usage quota (Free=50, Plus=500, Pro=unlimited)
+ *   2. Subscription paywall (free plan: 403 UPGRADE_REQUIRED at monthly cap)
+ *   3. Usage quota (Free=100/mo, Plus=1500/mo, Pro=unlimited)
  *   4. Rate limit (200 msg/user/hour)
  *
  * Returns either the unlocked flag bag or a ready-to-send error response.
@@ -13,13 +13,14 @@
  * (audit ARCH-1).
  */
 
-import { supabaseAdmin } from './database.js';
 import { getFeatureFlags } from './featureFlagsService.js';
-import { getUserSubscription, PLAN_DISPLAY_NAMES } from './subscriptionService.js';
+import {
+  getUserSubscription,
+  getMonthlyUsage,
+  PLAN_DISPLAY_NAMES,
+} from './subscriptionService.js';
 import { checkChatRateLimit } from './chatRateLimiter.js';
 import { createLogger } from './logger.js';
-
-import { getMonthlyUsage } from '../routes/chat-usage.js';
 
 const log = createLogger('TwinChatPreFlightChecks');
 
@@ -36,25 +37,33 @@ function deriveFeatureFlagBooleans(featureFlags) {
   };
 }
 
-async function checkFreemiumPaywall(userId) {
-  const { count } = await supabaseAdmin
-    .from('twin_messages')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('role', 'assistant');
-  if ((count ?? 0) >= 1) {
-    return {
-      ok: false,
-      status: 403,
-      body: {
-        success: false,
-        error: 'Upgrade required to continue chatting',
-        code: 'UPGRADE_REQUIRED',
-        requiredPlan: 'pro',
-      },
-    };
-  }
-  return { ok: true };
+/**
+ * Free-tier paywall gate.
+ *
+ * Audit M4 (2026-05-15): the old version queried twin_messages and gated at
+ * 1 assistant reply EVER — which contradicted PLAN_LIMITS.free.chatMessages
+ * (100) and the UI copy ("100 chat messages / month"). The fix reuses the
+ * monthly `usage` already computed above. Free users get 100 messages per
+ * calendar month; the 101st message returns 403 UPGRADE_REQUIRED so the FE
+ * renders the PaywallModal (not the LimitReachedBanner which is the 429
+ * code path for paid tiers).
+ *
+ * Pure function — takes the usage object the caller already fetched.
+ */
+function checkFreemiumPaywall(usage) {
+  if (!usage) return { ok: true };
+  if (usage.used < usage.limit) return { ok: true };
+  return {
+    ok: false,
+    status: 403,
+    body: {
+      success: false,
+      error: 'Upgrade required to continue chatting',
+      code: 'UPGRADE_REQUIRED',
+      requiredPlan: 'pro',
+      usage: { used: usage.used, limit: usage.limit, tier: usage.tier },
+    },
+  };
 }
 
 function checkMonthlyQuota(usage) {
@@ -95,8 +104,17 @@ async function checkRateLimit(userId) {
 // Infinity, and the UI then rendered TWO conflicting copy strings
 // simultaneously ("Take a breath..." + "You've reached this month's limit").
 // Tier gate lives here so it stays consistent if the route grows new checks.
-function isUnlimitedTier(plan) {
-  return plan === 'max';
+//
+// Audit H4 (2026-05-15): past_due users were treated as still-unlimited
+// because getUserSubscription returns plan: 'max' for any of
+// ('active','trialing','past_due'). Stripe's dunning window is 7-14 days, so
+// a failed-payment user used to keep unlimited access the whole time.
+// Require an actively-paying status to grant the unlimited bypass — past_due
+// still gets their tier features (memory days, integrations) but quota-gated
+// like the 'pro' tier.
+function isUnlimitedTier(sub) {
+  if (!sub || sub.plan !== 'max') return false;
+  return sub.status === 'active' || sub.status === 'trialing';
 }
 
 export async function runChatPreFlightChecks({ userId }) {
@@ -113,14 +131,14 @@ export async function runChatPreFlightChecks({ userId }) {
   ]);
 
   if (sub.plan === 'free') {
-    const paywall = await checkFreemiumPaywall(userId);
+    const paywall = checkFreemiumPaywall(usage);
     if (!paywall.ok) return paywall;
   }
 
   // Max tier (unlimited) bypasses both the monthly quota and the hourly
   // rate limiter. The route is still abuse-protected by upstream auth,
   // pre-flight feature flags, and the 50s SSE timeout.
-  if (!isUnlimitedTier(sub.plan)) {
+  if (!isUnlimitedTier(sub)) {
     const quota = checkMonthlyQuota(usage);
     if (!quota.ok) return quota;
 

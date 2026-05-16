@@ -45,14 +45,28 @@ function timeUntil(iso: string | null): string {
   return ms >= 0 ? `em ${days}d` : `há ${days}d`;
 }
 
+/**
+ * "Hoje" / "Amanhã" / "Ontem" when the date is within a day of now —
+ * otherwise null and the caller falls back to the weekday+date format.
+ */
+function relativeDayLabel(d: Date): string | null {
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(d) - startOfDay(new Date())) / 86_400_000);
+  if (diffDays === 0) return 'Hoje';
+  if (diffDays === 1) return 'Amanhã';
+  if (diffDays === -1) return 'Ontem';
+  return null;
+}
+
 function formatTimeRange(start: string | null, end: string | null): string {
   if (!start) return '';
   const s = new Date(start);
   const e = end ? new Date(end) : null;
   const dayFmt = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
   const timeFmt = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  if (e) return `${dayFmt.format(s)} · ${timeFmt.format(s)} – ${timeFmt.format(e)}`;
-  return `${dayFmt.format(s)} · ${timeFmt.format(s)}`;
+  const dayLabel = relativeDayLabel(s) || dayFmt.format(s);
+  if (e) return `${dayLabel} · ${timeFmt.format(s)} – ${timeFmt.format(e)}`;
+  return `${dayLabel} · ${timeFmt.format(s)}`;
 }
 
 function DebriefSection({ debrief }: { debrief: NonNullable<MeetingBriefing['briefing']['debrief']> }) {
@@ -225,12 +239,60 @@ function buildFollowUpUrl(briefing: MeetingBriefing): string {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero: boolean }) {
+type CardVariant = 'inProgress' | 'hero' | 'normal';
+
+// Per-variant surface styling. inProgress uses a restrained emerald — a
+// status accent for "happening right now", distinct from the amber prep
+// theme — hero keeps the amber prep gradient, normal is plain glass.
+const VARIANT_STYLE: Record<CardVariant, {
+  padding: string;
+  background: string;
+  borderColor: string;
+  labelColor: string;
+  titleSize: number;
+}> = {
+  inProgress: {
+    padding: '28px 28px 24px',
+    background: 'linear-gradient(135deg, rgba(52,168,110,0.12) 0%, rgba(255,255,255,0.04) 70%)',
+    borderColor: 'rgba(52,168,110,0.32)',
+    labelColor: 'rgba(110,210,160,0.95)',
+    titleSize: 26,
+  },
+  hero: {
+    padding: '28px 28px 24px',
+    background: 'linear-gradient(135deg, rgba(193,126,44,0.10) 0%, rgba(255,255,255,0.04) 70%)',
+    borderColor: 'rgba(193,126,44,0.30)',
+    labelColor: 'rgba(232,160,80,0.85)',
+    titleSize: 26,
+  },
+  normal: {
+    padding: '20px 22px',
+    background: 'var(--glass-surface-bg)',
+    borderColor: 'var(--glass-surface-border)',
+    labelColor: String(LABEL.color),
+    titleSize: 20,
+  },
+};
+
+function BriefingCard({ briefing, variant }: { briefing: MeetingBriefing; variant: CardVariant }) {
   const b = briefing.briefing || {};
   const title = briefing.summary || briefing.headline || 'Reunião sem título';
   const until = timeUntil(briefing.startTime);
   const range = formatTimeRange(briefing.startTime, briefing.endTime);
   const hasDebrief = !!b.debrief;
+  const isInProgress = variant === 'inProgress';
+  const vs = VARIANT_STYLE[variant];
+
+  // A briefing the LLM couldn't fill out — no attendees, no talking points,
+  // no context. Rare (a real bug upstream), but render an honest hint
+  // instead of a near-empty card so the user isn't left guessing.
+  const isMinimal =
+    !hasDebrief &&
+    !b.headline &&
+    !(b.talkingPoints && b.talkingPoints.length) &&
+    !(b.attendees && b.attendees.length) &&
+    !(b.watchOuts && b.watchOuts.length) &&
+    !b.myContext;
 
   // Phase 3 — recap email action state
   const [recapState, setRecapState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -254,27 +316,37 @@ function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero:
 
   return (
     <div
+      data-testid="briefing-card"
+      data-variant={variant}
       style={{
         ...GLASS,
-        padding: isHero ? '28px 28px 24px' : '20px 22px',
-        background: isHero
-          ? 'linear-gradient(135deg, rgba(193,126,44,0.10) 0%, rgba(255,255,255,0.04) 70%)'
-          : 'var(--glass-surface-bg)',
-        borderColor: isHero ? 'rgba(193,126,44,0.30)' : 'var(--glass-surface-border)',
+        padding: vs.padding,
+        background: vs.background,
+        borderColor: vs.borderColor,
       }}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1 min-w-0">
-          {until && (
-            <p style={{ ...LABEL, color: isHero ? 'rgba(232,160,80,0.85)' : LABEL.color, marginBottom: 6 }}>
-              {until}
+          {(until || isInProgress) && (
+            <p
+              className="flex items-center gap-1.5"
+              style={{ ...LABEL, color: vs.labelColor, marginBottom: 6 }}
+            >
+              {isInProgress && (
+                <span
+                  aria-hidden
+                  className="inline-block rounded-full animate-pulse"
+                  style={{ width: 6, height: 6, background: 'rgba(110,210,160,0.95)' }}
+                />
+              )}
+              {isInProgress ? 'Acontecendo agora' : until}
             </p>
           )}
           <h2
             style={{
               fontFamily: "'Instrument Serif', Georgia, serif",
-              fontSize: isHero ? 26 : 20,
+              fontSize: vs.titleSize,
               letterSpacing: '-0.02em',
               color: 'var(--foreground)',
               lineHeight: 1.15,
@@ -298,6 +370,69 @@ function BriefingCard({ briefing, isHero }: { briefing: MeetingBriefing; isHero:
           )}
         </div>
       </div>
+
+      {/* In-progress: a prominent join button — the one action that matters
+          while the meeting is live. Solo appointments have no URL to join. */}
+      {isInProgress && briefing.meetingUrl && (
+        <a
+          href={briefing.meetingUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-[100px] mb-4 transition-transform active:scale-[0.98]"
+          style={{
+            background: 'rgba(52,168,110,0.95)',
+            color: '#0a1a12',
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          <ExternalLink className="w-3.5 h-3.5" /> Entrar na reunião
+        </a>
+      )}
+
+      {/* Debrief-pending: the meeting just ended, the debrief cron will pick
+          it up within ~30 min. Tells the user a debrief is on the way instead
+          of leaving a stale prep card with no signal. */}
+      {briefing.debriefPending && (
+        <div
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4"
+          style={{
+            background: 'rgba(93,92,174,0.14)',
+            border: '1px solid rgba(93,92,174,0.30)',
+          }}
+        >
+          <Loader2 className="w-3 h-3 animate-spin" style={{ color: 'rgba(165,164,224,0.95)' }} />
+          <span
+            style={{
+              fontFamily: "'Geist', 'Inter', sans-serif",
+              fontSize: 11.5,
+              fontWeight: 500,
+              color: 'rgba(165,164,224,0.95)',
+            }}
+          >
+            Debrief a caminho — o twin está processando
+          </span>
+        </div>
+      )}
+
+      {/* Minimal briefing — the twin couldn't find enough context. Honest
+          hint beats a near-empty card. */}
+      {isMinimal && (
+        <p
+          className="mb-4"
+          style={{
+            fontFamily: "'Geist', 'Inter', sans-serif",
+            fontSize: 12.5,
+            color: 'rgba(255,255,255,0.45)',
+            lineHeight: 1.5,
+            fontStyle: 'italic',
+          }}
+        >
+          O twin não encontrou contexto suficiente para um briefing completo —
+          tente "Atualizar" mais perto da hora, ou abra a reunião para conferir os detalhes.
+        </p>
+      )}
 
       {/* Headline tagline from briefing */}
       {b.headline && b.headline !== title && (
@@ -676,6 +811,7 @@ function LoadingSkeleton() {
 export default function MeetingsPage() {
   useDocumentTitle('Meetings · TwinMe');
 
+  const [inProgress, setInProgress] = useState<MeetingBriefing[]>([]);
   const [upcoming, setUpcoming] = useState<MeetingBriefing[]>([]);
   const [recent, setRecent] = useState<MeetingBriefing[]>([]);
   const [undated, setUndated] = useState<MeetingBriefing[]>([]);
@@ -693,6 +829,7 @@ export default function MeetingsPage() {
         setError(res.error || 'Falha ao carregar briefings');
         return;
       }
+      setInProgress(res.inProgress || []);
       setUpcoming(res.upcoming || []);
       setRecent(res.recent || []);
       setUndated(res.undated || []);
@@ -710,6 +847,14 @@ export default function MeetingsPage() {
     return () => controller.abort();
   }, [load]);
 
+  // The scan note is a transient confirmation — auto-clear it after a few
+  // seconds so it doesn't linger as stale UI until the next scan.
+  useEffect(() => {
+    if (!scanNote) return;
+    const t = setTimeout(() => setScanNote(null), 6000);
+    return () => clearTimeout(t);
+  }, [scanNote]);
+
   // "Atualizar" — scan the calendar now, then reload the list.
   const handleScan = useCallback(async () => {
     setScanning(true);
@@ -722,12 +867,16 @@ export default function MeetingsPage() {
       }
       const generated = res.briefingsGenerated ?? 0;
       const scanned = res.scanned ?? 0;
+      const deferred = res.deferred ?? 0;
+      const base = generated > 0
+        ? `${generated} ${generated === 1 ? 'reunião nova preparada' : 'reuniões novas preparadas'}`
+        : scanned > 0
+          ? `${scanned} ${scanned === 1 ? 'reunião já estava' : 'reuniões já estavam'} em dia`
+          : 'Nenhuma reunião nas próximas 26h';
       setScanNote(
-        generated > 0
-          ? `${generated} ${generated === 1 ? 'reunião nova preparada' : 'reuniões novas preparadas'}`
-          : scanned > 0
-            ? `${scanned} ${scanned === 1 ? 'reunião já estava' : 'reuniões já estavam'} em dia`
-            : 'Nenhuma reunião externa nas próximas 26h',
+        deferred > 0
+          ? `${base} · ${deferred} ${deferred === 1 ? 'reunião ficará' : 'reuniões ficarão'} para o preparo automático`
+          : base,
       );
       await load();
     } catch {
@@ -737,7 +886,7 @@ export default function MeetingsPage() {
     }
   }, [load]);
 
-  const hasAny = upcoming.length + recent.length + undated.length > 0;
+  const hasAny = inProgress.length + upcoming.length + recent.length + undated.length > 0;
   const hero = useMemo(() => upcoming[0] ?? null, [upcoming]);
   const restUpcoming = useMemo(() => upcoming.slice(1), [upcoming]);
 
@@ -827,11 +976,25 @@ export default function MeetingsPage() {
 
       {!loading && !hasAny && <EmptyState />}
 
+      {/* Happening now — leads the page when a meeting is live. */}
+      {!loading && inProgress.length > 0 && (
+        <>
+          <p style={{ ...LABEL, marginBottom: 10, color: 'rgba(110,210,160,0.95)' }}>
+            Acontecendo agora · {inProgress.length}
+          </p>
+          <div className="space-y-4 mb-8">
+            {inProgress.map((m) => (
+              <BriefingCard key={m.id} briefing={m} variant="inProgress" />
+            ))}
+          </div>
+        </>
+      )}
+
       {!loading && hero && (
         <>
           <p style={{ ...LABEL, marginBottom: 10 }}>Próxima</p>
           <div className="mb-8">
-            <BriefingCard briefing={hero} isHero />
+            <BriefingCard briefing={hero} variant="hero" />
           </div>
         </>
       )}
@@ -841,7 +1004,7 @@ export default function MeetingsPage() {
           <p style={{ ...LABEL, marginBottom: 10 }}>Em breve · {restUpcoming.length}</p>
           <div className="space-y-4 mb-8">
             {restUpcoming.map((m) => (
-              <BriefingCard key={m.id} briefing={m} isHero={false} />
+              <BriefingCard key={m.id} briefing={m} variant="normal" />
             ))}
           </div>
         </>
@@ -854,7 +1017,7 @@ export default function MeetingsPage() {
           </p>
           <div className="space-y-4 mb-8">
             {recent.map((m) => (
-              <BriefingCard key={m.id} briefing={m} isHero={false} />
+              <BriefingCard key={m.id} briefing={m} variant="normal" />
             ))}
           </div>
         </>
@@ -865,7 +1028,7 @@ export default function MeetingsPage() {
           <p style={{ ...LABEL, marginBottom: 10 }}>Sem horário · {undated.length}</p>
           <div className="space-y-4">
             {undated.map((m) => (
-              <BriefingCard key={m.id} briefing={m} isHero={false} />
+              <BriefingCard key={m.id} briefing={m} variant="normal" />
             ))}
           </div>
         </>

@@ -16,15 +16,13 @@ const mockCheckChatRateLimit = vi.fn();
 
 vi.mock('../../../api/services/subscriptionService.js', () => ({
   getUserSubscription: (...args) => mockGetUserSubscription(...args),
+  // M3 audit (2026-05-15): getMonthlyUsage moved here from chat-usage.js.
+  getMonthlyUsage: (...args) => mockGetMonthlyUsage(...args),
   PLAN_DISPLAY_NAMES: { free: 'Free', pro: 'Plus', max: 'Pro' },
 }));
 
 vi.mock('../../../api/services/featureFlagsService.js', () => ({
   getFeatureFlags: (...args) => mockGetFeatureFlags(...args),
-}));
-
-vi.mock('../../../api/routes/chat-usage.js', () => ({
-  getMonthlyUsage: (...args) => mockGetMonthlyUsage(...args),
 }));
 
 vi.mock('../../../api/services/chatRateLimiter.js', () => ({

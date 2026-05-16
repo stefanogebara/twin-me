@@ -1,7 +1,16 @@
 // api/routes/billing.js
+//
+// Stripe billing routes. Security model:
+//   - All routes except /webhook require JWT auth (Bearer header — sent
+//     from localStorage by the FE). This means CSRF is structurally
+//     impossible: a cross-origin form can't set custom headers.
+//   - /webhook is intentionally unauthenticated — Stripe is the caller —
+//     and the only barrier is the HMAC signature check (constructEvent)
+//     plus the 5-minute timestamp tolerance Stripe enforces.
+//
 import express from 'express';
 import Stripe from 'stripe';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, userRateLimit } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { createLogger } from '../services/logger.js';
@@ -16,6 +25,82 @@ const safeError = (err) => isDev ? err.message : 'Internal server error';
 
 if (!stripe) {
   log.warn('STRIPE_SECRET_KEY not set — billing routes disabled');
+}
+
+// The billing router is mounted in api/server.js BEFORE express.json because
+// the /webhook route needs the raw request body for Stripe signature
+// verification. That means every other billing route is reached BEFORE the
+// global JSON parser runs — re-add it per-route for JSON-body routes here.
+const jsonBody = express.json({ limit: '32kb' });
+
+// Per-user limit on the Stripe-touching mutating routes. The general
+// per-IP apiLimiter would let an authed attacker create hundreds of
+// checkout/portal sessions across NAT'd peers. 6/min is enough headroom for
+// a fat-finger double-click + a couple of retries; anything beyond that is
+// abuse.
+const billingMutateLimiter = userRateLimit(6, 60 * 1000);
+
+// Stripe moved current_period_end from the subscription root to the
+// subscription item in newer API versions (2025-01.acacia and later).
+// Read defensively so we don't crash on whichever version Stripe picks up
+// from the account.
+function getCurrentPeriodEnd(stripeSub) {
+  return stripeSub?.current_period_end
+    ?? stripeSub?.items?.data?.[0]?.current_period_end
+    ?? null;
+}
+function periodEndIso(stripeSub) {
+  const ts = getCurrentPeriodEnd(stripeSub);
+  return ts ? new Date(ts * 1000).toISOString() : null;
+}
+
+// ─── Webhook idempotency ────────────────────────────────────────────────────
+//
+// Audit C1: without this, a Stripe retry of customer.subscription.deleted
+// could downgrade a paying user a second time. constructEvent verifies the
+// signature, but says nothing about "already saw this event".
+//
+// Strategy:
+//   1. Try to INSERT event.id into stripe_webhook_events.
+//   2. On unique-violation (23505), short-circuit to 200 — already processed.
+//   3. On any other DB error (table missing, DB down), DO NOT block the
+//      webhook. Log and continue. The downstream handlers use UPSERTs and
+//      tolerate duplicate runs, so we degrade gracefully when the
+//      idempotency table is unavailable.
+//   4. On processing failure AFTER the record was inserted, delete the
+//      record so the next Stripe retry can re-process. Otherwise the
+//      handler would silently no-op on retry and the state would never
+//      recover.
+//
+// The table is created by database/supabase/migrations/20260515_create_stripe_webhook_events.sql.
+
+async function markEventReceived(eventId, eventType) {
+  const { error } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .insert({ event_id: eventId, event_type: eventType });
+
+  if (!error) return 'inserted';
+  if (error.code === '23505') return 'duplicate';
+  // Anything else: log + continue without the idempotency guard.
+  log.warn('webhook: idempotency record failed, processing anyway', {
+    eventId, eventType, code: error.code, message: error.message,
+  });
+  return 'best-effort';
+}
+
+async function rollbackEventReceived(eventId) {
+  // Only the first delivery's INSERT lands; on subsequent retries the
+  // INSERT short-circuits before processing, so deleting here is always
+  // safe.
+  const { error } = await supabaseAdmin
+    .from('stripe_webhook_events')
+    .delete()
+    .eq('event_id', eventId);
+  if (error) {
+    log.warn('webhook: idempotency rollback failed', {
+      eventId, code: error.code, message: error.message,
+    });
+  }
 }
 
 // POST /api/billing/webhook  (raw body — must be mounted BEFORE express.json)
@@ -35,18 +120,36 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     return res.status(400).json({ error: 'Invalid webhook signature' });
   }
 
+  const seen = await markEventReceived(event.id, event.type);
+  if (seen === 'duplicate') {
+    log.info('webhook: duplicate event ignored', { eventId: event.id, type: event.type });
+    return res.status(200).json({ received: true, duplicate: true });
+  }
+
+  let recordedThisRun = seen === 'inserted';
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        const { userId, plan } = session.metadata;
+        const { userId, plan } = session.metadata || {};
+        // Metadata.plan is now always a DB enum value ('pro' or 'max') — the
+        // /checkout handler maps display names ('plus'/'pro') to DB values
+        // before passing them to Stripe. Belt-and-suspenders: reject anything
+        // outside the enum so a bad metadata write can never poison the row.
+        if (!userId || !['pro', 'max'].includes(plan)) {
+          log.error('checkout.session.completed: invalid metadata', {
+            sessionId: session.id, userId, plan,
+          });
+          break;
+        }
         const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
         await supabaseAdmin.from('user_subscriptions').upsert({
           user_id: userId, plan, status: 'active',
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
           stripe_price_id: stripeSub.items.data[0].price.id,
-          current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString(),
+          current_period_end: periodEndIso(stripeSub),
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' });
         break;
@@ -58,7 +161,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         if (existing) {
           await supabaseAdmin.from('user_subscriptions').update({
             status: sub.status,
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            current_period_end: periodEndIso(sub),
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           }).eq('user_id', existing.user_id);
@@ -97,7 +200,18 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
     res.json({ received: true });
   } catch (err) {
-    log.error('Webhook error:', err);
+    // Audit M2: log structured fields, NOT the raw err object — error objects
+    // from Stripe/Supabase can carry query fragments, object IDs, or other
+    // internals that don't belong in log aggregators.
+    log.error('webhook processing failed', {
+      eventId: event.id,
+      type: event.type,
+      message: err.message,
+      code: err.code,
+      stripeType: err.type,
+    });
+    // Roll back the idempotency record so Stripe's retry can re-process.
+    if (recordedThisRun) await rollbackEventReceived(event.id);
     res.status(500).json({ error: safeError(err) });
   }
 });
@@ -112,28 +226,53 @@ router.get('/subscription', authenticateToken, async (req, res) => {
   }
 });
 
+// Plan naming mapping (single source of truth):
+//   FE sends a DISPLAY name ('plus' or 'pro'). The server translates to a
+//   DB enum value ('pro' or 'max') and a Stripe price ID. There is NO
+//   alternate path that accepts DB keys directly — accepting both
+//   vocabularies was the M1 audit finding, because 'pro' is ambiguous
+//   (display Pro = $100 = DB max  vs  legacy DB pro = $20).
+//
+//   Display "Plus" ($20/mo) → DB 'pro' → env STRIPE_PRICE_PLUS
+//   Display "Pro"  ($100/mo) → DB 'max' → env STRIPE_PRICE_PRO
+const PLAN_DISPLAY_TO_DB = Object.freeze({ plus: 'pro', pro: 'max' });
+
+function priceIdForDbPlan(dbPlan) {
+  // Legacy fallbacks are kept ONLY for the deploy-window during the env-var
+  // rename from STRIPE_*_PRICE_ID to STRIPE_PRICE_*. Audit H2: prefer the
+  // canonical name and log if a legacy var is being relied on so it can be
+  // cleaned up.
+  if (dbPlan === 'pro') {
+    if (process.env.STRIPE_PRICE_PLUS) return process.env.STRIPE_PRICE_PLUS;
+    const legacy = process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID;
+    if (legacy) log.warn('billing: STRIPE_PRICE_PLUS missing, falling back to legacy env var — rename to STRIPE_PRICE_PLUS');
+    return legacy;
+  }
+  if (process.env.STRIPE_PRICE_PRO) return process.env.STRIPE_PRICE_PRO;
+  const legacy = process.env.STRIPE_PRO_PRICE_ID_100 || process.env.STRIPE_MAX_PRICE_ID;
+  if (legacy) log.warn('billing: STRIPE_PRICE_PRO missing, falling back to legacy env var — rename to STRIPE_PRICE_PRO');
+  return legacy;
+}
+
 // POST /api/billing/checkout
-router.post('/checkout', authenticateToken, async (req, res) => {
+// jsonBody is added explicitly here — the router is mounted before the
+// global express.json() so /webhook can use raw body for Stripe signature.
+router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, async (req, res) => {
+  // Validate input BEFORE the Stripe-configured check — a malformed request
+  // should always get a 400, regardless of whether the service is enabled.
+  const { plan } = req.body || {};
+  const dbPlan = PLAN_DISPLAY_TO_DB[plan];
+  if (!dbPlan) return res.status(400).json({ error: 'Invalid plan' });
+
   if (!stripe) {
     return res.status(503).json({ error: 'Billing not configured' });
   }
-  const { plan } = req.body;
 
-  // Plan naming mapping:
-  //   User-facing "Plus" ($20/mo) = DB value "pro"   = env STRIPE_PRICE_PLUS
-  //   User-facing "Pro"  ($100/mo) = DB value "max"  = env STRIPE_PRICE_PRO
-  //
-  // We accept either the DB key (pro/max) or the display name (plus/pro) from the frontend.
-  // DB values are NOT changed to avoid breaking existing subscriptions.
-  const PLAN_DISPLAY_TO_DB = { plus: 'pro', pro: 'max' };
-  const dbPlan = PLAN_DISPLAY_TO_DB[plan] || plan;
-  if (!['pro', 'max'].includes(dbPlan)) return res.status(400).json({ error: 'Invalid plan' });
-
-  // Canonical env vars: STRIPE_PRICE_PLUS (Plus $20) and STRIPE_PRICE_PRO (Pro $100)
-  // Legacy fallbacks kept for backward compatibility during migration
-  const priceId = dbPlan === 'pro'
-    ? (process.env.STRIPE_PRICE_PLUS || process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID)
-    : (process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRO_PRICE_ID_100 || process.env.STRIPE_MAX_PRICE_ID);
+  const priceId = priceIdForDbPlan(dbPlan);
+  if (!priceId) {
+    log.error('checkout: missing Stripe price env var', { dbPlan });
+    return res.status(503).json({ error: 'Billing not configured', code: 'PRICE_NOT_CONFIGURED' });
+  }
 
   try {
     const { data: existingSub } = await supabaseAdmin
@@ -143,11 +282,24 @@ router.post('/checkout', authenticateToken, async (req, res) => {
 
     let customerId = existingSub?.stripe_customer_id;
     if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email, name: user.first_name, metadata: { userId: req.user?.id },
-      });
+      // Audit C2: use a Stripe idempotency key keyed on userId so two
+      // simultaneous /checkout calls (double-click, parallel tabs, retry)
+      // resolve to the SAME Stripe customer — Stripe dedupes server-side.
+      // Without this, a race created two customers and the losing upsert
+      // orphaned one in Stripe forever.
+      const customer = await stripe.customers.create(
+        { email: user.email, name: user.first_name, metadata: { userId: req.user?.id } },
+        { idempotencyKey: `cust-create:${req.user?.id}` },
+      );
       customerId = customer.id;
-      await supabaseAdmin.from('user_subscriptions').update({ stripe_customer_id: customerId }).eq('user_id', req.user?.id);
+      // Upsert (not update) — the trigger normally creates a 'free' row on
+      // signup, but if it didn't, plain UPDATE would write zero rows and the
+      // customer ID would be lost. Upsert guarantees the row exists, and is
+      // race-safe because both racers end up writing the same customer ID.
+      await supabaseAdmin.from('user_subscriptions').upsert(
+        { user_id: req.user?.id, stripe_customer_id: customerId },
+        { onConflict: 'user_id' },
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -157,18 +309,21 @@ router.post('/checkout', authenticateToken, async (req, res) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${APP_URL}/me?upgraded=1`,
       cancel_url: `${APP_URL}/me?upgrade_canceled=1`,
-      metadata: { userId: req.user?.id, plan },
+      // CRITICAL: store the DB enum value (pro/max), not the FE display name
+      // (plus/pro). The webhook upserts this directly into the
+      // user_subscriptions.plan enum column.
+      metadata: { userId: req.user?.id, plan: dbPlan },
     });
 
     res.json({ url: session.url });
   } catch (err) {
-    log.error('Checkout error:', err);
+    log.error('Checkout error', { message: err.message, code: err.code, type: err.type });
     res.status(500).json({ error: safeError(err) });
   }
 });
 
 // POST /api/billing/portal
-router.post('/portal', authenticateToken, async (req, res) => {
+router.post('/portal', jsonBody, authenticateToken, billingMutateLimiter, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({ error: 'Billing not configured' });
   }
@@ -183,6 +338,7 @@ router.post('/portal', authenticateToken, async (req, res) => {
     });
     res.json({ url: session.url });
   } catch (err) {
+    log.error('Portal error', { message: err.message, code: err.code, type: err.type });
     res.status(500).json({ error: safeError(err) });
   }
 });
