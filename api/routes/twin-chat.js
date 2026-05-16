@@ -407,35 +407,19 @@ router.post('/message', authenticateUser, async (req, res) => {
 
     // Persistence (LZ score, twin_messages rows, unified conversation log,
     // memory stream write) extracted to ../services/twinChatPersistence.js.
-    //
-    // audit-2026-05-16: race persistence against a 3s budget so a slow
-    // pgbouncer cold-start can't push the function past Vercel's 60s
-    // ceiling. The underlying DB writes have already been dispatched
-    // when this race starts — Postgres receives them regardless of the
-    // Node process state, so abandoning the await doesn't usually
-    // abandon the write. Worst case: persistence skipped this turn,
-    // logged, and the next turn doesn't care because mcp_conversation_logs
-    // is server-side diagnostics. (Earlier attempt 4b315982 tried writing
-    // SSE done before awaiting persistence — that broke ALL persistence
-    // because Vercel terminates Express functions immediately after
-    // res.end(), so any subsequent await is dead.)
-    const PERSIST_BUDGET_MS = 3000;
     const evalMode = req.headers['x-eval-mode'] === 'true';
-    const { lzScore: responseLzScore } = await Promise.race([
-      persistChatTurn({
-        userId, message, assistantMessage, conversationId, evalMode,
-        routedModel, routingTier, systemPrompt, soulSignature, platformData,
-        memories, writingProfile, chatSource,
-        coldStartMs,
-        memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
-        traceId,
-        hopTimings,
-      }),
-      new Promise((resolve) => setTimeout(() => {
-        log.warn('persistChatTurn exceeded budget — abandoning await', { traceId, budgetMs: PERSIST_BUDGET_MS });
-        resolve({ lzScore: null });
-      }, PERSIST_BUDGET_MS)),
-    ]);
+    const { lzScore: responseLzScore } = await persistChatTurn({
+      userId, message, assistantMessage, conversationId, evalMode,
+      routedModel, routingTier, systemPrompt, soulSignature, platformData,
+      memories, writingProfile, chatSource,
+      coldStartMs,
+      memoryCount: memoriesInContext?.length ?? memories?.length ?? 0,
+      // audit-2026-05-13 trace-id follow-up: persist hop timings so we can
+      // diagnose the slow-tail bottleneck via Supabase queries instead of
+      // truncated Vercel runtime logs.
+      traceId,
+      hopTimings,
+    });
 
     // Post-response side effects extracted to twinChatPipeline.js.
     runPostResponseSideEffects({
