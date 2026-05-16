@@ -136,6 +136,7 @@ const {
   generateProactiveInsights,
   evaluateNudgeOutcomes,
   getNudgeHistory,
+  _findUngroundedNumbers,
 } = await import('../../../api/services/proactiveInsights.js');
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
@@ -261,5 +262,105 @@ describe('proactiveInsights', () => {
       const result = await getNudgeHistory(USER_ID, 5);
       expect(result).toEqual([]);
     });
+  });
+});
+
+/**
+ * Hallucination guard (audit-2026-05-16).
+ *
+ * Prod audit found stored insights that cited stat-numbers absent from the
+ * supplied observations:
+ *   - "46% recovery for the third day in a row" with ZERO Whoop rows in window
+ *   - "10 emails from github.com" when observation said "github.com (13)"
+ *   - "3502 of 42605 inbox messages" when observation said "3506 of 42654"
+ *   - "35% work and 30% dev" when observation said "work 20%, dev 65%"
+ *
+ * Root cause: prompt's HARD REQUIREMENTS demanded 3+ specific data points
+ * across 2+ platforms with no abstention path. _findUngroundedNumbers is
+ * the post-LLM check that catches fabricated stat-numbers before they hit
+ * the DB. These tests use the exact strings from the prod audit so a
+ * regression of either the prompt or the regex surfaces immediately.
+ */
+describe('_findUngroundedNumbers — hallucination guard (audit-2026-05-16)', () => {
+  it('returns empty array when every cited number appears in evidence', () => {
+    const insight = "you're on a 6-day GitHub streak with 13 emails from github.com — close the laptop tonight";
+    const evidence = "Current GitHub contribution streak: 6 consecutive days. Most frequent email senders this week: github.com (13)";
+    expect(_findUngroundedNumbers(insight, evidence)).toEqual([]);
+  });
+
+  it('flags fabricated Whoop recovery score (prod insight #4 — no Whoop data)', () => {
+    const insight = "You're at 46% recovery for the third day in a row while doing 32% of your coding on weekends";
+    // Evidence has GitHub but no Whoop at all
+    const evidence = "Your GitHub 2026 activity: 5021 contributions. Current GitHub contribution streak: 6 consecutive days.";
+    const ungrounded = _findUngroundedNumbers(insight, evidence);
+    expect(ungrounded).toContain('46%');
+    expect(ungrounded).toContain('32%');
+  });
+
+  it('flags fabricated inbox counts (prod insight #12 — 3502/42605 vs real 3506/42654)', () => {
+    const insight = "10 emails from github.com and 3 from substack.com this week, read 3502 out of 42605 total";
+    const evidence = "Most frequent email senders this week: github.com (13). Reads 8% of incoming email (3506 of 42654 inbox messages read)";
+    const ungrounded = _findUngroundedNumbers(insight, evidence);
+    expect(ungrounded).toContain('10');
+    expect(ungrounded).toContain('3502');
+    expect(ungrounded).toContain('42605');
+  });
+
+  it('flags swapped percentages (prod insight #15 — work/dev reversed)', () => {
+    const insight = "your email mix shifted to 35% work and 30% dev this week";
+    // Real observation had different percentages — 35 isn't anywhere in evidence
+    const evidence = "Your email mix this week: dev 60%, work 20%, newsletter 10%, social 5%";
+    const ungrounded = _findUngroundedNumbers(insight, evidence);
+    expect(ungrounded).toContain('35%');
+  });
+
+  it('does NOT flag clock times in the action prescription', () => {
+    // "11am" and "7 PM" are action-prescription times, not stats — must be ignored.
+    const insight = "your recovery dropped to 42% — push tomorrow's standup to 11am or do nothing after 7 PM";
+    const evidence = "Whoop recovery score today: 42%";
+    expect(_findUngroundedNumbers(insight, evidence)).toEqual([]);
+  });
+
+  it('does NOT flag durations in the action prescription', () => {
+    // "30 min" and "2 hours" are durations, not stats — must be ignored.
+    const insight = "you've had 42% recovery this week — block 30 min for focus and walk 2 hours Sunday";
+    const evidence = "Whoop recovery this week: 42%";
+    expect(_findUngroundedNumbers(insight, evidence)).toEqual([]);
+  });
+
+  it('does NOT flag "by 11am" and "after 7pm" patterns', () => {
+    const insight = "13 emails from github.com piling up — reply to top 3 by 11am after 7pm tonight";
+    const evidence = "Most frequent email senders this week: github.com (13)";
+    expect(_findUngroundedNumbers(insight, evidence)).toEqual([]);
+  });
+
+  it('matches percentages with or without %', () => {
+    // If evidence says "42% recovery", insight saying "42%" must match
+    expect(_findUngroundedNumbers('your recovery is 42%', 'Whoop recovery 42%')).toEqual([]);
+    // If evidence says "42 recovery" (bare), insight "42%" must still match (bare 42 in evidence)
+    expect(_findUngroundedNumbers('your recovery is 42%', 'Whoop recovery 42 today')).toEqual([]);
+  });
+
+  it('skips single-digit numbers (1-9) — too noisy', () => {
+    // "3 days", "4 meetings" — single digits aren't grounded against, by design.
+    const insight = "3 meetings before 9am and 4 from LinkedIn — push the next 3 to afternoon";
+    const evidence = "Calendar event count: 1"; // only "1" in evidence, but singles ignored
+    expect(_findUngroundedNumbers(insight, evidence)).toEqual([]);
+  });
+
+  it('handles empty and null inputs gracefully', () => {
+    expect(_findUngroundedNumbers('', 'evidence')).toEqual([]);
+    expect(_findUngroundedNumbers('insight', '')).toBeInstanceOf(Array);
+    expect(_findUngroundedNumbers(null, null)).toEqual([]);
+    expect(_findUngroundedNumbers(undefined, undefined)).toEqual([]);
+  });
+
+  it('flags a multi-digit count that does not appear in evidence', () => {
+    // "1500" is a stat, not in evidence — must be flagged.
+    const insight = "spent $1500 on coffee this month while your Whoop strain hit 18.5";
+    const evidence = "Whoop strain today: 18.5";
+    const ungrounded = _findUngroundedNumbers(insight, evidence);
+    expect(ungrounded).toContain('1500');
+    expect(ungrounded).not.toContain('18'); // 18.5 includes "18" so partial-match grounds it
   });
 });

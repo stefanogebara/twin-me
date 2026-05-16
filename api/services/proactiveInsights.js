@@ -129,6 +129,53 @@ const CATEGORY_COOLDOWN_HOURS = {
 };
 const DEFAULT_CATEGORY_COOLDOWN = 4;
 
+/**
+ * audit-2026-05-16: hallucination guard.
+ *
+ * Audit found multiple stored insights with stat-numbers (recovery %, email
+ * counts, percentages) that did not appear in the supplied observations.
+ * Examples:
+ *   - "46% recovery" with zero Whoop observations in the window
+ *   - "10 emails from github.com" when the observation literally said "(13)"
+ *   - "3502 of 42605" when the observation said "3506 of 42654"
+ *
+ * Root cause: the prompt's HARD REQUIREMENTS forced the model to cite "3+
+ * specific numbers across 2+ platforms" with no abstention path. When the
+ * supplied evidence didn't cover that surface, the model invented numbers
+ * from its training distribution.
+ *
+ * This helper returns the array of stat-numbers in `insight` that are NOT
+ * grounded in `evidence` (the raw observations+reflections block that was
+ * passed to the LLM). Action-context numbers (clock times, durations) are
+ * stripped first so we don't false-flag "block 30 min" or "by 11am".
+ *
+ * Caller policy: in the insert loop, reject any insight where this returns
+ * a non-empty array. Better to surface zero insights than to mislead the
+ * user with a fabricated recovery score or email count.
+ */
+function _findUngroundedNumbers(insight, evidence) {
+  const text = String(insight || '');
+  const ev = String(evidence || '').toLowerCase();
+  // Strip action-context numbers (clock times, durations, "by N", "after N",
+  // "for N") so they aren't treated as stats requiring grounding.
+  const stripped = text
+    .replace(/\b\d+\s*(?:a\.?m\.?|p\.?m\.?)\b/gi, ' ')
+    .replace(/\b\d+\s*-?\s*(?:min|minute|hour|hr|h|sec|second)s?\b/gi, ' ')
+    .replace(/\b(?:by|after|before|for|in|until|till|around)\s+\d+/gi, ' ');
+  // Candidate stat-numbers: percentages and multi-digit integers.
+  // Single-digit ints (1-9) are skipped — too noisy ("top 3 emails",
+  // "next 5 days") and rarely fabricated convincingly on their own.
+  const tokens = stripped.match(/\b\d+%|\b\d{2,}\b/g) || [];
+  const ungrounded = [];
+  for (const t of tokens) {
+    const bare = t.replace('%', '').toLowerCase();
+    if (ev.includes(t.toLowerCase())) continue;
+    if (ev.includes(bare)) continue;
+    ungrounded.push(t);
+  }
+  return ungrounded;
+}
+
 async function isInsightDuplicate(userId, insightText, category = null) {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -322,14 +369,40 @@ async function generateProactiveInsights(userId) {
       log.warn('In-silico scoring skipped', { error: scoringErr.message });
     }
 
+    // audit-2026-05-16: build the grounding corpus from the same observations
+    // and reflections we just handed the LLM. The grounding gate below rejects
+    // any insight that cites stat-numbers (percentages, multi-digit counts)
+    // not present in this text. Strips emoji defensively so emoji-adjacent
+    // numerics still match.
+    const groundingCorpus = `${observations}\n${reflectionText}`;
+
     // 5. Store insights (max 3), with dedup against recent undelivered
     let stored = 0;
+    let skippedUngrounded = 0;
     for (const item of insights.slice(0, 3)) {
       if (!item.insight || item.insight.length < 10) continue;
 
       const validCategories = ['trend', 'anomaly', 'celebration', 'concern', 'goal_progress', 'goal_suggestion', 'nudge'];
       const validDepartments = ['communications', 'scheduling', 'health', 'content', 'finance', 'research', 'social'];
       const itemCategory = validCategories.includes(item.category) ? item.category : null;
+
+      // audit-2026-05-16 HALLUCINATION GUARD: reject insights whose insight
+      // body OR nudge_action cites stat-numbers not present in the source
+      // observations. The prompt now tells the model to return [] when
+      // evidence is insufficient — this is the belt to the prompt's
+      // suspenders. Drops insights silently rather than storing fabrications.
+      const fullText = [item.insight, item.nudge_action].filter(Boolean).join(' ');
+      const ungrounded = _findUngroundedNumbers(fullText, groundingCorpus);
+      if (ungrounded.length > 0) {
+        log.warn('Insight rejected — un-grounded stat-numbers', {
+          userId,
+          ungrounded,
+          preview: (item.insight || '').slice(0, 120),
+        });
+        skippedUngrounded++;
+        continue;
+      }
+
       if (await isInsightDuplicate(userId, item.insight, itemCategory)) continue;
       // audit-2026-05-15 H7: strip emojis at generation time. The audit
       // found a "🤑" leaking through to the chat sidebar from a stored
@@ -375,7 +448,7 @@ async function generateProactiveInsights(userId) {
       }
     }
 
-    log.info('Generated insights', { stored, userId });
+    log.info('Generated insights', { stored, skippedUngrounded, userId });
 
     // Weekly cross-platform correlation insights
     // Only run if no 'trend' category insight exists in the last 7 days
@@ -388,10 +461,25 @@ async function generateProactiveInsights(userId) {
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
       if (!trendCount || trendCount === 0) {
-        const correlations = await generateCorrelationInsights(userId);
-        if (correlations?.length) {
-          for (const item of correlations) {
+        const correlationResult = await generateCorrelationInsights(userId);
+        const corrInsights = correlationResult?.insights || [];
+        const corrEvidence = correlationResult?.evidence || '';
+        if (corrInsights.length) {
+          for (const item of corrInsights) {
             if (!item.insight || item.insight.length < 10) continue;
+            // audit-2026-05-16: same grounding gate as the main path. The
+            // correlation prompt is more grounded by construction (only
+            // platform_data passed in) but the model can still over-claim
+            // numbers — reject any fabricated stat.
+            const corrUngrounded = _findUngroundedNumbers(item.insight, corrEvidence);
+            if (corrUngrounded.length > 0) {
+              log.warn('Correlation insight rejected — un-grounded stat-numbers', {
+                userId,
+                ungrounded: corrUngrounded,
+                preview: (item.insight || '').slice(0, 120),
+              });
+              continue;
+            }
             if (await isInsightDuplicate(userId, item.insight, 'trend')) continue;
             const corrSources = _extractSourcesFromText(item.insight);
             await supabaseAdmin.from('proactive_insights').insert({
@@ -425,6 +513,14 @@ async function generateProactiveInsights(userId) {
  *
  * Note: Supabase doesn't natively sort enums by custom order, so we fetch
  * recent undelivered insights and sort in JS to put 'high' urgency first.
+ *
+ * Excluded categories: 'briefing'/'briefing_email'/'system' (delivery
+ * artifacts, not conversational observations) and 'meeting_prep' — meeting
+ * briefings are reference data, not "huh, interesting" observations. They
+ * reach the twin through the get_meeting_prep tool, which returns the full
+ * structured briefing on demand and renders a visible action card. Leaking
+ * the headline into "THINGS I NOTICED" let the twin fake a shallow answer
+ * from the headline instead of calling the tool.
  */
 async function getUndeliveredInsights(userId, limit = 3) {
   try {
@@ -433,7 +529,7 @@ async function getUndeliveredInsights(userId, limit = 3) {
       .select('id, insight, urgency, category, department, created_at')
       .eq('user_id', userId)
       .eq('delivered', false)
-      .not('category', 'in', '("briefing_email","briefing","system")')
+      .not('category', 'in', '("briefing_email","briefing","system","meeting_prep")')
       .order('created_at', { ascending: false })
       .limit(limit * 2); // Fetch extra so we can re-sort by urgency
 
@@ -596,7 +692,11 @@ No other text.`,
     if (start === -1 || end <= start) return null;
 
     const parsed = JSON.parse(text.slice(start, end));
-    return Array.isArray(parsed) ? parsed : null;
+    if (!Array.isArray(parsed)) return null;
+    // audit-2026-05-16: return the source text alongside the insights so
+    // the caller can apply the hallucination guard against the same
+    // evidence the LLM saw.
+    return { insights: parsed, evidence: sourceText };
   } catch (err) {
     log.warn('generateCorrelationInsights error', { error: err });
     return null;
@@ -813,4 +913,5 @@ export {
   getNudgeHistory,
   getNudgeEffectivenessScore,
   isInsightDuplicate,
+  _findUngroundedNumbers,
 };

@@ -6,6 +6,46 @@ Per CLAUDE.md workflow rule #3 ("Self-Improvement Loop"): update this file after
 
 ---
 
+## 2026-05-16 — Proactive insights were hallucinating stat-numbers; prompt forced fabrication
+
+**Incident**: Prod audit of stored `proactive_insights` rows for stefano found multiple insights citing stat-numbers that did NOT appear in the supplied observations.
+
+Concrete cases (with the observation row that should have backed each claim):
+- Insight #4 (2026-05-15): *"46% recovery for the third day in a row while doing 32% of your coding on weekends"* — but `user_memories.platform_data` had **zero Whoop observations** in the window. Recovery score invented from training distribution. The "third day in a row" framing and "32% weekend coding" claim were both fabricated.
+- Insight #12 (2026-05-13): cited *"3502 out of 42605"* inbox reads — observation said `3506 of 42654`. Cited *"10 emails from github.com"* — observation said `github.com (13)`. Numbers within range of the real values but specifically wrong (numerical paraphrasing).
+- Insight #15 (2026-05-12): *"35% work and 30% dev"* — observation said `dev 60%, work 20%`. Percentages SWAPPED in direction (work shown as higher than dev). Also cited *"4 emails from LinkedIn"* when observation said `linkedin.com (1)` — 4x inflation.
+
+**Root cause**: The generation prompt (`twin-research/insight-config.js` INSIGHT_PROMPT_TEMPLATE) had HARD REQUIREMENTS demanding:
+- "EVERY insight MUST cite at least 3 specific data points"
+- "EVERY insight MUST connect data from 2+ platforms"
+
+With NO escape hatch. When the supplied observations didn't actually contain 3+ data points across 2+ platforms (e.g., Whoop disconnected, only github+gmail present), the model satisfied the requirement by inventing the missing pieces — pulling plausible Whoop recovery scores from its training distribution and paraphrasing the real gmail counts.
+
+Compounding factors:
+- `min_memories = 3` (just 3!) — at that floor, the spec literally cannot be honestly satisfied.
+- `temperature = 0.65`, `max_tokens = 500` — plenty of latitude for the model to embroider.
+- No post-LLM grounding check: insights were inserted into the DB as long as they parsed as valid JSON. Whether their cited numbers actually existed in the input was never verified.
+
+**Fix shipped**:
+1. **Prompt-level (`twin-research/insight-config.js`)** — added HALLUCINATION GUARD section ABOVE the HARD REQUIREMENTS, explicitly:
+   - Every cited number/percentage/name MUST appear verbatim in `{observations}`.
+   - "Connect 2+ platforms" only counts when BOTH platforms appear in `{observations}` — no pulling Whoop in when it's not there.
+   - If evidence is insufficient, return `[]` (empty array is a SUCCESS, not a failure).
+   - Examples of correct vs incorrect citation patterns (e.g. cite `13` not `10` when the observation says `(13)`).
+2. **Code-level (`api/services/proactiveInsights.js`)** — new `_findUngroundedNumbers(insight, evidence)` helper:
+   - Extracts stat-numbers (percentages, multi-digit integers) from the insight text.
+   - Strips action-context numbers first (clock times, durations) so they aren't false-flagged.
+   - Returns the array of numbers that do NOT appear in the evidence corpus (the same observations+reflections text passed to the LLM).
+   - Insert loop rejects any insight with `ungrounded.length > 0`. Applied on BOTH the main generation path and the secondary `generateCorrelationInsights` path.
+3. **Tests** — 10 new tests in `tests/api/services/proactiveInsights.test.js` using the EXACT hallucinated strings from the prod audit. Regression of either the prompt or the regex now surfaces immediately.
+
+**Rule**:
+- A prompt that mandates specific output dimensions ("cite N numbers across M platforms") without an abstention path is a hallucination factory. ALWAYS pair "MUST cite X" with "OR return empty if X isn't available". The model is a compliance machine — give it a way to honestly fail.
+- LLM output should never be trusted to be grounded in its input just because the prompt told it to be grounded. After parsing the LLM response, ALWAYS verify any specific citations (numbers, names, dates) appear in the source material before persisting. The marginal cost of a regex check is microseconds; the cost of a fabricated stat reaching the user is trust erosion.
+- "Numerical paraphrasing" is a real failure mode of weak/medium-tier models. They treat cited numbers like they treat prose — paraphrasable. Build defenses that force exact match.
+
+---
+
 ## 2026-05-15 — One missing example IS a bug; audit ALL tools, not just the broken one
 
 **Follow-on to the 2026-05-14 entry below.** After fixing `get_meeting_prep`, I audited every name in `EXTENDED_TOOL_NAMES` (the 7 extended tools registered for twin chat) against the EXAMPLES block in `workspaceActionParser.js`. Two more tools had the same silent-invisibility bug:
