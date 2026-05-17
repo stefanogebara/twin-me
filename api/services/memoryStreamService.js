@@ -479,12 +479,51 @@ async function addConversationMemory(userId, userMessage, assistantResponse, met
 /**
  * Store a platform observation as a memory.
  */
+/**
+ * audit-2026-05-16 FOLLOW-UP: platform-data noise clamps.
+ *
+ * Some platforms emit periodic snapshots that the LLM importance rater
+ * (Mistral Small, 1-10) consistently over-scores at 7-8 because the
+ * content looks "work-related" — but they're high-volume low-signal
+ * noise that drowns out genuinely meaningful memories in retrieval.
+ *
+ * Example: Renan's strategic advice ("design for the mainstream user",
+ * importance 8-10) was buried at rank 33+ for concept queries like
+ * "features I should kill in TwinMe" because 20+ "Created branch
+ * twin-voice-fixes in twin-me" rows at importance 7-8 (with literal
+ * string-match advantage on "twin-me") dominated the relevance score.
+ *
+ * Patterns matched here get clamped to importance 3-4 BEFORE the LLM
+ * rater runs (skipImportance: true). This is the cheapest, most
+ * surgical of the three options documented in the 2026-05-15 todo.md
+ * follow-up. Real signal — meaningful PR descriptions, commits with
+ * messages, repo creations — still goes through the LLM rater.
+ */
+const NOISE_OBSERVATION_PATTERNS = [
+  { rx: /^Created branch ".+" in/i, score: 3 },                       // git noise
+  { rx: /^Your GitHub language distribution:/i, score: 3 },           // periodic snapshot
+  { rx: /^Your GitHub \d{4} activity: \d+ contributions/i, score: 4 }, // periodic snapshot
+  { rx: /^Committed code on \d+ days in the last \d+ days/i, score: 4 }, // rolling stat
+  { rx: /^Current GitHub contribution streak: \d+ consecutive days/i, score: 4 }, // rolling stat
+];
+
+function clampNoiseObservation(content) {
+  for (const { rx, score } of NOISE_OBSERVATION_PATTERNS) {
+    if (rx.test(content)) return score;
+  }
+  return null;
+}
+
 async function addPlatformObservation(userId, content, platform, metadata = {}) {
+  const noiseScore = clampNoiseObservation(content);
+  const options = noiseScore !== null
+    ? { importanceScore: noiseScore, skipImportance: true }
+    : undefined;
   return addMemory(userId, content, 'platform_data', {
     source: platform,
     platform,
     ...metadata,
-  });
+  }, options);
 }
 
 /**
@@ -1825,4 +1864,5 @@ export {
   archiveOldMemories,
   decaySourceMemories,
   RETRIEVAL_WEIGHTS,
+  clampNoiseObservation,
 };

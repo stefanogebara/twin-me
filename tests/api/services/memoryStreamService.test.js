@@ -147,3 +147,73 @@ describe('RETRIEVAL_WEIGHTS preset', () => {
     expect(mod.RETRIEVAL_WEIGHTS.identity).toBeDefined();
   });
 });
+
+/**
+ * Platform-data noise clamp (audit-2026-05-16 FOLLOW-UP).
+ *
+ * Prod audit found that the LLM importance rater (Mistral Small) was
+ * scoring github periodic snapshots — "Created branch X", language
+ * distribution rows, activity counts — at 7-8 because they look
+ * work-related. With 200+ such rows in the test user's memory and
+ * literal string-match on "twin-me", these rows dominated concept-query
+ * retrieval and buried strategic content (Renan facts at imp=10) at
+ * rank 33+ (then 5/5 of top results after Renan importance bump).
+ *
+ * The clamp runs BEFORE the LLM rater (skipImportance: true) for
+ * patterns matching the known noise shapes, capping them at 3-4 so
+ * they can't out-relevance genuinely-significant memories. After the
+ * clamp + backfill of 259 existing rows, github noise dropped from
+ * 5/5 of top results to 1/5 for the audit's regression queries.
+ *
+ * These tests lock in: (1) the noise patterns are clamped, (2) real
+ * content (commits with messages, repo creation) passes through to the
+ * LLM rater.
+ */
+describe('clampNoiseObservation — platform-data noise clamps (audit-2026-05-16)', () => {
+  it('clamps "Created branch X in repo" to 3', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Created branch "twin-voice-fixes" in twin-me')).toBe(3);
+    expect(clampNoiseObservation('Created branch "feature/oauth" in some/repo')).toBe(3);
+  });
+
+  it('clamps GitHub language-distribution snapshots to 3', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Your GitHub language distribution: HTML (52%), JavaScript (30%)')).toBe(3);
+  });
+
+  it('clamps "Your GitHub YYYY activity" rolling stats to 4', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Your GitHub 2026 activity: 5021 contributions — 4952 commits, 56 PRs, 0 reviews, 1 issues')).toBe(4);
+  });
+
+  it('clamps "Committed code on N days" rolling stats to 4', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Committed code on 4 days in the last 30 days on GitHub')).toBe(4);
+  });
+
+  it('clamps "Current GitHub contribution streak" to 4', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Current GitHub contribution streak: 6 consecutive days')).toBe(4);
+  });
+
+  it('does NOT clamp real signal — commits with message previews', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Pushed 3 commits to twin-me on main — "fix(insights): stop hallucinated stat-numbers"')).toBeNull();
+    expect(clampNoiseObservation('Opened PR in twin-me: "Kill spotify URI parroting"')).toBeNull();
+    expect(clampNoiseObservation('Created repository "new-cool-project"')).toBeNull();
+  });
+
+  it('does NOT clamp non-github platform_data', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('Listened to Radiohead - Creep for 4:12 minutes')).toBeNull();
+    expect(clampNoiseObservation('Recovery score today: 42%')).toBeNull();
+    expect(clampNoiseObservation('Most frequent email senders this week: github.com (13)')).toBeNull();
+  });
+
+  it('handles empty/null input gracefully', async () => {
+    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    expect(clampNoiseObservation('')).toBeNull();
+    expect(clampNoiseObservation(null)).toBeNull();
+    expect(clampNoiseObservation(undefined)).toBeNull();
+  });
+});
