@@ -33,6 +33,7 @@ import { ConnectBankButton } from './components/money/ConnectBankButton';
 import { BankConnectionsList } from './components/money/BankConnectionsList';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
 import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
+import { BrokerageActivityCard } from './components/money/BrokerageActivityCard';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -946,6 +947,12 @@ export default function MoneyPage() {
           null when Plaid is unconfigured so we don't double up on the
           connect-button hint. */}
       <BrokerageHoldingsCard />
+
+      {/* Brokerage activity tagged with emotional context — Phase 4.2.
+          The moat surface. Each buy/sell/dividend is joined with the Whoop
+          recovery + music valence + calendar load from the same day. Stays
+          silent when there's no Plaid investment activity yet. */}
+      <BrokerageActivityCard />
 
       {/* Upload zone */}
       <div className="mb-6">

@@ -512,6 +512,54 @@ export interface PlaidHoldingsResponse {
   code?: 'PLAID_NOT_CONFIGURED' | string;
 }
 
+export interface PlaidInvestmentEvent {
+  id: string;
+  ticker: string | null;
+  name: string;
+  type: string;                  // buy | sell | cash | fee | dividend | transfer
+  rawCategory: string | null;
+  amount: number;                // signed: negative = cash out (buy), positive = cash in (sell)
+  currency: string;
+  transactionDate: string;       // YYYY-MM-DD
+  emotionalContext: {
+    recoveryScore: number | null;
+    musicValence: number | null;
+    calendarLoad: number | null;
+    sleepScore: number | null;
+    computedStressScore: number | null;
+    emotionLabel: string | null; // "low recovery (38%)" / "high stress (72%)" / null
+  } | null;
+}
+
+export interface PlaidInvestmentActivityResponse {
+  success: boolean;
+  events: PlaidInvestmentEvent[];
+  range?: { since: string; limit: number };
+  error?: string;
+}
+
+/**
+ * Recent investment events (buys/sells/dividends) joined with the
+ * emotional-context fingerprint. The moat surface — ChatGPT Personal
+ * Finance can show what you bought; this shows it alongside the Whoop
+ * recovery score, music valence, and calendar load at the moment.
+ */
+export async function getPlaidInvestmentActivity(
+  opts: { limit?: number; sinceDays?: number } = {},
+): Promise<PlaidInvestmentActivityResponse> {
+  const qs = new URLSearchParams();
+  if (opts.limit) qs.set('limit', String(opts.limit));
+  if (opts.sinceDays) qs.set('sinceDays', String(opts.sinceDays));
+  const suffix = qs.toString() ? `?${qs}` : '';
+  const res = await authFetch(`/plaid/investment-activity${suffix}`);
+  let body: PlaidInvestmentActivityResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    return { success: false, events: [], error: body?.error || `failed (${res.status})` };
+  }
+  return body || { success: false, events: [], error: 'empty response' };
+}
+
 /**
  * Fetch the user's brokerage holdings aggregated across every linked Plaid
  * item. Empty result when nothing is connected — the card renders an

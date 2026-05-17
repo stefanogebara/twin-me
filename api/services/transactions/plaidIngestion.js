@@ -366,6 +366,15 @@ export async function bootstrapItem(userId, accessToken, plaidItemId) {
   //    first call often returns 0-50 transactions and a cursor. The webhook
   //    will fire SYNC_UPDATES_AVAILABLE later with the rest.
   const result = await syncItem(userId, plaidItemId, { allowNudge: false });
+
+  // 4. Investment-transactions seed (1-year lookback). Fire-and-forget so a
+  //    slow Plaid sandbox doesn't push the exchange call past Vercel's 60s
+  //    function budget. Failures are non-fatal — the daily cron will catch
+  //    up. Empty result for items without the investments product is fine.
+  syncInvestmentTransactions(userId, plaidItemId, { isBootstrap: true }).catch((err) => {
+    log.warn(`investments seed failed for ${plaidItemId} (non-fatal): ${err.message}`);
+  });
+
   log.info(`bootstrapped item ${plaidItemId} for user ${userId}: ${result.inserted} tx`);
   return result;
 }
@@ -426,6 +435,166 @@ export async function syncItem(userId, plaidItemId, { allowNudge = true } = {}) 
   await runDownstreamPipeline(ctx.userId, totalIds, { allowNudge });
 
   log.info(`sync done for item ${plaidItemId}: ${pages} pages, ${totalIds.length} tx`);
+  return { inserted: totalIds.length, pages };
+}
+
+/**
+ * Phase 2 of the Plaid integration — investment-transactions ingestion.
+ *
+ * Pulls /investments/transactions for an item and persists each buy / sell /
+ * dividend / fee event into the SAME `user_transactions` table that the
+ * Phase 2 emotion tagger already operates on. By tagging account_type =
+ * 'investment' and category = 'investment_<type>', we get the emotional-
+ * context join (Whoop recovery, music valence, calendar load) for FREE on
+ * every investment event — that's the differentiated 'sold at the bottom
+ * of a recovery dip' surface ChatGPT Personal Finance can't draw.
+ *
+ * Amount sign convention: Plaid sends positive=cash-leaving-account (a
+ * buy spends cash) and negative=cash-arriving (a sell credits cash). Our
+ * convention is negative=outflow, positive=inflow — so signedAmount()
+ * flips Plaid's sign and we land in the right place.
+ *
+ * Idempotency: same (user_id, external_id) upsert pattern as regular tx;
+ * external_id = `plaid_inv:<investment_transaction_id>` so the spending
+ * and investing tx never collide.
+ */
+const INVESTMENT_LOOKBACK_DAYS = 365; // First-time bootstrap pulls 1 year of activity
+const INVESTMENT_PAGE_SIZE = 250;     // Plaid caps at 500; we paginate generously
+const INVESTMENT_MAX_PAGES = 20;
+
+function mapInvestmentType(type, subtype) {
+  // Plaid investment_transactions.type ∈ { buy, sell, cash, fee, transfer, cancel }
+  // subtype narrows further (e.g. type=buy + subtype=purchased = a plain purchase).
+  // Our category convention keeps the prefix for filtering + the type for analytics.
+  const safeType = String(type || 'unknown').toLowerCase();
+  const safeSubtype = String(subtype || '').toLowerCase();
+  return safeSubtype ? `investment_${safeType}_${safeSubtype}` : `investment_${safeType}`;
+}
+
+async function upsertInvestmentTransactions(userId, plaidAccountId, accountCurrency, transactions, securitiesIndex) {
+  if (!transactions.length) return [];
+
+  const rows = transactions
+    .map((t) => {
+      if (!t.investment_transaction_id || !t.date) return null;
+      const sec = securitiesIndex.get(t.security_id);
+      const ticker = sec?.ticker_symbol || null;
+      const securityName = sec?.name || t.name || 'Unknown security';
+      // For investment events the most natural "merchant" is the security
+      // (ticker / name) — keeps the existing memory-stream surface readable
+      // ("Spent $1,234 at AAPL on May 5"). Category carries the buy/sell/
+      // dividend semantic for filtering.
+      const merchantRaw = ticker ? `${ticker} — ${securityName}` : securityName;
+      const merchantNormalized = ticker || securityName;
+      return {
+        user_id: userId,
+        plaid_transaction_id: t.investment_transaction_id,
+        plaid_account_id: plaidAccountId,
+        source: 'plaid_investments_sync',
+        external_id: `plaid_inv:${t.investment_transaction_id}`,
+        amount: -(Number(t.amount) || 0),     // Plaid +=cash out → our -=outflow
+        currency: t.iso_currency_code || t.unofficial_currency_code || accountCurrency || 'USD',
+        merchant_raw: merchantRaw,
+        merchant_normalized: merchantNormalized,
+        category: mapInvestmentType(t.type, t.subtype),
+        transaction_date: t.date,
+        source_bank: 'plaid',
+        account_type: 'investment',
+      };
+    })
+    .filter(Boolean);
+
+  if (!rows.length) return [];
+
+  const { data, error } = await supabaseAdmin
+    .from('user_transactions')
+    .upsert(rows, { onConflict: 'user_id,external_id', ignoreDuplicates: false })
+    .select('id');
+
+  if (error) {
+    log.error(`investment-tx upsert failed for user ${userId}: ${error.message}`);
+    return [];
+  }
+  return (data || []).map((r) => r.id);
+}
+
+/**
+ * Pull investment transactions for a single Plaid item over [startDate, endDate]
+ * and persist them. Returns the count of newly-touched rows so the caller can
+ * gate downstream pipeline runs.
+ *
+ * Plaid investment-tx history depth varies by institution (typically 24 months
+ * available); we cap our seed window at INVESTMENT_LOOKBACK_DAYS on bootstrap
+ * and let subsequent syncs catch only the trailing 30 days for delta updates.
+ */
+export async function syncInvestmentTransactions(userId, plaidItemId, { isBootstrap = false } = {}) {
+  if (!userId || !plaidItemId) throw new Error('syncInvestmentTransactions: userId + plaidItemId required');
+
+  const ctx = await resolveItemContext(plaidItemId);
+  if (!ctx?.accessToken) {
+    log.warn(`syncInvestmentTransactions: no access_token for item ${plaidItemId}`);
+    return { inserted: 0 };
+  }
+
+  const today = new Date();
+  const startDays = isBootstrap ? INVESTMENT_LOOKBACK_DAYS : 30;
+  const startDate = new Date(today.getTime() - startDays * 86400_000).toISOString().slice(0, 10);
+  const endDate = today.toISOString().slice(0, 10);
+
+  let offset = 0;
+  let pages = 0;
+  const totalIds = [];
+  let accountsIndex = null;
+  let securitiesIndex = null;
+
+  while (pages < INVESTMENT_MAX_PAGES) {
+    pages += 1;
+    let resp;
+    try {
+      resp = await plaid.getInvestmentTransactions(ctx.accessToken, {
+        startDate, endDate, count: INVESTMENT_PAGE_SIZE, offset,
+      });
+    } catch (err) {
+      // Most common cause when an institution doesn't support /investments
+      // for this item: PRODUCT_NOT_READY or INVALID_PRODUCT. Non-fatal —
+      // checking-only items don't have investment activity.
+      log.info(`investments/transactions page ${pages} unavailable for ${plaidItemId}: ${err.plaidErrorCode || err.message}`);
+      break;
+    }
+
+    const accounts = resp.accounts || [];
+    const securities = resp.securities || [];
+    if (!accountsIndex) accountsIndex = new Map(accounts.map(a => [a.account_id, a]));
+    if (!securitiesIndex) securitiesIndex = new Map(securities.map(s => [s.security_id, s]));
+
+    const txs = resp.investment_transactions || [];
+    if (!txs.length) break;
+
+    // Group by account so currency lookup runs once per account, not per tx
+    const byAccount = new Map();
+    for (const t of txs) {
+      if (!byAccount.has(t.account_id)) byAccount.set(t.account_id, []);
+      byAccount.get(t.account_id).push(t);
+    }
+
+    for (const [accountId, accountTxs] of byAccount.entries()) {
+      const acc = accountsIndex.get(accountId);
+      const ccy = acc?.balances?.iso_currency_code || acc?.balances?.unofficial_currency_code || 'USD';
+      const ids = await upsertInvestmentTransactions(userId, accountId, ccy, accountTxs, securitiesIndex);
+      totalIds.push(...ids);
+    }
+
+    offset += txs.length;
+    if (offset >= (resp.total_investment_transactions || offset)) break;
+  }
+
+  // Run the SAME downstream pipeline as regular tx — that's the moat. The
+  // emotion tagger will join each investment event with Whoop / music /
+  // calendar signals at the event's date. Nudges are skipped: a sell that
+  // happened 6 months ago shouldn't trigger a 'don't shop stressed' nudge.
+  await runDownstreamPipeline(userId, totalIds, { allowNudge: false });
+
+  log.info(`investments sync done for item ${plaidItemId}: ${pages} pages, ${totalIds.length} events`);
   return { inserted: totalIds.length, pages };
 }
 

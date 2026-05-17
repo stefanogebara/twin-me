@@ -313,6 +313,96 @@ router.get('/holdings', async (req, res) => {
 });
 
 /**
+ * GET /investment-activity
+ * Recent investment events (buys / sells / dividends / fees) joined with
+ * the emotional-context fingerprint already computed by the Phase 2 tagger.
+ * This is the moat surface: each row carries the Whoop recovery score, the
+ * music valence at the time, and the calendar load — context ChatGPT's
+ * spending dashboard literally cannot show.
+ *
+ * Response:
+ *   {
+ *     success: true,
+ *     events: [{
+ *       id, ticker, name, type, quantity, amount, currency, transactionDate,
+ *       emotionalContext: { recoveryScore, musicValence, calendarLoad, computedStressScore, emotionLabel } | null,
+ *     }, ...],
+ *     range: { since, limit },
+ *   }
+ */
+router.get('/investment-activity', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '30'), 10) || 30, 1), 100);
+    const sinceDays = Math.min(Math.max(parseInt(String(req.query.sinceDays ?? '90'), 10) || 90, 7), 730);
+    const sinceDate = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
+
+    const { data, error } = await supabaseAdmin
+      .from('user_transactions')
+      .select(`
+        id, amount, currency, merchant_normalized, merchant_raw, category, transaction_date,
+        plaid_account_id,
+        emotional_context:transaction_emotional_context (
+          recovery_score, music_valence, calendar_load, computed_stress_score, sleep_score
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('account_type', 'investment')
+      .eq('source_bank', 'plaid')
+      .gte('transaction_date', sinceDate)
+      .order('transaction_date', { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const events = (data || []).map((r) => {
+      const ec = r.emotional_context;
+      // Derive a friendly label from the strongest signal so the UI can show
+      // "low recovery (38%)" / "high stress (72%)" without re-deriving in JS.
+      let emotionLabel = null;
+      if (ec?.computed_stress_score != null && ec.computed_stress_score >= 0.6) {
+        emotionLabel = `high stress (${Math.round(ec.computed_stress_score * 100)}%)`;
+      } else if (ec?.recovery_score != null && ec.recovery_score < 50) {
+        emotionLabel = `low recovery (${Math.round(ec.recovery_score)}%)`;
+      } else if (ec?.recovery_score != null && ec.recovery_score >= 75) {
+        emotionLabel = `high recovery (${Math.round(ec.recovery_score)}%)`;
+      }
+
+      // Parse the category prefix back into a clean type
+      const rawType = r.category?.replace(/^investment_/, '') || 'unknown';
+      const [typeMain] = rawType.split('_');
+
+      return {
+        id: r.id,
+        ticker: r.merchant_normalized,
+        name: r.merchant_raw,
+        type: typeMain,                          // buy | sell | cash | fee | dividend | transfer
+        rawCategory: r.category,                 // full category for advanced filtering
+        amount: Number(r.amount) || 0,
+        currency: r.currency || 'USD',
+        transactionDate: r.transaction_date,
+        emotionalContext: ec
+          ? {
+              recoveryScore: ec.recovery_score,
+              musicValence: ec.music_valence,
+              calendarLoad: ec.calendar_load,
+              sleepScore: ec.sleep_score,
+              computedStressScore: ec.computed_stress_score,
+              emotionLabel,
+            }
+          : null,
+      };
+    });
+
+    return res.json({ success: true, events, range: { since: sinceDate, limit } });
+  } catch (err) {
+    log.error(`investment-activity: ${err.message}`);
+    return res.status(500).json({ success: false, error: 'failed to fetch investment activity' });
+  }
+});
+
+/**
  * POST /sync/:id
  * Force a fresh cursor-based sync on a single connection. The webhook
  * normally drives this — this route is the "Refresh" button + the cron's
