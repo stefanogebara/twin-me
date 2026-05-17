@@ -142,7 +142,16 @@ async function handleAuthWebhook(data) {
       log.error(`Failed to record connection for ${provider}:`, upsertErr.message);
     }
 
-    // Trigger initial data extraction in background
+    // Trigger initial data extraction in background.
+    //
+    // audit-2026-05-16: previously the nested
+    // `supabaseAdmin.from(...).insert(...).then(({error}) => ...)` had no
+    // .catch — if the insert's Promise rejected (RLS, schema drift,
+    // pgbouncer hiccup), it became an unhandled rejection inside the
+    // outer .then callback. The outer .catch only catches rejections
+    // from extractPlatformData() itself, not from chained inner
+    // .then() blocks. Suspected source of the ~33% chat-persistence
+    // poisoning observed via pure-curl walkthrough probes.
     extractPlatformData(userId, providerConfigKey)
       .then(result => {
         if (result.success) {
@@ -160,7 +169,8 @@ async function handleAuthWebhook(data) {
             .then(({ error: insertErr }) => {
               if (insertErr) log.error(`Failed to store extracted data:`, insertErr.message);
               else log.info(`Stored extracted data for ${providerConfigKey}`);
-            });
+            })
+            .catch(err => log.error(`platform_extracted_data insert threw`, { error: err?.message }));
         }
       })
       .catch(err => {

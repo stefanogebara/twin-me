@@ -967,42 +967,36 @@ router.post('/callback', async (req, res) => {
       clearStatusMemoryCache(userUuid);
 
       // Trigger background extraction using Bull queue (if available)
-      // Falls back to direct execution if queue not available
+      // Falls back to direct execution if queue not available.
+      //
+      // audit-2026-05-16: every dynamic import().then(...) chain below now
+      // has a .catch on the outer import — a module-eval failure (or any
+      // throw inside the .then callback) was previously becoming an
+      // unhandled Promise rejection that poisoned the Vercel function
+      // instance. Walkthrough probes correlated with ~33% chat persistence
+      // loss right after warm instances handled OAuth callbacks.
       import('../services/queueService.js').then(({ addExtractionJob, areQueuesAvailable }) => {
-        // Check if job queue is available
         if (areQueuesAvailable()) {
-          // Add job to queue with high priority (newly connected platforms)
           addExtractionJob(userUuid, platformKey, null, { priority: 1 })
-            .then(job => {
-              log.info("Extraction job queued", { jobId: job.id, platformKey });
-            })
-            .catch(error => {
-              log.warn("Failed to queue extraction job", { platformKey, error });
-            });
+            .then(job => log.info("Extraction job queued", { jobId: job.id, platformKey }))
+            .catch(error => log.warn("Failed to queue extraction job", { platformKey, error: error?.message }));
         } else {
           // Fallback to direct execution if queue not available
           import('../services/dataExtractionService.js').then(({ default: extractionService }) => {
             extractionService.extractPlatformData(userUuid, platformKey)
               .then(result => {
                 log.info("Background extraction completed", { platformKey });
-
                 // Trigger soul signature building after extraction
                 import('../services/soulSignatureBuilder.js').then(({ default: soulBuilder }) => {
                   soulBuilder.buildSoulSignature(userUuid)
-                    .then(soulResult => {
-                      log.info("Soul signature updated", { platformKey });
-                    })
-                    .catch(soulError => {
-                      log.warn("Soul signature building failed", { error: soulError });
-                    });
-                });
+                    .then(soulResult => log.info("Soul signature updated", { platformKey }))
+                    .catch(soulError => log.warn("Soul signature building failed", { error: soulError?.message }));
+                }).catch(impErr => log.warn("soulSignatureBuilder import failed", { error: impErr?.message }));
               })
-              .catch(error => {
-                log.warn("Background extraction failed", { platformKey, error });
-              });
-          });
+              .catch(error => log.warn("Background extraction failed", { platformKey, error: error?.message }));
+          }).catch(impErr => log.warn("dataExtractionService import failed", { error: impErr?.message }));
         }
-      });
+      }).catch(impErr => log.warn("queueService import failed", { error: impErr?.message }));
 
     } catch (error) {
       log.error("Error storing connection", { error });
