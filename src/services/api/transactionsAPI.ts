@@ -335,19 +335,27 @@ export async function listBankConnections(): Promise<BankConnection[]> {
   return json.connections || [];
 }
 
-export async function deleteBankConnection(id: string): Promise<boolean> {
-  const res = await authFetch(`/transactions/pluggy/connections/${id}`, { method: 'DELETE' });
+export async function deleteBankConnection(id: string, provider?: string): Promise<boolean> {
+  // Plaid disconnect lives on its own route. Pluggy + TrueLayer share the
+  // pluggy route which dispatches internally. Frontend doesn't need to know
+  // the split — pass the provider from the row.
+  const endpoint = provider === 'plaid'
+    ? `/plaid/connections/${id}`
+    : `/transactions/pluggy/connections/${id}`;
+  const res = await authFetch(endpoint, { method: 'DELETE' });
   if (!res.ok) return false;
   const json = await res.json();
   return !!json.success;
 }
 
 export async function syncBankConnection(id: string, provider?: string): Promise<boolean> {
-  // TrueLayer sync lives under a separate router. Dispatch on provider so the
-  // caller doesn't have to know about the URL split.
+  // Each provider's sync route lives under its own router — dispatch here so
+  // the caller doesn't have to know about the URL split.
   const endpoint = provider === 'truelayer'
     ? `/truelayer/sync/${id}`
-    : `/transactions/pluggy/sync/${id}`;
+    : provider === 'plaid'
+      ? `/plaid/sync/${id}`
+      : `/transactions/pluggy/sync/${id}`;
   const res = await authFetch(endpoint, { method: 'POST' });
   if (!res.ok) return false;
   const json = await res.json();
@@ -392,6 +400,89 @@ export async function getTrueLayerAuthUrl(providers?: string): Promise<TrueLayer
 
 export async function syncTrueLayerConnection(id: string): Promise<boolean> {
   const res = await authFetch(`/truelayer/sync/${id}`, { method: 'POST' });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return !!json.success;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Plaid US bank sync (Phase 4.1)                                             */
+/* -------------------------------------------------------------------------- */
+
+export interface PlaidLinkTokenResponse {
+  success: boolean;
+  linkToken?: string;
+  expiration?: string;
+  error?: string;
+  code?: 'PLAID_NOT_CONFIGURED' | string;
+}
+
+/**
+ * Request a short-lived (30 min) Plaid link_token for the Link drawer SDK.
+ * `accessToken` is only passed when reconnecting an existing item (Plaid's
+ * "update mode" after ITEM_LOGIN_REQUIRED).
+ */
+export async function getPlaidLinkToken(opts: {
+  products?: string[];
+  countryCodes?: string[];
+  accessToken?: string;
+} = {}): Promise<PlaidLinkTokenResponse> {
+  const res = await authFetch('/plaid/link/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(opts),
+  });
+  let body: PlaidLinkTokenResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    return {
+      success: false,
+      error: body?.error || `link/token failed (${res.status})`,
+      code: body?.code,
+    };
+  }
+  return body || { success: false, error: 'empty response' };
+}
+
+export interface PlaidExchangeResponse {
+  success: boolean;
+  itemId?: string;
+  inserted?: number;
+  error?: string;
+}
+
+/**
+ * Step 2 of the Plaid Link flow. Frontend POSTs the public_token from
+ * Plaid Link's onSuccess callback. Server exchanges it for a permanent
+ * access_token, encrypts + stores it, and kicks off initial transaction
+ * sync. Returns the count of transactions inserted on this seed pass.
+ */
+export async function exchangePlaidPublicToken(publicToken: string): Promise<PlaidExchangeResponse> {
+  const res = await authFetch('/plaid/link/exchange', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ publicToken }),
+  });
+  let body: PlaidExchangeResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    return {
+      success: false,
+      error: body?.error || `link/exchange failed (${res.status})`,
+    };
+  }
+  return body || { success: false, error: 'empty response' };
+}
+
+export async function syncPlaidConnection(id: string): Promise<boolean> {
+  const res = await authFetch(`/plaid/sync/${id}`, { method: 'POST' });
+  if (!res.ok) return false;
+  const json = await res.json();
+  return !!json.success;
+}
+
+export async function deletePlaidConnection(id: string): Promise<boolean> {
+  const res = await authFetch(`/plaid/connections/${id}`, { method: 'DELETE' });
   if (!res.ok) return false;
   const json = await res.json();
   return !!json.success;

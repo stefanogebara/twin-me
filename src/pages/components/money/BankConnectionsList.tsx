@@ -24,13 +24,20 @@ import {
 function statusStyle(status: string): { bg: string; fg: string; label: string } {
   switch (status) {
     case 'UPDATED':
+    case 'CONNECTED':                                    // Plaid: successful link
       return { bg: 'rgba(34, 197, 94, 0.12)', fg: 'rgba(134, 239, 172, 0.95)', label: 'sincronizado' };
     case 'UPDATING':
       return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'sincronizando' };
     case 'LOGIN_ERROR':
+    case 'LOGIN_REQUIRED':                               // Plaid ITEM_LOGIN_REQUIRED equivalent
+    case 'ERROR':                                        // Plaid generic error state
       return { bg: 'rgba(239, 68, 68, 0.12)', fg: 'rgba(248, 113, 113, 0.95)', label: 'reconectar' };
     case 'WAITING_USER_INPUT':
       return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'precisa de MFA' };
+    case 'PENDING_EXPIRATION':                           // Plaid consent about to expire
+      return { bg: 'rgba(217, 119, 6, 0.12)', fg: 'rgba(232, 160, 80, 0.95)', label: 'expira em breve' };
+    case 'REVOKED':                                      // Plaid USER_PERMISSION_REVOKED
+      return { bg: 'rgba(239, 68, 68, 0.12)', fg: 'rgba(248, 113, 113, 0.95)', label: 'revogado' };
     case 'OUTDATED':
       return { bg: 'rgba(255,255,255,0.06)', fg: 'rgba(255,255,255,0.55)', label: 'desatualizado' };
     default:
@@ -82,7 +89,8 @@ export function BankConnectionsList({ onChanged }: Props) {
     if (!window.confirm('Desconectar este banco? Suas transações anteriores serão mantidas.')) return;
     setBusyId(id);
     try {
-      await deleteBankConnection(id);
+      const provider = connections.find(c => c.id === id)?.provider;
+      await deleteBankConnection(id, provider);
       await load();
       onChanged?.();
     } finally {
@@ -96,7 +104,11 @@ export function BankConnectionsList({ onChanged }: Props) {
     <div className="mb-6 flex flex-col gap-2">
       {connections.map((c) => {
         const chip = statusStyle(c.status);
-        const needsReconnect = c.status === 'LOGIN_ERROR' || c.status === 'WAITING_USER_INPUT';
+        const needsReconnect =
+          c.status === 'LOGIN_ERROR' ||
+          c.status === 'WAITING_USER_INPUT' ||
+          c.status === 'LOGIN_REQUIRED' ||
+          c.status === 'ERROR';
         return (
           <div
             key={c.id}
