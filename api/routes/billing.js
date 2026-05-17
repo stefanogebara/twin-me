@@ -233,25 +233,38 @@ router.get('/subscription', authenticateToken, async (req, res) => {
 //   vocabularies was the M1 audit finding, because 'pro' is ambiguous
 //   (display Pro = $100 = DB max  vs  legacy DB pro = $20).
 //
-//   Display "Plus" ($20/mo) → DB 'pro' → env STRIPE_PRICE_PLUS
-//   Display "Pro"  ($100/mo) → DB 'max' → env STRIPE_PRICE_PRO
+//   Display "Plus" ($20/mo) → DB 'pro' → env STRIPE_PRICE_PRO   (DB-keyed)
+//   Display "Pro"  ($100/mo) → DB 'max' → env STRIPE_PRICE_MAX  (DB-keyed)
+//
+// IMPORTANT: env vars are DB-keyed to match the historical Vercel config.
+// Earlier I switched the canonical names to display-keyed (STRIPE_PRICE_PLUS /
+// STRIPE_PRICE_PRO) but discovered prod was charging $20 for "Pro" clicks
+// because STRIPE_PRICE_PRO in Vercel had been set to the $20 Plus price
+// 79 days ago under the DB-keyed convention. Reverting to DB-keyed canonicals
+// here is the surgical fix — no env var renames, no transition window.
+// Display-keyed aliases (STRIPE_PRICE_PLUS / STRIPE_PRICE_PRO_HIGH) are
+// accepted as overrides for environments that prefer that vocabulary.
 const PLAN_DISPLAY_TO_DB = Object.freeze({ plus: 'pro', pro: 'max' });
 
 function priceIdForDbPlan(dbPlan) {
-  // Legacy fallbacks are kept ONLY for the deploy-window during the env-var
-  // rename from STRIPE_*_PRICE_ID to STRIPE_PRICE_*. Audit H2: prefer the
-  // canonical name and log if a legacy var is being relied on so it can be
-  // cleaned up.
   if (dbPlan === 'pro') {
-    if (process.env.STRIPE_PRICE_PLUS) return process.env.STRIPE_PRICE_PLUS;
-    const legacy = process.env.STRIPE_PLUS_PRICE_ID || process.env.STRIPE_PRO_PRICE_ID;
-    if (legacy) log.warn('billing: STRIPE_PRICE_PLUS missing, falling back to legacy env var — rename to STRIPE_PRICE_PLUS');
-    return legacy;
+    // $20 Plus tier. STRIPE_PRICE_PRO is the canonical (DB-keyed) name;
+    // STRIPE_PRICE_PLUS is the display-keyed alias for environments that
+    // prefer it. Legacy: STRIPE_PLUS_PRICE_ID, STRIPE_PRO_PRICE_ID.
+    return process.env.STRIPE_PRICE_PRO
+        || process.env.STRIPE_PRICE_PLUS
+        || process.env.STRIPE_PLUS_PRICE_ID
+        || process.env.STRIPE_PRO_PRICE_ID
+        || null;
   }
-  if (process.env.STRIPE_PRICE_PRO) return process.env.STRIPE_PRICE_PRO;
-  const legacy = process.env.STRIPE_PRO_PRICE_ID_100 || process.env.STRIPE_MAX_PRICE_ID;
-  if (legacy) log.warn('billing: STRIPE_PRICE_PRO missing, falling back to legacy env var — rename to STRIPE_PRICE_PRO');
-  return legacy;
+  // $100 Pro tier. STRIPE_PRICE_MAX is the canonical (DB-keyed) name;
+  // STRIPE_PRICE_PRO_HIGH is the display-keyed alias. Legacy:
+  // STRIPE_PRO_PRICE_ID_100, STRIPE_MAX_PRICE_ID.
+  return process.env.STRIPE_PRICE_MAX
+      || process.env.STRIPE_PRICE_PRO_HIGH
+      || process.env.STRIPE_PRO_PRICE_ID_100
+      || process.env.STRIPE_MAX_PRICE_ID
+      || null;
 }
 
 // POST /api/billing/checkout
