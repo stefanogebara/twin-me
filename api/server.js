@@ -423,6 +423,8 @@ import pluggyRoutes from './routes/pluggy.js';
 // vercel.json routes /api/webhooks/pluggy → that file, bypassing the Express monolith.
 import trueLayerRoutes from './routes/truelayer.js';
 // truelayer webhook also lives at api/webhook-truelayer.js (standalone lambda).
+import plaidRoutes from './routes/plaid.js';
+// plaid webhook also lives at api/webhook-plaid.js (standalone lambda).
 import claudeSyncRoutes from './routes/claude-sync.js';
 import cronClaudeSyncRoutes from './routes/cron-claude-sync.js';
 import twinsBrainRoutes from './routes/twins-brain.js';
@@ -499,6 +501,7 @@ import cronInboxIntelligenceRoutes from './routes/cron-inbox-intelligence.js';
 import cronRelationshipsRoutes from './routes/cron-relationships.js';
 import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
+import cronPlaidSyncRoutes from './routes/cron-plaid-sync.js';
 import cronBankConsentRoutes from './routes/cron-bank-consent.js';
 import cronNudgeRetroRoutes from './routes/cron-nudge-retrospective.js';
 import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
@@ -662,6 +665,7 @@ app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via P
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
 app.use('/api/truelayer', trueLayerRoutes); // Phase 4 — TrueLayer EU/UK Open Banking (OAuth redirect)
+app.use('/api/plaid', plaidRoutes); // Phase 4.1 — Plaid US Open Banking (Link drawer + cursor sync)
 app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin — bank statement ingestion + emotional tagging
 // /api/webhooks/pluggy and /api/webhooks/truelayer are routed to standalone
 // lambdas (api/webhook-pluggy.js, api/webhook-truelayer.js) by vercel.json
@@ -728,6 +732,7 @@ app.use('/api/cron/inbox-intelligence', cronInboxIntelligenceRoutes); // Daily i
 app.use('/api/cron/relationships', cronRelationshipsRoutes); // Daily unanswered-thread scan (10:10 UTC)
 app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily action reflection (5am UTC)
 app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
+app.use('/api/cron/plaid-sync', cronPlaidSyncRoutes); // Daily Plaid (US) bank sync fallback for missed webhooks (7am UTC)
 app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for Pluggy + TrueLayer connections
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check
 app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
