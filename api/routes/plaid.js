@@ -171,6 +171,148 @@ router.post('/link/exchange', async (req, res) => {
 });
 
 /**
+ * GET /holdings
+ * Investment portfolio snapshot, aggregated across every Plaid item the
+ * user has linked. Returns positions joined with the securities lookup so
+ * the frontend can render ticker + name + quantity + value + cost basis.
+ *
+ * Response:
+ *   {
+ *     success: true,
+ *     holdings: [{
+ *       institutionName, accountName, accountMask, accountType,
+ *       ticker, name, quantity, costBasis, value, currency, gainLoss, gainLossPct,
+ *     }, ...],
+ *     totalValue,
+ *     totalCost,
+ *     totalGainLoss,
+ *     currency,        // the dominant currency across positions
+ *     itemsScanned,
+ *     itemsWithError,  // items where /investments/holdings/get failed (Plaid investments product not enabled, etc.)
+ *   }
+ *
+ * Errors per-item are non-fatal — a failed Plaid call for one institution
+ * doesn't sink the whole response. The UI surfaces the count.
+ */
+router.get('/holdings', async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    if (!plaid.isPlaidConfigured()) {
+      return res.status(503).json({ success: false, error: 'plaid not configured', code: 'PLAID_NOT_CONFIGURED' });
+    }
+
+    const { data: rows, error } = await supabaseAdmin
+      .from('user_bank_connections')
+      .select('id, plaid_item_id, plaid_access_token_encrypted, connector_name')
+      .eq('user_id', userId)
+      .eq('provider', 'plaid')
+      .is('deleted_at', null)
+      .not('plaid_access_token_encrypted', 'is', null);
+    if (error) throw new Error(error.message);
+
+    if (!rows?.length) {
+      return res.json({
+        success: true,
+        holdings: [],
+        totalValue: 0,
+        totalCost: 0,
+        totalGainLoss: 0,
+        currency: 'USD',
+        itemsScanned: 0,
+        itemsWithError: 0,
+      });
+    }
+
+    const holdings = [];
+    let totalValue = 0;
+    let totalCost = 0;
+    let itemsWithError = 0;
+    const currencyTally = new Map();
+
+    for (const row of rows) {
+      let accessToken;
+      try { accessToken = decryptToken(row.plaid_access_token_encrypted); }
+      catch { itemsWithError++; continue; }
+
+      let resp;
+      try {
+        resp = await plaid.getInvestmentHoldings(accessToken);
+      } catch (err) {
+        // Most common cause: this item wasn't linked with the 'investments'
+        // product (we default link_token to 'transactions' only). Non-fatal.
+        log.info(`holdings for ${row.plaid_item_id} unavailable: ${err.plaidErrorCode || err.message}`);
+        itemsWithError++;
+        continue;
+      }
+
+      const accountIndex = new Map((resp.accounts || []).map((a) => [a.account_id, a]));
+      const secIndex = new Map((resp.securities || []).map((s) => [s.security_id, s]));
+
+      for (const h of resp.holdings || []) {
+        const acc = accountIndex.get(h.account_id);
+        const sec = secIndex.get(h.security_id);
+        if (!sec) continue; // stale id — skip rather than render "unknown"
+
+        const quantity = Number(h.quantity) || 0;
+        const value = Number(h.institution_value) || (quantity * (Number(h.institution_price) || 0));
+        const costBasis = Number(h.cost_basis) || 0;
+        const ccy = h.iso_currency_code || h.unofficial_currency_code || acc?.balances?.iso_currency_code || 'USD';
+        const gainLoss = costBasis > 0 ? value - costBasis : 0;
+        const gainLossPct = costBasis > 0 ? (value - costBasis) / costBasis : 0;
+
+        holdings.push({
+          institutionName: row.connector_name,
+          accountId: h.account_id,
+          accountName: acc?.name || acc?.official_name || 'Brokerage',
+          accountMask: acc?.mask || null,
+          accountType: acc?.subtype || acc?.type || 'brokerage',
+          ticker: sec.ticker_symbol || null,
+          name: sec.name || sec.ticker_symbol || 'Unknown security',
+          type: sec.type || null,
+          quantity,
+          institutionPrice: Number(h.institution_price) || null,
+          costBasis,
+          value,
+          currency: ccy,
+          gainLoss,
+          gainLossPct,
+        });
+
+        totalValue += value;
+        totalCost += costBasis;
+        currencyTally.set(ccy, (currencyTally.get(ccy) || 0) + value);
+      }
+    }
+
+    // Dominant currency for the summary — whichever holds the most value.
+    let dominantCcy = 'USD';
+    let maxV = -1;
+    for (const [c, v] of currencyTally.entries()) {
+      if (v > maxV) { maxV = v; dominantCcy = c; }
+    }
+
+    // Sort positions: highest value first.
+    holdings.sort((a, b) => b.value - a.value);
+
+    return res.json({
+      success: true,
+      holdings,
+      totalValue,
+      totalCost,
+      totalGainLoss: totalValue - totalCost,
+      currency: dominantCcy,
+      itemsScanned: rows.length,
+      itemsWithError,
+    });
+  } catch (err) {
+    log.error(`holdings: ${err.message}`);
+    return res.status(500).json({ success: false, error: 'failed to fetch holdings' });
+  }
+});
+
+/**
  * POST /sync/:id
  * Force a fresh cursor-based sync on a single connection. The webhook
  * normally drives this — this route is the "Refresh" button + the cron's

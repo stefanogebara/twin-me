@@ -32,6 +32,7 @@ import {
 import { ConnectBankButton } from './components/money/ConnectBankButton';
 import { BankConnectionsList } from './components/money/BankConnectionsList';
 import { StressSpendTimeline } from './components/money/StressSpendTimeline';
+import { BrokerageHoldingsCard } from './components/money/BrokerageHoldingsCard';
 
 const CARD_STYLE: React.CSSProperties = {
   background: 'var(--glass-surface-bg)',           // rgba(255,255,255,0.06) per design system
@@ -939,6 +940,12 @@ export default function MoneyPage() {
       </div>
 
       <BankConnectionsList onChanged={load} />
+
+      {/* Brokerage holdings — Phase 4.1 (US Plaid). Reads /api/plaid/holdings,
+          renders an empty CTA when no brokerage is linked. Quietly returns
+          null when Plaid is unconfigured so we don't double up on the
+          connect-button hint. */}
+      <BrokerageHoldingsCard />
 
       {/* Upload zone */}
       <div className="mb-6">

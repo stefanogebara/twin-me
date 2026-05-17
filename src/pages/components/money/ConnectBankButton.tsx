@@ -146,7 +146,14 @@ export function ConnectBankButton({ onConnected }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await getPlaidLinkToken({ products: ['transactions'], countryCodes: ['US'] });
+      // Request both transactions + investments at link time so brokerage
+      // accounts (Schwab, Fidelity, Robinhood) populate BrokerageHoldingsCard
+      // out of the box. Plaid will simply ignore investments for institutions
+      // that don't support it.
+      const res = await getPlaidLinkToken({
+        products: ['transactions', 'investments'],
+        countryCodes: ['US'],
+      });
       if (!res.success || !res.linkToken) {
         if (res.code === 'PLAID_NOT_CONFIGURED') {
           const isDev = import.meta.env?.DEV === true;

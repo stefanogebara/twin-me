@@ -481,6 +481,73 @@ export async function syncPlaidConnection(id: string): Promise<boolean> {
   return !!json.success;
 }
 
+export interface PlaidHolding {
+  institutionName: string;
+  accountId: string;
+  accountName: string;
+  accountMask: string | null;
+  accountType: string;
+  ticker: string | null;
+  name: string;
+  type: string | null;
+  quantity: number;
+  institutionPrice: number | null;
+  costBasis: number;
+  value: number;
+  currency: string;
+  gainLoss: number;
+  gainLossPct: number;
+}
+
+export interface PlaidHoldingsResponse {
+  success: boolean;
+  holdings: PlaidHolding[];
+  totalValue: number;
+  totalCost: number;
+  totalGainLoss: number;
+  currency: string;
+  itemsScanned: number;
+  itemsWithError: number;
+  error?: string;
+  code?: 'PLAID_NOT_CONFIGURED' | string;
+}
+
+/**
+ * Fetch the user's brokerage holdings aggregated across every linked Plaid
+ * item. Empty result when nothing is connected — the card renders an
+ * informative empty state in that case.
+ */
+export async function getPlaidHoldings(): Promise<PlaidHoldingsResponse> {
+  const res = await authFetch('/plaid/holdings');
+  let body: PlaidHoldingsResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    return {
+      success: false,
+      holdings: [],
+      totalValue: 0,
+      totalCost: 0,
+      totalGainLoss: 0,
+      currency: 'USD',
+      itemsScanned: 0,
+      itemsWithError: 0,
+      error: body?.error || `holdings failed (${res.status})`,
+      code: body?.code,
+    };
+  }
+  return body || {
+    success: false,
+    holdings: [],
+    totalValue: 0,
+    totalCost: 0,
+    totalGainLoss: 0,
+    currency: 'USD',
+    itemsScanned: 0,
+    itemsWithError: 0,
+    error: 'empty response',
+  };
+}
+
 export async function deletePlaidConnection(id: string): Promise<boolean> {
   const res = await authFetch(`/plaid/connections/${id}`, { method: 'DELETE' });
   if (!res.ok) return false;
