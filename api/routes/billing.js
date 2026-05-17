@@ -322,6 +322,11 @@ router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, asyn
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${APP_URL}/me?upgraded=1`,
       cancel_url: `${APP_URL}/me?upgrade_canceled=1`,
+      // Enable the "Add promotion code" link on the Stripe checkout page.
+      // Operationally useful for TEST100 / launch coupons / friends-and-family,
+      // and required to drive a free end-to-end test of the webhook -> DB ->
+      // success_url path without putting a real card through.
+      allow_promotion_codes: true,
       // CRITICAL: store the DB enum value (pro/max), not the FE display name
       // (plus/pro). The webhook upserts this directly into the
       // user_subscriptions.plan enum column.
