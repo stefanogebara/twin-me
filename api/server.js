@@ -900,9 +900,30 @@ if (process.env.NODE_ENV !== 'production') {
     }, 10000);
   };
 
-  // Handle unhandled promise rejections to prevent server crashes
+  // Handle unhandled promise rejections to prevent server crashes.
+  //
+  // audit-2026-05-16 walkthrough finding: persistence was intermittently
+  // failing (~33% loss rate) because Vercel warm function instances were
+  // being poisoned by an unhandled rejection somewhere in the codebase.
+  // The previous logger here only captured `reason` as-is, which loggers
+  // often serialize to just the message string — losing the stack trace
+  // that tells us WHERE the rejection originated. Without the stack, we
+  // were guessing at which fire-and-forget pattern was the culprit.
+  //
+  // Now we explicitly extract message + stack + code + name from the
+  // Error, plus stringify any non-Error reason. With this, the next
+  // poisoned instance will leave a breadcrumb pointing directly at the
+  // offending code.
   process.on('unhandledRejection', (reason, promise) => {
-    log.error('Unhandled Promise Rejection', { reason: reason instanceof Error ? reason : String(reason) });
+    const detail = reason instanceof Error
+      ? {
+          message: reason.message,
+          stack: reason.stack,
+          name: reason.name,
+          code: reason.code,
+        }
+      : { reason: String(reason) };
+    log.error('Unhandled Promise Rejection', detail);
     // Don't exit - just log and continue
   });
 
