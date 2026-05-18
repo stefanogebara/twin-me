@@ -20,6 +20,7 @@ export const EXTENDED_TOOL_NAMES = [
   'spotify_play_track',
   'meeting_prep',
   'get_meeting_prep',
+  'get_brokerage_activity',
 ];
 
 export function registerExtendedTools() {
@@ -315,6 +316,103 @@ export function registerExtendedTools() {
     executor: async (userId, params) => {
       const { listMeetingBriefingsForChat } = await import('../meetingPrep/meetingPrepService.js');
       return listMeetingBriefingsForChat(userId, params?.timeframe || 'upcoming');
+    },
+  });
+
+  // ========================================================================
+  // GET BROKERAGE ACTIVITY — Investment events joined with emotional context
+  // ========================================================================
+  registerTool({
+    name: 'get_brokerage_activity',
+    platform: null,
+    description: 'List recent investment events (buys, sells, dividends, fees) from the user\'s linked Plaid brokerages, joined with the emotional fingerprint captured at the time of each trade — Whoop recovery, music valence, calendar load, computed stress. Use this when the user asks about their portfolio activity ("what did I sell last month?"), or wants the cross-domain insight ("did I trade when stressed?", "show me my buys on low-recovery days"). The emotional context is THE differentiator — ChatGPT cannot draw it.',
+    category: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        sinceDays: { type: 'number', description: 'How many days back to scan. Default 30. Max 730.' },
+        limit: { type: 'number', description: 'Max events to return. Default 15. Max 50.' },
+        typeFilter: { type: 'string', description: 'Optional: "buy", "sell", "dividend", or "fee" to narrow results. Default: all event types.' },
+      },
+    },
+    requiresConnection: false, // Doesn't directly hit Plaid — reads from our DB
+    minAutonomyLevel: 1,
+    skillName: 'finance',
+    executor: async (userId, params) => {
+      const { supabaseAdmin } = await import('../database.js');
+      const sinceDays = Math.min(Math.max(parseInt(String(params?.sinceDays ?? '30'), 10) || 30, 1), 730);
+      const limit = Math.min(Math.max(parseInt(String(params?.limit ?? '15'), 10) || 15, 1), 50);
+      const typeFilter = typeof params?.typeFilter === 'string' ? params.typeFilter.toLowerCase().trim() : null;
+      const sinceDate = new Date(Date.now() - sinceDays * 86400_000).toISOString().slice(0, 10);
+
+      let q = supabaseAdmin
+        .from('user_transactions')
+        .select(`
+          id, amount, currency, merchant_normalized, merchant_raw, category, transaction_date,
+          emotional_context:transaction_emotional_context (
+            recovery_score, music_valence, calendar_load, computed_stress_score, sleep_score
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('account_type', 'investment')
+        .eq('source_bank', 'plaid')
+        .gte('transaction_date', sinceDate)
+        .order('transaction_date', { ascending: false })
+        .limit(limit);
+
+      if (typeFilter && ['buy', 'sell', 'dividend', 'fee', 'cash', 'transfer'].includes(typeFilter)) {
+        q = q.like('category', `investment_${typeFilter}%`);
+      }
+
+      const { data, error } = await q;
+      if (error) return { success: false, error: error.message };
+
+      const events = (data || []).map((r) => {
+        const ec = r.emotional_context;
+        const type = (r.category || '').replace(/^investment_/, '').split('_')[0] || 'unknown';
+        const contextParts = [];
+        if (ec?.computed_stress_score != null) contextParts.push(`stress ${Math.round(ec.computed_stress_score * 100)}%`);
+        if (ec?.recovery_score != null) contextParts.push(`recovery ${Math.round(ec.recovery_score)}%`);
+        if (ec?.calendar_load != null && ec.calendar_load > 0) contextParts.push(`${ec.calendar_load} meetings that day`);
+        if (ec?.music_valence != null) {
+          if (ec.music_valence < 0.3) contextParts.push('somber music');
+          else if (ec.music_valence > 0.7) contextParts.push('upbeat music');
+        }
+        return {
+          date: r.transaction_date,
+          type,
+          ticker: r.merchant_normalized,
+          name: r.merchant_raw,
+          amountUSD: Number(r.amount) || 0,
+          currency: r.currency || 'USD',
+          emotionalContext: contextParts.length ? contextParts.join(' · ') : null,
+          raw: {
+            recovery: ec?.recovery_score ?? null,
+            musicValence: ec?.music_valence ?? null,
+            calendarLoad: ec?.calendar_load ?? null,
+            stress: ec?.computed_stress_score ?? null,
+            sleep: ec?.sleep_score ?? null,
+          },
+        };
+      });
+
+      // Surface a one-line synthesis so the twin can quote it directly
+      // without re-deriving from the raw events. Sells on low-recovery
+      // days are the canonical "the moat" insight.
+      const sells = events.filter(e => e.type === 'sell');
+      const lowRecoverySells = sells.filter(e => e.raw.recovery != null && e.raw.recovery < 50);
+      const synthesis = lowRecoverySells.length >= 2
+        ? `${lowRecoverySells.length} of your ${sells.length} sells in the last ${sinceDays}d landed on days when your Whoop recovery was below 50%.`
+        : null;
+
+      return {
+        success: true,
+        count: events.length,
+        sinceDays,
+        sinceDate,
+        synthesis,
+        events,
+      };
     },
   });
 

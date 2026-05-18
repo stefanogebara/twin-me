@@ -942,17 +942,37 @@ export default function MoneyPage() {
 
       <BankConnectionsList onChanged={load} />
 
+      {/* Moat headline — Phase 4.2 visual treatment. Stress-Spend Timeline +
+          Brokerage Activity side-by-side: "why you spent" next to "why you
+          traded". This is the pair that distinguishes us from ChatGPT
+          Personal Finance, so it lands above the portfolio snapshot and
+          spend detail. Each card hides itself when empty, so the grid
+          gracefully collapses to one column when only one has data. */}
+      {(timeline.length > 0) && (
+        <div
+          className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4"
+          data-testid="moat-headline-grid"
+        >
+          {timeline.length > 0 && (
+            <div style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
+              <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Why you spend · 30 days</p>
+              <StressSpendTimeline days={timeline} currency={dominantCurrency} />
+            </div>
+          )}
+          <div>
+            {/* BrokerageActivityCard is self-headered; wrap so it sits in the
+                same grid cell. The card returns null when empty so the grid
+                collapses to single-column gracefully. */}
+            <BrokerageActivityCard />
+          </div>
+        </div>
+      )}
+
       {/* Brokerage holdings — Phase 4.1 (US Plaid). Reads /api/plaid/holdings,
           renders an empty CTA when no brokerage is linked. Quietly returns
           null when Plaid is unconfigured so we don't double up on the
           connect-button hint. */}
       <BrokerageHoldingsCard />
-
-      {/* Brokerage activity tagged with emotional context — Phase 4.2.
-          The moat surface. Each buy/sell/dividend is joined with the Whoop
-          recovery + music valence + calendar load from the same day. Stays
-          silent when there's no Plaid investment activity yet. */}
-      <BrokerageActivityCard />
 
       {/* Upload zone */}
       <div className="mb-6">
@@ -1024,13 +1044,9 @@ export default function MoneyPage() {
         </div>
       )}
 
-      {/* Stress-Spend Timeline — the visual "WHY you spend" correlation */}
-      {timeline.length > 0 && (
-        <div className="mb-6" style={{ ...CARD_STYLE, padding: '20px 20px 16px' }}>
-          <p style={{ ...LABEL_STYLE, marginBottom: 16 }}>Estresse vs Gastos · 30 dias</p>
-          <StressSpendTimeline days={timeline} currency={dominantCurrency} />
-        </div>
-      )}
+      {/* Stress-Spend Timeline moved to the moat-headline grid above
+          (alongside BrokerageActivityCard) so it lands at the top of the
+          page as the headline pair, not buried below the upload zone. */}
 
       {/* Savings hero — the ROI proof card, only when there's a positive total */}
       {savings && savings.total_saved > 0 && (

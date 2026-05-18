@@ -230,48 +230,73 @@ async function runDownstreamPipeline(userId, insertedIds, { allowNudge = false }
     log.warn(`emotion tagger failed for user ${userId}: ${err.message}`);
   }
 
-  // Dual-write material spend transactions into the memory stream so the
-  // twin can talk about them. Floor at MEMORY_MIN_AMOUNT to keep noise out.
+  // Dual-write material transactions into the memory stream so the twin
+  // can talk about them. Includes BOTH spending (negative amounts) AND
+  // investment sells/dividends (positive amounts, account_type='investment')
+  // because the moat is the cross-domain pattern: "you sold AAPL three
+  // times this month on low-recovery days". Spending stays floored at
+  // MEMORY_MIN_AMOUNT; investment events land regardless of direction
+  // since even a small sell is signal for the emotional-context join.
   try {
     const { data: txRows } = await supabaseAdmin
       .from('user_transactions')
       .select(`
         id, amount, currency, merchant_normalized, merchant_raw, category,
-        transaction_date,
+        transaction_date, account_type,
         emotional_context:transaction_emotional_context (
-          computed_stress_score, emotion_label
+          computed_stress_score, emotion_label, recovery_score
         )
       `)
       .in('id', insertedIds)
-      .eq('user_id', userId)
-      .lt('amount', 0);
+      .eq('user_id', userId);
 
-    const material = (txRows || []).filter(
-      (r) => Math.abs(Number(r.amount) || 0) >= MEMORY_MIN_AMOUNT,
-    );
+    const material = (txRows || []).filter((r) => {
+      const abs = Math.abs(Number(r.amount) || 0);
+      if (r.account_type === 'investment') return abs >= 10; // any non-trivial investment event
+      return Number(r.amount) < 0 && abs >= MEMORY_MIN_AMOUNT; // spending floor stays
+    });
 
     await Promise.all(
       material.map((r) => {
         const merchant = r.merchant_normalized || r.merchant_raw || 'unknown';
         const ccy = r.currency || 'USD';
+        const amount = Number(r.amount) || 0;
         const amountStr = new Intl.NumberFormat('en-US', {
           style: 'currency', currency: ccy,
-        }).format(Math.abs(r.amount));
+        }).format(Math.abs(amount));
         const date = (r.transaction_date || '').slice(0, 10) || 'unknown date';
         const ec = r.emotional_context;
-        const emotionNote = ec?.emotion_label
-          ? `; emotional context: ${ec.emotion_label}${ec.computed_stress_score != null ? `, stress=${Math.round(ec.computed_stress_score * 100)}%` : ''}`
-          : '';
-        const content = `Spent ${amountStr} at ${merchant} on ${date}${emotionNote}.`;
+        // Build a richer emotion note for investment events — recovery score
+        // is the moat signal. For spending events keep the existing phrasing.
+        const emotionParts = [];
+        if (ec?.recovery_score != null && r.account_type === 'investment') {
+          emotionParts.push(`Whoop recovery ${Math.round(ec.recovery_score)}%`);
+        }
+        if (ec?.emotion_label) emotionParts.push(ec.emotion_label);
+        if (ec?.computed_stress_score != null) emotionParts.push(`stress ${Math.round(ec.computed_stress_score * 100)}%`);
+        const emotionNote = emotionParts.length ? `; emotional context: ${emotionParts.join(', ')}` : '';
+
+        let content;
+        if (r.account_type === 'investment') {
+          const action = (r.category || '').replace(/^investment_/, '').split('_')[0] || 'traded';
+          // amount > 0 = cash arrived (sell / dividend), amount < 0 = cash out (buy)
+          const verb = action === 'sell' ? 'Sold' : action === 'buy' ? 'Bought' : action === 'dividend' ? 'Received dividend on' : action === 'fee' ? 'Paid fee on' : `${action.charAt(0).toUpperCase()}${action.slice(1)}`;
+          content = `${verb} ${amountStr} of ${merchant} on ${date}${emotionNote}.`;
+        } else {
+          content = `Spent ${amountStr} at ${merchant} on ${date}${emotionNote}.`;
+        }
         return addPlatformObservation(userId, content, 'plaid', {
           category: r.category,
           source_tx_id: r.id,
+          account_type: r.account_type,
         }).catch((err) => log.warn(`memory write failed for tx ${r.id}: ${err.message}`));
       }),
     );
 
     if (material.length) {
-      log.info(`wrote ${material.length} tx observations to memory stream for user ${userId}`);
+      const spend = material.filter(r => r.account_type !== 'investment').length;
+      const invest = material.filter(r => r.account_type === 'investment').length;
+      log.info(`wrote ${material.length} tx observations to memory stream for user ${userId} (spend=${spend}, invest=${invest})`);
     }
   } catch (err) {
     log.warn(`memory stream dual-write failed for user ${userId}: ${err.message}`);

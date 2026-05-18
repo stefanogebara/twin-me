@@ -274,6 +274,18 @@ Examples:
   User: "What PRs do I have open?"
   You: [ACTION: github_list_prs]
 
+  User: "What did I sell last month?"
+  You: [ACTION: get_brokerage_activity sinceDays=30 typeFilter="sell"]
+
+  User: "Show me my buys when I was stressed"
+  You: [ACTION: get_brokerage_activity sinceDays=60 typeFilter="buy"]
+
+  User: "Did I trade on low-recovery days?"
+  You: [ACTION: get_brokerage_activity sinceDays=90]
+
+  User: "What's my brokerage activity?"
+  You: [ACTION: get_brokerage_activity sinceDays=30]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 
