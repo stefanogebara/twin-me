@@ -15,9 +15,11 @@
  * one component above this one, so we don't double up.
  */
 
-import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, Coins, AlertCircle, Activity } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { TrendingUp, TrendingDown, ArrowDownToLine, ArrowUpFromLine, Coins, AlertCircle, Activity, Heart } from 'lucide-react';
 import { getPlaidInvestmentActivity, type PlaidInvestmentEvent } from '@/services/api/transactionsAPI';
+import { usePlatformStatus } from '@/hooks/usePlatformStatus';
 
 interface Props {
   /** Bump to force a re-fetch (e.g. after a new Plaid link). */
@@ -144,6 +146,29 @@ export const BrokerageActivityCard: React.FC<Props> = ({ refreshNonce = 0 }) => 
   const [events, setEvents] = useState<PlaidInvestmentEvent[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { data: platformStatus } = usePlatformStatus();
+
+  // The moat surface composes signals from Whoop (recovery) + Spotify (music
+  // valence) + Calendar (load). Each missing platform dims a column. The
+  // most impactful one to surface contextually is Whoop, because recovery
+  // score is the strongest "I sold at the wrong time" signal and Whoop
+  // tokens expire silently (no first-class UI prompt elsewhere on /money).
+  const whoopExpired = useMemo(() => {
+    const w = platformStatus?.whoop;
+    if (!w?.connected) return false; // not connected yet — different problem
+    return Boolean(w.tokenExpired || w.status === 'expired' || w.status === 'token_expired');
+  }, [platformStatus]);
+
+  // Detect events that have NO recovery score but DO have other signals —
+  // these are the events whose moat surface is dimmed because Whoop is
+  // broken. If a chunk of recent events lack recovery, the nudge is
+  // worth showing; otherwise stay silent.
+  const eventsMissingRecovery = useMemo(() => {
+    if (!events) return 0;
+    return events.filter(e => e.emotionalContext && e.emotionalContext.recoveryScore == null).length;
+  }, [events]);
+  const showWhoopReconnect = whoopExpired && eventsMissingRecovery >= 3;
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -203,6 +228,39 @@ export const BrokerageActivityCard: React.FC<Props> = ({ refreshNonce = 0 }) => 
           </span>
         )}
       </div>
+
+      {/* Contextual Whoop reconnect nudge — only when Whoop expired AND
+          enough events are missing recovery to make the moat surface
+          visibly degraded. Direct path: reconnect to unlock recovery
+          score on the trade rows below. */}
+      {showWhoopReconnect && (
+        <div
+          data-testid="whoop-reconnect-nudge"
+          className="mb-3 flex items-start gap-3 px-3 py-2.5 rounded-lg"
+          style={{
+            background: 'rgba(251,191,36,0.08)',
+            border: '1px solid rgba(251,191,36,0.18)',
+          }}
+        >
+          <Heart className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#FBBF24' }} />
+          <div className="flex-1 text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.78)' }}>
+            <span style={{ color: '#FBBF24', fontWeight: 500 }}>Whoop reconnect</span> — your token expired, so the recovery score is missing from {eventsMissingRecovery} of {events?.length} recent trades. That's the strongest signal in the moat surface (e.g. <em>"sold at the bottom of a 38% recovery dip"</em>). One-click below.
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/connect')}
+            data-testid="whoop-reconnect-btn"
+            className="text-xs font-medium px-3 py-1.5 rounded-full flex-shrink-0 transition-opacity hover:opacity-80"
+            style={{
+              backgroundColor: 'rgba(251,191,36,0.18)',
+              color: '#FBBF24',
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Reconnect Whoop
+          </button>
+        </div>
+      )}
 
       {loading && !events && (
         <div className="px-4 py-3 text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
