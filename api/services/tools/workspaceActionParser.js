@@ -286,6 +286,18 @@ Examples:
   User: "What's my brokerage activity?"
   You: [ACTION: get_brokerage_activity sinceDays=30]
 
+  User: "What am I paying for monthly?"
+  You: [ACTION: get_recurring_subscriptions]
+
+  User: "Show me my subscriptions"
+  You: [ACTION: get_recurring_subscriptions limit=20]
+
+  User: "What subscriptions are over $20 a month?"
+  You: [ACTION: get_recurring_subscriptions minMonthly=20]
+
+  User: "Where is my money leaking?"
+  You: [ACTION: get_recurring_subscriptions]
+
   User: "Any open issues about the login bug?"
   You: [ACTION: github_search_issues query="login bug"]
 
@@ -538,6 +550,34 @@ export function formatActionResult(result) {
 
   if (!result.success) {
     return `[ACTION RESULT: ${result.toolName} — FAILED]\nError: ${result.error || 'Unknown error'}`;
+  }
+
+  // get_recurring_subscriptions: narrative-first formatting. Default JSON
+  // dump becomes a numbered list per the standard rules; we want the twin
+  // to lead with the headline ("you're paying $X/month across Y subs")
+  // and then call out the 1-2 most expensive or stressed-signup items in
+  // prose. The cross-domain insight ("this gym was signed up on a low-
+  // recovery weekend") is THE moat — give the LLM a draft to polish.
+  if (result.toolName === 'get_recurring_subscriptions' && result.data?.subscriptions) {
+    const d = result.data;
+    const parts = [`[ACTION RESULT: get_recurring_subscriptions — SUCCESS (${result.elapsedMs}ms)]`];
+    if (d.synthesis) parts.push(`\nHEADLINE (use as the opening line of your reply):\n${d.synthesis}\n`);
+    if (d.message) parts.push(`\n${d.message}\n`);
+    parts.push(`\nSubscriptions (sorted by monthly avg desc; ${d.count} total):`);
+    for (const s of d.subscriptions || []) {
+      const amt = new Intl.NumberFormat('en-US', { style: 'currency', currency: s.currency || 'USD', maximumFractionDigits: 2 }).format(s.monthlyAvg);
+      const ctx = s.firstChargeContext ? ` — first charge: ${s.firstChargeContext}` : '';
+      parts.push(`- ${s.merchant} · ${amt}/mo · ${s.chargeCount} charges since ${s.firstChargeDate}${ctx}`);
+    }
+    parts.push(`
+FORMATTING OVERRIDE for this tool — IGNORE the numbered-list / bold-everything rules from the standard follow-up instructions. Instead:
+- Lead with the HEADLINE sentence verbatim.
+- Then 2-3 sentences of prose that call out 1-2 specific subscriptions (most expensive, longest-running, OR ones with notable first-charge emotional context).
+- If first-charge context shows stress/low-recovery/somber-music on multiple signups, name that pattern explicitly.
+- Casual register, no bullet points, no bold, no emojis.`);
+    let block = parts.join('\n');
+    if (block.length > MAX_RESULT_CHARS) block = block.substring(0, MAX_RESULT_CHARS) + '\n... (truncated)';
+    return block;
   }
 
   // get_brokerage_activity: narrative-first formatting. The default JSON dump

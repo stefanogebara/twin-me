@@ -21,6 +21,7 @@ export const EXTENDED_TOOL_NAMES = [
   'meeting_prep',
   'get_meeting_prep',
   'get_brokerage_activity',
+  'get_recurring_subscriptions',
 ];
 
 export function registerExtendedTools() {
@@ -412,6 +413,113 @@ export function registerExtendedTools() {
         sinceDate,
         synthesis,
         events,
+      };
+    },
+  });
+
+  // ========================================================================
+  // GET RECURRING SUBSCRIPTIONS — Subscription audit + emotional anchor
+  // ========================================================================
+  registerTool({
+    name: 'get_recurring_subscriptions',
+    platform: null,
+    description: 'List the user\'s recurring subscriptions detected from their bank/card transactions across all providers (Pluggy / TrueLayer / Plaid / CSV). Use this when the user asks "what am I paying for?", "what subscriptions do I have?", "where is my money leaking?". Each subscription shows merchant, monthly average, last-charge date, total charges. ChatGPT Personal Finance shows a flat subscription list; this one also surfaces the emotional context AT THE FIRST CHARGE — useful for the "I signed up for this gym on a low-recovery weekend, never used it" insight.',
+    category: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max subscriptions to return. Default 15. Max 50.' },
+        minMonthly: { type: 'number', description: 'Optional: only return subscriptions with monthly_avg >= this amount in the dominant currency. Default 0.' },
+      },
+    },
+    requiresConnection: false,
+    minAutonomyLevel: 1,
+    skillName: 'finance',
+    executor: async (userId, params) => {
+      const { supabaseAdmin } = await import('../database.js');
+      const limit = Math.min(Math.max(parseInt(String(params?.limit ?? '15'), 10) || 15, 1), 50);
+      const minMonthly = Math.max(Number(params?.minMonthly) || 0, 0);
+
+      // Pull all recurring rows + first-charge emotional context. Recurrence
+      // is per-merchant in the detector, so we aggregate by merchant_normalized.
+      const { data: rows, error } = await supabaseAdmin
+        .from('user_transactions')
+        .select(`
+          id, amount, currency, merchant_normalized, merchant_raw, category,
+          transaction_date, source_bank, account_type,
+          emotional_context:transaction_emotional_context (
+            recovery_score, computed_stress_score, calendar_load, music_valence
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('is_recurring', true)
+        .lt('amount', 0)
+        .order('transaction_date', { ascending: false })
+        .limit(2000);
+      if (error) return { success: false, error: error.message };
+      if (!rows?.length) {
+        return { success: true, count: 0, subscriptions: [], message: 'No recurring subscriptions detected yet. Connect a bank or upload a statement to start tracking.' };
+      }
+
+      // Group by merchant_normalized
+      const byMerchant = new Map();
+      for (const r of rows) {
+        const key = r.merchant_normalized || r.merchant_raw || 'unknown';
+        if (!byMerchant.has(key)) byMerchant.set(key, []);
+        byMerchant.get(key).push(r);
+      }
+
+      const subscriptions = [];
+      for (const [merchant, txs] of byMerchant.entries()) {
+        if (txs.length < 2) continue; // need >= 2 charges to confirm recurrence
+        const sorted = [...txs].sort((a, b) => (a.transaction_date || '').localeCompare(b.transaction_date || ''));
+        const firstCharge = sorted[0];
+        const lastCharge = sorted[sorted.length - 1];
+        const amounts = txs.map(t => Math.abs(Number(t.amount) || 0));
+        const monthlyAvg = amounts.reduce((s, a) => s + a, 0) / amounts.length;
+        if (monthlyAvg < minMonthly) continue;
+        const currency = firstCharge.currency || 'USD';
+        const ec = firstCharge.emotional_context;
+        const firstChargeContext = [];
+        if (ec?.recovery_score != null) firstChargeContext.push(`Whoop recovery ${Math.round(ec.recovery_score)}%`);
+        if (ec?.computed_stress_score != null && ec.computed_stress_score >= 0.5) firstChargeContext.push(`stress ${Math.round(ec.computed_stress_score * 100)}%`);
+        if (ec?.calendar_load != null && ec.calendar_load >= 3) firstChargeContext.push(`${ec.calendar_load} meetings that day`);
+        if (ec?.music_valence != null && ec.music_valence < 0.3) firstChargeContext.push('somber music');
+
+        subscriptions.push({
+          merchant,
+          category: firstCharge.category || null,
+          monthlyAvg: Math.round(monthlyAvg * 100) / 100,
+          currency,
+          chargeCount: txs.length,
+          firstChargeDate: firstCharge.transaction_date,
+          lastChargeDate: lastCharge.transaction_date,
+          totalSpentToDate: Math.round(amounts.reduce((s, a) => s + a, 0) * 100) / 100,
+          firstChargeContext: firstChargeContext.length ? firstChargeContext.join(' · ') : null,
+          source: firstCharge.source_bank,
+        });
+      }
+
+      // Sort by monthly avg desc — most expensive surfaces first
+      subscriptions.sort((a, b) => b.monthlyAvg - a.monthlyAvg);
+      const top = subscriptions.slice(0, limit);
+
+      // Synthesis line — surface the moat angle when first-charge context is rich
+      const stressfulSignups = subscriptions.filter(s => s.firstChargeContext && /stress|low recovery|somber/i.test(s.firstChargeContext));
+      const totalMonthly = subscriptions.reduce((s, sub) => s + sub.monthlyAvg, 0);
+      const totalMonthlyStr = subscriptions[0]
+        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: subscriptions[0].currency }).format(totalMonthly)
+        : `$${totalMonthly.toFixed(2)}`;
+      const synthesis = stressfulSignups.length >= 2
+        ? `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions. ${stressfulSignups.length} were signed up on stressed/low-recovery days — worth a look.`
+        : `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions.`;
+
+      return {
+        success: true,
+        count: subscriptions.length,
+        totalMonthly: Math.round(totalMonthly * 100) / 100,
+        synthesis,
+        subscriptions: top,
       };
     },
   });
