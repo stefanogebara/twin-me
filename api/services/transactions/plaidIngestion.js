@@ -619,6 +619,24 @@ export async function syncInvestmentTransactions(userId, plaidItemId, { isBootst
   // happened 6 months ago shouldn't trigger a 'don't shop stressed' nudge.
   await runDownstreamPipeline(userId, totalIds, { allowNudge: false });
 
+  // Phase 4.3: targeted correlation generator. Deterministic, no LLM,
+  // runs ONLY on investment activity + emotional context. Surfaces the
+  // moat insight ('5 of 7 sells were on low-recovery days') as a
+  // proactive_insights row that shows up on the dashboard automatically,
+  // without the user needing to ask the twin. Self-throttled by 48h
+  // cooldown so re-syncing the same item doesn't generate dup insights.
+  if (totalIds.length > 0) {
+    try {
+      const { generateInvestmentCorrelationInsights } = await import('../investmentCorrelationInsights.js');
+      const result = await generateInvestmentCorrelationInsights(userId);
+      log.info(`investment-correlation insights for user ${userId}: ${result.stored} stored${result.reason ? ` (${result.reason})` : ''}`);
+    } catch (err) {
+      // Non-fatal — the existing generic insight generator still runs via
+      // observationIngestion. Log + continue.
+      log.warn(`investment-correlation generation failed for user ${userId}: ${err.message}`);
+    }
+  }
+
   log.info(`investments sync done for item ${plaidItemId}: ${pages} pages, ${totalIds.length} events`);
   return { inserted: totalIds.length, pages };
 }
