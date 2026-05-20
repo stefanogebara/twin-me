@@ -156,7 +156,7 @@ export default function WhatsAppImportCard({ cardStyle }: WhatsAppImportCardProp
           )}
 
           <p className="text-xs mt-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Export: WhatsApp -> open a chat -> ... -> More -> Export Chat -> Without Media -> share the .txt file here.
+            {'Export: WhatsApp -> open a chat -> ... -> More -> Export Chat -> Without Media -> share the .txt file here.'}
           </p>
         </>
       )}

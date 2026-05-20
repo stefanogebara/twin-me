@@ -99,7 +99,7 @@ export function PersonalityRadarChart({
         <div className="text-center mb-4">
           <h3
             className="text-lg font-medium"
-            style={{ color: chartColors.text, fontFamily: ''Instrument Serif', Georgia, serif' }}
+            style={{ color: chartColors.text, fontFamily: "'Instrument Serif', Georgia, serif" }}
           >
             {title}
           </h3>
