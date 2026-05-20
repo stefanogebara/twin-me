@@ -294,6 +294,7 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   <MessageCircle className="w-3.5 h-3.5" />
                   Discuss with Twin
                 </button>
+                ) : null}
               </div>
             </div>
           );
