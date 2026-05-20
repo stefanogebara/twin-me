@@ -189,16 +189,28 @@ router.get('/proactive', authenticateUser, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const includeDelivered = req.query.include_delivered === 'true';
+    // Optional narrow filters used by domain-specific pages (e.g. /money/insights
+    // wants only investment_correlation subcategory rows). Stored on
+    // proactive_insights.metadata.subcategory by the dedicated generators
+    // (see investmentCorrelationInsights.js).
+    const subcategory = typeof req.query.subcategory === 'string' ? req.query.subcategory.trim() : '';
+    const department = typeof req.query.department === 'string' ? req.query.department.trim() : '';
 
     const query = supabaseAdmin
       .from('proactive_insights')
-      .select('id, insight, urgency, category, created_at, delivered, engaged, nudge_action, sources, metadata')
+      .select('id, insight, urgency, category, department, created_at, delivered, engaged, nudge_action, sources, metadata')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (!includeDelivered) {
       query.eq('delivered', false);
+    }
+    if (subcategory) {
+      query.filter('metadata->>subcategory', 'eq', subcategory);
+    }
+    if (department) {
+      query.eq('department', department);
     }
 
     // Filter out insights the user has already acted on (accepted/dismissed)

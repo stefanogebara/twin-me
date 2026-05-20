@@ -38,6 +38,7 @@ import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 const loadDashboardV2 = () => import("./pages/DashboardV2");
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadMoneyPage = () => import("./pages/MoneyPage");
+const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const DashboardV2 = lazy(loadDashboardV2);
 const Settings = lazy(() => import("./pages/Settings"));
@@ -71,6 +72,7 @@ const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
+const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
@@ -303,6 +305,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <MoneyPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Money insights — narrative read of correlation patterns, subscriptions, trades, timeline (Phase 4.4) */}
+            <Route path="/money/insights" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <MoneyInsightsPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

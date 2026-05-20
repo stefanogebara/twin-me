@@ -628,3 +628,103 @@ export async function getTimelineAnalysis(): Promise<TimelineDay[]> {
     tx_count: Number(d.tx_count),
   }));
 }
+
+export interface RecurringSubscription {
+  merchant: string;
+  category: string | null;
+  monthlyAvg: number;
+  currency: string;
+  chargeCount: number;
+  firstChargeDate: string;
+  lastChargeDate: string;
+  totalSpentToDate: number;
+  firstChargeContext: string | null;
+  source: string;
+}
+
+export interface RecurringSubscriptionsResponse {
+  success: boolean;
+  count: number;
+  totalMonthly: number;
+  currency: string;
+  synthesis: string;
+  stressfulSignupCount: number;
+  subscriptions: RecurringSubscription[];
+  error?: string;
+}
+
+/** Fetch the user's detected recurring subscriptions for /money/insights. */
+export async function getRecurringSubscriptions(
+  opts: { limit?: number; minMonthly?: number } = {},
+): Promise<RecurringSubscriptionsResponse> {
+  const qs = new URLSearchParams();
+  if (opts.limit) qs.set('limit', String(opts.limit));
+  if (opts.minMonthly) qs.set('minMonthly', String(opts.minMonthly));
+  const suffix = qs.toString() ? `?${qs}` : '';
+  const res = await authFetch(`/transactions/recurring-subscriptions${suffix}`);
+  let body: RecurringSubscriptionsResponse | null = null;
+  try { body = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    return {
+      success: false,
+      count: 0,
+      totalMonthly: 0,
+      currency: 'USD',
+      synthesis: '',
+      stressfulSignupCount: 0,
+      subscriptions: [],
+      error: body?.error || `failed (${res.status})`,
+    };
+  }
+  return body || {
+    success: false,
+    count: 0,
+    totalMonthly: 0,
+    currency: 'USD',
+    synthesis: '',
+    stressfulSignupCount: 0,
+    subscriptions: [],
+    error: 'empty response',
+  };
+}
+
+export interface InvestmentCorrelationInsight {
+  id: string;
+  insight: string;
+  urgency: 'high' | 'medium' | 'low';
+  category: string;
+  department?: string | null;
+  created_at: string;
+  sources?: string[] | null;
+  metadata?: {
+    subcategory?: string;
+    pattern?: 'sells_low_recovery' | 'buys_high_stress' | 'recovery_direction_gap' | string;
+    n?: number;
+    k?: number;
+    buy_avg?: number;
+    sell_avg?: number;
+    gap?: number;
+  } | null;
+}
+
+/**
+ * Fetch the dedicated investment-correlation insights from proactive_insights.
+ * These are deterministic, pattern-derived rows written by
+ * investmentCorrelationInsights.js — the "moat" insights that join
+ * trade activity with Whoop recovery + computed stress.
+ */
+export async function getInvestmentCorrelationInsights(
+  opts: { limit?: number; includeDelivered?: boolean } = {},
+): Promise<InvestmentCorrelationInsight[]> {
+  const qs = new URLSearchParams({ subcategory: 'investment_correlation' });
+  if (opts.limit) qs.set('limit', String(opts.limit));
+  if (opts.includeDelivered) qs.set('include_delivered', 'true');
+  const res = await authFetch(`/insights/proactive?${qs}`);
+  if (!res.ok) return [];
+  try {
+    const body = await res.json();
+    return Array.isArray(body?.insights) ? body.insights : [];
+  } catch {
+    return [];
+  }
+}

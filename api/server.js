@@ -503,6 +503,7 @@ import cronActionReflectionRoutes from './routes/cron-action-reflection.js';
 import cronPluggySyncRoutes from './routes/cron-pluggy-sync.js';
 import cronPlaidSyncRoutes from './routes/cron-plaid-sync.js';
 import cronBankConsentRoutes from './routes/cron-bank-consent.js';
+import cronInvestmentCorrelationRoutes from './routes/cron-investment-correlation.js';
 import cronNudgeRetroRoutes from './routes/cron-nudge-retrospective.js';
 import cronTwinSummaryRefreshHandler from './routes/cron-twin-summary-refresh.js';
 import cronCalendarOptimizationRoutes from './routes/cron-calendar-optimization.js';
@@ -735,6 +736,7 @@ app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily act
 app.use('/api/cron/pluggy-sync', cronPluggySyncRoutes); // Daily Pluggy bank sync fallback for missed webhooks (6am UTC)
 app.use('/api/cron/plaid-sync', cronPlaidSyncRoutes); // Daily Plaid (US) bank sync fallback for missed webhooks (7am UTC)
 app.use('/api/cron/bank-consent', cronBankConsentRoutes); // Daily consent-expiry reminder for Pluggy + TrueLayer connections
+app.use('/api/cron/investment-correlation', cronInvestmentCorrelationRoutes); // Daily moat-pattern detector across users (Phase 4.4)
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check
 app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)

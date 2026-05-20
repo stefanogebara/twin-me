@@ -16,6 +16,7 @@ import {
   Loader2,
   ChevronDown,
   Plug,
+  TrendingUp,
 } from 'lucide-react';
 
 interface ProactiveInsight {
@@ -24,6 +25,18 @@ interface ProactiveInsight {
   category: 'trend' | 'anomaly' | 'celebration' | 'concern' | 'goal_progress' | 'goal_suggestion';
   urgency: 'high' | 'medium' | 'low';
   created_at: string;
+  sources?: string[] | null;
+  metadata?: {
+    subcategory?: string;
+    pattern?: string;
+  } | null;
+}
+
+/** Investment-correlation insights are the "moat" rows — joined trade activity
+ * with Whoop recovery + computed stress. They deserve a distinct render so
+ * they don't disappear into the generic trend feed. */
+function isInvestmentCorrelation(insight: ProactiveInsight): boolean {
+  return insight.metadata?.subcategory === 'investment_correlation';
 }
 
 interface ChatContextResponse {
@@ -176,14 +189,43 @@ export const ProactiveInsightsPanel: React.FC = () => {
           const preview = dotIdx !== -1 && dotIdx < 100
             ? displayText.slice(0, dotIdx + 1)
             : displayText.slice(0, 90) + (displayText.length > 90 ? '\u2026' : '');
+          const moat = isInvestmentCorrelation(insight);
+          const cardStyle: React.CSSProperties = moat
+            ? {
+                background: 'linear-gradient(180deg, rgba(193,126,44,0.06) 0%, rgba(255,255,255,0.02) 100%)',
+                border: '1px solid rgba(193,126,44,0.25)',
+                borderRadius: '12px',
+                padding: '16px',
+              }
+            : panelStyle;
           return (
             <div key={insight.id}>
-              <div style={panelStyle} className="relative">
+              <div style={cardStyle} className="relative">
+                {moat ? (
+                  <div className="mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-3 h-3" style={{ color: 'var(--accent-amber)' }} />
+                    <span className="text-[10px] uppercase tracking-[0.08em]" style={{ color: 'var(--accent-amber)' }}>
+                      Trade x Recovery pattern
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-start gap-3">
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>{formatRelativeTime(insight.created_at)}</span>
+                      {moat && insight.sources?.length ? (
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            color: 'rgba(255,255,255,0.5)',
+                          }}
+                        >
+                          {insight.sources.join(' · ')}
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>
                       {isExpanded ? displayText : preview}
@@ -194,7 +236,47 @@ export const ProactiveInsightsPanel: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Discuss Button */}
+                {/* Action row - moat gets a "See pattern" link alongside the standard Discuss button. */}
+                {moat ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        markEngaged(insight.id);
+                        navigate('/money/insights');
+                      }}
+                      className="py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
+                      style={{
+                        backgroundColor: 'rgba(193,126,44,0.10)',
+                        color: 'var(--foreground)',
+                        border: '1px solid rgba(193,126,44,0.25)',
+                      }}
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      See pattern
+                    </button>
+                    <button
+                      onClick={() => {
+                        markEngaged(insight.id);
+                        navigate('/talk-to-twin', { state: { discussContext: `Insight: ${displayText}` } });
+                      }}
+                      className="py-2 flex items-center justify-center gap-2 rounded-lg text-xs font-medium transition-colors"
+                      style={{
+                        backgroundColor: 'var(--glass-surface-bg)',
+                        color: 'var(--foreground)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Discuss with Twin
+                    </button>
+                  </div>
+                ) : (
+                  /* Default render keeps the legacy single-button Discuss flow below. */
+                  null
+                )}
+
+                {/* Legacy Discuss Button - kept verbatim so existing non-moat insight rendering is byte-identical. */}
+                {!moat ? (
                 <button
                   onClick={() => {
                     markEngaged(insight.id);

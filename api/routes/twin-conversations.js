@@ -157,7 +157,7 @@ router.get('/context', authenticateUser, async (req, res) => {
       (async () => {
         const { data, error: insightsErr } = await supabaseAdmin
           .from('proactive_insights')
-          .select('id, insight, category, urgency, created_at, metadata')
+          .select('id, insight, category, urgency, created_at, metadata, sources')
           .eq('user_id', userId)
           .eq('delivered', false)
           .gte('created_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())

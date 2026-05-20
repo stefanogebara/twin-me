@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Upload, FileText, AlertCircle, Loader2, TrendingDown, Sparkles, RefreshCw, Music } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import {
@@ -828,25 +829,43 @@ export default function MoneyPage() {
         >
           Money
         </h1>
-        {hasTransactions && (
-          <button
-            type="button"
-            onClick={handleRetag}
-            disabled={retagging}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              fontSize: 12,
-              color: 'rgba(255,255,255,0.65)',
-              fontFamily: "'Geist', 'Inter', sans-serif",
-            }}
-            title="Recompute emotional context with latest HRV/music/calendar data"
-          >
-            <RefreshCw className={`w-3 h-3 ${retagging ? 'animate-spin' : ''}`} />
-            {retagging ? 'Recalculando…' : 'Re-tag'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {hasTransactions && (
+            <Link
+              to="/money/insights"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97]"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.85)',
+                fontFamily: "'Geist', 'Inter', sans-serif",
+              }}
+              title="A narrative read of your patterns, subscriptions, trades, and stress timeline"
+            >
+              See your insights
+            </Link>
+          )}
+          {hasTransactions && (
+            <button
+              type="button"
+              onClick={handleRetag}
+              disabled={retagging}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[100px] transition-all duration-150 hover:opacity-70 active:scale-[0.97] disabled:opacity-40"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.65)',
+                fontFamily: "'Geist', 'Inter', sans-serif",
+              }}
+              title="Recompute emotional context with latest HRV/music/calendar data"
+            >
+              <RefreshCw className={`w-3 h-3 ${retagging ? 'animate-spin' : ''}`} />
+              {retagging ? 'Recalculando…' : 'Re-tag'}
+            </button>
+          )}
+        </div>
       </div>
       <p
         className="mb-6"

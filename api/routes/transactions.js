@@ -1059,4 +1059,120 @@ router.get('/timeline-analysis', authenticateUser, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/transactions/recurring-subscriptions
+ *
+ * REST surface mirroring the get_recurring_subscriptions twin-chat tool so
+ * /money/insights can render the subscriptions audit panel without going
+ * through the chat layer. Same grouping / monthly-avg / first-charge-context
+ * shape so client code can render either source.
+ *
+ * Query params:
+ *   limit      — Max subscriptions to return (default 15, max 50).
+ *   minMonthly — Filter out subs with monthly_avg < this value.
+ */
+router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });
+
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '15'), 10) || 15, 1), 50);
+    const minMonthly = Math.max(Number(req.query.minMonthly) || 0, 0);
+
+    const { data: rows, error } = await supabaseAdmin
+      .from('user_transactions')
+      .select(`
+        id, amount, currency, merchant_normalized, merchant_raw, category,
+        transaction_date, source_bank, account_type,
+        emotional_context:transaction_emotional_context (
+          recovery_score, computed_stress_score, calendar_load, music_valence
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('is_recurring', true)
+      .lt('amount', 0)
+      .order('transaction_date', { ascending: false })
+      .limit(2000);
+
+    if (error) {
+      log.error('recurring-subscriptions query failed', { error: error.message });
+      return res.status(500).json({ success: false, error: 'failed to load subscriptions' });
+    }
+    if (!rows?.length) {
+      return res.json({
+        success: true,
+        count: 0,
+        totalMonthly: 0,
+        currency: 'USD',
+        synthesis: 'No recurring subscriptions detected yet. Connect a bank or upload a statement to start tracking.',
+        stressfulSignupCount: 0,
+        subscriptions: [],
+      });
+    }
+
+    const byMerchant = new Map();
+    for (const r of rows) {
+      const key = r.merchant_normalized || r.merchant_raw || 'unknown';
+      const bucket = byMerchant.get(key) || [];
+      bucket.push(r);
+      byMerchant.set(key, bucket);
+    }
+
+    const subscriptions = [];
+    for (const [merchant, txs] of byMerchant.entries()) {
+      if (txs.length < 2) continue;
+      const sorted = [...txs].sort((a, b) => (a.transaction_date || '').localeCompare(b.transaction_date || ''));
+      const firstCharge = sorted[0];
+      const lastCharge = sorted[sorted.length - 1];
+      const amounts = txs.map(t => Math.abs(Number(t.amount) || 0));
+      const monthlyAvg = amounts.reduce((s, a) => s + a, 0) / amounts.length;
+      if (monthlyAvg < minMonthly) continue;
+      const currency = firstCharge.currency || 'USD';
+      const ec = Array.isArray(firstCharge.emotional_context) ? firstCharge.emotional_context[0] : firstCharge.emotional_context;
+      const ctxParts = [];
+      if (ec?.recovery_score != null) ctxParts.push(`Whoop recovery ${Math.round(ec.recovery_score)}%`);
+      if (ec?.computed_stress_score != null && ec.computed_stress_score >= 0.5) ctxParts.push(`stress ${Math.round(ec.computed_stress_score * 100)}%`);
+      if (ec?.calendar_load != null && ec.calendar_load >= 3) ctxParts.push(`${ec.calendar_load} meetings that day`);
+      if (ec?.music_valence != null && ec.music_valence < 0.3) ctxParts.push('somber music');
+
+      subscriptions.push({
+        merchant,
+        category: firstCharge.category || null,
+        monthlyAvg: Math.round(monthlyAvg * 100) / 100,
+        currency,
+        chargeCount: txs.length,
+        firstChargeDate: firstCharge.transaction_date,
+        lastChargeDate: lastCharge.transaction_date,
+        totalSpentToDate: Math.round(amounts.reduce((s, a) => s + a, 0) * 100) / 100,
+        firstChargeContext: ctxParts.length ? ctxParts.join(' · ') : null,
+        source: firstCharge.source_bank,
+      });
+    }
+
+    subscriptions.sort((a, b) => b.monthlyAvg - a.monthlyAvg);
+    const top = subscriptions.slice(0, limit);
+
+    const stressfulSignups = subscriptions.filter(s => s.firstChargeContext && /stress|low recovery|somber/i.test(s.firstChargeContext));
+    const totalMonthly = subscriptions.reduce((s, sub) => s + sub.monthlyAvg, 0);
+    const dominantCurrency = subscriptions[0]?.currency || 'USD';
+    const totalMonthlyStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: dominantCurrency }).format(totalMonthly);
+    const synthesis = stressfulSignups.length >= 2
+      ? `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions. ${stressfulSignups.length} were signed up on stressed/low-recovery days — worth a look.`
+      : `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions.`;
+
+    return res.json({
+      success: true,
+      count: subscriptions.length,
+      totalMonthly: Math.round(totalMonthly * 100) / 100,
+      currency: dominantCurrency,
+      synthesis,
+      stressfulSignupCount: stressfulSignups.length,
+      subscriptions: top,
+    });
+  } catch (err) {
+    log.error('recurring-subscriptions error', err);
+    return res.status(500).json({ success: false, error: 'failed to load subscriptions' });
+  }
+});
+
 export default router;
