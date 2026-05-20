@@ -27,8 +27,13 @@
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { encryptToken, decryptToken } from '../encryption.js';
-import { normalizeMerchant } from './merchantNormalizer.js';
 import { detectAndMarkRecurring } from './recurrenceDetector.js';
+import {
+  signedAmount,
+  mapMerchant,
+  mapAccountType,
+  mapInvestmentType,
+} from './plaidMappers.js';
 import { tagTransactionsBatch } from './transactionEmotionTagger.js';
 import { maybeNudgeForTransactions } from './transactionNudgeService.js';
 import { addPlatformObservation } from '../memoryStreamService.js';
@@ -55,41 +60,7 @@ const MAX_SYNC_PAGES = 20;
  * So we flip the sign. Documented in Plaid docs: "Amounts are positive when
  * money is removed from the account; negative when money is being added."
  */
-function signedAmount(plaidTx) {
-  const raw = Number(plaidTx?.amount);
-  if (!Number.isFinite(raw)) return 0;
-  return -raw;
-}
-
-/**
- * Map Plaid merchant → our (brand, category). Plaid's `merchant_name` is
- * the cleaned name (e.g. "Starbucks") and `name` is the raw description.
- * We prefer merchant_name when present, fall back to name.
- */
-function mapMerchant(plaidTx) {
-  const merchantRaw =
-    plaidTx.merchant_name ||
-    plaidTx.name ||
-    plaidTx.original_description ||
-    'unknown';
-  const { brand, category } = normalizeMerchant(merchantRaw);
-  return { merchantRaw, brand, category };
-}
-
-/**
- * Plaid account.type ∈ { depository, credit, loan, investment, brokerage,
- * other }. subtype narrows further (checking, savings, credit card, etc.).
- * Map to our enum: checking | savings | credit_card | investment | other.
- */
-function mapAccountType(account) {
-  const type = String(account?.type || '').toLowerCase();
-  const subtype = String(account?.subtype || '').toLowerCase();
-  if (type === 'credit' || subtype.includes('credit card')) return 'credit_card';
-  if (subtype === 'savings') return 'savings';
-  if (subtype === 'checking') return 'checking';
-  if (type === 'investment' || type === 'brokerage') return 'investment';
-  return 'checking'; // safe default — surfaces in UI, doesn't lose data
-}
+// signedAmount, mapMerchant, mapAccountType imported from ./plaidMappers.js
 
 /**
  * Look up the owning user_id + access_token + cursor for a Plaid item.
@@ -487,14 +458,7 @@ const INVESTMENT_LOOKBACK_DAYS = 365; // First-time bootstrap pulls 1 year of ac
 const INVESTMENT_PAGE_SIZE = 250;     // Plaid caps at 500; we paginate generously
 const INVESTMENT_MAX_PAGES = 20;
 
-function mapInvestmentType(type, subtype) {
-  // Plaid investment_transactions.type ∈ { buy, sell, cash, fee, transfer, cancel }
-  // subtype narrows further (e.g. type=buy + subtype=purchased = a plain purchase).
-  // Our category convention keeps the prefix for filtering + the type for analytics.
-  const safeType = String(type || 'unknown').toLowerCase();
-  const safeSubtype = String(subtype || '').toLowerCase();
-  return safeSubtype ? `investment_${safeType}_${safeSubtype}` : `investment_${safeType}`;
-}
+// mapInvestmentType imported from ./plaidMappers.js
 
 async function upsertInvestmentTransactions(userId, plaidAccountId, accountCurrency, transactions, securitiesIndex) {
   if (!transactions.length) return [];

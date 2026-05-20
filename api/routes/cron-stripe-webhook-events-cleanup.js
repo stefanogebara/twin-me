@@ -24,6 +24,7 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+import { logCronExecution } from '../services/cronLogger.js';
 
 const log = createLogger('CronStripeWebhookEventsCleanup');
 const router = express.Router();
@@ -46,15 +47,18 @@ router.all('/', async (req, res) => {
 
     if (error) {
       log.error('cleanup failed', { code: error.code, message: error.message });
+      await logCronExecution('stripe-webhook-events-cleanup', 'error', Date.now() - startTime, null, error.message);
       return res.status(500).json({ success: false, error: 'cleanup failed' });
     }
 
     const deleted = Array.isArray(data) ? data.length : 0;
     const durationMs = Date.now() - startTime;
     log.info('cleanup complete', { deleted, retentionDays: RETENTION_DAYS, durationMs });
+    await logCronExecution('stripe-webhook-events-cleanup', 'success', durationMs, { deleted, retentionDays: RETENTION_DAYS });
     return res.json({ success: true, deleted, retentionDays: RETENTION_DAYS, durationMs });
   } catch (err) {
     log.error('cleanup unhandled', { message: err.message });
+    await logCronExecution('stripe-webhook-events-cleanup', 'error', Date.now() - startTime, null, err.message);
     return res.status(500).json({ success: false, error: 'cleanup failed' });
   }
 });

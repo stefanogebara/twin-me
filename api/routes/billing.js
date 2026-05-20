@@ -14,6 +14,7 @@ import { authenticateToken, userRateLimit } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { createLogger } from '../services/logger.js';
+import { assertProdAppUrl } from '../utils/prodEnvAssertions.js';
 
 const log = createLogger('Billing');
 
@@ -32,9 +33,7 @@ if (!stripe) {
 // would point at localhost — users paying through Stripe land on a dead
 // URL after success. Loud-fail at module load instead of silently shipping
 // the broken redirect.
-if (process.env.NODE_ENV === 'production' && APP_URL.includes('localhost')) {
-  log.error('VITE_APP_URL not set in production — Stripe redirects will point at localhost. Set it in Vercel env vars.');
-}
+assertProdAppUrl(process.env, log);
 
 // The billing router is mounted in api/server.js BEFORE express.json because
 // the /webhook route needs the raw request body for Stripe signature

@@ -26,10 +26,12 @@ process.env.CRON_SECRET = TEST_CRON_SECRET;
 // ── shared mock state ─────────────────────────────────────────────────────────
 let lastQuery; // { table, ops: [...] } - records the supabase chain used
 let supabaseResult; // { data, error } - what the chain resolves to
+let cronLoggerCalls; // [{ name, status, ms, payload, err }, ...]
 
 beforeEach(() => {
   lastQuery = null;
   supabaseResult = { data: [], error: null };
+  cronLoggerCalls = [];
 });
 
 vi.mock('../../../api/services/database.js', () => {
@@ -56,6 +58,12 @@ vi.mock('../../../api/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
+}));
+
+vi.mock('../../../api/services/cronLogger.js', () => ({
+  logCronExecution: async (name, status, ms, payload, err) => {
+    cronLoggerCalls.push({ name, status, ms, payload, err });
+  },
 }));
 
 // Import after mocks land.
@@ -160,5 +168,33 @@ describe('cron /stripe-webhook-events-cleanup', () => {
     // would broadcast the table name + driver code to a public endpoint.
     expect(res.body.error).not.toContain('relation');
     expect(res.body.error).toBe('cleanup failed');
+  });
+
+  it('writes a success row to cron_executions for the Sunday-4am monitor', async () => {
+    supabaseResult = { data: [{ event_id: 'evt_a' }, { event_id: 'evt_b' }], error: null };
+    await request(makeApp())
+      .post('/cron')
+      .set('Authorization', `Bearer ${TEST_CRON_SECRET}`);
+    expect(cronLoggerCalls).toHaveLength(1);
+    expect(cronLoggerCalls[0].name).toBe('stripe-webhook-events-cleanup');
+    expect(cronLoggerCalls[0].status).toBe('success');
+    expect(typeof cronLoggerCalls[0].ms).toBe('number');
+    expect(cronLoggerCalls[0].payload).toEqual({ deleted: 2, retentionDays: 30 });
+    expect(cronLoggerCalls[0].err).toBeUndefined();
+  });
+
+  it('writes an error row to cron_executions when the Supabase delete fails', async () => {
+    supabaseResult = {
+      data: null,
+      error: { code: '42P01', message: 'relation does not exist' },
+    };
+    await request(makeApp())
+      .post('/cron')
+      .set('Authorization', `Bearer ${TEST_CRON_SECRET}`);
+    expect(cronLoggerCalls).toHaveLength(1);
+    expect(cronLoggerCalls[0].name).toBe('stripe-webhook-events-cleanup');
+    expect(cronLoggerCalls[0].status).toBe('error');
+    expect(cronLoggerCalls[0].payload).toBeNull();
+    expect(cronLoggerCalls[0].err).toBe('relation does not exist');
   });
 });
