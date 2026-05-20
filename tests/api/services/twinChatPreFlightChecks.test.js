@@ -122,4 +122,49 @@ describe('runChatPreFlightChecks — max-tier bypass (audit bug C2)', () => {
     expect(result.status).toBe(429);
     expect(result.body.error).toBe('hourly_rate_limit');
   });
+
+  // Audit H4 (2026-05-15): past_due users used to retain unlimited bypass
+  // for the entire Stripe dunning window (7-14 days). isUnlimitedTier now
+  // requires status === 'active' || 'trialing', so a past_due max user
+  // hits the standard quota path like everyone else.
+  it('past_due max-tier user does NOT bypass — quota gate fires (H4)', async () => {
+    mockGetUserSubscription.mockResolvedValue({ plan: 'max', status: 'past_due' });
+    // Inside the dunning window, treat them like a regular paid tier: monthly
+    // quota still applies. With used = limit, the gate denies.
+    mockGetMonthlyUsage.mockResolvedValue({ used: 1500, limit: 1500, tier: 'max' });
+    mockCheckChatRateLimit.mockResolvedValue({ allowed: true, used: 1, limit: 200 });
+
+    const result = await runChatPreFlightChecks({ userId: TEST_USER });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(429);
+    expect(result.body.error).toBe('monthly_limit_reached');
+    // The rate limiter was reached (proves the bypass didn't fire).
+    // CRITICAL: without the H4 fix, the entire if-block would have been
+    // skipped and result.ok would be true.
+  });
+
+  it('past_due max-tier user with quota headroom still hits rate limiter (H4)', async () => {
+    mockGetUserSubscription.mockResolvedValue({ plan: 'max', status: 'past_due' });
+    mockGetMonthlyUsage.mockResolvedValue({ used: 10, limit: 1500, tier: 'max' });
+    mockCheckChatRateLimit.mockResolvedValue({ allowed: true, used: 5, limit: 200 });
+
+    const result = await runChatPreFlightChecks({ userId: TEST_USER });
+
+    expect(result.ok).toBe(true);
+    expect(mockCheckChatRateLimit).toHaveBeenCalledTimes(1); // proves the gate path ran
+  });
+
+  it('trialing max-tier user keeps the unlimited bypass (H4 negative case)', async () => {
+    mockGetUserSubscription.mockResolvedValue({ plan: 'max', status: 'trialing' });
+    mockGetMonthlyUsage.mockResolvedValue({ used: 9999, limit: 100, tier: 'max' });
+    mockCheckChatRateLimit.mockResolvedValue({ allowed: false, used: 999, limit: 200, retryAfterMs: 30000 });
+
+    const result = await runChatPreFlightChecks({ userId: TEST_USER });
+
+    expect(result.ok).toBe(true);
+    // CRITICAL: trialing users haven't paid yet but Stripe still treats it as
+    // an active subscription. They keep the bypass during trial.
+    expect(mockCheckChatRateLimit).not.toHaveBeenCalled();
+  });
 });

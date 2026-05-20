@@ -27,6 +27,15 @@ if (!stripe) {
   log.warn('STRIPE_SECRET_KEY not set — billing routes disabled');
 }
 
+// Audit L2: if APP_URL falls back to localhost in production, every Stripe
+// checkout redirect (success_url, cancel_url, billingPortal return_url)
+// would point at localhost — users paying through Stripe land on a dead
+// URL after success. Loud-fail at module load instead of silently shipping
+// the broken redirect.
+if (process.env.NODE_ENV === 'production' && APP_URL.includes('localhost')) {
+  log.error('VITE_APP_URL not set in production — Stripe redirects will point at localhost. Set it in Vercel env vars.');
+}
+
 // The billing router is mounted in api/server.js BEFORE express.json because
 // the /webhook route needs the raw request body for Stripe signature
 // verification. That means every other billing route is reached BEFORE the

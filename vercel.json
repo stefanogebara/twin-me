@@ -150,6 +150,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/stripe-webhook-events-cleanup",
+      "schedule": "0 4 * * 0"
+    },
+    {
       "path": "/api/cron/evening-recap",
       "schedule": "0 23 * * *"
     },
