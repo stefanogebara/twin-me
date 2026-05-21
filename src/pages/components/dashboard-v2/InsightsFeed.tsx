@@ -69,11 +69,23 @@ export function InsightsFeed({
   // dashboard cards (email_triage → EmailTriageCard, relationship_followup
   // → RelationshipsCard). Take max 5 of what remains.
   const DEDICATED_CARD_CATEGORIES = new Set(['email_triage', 'relationship_followup']);
+  // INTERNAL_CATEGORIES are cache markers and debug rows that historically
+  // got persisted into proactive_insights with `delivered=true` even though
+  // they aren't user content (audit 2026-05-21: 39 of 139 rows were
+  // morning_briefing_cache, competing for the 5 feed slots with real
+  // insights). Hide them from the feed without touching the storage layer
+  // — the morning-briefing surface still reads its cache via category.
+  const INTERNAL_CATEGORIES = new Set([
+    'morning_briefing_cache',
+    'wiki_lint',
+    'test',
+  ]);
   const feedInsights = insights
     .filter(i =>
       i.id !== heroInsightId &&
       !archivedIds.has(i.id) &&
-      !DEDICATED_CARD_CATEGORIES.has(i.category)
+      !DEDICATED_CARD_CATEGORIES.has(i.category) &&
+      !INTERNAL_CATEGORIES.has(i.category)
     )
     .slice(0, 5);
 

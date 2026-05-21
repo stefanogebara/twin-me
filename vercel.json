@@ -154,6 +154,10 @@
       "schedule": "0 4 * * 0"
     },
     {
+      "path": "/api/cron/wiki-compile",
+      "schedule": "0 2 * * *"
+    },
+    {
       "path": "/api/cron/evening-recap",
       "schedule": "0 23 * * *"
     },

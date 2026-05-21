@@ -26,7 +26,6 @@ import { generateProactiveInsights, evaluateNudgeOutcomes } from './proactiveIns
 import { trackGoalProgress, generateGoalSuggestions } from './goalTrackingService.js';
 import { generateTwinSummary } from './twinSummaryService.js';
 import { seedMemoriesFromEnrichment } from './enrichmentMemoryBridge.js';
-import { compileWikiPages } from './wikiCompilationService.js';
 import { checkConditionTriggered } from './prospectiveMemoryService.js';
 import { tagSensitivity } from './sensitivityClassifier.js';
 import { calculateAllActivityMetrics, detectActivityAnomaly } from './activityMetricsService.js';
@@ -637,17 +636,11 @@ async function runObservationIngestion(options = {}) {
               log.info('Triggering reflections', { userId });
               // Run in background — don't block the ingestion loop
               generateReflections(userId)
-                .then(count => {
-                  // Chain wiki compilation after reflections settle (60s delay)
-                  if (count > 0) {
-                    const wikiTimer = setTimeout(() => {
-                      compileWikiPages(userId).catch(err =>
-                        log.warn('Wiki compilation error', { userId, error: err })
-                      );
-                    }, 60000);
-                    wikiTimer.unref();
-                  }
-                })
+                // Wiki compilation used to be chained here via setTimeout(60s),
+                // but on Vercel the parent function returns before the timer
+                // fires (audit 2026-05-21: every wiki page 11-34 days stale).
+                // The wiki sweep now lives in cron-wiki-compile.js (daily
+                // 02:00 UTC) which has its own Vercel function budget.
                 .catch(err =>
                   log.warn('Reflection error', { userId, error: err })
                 );
@@ -922,16 +915,9 @@ async function runPostOnboardingIngestion(userId) {
         const shouldReflect = await shouldTriggerReflection(userId);
         if (shouldReflect) {
           generateReflections(userId)
-            .then(count => {
-              if (count > 0) {
-                const wikiTimer = setTimeout(() => {
-                  compileWikiPages(userId).catch(err =>
-                    log.warn('Post-onboarding wiki compilation error', { error: err })
-                  );
-                }, 60000);
-                wikiTimer.unref();
-              }
-            })
+            // Wiki compilation removed from this chain — see cron-wiki-compile.js
+            // and the matching comment above. setTimeout doesn't survive Vercel
+            // function termination.
             .catch(err =>
               log.warn('Post-onboarding reflection error', { error: err })
             );
