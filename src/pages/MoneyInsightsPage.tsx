@@ -50,7 +50,11 @@ function fmtCurrency(amount: number, currency: string): string {
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '';
   try {
-    const d = new Date(iso + 'T12:00:00Z');
+    // Strip any time component so "2025-05-19" and full ISO timestamps both
+    // anchor at noon UTC. Avoids the "Invalid Date" path that the old
+    // `iso + 'T12:00:00Z'` produced when iso already had a time portion.
+    const dateOnly = String(iso).slice(0, 10);
+    const d = new Date(dateOnly + 'T12:00:00Z');
     if (isNaN(d.getTime())) return '';
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {

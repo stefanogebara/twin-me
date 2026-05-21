@@ -38,11 +38,20 @@ function fmtCurrency(amount: number, currency: string): string {
   }
 }
 
-function fmtDate(iso: string): string {
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '';
   try {
-    return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Accept either YYYY-MM-DD (Postgres date column) or a full ISO timestamp.
+    // The slice strips any time component before re-anchoring at noon UTC, so
+    // both "2025-05-19" and "2025-05-19T00:00:00.000Z" parse identically and
+    // we never produce the "Invalid Date" surface the old `iso + 'T12:00:00Z'`
+    // path created for timestamp-typed columns.
+    const dateOnly = String(iso).slice(0, 10);
+    const d = new Date(dateOnly + 'T12:00:00Z');
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   } catch {
-    return iso;
+    return '';
   }
 }
 
