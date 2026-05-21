@@ -282,8 +282,15 @@ export async function computeTransactionEmotionalContext(userId, transaction) {
   }
 
   if (components.length) {
-    const totalWeight = components.reduce((s, c) => s + c.weight, 0);
-    stressScore = components.reduce((s, c) => s + c.weight * c.value, 0) / totalWeight;
+    // Honest weighted sum: each signal contributes its true designed weight
+    // (biology=0.45, calendar=0.30, music=0.25). Sum maxes at 1.0 only when
+    // all three signals max out — never on a single-signal day. The earlier
+    // `/ totalWeight` normalization was a bug: a single calendar-only signal
+    // with calendarLoad>=3 became (0.30*1.0)/0.30 = 1.0, falsely surfacing
+    // every Whoop-disconnected day as "100% stress". Verified live on prod
+    // against the test user's investment events where 25/25 rows hit 1.0
+    // with signals_found=1.
+    stressScore = components.reduce((s, c) => s + c.weight * c.value, 0);
   }
 
   // 5. Stress-shop candidate: outflow + high stress + discretionary-looking
@@ -474,8 +481,14 @@ function computeFromBundle(userId, tx, bundle) {
   if (biology.sleep !== null) signalsFound++;
 
   if (components.length) {
-    const totalWeight = components.reduce((s, c) => s + c.weight, 0);
-    stressScore = components.reduce((s, c) => s + c.weight * c.value, 0) / totalWeight;
+    // Honest weighted sum — see twin code path above (computeTransactionEmotionalContext).
+    // The earlier `/ totalWeight` normalization promoted any single-signal day
+    // to 1.0 (max stress), which is statistically dishonest when only one of
+    // 5 possible inputs (biology / calendar / music / github / gmail) is
+    // available. Removing the normalization means each signal contributes its
+    // true designed weight; the sum maxes at ~1.0 only when most/all inputs
+    // are present and elevated. Honest under sparse data, accurate under rich.
+    stressScore = components.reduce((s, c) => s + c.weight * c.value, 0);
   }
 
   // Stress-shop gating (improved):
