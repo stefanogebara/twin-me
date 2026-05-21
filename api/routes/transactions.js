@@ -15,7 +15,7 @@ import { parseBankStatement } from '../services/transactions/parserDispatcher.js
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
 import { syncAllSignals } from '../services/transactions/platformSignalExtractor.js';
 import { normalizeMerchant } from '../services/transactions/merchantNormalizer.js';
-import { detectAndMarkRecurring } from '../services/transactions/recurrenceDetector.js';
+import { detectAndMarkRecurring, isNonSubscriptionRow } from '../services/transactions/recurrenceDetector.js';
 import { STRESS_HIGH, NUDGE_TRIGGER, DEFAULT_CURRENCY } from '../config/financialThresholds.js';
 import { createLogger } from '../services/logger.js';
 
@@ -1111,8 +1111,19 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
       });
     }
 
+    // Defensive re-filter: detectAndMarkRecurring is one-shot, so rows
+    // marked is_recurring=true before the non-subscription blocklist was
+    // added (or before a future entry is added) still come through. Audit
+    // 2026-05-21: prod returned KFC $500/mo, Tectra Inc $500/mo, McDonald's
+    // $12/mo, Starbucks $4.33/mo as "subscriptions" with a $1,690/mo total
+    // because old detector runs flagged them before the merchant blocklist
+    // landed. isNonSubscriptionRow honours both the merchant + category
+    // blocklists at read time, so the FE never sees the garbage even when
+    // the DB still has stale flags.
+    const filteredRows = rows.filter(r => !isNonSubscriptionRow(r));
+
     const byMerchant = new Map();
-    for (const r of rows) {
+    for (const r of filteredRows) {
       const key = r.merchant_normalized || r.merchant_raw || 'unknown';
       const bucket = byMerchant.get(key) || [];
       bucket.push(r);

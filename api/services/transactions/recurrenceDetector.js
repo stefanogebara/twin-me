@@ -108,6 +108,24 @@ function isExcludedMerchant(merchant) {
     || KNOWN_NON_SUBSCRIPTION_BRANDS.some(re => re.test(merchant));
 }
 
+/**
+ * Public version of isExcludedMerchant. The detection-time filter is
+ * one-shot — old rows that already have is_recurring=true from before
+ * the blocklist was added stay marked. Endpoints that READ the
+ * subscriptions list call this to defensively re-filter, so a fresh
+ * blocklist entry takes effect without rerunning the detector.
+ *
+ * Returns true if the merchant_normalized + category combination
+ * should NOT be surfaced as a subscription.
+ */
+export function isNonSubscriptionRow(row) {
+  const merchant = row?.merchant_normalized || row?.merchant_raw;
+  if (isExcludedMerchant(merchant)) return true;
+  const cat = String(row?.category || '').toLowerCase();
+  if (NON_SUBSCRIPTION_CATEGORY_PREFIXES.some(p => cat.startsWith(p))) return true;
+  return false;
+}
+
 // Inter-charge interval coefficient of variation. With <2 intervals (i.e. <3
 // charges) we can't compute variance, so the caller already gates on
 // MIN_OCCURRENCES = 3 → always ≥2 intervals here.
