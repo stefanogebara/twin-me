@@ -47,11 +47,14 @@ function fmtCurrency(amount: number, currency: string): string {
   }
 }
 
-function fmtDate(iso: string): string {
+function fmtDate(iso: string | null | undefined): string {
+  if (!iso) return '';
   try {
-    return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const d = new Date(iso + 'T12:00:00Z');
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
-    return iso;
+    return '';
   }
 }
 
@@ -214,15 +217,17 @@ const MoneyInsightsPage: React.FC = () => {
                         {s.chargeCount} charges
                       </span>
                     </div>
-                    {s.firstChargeContext ? (
-                      <p className="mt-1 text-[12.5px] text-[var(--text-narrative-muted)] truncate">
-                        First charge: {fmtDate(s.firstChargeDate)} · {s.firstChargeContext}
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-[12.5px] text-[var(--text-narrative-muted)]">
-                        First charge {fmtDate(s.firstChargeDate)}
-                      </p>
-                    )}
+                    {(() => {
+                      const dateStr = fmtDate(s.firstChargeDate);
+                      const parts: string[] = [];
+                      if (dateStr) parts.push(`First charge ${dateStr}`);
+                      if (s.firstChargeContext) parts.push(s.firstChargeContext);
+                      return parts.length ? (
+                        <p className="mt-1 text-[12.5px] text-[var(--text-narrative-muted)] truncate">
+                          {parts.join(' · ')}
+                        </p>
+                      ) : null;
+                    })()}
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-[var(--text-narrative)] text-[14px] tabular-nums">
