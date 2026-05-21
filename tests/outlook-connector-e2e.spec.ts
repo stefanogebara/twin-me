@@ -63,6 +63,29 @@ test.describe('Outlook connector auth flow', () => {
   test('2. Clicking Outlook connect — popup opens, not a page navigation', async ({ page, context }) => {
     await mockAuth(page);
 
+    // The previous mock pattern was `**/api/connectors/status**` AND it
+    // returned the wrong response shape (`{ platformStatus: {} }` instead
+    // of `{ data: {} }`). The HOOK that drives `isConnected` per-platform
+    // is usePlatformStatus, which fetches
+    //   ${API_URL}/connectors/status/${encodeURIComponent(userId)}
+    // and reads `result.data || {}`. Without the dev-server-served real
+    // state being overridden, the test ran against the actual user's
+    // real DB connections (Stefano has Outlook connected), so every
+    // platform card showed "Manage" not "Connect" and the click logic
+    // couldn't find a Connect button.
+    //
+    // Fix: use a regex pattern that matches the path with the userId
+    // suffix, and return the correct envelope so all platforms render
+    // as disconnected — including Outlook, which exposes the Connect
+    // button this test needs to click.
+    await page.route(/\/api\/connectors\/status(\/|\?|$)/, route =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: {} }),
+      }),
+    );
+
     let nangoCallCount = 0;
     await page.route('**/api/nango/connect-session', async route => {
       nangoCallCount++;
@@ -75,58 +98,45 @@ test.describe('Outlook connector auth flow', () => {
       });
     });
 
-    await page.route('**/api/connectors/status**', route =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, connectedPlatforms: [], platformStatus: {} }),
-      })
-    );
-
     await page.goto('http://localhost:8086/get-started');
     await page.waitForLoadState('networkidle', { timeout: 25000 }).catch(() => {});
 
     const urlBefore = page.url();
     console.log('URL before click:', urlBefore);
 
-    // Listen for any new page/popup
-    const popupPromise = context.waitForEvent('page', { timeout: 6000 }).catch(() => null);
+    // Listen for any new page/popup. Generous timeout because Nango pre-
+    // opens the popup synchronously on click, but the user-gesture
+    // requirement means the popup-event fires inside Playwright's
+    // network/event loop only after the click frame has been committed.
+    const popupPromise = context.waitForEvent('page', { timeout: 10_000 }).catch(() => null);
 
-    // Scroll Outlook into view
-    const outlookEl = page.locator('text=Outlook').first();
-    await outlookEl.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(500);
-
+    // Find the Outlook tile via the label span. /get-started actually uses
+    // PlatformTile.tsx (NOT the older ConnectorCard.tsx — the only
+    // surviving consumer of which is dead code), and PlatformTile renders
+    // the platform name in a plain <span>, not an h3. The locator chain:
+    //   1. exact-text span "Outlook" — picks the label only
+    //   2. xpath ancestor::div[…has a Connect button][1] — climbs to the
+    //      tile wrapper (the closest div whose subtree contains a button
+    //      with text "Connect" — only that wrapper satisfies the predicate).
+    const outlookLabel = page.getByText('Outlook', { exact: true }).first();
+    await expect(outlookLabel, 'Outlook label is mounted').toBeVisible({ timeout: 15_000 });
+    await outlookLabel.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${SCREENSHOTS}/outlook-03-before-click.png` });
 
-    // Find the Connect button near Outlook using evaluate
-    const clicked = await page.evaluate(() => {
-      // Find the Outlook text element
-      const allEls = Array.from(document.querySelectorAll('*'));
-      const outlookLabel = allEls.find(el =>
-        el.childNodes.length <= 3 &&
-        el.textContent?.trim() === 'Outlook' &&
-        !['SCRIPT', 'STYLE', 'HEAD'].includes(el.tagName)
-      );
-      if (!outlookLabel) return { found: false, reason: 'no Outlook text element' };
+    const outlookTile = outlookLabel.locator(
+      'xpath=ancestor::div[descendant::button[normalize-space()="Connect"]][1]',
+    );
+    const connectBtn = outlookTile.getByRole('button', { name: /^Connect$/i });
+    await expect(
+      connectBtn,
+      'Connect button is visible on the Outlook tile (mock disconnected state)',
+    ).toBeVisible({ timeout: 10_000 });
 
-      // Walk up to find a button ancestor or sibling
-      let el: Element | null = outlookLabel;
-      for (let i = 0; i < 8; i++) {
-        el = el?.parentElement ?? null;
-        if (!el) break;
-        // Look for a Connect button within this container
-        const btn = el.querySelector('button');
-        if (btn && /connect/i.test(btn.textContent ?? '')) {
-          (btn as HTMLButtonElement).click();
-          return { found: true, clicked: btn.textContent?.trim() };
-        }
-      }
-      return { found: true, reason: 'no connect button in ancestry' };
-    });
-    console.log('Click evaluate result:', JSON.stringify(clicked));
+    // The pre-open popup fix is what we're validating. Click via the
+    // locator so Playwright's user-gesture model fires correctly.
+    await connectBtn.click();
 
-    // Wait for behavior to settle
+    // Wait for behavior to settle.
     await page.waitForTimeout(3000);
 
     const urlAfter = page.url();
@@ -149,10 +159,14 @@ test.describe('Outlook connector auth flow', () => {
     console.log('Popup/new tab opened:', !!popup);
 
     // KEY ASSERTIONS:
-    // 1. A popup must have opened (proves pre-open fix works)
-    // 2. Main page must NOT have navigated to the Nango connect URL
-    //    (the original bug was window.location.href = connectUrl)
-    const mainPageNavigatedToNangoUrl = urlAfter.includes('nango-test') || urlAfter.includes('connect.nango.dev');
+    // 1. The Nango API was actually called — proves the click reached the
+    //    handler. (Pre-open without a Nango call could pass the popup
+    //    assertion via some other popup source.)
+    // 2. A popup opened — proves the pre-open fix works.
+    // 3. Main page did NOT navigate to the Nango connect URL — proves
+    //    the original window.location.href = connectUrl bug isn't back.
+    const mainPageNavigatedToNangoUrl =
+      urlAfter.includes('nango-test') || urlAfter.includes('connect.nango.dev');
 
     if (!popup) {
       console.log('\nFAIL: No popup opened — pre-open may not have worked');
@@ -162,6 +176,7 @@ test.describe('Outlook connector auth flow', () => {
       console.log('\nPASS: Popup opened. Main page did NOT navigate to Nango URL. Fix is working.');
     }
 
+    expect(nangoCallCount, 'Nango connect-session was called').toBeGreaterThan(0);
     expect(popup, 'A popup must open — pre-open popup fix must work').not.toBeNull();
     expect(mainPageNavigatedToNangoUrl, 'Main page must NOT navigate to Nango connect URL').toBe(false);
   });
