@@ -8,6 +8,7 @@ import { getValidAccessToken } from '../tokenRefreshService.js';
 import { decryptToken } from '../encryption.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal, getSupabase } from '../observationUtils.js';
+import { aggregateLanguages } from './githubLanguageAggregator.js';
 
 /**
  * Decrypt a stored PAT, with a one-time fallback for legacy plaintext rows
@@ -360,19 +361,12 @@ async function fetchGitHubObservations(userId) {
             : Promise.resolve({})
         )
       );
-      const agg = {};
-      for (const byLang of langResults) {
-        for (const [lang, bytes] of Object.entries(byLang)) {
-          agg[lang] = (agg[lang] || 0) + (bytes || 0);
-        }
-      }
-      const total = Object.values(agg).reduce((a, b) => a + b, 0);
-      if (total > 0) {
-        languageBytes = Object.entries(agg)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 4)
-          .map(([lang, bytes]) => ({ lang, pct: Math.round((bytes / total) * 100) }));
-      }
+      // Build-output filter — see githubLanguageAggregator.js for the
+      // rationale. Briefly: GitHub /languages counts dist/*.html as if
+      // hand-written; aggregateLanguages excludes presentation bytes
+      // when the repo's primary language is a real code language.
+      const aggregated = aggregateLanguages(topByStars, langResults);
+      if (aggregated.length > 0) languageBytes = aggregated;
     } catch (err) {
       log.debug('GitHub language bytes fetch failed (non-fatal)', { error: err?.message });
     }
