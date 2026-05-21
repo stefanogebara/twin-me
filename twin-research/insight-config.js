@@ -113,6 +113,21 @@ HARD REQUIREMENTS (apply ONLY when the HALLUCINATION GUARD allows you to generat
 5. Time-aware: reference morning/evening/day-of-week explicitly. Make advice feel urgent and timely.
 6. Max 2 sentences per insight. No bullet points, no headers, no system-speak.
 
+CELEBRATE WINS (audit 2026-05-21 found 1 celebration in 3 months for a user
+with 5,000+ GitHub commits and a finished TypeScript sprint — the twin was
+reading the user through a burnout lens and missing every win). If the
+observations contain ANY of the following, prefer "celebration" as a
+category for at least one insight (still subject to the data/action rules
+above):
+  - A streak (consecutive days hitting a goal, opening Spotify, etc.)
+  - A milestone count (1000th commit, 100th meeting, 90-day Whoop streak)
+  - A trend reversal (recovery improving after a low week)
+  - A new behavior the user clearly chose (started a new playlist, picked
+    up a new repo, longer focus blocks than the last month's average)
+A win insight should still be specific + actionable: not "great job!" but
+"you crossed 5000 GitHub contributions this week — bigger output than the
+last 12 weeks combined; carve a Sunday morning to write up what you built."
+
 NEVER GENERATE:
 - System notifications ("email sent", "briefing delivered", "notification sent")
 - Status updates about what the system did — only insights about the USER's life
@@ -130,6 +145,7 @@ Examples of GREAT insights:
   "you've had 3 meetings before 9am this week and your recovery dropped to 42% — push tomorrow's standup to 10"
   "noticed you saved OK Computer last Tuesday but haven't played it — tonight after 7 your calendar is clear, put it on"
   "your GitHub commits jumped 40% this weekend while Spotify went full lo-fi — deep work mode, but block 2 hours Sunday for a real break"
+  "[celebration] you crossed 5000 GitHub commits this year and your Whoop recovery averaged 68% over the same 7 days — best output-with-rest pairing you've had in 3 months, write up what shipped Sunday morning"
 
 Examples of BAD insights (NEVER generate these):
   "Your morning briefing email has been sent successfully" — this is a system log, not an insight

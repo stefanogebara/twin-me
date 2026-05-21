@@ -14,8 +14,14 @@
  * Rate limits:
  *   - At most 1 nudge per user per 6h (no notification fatigue)
  *   - Skip recurring charges (is_recurring=true) — already known habits
- *   - Skip tx older than 15 minutes (if the webhook was delayed, the
- *     user already moved on — don't create a "why'd I get this?" moment)
+ *   - Skip tx older than 24h. Original gate was 15 minutes assuming a
+ *     near-real-time webhook → "interrupt the next impulse" model. Audit
+ *     2026-05-21: stress_nudge fired ONCE in 3 months because Pluggy/Plaid
+ *     sync runs daily, not on-webhook, so most transactions arrive 12-48h
+ *     after the swipe. The signature moment that DID fire was R$147 at
+ *     Mercado Livre during 75% stress — retrospective by 4 hours and still
+ *     incredibly useful. 24h gives the daily sync window comfortable
+ *     coverage without nudging on stale data the user has fully forgotten.
  *   - Respect quiet hours via sendPushToUser's own gating
  */
 
@@ -60,7 +66,8 @@ function logTxReflection(userId, outcome, sourceText, props = {}) {
 }
 
 const NUDGE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
-const MAX_TX_AGE_MS = 15 * 60 * 1000;
+// See header docstring for rationale. Was 15 * 60 * 1000.
+const MAX_TX_AGE_MS = 24 * 60 * 60 * 1000;
 const STRESS_THRESHOLD = 0.6;
 const MIN_AMOUNT_BRL = 100;
 const DISCRETIONARY_CATEGORIES = new Set([
