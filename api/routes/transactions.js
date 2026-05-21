@@ -1185,8 +1185,15 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     const totalMonthly = subscriptions.reduce((s, sub) => s + sub.monthlyAvg, 0);
     const dominantCurrency = subscriptions[0]?.currency || 'USD';
     const totalMonthlyStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: dominantCurrency }).format(totalMonthly);
+    // Synthesis: surface the data, no value judgment. The "stressful signup"
+    // tag is descriptive (these signups landed on days flagged as high-stress
+    // by joined biology/calendar/music signals) — but whether that's good or
+    // bad is the user's call. A Cursor signup under deadline pressure may be
+    // a smart leverage move; a late-night impulse Netflix could be the
+    // opposite. The surface used to read "— worth a look", which is loaded.
+    // Dropped per audit 2026-05-22.
     const synthesis = stressfulSignups.length >= 2
-      ? `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions. ${stressfulSignups.length} were signed up on stressed/low-recovery days — worth a look.`
+      ? `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions. ${stressfulSignups.length} of those signups landed on days with elevated stress or low recovery.`
       : `You're paying ${totalMonthlyStr}/month across ${subscriptions.length} subscriptions.`;
 
     return res.json({

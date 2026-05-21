@@ -78,7 +78,6 @@ const MoneyInsightsPage: React.FC = () => {
   const [subsSynthesis, setSubsSynthesis] = useState<string>('');
   const [subsCurrency, setSubsCurrency] = useState<string>('USD');
   const [subsTotalMonthly, setSubsTotalMonthly] = useState<number>(0);
-  const [stressfulSignupCount, setStressfulSignupCount] = useState<number>(0);
   const [timeline, setTimeline] = useState<TimelineDay[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,7 +98,6 @@ const MoneyInsightsPage: React.FC = () => {
         setSubsSynthesis(subsRes.synthesis || '');
         setSubsCurrency(subsRes.currency || 'USD');
         setSubsTotalMonthly(subsRes.totalMonthly || 0);
-        setStressfulSignupCount(subsRes.stressfulSignupCount || 0);
         setTimeline(days || []);
       } catch (err) {
         if (cancelled) return;
@@ -200,12 +198,12 @@ const MoneyInsightsPage: React.FC = () => {
           </EmptyHint>
         ) : (
           <>
-            {stressfulSignupCount >= 2 ? (
-              <div className="mb-4 rounded-[14px] border border-[rgba(193,126,44,0.25)] bg-[rgba(193,126,44,0.08)] px-4 py-3 text-[13.5px] text-[var(--text-narrative-secondary)]">
-                {stressfulSignupCount} of these were signed up on stressed or low-recovery days.
-                Worth flagging the next time you feel the urge to subscribe to something at midnight.
-              </div>
-            ) : null}
+            {/* Coaching callout removed (2026-05-22): the "Worth flagging the
+                next time you feel the urge to subscribe to something at
+                midnight" line was a value judgment the surface shouldn't make
+                on the user's behalf — signing up to Cursor under deadline
+                pressure is leverage, not impulse. The neutral count is now
+                carried by the synthesis line above (subsSynthesis). */}
             <ul className="space-y-2">
               {subs.map(s => (
                 <li
