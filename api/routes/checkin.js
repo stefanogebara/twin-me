@@ -13,6 +13,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { addMemory } from '../services/memoryStreamService.js';
 import { supabaseAdmin } from '../services/database.js';
+import { del as cacheDel } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('Checkin');
@@ -62,6 +63,15 @@ router.post('/', authenticateUser, async (req, res) => {
       log.error('Failed to upsert daily_checkins:', error.message);
       return res.status(500).json({ success: false, error: 'Failed to save check-in' });
     }
+
+    // Bust the streak cache so the dashboard reflects today's check-in
+    // immediately (audit 2026-05-22: streak was cached for 1h with no
+    // invalidation, so users who checked in AFTER the dashboard's first
+    // load of the day saw a 1-day-shorter streak until cache expired).
+    // Cache key mirrors `streak:${userId}` in dashboard-context.js.
+    cacheDel(`streak:${userId}`).catch(err =>
+      log.warn('Failed to bust streak cache after check-in', { userId, error: err?.message })
+    );
 
     // Build natural-language memory content for the twin
     const energyPhrase = energy ? ` with ${energy} energy` : '';
