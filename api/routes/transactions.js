@@ -1122,6 +1122,23 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
     // the DB still has stale flags.
     const filteredRows = rows.filter(r => !isNonSubscriptionRow(r));
 
+    // Second empty-state guard: the outer rows.length check above runs BEFORE
+    // the read-side filter, so a user whose DB still has stale-flagged garbage
+    // (all of it caught by isNonSubscriptionRow) would otherwise fall through
+    // to the "$0.00 across 0 subscriptions" synthesis — uglier than the
+    // friendly no-data message.
+    if (!filteredRows.length) {
+      return res.json({
+        success: true,
+        count: 0,
+        totalMonthly: 0,
+        currency: 'USD',
+        synthesis: 'No recurring subscriptions detected yet. Connect a bank or upload a statement to start tracking.',
+        stressfulSignupCount: 0,
+        subscriptions: [],
+      });
+    }
+
     const byMerchant = new Map();
     for (const r of filteredRows) {
       const key = r.merchant_normalized || r.merchant_raw || 'unknown';
