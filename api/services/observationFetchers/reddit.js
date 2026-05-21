@@ -37,11 +37,32 @@ async function fetchRedditObservations(userId) {
     );
     subreddits = (subRes.data?.data?.children || []).map(c => c.data);
   } catch (e) {
-    log.warn('Reddit subreddits error', { error: e });
+    // Audit 2026-05-22: this previously logged just `error: e`, which
+    // serialized to `{}` for axios errors and made debugging impossible.
+    // Reddit was 33 days stale with last_sync_status='success' and no
+    // recorded error — the legacy fetcher fails silently on auth/scope
+    // issues. Capture status + body so the next cron run surfaces the
+    // real cause in logs.
+    const status = e?.response?.status;
+    const body = e?.response?.data;
+    log.warn('Reddit subreddits error', {
+      userId,
+      status,
+      message: e?.message,
+      bodyExcerpt: typeof body === 'string' ? body.slice(0, 200) : JSON.stringify(body || {}).slice(0, 200),
+    });
+    // Surface terminal cases. 401/403 = token revoked or insufficient
+    // scope; the user must reconnect to get fresh tokens.
+    if (status === 401 || status === 403) {
+      log.warn('Reddit token appears revoked — user must reconnect', { userId });
+    }
     return observations;
   }
 
-  if (subreddits.length === 0) return observations;
+  if (subreddits.length === 0) {
+    log.info('Reddit returned 0 subscribed subreddits (user may have unsubscribed all)', { userId });
+    return observations;
+  }
 
   const names = subreddits.map(s => sanitizeExternal(s.display_name || s.name, 60)).filter(Boolean);
   const top3 = names.slice(0, 3).map(n => `r/${n}`).join(', ');

@@ -705,6 +705,18 @@ export async function extractPlatformData(userId, platform) {
 
       if (result.success) {
         data[key] = result.data;
+      } else if ((result.statusCode ?? result.status) === 404) {
+        // Account-level 404 — the endpoint exists but THIS account doesn't
+        // support it. The two known cases (audit 2026-05-22):
+        //   - Outlook /me/mailFolders 404s for personal Microsoft accounts
+        //     without an Exchange mailbox (Stefano's case). Calendar +
+        //     contacts work fine on the same connection.
+        //   - LinkedIn /v2/connections 404s for accounts without the
+        //     r_network scope or the basic-tier API access.
+        // Treating this as an error marks the whole sync as 'partial' and
+        // shoves a noisy last_sync_error in the UI. Skip it instead.
+        log.info(`Skipping ${platform}/${key}: not supported by this account (404)`);
+        data[key] = null;
       } else {
         errors.push({ endpoint: key, error: result });
       }

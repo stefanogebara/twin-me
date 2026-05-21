@@ -42,7 +42,14 @@ async function fetchLinkedInObservations(userId) {
     // Scope may not cover this endpoint — fall through to userinfo
   }
 
-  // OpenID Connect userinfo fallback (works with `profile` scope)
+  // OpenID Connect userinfo fallback (works with `profile` scope).
+  // IMPORTANT (audit 2026-05-22): we do NOT promote `data.name` to a
+  // "headline" — that's the user's full name, not a professional
+  // positioning string. Storing it as `LinkedIn professional headline:
+  // "Stefano Gebara"` was generating useless observations that drove
+  // bogus seniority-pattern matches downstream. Real headline only
+  // comes from the v2/me localizedHeadline above (requires
+  // r_liteprofile scope or Marketing Developer Platform approval).
   let locale = null;
   try {
     const userInfoRes = await axios.get(
@@ -50,9 +57,6 @@ async function fetchLinkedInObservations(userId) {
       { headers, timeout: 10000 }
     );
     const data = userInfoRes.data || {};
-    if (!headline && data.name) {
-      headline = sanitizeExternal(data.name, 120);
-    }
     // locale is an object {country, language} or a string like "en_US"
     if (data.locale) {
       const country = typeof data.locale === 'object' ? data.locale.country : null;
