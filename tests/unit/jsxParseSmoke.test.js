@@ -51,7 +51,13 @@ const files = collectSources(SRC_DIR).map((abs) => ({
   loader: extname(abs) === '.tsx' ? 'tsx' : 'ts',
 }));
 
-describe('src parse smoke', () => {
+// Per-case timeout bump: under parallel-worker load, esbuild.transformSync
+// on the largest files (App.tsx is ~50KB, the dashboard pages aren't far
+// behind) can take 6-8 seconds — well over vitest's 5s default. Observed
+// run #2 of the 5-run flake-verification: App.tsx at 7964ms timed out
+// even though the parse would have succeeded. 30s gives the worst-case
+// file generous headroom while still catching a real esbuild hang.
+describe('src parse smoke', { timeout: 30_000 }, () => {
   it('finds a non-trivial number of source files (sanity)', () => {
     // The repo has hundreds of components; if this collapses to single digits
     // something is off with the file walker before per-file assertions run.

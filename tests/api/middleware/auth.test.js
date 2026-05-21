@@ -24,7 +24,14 @@ function signToken(payload, secret = 'test-secret-key-for-unit-tests-only') {
   return jwt.sign(payload, secret, { expiresIn: '1h' });
 }
 
-describe('authenticateUser middleware', () => {
+// The first test in this file pays for module load — auth.js pulls dotenv +
+// jsonwebtoken + the logger transitively. Under parallel-worker contention
+// the cold-start can push past vitest's 5s default and the WHOLE test gets
+// reported as a "calls next" timeout, even though the assertion would have
+// passed instantly once the module finished loading. 15s gives comfortable
+// headroom on a noisy CI box without masking a real regression in jwt-verify
+// (which is microseconds).
+describe('authenticateUser middleware', { timeout: 15_000 }, () => {
   it('calls next and sets req.user on valid token', async () => {
     const token = signToken({ id: 'user-123', email: 'test@example.com' });
     const req = makeReq(`Bearer ${token}`);

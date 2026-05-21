@@ -94,7 +94,13 @@ afterAll(async () => {
 });
 
 // ── tests ─────────────────────────────────────────────────────────────────────
-describe('ingestTransactionsByIds — merchant_normalized written to DB', () => {
+// This is a true integration test: real Supabase round-trip per case (insert +
+// select-back + delete). The first case also pays for module load — pluggy
+// Ingestion.js triggers Supabase + encryption init at import time. 5s default
+// is too tight; observed timings sit around 3-4s with another ~1s slack for
+// CI noise. 30s gives the network + warmup comfortable headroom while still
+// catching a real hang (e.g., Supabase 60s default vs this 30s ceiling).
+describe('ingestTransactionsByIds — merchant_normalized written to DB', { timeout: 30_000 }, () => {
   it('populates merchant_normalized via fallbackBrand for unrecognized merchant', async () => {
     const { ingestTransactionsByIds } = await import(
       '../../../api/services/transactions/pluggyIngestion.js'
