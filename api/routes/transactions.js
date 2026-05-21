@@ -1091,6 +1091,7 @@ router.get('/recurring-subscriptions', authenticateUser, async (req, res) => {
       .eq('user_id', userId)
       .eq('is_recurring', true)
       .lt('amount', 0)
+      .neq('account_type', 'investment')   // brokerage trades own a different surface
       .order('transaction_date', { ascending: false })
       .limit(2000);
 
