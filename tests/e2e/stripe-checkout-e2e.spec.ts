@@ -30,7 +30,12 @@
  * Required env (when STRIPE_E2E=1):
  *   STRIPE_TEST_SECRET_KEY   - sk_test_... (TEST mode secret or restricted key)
  *   STRIPE_TEST_PRICE_PRO    - price_test_... ($20 Plus equivalent in TEST mode)
- *   STRIPE_TEST100_COUPON    - the TEST mode 100%-off coupon id
+ *   STRIPE_TEST100_COUPON    - id of a 100%-off TEST mode coupon. Create with:
+ *     curl -u "$STRIPE_TEST_SECRET_KEY:" https://api.stripe.com/v1/coupons \
+ *       -d percent_off=100 -d duration=once -d id=E2E_FREE -d name='E2E coupon'
+ *     If the coupon has a max_redemptions ceiling and the test runs N times,
+ *     the cap exhausts and Stripe returns coupon_expired. Prefer a coupon
+ *     with max_redemptions=null.
  *
  * Why a sentinel success_url:
  *   Pointing success_url at example.com (which has no app server) lets the
@@ -81,6 +86,13 @@ async function stripeFetch(path: string, init: RequestInit = {}): Promise<Respon
 }
 
 test.describe('Stripe Checkout — TEST mode end-to-end', () => {
+  // The default Playwright per-test timeout is 30s. The full flow here:
+  // session-create (Stripe API ~1-3s) + page.goto Stripe Checkout (3-5s) +
+  // wait for hydration (~5-10s) + email field interaction + button click +
+  // wait for navigation to success_url (5-15s) easily totals 40-60s on a
+  // healthy network and >90s on a noisy one. Bump generously.
+  test.setTimeout(180_000);
+
   test('TEST100 coupon zeroes a Plus subscription and submit redirects to success_url', async ({ page }) => {
     // -----------------------------------------------------------------------
     // 1. Create a fresh Checkout Session via the Stripe API. We do this
@@ -102,6 +114,13 @@ test.describe('Stripe Checkout — TEST mode end-to-end', () => {
       success_url: `${SUCCESS_BASE}?s={CHECKOUT_SESSION_ID}`,
       cancel_url: CANCEL_URL,
       'discounts[0][coupon]': COUPON_ID,
+      // Pre-fill the email so the Stripe Checkout page doesn't ask for one.
+      // Stripe requires an email even on $0 sessions (it's the identity for
+      // the subscription record). Without this, the "Pay and subscribe"
+      // button stays disabled — and the email input lives inside a Stripe-
+      // hosted iframe that Playwright getByLabel can't easily pierce, so
+      // pre-filling at the API level is the clean fix.
+      customer_email: `${driverId}@example.com`,
       // CRITICAL for the $0 path: without this, Stripe still demands a card.
       payment_method_collection: 'if_required',
     });
@@ -133,7 +152,7 @@ test.describe('Stripe Checkout — TEST mode end-to-end', () => {
     await expect(submit, 'submit button is mounted within 30s').toBeVisible({ timeout: 30_000 });
 
     // Wait until the button is enabled — Stripe disables it during initial
-    // hydration / coupon validation.
+    // hydration and re-enables it once the email passes validation.
     await expect(submit).toBeEnabled({ timeout: 15_000 });
 
     // -----------------------------------------------------------------------
