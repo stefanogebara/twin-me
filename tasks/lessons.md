@@ -319,3 +319,16 @@ The anime model is trained to clean up noisy anime scans — it aggressively rem
 - Anime model ONLY for genuine anime/manga sources with hard line art and flat fills.
 - When debugging "still looks blurry" after upscale: compare PNG-encoded crops between models. Smaller PNG = more smoothing = less detail. The visual differences can be subtle but the entropy never lies.
 - Default verification step: before shipping an upscale pass, eyeball the @2x output AND check the PNG-crop entropy ratio against the source. If output entropy ≤ 50% of source, the model is over-smoothing.
+
+---
+
+## 2026-05-21 — Used wrong prod domain (twinme.ai instead of twinme.me)
+
+**Incident**: Navigated to `https://www.twinme.ai/money/insights` during a post-deploy verification pass. User corrected: "its not twinme.ai its twinme.me!". The `.ai` guess came from generic AI-startup conventions, not from any file in the repo.
+
+**Why it slipped**: CLAUDE.md never explicitly states the production hostname. I inferred a domain instead of looking one up. The cookie-domain lesson (above) does reference `twinme.me` repeatedly — I should have used that as the canonical source.
+
+**Rule**:
+- The production domain is **twinme.me** (both `twinme.me` apex and `www.twinme.me` canonical).
+- Never guess a domain. If unsure, grep the repo for `twinme.` or check `vercel.json` / `package.json` / existing lessons before navigating.
+- Local dev: `http://localhost:8086` (frontend) + `http://localhost:3004` (backend) — already documented in CLAUDE.md.
