@@ -12,6 +12,7 @@
 import express from 'express';
 import crypto from 'crypto';
 import { authenticateUser } from '../middleware/auth.js';
+import { supabaseAdmin } from '../services/database.js';
 import { buildContextSourcesMeta } from '../services/twinContextBuilder.js';
 import { classifyNeuropil } from '../services/neuropilRouter.js';
 import { classifyQueryDomain, retrieveExpertMemories } from '../services/platformExperts.js';
@@ -109,8 +110,17 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Audit bug H4: create the conversation row only AFTER pre-flight
     // gates pass. Avoids orphan conversations on rate-limit / quota / paywall
     // rejections.
+    //
+    // Audit 2026-05-22: still seeing 80.5% of conversations EMPTY for the
+    // test user (342 of 425 rows). H4 stopped pre-flight rejections from
+    // creating ghosts, but anything that throws AFTER autoCreateConversation
+    // and BEFORE persistChatTurn (LLM timeout, tool-use error, SSE write
+    // failure, context-builder crash) still leaves an empty conversation.
+    // Track createdHere so the catch block can clean it up.
+    let conversationCreatedHere = false;
     if (!conversationId) {
       conversationId = await autoCreateConversation(userId, message);
+      conversationCreatedHere = !!conversationId;
     }
     const { featureFlags } = preFlight;
     const {
@@ -420,6 +430,9 @@ router.post('/message', authenticateUser, async (req, res) => {
       traceId,
       hopTimings,
     });
+    // Once persistence has run, the conversation has messages attached.
+    // Catch block's empty-conversation cleanup must NOT fire after this.
+    conversationCreatedHere = false;
 
     // Post-response side effects extracted to twinChatPipeline.js.
     runPostResponseSideEffects({
@@ -462,6 +475,21 @@ router.post('/message', authenticateUser, async (req, res) => {
 
   } catch (error) {
     stream?.clearTimeoutTimer();
+    // Audit 2026-05-22: delete the orphan conversation row we created
+    // earlier in this request if persistence never ran. Without this,
+    // every LLM timeout / tool-error / SSE-write failure leaves an
+    // empty twin_conversations row behind. Best-effort — never re-throw
+    // from cleanup since we're already in the error path.
+    if (conversationCreatedHere && conversationId) {
+      supabaseAdmin
+        .from('twin_conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', userId)
+        .then(({ error: delErr }) => {
+          if (delErr) log.warn('Orphan conversation cleanup failed', { conversationId, error: delErr.message });
+        });
+    }
     if (stream?.timedOut()) return;
 
     // Silently ignore write-after-close from client disconnects
