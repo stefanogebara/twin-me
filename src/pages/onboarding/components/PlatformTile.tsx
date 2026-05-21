@@ -59,8 +59,17 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
   }, [showMenu]);
 
   return (
+    // Stacking context fix (audit 2026-05-22): every tile sets
+    // backdrop-filter, which creates its OWN stacking context. The
+    // Manage dropdown inside used z-50 but that only competes WITHIN
+    // the tile's own context — adjacent tiles below in the DOM created
+    // sibling stacking contexts that won by document order, covering
+    // the dropdown so the user couldn't see Disconnect. Setting
+    // `position: relative` + a higher z-index on the WRAPPER when the
+    // menu is open lifts the entire tile above its siblings, so the
+    // dropdown renders cleanly without needing a portal.
     <div
-      className="flex items-center gap-4 px-5 py-4 rounded-[20px] transition-colors duration-150"
+      className={`flex items-center gap-4 px-5 py-4 rounded-[20px] transition-colors duration-150 relative ${showMenu ? 'z-50' : ''}`}
       style={{
         background: needsReconnect ? 'rgba(251,191,36,0.04)' : connected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(42px)',

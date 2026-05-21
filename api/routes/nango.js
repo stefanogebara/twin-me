@@ -352,7 +352,21 @@ router.delete('/connections/:platform', authenticateUser, async (req, res) => {
     const result = await nangoService.deleteConnection(userId, platform);
 
     if (result.success) {
-      // Also remove from our database
+      // Remove from our database — TWO writes, not one:
+      //   1. platform_connections.delete (the row /connectors/status
+      //      reads to decide Connect vs Manage in the UI)
+      //   2. nango_connection_mappings.update status='disconnected'
+      //      (the row the sync cron + extractors read via
+      //      getNangoConnectionId — leaving it 'active' makes sync
+      //      keep firing against a dead nango_connection_id and
+      //      silently breaks reconnect attempts).
+      //
+      // Audit 2026-05-22: omitting #2 was the Whoop reconnect bug.
+      // platform_connections never held a Whoop row (Nango-managed
+      // platforms only write the mapping row, not platform_connections),
+      // so #1 deleted nothing and #2 was missing entirely. Reconnect's
+      // upsert later collided with the still-active mapping; FE never
+      // saw the new state. Both writes now happen unconditionally.
       const { error: deleteErr } = await supabaseAdmin
         .from('platform_connections')
         .delete()
@@ -362,6 +376,16 @@ router.delete('/connections/:platform', authenticateUser, async (req, res) => {
       if (deleteErr) {
         log.error(`Failed to remove ${platform} connection from DB:`, deleteErr.message);
         return res.status(500).json({ success: false, error: 'Failed to remove connection record' });
+      }
+
+      // Soft-delete the Nango mapping so the sync cron stops firing
+      // against the dead connection. Keeps an audit trail.
+      try {
+        await deleteConnectionMapping(userId, platform);
+      } catch (mappingErr) {
+        // The Nango call already succeeded; a stale mapping row is
+        // recoverable via the next reconnect's upsert. Log + continue.
+        log.warn(`Failed to soft-delete nango mapping for ${platform}: ${mappingErr.message}`);
       }
 
       res.json({
