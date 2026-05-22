@@ -422,6 +422,25 @@ export async function executeAction(userId, action) {
  * Queue a write action for user confirmation instead of executing it.
  * Stores the pending action in agent_actions and returns a confirmation-required result.
  */
+/**
+ * Map a tool name to the department that should own its proposals.
+ * Audit 2026-05-22: every queued write action was created with
+ * department=NULL, so /departments + DepartmentWidget (which filter
+ * WHERE department IS NOT NULL) silently dropped them. Mapping
+ * here keeps every action visible on the agent-team surface.
+ */
+function departmentForTool(toolName) {
+  const name = String(toolName || '').toLowerCase();
+  if (name.includes('email') || name.includes('gmail') || name.includes('outlook')) return 'communications';
+  if (name.includes('calendar') || name.includes('event') || name.includes('schedule')) return 'scheduling';
+  if (name.includes('whoop') || name.includes('recovery') || name.includes('sleep')) return 'health';
+  if (name.includes('spotify') || name.includes('youtube') || name.includes('content')) return 'content';
+  if (name.includes('transaction') || name.includes('spend') || name.includes('budget')) return 'finance';
+  if (name.includes('search') || name.includes('research') || name.includes('lookup')) return 'research';
+  if (name.includes('relationship') || name.includes('contact') || name.includes('person')) return 'social';
+  return null;
+}
+
 async function queueWriteAction(userId, toolName, params) {
   try {
     const description = buildActionDescription(toolName, params);
@@ -432,6 +451,9 @@ async function queueWriteAction(userId, toolName, params) {
       autonomyLevel: 2, // DRAFT_CONFIRM — always requires approval
       personalityContext: null,
       platformSources: [],
+      // Audit 2026-05-22: thread the department through so
+      // /departments + DepartmentWidget surface this action.
+      department: departmentForTool(toolName),
     });
 
     const actionId = actionRecord?.id || null;

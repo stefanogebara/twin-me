@@ -204,6 +204,14 @@ export async function logAgentAction(userId, actionData) {
         autonomy_level: actionData.autonomyLevel || 1,
         personality_context: actionData.personalityContext || null,
         platform_sources: actionData.platformSources || [],
+        // Audit 2026-05-22: previously omitted. /departments page +
+        // DepartmentWidget on /dashboard filter `WHERE department IS
+        // NOT NULL`, so every action created without it was invisible
+        // to both surfaces. Callers thread it through now (e.g.
+        // workspaceActionParser maps tool→department).
+        department: actionData.department || null,
+        proposed_action: actionData.proposedAction || null,
+        context_summary: actionData.contextSummary || null,
       })
       .select()
       .single();
