@@ -150,11 +150,16 @@ export async function extractDiscordData(userId) {
       };
     }
 
-    // Update connection with error status
+    // Update connection with error status + diagnostics (timestamp + reason).
+    // See spotifyExtraction.js for the audit-2026-05-22 reasoning: writing only
+    // last_sync_status leaves last_sync_at frozen and last_sync_error null,
+    // so the row can't tell you when we tried or why it failed.
     const { error: failedErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
-        last_sync_status: 'failed'
+        last_sync_status: 'failed',
+        last_sync_at: new Date().toISOString(),
+        last_sync_error: (error?.message || 'unknown extraction error').slice(0, 500),
       })
       .eq('user_id', userId)
       .eq('platform', 'discord');

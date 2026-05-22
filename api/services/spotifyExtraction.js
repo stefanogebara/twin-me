@@ -187,11 +187,20 @@ export async function extractSpotifyData(userId) {
       };
     }
 
-    // Update connection with error status
+    // Update connection with error status + diagnostics. Audit 2026-05-22:
+    // previously this only wrote last_sync_status, which then overwrote a
+    // more informative update from tokenRefreshService.js's refresh-failure
+    // path that included last_sync_error + last_sync_at. End result: rows
+    // ended up with status=failed but last_sync_at frozen and last_sync_error
+    // null — you couldn't tell when we tried or why it failed. Including the
+    // diagnostic + timestamp here so this catch is also self-describing
+    // when it's the one that wins the write race.
     const { error: failedErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
-        last_sync_status: 'failed'
+        last_sync_status: 'failed',
+        last_sync_at: new Date().toISOString(),
+        last_sync_error: (error?.message || 'unknown extraction error').slice(0, 500),
       })
       .eq('user_id', userId)
       .eq('platform', 'spotify');
