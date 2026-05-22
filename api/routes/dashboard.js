@@ -26,7 +26,14 @@ router.get('/stats', authenticateUser, async (req, res) => {
       return res.json({ success: true, stats: cached });
     }
 
-    // Run all 5 DB queries in parallel
+    // Run all 5 DB queries in parallel.
+    // Audit 2026-05-22: previously the soul-progress query hit
+    // soul_signature_profile, which has had ZERO active writers since
+    // 2026-02-10 (101 days stale for the test user). The progress bar
+    // was therefore frozen on a 3-month-old number. Swapped to
+    // soul_signatures.reveal_level — the LIVE source maintained by
+    // the daily soul-signature-regen cron (now 7-day cadence per the
+    // 1c57ff5a fix).
     const [platformsResult, dataPointsResult, soulProfileResult, lastSyncResult, modelResult] = await Promise.all([
       // 1. Connected platforms count
       supabaseAdmin
@@ -41,12 +48,17 @@ router.get('/stats', authenticateUser, async (req, res) => {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId),
 
-      // 3. Soul signature progress
+      // 3. Soul signature progress — read from soul_signatures (the
+      // live archetype/narrative table) rather than soul_signature_profile
+      // (dead, 0 active writers since Feb 2026). reveal_level is a 0-100
+      // progress metric the regen cron updates with each fresh narrative.
       supabaseAdmin
-        .from('soul_signature_profile')
-        .select('confidence_score, data_completeness')
+        .from('soul_signatures')
+        .select('reveal_level')
         .eq('user_id', userId)
-        .single(),
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
 
       // 4. Last sync time
       supabaseAdmin
@@ -90,12 +102,13 @@ router.get('/stats', authenticateUser, async (req, res) => {
     const lastSync = lastSyncResult.data?.last_sync_at || new Date().toISOString();
     const trainingStatus = modelResult.data ? 'ready' : 'idle';
 
-    // Calculate soul signature progress
+    // Calculate soul signature progress. reveal_level is already a
+    // 0-100 integer maintained by soul-signature-regen. Fall back to
+    // a coarse "1 point per connected platform up to 5" if the user
+    // has no signature yet (first-time onboarding state).
     let soulSignatureProgress = 0;
-    if (soulProfile?.confidence_score) {
-      soulSignatureProgress = Math.round(parseFloat(soulProfile.confidence_score) * 100);
-    } else if (soulProfile?.data_completeness) {
-      soulSignatureProgress = Math.round(parseFloat(soulProfile.data_completeness));
+    if (typeof soulProfile?.reveal_level === 'number') {
+      soulSignatureProgress = Math.min(100, Math.max(0, soulProfile.reveal_level));
     } else if (connectedPlatforms > 0) {
       soulSignatureProgress = Math.min((connectedPlatforms / 5) * 100, 100);
     }
