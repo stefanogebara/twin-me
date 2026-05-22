@@ -302,8 +302,17 @@ For privacy concerns: privacy@twinme.me`
           Sign in to discover your soul signature
         </p>
 
-        {/* Beta invite code section */}
+        {/* Beta invite code section.
+            When inviteValid is true but a top-level error is also showing
+            (e.g. /auth?error=session_expired bounce-back), suppress the
+            green "Access granted" badge entirely — otherwise the page reads
+            as "✓ access granted ✗ session expired" which is contradictory
+            from the user's POV. The badge returns on the next successful
+            render. We still keep inviteValid=true so the user is NOT asked
+            to re-enter their invite code; only the badge UI is hidden.
+            Audit 2026-05-22. */}
         {inviteValid ? (
+          error ? null : (
           <div
             className="flex items-center gap-2.5 mb-6 py-3 px-4 rounded-lg"
             style={{
@@ -320,6 +329,7 @@ For privacy concerns: privacy@twinme.me`
               )}
             </span>
           </div>
+          )
         ) : (
           <div className="mb-6">
             <div className="flex gap-2">

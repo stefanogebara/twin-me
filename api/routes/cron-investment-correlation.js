@@ -82,12 +82,20 @@ async function findEligibleUsers() {
 }
 
 /**
- * Find investment events in the lookback window whose emotional context still
- * has a null recovery_score and re-tag them. Closes the "user connected Whoop
- * AFTER their brokerage was already linked" gap: the Plaid sync only retags
- * the rows it just inserted, so older trades remain recovery-less until
- * something kicks the tagger again. Returns the number of rows retagged so
- * the sweep log surfaces it.
+ * Find transactions in the lookback window whose emotional context still has a
+ * null recovery_score and re-tag them. Closes the "user connected Whoop AFTER
+ * the bank was already linked" gap: the Plaid/Pluggy/TrueLayer syncs only tag
+ * the rows they just inserted, so older transactions remain recovery-less
+ * until something kicks the tagger again. Returns the number of rows retagged
+ * so the sweep log surfaces it.
+ *
+ * 2026-05-22: removed the account_type='investment' filter. Was scoped to
+ * brokerage events originally, but the same gap applies to subscription
+ * chips on /money/insights — existing Touchstone Climbing charges (and any
+ * future checking/credit-card subscription rows imported before Whoop was
+ * connected) need the same retroactive retag treatment. The query is still
+ * bounded by LOOKBACK_DAYS and RETAG_BATCH_LIMIT, so cost per user stays
+ * the same; we just consider all account types.
  */
 async function backfillRecoveryForUser(userId) {
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86400_000).toISOString().slice(0, 10);
@@ -98,7 +106,6 @@ async function backfillRecoveryForUser(userId) {
       emotional_context:transaction_emotional_context (recovery_score)
     `)
     .eq('user_id', userId)
-    .eq('account_type', 'investment')
     .gte('transaction_date', since)
     .order('transaction_date', { ascending: false })
     .limit(RETAG_BATCH_LIMIT * 4);   // pull a wider window, then filter
