@@ -31,7 +31,13 @@ const log = createLogger('CronSoulSignatureRegen');
 
 const router = express.Router();
 
-const SIGNATURE_STALE_DAYS = 14;
+// Audit 2026-05-22: was 14 days. With Stefano accumulating ~600
+// platform_data + ~90 reflections per week, the underlying material
+// drifts noticeably before regen fires — narratives reference
+// "38K unread emails" while current count is 39.4K. Lowering to 7d
+// keeps the archetype + narrative tracking the user. MIN_NEW_MEMORIES
+// still gates against burning LLM cost on inactive users.
+const SIGNATURE_STALE_DAYS = 7;
 const MIN_NEW_MEMORIES = 500;
 const MAX_USERS_PER_RUN = 3;
 const WALL_CLOCK_BUDGET_MS = 45_000; // 15s margin to Vercel's 60s ceiling

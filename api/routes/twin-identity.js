@@ -35,20 +35,59 @@ const EXPERT_KEYS = [
 /**
  * Fetch the soul_signature_profile row for this user.
  * Returns null if the row doesn't exist or the query fails.
+ *
+ * Audit 2026-05-22: this query previously selected `archetype`,
+ * `core_values`, `personality_summary` from soul_signature_profile —
+ * NONE of those columns exist on that table. The query errored with
+ * "column does not exist", got caught by the surrounding try, and
+ * returned null on EVERY request. The /identity page's archetype
+ * tile (the most prominent visual) silently fell back. Now: pull
+ * the per-domain signature blobs from soul_signature_profile (where
+ * they actually live) and the archetype + narrative from
+ * soul_signatures (their actual home), then merge for the response.
  */
 async function fetchProfile(userId) {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('soul_signature_profile')
-      .select('archetype, uniqueness_markers, music_signature, core_values, personality_summary')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const [profileRes, sigRes] = await Promise.all([
+      supabaseAdmin
+        .from('soul_signature_profile')
+        .select('music_signature, uniqueness_markers, curiosity_profile, authenticity_score, last_updated')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('soul_signatures')
+        .select('archetype_name, archetype_subtitle, narrative, defining_traits, updated_at')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
-    if (error) {
-      log.warn('profile fetch error (non-fatal):', error.message);
-      return null;
+    if (profileRes.error) {
+      log.warn('profile fetch error (non-fatal):', profileRes.error.message);
     }
-    return data ?? null;
+    if (sigRes.error) {
+      log.warn('signature fetch error (non-fatal):', sigRes.error.message);
+    }
+
+    const profile = profileRes.data ?? null;
+    const signature = sigRes.data ?? null;
+    if (!profile && !signature) return null;
+
+    // Merge into the shape the FE expects (matches the old `archetype`
+    // + `core_values` + `personality_summary` field names so callers
+    // don't need a parallel rename).
+    return {
+      archetype: signature?.archetype_name ?? null,
+      archetype_subtitle: signature?.archetype_subtitle ?? null,
+      personality_summary: signature?.narrative ?? null,
+      core_values: signature?.defining_traits ?? null,
+      uniqueness_markers: profile?.uniqueness_markers ?? null,
+      music_signature: profile?.music_signature ?? null,
+      curiosity_profile: profile?.curiosity_profile ?? null,
+      authenticity_score: profile?.authenticity_score ?? null,
+      last_updated: signature?.updated_at ?? profile?.last_updated ?? null,
+    };
   } catch (err) {
     log.warn('profile fetch threw (non-fatal):', err.message);
     return null;
