@@ -76,6 +76,24 @@ const QUIET_BY_DESIGN = new Set([
   // skipped=0 AND executed=0 (no proposals at all), already covered
   // by the per-producer cron monitoring (e.g., emailTriage).
   'department-execute',
+  // 2026-05-22 fix-pass on monitor's first-live findings:
+  // deliver-insights pulls undelivered proactive_insights and sends
+  // them to messaging channels. For heavy chatters (Stefano: 49
+  // conversations in 7d), every insight is already marked
+  // delivered=true via the chat-context injection BEFORE this cron
+  // sees it. Idle behavior is product-correct, not a bug.
+  'deliver-insights',
+  // prospective-check fires when users have time-based reminders due.
+  // Producer (taskIntentClassifier in chat) only writes a row when
+  // a user explicitly says "remind me at...". Most users never use
+  // the feature; ZERO triggered runs are expected.
+  'prospective-check',
+  // pattern-learning reads recommendation_feedback. The table has 0
+  // rows globally — current FE feedback paths write to
+  // proactive_insights.nudge_followed/outcome instead. Until the
+  // producer is rewired (or the cron is deleted), 0 every run is
+  // correct, not a regression.
+  'pattern-learning',
 ]);
 
 // The set of OUTPUT counters a cron uses to prove it did real work.
