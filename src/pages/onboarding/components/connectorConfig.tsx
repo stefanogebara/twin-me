@@ -304,7 +304,12 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '10 seconds',
     privacyLevel: 'low',
     category: 'health',
-    comingSoon: true,
+    // comingSoon flag cleared 2026-05-22: Whoop has been functional for
+    // months (audit user has 97 historical observations from 2026-04-12
+    // and earlier; Nango whoop provider is fully wired in
+    // api/routes/nango.js + api/services/observationFetchers/whoop.js).
+    // The flag was leftover from pre-Nango launch and was hiding the
+    // tile from /connect, blocking the reconnect flow entirely.
   },
   {
     provider: 'fitbit' as DataProvider,
