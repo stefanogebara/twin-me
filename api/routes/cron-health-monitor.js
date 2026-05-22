@@ -66,6 +66,16 @@ const QUIET_BY_DESIGN = new Set([
   'bank-consent',
   'nudge-retrospective',
   'nudge-inactive',
+  // meeting-prep only fires briefings when meetings are upcoming. On
+  // weekends / holidays / off days, briefingsGenerated=0 is correct.
+  // First live run of the monitor flagged this as a false positive.
+  'meeting-prep',
+  // department-execute skips proposals when autonomy < 3 (ACT_NOTIFY).
+  // Most users haven't granted autonomy to most departments, so
+  // executed=0 + skipped>0 is the normal state. Real bug would be
+  // skipped=0 AND executed=0 (no proposals at all), already covered
+  // by the per-producer cron monitoring (e.g., emailTriage).
+  'department-execute',
 ]);
 
 // The set of OUTPUT counters a cron uses to prove it did real work.
@@ -79,10 +89,19 @@ const QUIET_BY_DESIGN = new Set([
 // as zombie. Add iterators here ONLY when you want "this cron ran"
 // to be sufficient proof of liveness.
 const USEFUL_WORK_COUNTERS = [
+  // Direct output verbs
   'processed', 'compiled', 'ingested', 'synced',
   'stored', 'tagged', 'retagged', 'debriefsGenerated',
   'briefingsGenerated', 'inserted', 'updated', 'sent',
-  'extracted', 'archived', 'replayed',
+  'extracted', 'archived', 'replayed', 'delivered',
+  'triggered', 'executed', 'usersProcessed',
+  // Counts of items that produced something (the cron itself).
+  // Distinct from `users` / `scanned` / `eligible` which only mean
+  // "I looked." Added after the 2026-05-22 first live run flagged
+  // observation-ingestion as zombie purely because it logs
+  // platformTimings (a per-user map) instead of a top-level counter.
+  // Without 'successCount' we'd never see the ingestion succeeding.
+  'successCount',
 ];
 
 /**
