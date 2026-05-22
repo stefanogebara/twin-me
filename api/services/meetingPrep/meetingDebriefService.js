@@ -297,15 +297,29 @@ Output ONLY the JSON object.`;
  */
 export async function findDebriefCandidates(userId) {
   const now = Date.now();
-  const cutoffEarly = new Date(now - 180 * 60 * 1000).toISOString();
-  const cutoffLate = new Date(now - 25 * 60 * 1000).toISOString();
+
+  // Audit 2026-05-22: previously gated on `generated_at >= now - 180m`.
+  // Briefings are generated BEFORE the meeting (often hours or days in
+  // advance via the prep cron). Filtering on generated_at threw away
+  // every candidate whose briefing was generated >180m ago — almost
+  // all of them. Cron reported "0 debriefs generated" every 30 min run
+  // for weeks. Stefano's Murilo Personal meeting (ended 2026-05-21
+  // 18:00 UTC) fired the cron at 18:30, 19:00, 19:30, 20:00 — all
+  // returned 0 because the briefing was generated the day before.
+  //
+  // Fix: SQL window scoped to briefings generated in the last 14 days
+  // (broad enough to catch any meeting that could still be in the
+  // debrief window). The in-memory _meta.endTime filter then picks
+  // the actual eligible candidates. limit(100) keeps the working set
+  // bounded for power users.
+  const sqlEarliestBriefingGen = new Date(now - 14 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await supabaseAdmin
     .from('meeting_briefings')
     .select('id, event_id, briefing_json, user_id')
     .eq('user_id', userId)
-    .gte('generated_at', cutoffEarly)
-    .limit(50);
+    .gte('generated_at', sqlEarliestBriefingGen)
+    .limit(100);
 
   if (error || !data) return [];
 
@@ -313,6 +327,7 @@ export async function findDebriefCandidates(userId) {
     const meta = row.briefing_json?._meta;
     if (!meta?.endTime) return false;
     const endTs = new Date(meta.endTime).getTime();
+    if (!Number.isFinite(endTs)) return false;
     // Meeting ended at least 25 min ago, at most 180 min ago.
     return endTs <= now - 25 * 60 * 1000 && endTs >= now - 180 * 60 * 1000
       && !row.briefing_json?.debrief;
