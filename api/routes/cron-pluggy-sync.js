@@ -114,10 +114,20 @@ router.all('/', async (req, res) => {
     const duration = Date.now() - startTime;
     log.info(`synced ${synced}/${connections.length} connections, ingested ${ingested} tx, ${errors.length} errors, ${duration}ms`);
 
-    await logCronExecution('pluggy-sync', 'success', duration, {
+    // Audit 2026-05-22: previously logged only `errors.length`. Pluggy
+    // had been silently erroring every day for 7+ days with no visibility
+    // into the actual cause. Persist the first 5 error rows so the next
+    // audit can see item_id + message without grep'ing Vercel runtime logs.
+    // Also flip the cron status to 'error' when EVERY connection failed —
+    // that's the loud signal monitoring should watch.
+    const cronStatus = errors.length > 0 && synced === 0 && connections.length > 0
+      ? 'error' : 'success';
+    await logCronExecution('pluggy-sync', cronStatus, duration, {
       synced,
       ingested,
       errors: errors.length,
+      errorSample: errors.slice(0, 5),
+      totalConnections: connections.length,
     });
 
     return res.json({
