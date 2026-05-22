@@ -7,7 +7,7 @@
 
 import axios from 'axios';
 import { supabaseAdmin } from './database.js';
-import { decryptToken } from './encryption.js';
+import { ensureFreshToken } from './tokenRefreshService.js';
 import PLATFORM_CONFIGS from '../config/platformConfigs.js';
 import { createLogger } from './logger.js';
 
@@ -34,8 +34,18 @@ export async function extractSpotifyData(userId) {
       throw new Error('No access token found for Spotify');
     }
 
-    // Decrypt access token
-    const accessToken = decryptToken(connection.access_token);
+    // Get a usable access token via ensureFreshToken — auto-refreshes from the
+    // refresh_token when the stored access_token has expired. Spotify access
+    // tokens are 1 hour, so any extraction run more than ~60 min after the
+    // last refresh would 401 without this. Audit 2026-05-22: previously this
+    // path decrypted the stored access_token directly and used it without
+    // checking expiry, which is why stefano's Spotify went silent from
+    // 2026-04-29 onwards despite a valid refresh_token being on file — every
+    // ingestion attempt threw on the first 401, the whole Promise.all
+    // rejected, and the connection drifted to status='expired'. The other
+    // (class-based) Spotify path at extractors/spotifyExtractor.js already
+    // did this right; this function was the laggard.
+    const accessToken = await ensureFreshToken(userId, 'spotify');
     const config = PLATFORM_CONFIGS.spotify;
 
     const headers = {
