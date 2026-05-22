@@ -513,6 +513,7 @@ import cronAgentActionsCleanupRoutes from './routes/cron-agent-actions-cleanup.j
 import cronMeetingPrepRoutes from './routes/cron-meeting-prep.js';
 import cronStripeWebhookEventsCleanupRoutes from './routes/cron-stripe-webhook-events-cleanup.js';
 import cronWikiCompileRoutes from './routes/cron-wiki-compile.js';
+import cronHealthMonitorRoutes from './routes/cron-health-monitor.js';
 import cronMeetingDebriefRoutes from './routes/cron-meeting-debrief.js';
 import wikiRoutes from './routes/wiki.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
@@ -748,6 +749,7 @@ app.use('/api/cron/meeting-prep', cronMeetingPrepRoutes); // Every 30 min: pre-m
 app.use('/api/cron/meeting-debrief', cronMeetingDebriefRoutes); // Every 30 min: post-meeting debriefs for meetings that just ended
 app.use('/api/cron/stripe-webhook-events-cleanup', cronStripeWebhookEventsCleanupRoutes); // Weekly Sun 4am UTC: prune stripe_webhook_events rows older than 30 days
 app.use('/api/cron/wiki-compile', cronWikiCompileRoutes); // Daily 02:00 UTC: refresh wiki pages — replaces the broken setTimeout chain in observationIngestion.js (Vercel terminates the parent process before the 60s timer fires)
+app.use('/api/cron/health-monitor', cronHealthMonitorRoutes); // Daily 04:30 UTC: scan cron_executions for the "looks healthy, does no work" pattern that hid meeting-debrief + pluggy-sync + soul-signature-regen for weeks during the 2026-05-22 audit
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
 app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)

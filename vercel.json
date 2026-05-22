@@ -158,6 +158,10 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/health-monitor",
+      "schedule": "30 4 * * *"
+    },
+    {
       "path": "/api/cron/evening-recap",
       "schedule": "0 23 * * *"
     },
