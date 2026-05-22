@@ -205,11 +205,29 @@ async function refreshAccessToken(platform, refreshToken, userId) {
   } catch (error) {
     log.error(`Token refresh failed for ${platform}:`, error.response?.data || error.message);
 
+    // Build a compact, human-readable diagnostic string for last_sync_error so
+    // anyone looking at the row knows WHY this refresh failed, not just that
+    // it did. Prefer the platform's structured error (`invalid_grant`,
+    // `invalid_client`, etc. — what Spotify/Google/etc. actually returned)
+    // over the bare JS message. Truncated to 500 chars so a pathological
+    // upstream response can't blow out the column.
+    // Audit 2026-05-22 follow-up: previously the catch wrote only status +
+    // updated_at, leaving last_sync_error=null and last_sync_at unchanged.
+    // From the row alone you couldn't tell "we just tried 30s ago and got a
+    // 401" vs "we haven't tried in 3 weeks." Now both signals are present.
+    const apiErr = error.response?.data;
+    const diagnostic = apiErr
+      ? (typeof apiErr === 'string' ? apiErr : JSON.stringify(apiErr)).slice(0, 500)
+      : (error.message || 'unknown refresh error').slice(0, 500);
+
     // Mark connection as expired (database constraint allows: connected, disconnected, error, pending, expired)
     const { error: expiredErr } = await supabaseAdmin
       .from('platform_connections')
       .update({
         status: 'expired',
+        last_sync_status: 'failed',
+        last_sync_error: diagnostic,
+        last_sync_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId)
