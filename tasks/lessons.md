@@ -359,3 +359,35 @@ The anime model is trained to clean up noisy anime scans — it aggressively rem
 - **Demo fixtures must be obviously demo.** If a fictional row needs to exist for UI density, it must be either (a) on a separate dedicated demo user account, or (b) visually tagged in the UI as a demo fixture. Don't mix synthetic rows with real ones on a real user's account.
 - **The surface surfaces the connection. The user supplies the interpretation.** A subscription signed up on a high-stress day is a *data join*, not a *flag*. Framings like "worth a look" / "feel the urge to subscribe at midnight" impose a judgment the surface can't justify. Use neutral descriptors ("landed on a high-stress day") and leave the conclusion to the human.
 - **Re-read the morning's lesson before adding any new surface.** If the session opened by deleting fabricated stress values, the closing move cannot be to add new fabricated stress values for narrative effect.
+
+---
+
+## 2026-05-22 — Two parallel Spotify extraction paths; only one called ensureFreshToken
+
+**Incident**: stefano's Spotify connection silently drifted from `status='success'` (last sync 2026-04-29) to `status='expired'` and stayed dead for 23 days despite a valid refresh_token sitting in `platform_connections` the entire time. The auto-refresh primitive (`ensureFreshToken`) exists and works correctly — it just wasn't being called from the extraction path the orchestrator uses.
+
+**Root cause**: There are TWO Spotify extractors in the codebase:
+1. `api/services/spotifyExtraction.js` — function-style `extractSpotifyData(userId)`, wired into `extractionOrchestrator.js:9`. Decrypted the stored access_token directly and used it. No expiry check. First 401 = `Promise.all` rejects = whole extraction throws = connection drifts to `status='expired'`.
+2. `api/services/extractors/spotifyExtractor.js` — class-style `SpotifyExtractor`, used by `dataExtractionService.js`. Correctly calls `ensureFreshToken` before each request and even retries on 401. Works perfectly.
+
+The orchestrator uses path #1 (the broken one). Path #2 is correct but not what runs in production crons. So the "token refresh is on-demand only" rule was being satisfied by the connectors-status endpoint (when the user opened the app) but NOT by the extraction cron, even though both should have called `ensureFreshToken`.
+
+**Why it slipped**: Two-codepath duplication where one is canonical-looking and the other is the actual production path. Easy to read `extractors/spotifyExtractor.js`, see the `ensureFreshToken` call, and assume the codebase is correct. Easy to grep for "ensureFreshToken" + "spotify" and get a green answer.
+
+**Fix shipped** (2026-05-22, commit 0ad86ecc):
+- Changed `spotifyExtraction.js` to import `ensureFreshToken` and call it instead of decrypting the stored token directly. `ensureFreshToken` already handles `status='expired'` rows (line 462-467 of tokenRefreshService.js) and resets to `status='connected'` on successful refresh, so stefano's existing row should self-heal on the next extraction without him needing to manually reconnect.
+
+**Broader pattern**: 11 OTHER extractor files use the same `decryptToken(connection.access_token)` direct-use pattern:
+- `api/services/githubExtraction.js` (probably fine — GitHub PATs don't expire)
+- `api/services/discordExtraction.js` (suspect — Discord access tokens expire in 1 week)
+- `api/services/extractors/soundcloudExtractor.js` (suspect)
+- `api/services/extractors/pinterestExtractor.js` (suspect)
+- `api/services/extractors/notionExtractor.js` (probably fine — Notion tokens don't expire)
+- `api/services/garminDirectService.js` (suspect — Garmin OAuth1 has different semantics, separate audit needed)
+- `api/services/transactions/plaidIngestion.js` (likely fine — Plaid access_tokens don't expire by default, but worth confirming)
+- ...
+
+**Rules**:
+- **Any platform with an `expires_in` in its OAuth response must use `ensureFreshToken`, never direct decrypt-and-use.** The token IS going to expire; the only question is whether the extraction silently dies when it does.
+- **Two extraction paths for the same platform = one of them is wrong.** Either consolidate (use the class-based one everywhere and delete the function-style one) or document loudly why both exist and keep them in sync. The current state — two paths with subtly different behavior, orchestrator using the worse one — is the worst of both worlds.
+- **Audit the 11 other extractors before declaring this class of bug fixed.** A dedicated sweep should: (a) check each platform's actual token lifetime, (b) verify the extractor uses `ensureFreshToken` if expiry is real, (c) write a smoke test that flips `token_expires_at` to the past and confirms the next extraction refreshes successfully.
