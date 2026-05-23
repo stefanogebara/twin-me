@@ -857,7 +857,7 @@ export const whoop = {
   getCycles: (userId, limit = 7) => proxyRequest(userId, 'whoop', `/cycle?limit=${limit}`),
   getRecovery: (userId, limit = 7) => proxyRequest(userId, 'whoop', `/recovery?limit=${limit}`),
   getSleep: (userId, limit = 5) => proxyRequest(userId, 'whoop', `/activity/sleep?limit=${limit}`),
-  getWorkout: (userId, limit = 30) => proxyRequest(userId, 'whoop', `/activity/workout?limit=${limit}`)
+  getWorkout: (userId, limit = 25) => proxyRequest(userId, 'whoop', `/activity/workout?limit=${limit}`)
 };
 
 export const calendar = {

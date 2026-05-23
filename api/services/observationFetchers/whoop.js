@@ -142,9 +142,10 @@ async function fetchWhoopObservations(userId) {
   if (isNangoManaged) {
     try {
       const nangoService = await import('../nangoService.js');
+      // Whoop v2 caps limit at 25 — anything higher returns 400.
       const [recoveryResult, sleepResult] = await Promise.all([
-        nangoService.whoop.getRecovery(userId, 30),
-        nangoService.whoop.getSleep(userId, 30),
+        nangoService.whoop.getRecovery(userId, 25),
+        nangoService.whoop.getSleep(userId, 25),
       ]);
       // Diagnostic: cron returns count=0 with status=ok — surface why.
       log.info('Whoop Nango fetch result', {
@@ -170,7 +171,7 @@ async function fetchWhoopObservations(userId) {
     try {
       const nangoService = await import('../nangoService.js');
       if (typeof nangoService.whoop?.getWorkout === 'function') {
-        const workoutResult = await nangoService.whoop.getWorkout(userId, 30);
+        const workoutResult = await nangoService.whoop.getWorkout(userId, 25);
         workoutData = workoutResult.success ? (workoutResult.data?.records || []) : [];
       }
     } catch (e) {
@@ -185,8 +186,8 @@ async function fetchWhoopObservations(userId) {
     directHeaders = { Authorization: `Bearer ${tokenResult.accessToken}` };
     try {
       const [recoveryRes, sleepRes] = await Promise.all([
-        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=30', { headers: directHeaders, timeout: 10000 }),
-        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=30', { headers: directHeaders, timeout: 10000 }),
+        axios.get('https://api.prod.whoop.com/developer/v2/recovery?limit=25', { headers: directHeaders, timeout: 10000 }),
+        axios.get('https://api.prod.whoop.com/developer/v2/activity/sleep?limit=25', { headers: directHeaders, timeout: 10000 }),
       ]);
       recoveryHistory = recoveryRes.data?.records || [];
       recoveryData = recoveryHistory[0] || null;
@@ -199,7 +200,7 @@ async function fetchWhoopObservations(userId) {
     // ── Workout data (direct) ───────────────────────────────────────────────
     try {
       const workoutRes = await axios.get(
-        'https://api.prod.whoop.com/developer/v2/activity/workout?limit=30',
+        'https://api.prod.whoop.com/developer/v2/activity/workout?limit=25',
         { headers: directHeaders, timeout: 10000 }
       );
       workoutData = workoutRes.data?.records || [];
