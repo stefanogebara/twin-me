@@ -48,6 +48,22 @@ const CustomAuth = () => {
     const urlError = searchParams.get('error');
     if (urlError === 'session_expired') {
       setError('Your session expired. Please sign in again.');
+      // audit-2026-05-23: auto-recover from broken auth state. Some users
+      // land here with a stale localStorage user + dead refresh cookie, and
+      // re-attempting OAuth in that state can keep failing because half-set
+      // session keys interfere with the fresh flow. Wipe everything auth-
+      // adjacent so the next click on "Continue with Google" starts clean.
+      // Preserve beta_invite_code and twinme_discovery_confirmed — those
+      // gate the OAuth UI itself and are not part of the broken session.
+      ['auth_user', 'auth_provider', 'twinme_account_created', 'demo_mode',
+       'twin_chat_history', 'soul-signature-onboarding', 'twinme_interview_progress',
+      ].forEach((k) => localStorage.removeItem(k));
+      const preservedSession = {
+        beta_invite_code: sessionStorage.getItem('beta_invite_code'),
+        twinme_discovery_confirmed: sessionStorage.getItem('twinme_discovery_confirmed'),
+      };
+      sessionStorage.clear();
+      Object.entries(preservedSession).forEach(([k, v]) => { if (v) sessionStorage.setItem(k, v); });
     } else if (urlError === 'invalid_state') {
       setError('Something went wrong with sign-in. Please try again.');
     }
