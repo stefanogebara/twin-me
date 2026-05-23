@@ -200,6 +200,16 @@ async function fetchTwitchObservations(userId) {
       userProfileData = userData;
       twitchUserId = userData?.id || null;
 
+      // Diagnostic: cron returns count=0, local returns 3 — surface where it bails.
+      log.info('Twitch Nango getUser result', {
+        userId: userId.slice(0, 8),
+        ok: userResult?.success,
+        status: userResult?.status ?? userResult?.statusCode ?? null,
+        error: userResult?.error || null,
+        clientIdSet: !!process.env.TWITCH_CLIENT_ID,
+        twitchUserId,
+      });
+
       const broadcastType = userData?.broadcaster_type;
       const isStreamer = broadcastType === 'affiliate' || broadcastType === 'partner';
       if (isStreamer) {
@@ -221,6 +231,13 @@ async function fetchTwitchObservations(userId) {
       const followResult = await nangoService.twitch.getFollowedChannels(userId, twitchUserId);
       const channels = followResult.success ? (followResult.data?.data || []) : [];
       followedChannelsData = channels;
+      log.info('Twitch Nango getFollowedChannels result', {
+        userId: userId.slice(0, 8),
+        ok: followResult?.success,
+        status: followResult?.status ?? followResult?.statusCode ?? null,
+        error: followResult?.error || null,
+        channelsLen: channels.length,
+      });
       _buildTwitchChannelObservations(observations, channels);
     } catch (e) {
       log.warn('Twitch Nango getFollowedChannels error', { error: e });
