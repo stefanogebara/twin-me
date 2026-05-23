@@ -146,10 +146,26 @@ const retagLimiter = rateLimit({
 });
 
 /**
+ * audit-2026-05-23 M2: symmetric limiter on /upload. Each call parses a CSV/OFX
+ * file (multi-MB), inserts N rows, runs detectAndMarkRecurring, syncAllSignals,
+ * and an awaited tagTransactionsBatch (multi-second on 200+ rows). N rapid uploads
+ * × that pipeline easily exceeds 60s Vercel maxDuration and burns OpenAI tokens.
+ * Same 5 / 15min budget as retag — onboarding flows fit comfortably under it.
+ */
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, res) => req.user?.id || ipKeyGenerator(req, res),
+  message: { success: false, error: 'too_many_upload_requests', code: 'RATE_LIMITED' },
+});
+
+/**
  * POST /api/transactions/upload
  * multipart/form-data with a `file` field (CSV or OFX).
  */
-router.post('/upload', authenticateUser, uploadSingleFile('file'), async (req, res) => {
+router.post('/upload', authenticateUser, uploadLimiter, uploadSingleFile('file'), async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ success: false, error: 'unauthorized' });

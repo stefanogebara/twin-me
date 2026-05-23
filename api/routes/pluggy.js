@@ -241,9 +241,27 @@ router.post('/register', async (req, res) => {
     }
 
     // Ownership: Pluggy echoes the clientUserId we passed at connect_token creation.
-    // Reject if it doesn't match — prevents Mallory from registering Alice's itemId.
+    // audit-2026-05-23 M1: previously the check was `if (itemUserId && itemUserId !== userId)`,
+    // which fell open when clientUserId was null/undefined (which Pluggy sandbox
+    // occasionally returns). An authed user could then claim ANY itemId they could
+    // guess by hitting /register. We now refuse claims with a null clientUserId
+    // UNLESS we already own the row locally (handles legacy items predating the
+    // strict requirement — zero such rows exist in prod today, but the carve-out
+    // means a future backfill is safe).
     const itemUserId = item.clientUserId;
-    if (itemUserId && itemUserId !== userId) {
+    if (!itemUserId) {
+      const { data: existing } = await supabaseAdmin
+        .from('user_bank_connections')
+        .select('id')
+        .eq('pluggy_item_id', itemId)
+        .eq('user_id', userId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (!existing) {
+        log.warn(`register: itemId ${itemId} has null clientUserId; refusing claim by user=${userId}`);
+        return res.status(403).json({ success: false, error: 'cannot verify item ownership' });
+      }
+    } else if (itemUserId !== userId) {
       log.warn(`register: itemId ${itemId} clientUserId=${itemUserId} but auth user=${userId}`);
       return res.status(403).json({ success: false, error: 'item belongs to a different user' });
     }

@@ -1305,6 +1305,11 @@ export default function MoneyPage() {
         <div style={CARD_STYLE}>
           <p style={{ ...LABEL_STYLE, padding: '16px 16px 0' }}>Últimas transações</p>
           <div>
+            {/* audit-2026-05-23 M5: list fetched with limit:50 (line 772). 50 DOM
+                nodes is comfortable — react-window is only worth the complexity
+                past ~200 rows. If you raise the listTransactions limit above 200,
+                add react-window virtualization here (variable item height because
+                of the chips row). */}
             {transactions.map((tx) => (
               <TransactionRow key={tx.id} tx={tx} />
             ))}
