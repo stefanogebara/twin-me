@@ -302,6 +302,25 @@ export async function getLiabilities(accessToken) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Webhook verification key                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Fetch the public key used to sign a webhook JWT. Plaid embeds a `kid`
+ * (key id) claim in the JWT header; callers extract it and pass it here to
+ * receive the matching JWK. Keys rotate, but Plaid documents that an
+ * `expired_at` key remains valid for verification for 24h after rotation —
+ * the verifier must check the expiry and reject older signatures.
+ *
+ * Response shape: `{ key: { alg: 'ES256', crv: 'P-256', kid, kty: 'EC',
+ * use: 'sig', x, y, created_at, expired_at } }`.
+ */
+export async function webhookVerificationKeyGet(keyId) {
+  if (!keyId) throw new Error('keyId is required');
+  return authedPost('/webhook_verification_key/get', { key_id: keyId });
+}
+
+/* -------------------------------------------------------------------------- */
 /* Sandbox helpers (test-only — not callable in production)                    */
 /* -------------------------------------------------------------------------- */
 

@@ -29,31 +29,39 @@ const log = createLogger('pluggy-webhook');
 const router = express.Router();
 
 const WEBHOOK_SECRET = process.env.PLUGGY_WEBHOOK_SECRET;
+// audit-2026-05-23 C2: opt-in fail-closed mode for prod. When set, an
+// unauthenticated webhook is rejected even if PLUGGY_WEBHOOK_SECRET is unset
+// or Pluggy's payload arrives without the expected header. Default off so
+// existing dev/sandbox flows keep working.
+const REQUIRE_AUTH = process.env.PLUGGY_WEBHOOK_REQUIRE_AUTH === 'true';
 
 /**
- * Secret check — optional because Pluggy's dashboard webhook form does NOT
- * expose custom-header configuration (only the URL). If the secret env is
- * set AND a header is present, we enforce a match. If either is absent,
- * we accept the request and rely on the downstream defenses:
+ * Secret check. Pluggy's dashboard does NOT expose custom-header config, so
+ * historically we accepted requests with no header to avoid breakage. That
+ * fail-open path is gated behind REQUIRE_AUTH=false (default for backwards
+ * compat). In prod set PLUGGY_WEBHOOK_REQUIRE_AUTH=true + PLUGGY_WEBHOOK_SECRET
+ * to fail-closed.
  *
+ * Downstream defenses (regardless of mode):
  *   1. clientUserId must map to a real user in user_bank_connections
  *   2. pluggy_item_id must exist and not be soft-deleted
  *   3. Events for unknown items are logged and dropped
- *
- * When Pluggy ships HMAC signing (or we find the header config), tighten
- * this to fail-closed again.
  */
 function verifyPluggySecret(req) {
-  if (!WEBHOOK_SECRET) return true; // no secret configured — accept
   const header = req.headers['x-pluggy-signature'] || req.headers['x-webhook-secret'];
-  if (!header || typeof header !== 'string') return true; // Pluggy didn't send one — accept
+
+  if (!WEBHOOK_SECRET) {
+    return !REQUIRE_AUTH; // no secret = reject when REQUIRE_AUTH, else accept
+  }
+  if (!header || typeof header !== 'string') {
+    return !REQUIRE_AUTH; // secret set but no header = reject when REQUIRE_AUTH
+  }
   try {
     return crypto.timingSafeEqual(
       Buffer.from(WEBHOOK_SECRET, 'utf8'),
       Buffer.from(header, 'utf8'),
     );
   } catch {
-    // Length mismatch — secret rotated or malformed header. Reject.
     return false;
   }
 }

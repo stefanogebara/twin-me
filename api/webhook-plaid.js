@@ -32,11 +32,17 @@ import {
   syncItem,
   resolveItemContext,
 } from './services/transactions/plaidIngestion.js';
+import { verifyPlaidWebhook } from './services/transactions/plaidWebhookVerifier.js';
 import { createLogger } from './services/logger.js';
 
 const log = createLogger('plaid-webhook-lambda');
 
 const WEBHOOK_SECRET = process.env.PLAID_WEBHOOK_SECRET;
+// audit-2026-05-23 C3: when true, ONLY accept JWS-verified webhooks. Keep
+// false during rollout so the existing shared-secret fallback covers gaps
+// while the JWT path is observed. Flip to true once Vercel logs show
+// JWS-verified events arriving cleanly.
+const REQUIRE_JWS = process.env.PLAID_WEBHOOK_REQUIRE_JWS === 'true';
 
 const RATE_BUCKETS = new Map();
 const RATE_WINDOW_MS = 60_000;
@@ -72,6 +78,20 @@ function verifyPlaidSecret(headers) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Read the raw request body as a string. Plaid signs the exact bytes it
+ * sent, so JSON.stringify(req.body) is NOT good enough — key ordering and
+ * whitespace differ. We disable Vercel's automatic body parsing below and
+ * pull the bytes off the stream ourselves.
+ */
+async function readRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 // In-memory dedup. Plaid doesn't ship a stable event_id like Pluggy, so we
@@ -234,12 +254,52 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!verifyPlaidSecret(req.headers)) {
+  // Pull raw body off the stream. bodyParser is disabled below so req.body
+  // is undefined here — the verifier needs exact bytes for the sha256 check.
+  let rawBody;
+  try {
+    rawBody = await readRawBody(req);
+  } catch (err) {
+    log.warn(`body read failed: ${err.message}`);
+    res.status(400).json({ success: false, error: 'body read failed' });
+    return;
+  }
+
+  // Primary path: Plaid's JWS verification via plaid-verification header.
+  const signedJwt = req.headers['plaid-verification'];
+  let verifiedVia = null;
+  if (signedJwt) {
+    const result = await verifyPlaidWebhook(rawBody, signedJwt);
+    if (result.valid) {
+      verifiedVia = 'jws';
+    } else {
+      log.warn(`JWS verification failed: ${result.reason}`);
+      if (REQUIRE_JWS) {
+        res.status(401).json({ success: false, error: 'unauthorized' });
+        return;
+      }
+    }
+  } else if (REQUIRE_JWS) {
     res.status(401).json({ success: false, error: 'unauthorized' });
     return;
   }
 
-  const payload = (typeof req.body === 'object' && req.body !== null) ? req.body : {};
+  // Fallback path (transition window): legacy shared-secret header.
+  if (!verifiedVia) {
+    if (!verifyPlaidSecret(req.headers)) {
+      res.status(401).json({ success: false, error: 'unauthorized' });
+      return;
+    }
+    verifiedVia = 'shared-secret';
+  }
+
+  let payload;
+  try {
+    payload = rawBody ? JSON.parse(rawBody) : {};
+  } catch {
+    res.status(400).json({ success: false, error: 'invalid json' });
+    return;
+  }
   if (!payload.webhook_type || !payload.webhook_code) {
     res.status(400).json({ success: false, error: 'missing webhook_type or webhook_code' });
     return;
@@ -252,7 +312,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  log.info(`received ${payload.webhook_type}/${payload.webhook_code} for item ${payload.item_id || '?'}`);
+  log.info(`received ${payload.webhook_type}/${payload.webhook_code} for item ${payload.item_id || '?'} (auth=${verifiedVia})`);
 
   try {
     await dispatch(payload);
@@ -265,4 +325,9 @@ export default async function handler(req, res) {
 
 export const config = {
   maxDuration: 60,
+  api: {
+    // We read the body manually for JWS sha256 verification — Vercel must
+    // not auto-parse it (re-stringified JSON would never hash-match).
+    bodyParser: false,
+  },
 };

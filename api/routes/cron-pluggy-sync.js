@@ -83,7 +83,12 @@ router.all('/', async (req, res) => {
     let ingested = 0;
     const errors = [];
 
-    for (const c of connections) {
+    // audit-2026-05-23 H5: previously sequential — 50 connections × ~2s each
+    // exceeded the 60s Vercel maxDuration on heavy days. Promise.allSettled in
+    // chunks of CONCURRENCY keeps the "one bad connection doesn't kill the
+    // run" semantics while bringing worst-case wall time from ~100s to ~20s.
+    const CONCURRENCY = 5;
+    async function syncOne(c) {
       try {
         // 1. Ask Pluggy to refresh (triggers re-auth + fresh transaction pull).
         const updated = await pluggy.triggerSync(c.pluggy_item_id);
@@ -102,12 +107,26 @@ router.all('/', async (req, res) => {
         // and upserts them. Safe to run daily — already-ingested rows no-op; missed
         // rows from webhook failures get inserted.
         const result = await seedItemTransactions(c.user_id, c.pluggy_item_id);
-        ingested += result?.inserted || 0;
-        synced++;
+        return { ok: true, inserted: result?.inserted || 0 };
       } catch (err) {
         log.warn(`sync failed for item ${c.pluggy_item_id}: ${err.message}`);
-        errors.push({ item: c.pluggy_item_id, error: err.message });
-        // Continue — one bad connection must not take down the whole run.
+        return { ok: false, item: c.pluggy_item_id, error: err.message };
+      }
+    }
+
+    for (let i = 0; i < connections.length; i += CONCURRENCY) {
+      const batch = connections.slice(i, i + CONCURRENCY);
+      const results = await Promise.allSettled(batch.map(syncOne));
+      for (const r of results) {
+        // Promise.allSettled never rejects — syncOne catches internally — so
+        // every result is fulfilled with our { ok, ... } shape.
+        const v = r.value;
+        if (v?.ok) {
+          synced++;
+          ingested += v.inserted;
+        } else if (v) {
+          errors.push({ item: v.item, error: v.error });
+        }
       }
     }
 
