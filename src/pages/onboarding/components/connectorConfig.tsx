@@ -1,5 +1,4 @@
 import React from 'react';
-import { FileText, Image as ImageIcon, Gamepad2, Languages, Headphones } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 // ====================================================================
@@ -120,6 +119,36 @@ const OutlookLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
     <path d="M19.484 15.457l1.747 1.2a.522.522 0 00.543 0c-.3.181 5.947-3.627 5.947-3.627a1.149 1.149 0 00.479-.756v9.566a1.67 1.67 0 01-.485 1.16 1.678 1.678 0 01-1.167.489h-7.064v-8.032z" fill="currentColor"/>
     <path d="M10.44 12.932a1.032 1.032 0 00-1.034 1.034v4.085a1.034 1.034 0 102.069 0v-4.085a1.032 1.032 0 00-1.035-1.034z" fill="currentColor"/>
     <path d="M1.441 9.186v13.628a1.812 1.812 0 001.812 1.812h14.225V7.374H3.253a1.812 1.812 0 00-1.812 1.812zm9 11.812a3.1 3.1 0 01-3.1-3.1v-4.085a3.1 3.1 0 016.2 0v4.085a3.1 3.1 0 01-3.1 3.1z" fill="currentColor"/>
+  </svg>
+);
+
+const NotionLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936.585l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.96z"/>
+  </svg>
+);
+
+const DuolingoLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M11.992 0C5.378 0 .013 5.371.013 11.999c0 6.628 5.365 11.999 11.979 11.999 6.612 0 11.978-5.371 11.978-11.999C23.97 5.37 18.604 0 11.992 0M5.797 14.18c.013-.74.62-1.34 1.361-1.34a1.36 1.36 0 011.348 1.34v.013a1.366 1.366 0 01-1.348 1.354 1.355 1.355 0 01-1.361-1.354zm7.83 5.07c-1.4 0-3.018-.413-4.366-1.193a1.094 1.094 0 01.522-2.04c.193-.013.413.04.604.144.92.553 2.107.873 3.225.873.578 0 1.087-.094 1.4-.247.32-.166.413-.353.4-.553-.013-.193-.106-.36-.413-.526-.36-.193-.96-.36-1.853-.486-2.227-.32-3.85-1.067-4.79-2.413a4.3 4.3 0 01-.78-2.46c0-.832.25-1.612.72-2.282.453-.66 1.067-1.146 1.733-1.486 1.346-.677 2.96-.86 4.43-.86 1.86 0 3.4.473 4.317 1.04.546.34.72 1.04.4 1.586a1.13 1.13 0 01-1.51.426c-.546-.32-1.78-.733-3.207-.733-1.293 0-2.453.183-3.146.526-.34.183-.566.373-.703.59a.83.83 0 00-.13.45.7.7 0 00.156.46c.123.18.343.343.74.503.49.193 1.246.36 2.32.5 2.103.297 3.694.973 4.6 2.31a4.123 4.123 0 01.76 2.387 4.1 4.1 0 01-.586 2.16 4.116 4.116 0 01-1.624 1.476c-1.36.7-2.96.83-3.96.83zm2.96-5.07a1.366 1.366 0 01-1.347 1.354h-.014a1.355 1.355 0 01-1.36-1.354v-.013c.013-.74.626-1.34 1.36-1.34.74-.006 1.36.6 1.36 1.34v.013z"/>
+  </svg>
+);
+
+const SteamLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.625 0 .395 4.957.026 11.235l6.428 2.66c.545-.371 1.203-.59 1.911-.59.063 0 .126 0 .19.006l2.866-4.146v-.061c0-2.504 2.038-4.542 4.541-4.542s4.542 2.038 4.542 4.542-2.039 4.541-4.541 4.541h-.107l-4.075 2.91c0 .053.005.105.005.16 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.004-1.165-3.32-2.708l-4.6-1.91C2.36 20.221 6.79 24 12 24c6.626 0 12-5.375 12-12 0-6.626-5.375-12-12-12zM7.531 18.176c.366.155.785.245 1.227.245 1.31 0 2.371-1.061 2.371-2.367 0-1.31-1.061-2.376-2.371-2.376-.43 0-.836.116-1.184.32l1.55.644c.964.398 1.418 1.498.953 2.45-.398.962-1.498 1.416-2.45.953l-1.498-.624c.27.31.621.553 1.402.755zm10.969-9.847c0-1.671-1.355-3.026-3.026-3.026-1.676 0-3.031 1.355-3.031 3.026 0 1.671 1.355 3.026 3.031 3.026 1.671 0 3.026-1.355 3.026-3.026zm-5.305.013c0-1.255 1.018-2.273 2.273-2.273s2.273 1.018 2.273 2.273-1.018 2.273-2.273 2.273S13.195 9.6 13.195 8.342z"/>
+  </svg>
+);
+
+const PinterestLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+  </svg>
+);
+
+const SoundcloudLogo = ({ className = "w-6 h-6" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M7 17.939h-1v-8.068c.308-.231.639-.429 1-.566v8.634zm3 0h1v-9.224c-.229-.265-.443-.548-.621-.857l-.379.184v9.897zm-2 0h1v-9.072c-.327.116-.66.249-1 .398v8.674zm-4 0h1v-7.358c-.354.247-.689.527-1 .836v6.522zm-2-5.74c-.484.96-.762 2.041-.762 3.18 0 .888.171 1.733.481 2.51l.281.05v-5.74zm22.117-1.541c.207-.428.323-.907.323-1.413 0-1.802-1.451-3.262-3.243-3.262-.494 0-.961.115-1.378.314-.494-2.428-2.726-4.265-5.404-4.265-.625 0-1.227.106-1.789.293-.225.075-.281.156-.281.345v15.502c0 .203.143.371.341.394.012.001.711.024 1.66.024 4.797 0 7.851-.043 8.026-.069 2.197-.337 3.831-2.218 3.831-4.394 0-1.555-.85-2.926-2.137-3.665"/>
   </svg>
 );
 
@@ -352,7 +381,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     provider: 'notion' as DataProvider,
     name: 'Notion',
     description: 'Journals, goals, reading lists, life OS pages — the richest authentic self-record available.',
-    icon: <FileText className="w-6 h-6" />,
+    icon: <NotionLogo className="w-6 h-6" />,
     color: '#000000',
     dataTypes: ['Journals', 'Goals', 'Reading Lists', 'Life OS'],
     estimatedInsights: 15,
@@ -364,7 +393,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     provider: 'duolingo' as DataProvider,
     name: 'Duolingo',
     description: 'Which languages you\'re learning + streak length reveals cultural curiosity and discipline. No OAuth needed — just your public username.',
-    icon: <Languages className="w-6 h-6" />,
+    icon: <DuolingoLogo className="w-6 h-6" />,
     color: '#58CC02',
     dataTypes: ['Languages', 'Streak', 'Total XP', 'Courses'],
     estimatedInsights: 8,
@@ -376,7 +405,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     provider: 'steam' as DataProvider,
     name: 'Steam',
     description: 'Owned games + playtime + achievements — reveals gaming identity, obsessions, and completion style. Public profile required.',
-    icon: <Gamepad2 className="w-6 h-6" />,
+    icon: <SteamLogo className="w-6 h-6" />,
     color: '#171A21',
     dataTypes: ['Owned Games', 'Playtime', 'Achievements', 'Recent Activity'],
     estimatedInsights: 10,
@@ -388,7 +417,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     provider: 'pinterest' as DataProvider,
     name: 'Pinterest',
     description: 'Board names, pins, and saved aesthetic — reveals taste, aspirational lifestyle, and curated identity.',
-    icon: <ImageIcon className="w-6 h-6" />,
+    icon: <PinterestLogo className="w-6 h-6" />,
     color: '#E60023',
     dataTypes: ['Boards', 'Pins', 'Aesthetic', 'Taste'],
     estimatedInsights: 10,
@@ -400,7 +429,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     provider: 'soundcloud' as DataProvider,
     name: 'SoundCloud',
     description: 'Likes, follows, playlists, and your own uploads — indie, electronic, and DJ-mix taste that Spotify often misses.',
-    icon: <Headphones className="w-6 h-6" />,
+    icon: <SoundcloudLogo className="w-6 h-6" />,
     color: '#FF5500',
     dataTypes: ['Likes', 'Follows', 'Playlists', 'Uploads'],
     estimatedInsights: 10,
