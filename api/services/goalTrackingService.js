@@ -729,7 +729,20 @@ async function trackGoalProgress(userId, platformData) {
       if (measuredValue == null) {
         measuredValue = await extractMetricFromMemories(userId, goal.metric_type);
       }
-      if (measuredValue == null) continue;
+
+      // audit-2026-05-23 C1: previously a null measurement silently `continue`'d
+      // without leaving any trace, so the only signal that the tracker ran was
+      // last_progress_check being non-null — and it was never updated on null
+      // either. Now we stamp last_progress_check on every attempt so ops can
+      // see "tracker ran, found nothing" vs "tracker never ran". The streak +
+      // log writes still require a real measurement.
+      if (measuredValue == null) {
+        await supabase
+          .from('twin_goals')
+          .update({ last_progress_check: new Date().toISOString() })
+          .eq('id', goal.id);
+        continue;
+      }
 
       const targetMet = evaluateTarget(measuredValue, goal.target_value, goal.target_operator);
 
@@ -782,6 +795,7 @@ async function trackGoalProgress(userId, platformData) {
         newStatus = successRate >= 0.6 ? 'completed' : 'expired';
       }
 
+      const nowIso = new Date().toISOString();
       const { error: updateErr } = await supabase
         .from('twin_goals')
         .update({
@@ -789,7 +803,11 @@ async function trackGoalProgress(userId, platformData) {
           best_streak: newBestStreak,
           total_days_tracked: newTotalTracked,
           total_days_met: newTotalMet,
-          last_progress_check: new Date().toISOString(),
+          last_progress_check: nowIso,
+          // audit-2026-05-23 C1: surface latest reading so the FE progress bar
+          // can render "currently 78 of 75 target" without joining the log.
+          last_measured_value: measuredValue,
+          last_measured_at: nowIso,
           status: newStatus,
           celebration_delivered: newStatus === 'completed' ? false : goal.celebration_delivered,
           metadata: { ...(goal.metadata ?? {}), consecutive_misses: newConsecutiveMisses },

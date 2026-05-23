@@ -62,12 +62,12 @@ function ActiveGoalCard({ goal, onComplete }: { goal: Goal; onComplete: (id: str
             </p>
           )}
           {goal.target_value != null && (
-            <ProgressBar current={goal.current_value} target={goal.target_value} />
+            <ProgressBar current={goal.last_measured_value ?? undefined} target={goal.target_value} />
           )}
           <div className="flex items-center gap-3 mt-2">
-            {goal.streak_days != null && goal.streak_days > 0 && (
+            {goal.current_streak != null && goal.current_streak > 0 && (
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', sans-serif" }}>
-                {goal.streak_days}d streak
+                {goal.current_streak}d streak
               </span>
             )}
             {goal.end_date && (

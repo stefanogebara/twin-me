@@ -5,17 +5,26 @@ export interface Goal {
   user_id: string;
   title: string;
   description?: string;
-  status: 'suggested' | 'active' | 'completed' | 'abandoned';
+  status: 'suggested' | 'active' | 'completed' | 'abandoned' | 'expired';
   metric_type: string;
   target_value?: number;
-  current_value?: number;
-  unit?: string;
+  target_operator?: '>=' | '<=' | '>' | '<' | '=';
+  target_unit?: string;
   start_date?: string;
   end_date?: string;
   created_at: string;
   completed_at?: string;
-  streak_days?: number;
+  // audit-2026-05-23 C4: API returns these fields, not the legacy
+  // current_value/streak_days/best_streak shape the old interface declared.
+  // Reading current_value/streak_days off a goal returns undefined → progress
+  // bar always rendered 0% and streak chip never appeared, so users saw no
+  // feedback that tracking was working.
+  current_streak?: number;
   best_streak?: number;
+  total_days_tracked?: number;
+  total_days_met?: number;
+  last_measured_value?: number | null;
+  last_measured_at?: string | null;
 }
 
 export interface GoalSummary {
