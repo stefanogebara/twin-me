@@ -565,6 +565,21 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
       }
     });
   } catch (error) {
+    const status = error.response?.status;
+
+    // 401: nango.proxy() doesn't auto-refresh for all providers (Twitch tokens
+    // expire every ~4h and Nango proxy uses the stale cached token). Force-refresh
+    // the connection once and retry the proxy call.
+    if (status === 401 && !options._isRefreshRetry) {
+      try {
+        log.warn(`401 for ${platform} — force-refreshing token and retrying once`);
+        await nango.getConnection(providerConfigKey, connectionId, true);
+        return await proxyRequest(userId, platform, endpoint, { ...options, _isRefreshRetry: true });
+      } catch (retryErr) {
+        log.warn(`${platform} refresh-retry failed: ${retryErr.message}`);
+      }
+    }
+
     log.error(`Proxy request failed for ${platform}:`, error.message);
 
     // Detect HTML error responses
@@ -574,12 +589,11 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
         success: false,
         error: `${platform} connection appears invalid. Please reconnect to ${platform}.`,
         needsReconnect: true,
-        status: error.response?.status
+        status
       };
     }
 
     // 424 = Nango says the upstream connection failed (expired/revoked token)
-    const status = error.response?.status;
     if (status === 424) {
       log.warn(`424 for ${platform} — marking connection as needs_reconnect`);
       if (supabaseAdmin) {
