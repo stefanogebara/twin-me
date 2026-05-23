@@ -36,6 +36,15 @@
 export const STRESS_HIGH = 0.6;
 export const NUDGE_TRIGGER = 0.65;
 export const STRESS_LOW = 0.4;
+
+/**
+ * STRESS_MULTISIGNAL — relaxed gate for stress-shop flagging when multiple
+ * signals concur. Audit 2026-05-23 H1: STRESS_HIGH (0.6) never fired because
+ * component weights sum to ~0.85 max (biology 0.40 + calendar 0.25 + music 0.20),
+ * and multi-signal scores in prod top out at 0.4 (n=5 rows in the DB).
+ * 0.3 captures the upper third of multi-signal days without flooding noise.
+ */
+export const STRESS_MULTISIGNAL = 0.3;
 export const MIN_CANDIDATE_AMOUNT = 20;
 export const MAX_CANDIDATE_AMOUNT = 2000;
 

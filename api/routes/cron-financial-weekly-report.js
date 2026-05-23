@@ -53,7 +53,7 @@ router.all('/', async (req, res) => {
     log.info(`${uniqueUserIds.length} candidate users`);
 
     if (!uniqueUserIds.length) {
-      await logCronExecution('financial-weekly-report', 'success', { duration_ms: Date.now() - startTime, users_checked: 0, emails_sent: 0 });
+      await logCronExecution('financial-weekly-report', 'success', Date.now() - startTime, { users_checked: 0, emails_sent: 0 });
       return res.json({ success: true, users_checked: 0, emails_sent: 0 });
     }
 

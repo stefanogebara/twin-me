@@ -21,7 +21,7 @@ import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { isDiscretionaryCategory } from './merchantNormalizer.js';
 import { estimateValence } from './musicValenceDictionary.js';
-import { STRESS_HIGH, MIN_CANDIDATE_AMOUNT, MAX_CANDIDATE_AMOUNT } from '../../config/financialThresholds.js';
+import { STRESS_HIGH, STRESS_MULTISIGNAL, MIN_CANDIDATE_AMOUNT, MAX_CANDIDATE_AMOUNT } from '../../config/financialThresholds.js';
 
 const log = createLogger('transaction-emotion-tagger');
 
@@ -294,12 +294,21 @@ export async function computeTransactionEmotionalContext(userId, transaction) {
   }
 
   // 5. Stress-shop candidate: outflow + high stress + discretionary-looking
+  //
+  // audit-2026-05-23 H1: the strict `stressScore >= STRESS_HIGH` (0.6) gate
+  // never fired in practice — single-signal days max at the biology weight
+  // (0.45), so the flag was 0/644 across the test user and 0 across the whole
+  // DB. Relax to also accept multi-signal moderate scores (signals_found >= 2
+  // AND >= 0.5). This matches the workaround the summary card already uses at
+  // transactions.js:421-427 (added in audit-2026-05-12 H7).
   const isOutflow = transaction.amount < 0;
   const absAmount = Math.abs(transaction.amount);
+  const stressHigh =
+    stressScore !== null &&
+    (stressScore >= STRESS_HIGH || (signalsFound >= 2 && stressScore >= STRESS_MULTISIGNAL));
   const isStressShop =
     isOutflow &&
-    stressScore !== null &&
-    stressScore >= STRESS_HIGH &&
+    stressHigh &&
     absAmount >= MIN_CANDIDATE_AMOUNT &&
     absAmount <= MAX_CANDIDATE_AMOUNT;
 
@@ -514,11 +523,15 @@ function computeFromBundle(userId, tx, bundle) {
   // day is coincidence, not causation.
   const isRecurring = tx.is_recurring === true;
 
+  // audit-2026-05-23 H1: see computeTransactionEmotionalContext for rationale.
+  // Multi-signal days that score moderate (>= STRESS_MULTISIGNAL) also flag.
+  const stressHigh =
+    stressScore !== null &&
+    (stressScore >= STRESS_HIGH || (signalsFound >= 2 && stressScore >= STRESS_MULTISIGNAL));
   const isStressShop =
     isOutflow &&
     !isRecurring &&
-    stressScore !== null &&
-    stressScore >= STRESS_HIGH &&
+    stressHigh &&
     discretionary &&
     absAmount >= minAmount &&
     absAmount <= MAX_CANDIDATE_AMOUNT;
