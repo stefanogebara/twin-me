@@ -14,6 +14,7 @@
  */
 
 import express from 'express';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { authenticateUser } from '../middleware/auth.js';
 import {
   getUserGoals,
@@ -32,6 +33,22 @@ import { createLogger } from '../services/logger.js';
 const log = createLogger('Goals');
 
 const router = express.Router();
+
+/**
+ * audit-2026-05-23 H6: cap on-demand suggestion generation. Each call runs a
+ * TIER_ANALYSIS LLM completion (DeepSeek, ~600 tokens). The 24h cooldown in
+ * the service is intent-level — this rate limiter is the spam-bucket layer in
+ * case the cooldown is bypassed (e.g. transition window while persistent
+ * cooldown rolls out, or a redeploy clearing in-memory state).
+ */
+const suggestionsLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, res) => req.user?.id || ipKeyGenerator(req, res),
+  message: { success: false, error: 'too_many_suggestion_requests', code: 'RATE_LIMITED' },
+});
 
 /**
  * GET /api/goals - List goals with optional status filter
@@ -83,7 +100,7 @@ router.get('/suggestions', authenticateUser, async (req, res) => {
  * then return the current set of pending suggestions. Used by the Goals page
  * when the user has no active goals and nothing is pending.
  */
-router.post('/suggestions', authenticateUser, async (req, res) => {
+router.post('/suggestions', authenticateUser, suggestionsLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     try {

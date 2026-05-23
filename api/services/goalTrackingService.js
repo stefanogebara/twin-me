@@ -32,18 +32,39 @@ import { createLogger } from './logger.js';
 const log = createLogger('GoalTracking');
 
 // Throttle: max once per 24 hours per user
-const suggestionCooldowns = new Map();
 const SUGGESTION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MAX_PENDING_SUGGESTIONS = 2;
 
-// Prune expired cooldown entries to prevent unbounded map growth in long-running servers
-function pruneSuggestionCooldowns() {
-  const now = Date.now();
-  for (const [uid, ts] of suggestionCooldowns) {
-    if (now - ts >= SUGGESTION_COOLDOWN_MS) {
-      suggestionCooldowns.delete(uid);
-    }
-  }
+// audit-2026-05-23 H7: cooldown moved from in-memory Map → user_platform_data.
+// Vercel serverless boots cold instances frequently; an in-memory cooldown was
+// empty on every fresh lambda → LLM call fired on every request. Now persisted
+// via `platform='twinme', data_type='goal_suggestion_cooldown'`, the same
+// pattern the financial weekly email uses (cron-financial-weekly-report.js).
+async function getLastSuggestionAt(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', 'twinme')
+    .eq('data_type', 'goal_suggestion_cooldown')
+    .order('extracted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.extracted_at ? new Date(data.extracted_at).getTime() : 0;
+}
+
+async function setLastSuggestionAt(userId) {
+  const { error } = await supabaseAdmin
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'twinme',
+      data_type: 'goal_suggestion_cooldown',
+      raw_data: { source: 'generateGoalSuggestions' },
+      extracted_at: new Date().toISOString(),
+      processed: true,
+    });
+  if (error) log.warn('setLastSuggestionAt insert failed', { error: error.message });
 }
 
 // ====================================================================
@@ -152,6 +173,10 @@ async function acceptGoal(goalId, userId) {
   const endDate = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
 
+  // audit-2026-05-23 H5: gate the update on status='suggested' so two
+  // concurrent accept requests can't both win past the read-check above.
+  // .maybeSingle() (instead of .single()) lets us distinguish "lost the
+  // race" (rowCount=0 → data null) from a hard DB error.
   const { data, error } = await supabase
     .from('twin_goals')
     .update({
@@ -161,12 +186,16 @@ async function acceptGoal(goalId, userId) {
     })
     .eq('id', goalId)
     .eq('user_id', userId)
+    .eq('status', 'suggested')
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     log.warn('acceptGoal error', { error });
     return { success: false, error: error.message };
+  }
+  if (!data) {
+    return { success: false, error: 'Goal is no longer in suggested state', code: 'STATUS_CONFLICT' };
   }
 
   log.info('Goal accepted', { title: data.title, startDate, endDate });
@@ -251,7 +280,17 @@ async function getActiveGoalContext(userId) {
       ? Math.max(0, Math.ceil((new Date(g.end_date) - new Date()) / (24 * 60 * 60 * 1000)))
       : '?';
 
-    return `- "${g.title}" (${g.category}): streak ${g.current_streak}d, ` +
+    // audit-2026-05-23 H10: include the actual measured value vs target so the
+    // twin can say "you're 0.6h short of your sleep target" instead of just
+    // "you're on a 3d streak". Skip the metric leg when we've never measured.
+    let metricLeg = '';
+    if (g.last_measured_value != null && g.target_value != null) {
+      const unit = g.target_unit ? ` ${g.target_unit}` : '';
+      const op = g.target_operator || '>=';
+      metricLeg = `latest ${g.last_measured_value}${unit} (target ${op} ${g.target_value}${unit}), `;
+    }
+
+    return `- "${g.title}" (${g.category}): ${metricLeg}streak ${g.current_streak}d, ` +
       `best ${g.best_streak}d, ${successRate}% success, ${daysLeft} days left`;
   });
 
@@ -563,11 +602,8 @@ Return JSON array only:
  */
 async function generateGoalSuggestions(userId) {
   try {
-    // Prune expired cooldown entries to prevent unbounded map growth
-    pruneSuggestionCooldowns();
-
-    // Check cooldown
-    const lastSuggestion = suggestionCooldowns.get(userId);
+    // Check persistent cooldown (user_platform_data — see file header).
+    const lastSuggestion = await getLastSuggestionAt(userId);
     if (lastSuggestion && (Date.now() - lastSuggestion) < SUGGESTION_COOLDOWN_MS) {
       return 0;
     }
@@ -674,9 +710,8 @@ async function generateGoalSuggestions(userId) {
       }
     }
 
-    // Set cooldown and prune expired entries to keep map size bounded
-    suggestionCooldowns.set(userId, Date.now());
-    pruneSuggestionCooldowns();
+    // Persist cooldown so Vercel cold starts don't reopen the LLM faucet.
+    await setLastSuggestionAt(userId);
 
     log.info('Generated suggestions', { stored, userId });
     return stored;
