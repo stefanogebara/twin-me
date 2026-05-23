@@ -153,14 +153,37 @@ export function usePlatformConnect({
     const pollInterval = setInterval(() => {
       if (!popup || popup.closed) {
         clearInterval(pollInterval);
+        clearTimeout(popupHelpTimeout);
         toast({ title: 'Verifying connection...', description: `Checking ${platformName} authorization` });
         verifyConnection();
       }
     }, 500);
 
+    // audit-2026-05-23: popup-blocker help watchdog.
+    // Nango Connect opens a *second* popup window (to the provider's OAuth
+    // page) once its own page loads. If the browser blocks that secondary
+    // popup, our Nango window stays on "Connecting..." with no progress and
+    // we can't detect the block from our origin (it happens at the Nango
+    // domain). After 20s with no resolution, surface an inline hint so the
+    // user knows to look for the popup-blocked icon in their address bar
+    // instead of staring at the spinner. Observed in the field 2026-05-23
+    // when reconnecting Whoop — backend round-trip was 1.5s, but Whoop's
+    // sign-in popup was blocked silently.
+    const popupHelpTimeout = setTimeout(() => {
+      if (popup && !popup.closed) {
+        trackFunnel('platform_connection_popup_help_shown', { platform: provider });
+        toast({
+          title: `Don't see the ${platformName} sign-in window?`,
+          description: `Look for a popup-blocked icon in your browser's address bar — allow popups for connect.nango.dev, then close the stuck window and try again.`,
+          duration: 15000,
+        });
+      }
+    }, 20000);
+
     // Safety: if popup open > 2 min, assume abandoned
     setTimeout(() => {
       clearInterval(pollInterval);
+      clearTimeout(popupHelpTimeout);
       if (popup && !popup.closed) popup.close();
       trackFunnel('platform_connection_abandoned', { platform: provider });
       setConnectingProvider(null);
