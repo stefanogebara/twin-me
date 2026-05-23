@@ -230,15 +230,26 @@ router.post('/message', authenticateUser, async (req, res) => {
       return p.finally(() => { legTimings[key] = Date.now() - t0; });
     };
 
+    // audit-2026-05-23 #1 (CRITICAL): expert routing was sitting on the critical
+    // path. classifyQueryDomain falls back to a Mistral LLM call for ambiguous
+    // queries (platformExperts.js:380), which observed in Stefano's traces
+    // as 15.2s of wall time on a single turn. Race against a 1500ms budget —
+    // if classification hasn't returned by then, skip expert routing entirely.
+    // The chat still works (just without per-platform expert memories), and
+    // we reclaim ~13s on every slow-classification turn.
+    const EXPERT_ROUTING_BUDGET_MS = 1500;
     const expertRoutingPromise = useExpertRouting
-      ? timeLeg('expertRoutingMs', classifyQueryDomain(message)
-          .then(async (routingResult) => {
-            if (routingResult.expertId && routingResult.domain !== 'general') {
-              const expertMems = await retrieveExpertMemories(userId, routingResult.expertId, message, 6);
-              return { routingResult, expertMemories: expertMems };
-            }
-            return { routingResult, expertMemories: [] };
-          })
+      ? timeLeg('expertRoutingMs', Promise.race([
+          classifyQueryDomain(message)
+            .then(async (routingResult) => {
+              if (routingResult.expertId && routingResult.domain !== 'general') {
+                const expertMems = await retrieveExpertMemories(userId, routingResult.expertId, message, 6);
+                return { routingResult, expertMemories: expertMems };
+              }
+              return { routingResult, expertMemories: [] };
+            }),
+          new Promise(resolve => setTimeout(() => resolve(null), EXPERT_ROUTING_BUDGET_MS)),
+        ])
           .catch(err => { log.warn('Expert routing failed (non-fatal)', { error: err }); return null; }))
       : Promise.resolve(null);
 
