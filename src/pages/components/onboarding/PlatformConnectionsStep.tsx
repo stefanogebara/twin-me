@@ -17,7 +17,6 @@ import { SectionLabel, Divider } from './SectionLabel';
 
 interface PlatformConnectionsStepProps {
   userId: string | undefined;
-  isDemoMode: boolean;
   connectedServices: DataProvider[];
   activeConnections: DataProvider[];
   platformStatusData: PlatformStatusData;
@@ -50,7 +49,6 @@ function sortConnectors(
 
 export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = ({
   userId,
-  isDemoMode,
   connectedServices,
   activeConnections,
   platformStatusData,
@@ -93,7 +91,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
   // Personalized pitch hooks — fetched once per mount. Silent fallback on failure.
   const [pitchHooks, setPitchHooks] = useState<Record<string, string>>({});
   useEffect(() => {
-    if (isDemoMode || !userId) return;
+    if (!userId) return;
 
     const token = getAccessToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -102,7 +100,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.hooks) setPitchHooks(d.hooks); })
       .catch(() => { /* non-fatal */ });
-  }, [userId, isDemoMode]);
+  }, [userId]);
   const sort = (list: typeof AVAILABLE_CONNECTORS) => sortConnectors(list, connectedServices, discoveredSet);
 
   const entertainmentConnectors = sort(availableConnectors.filter(c => c.category === 'entertainment'));
@@ -186,7 +184,6 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
       </p>
       <GoogleWorkspaceConnect
         connectorStatus={platformStatusData}
-        isDemoMode={isDemoMode}
         navigate={navigate}
       />
       <p

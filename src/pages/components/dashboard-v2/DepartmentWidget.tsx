@@ -32,8 +32,6 @@ const FALLBACK_DEPARTMENTS: Department[] = [
 export function DepartmentWidget() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // 2026-05-10: demo mode removed — always false.
-  const isDemoMode = false;
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
@@ -41,16 +39,12 @@ export function DepartmentWidget() {
     queryKey: ['departments'],
     queryFn: () => departmentsAPI.getDepartments(),
     staleTime: 30_000,
-    enabled: !isDemoMode,
-    initialData: isDemoMode ? FALLBACK_DEPARTMENTS : undefined,
   });
 
   const { data: proposals = [] } = useQuery<Proposal[]>({
     queryKey: ['departments', 'proposals'],
     queryFn: () => departmentsAPI.getProposals(),
     staleTime: 30_000,
-    enabled: !isDemoMode,
-    initialData: isDemoMode ? [] : undefined,
   });
 
   const handleApprove = useCallback(async (id: string) => {

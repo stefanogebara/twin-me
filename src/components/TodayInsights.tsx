@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { FeedbackWidget } from './FeedbackWidget';
-import { DEMO_TODAY_INSIGHTS } from '../services/demoDataService';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import {
   Activity,
@@ -99,7 +98,7 @@ const darkCardStyle: React.CSSProperties = {
 };
 
 export const TodayInsights: React.FC = () => {
-  const { isDemoMode, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -108,9 +107,6 @@ export const TodayInsights: React.FC = () => {
 
   // Helper to check if platform is truly active (connected AND token not expired)
   const isPlatformActive = (platform: string) => {
-    // In demo mode, all platforms are active
-    if (isDemoMode) return true;
-
     const status = platformStatus[platform];
     return status?.connected && !status?.tokenExpired && status?.status !== 'token_expired';
   };
@@ -118,17 +114,6 @@ export const TodayInsights: React.FC = () => {
   const { data, isLoading, error, refetch, isFetching } = useQuery<TodayInsightsResponse>({
     queryKey: ['today-insights'],
     queryFn: async () => {
-      if (isDemoMode) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return {
-          success: true,
-          insights: DEMO_TODAY_INSIGHTS,
-          dataTimestamp: new Date().toISOString(),
-          sources: { calendar: true, spotify: true }
-        };
-      }
-
       const token = getAccessToken();
       const response = await fetch(`${API_URL}/twin/today-insights`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -158,7 +143,7 @@ export const TodayInsights: React.FC = () => {
   };
 
   // ── Per-platform connect rows for any platform that is NOT connected ─────
-  const disconnectedPlatforms = !isLoading && !platformStatusLoading && !isDemoMode
+  const disconnectedPlatforms = !isLoading && !platformStatusLoading
     ? [
         { platform: 'Calendar', platformKey: 'google_calendar', desc: 'Connect Google Calendar and I can tell you how you structure your time',   active: isPlatformActive('google_calendar') },
         { platform: 'Spotify',  platformKey: 'spotify',         desc: 'Connect Spotify and I can read your mood from your music',         active: isPlatformActive('spotify') },
@@ -169,7 +154,7 @@ export const TodayInsights: React.FC = () => {
   // If ALL platforms are disconnected and there's no data yet, show only the connect state
   const allDisconnected = disconnectedPlatforms.length === 2;
 
-  if (allDisconnected && !isLoading && !platformStatusLoading && !isDemoMode) {
+  if (allDisconnected && !isLoading && !platformStatusLoading) {
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-2 mb-1">
@@ -234,7 +219,7 @@ export const TodayInsights: React.FC = () => {
   const insights = data.insights;
 
   // ── Connected but no insights yet ────────────────────────────────────────
-  if (insights.length === 0 && !isDemoMode) {
+  if (insights.length === 0) {
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-2 mb-1">

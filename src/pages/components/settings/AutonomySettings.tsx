@@ -41,11 +41,7 @@ interface SkillSetting {
   required_platforms?: string[];
 }
 
-interface AutonomySettingsProps {
-  isDemoMode: boolean;
-}
-
-const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
+const AutonomySettings: React.FC = () => {
   const [skills, setSkills] = useState<SkillSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -67,12 +63,10 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
   }, []);
 
   useEffect(() => {
-    if (!isDemoMode) fetchSettings();
-    else setLoading(false);
-  }, [fetchSettings, isDemoMode]);
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleLevelChange = async (skillId: string, level: number) => {
-    if (isDemoMode) return;
     setUpdating(skillId);
 
     // Optimistic update
@@ -171,7 +165,6 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
               key={skill.id}
               skill={skill}
               isUpdating={updating === skill.id}
-              isDemoMode={isDemoMode}
               onLevelChange={handleLevelChange}
             />
           ))}
@@ -186,11 +179,10 @@ const AutonomySettings: React.FC<AutonomySettingsProps> = ({ isDemoMode }) => {
 interface SkillRowProps {
   skill: SkillSetting;
   isUpdating: boolean;
-  isDemoMode: boolean;
   onLevelChange: (skillId: string, level: number) => void;
 }
 
-const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLevelChange }) => {
+const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, onLevelChange }) => {
   const level = skill.effective_autonomy_level;
   const levelInfo = AUTONOMY_LEVELS[level] || AUTONOMY_LEVELS[1];
 
@@ -230,7 +222,6 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
       <div className="flex items-center gap-2">
         <div
           className="flex-1 relative h-6 flex items-center cursor-pointer"
-          style={{ opacity: isDemoMode ? 0.4 : 1 }}
         >
           {/* Track background */}
           <div
@@ -254,7 +245,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
             <button
               key={i}
               onClick={() => onLevelChange(skill.id, i)}
-              disabled={isDemoMode || isUpdating}
+              disabled={isUpdating}
               className="absolute w-3 h-3 rounded-full transition-all duration-200 hover:scale-125 disabled:cursor-not-allowed"
               style={{
                 left: `calc(${(i / 4) * 100}% - 6px)`,
@@ -279,7 +270,7 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
           <span
             key={i}
             role="button"
-            tabIndex={isDemoMode || isUpdating ? -1 : 0}
+            tabIndex={isUpdating ? -1 : 0}
             className="text-[9px] cursor-pointer transition-colors"
             style={{
               color: i === level ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
@@ -287,9 +278,9 @@ const SkillRow: React.FC<SkillRowProps> = ({ skill, isUpdating, isDemoMode, onLe
               textAlign: i === 0 ? 'left' : i === 4 ? 'right' : 'center',
             }}
             aria-label={`Set autonomy to ${lvl.label}`}
-            onClick={() => !isDemoMode && !isUpdating && onLevelChange(skill.id, i)}
+            onClick={() => !isUpdating && onLevelChange(skill.id, i)}
             onKeyDown={(e) => {
-              if ((e.key === 'Enter' || e.key === ' ') && !isDemoMode && !isUpdating) {
+              if ((e.key === 'Enter' || e.key === ' ') && !isUpdating) {
                 e.preventDefault();
                 onLevelChange(skill.id, i);
               }

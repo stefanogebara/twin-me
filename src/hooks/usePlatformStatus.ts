@@ -10,7 +10,6 @@ import { useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { DEMO_USER, DEMO_PLATFORM_CONNECTIONS } from '@/services/demoDataService';
 
 export interface PlatformConnectionStatus {
   connected: boolean;
@@ -39,37 +38,11 @@ export interface UsePlatformStatusReturn {
 }
 
 /**
- * Generate demo platform status data
- */
-const getDemoPlatformStatus = (): PlatformStatusMap => {
-  const statusMap: PlatformStatusMap = {};
-
-  for (const conn of DEMO_PLATFORM_CONNECTIONS) {
-    statusMap[conn.platform] = {
-      connected: conn.connected,
-      isActive: conn.status === 'active',
-      tokenExpired: false,
-      connectedAt: conn.connectedAt,
-      lastSync: conn.lastSync,
-      status: conn.status,
-      expiresAt: null,
-    };
-  }
-
-  return statusMap;
-};
-
-/**
  * Fetch platform connection status from API
  */
 const fetchPlatformStatus = async (userId: string): Promise<PlatformStatusMap> => {
   if (!userId) {
     throw new Error('userId is required');
-  }
-
-  // Return demo data for demo user
-  if (userId === DEMO_USER.id) {
-    return getDemoPlatformStatus();
   }
 
   const baseUrl = API_URL;

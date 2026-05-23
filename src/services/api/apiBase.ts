@@ -54,39 +54,15 @@ export const getAuthHeaders = (): AuthHeaders => {
 };
 
 /**
- * Check if app is in demo mode.
- *
- * 2026-05-10: demo mode has been removed. This helper is kept exported so any
- * existing callers compile, but it now permanently returns `false`. Real
- * fetches always run; the synthetic `demoResponse` path below is dead code
- * pending a janitorial pass.
- */
-export const isDemoMode = (): boolean => false;
-
-/**
- * Build a synthetic Response that looks like a successful (but empty) API reply.
- * Callers that parse `.json()` get `{}`, which their null-coalescing fallbacks handle.
- */
-const demoResponse = (body: unknown = {}): Response =>
-  new Response(JSON.stringify(body), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-/**
  * Authenticated fetch wrapper.
- * - In demo mode returns a synthetic 200 response (no network call)
  * - Auto-injects auth headers from getAuthHeaders()
  * - Prepends API_URL when the path starts with "/"
  * - Merges any additional headers from the caller
  * - Returns the raw Response without parsing
+ *
+ * audit-2026-05-23 demo mode plumbing removed
  */
 export const authFetch = async (url: string, options?: RequestInit): Promise<Response> => {
-  // Demo mode: return empty success response — no real API call
-  if (isDemoMode()) {
-    return demoResponse();
-  }
-
   const fullUrl = url.startsWith('/') ? `${API_URL}${url}` : url;
   const authHeaders = getAuthHeaders();
   return fetch(fullUrl, {

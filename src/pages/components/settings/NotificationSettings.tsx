@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Bell, BellOff, Mail, AlertCircle } from 'lucide-react';
-import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 
 const getAuthHeaders = () => {
@@ -31,7 +31,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ userId }) =
 
   // ── Fetch email preference on mount ──────────────────────────────────
   useEffect(() => {
-    if (!userId || isDemoMode()) {
+    if (!userId) {
       setEmailLoading(false);
       setPushLoading(false);
       return;

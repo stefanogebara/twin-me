@@ -39,11 +39,7 @@ interface WhatsAppStatus {
   phone: string | null;
 }
 
-interface WhatsAppConnectProps {
-  isDemoMode: boolean;
-}
-
-const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
+const WhatsAppConnect: React.FC = () => {
   const [status, setStatus] = useState<WhatsAppStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [phoneInput, setPhoneInput] = useState('');
@@ -70,7 +66,6 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
   }, [fetchStatus]);
 
   const handleLink = async () => {
-    if (isDemoMode) return;
     setError(null);
     setSuccess(false);
 
@@ -103,7 +98,6 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
   };
 
   const handleUnlink = async () => {
-    if (isDemoMode) return;
     try {
       await fetch(`${API_URL}/whatsapp-link/unlink`, {
         method: 'DELETE',
@@ -178,7 +172,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
                 setPhoneInput(e.target.value);
                 setError(null);
               }}
-              disabled={isDemoMode || linking}
+              disabled={linking}
               className="flex-1 text-sm px-3 py-2 rounded-[6px] bg-transparent focus:outline-none"
               style={{
                 backgroundColor: 'rgba(255,255,255,0.08)',
@@ -193,7 +187,7 @@ const WhatsAppConnect: React.FC<WhatsAppConnectProps> = ({ isDemoMode }) => {
             />
             <button
               onClick={handleLink}
-              disabled={isDemoMode || linking || !phoneInput.trim()}
+              disabled={linking || !phoneInput.trim()}
               className="text-[12px] px-3 py-2 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40 flex items-center gap-1.5"
               style={{
                 backgroundColor: 'var(--button-bg-dark, #252222)',

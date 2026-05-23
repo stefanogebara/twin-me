@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
-import { useDemo } from '../contexts/DemoContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 import { usePlatformStatus } from '../hooks/usePlatformStatus';
 import { useBackgroundMode } from '../contexts/BackgroundModeContext';
@@ -103,23 +102,21 @@ const BackgroundToggleRow: React.FC = () => {
   );
 };
 
-const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
+const TelegramConnect: React.FC = () => {
   const [status, setStatus] = useState<{ linked: boolean; enabled: boolean } | null>(null);
   const [linkCode, setLinkCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [botUsername, setBotUsername] = useState('TwinMeBot');
 
   useEffect(() => {
-    if (isDemoMode) { setLoading(false); return; }
     fetch(`${API_URL}/telegram/status`, { headers: getAuthHeaders() })
       .then(r => r.json())
       .then(d => { if (d.success) setStatus({ linked: d.linked, enabled: d.enabled }); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isDemoMode]);
+  }, []);
 
   const generateCode = async () => {
-    if (isDemoMode) return;
     const res = await fetch(`${API_URL}/telegram/generate-code`, {
       method: 'POST', headers: getAuthHeaders(),
     });
@@ -166,7 +163,7 @@ const TelegramConnect: React.FC<{ isDemoMode: boolean }> = ({ isDemoMode }) => {
         ) : (
           <button
             onClick={generateCode}
-            disabled={isDemoMode || !!linkCode}
+            disabled={!!linkCode}
             className="text-[12px] px-3 py-1.5 rounded-[6px] transition-opacity hover:opacity-80 disabled:opacity-40"
             style={{ backgroundColor: 'var(--button-bg-dark, #252222)', color: 'var(--foreground)' }}
           >
@@ -201,7 +198,6 @@ const Settings = () => {
   useDocumentTitle('Settings');
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { isDemoMode } = useDemo();
   const [disconnectingService, setDisconnectingService] = useState<string | null>(null);
   const [memoryCount, setMemoryCount] = useState<number | null>(null);
 
@@ -234,13 +230,13 @@ const Settings = () => {
     refetch,
     optimisticDisconnect,
     revertOptimisticUpdate
-  } = usePlatformStatus(user?.id, { enabled: !isDemoMode });
+  } = usePlatformStatus(user?.id);
 
   const error = statusError?.message || null;
 
   // Fetch memory count + subscription + feature flags in parallel
   useEffect(() => {
-    if (!user?.id || isDemoMode) return;
+    if (!user?.id) return;
     const headers = getAuthHeaders();
     // Memory count
     fetch(`${API_URL}/dashboard/context`, { headers })
@@ -368,10 +364,10 @@ const Settings = () => {
   // ── Section navigation config (desktop sidebar + mobile jump dropdown) ──
   const sections: { id: string; label: string }[] = [
     { id: 'section-account', label: 'Account' },
-    ...(!isDemoMode ? [{ id: 'section-twin-intelligence', label: 'Twin Intelligence' }] : []),
+    { id: 'section-twin-intelligence', label: 'Twin Intelligence' },
     { id: 'section-plan', label: 'Plan' },
     { id: 'section-platforms', label: 'Connected Platforms' },
-    ...(!isDemoMode ? [{ id: 'section-chat-voice', label: 'Chat Voice' }] : []),
+    { id: 'section-chat-voice', label: 'Chat Voice' },
     { id: 'section-personality', label: 'Personality Engine' },
     { id: 'section-autonomy', label: 'Twin Autonomy' },
     { id: 'section-rules', label: 'Twin Rules' },
@@ -405,7 +401,7 @@ const Settings = () => {
     });
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDemoMode]);
+  }, []);
 
   return (
     <div className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10 sm:py-16">
@@ -492,17 +488,6 @@ const Settings = () => {
         Settings
       </h1>
 
-      {/* Demo notice */}
-      {isDemoMode && (
-        <div
-          className="flex items-center gap-2 mb-8 text-sm"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-        >
-          <Info className="w-4 h-4 flex-shrink-0" />
-          <span>Demo mode — connections are simulated.</span>
-        </div>
-      )}
-
       {/* ── SECTION 1: ACCOUNT ── */}
       <section id="section-account" className="scroll-mt-10">
       <SectionLabel label="Account" />
@@ -573,11 +558,9 @@ const Settings = () => {
       </section>
 
       {/* ── SECTION 1.5: TWIN INTELLIGENCE (TRIBE v2) ── */}
-      {!isDemoMode && (
-        <section id="section-twin-intelligence" className="scroll-mt-10">
-          <TwinIntelligence />
-        </section>
-      )}
+      <section id="section-twin-intelligence" className="scroll-mt-10">
+        <TwinIntelligence />
+      </section>
 
       {/* ── SECTION 2: PLAN ── */}
       <section id="section-plan" className="scroll-mt-10">
@@ -603,7 +586,7 @@ const Settings = () => {
             {subscription?.plan && subscription.plan !== 'free' ? (
               <button
                 onClick={handleManageBilling}
-                disabled={managingBilling || isDemoMode}
+                disabled={managingBilling}
                 className="text-[12px] px-3 py-1.5 rounded-[100px] transition-opacity hover:opacity-60 disabled:opacity-30"
                 style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
               >
@@ -612,7 +595,6 @@ const Settings = () => {
             ) : (
               <button
                 onClick={() => navigate('/pricing')}
-                disabled={isDemoMode}
                 className="text-[12px] px-3 py-1.5 rounded-[100px] font-medium transition-opacity hover:opacity-80"
                 style={{ background: 'rgba(196,162,101,0.15)', color: '#C4A265' }}
               >
@@ -630,7 +612,6 @@ const Settings = () => {
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Connected Platforms" />
         <ConnectedPlatformsSettings
-          isDemoMode={isDemoMode}
           connectorStatus={connectorStatus}
           isLoading={isLoading}
           error={error}
@@ -644,14 +625,12 @@ const Settings = () => {
       </section>
 
       {/* ── SECTION 3B: CHAT VOICE IMPORT ── */}
-      {!isDemoMode && (
-        <section id="section-chat-voice" className="scroll-mt-10">
+      <section id="section-chat-voice" className="scroll-mt-10">
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
             <SectionLabel label="Chat Voice" />
             <ChatImportCard />
           </div>
         </section>
-      )}
 
       {/* ── SECTION 4: PERSONALITY ENGINE ── */}
       <section id="section-personality" className="scroll-mt-10">
@@ -705,7 +684,7 @@ const Settings = () => {
       <section id="section-autonomy" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Autonomy" />
-        <AutonomySettings isDemoMode={isDemoMode} />
+        <AutonomySettings />
       </div>
       </section>
 
@@ -713,7 +692,7 @@ const Settings = () => {
       <section id="section-rules" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Twin Rules" />
-        <UserRulesSettings isDemoMode={isDemoMode} />
+        <UserRulesSettings />
       </div>
       </section>
 
@@ -721,8 +700,8 @@ const Settings = () => {
       <section id="section-messaging" className="scroll-mt-10">
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: '32px', paddingTop: '32px' }} className="mb-8">
         <SectionLabel label="Messaging" />
-        <TelegramConnect isDemoMode={isDemoMode} />
-        <WhatsAppConnect isDemoMode={isDemoMode} />
+        <TelegramConnect />
+        <WhatsAppConnect />
       </div>
       </section>
 
@@ -759,7 +738,7 @@ const Settings = () => {
         <SettingsRow label="Export My Data">
           <button
             onClick={handleExportData}
-            disabled={exporting || isDemoMode}
+            disabled={exporting}
             className="flex items-center gap-1.5 text-[12px] transition-opacity hover:opacity-60 disabled:opacity-30"
             style={{ color: 'rgba(255,255,255,0.5)' }}
           >
@@ -784,7 +763,6 @@ const Settings = () => {
                 onClick={() => setShowDeleteConfirm(true)}
                 className="text-[12px] transition-opacity hover:opacity-60"
                 style={{ color: '#c1452c' }}
-                disabled={isDemoMode}
               >
                 Delete everything
               </button>

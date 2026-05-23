@@ -27,13 +27,11 @@ type ConnectError = Error & {
 
 interface UsePlatformConnectOptions {
   userId: string | undefined;
-  isDemoMode: boolean;
   refetchPlatformStatus: () => Promise<unknown>;
   optimisticDisconnect: (provider: DataProvider) => void;
   revertOptimisticUpdate: () => Promise<unknown>;
   setConnectingProvider: (provider: DataProvider | null) => void;
   setDisconnectingProvider: (provider: DataProvider | null) => void;
-  setDemoModalPlatform: (platform: string | null) => void;
   setGarminModalOpen?: (open: boolean) => void;
   setSteamModalOpen?: (open: boolean) => void;
   setDuolingoModalOpen?: (open: boolean) => void;
@@ -56,13 +54,11 @@ async function readConnectResult(response: Response): Promise<ConnectResult | nu
 
 export function usePlatformConnect({
   userId,
-  isDemoMode,
   refetchPlatformStatus,
   optimisticDisconnect,
   revertOptimisticUpdate,
   setConnectingProvider,
   setDisconnectingProvider,
-  setDemoModalPlatform,
   setGarminModalOpen,
   setSteamModalOpen,
   setDuolingoModalOpen,
@@ -172,12 +168,6 @@ export function usePlatformConnect({
   }, [toast, trackFunnel, refetchPlatformStatus, setConnectingProvider]);
 
   const connectService = useCallback(async (provider: DataProvider) => {
-    if (isDemoMode) {
-      trackFunnel('demo_mode_platform_click', { platform: provider });
-      setDemoModalPlatform(provider);
-      return;
-    }
-
     // Handle external URL connectors (e.g. Browser Extension -> Chrome Web Store)
     const connector = AVAILABLE_CONNECTORS.find(c => c.provider === provider);
     if (connector?.externalUrl) {
@@ -372,7 +362,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, isDemoMode, trackFunnel, setConnectingProvider, setDemoModalPlatform, setGarminModalOpen, setSteamModalOpen, setDuolingoModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setDuolingoModalOpen, handleNangoPopup]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;

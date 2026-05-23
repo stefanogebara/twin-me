@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 
 function getAuthHeaders() {
@@ -34,7 +34,6 @@ export function useWebPush(isAuthenticated: boolean) {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (isDemoMode()) return; // No push registration in demo mode
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (permission === 'denied') return;
 

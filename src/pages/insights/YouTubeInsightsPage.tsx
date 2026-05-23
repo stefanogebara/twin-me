@@ -7,7 +7,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -91,65 +90,8 @@ interface InsightsResponse {
 
 const CATEGORY_COLORS = ['#FF0000', '#FF4444', '#60a5fa', '#a78bfa', '#fbbf24', '#4ade80'];
 
-const getDemoYouTubeInsights = (): InsightsResponse => ({
-  success: true,
-  reflection: {
-    id: 'demo-yt-1',
-    text: "Your YouTube world reveals a curious mind that oscillates between deep learning and creative entertainment. You gravitate toward long-form educational content during mornings and switch to gaming and music videos in the evenings. There's a strong pattern of binge-watching documentary series and tech explainers - your twin sees someone who uses YouTube as a personal university.",
-    generatedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-    expiresAt: null,
-    confidence: 'high',
-    themes: ['learning', 'technology', 'creativity']
-  },
-  patterns: [
-    { id: 'p1', text: 'You watch educational tech content 3x more during weekday mornings', occurrences: 'often' },
-    { id: 'p2', text: 'Your music video consumption spikes on Friday evenings', occurrences: 'often' },
-    { id: 'p3', text: 'You rarely finish videos over 45 minutes but always finish 10-20min ones', occurrences: 'sometimes' },
-    { id: 'p4', text: 'You follow a mix of indie creators and major channels equally', occurrences: 'noticed' }
-  ],
-  history: [
-    { id: 'h1', text: 'Your curiosity index is in the top 15% - you explore more new channels than most viewers.', generatedAt: new Date(Date.now() - 86400000 * 3).toISOString() }
-  ],
-  evidence: [
-    { id: 'e1', observation: 'Strong preference for visual learning', dataPoints: ['85% of watched content is visual/tutorial', 'Average watch time higher on step-by-step content'], confidence: 'high' }
-  ],
-  youtubeChannels: [
-    { name: 'Fireship', description: 'Quick tech explainers' },
-    { name: 'Veritasium', description: 'Science & engineering' },
-    { name: 'Theo - t3.gg', description: 'Web development' },
-    { name: 'Kurzgesagt', description: 'Animated science' },
-    { name: 'MKBHD', description: 'Tech reviews' },
-    { name: 'Lex Fridman', description: 'Deep conversations' }
-  ],
-  youtubeRecentLiked: [
-    { title: 'The Biggest Problem in AI Right Now', channel: 'Fireship' },
-    { title: 'Why The Universe Might Be a Hologram', channel: 'Veritasium' },
-    { title: 'I Built an AI Agent That Codes For Me', channel: 'Theo - t3.gg' },
-    { title: 'The Egg - A Short Story', channel: 'Kurzgesagt' }
-  ],
-  youtubeContentCategories: [
-    { category: 'Technology', percentage: 35 },
-    { category: 'Science', percentage: 20 },
-    { category: 'Music', percentage: 18 },
-    { category: 'Gaming', percentage: 12 },
-    { category: 'Education', percentage: 10 },
-    { category: 'Entertainment', percentage: 5 }
-  ],
-  youtubeSubscriptionCount: 142,
-  youtubeLikedVideoCount: 387,
-  youtubeLearningRatio: 65,
-  hasExtensionData: true,
-  youtubeWatchHistory: [
-    { title: 'React Server Components Changed Everything', watchDuration: 720, watchPercentage: 95, completed: true },
-    { title: 'The Map of Mathematics', watchDuration: 640, watchPercentage: 78, completed: false },
-    { title: 'Building AI Agents from Scratch', watchDuration: 1200, watchPercentage: 100, completed: true }
-  ],
-  youtubeSearchQueries: ['claude api tutorial', 'react 19 features', 'best lofi beats', 'how neural networks work', 'typescript generics explained']
-});
-
 const YouTubeInsightsPage: React.FC = () => {
   const { token } = useAuth();
-  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   useDocumentTitle('YouTube Insights');
@@ -174,16 +116,9 @@ const YouTubeInsightsPage: React.FC = () => {
     const controller = new AbortController();
     fetchInsights(controller.signal);
     return () => controller.abort();
-  }, [isDemoMode]);
+  }, []);
 
   const fetchInsights = async (signal?: AbortSignal) => {
-    if (isDemoMode) {
-      setError(null);
-      setInsights(getDemoYouTubeInsights());
-      setLoading(false);
-      return;
-    }
-
     const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your content world');
@@ -224,14 +159,6 @@ const YouTubeInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-
-    if (isDemoMode) {
-      setTimeout(() => {
-        setInsights(getDemoYouTubeInsights());
-        setRefreshing(false);
-      }, 1000);
-      return;
-    }
 
     const authToken = token || getAccessToken();
 

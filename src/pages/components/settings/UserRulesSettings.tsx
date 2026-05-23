@@ -10,11 +10,7 @@ const getAuthHeaders = () => {
   return headers;
 };
 
-interface UserRulesSettingsProps {
-  isDemoMode: boolean;
-}
-
-const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => {
+const UserRulesSettings: React.FC = () => {
   const [rules, setRules] = useState<string[]>([]);
   const [maxRules, setMaxRules] = useState(20);
   const [loading, setLoading] = useState(true);
@@ -36,12 +32,11 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
   }, []);
 
   useEffect(() => {
-    if (!isDemoMode) fetchRules();
-    else setLoading(false);
-  }, [fetchRules, isDemoMode]);
+    fetchRules();
+  }, [fetchRules]);
 
   const handleAdd = async () => {
-    if (!newRule.trim() || isDemoMode) return;
+    if (!newRule.trim()) return;
     setAdding(true);
     setError(null);
 
@@ -66,7 +61,6 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
   };
 
   const handleDelete = async (index: number) => {
-    if (isDemoMode) return;
     try {
       const res = await fetch(`${API_URL}/user-rules/${index}`, {
         method: 'DELETE',
@@ -117,16 +111,14 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
               <span className="text-[13px] flex-1" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 {rule}
               </span>
-              {!isDemoMode && (
-                <button
-                  onClick={() => handleDelete(i)}
-                  className="p-1 rounded-md bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label={`Remove rule: ${rule}`}
-                  title="Remove rule"
-                >
-                  <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
-                </button>
-              )}
+              <button
+                onClick={() => handleDelete(i)}
+                className="p-1 rounded-md bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label={`Remove rule: ${rule}`}
+                title="Remove rule"
+              >
+                <X className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.3)' }} aria-hidden="true" />
+              </button>
             </div>
           ))}
         </div>
@@ -144,19 +136,18 @@ const UserRulesSettings: React.FC<UserRulesSettingsProps> = ({ isDemoMode }) => 
           onChange={(e) => setNewRule(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           placeholder="e.g. I'm allergic to shellfish"
-          disabled={isDemoMode || rules.length >= maxRules}
+          disabled={rules.length >= maxRules}
           aria-label="New rule for your twin"
           className="flex-1 text-[13px] px-3 py-2 rounded-lg border-none outline-none"
           style={{
             background: 'var(--sidebar)',
             color: 'var(--foreground)',
-            opacity: isDemoMode ? 0.4 : 1,
           }}
           maxLength={120}
         />
         <button
           onClick={handleAdd}
-          disabled={isDemoMode || adding || !newRule.trim() || rules.length >= maxRules}
+          disabled={adding || !newRule.trim() || rules.length >= maxRules}
           className="px-3 py-2 rounded-lg border-none cursor-pointer transition-opacity disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
           style={{ background: 'var(--glass-surface-border)', color: 'var(--foreground)' }}
         >

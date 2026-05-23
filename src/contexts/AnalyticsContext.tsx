@@ -35,13 +35,12 @@ const AnalyticsContext = createContext<AnalyticsContextType | undefined>(undefin
 
 // ─── Provider ───────────────────────────────────────────────────
 export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const identifiedRef = useRef<string | null>(null);
 
   // Identify user in PostHog when auth changes
   useEffect(() => {
     if (!POSTHOG_KEY) return;
-    if (isDemoMode) return;
 
     if (user?.id && identifiedRef.current !== user.id) {
       posthog.identify(user.id, {
@@ -54,11 +53,11 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       posthog.reset();
       identifiedRef.current = null;
     }
-  }, [user?.id, user?.email, user?.name, user?.full_name, user?.created_at, isDemoMode]);
+  }, [user?.id, user?.email, user?.name, user?.full_name, user?.created_at]);
 
   const isEnabled = useCallback(() => {
-    return !!POSTHOG_KEY && !isDemoMode;
-  }, [isDemoMode]);
+    return !!POSTHOG_KEY;
+  }, []);
 
   const trackEvent = useCallback((eventType: string, eventData: Record<string, unknown> = {}) => {
     if (!isEnabled()) return;

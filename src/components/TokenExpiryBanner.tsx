@@ -38,7 +38,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
   className,
   onReconnect
 }) => {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const [notifications, setNotifications] = useState<TokenNotification[]>([]);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
@@ -52,7 +52,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
   const connectedProvider = searchParams.get('provider');
 
   useEffect(() => {
-    if (!user?.id || isDemoMode) return;
+    if (!user?.id) return;
 
     const fetchNotifications = async () => {
       setIsLoading(true);
@@ -87,7 +87,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
 
     const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [user?.id, isDemoMode, API_URL]);
+  }, [user?.id]);
 
   const handleDismiss = async (notificationId: string) => {
     setDismissedIds(prev => new Set([...prev, notificationId]));
@@ -126,7 +126,7 @@ export const TokenExpiryBanner: React.FC<TokenExpiryBannerProps> = ({
     return true;
   });
 
-  if (isDemoMode || visibleNotifications.length === 0) {
+  if (visibleNotifications.length === 0) {
     return null;
   }
 

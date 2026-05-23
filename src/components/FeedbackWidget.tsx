@@ -6,7 +6,6 @@
 
 import React, { useState } from 'react';
 import { ThumbsUp, ThumbsDown, Star, MessageSquare, Check, Loader2 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
 import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 interface FeedbackWidgetProps {
@@ -30,8 +29,6 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
   onFeedbackSubmitted,
   compact = false
 }) => {
-  const { isDemoMode } = useAuth();
-
   const [thumbsVote, setThumbsVote] = useState<'up' | 'down' | null>(null);
   const [starRating, setStarRating] = useState<number | null>(null);
   const [showStars, setShowStars] = useState(false);
@@ -56,13 +53,6 @@ export const FeedbackWidget: React.FC<FeedbackWidgetProps> = ({
   };
 
   const submitFeedback = async (feedback: FeedbackData) => {
-    if (isDemoMode) {
-      // Demo mode - just simulate success
-      setSubmitted(true);
-      onFeedbackSubmitted?.(feedback);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const token = getAccessToken();

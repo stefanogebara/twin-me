@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 const API_BASE = API_URL;
 
@@ -59,9 +59,6 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
   // Interview guard: if user started but didn't finish the interview, redirect them back.
   useEffect(() => {
     const checkInterview = async () => {
-      // Demo mode: skip interview check entirely
-      if (isDemoMode()) { setInterviewChecked(true); return; }
-
       // Failsafe: always mark checked after 3 seconds even if fetch hangs.
       // Prevents the chat page from getting stuck on a loading spinner forever.
       const failsafe = setTimeout(() => setInterviewChecked(true), 3000);
@@ -101,7 +98,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
 
   // Fetch chat usage limits
   const fetchUsage = async () => {
-    if (!userId || isDemoMode()) return;
+    if (!userId) return;
     try {
       const token = getAccessToken();
       const res = await fetch(`${API_BASE}/chat/usage`, {
@@ -141,16 +138,6 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
       return;
     }
     setIntroFetched(true);
-    // Demo mode: show a static greeting instead of fetching
-    if (isDemoMode()) {
-      setMessages([{
-        id: 'twin-intro',
-        role: 'assistant',
-        content: "Hey there! I'm your AI twin. I know about your music taste, schedule, and daily patterns. Ask me anything about yourself!",
-        timestamp: new Date(),
-      }]);
-      return;
-    }
     const token = getAccessToken();
     fetch(`${API_BASE}/chat/intro`, { headers: { 'Authorization': `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -169,7 +156,7 @@ export function useChatSession({ userId, connectedPlatforms, messages, setMessag
 
   // Load context sidebar items
   const loadContext = async () => {
-    if (!userId || isDemoMode()) return;
+    if (!userId) return;
     setIsLoadingContext(true);
     try {
       const token = getAccessToken();

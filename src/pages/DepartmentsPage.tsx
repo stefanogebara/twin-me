@@ -105,9 +105,6 @@ const DepartmentsPage: React.FC = () => {
     document.body.classList.add('page-departments');
     return () => document.body.classList.remove('page-departments');
   }, []);
-  // 2026-05-10: demo mode removed — always false.
-  const isDemoMode = false;
-
   // Local optimistic state for department changes
   const [localDepts, setLocalDepts] = useState<Department[] | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -123,8 +120,6 @@ const DepartmentsPage: React.FC = () => {
     queryKey: QUERY_KEYS.departments,
     queryFn: () => departmentsAPI.getDepartments(),
     staleTime: 30_000,
-    enabled: !isDemoMode,
-    initialData: isDemoMode ? DEFAULT_DEPARTMENTS : undefined,
   });
 
   const {
@@ -134,8 +129,6 @@ const DepartmentsPage: React.FC = () => {
     queryKey: QUERY_KEYS.proposals,
     queryFn: () => departmentsAPI.getProposals(),
     staleTime: 30_000,
-    enabled: !isDemoMode,
-    initialData: isDemoMode ? [] : undefined,
   });
 
   const {
@@ -144,8 +137,6 @@ const DepartmentsPage: React.FC = () => {
     queryKey: QUERY_KEYS.templates,
     queryFn: () => getTemplates(),
     staleTime: 60_000,
-    enabled: !isDemoMode,
-    initialData: isDemoMode ? [] : undefined,
   });
 
   const {
@@ -154,14 +145,12 @@ const DepartmentsPage: React.FC = () => {
     queryKey: QUERY_KEYS.activity,
     queryFn: () => departmentsAPI.getActivity(50),
     staleTime: 30_000,
-    enabled: !isDemoMode,
-    initialData: isDemoMode ? [] : undefined,
   });
 
   // Use local state if available (optimistic updates), otherwise remote
   const departments = localDepts ?? remoteDepts ?? DEFAULT_DEPARTMENTS;
 
-  const isLoading = isDemoMode ? false : (loadingDepts && loadingProposals);
+  const isLoading = loadingDepts && loadingProposals;
 
   // ── Group proposals by department ─────────────────────────────────────
   const VISIBLE_LIMIT = 10;

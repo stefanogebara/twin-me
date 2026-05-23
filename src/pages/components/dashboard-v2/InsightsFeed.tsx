@@ -6,15 +6,9 @@ import {
   Lightbulb, Target, Compass,
 } from 'lucide-react';
 import type { ProactiveInsight, InsightCategory } from '@/types/dashboard';
-import { useDemo } from '@/contexts/DemoContext';
-import { DEMO_TWIN_PORTRAIT } from '@/services/demo/demoSoulSignature';
 import type { NudgeFeedbackPayload } from '@/hooks/useProactiveInsights';
 import { SourceChips } from './SourceChips';
-
-const DEMO_INSIGHTS: ProactiveInsight[] = DEMO_TWIN_PORTRAIT.insights.map(i => ({
-  ...i,
-  engaged: false,
-}));
+// audit-2026-05-23 demo mode plumbing removed
 
 interface InsightsFeedProps {
   insights: ProactiveInsight[];
@@ -59,7 +53,6 @@ export function InsightsFeed({
   feedbackPendingId,
 }: InsightsFeedProps) {
   const navigate = useNavigate();
-  const { isDemoMode } = useDemo();
 
   // Track optimistically-archived ids so the fade-out animation runs even
   // before the query cache is updated by the mutation's onMutate.
@@ -80,7 +73,7 @@ export function InsightsFeed({
     'wiki_lint',
     'test',
   ]);
-  const feedInsights = insights
+  const displayInsights = insights
     .filter(i =>
       i.id !== heroInsightId &&
       !archivedIds.has(i.id) &&
@@ -89,14 +82,7 @@ export function InsightsFeed({
     )
     .slice(0, 5);
 
-  // In demo mode, fall back to representative demo insights when feed is empty
-  const displayInsights = feedInsights.length > 0
-    ? feedInsights
-    : isDemoMode
-      ? DEMO_INSIGHTS
-      : null;
-
-  if (!displayInsights) return null;
+  if (displayInsights.length === 0) return null;
 
   const handleDiscuss = (insight: ProactiveInsight) => {
     onEngage(insight.id);
@@ -104,7 +90,7 @@ export function InsightsFeed({
   };
 
   const handleFeedback = (insight: ProactiveInsight, followed: boolean) => {
-    if (!onFeedback || isDemoMode) return;
+    if (!onFeedback) return;
     // Optimistically archive immediately for fade-out
     setArchivedIds(prev => {
       const next = new Set(prev);
@@ -127,7 +113,7 @@ export function InsightsFeed({
       <div className="flex flex-col gap-3">
         {displayInsights.map(insight => {
           const isPending = feedbackPendingId === insight.id;
-          const canFeedback = !!onFeedback && !isDemoMode;
+          const canFeedback = !!onFeedback;
           return (
           <div
             key={insight.id}

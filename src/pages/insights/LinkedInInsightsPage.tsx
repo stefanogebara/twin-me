@@ -7,7 +7,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -15,7 +14,6 @@ import { EvidenceSection } from './components/EvidenceSection';
 import { InsightsPageHeader } from './components/InsightsPageHeader';
 import { Briefcase, AlertCircle, MapPin, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getDemoLinkedInInsights } from '@/services/demoDataService';
 import { toast } from 'sonner';
 
 interface Reflection {
@@ -63,7 +61,6 @@ const LinkedInInsightsPage: React.FC = () => {
   useDocumentTitle('LinkedIn Insights');
 
   const { token } = useAuth();
-  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
@@ -86,16 +83,9 @@ const LinkedInInsightsPage: React.FC = () => {
     const controller = new AbortController();
     fetchInsights(controller.signal);
     return () => controller.abort();
-  }, [isDemoMode]);
+  }, []);
 
   const fetchInsights = async (signal?: AbortSignal) => {
-    if (isDemoMode) {
-      setError(null);
-      setInsights(getDemoLinkedInInsights());
-      setLoading(false);
-      return;
-    }
-
     const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your professional insights');
@@ -131,14 +121,6 @@ const LinkedInInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-
-    if (isDemoMode) {
-      setTimeout(() => {
-        setInsights(getDemoLinkedInInsights());
-        setRefreshing(false);
-      }, 800);
-      return;
-    }
 
     const authToken = token || getAccessToken();
 

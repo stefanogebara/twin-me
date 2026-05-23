@@ -5,7 +5,6 @@ import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 interface GoogleWorkspaceConnectProps {
   connectorStatus: Record<string, any>;
-  isDemoMode: boolean;
   navigate: (path: string) => void;
 }
 
@@ -26,7 +25,6 @@ const GOOGLE_SERVICES: GoogleService[] = [
 
 const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
   connectorStatus,
-  isDemoMode,
   navigate,
 }) => {
   const [showCheckboxModal, setShowCheckboxModal] = useState(false);
@@ -34,15 +32,13 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
 
   // If ANY Google service is connected, all are connected (bundled scopes)
   const isAnyGoogleConnected = useMemo(() => {
-    if (isDemoMode) return true;
     return GOOGLE_SERVICES.some((service) => {
       const info = connectorStatus[service.id];
       return info?.connected && !info?.tokenExpired && info?.status !== 'expired';
     });
-  }, [connectorStatus, isDemoMode]);
+  }, [connectorStatus]);
 
   const handleConnect = () => {
-    if (isDemoMode) return;
     setShowCheckboxModal(true);
   };
 
@@ -151,7 +147,7 @@ const GoogleWorkspaceConnect: React.FC<GoogleWorkspaceConnectProps> = ({
         {!isAnyGoogleConnected ? (
           <button
             onClick={handleConnect}
-            disabled={connecting || isDemoMode}
+            disabled={connecting}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[100px] text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{
               background: '#F5F0EB',

@@ -4,11 +4,10 @@
  */
 
 import React from 'react';
-import { CheckCircle2, Info } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { DataProvider } from '@/types/data-integration';
 
 interface OnboardingHeaderProps {
-  isDemoMode: boolean;
   connectedServices: DataProvider[];
   activeConnections: DataProvider[];
   expiredConnections: DataProvider[];
@@ -16,7 +15,6 @@ interface OnboardingHeaderProps {
 }
 
 export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
-  isDemoMode,
   connectedServices,
   activeConnections,
   expiredConnections,
@@ -43,17 +41,6 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
     >
       Link your digital footprints to build your soul signature
     </p>
-
-    {/* Demo notice */}
-    {isDemoMode && (
-      <div
-        className="flex items-center gap-2 mb-8 text-[13px]"
-        style={{ color: 'rgba(255,255,255,0.40)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
-      >
-        <Info className="w-4 h-4 flex-shrink-0" />
-        <span>Demo mode — all platforms shown as connected with sample data.</span>
-      </div>
-    )}
 
     {/* Connection status */}
     {connectedServices.length > 0 && currentStep === 1 && (

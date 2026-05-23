@@ -2,40 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { authFetch } from '@/services/api/apiBase';
 import type { DashboardContext } from '@/types/dashboard';
 
-const DEMO_DATA: DashboardContext = {
-  greeting: {
-    firstName: 'Explorer',
-    timeLabel: 'evening',
-    insightCount: 3,
-    streak: 5,
-  },
-  heroInsight: {
-    body: 'You tend to listen to more introspective music on Sunday evenings — it might be your way of mentally preparing for the week ahead.',
-    source: 'Spotify listening patterns',
-    insightId: 'demo-insight-1',
-    createdAt: new Date().toISOString(),
-  },
-  twinStats: {
-    readiness: { score: 72, label: 'Growing', trend: 0 },
-    memoryCount: 4218,
-    memoriesThisWeek: 127,
-    streak: 5,
-  },
-  heatmap: Array.from({ length: 90 }, (_, i) => ({
-    date: new Date(Date.now() - (89 - i) * 86400000).toISOString().slice(0, 10),
-    count: Math.floor(Math.random() * 8),
-  })),
-  nextEvents: [
-    { title: 'Team standup', startTime: new Date(Date.now() + 3600000).toISOString(), endTime: new Date(Date.now() + 5400000).toISOString() },
-    { title: 'Lunch with Ana', startTime: new Date(Date.now() + 14400000).toISOString(), endTime: new Date(Date.now() + 18000000).toISOString() },
-  ],
-  platforms: [
-    { name: 'Spotify', provider: 'spotify', lastSync: new Date(Date.now() - 1800000).toISOString(), status: 'active' },
-    { name: 'Google Calendar', provider: 'google_calendar', lastSync: new Date(Date.now() - 7200000).toISOString(), status: 'active' },
-    { name: 'YouTube', provider: 'youtube', lastSync: new Date(Date.now() - 86400000).toISOString(), status: 'stale' },
-  ],
-};
-
 /**
  * Map platform status from the API's "connected"/"disconnected" to the
  * more granular status the frontend expects, using lastSync recency.
@@ -117,25 +83,17 @@ async function fetchHeatmap(): Promise<Array<{ date: string; count: number }>> {
 }
 
 export function useDashboardContext() {
-  // 2026-05-10: demo mode removed — always false. Real fetch always runs.
-  const isDemoMode = false;
-
   return useQuery<DashboardContext>({
     queryKey: ['dashboard-context'],
-    queryFn: isDemoMode ? () => Promise.resolve(DEMO_DATA) : fetchDashboardContext,
+    queryFn: fetchDashboardContext,
     staleTime: 2 * 60 * 1000,
   });
 }
 
 export function useDashboardHeatmap() {
-  // 2026-05-10: demo mode removed — always false. Real fetch always runs.
-  const isDemoMode = false;
-
   return useQuery({
     queryKey: ['dashboard-heatmap'],
-    queryFn: isDemoMode
-      ? () => Promise.resolve(DEMO_DATA.heatmap)
-      : fetchHeatmap,
+    queryFn: fetchHeatmap,
     staleTime: 10 * 60 * 1000, // 10min — matches backend cache
   });
 }

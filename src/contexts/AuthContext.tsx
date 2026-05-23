@@ -7,15 +7,12 @@ import { API_URL } from '@/services/api/apiBase';
 /**
  * AuthContext - Authentication Management
  *
- * 2026-05-10: demo-mode auth bypass removed. The `isDemoMode` field is kept
- * on the context for backward compat with consumers that branch on it, but
- * it is now permanently `false` — there's no path to enter demo mode and
- * no localStorage flag is read here.
- *
  * REAL AUTH:
  * - Uses short-lived access tokens plus refresh-cookie recovery
  * - Supports email/password and OAuth (Google) authentication
  * - Validates tokens on mount via /api/auth/verify endpoint
+ *
+ * audit-2026-05-23 demo mode plumbing removed
  */
 
 interface User {
@@ -36,7 +33,6 @@ interface AuthContextType {
   isLoaded: boolean;
   isSignedIn: boolean;
   isLoading: boolean;
-  isDemoMode: boolean;
   needsOnboarding: boolean;
   setNeedsOnboarding: (v: boolean) => void;
   signOut: () => Promise<void>;
@@ -440,9 +436,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoaded,
     isSignedIn: !!user,
     isLoading,
-    // Demo mode permanently disabled (2026-05-10). Kept on the type for
-    // backward compat — every consumer always sees `false`.
-    isDemoMode: false,
     needsOnboarding,
     setNeedsOnboarding,
     signOut,

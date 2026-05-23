@@ -7,7 +7,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { TwinReflection, PatternObservation } from './components/TwinReflection';
@@ -24,7 +23,6 @@ const WebBrowsingInsightsPage: React.FC = () => {
   useDocumentTitle('Web Browsing Insights');
 
   const { token } = useAuth();
-  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
@@ -43,73 +41,8 @@ const WebBrowsingInsightsPage: React.FC = () => {
     webBg: 'rgba(99, 102, 241, 0.1)'
   };
 
-  const getDemoInsights = (): InsightsResponse => ({
-    success: true,
-    reflection: {
-      id: 'demo-web-1',
-      text: 'Your browsing patterns reveal a deeply curious mind. You gravitate toward technology and learning content, spending significant time reading in-depth articles rather than skimming. Your search history shows a pattern of going deep on topics that interest you — from AI research to creative design. Your twin notices you browse most actively in the evenings, suggesting this is your personal exploration time.',
-      generatedAt: new Date().toISOString(),
-      expiresAt: null,
-      confidence: 'high',
-      themes: ['curiosity', 'learning', 'deep-reading'],
-    },
-    patterns: [
-      { id: 'p1', text: 'You tend to deep-dive into topics for 20+ minutes, reading multiple articles in sequence before moving on.', occurrences: 'often' },
-      { id: 'p2', text: 'Your browsing shifts from productivity tools during the day to creative and entertainment content in the evening.', occurrences: 'sometimes' },
-      { id: 'p3', text: 'You frequently search for "how things work" style content, showing a systematic learning approach.', occurrences: 'noticed' },
-    ],
-    history: [
-      { id: 'h1', text: 'Your recent browsing shows increased interest in AI and machine learning topics.', generatedAt: new Date(Date.now() - 86400000).toISOString() },
-    ],
-    evidence: [
-      { id: 'ev1', observation: 'Technology dominates your browsing categories', dataPoints: ['42% of page visits', '15+ tech domains visited'], confidence: 'high' },
-      { id: 'ev2', observation: 'Deep reader pattern detected', dataPoints: ['Average 3.2 min per page', '68% engagement score'], confidence: 'medium' },
-    ],
-    webTopCategories: [
-      { category: 'Technology', count: 84, percentage: 42 },
-      { category: 'Learning', count: 48, percentage: 24 },
-      { category: 'News', count: 28, percentage: 14 },
-      { category: 'Entertainment', count: 20, percentage: 10 },
-      { category: 'Social', count: 12, percentage: 6 },
-      { category: 'Shopping', count: 8, percentage: 4 },
-    ],
-    webTopDomains: [
-      { domain: 'github.com', count: 32 },
-      { domain: 'stackoverflow.com', count: 24 },
-      { domain: 'medium.com', count: 18 },
-      { domain: 'reddit.com', count: 15 },
-      { domain: 'youtube.com', count: 12 },
-      { domain: 'arxiv.org', count: 10 },
-      { domain: 'news.ycombinator.com', count: 8 },
-    ],
-    webTopTopics: ['artificial intelligence', 'web development', 'machine learning', 'design systems', 'productivity', 'psychology', 'music production', 'startups'],
-    webRecentSearches: ['react server components', 'claude api best practices', 'how neural networks learn', 'best productivity apps 2026', 'soul signature meaning'],
-    webReadingProfile: {
-      avgEngagement: 68,
-      avgTimeOnPage: 192,
-      dominantBehavior: 'deep_reader',
-      readingBehaviors: { deep_reader: 45, engaged_reader: 30, skimmer: 15, scanner: 10 },
-      contentTypeDistribution: { article: 50, reference: 25, video: 15, other: 10 },
-    },
-    webRecentActivity: [
-      { title: 'Understanding Transformer Architecture', domain: 'arxiv.org', category: 'Learning', timeOnPage: 420, timestamp: new Date(Date.now() - 3600000).toISOString() },
-      { title: 'React 19 New Features Guide', domain: 'react.dev', category: 'Technology', timeOnPage: 280, timestamp: new Date(Date.now() - 7200000).toISOString() },
-      { title: 'The Science of Habit Formation', domain: 'medium.com', category: 'Learning', timeOnPage: 350, timestamp: new Date(Date.now() - 10800000).toISOString() },
-    ],
-    webTotalPageVisits: 200,
-    webTotalSearches: 45,
-    hasExtensionData: true,
-  });
-
   useEffect(() => {
     let ignore = false;
-
-    if (isDemoMode) {
-      setError(null);
-      setInsights(getDemoInsights());
-      setLoading(false);
-      return;
-    }
 
     const authToken = token || getAccessToken();
     if (!authToken) {
@@ -145,16 +78,9 @@ const WebBrowsingInsightsPage: React.FC = () => {
     })();
 
     return () => { ignore = true; };
-  }, [isDemoMode]);
+  }, []);
 
   const fetchInsights = async () => {
-    if (isDemoMode) {
-      setError(null);
-      setInsights(getDemoInsights());
-      setLoading(false);
-      return;
-    }
-
     const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your digital life insights');
@@ -187,12 +113,6 @@ const WebBrowsingInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-
-    if (isDemoMode) {
-      setInsights(getDemoInsights());
-      setRefreshing(false);
-      return;
-    }
 
     const authToken = token || getAccessToken();
 

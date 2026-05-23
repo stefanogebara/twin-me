@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 
 interface DataManagementSettingsProps {
-  isDemoMode: boolean;
   navigate: (path: string) => void;
   exporting: boolean;
   deleting: boolean;
@@ -24,7 +23,6 @@ interface DataManagementSettingsProps {
 }
 
 const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
-  isDemoMode,
   navigate,
   exporting,
   deleting,
@@ -85,7 +83,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
         {/* Export Data */}
         <button
           onClick={handleExportData}
-          disabled={exporting || isDemoMode}
+          disabled={exporting}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
           style={{
             backgroundColor: 'rgba(59, 130, 246, 0.08)',
@@ -93,7 +91,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
             color: '#3B82F6',
             fontFamily: "'Inter', sans-serif",
             fontWeight: 500,
-            opacity: (exporting || isDemoMode) ? 0.5 : 1,
+            opacity: exporting ? 0.5 : 1,
           }}
         >
           {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -103,8 +101,7 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
         {/* Delete Account */}
         {!showDeleteConfirm ? (
           <button
-            onClick={() => !isDemoMode && setShowDeleteConfirm(true)}
-            disabled={isDemoMode}
+            onClick={() => setShowDeleteConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition-all hover:scale-[1.01]"
             style={{
               backgroundColor: 'rgba(239, 68, 68, 0.08)',
@@ -112,7 +109,6 @@ const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({
               color: '#ef4444',
               fontFamily: "'Inter', sans-serif",
               fontWeight: 500,
-              opacity: isDemoMode ? 0.5 : 1,
             }}
           >
             <Trash2 className="w-4 h-4" />

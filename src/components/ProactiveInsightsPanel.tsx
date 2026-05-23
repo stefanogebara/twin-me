@@ -68,14 +68,14 @@ const panelStyle: React.CSSProperties = {
 };
 
 export const ProactiveInsightsPanel: React.FC = () => {
-  const { isDemoMode, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { connectedCount } = usePlatformStatus(user?.id);
   const [engagedIds, setEngagedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const markEngaged = (insightId: string) => {
-    if (isDemoMode || engagedIds.has(insightId)) return;
+    if (engagedIds.has(insightId)) return;
     setEngagedIds(prev => new Set(prev).add(insightId));
     authFetch(`/insights/proactive/${insightId}/engage`, { method: 'POST' })
       .catch(() => {});
@@ -84,11 +84,6 @@ export const ProactiveInsightsPanel: React.FC = () => {
   const { data, isLoading, isError } = useQuery<ChatContextResponse>({
     queryKey: ['proactive-insights'],
     queryFn: async () => {
-      if (isDemoMode) {
-        await new Promise(r => setTimeout(r, 300));
-        return { success: true, pendingInsights: [] };
-      }
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {

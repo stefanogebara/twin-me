@@ -1,6 +1,7 @@
 // src/hooks/useSubscription.ts
+// audit-2026-05-23 demo mode plumbing removed
 import { useEffect, useState } from 'react';
-import { API_URL, getAccessToken, isDemoMode } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 
 export function useSubscription() {
@@ -8,13 +9,6 @@ export function useSubscription() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Demo mode: pretend user is on pro plan, no API call
-    if (isDemoMode()) {
-      setPlan('pro');
-      setLoading(false);
-      return;
-    }
-
     const token = getAccessToken();
     if (!token) { setLoading(false); return; }
     fetch(`${API_URL}/billing/subscription`, { headers: { Authorization: `Bearer ${token}` } })

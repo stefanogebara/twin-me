@@ -9,7 +9,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { API_URL, getAccessToken, isAbortError } from '@/services/api/apiBase';
 import { TwinReflection, PatternObservation, StatCard } from './components/TwinReflection';
@@ -22,7 +21,6 @@ import { CalendarEmptyState } from './components/CalendarEmptyState';
 import { CalendarSkeleton } from './components/CalendarSkeleton';
 import { Calendar, AlertCircle, Clock, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DEMO_CALENDAR_DATA } from '@/services/demoDataService';
 import { toast } from 'sonner';
 
 interface Reflection {
@@ -120,7 +118,6 @@ const CalendarInsightsPage: React.FC = () => {
   useDocumentTitle('Calendar Insights');
 
   const { token } = useAuth();
-  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
@@ -139,83 +136,13 @@ const CalendarInsightsPage: React.FC = () => {
     calendarBg: 'rgba(66, 133, 244, 0.1)'
   };
 
-  const getDemoInsights = (): InsightsResponse => {
-    const calendarData = DEMO_CALENDAR_DATA;
-    return {
-      success: true,
-      reflection: {
-        id: 'demo-reflection-1',
-        text: `Your calendar tells the story of a balanced professional. You average ${calendarData.patterns.avgMeetingsPerDay} meetings per day, with ${calendarData.patterns.busiestDay} being your busiest. Your twin notices you protect ${calendarData.patterns.focusTimePercentage}% of your time for focused work - a sign you value deep thinking over constant collaboration. Your preferred meeting window is ${calendarData.patterns.preferredMeetingTime}.`,
-        generatedAt: new Date().toISOString(),
-        expiresAt: null,
-        confidence: 'high',
-        themes: ['productivity', 'balance', 'patterns'],
-      },
-      patterns: [
-        {
-          id: 'pattern-1',
-          text: `You tend to schedule important meetings in the ${calendarData.patterns.preferredMeetingTime.includes('am') ? 'morning when energy is highest' : 'afternoon after you\'ve had focus time'}.`,
-          occurrences: 'often',
-        },
-        {
-          id: 'pattern-2',
-          text: `Your busiest day is ${calendarData.patterns.busiestDay} - consider protecting some time on this day for recovery.`,
-          occurrences: 'sometimes',
-        },
-        {
-          id: 'pattern-3',
-          text: `You block ${calendarData.patterns.focusTimePercentage}% of your time for focused work. This is ${calendarData.patterns.focusTimePercentage >= 40 ? 'above average - great for deep work!' : 'something to consider increasing for productivity.'}`,
-          occurrences: 'noticed',
-        },
-      ],
-      history: [
-        {
-          id: 'history-1',
-          text: 'Your meeting load has been consistent this month. You seem to have found a sustainable rhythm.',
-          generatedAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ],
-      evidence: [
-        {
-          id: 'evidence-1',
-          observation: `${calendarData.patterns.avgMeetingsPerDay} meetings per day average`,
-          dataPoints: [`${calendarData.patterns.focusTimePercentage}% focus time`, `${calendarData.patterns.busiestDay} is busiest`],
-          confidence: 'high',
-        },
-      ],
-      upcomingEvents: calendarData.todayEvents.map(event => ({
-        title: event.title,
-        time: `${event.startTime} - ${event.endTime}`,
-        type: event.type as 'meeting' | 'focus' | 'personal' | 'presentation' | 'workout' | 'other',
-        attendees: event.attendees,
-      })),
-      todayEvents: calendarData.todayEvents,
-      eventTypes: ['Meetings', 'Deep Work', 'Presentations', 'Personal'],
-      eventTypeDistribution: calendarData.eventTypeDistribution,
-      weeklyHeatmap: calendarData.weeklyHeatmap,
-      scheduleStats: {
-        meetingHours: Math.round(calendarData.patterns.avgMeetingsPerDay * 5),
-        focusBlocks: Math.round(calendarData.patterns.focusTimePercentage / 10),
-        busiestDay: calendarData.patterns.busiestDay,
-        preferredMeetingTime: calendarData.patterns.preferredMeetingTime,
-      },
-    };
-  };
-
   useEffect(() => {
     const controller = new AbortController();
     fetchInsights(controller.signal);
     return () => controller.abort();
-  }, [isDemoMode]);
+  }, []);
 
   const fetchInsights = async (signal?: AbortSignal) => {
-    if (isDemoMode) {
-      setError(null);
-      setInsights(getDemoInsights());
-      setLoading(false);
-      return;
-    }
-
     const authToken = token || getAccessToken();
     if (!authToken) {
       setError('Please sign in to see your time patterns');
@@ -255,14 +182,6 @@ const CalendarInsightsPage: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-
-    if (isDemoMode) {
-      setTimeout(() => {
-        setInsights(getDemoInsights());
-        setRefreshing(false);
-      }, 800);
-      return;
-    }
 
     const authToken = token || getAccessToken();
 

@@ -9,7 +9,6 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { API_URL, getAccessToken, authFetch } from '@/services/api/apiBase';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,7 +21,6 @@ import {
   ArchetypeReveal,
   PlatformConnectionsStep,
   GenerateCTA,
-  DemoValueModal,
   usePlatformConnect,
 } from './components/onboarding';
 import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner';
@@ -37,7 +35,6 @@ const InstantTwinOnboarding = () => {
   useDocumentTitle('Connect Platforms');
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemoMode } = useDemo();
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
 
@@ -63,7 +60,7 @@ const InstantTwinOnboarding = () => {
       };
     },
     staleTime: 10 * 60 * 1000,
-    enabled: !!user && !isDemoMode,
+    enabled: !!user,
   });
 
   const discoveredSet = new Set([
@@ -72,7 +69,6 @@ const InstantTwinOnboarding = () => {
   ]);
 
   // --- Local state ---
-  const [demoModalPlatform, setDemoModalPlatform] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<DataProvider | null>(null);
@@ -170,13 +166,11 @@ const InstantTwinOnboarding = () => {
   // --- Platform connect/disconnect ---
   const { connectService, disconnectService } = usePlatformConnect({
     userId: user?.id,
-    isDemoMode,
     refetchPlatformStatus,
     optimisticDisconnect,
     revertOptimisticUpdate,
     setConnectingProvider,
     setDisconnectingProvider,
-    setDemoModalPlatform,
     setGarminModalOpen,
     setSteamModalOpen,
     setDuolingoModalOpen,
@@ -272,19 +266,18 @@ const InstantTwinOnboarding = () => {
   return (
     <>
       <div className="max-w-[680px] mx-auto px-6 py-16">
-        {!isDemoMode && expiredConnections.length > 0 && (
+        {expiredConnections.length > 0 && (
           <ExpiredTokenBanner userId={user?.id} />
         )}
 
         <OnboardingHeader
-          isDemoMode={isDemoMode}
           connectedServices={connectedServices}
           activeConnections={activeConnections}
           expiredConnections={expiredConnections}
           currentStep={currentStep}
         />
 
-        {!isDemoMode && currentStep === 1 && (
+        {currentStep === 1 && (
           <div className="flex justify-end mb-4">
             <button
               onClick={() => navigate('/interview')}
@@ -303,7 +296,7 @@ const InstantTwinOnboarding = () => {
           />
         )}
 
-        {currentStep === 1 && revealProvider && !isDemoMode && (
+        {currentStep === 1 && revealProvider && (
           <ConnectionRevealCard
             provider={revealProvider}
             onDismiss={() => setRevealProvider(null)}
@@ -314,7 +307,6 @@ const InstantTwinOnboarding = () => {
           <>
             <PlatformConnectionsStep
               userId={user?.id}
-              isDemoMode={isDemoMode}
               connectedServices={connectedServices}
               activeConnections={activeConnections}
               platformStatusData={platformStatusData}
@@ -339,15 +331,6 @@ const InstantTwinOnboarding = () => {
           </>
         )}
       </div>
-
-      <DemoValueModal
-        platform={demoModalPlatform}
-        onClose={() => setDemoModalPlatform(null)}
-        onSignUp={() => {
-          setDemoModalPlatform(null);
-          navigate('/auth');
-        }}
-      />
 
       <GarminCredentialsModal
         open={garminModalOpen}

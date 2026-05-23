@@ -10,7 +10,6 @@ import { PlatformLogo } from '@/components/PlatformLogos';
 import GoogleWorkspaceConnect from './GoogleWorkspaceConnect';
 
 interface ConnectedPlatformsSettingsProps {
-  isDemoMode: boolean;
   connectorStatus: Record<string, unknown>;
   isLoading: boolean;
   error: string | null;
@@ -40,7 +39,6 @@ const connectorConfig: ConnectorConfig[] = [
 ];
 
 const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
-  isDemoMode,
   connectorStatus,
   isLoading,
   error,
@@ -54,7 +52,6 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
       {/* Google Workspace — bundled connect card */}
       <GoogleWorkspaceConnect
         connectorStatus={connectorStatus as Record<string, any>}
-        isDemoMode={isDemoMode}
         navigate={navigate}
       />
 
@@ -78,7 +75,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         </div>
       )}
 
-      {isLoading && !isDemoMode ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'rgba(255,255,255,0.2)' }} />
         </div>
@@ -86,8 +83,8 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
         <div className="space-y-0">
           {connectorConfig.map((connector) => {
             const connectionInfo = connectorStatus[connector.id];
-            const isConnected = isDemoMode ? true : connectionInfo?.connected;
-            const isExpired = isDemoMode ? false : (connectionInfo?.tokenExpired || connectionInfo?.status === 'expired');
+            const isConnected = connectionInfo?.connected;
+            const isExpired = connectionInfo?.tokenExpired || connectionInfo?.status === 'expired';
             const isActiveConnection = isConnected && !isExpired;
 
             return (
@@ -111,7 +108,7 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                   {isActiveConnection ? (
                     <>
                       <CheckCircle className="w-3.5 h-3.5" style={{ color: '#10B981' }} />
-                      {!isDemoMode && connector.isOAuth && (
+                      {connector.isOAuth && (
                         <button
                           onClick={() => {
                             if (window.confirm(`Disconnect ${connector.name}?`)) {
@@ -124,9 +121,6 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                         >
                           {disconnectingService === connector.id ? '...' : 'Disconnect'}
                         </button>
-                      )}
-                      {isDemoMode && (
-                        <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>Demo</span>
                       )}
                     </>
                   ) : isExpired ? (
@@ -143,15 +137,13 @@ const ConnectedPlatformsSettings: React.FC<ConnectedPlatformsSettingsProps> = ({
                   ) : (
                     <>
                       <XCircle className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.15)' }} />
-                      {!isDemoMode && (
-                        <button
-                          onClick={() => navigate('/get-started')}
-                          className="text-[11px]"
-                          style={{ color: '#10b77f' }}
-                        >
-                          Connect
-                        </button>
-                      )}
+                      <button
+                        onClick={() => navigate('/get-started')}
+                        className="text-[11px]"
+                        style={{ color: '#10b77f' }}
+                      >
+                        Connect
+                      </button>
                     </>
                   )}
                 </div>

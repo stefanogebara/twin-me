@@ -76,81 +76,6 @@ interface SoulSignatureLayers {
   generated_at: string;
 }
 
-// ── Demo fallback ────────────────────────────────────────────────────────
-
-const DEMO_IDENTITY_DATA: IdentityData = {
-  identity: {
-    lifeStage: 'early_career',
-    culturalOrientation: 'global_digital_native',
-    careerSalience: 'high',
-    approximateAge: 28,
-    confidence: 0.82,
-    promptFragment: 'An analytically-minded creative who balances structure with spontaneity.',
-    twinVoiceHint: 'Warm but precise — thinks in systems, speaks in stories.',
-    inferredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  profile: {
-    archetype: 'The Creative Synthesizer',
-    uniqueness_markers: ['Rhythmic Thinker', 'Intentional Planner', 'Curious Generalist', 'Community Builder'],
-    music_signature: {
-      top_genres: ['Lo-fi', 'Ambient', 'Synthwave', 'Classical Crossover'],
-      listening_patterns: 'Uses music as a cognitive tool — high-energy for morning focus, ambient for deep work, lo-fi for transitions.',
-    },
-    core_values: ['Curiosity', 'Authenticity', 'Deep Work', 'Creative Freedom'],
-    personality_summary: 'Highly open to new experiences with strong conscientiousness.',
-  },
-  expertInsights: {},
-  summary: 'You are a creative synthesizer who finds meaning at the intersection of music, technology, and human connection.',
-  summaryUpdatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-};
-
-const DEMO_PERSONALITY: PersonalityProfile = {
-  openness: 0.85,
-  conscientiousness: 0.78,
-  extraversion: 0.55,
-  agreeableness: 0.72,
-  neuroticism: 0.42,
-  temperature: 0.7,
-  top_p: 0.9,
-  confidence: 0.82,
-  memory_count_at_build: 412,
-  last_built_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-};
-
-const DEMO_SOUL_LAYERS: SoulSignatureLayers = {
-  values: {
-    values: [
-      { name: 'Curiosity & Growth', evidence: 'You consistently make time for learning new skills and exploring unfamiliar territory.', strength: 0.9 },
-      { name: 'Deep Connection', evidence: 'Your calendar shows heavy investment in meaningful 1:1 time over large group events.', strength: 0.85 },
-      { name: 'Creative Freedom', evidence: 'You gravitate toward open-ended projects and resist rigid structures.', strength: 0.8 },
-    ],
-  },
-  rhythms: {
-    chronotype: 'night_owl',
-    peakHours: '10pm - 2am',
-    summary: 'Your best work happens late at night when the world goes quiet. Morning is for recovery, not creation.',
-    distribution: { morning: 0.1, afternoon: 0.25, evening: 0.35, night: 0.3 },
-  },
-  taste: {
-    statement: 'You go deep on artists you love, not broad. Loyalty over novelty.',
-    topSignals: ['Brazilian pagode after Drake', 'Jazz at midnight', 'Lo-fi for deep work'],
-    diversity: 0.7,
-  },
-  connections: {
-    style: 'deep_connector',
-    summary: 'Small circle, deep investment. You remember details others forget.',
-    patterns: ['Recovery after social density', '1:1 over groups', 'Late-night conversations'],
-  },
-  growth_edges: {
-    shifts: [
-      { domain: 'music', description: 'New genres appearing in your rotation', type: 'exploration' },
-      { domain: 'social', description: 'More group activities than usual', type: 'growth' },
-    ],
-    isStable: false,
-  },
-  generated_at: new Date().toISOString(),
-};
-
 // ── Expert domain labels ─────────────────────────────────────────────────
 
 const EXPERT_LABELS: { key: string; label: string }[] = [
@@ -394,14 +319,11 @@ const IdentityPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // 2026-05-10: demo mode removed — always false.
-  const isDemoMode = false;
-
   const [showReveal, setShowReveal] = useState(false);
 
   useEffect(() => {
-    if (!user && !isDemoMode) navigate('/auth');
-  }, [user, isDemoMode, navigate]);
+    if (!user) navigate('/auth');
+  }, [user, navigate]);
 
   // ── Data fetching ──────────────────────────────────────────────────────
 
@@ -413,8 +335,7 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 12 * 60 * 60 * 1000,
-    enabled: !!user && !isDemoMode,
-    initialData: isDemoMode ? { success: true, profile: DEMO_PERSONALITY } : undefined,
+    enabled: !!user,
   });
 
   const { data, isLoading: identityLoading, error: identityError, refetch: refetchIdentity } = useQuery<{ success: boolean; data: IdentityData }>({
@@ -425,8 +346,7 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
-    enabled: !!user && !isDemoMode,
-    initialData: isDemoMode ? { success: true, data: DEMO_IDENTITY_DATA } : undefined,
+    enabled: !!user,
   });
 
   const { data: soulData, isLoading: soulLoading, error: soulError } = useQuery<{ success: boolean; data: SoulSignatureLayers }>({
@@ -437,8 +357,7 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 10 * 60 * 1000,
-    enabled: !!user && !isDemoMode,
-    initialData: isDemoMode ? { success: true, data: DEMO_SOUL_LAYERS } : undefined,
+    enabled: !!user,
   });
 
   // Stored LLM-driven archetype (canonical — generated by cron-soul-signature-regen).
@@ -458,7 +377,7 @@ const IdentityPage: React.FC = () => {
       return res.json();
     },
     staleTime: 10 * 60 * 1000,
-    enabled: !!user && !isDemoMode,
+    enabled: !!user,
   });
 
   const isLoading = identityLoading || soulLoading;
@@ -491,7 +410,7 @@ const IdentityPage: React.FC = () => {
 
   // ── Guards ─────────────────────────────────────────────────────────────
 
-  if (!user && !isDemoMode) return null;
+  if (!user) return null;
 
   // Render skeleton only on truly cold loads (nothing in cache yet). On warm
   // navigation back, data is already populated even though isLoading may flip
@@ -500,7 +419,7 @@ const IdentityPage: React.FC = () => {
   // Frontend audit CRITICAL #3.
   if (isLoading && !summary && !layers) return <LoadingSkeleton />;
 
-  if ((identityError || soulError) && !isDemoMode) {
+  if (identityError || soulError) {
     const errorMsg = (identityError as Error)?.message || (soulError as Error)?.message || 'Could not load your soul signature.';
     return (
       <div className="max-w-2xl mx-auto px-6 py-16">
@@ -769,7 +688,7 @@ const IdentityPage: React.FC = () => {
                   Ask your twin why this fits
                   <ArrowRight className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
                 </button>
-                {!isDemoMode && user && (
+                {user && (
                   <button
                     onClick={handleShare}
                     aria-label="Share your soul signature"
@@ -1172,7 +1091,7 @@ const IdentityPage: React.FC = () => {
             ))}
           </div>
           <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            {!isDemoMode && user && (
+            {user && (
               <button
                 onClick={handleShare}
                 aria-label="Share your soul signature"

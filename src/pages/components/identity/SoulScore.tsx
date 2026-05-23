@@ -270,9 +270,6 @@ const ContributorCard: React.FC<ContributorCardProps> = ({ domain, connected, sc
 /* ------------------------------------------------------------------ */
 
 const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }) => {
-  // 2026-05-10: demo mode removed — always false.
-  const isDemoMode = false;
-
   // Real memory count — the only reliable data source
   const { data: memorySummary } = useQuery({
     queryKey: ['memories', 'summary'],
@@ -283,7 +280,6 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
       return { total: json.total ?? 0 } as { total: number };
     },
     staleTime: 15 * 60 * 1000,
-    enabled: !isDemoMode,
   });
 
   // Fetch user ID from localStorage for connectors endpoint
@@ -294,7 +290,7 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
   // Connected platforms — canonical platforms summary (audit 2026-05-12 H1).
   // Replaces the previous per-page /connectors/status fetch that disagreed with
   // /wiki, /dashboard, etc.
-  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!userId && !isDemoMode });
+  const { data: platformsSummary } = usePlatformsSummary({ enabled: !!userId });
 
   // Backward-compatible connector map for ContributorCard locked/unlocked logic.
   const connectors = useMemo(() => {
@@ -304,60 +300,6 @@ const SoulScore: React.FC<SoulScoreProps> = ({ className = '', compact = false }
     }
     return map;
   }, [platformsSummary]);
-
-  // ── Demo mode: realistic synthetic data ──────────────────────────────
-  if (isDemoMode) {
-    const demoScore = 72;
-    const demoPlatformCount = 5;
-    const demoDomainScores: Record<string, number> = {
-      spotify: 85,
-      whoop: 65,
-      google_calendar: 45,
-      github: 65,
-      youtube: 45,
-      __always__: 65,
-    };
-
-    return (
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={className}
-      >
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: getRingColor(demoScore) }} />
-          <h2
-            className="text-[11px] font-medium tracking-widest uppercase"
-            style={{ color: '#F5F5F4', fontFamily: "'Inter', sans-serif" }}
-          >
-            Soul Score
-          </h2>
-        </div>
-        <div className={`flex flex-col items-center gap-2 ${compact ? 'mb-5' : 'mb-8'}`}>
-          <ScoreRing score={demoScore} compact={compact} />
-          <p
-            className="text-[13px]"
-            style={{ fontFamily: "'Inter', sans-serif", color: 'rgba(255,255,255,0.35)' }}
-          >
-            Identity richness across {demoPlatformCount} sources
-          </p>
-        </div>
-        <div className={`grid ${compact ? 'grid-cols-2 gap-2' : 'grid-cols-2 sm:grid-cols-3 gap-3'}`}>
-          {DOMAINS.map((domain, i) => (
-            <ContributorCard
-              key={domain.id}
-              domain={domain}
-              connected={true}
-              score={demoDomainScores[domain.platformKey] ?? 45}
-              index={i}
-              compact={compact}
-            />
-          ))}
-        </div>
-      </motion.section>
-    );
-  }
 
   // Platform-level inputs from the canonical summary.
   // - connectedPlatforms (unlocks the contributor card): includes ALL connected

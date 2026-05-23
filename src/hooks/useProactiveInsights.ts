@@ -25,14 +25,10 @@ export interface NudgeFeedbackPayload {
 export function useProactiveInsights() {
   const queryClient = useQueryClient();
 
-  // 2026-05-10: demo mode removed — always false.
-  const isDemoMode = false;
-
   const query = useQuery<ProactiveInsight[]>({
     queryKey: QUERY_KEY,
-    queryFn: isDemoMode ? () => Promise.resolve([]) : fetchInsights,
+    queryFn: fetchInsights,
     staleTime: 60_000,
-    enabled: !isDemoMode,
   });
 
   const engageMutation = useMutation({

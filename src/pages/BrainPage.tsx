@@ -9,7 +9,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDemo } from '@/contexts/DemoContext';
 import { authFetch } from '@/services/api/apiBase';
 import { ChevronDown, Search } from 'lucide-react';
 import { SoulEvolutionTimeline } from '@/components/brain/SoulEvolutionTimeline';
@@ -24,8 +23,6 @@ import {
   BrainSnapshot,
   TYPE_COLORS,
   TYPE_LABELS,
-  DEMO_MEMORIES,
-  DEMO_COMPOSITION,
   PAGE_SIZE,
 } from '@/components/brain/brainConstants';
 
@@ -36,7 +33,6 @@ import {
 const BrainPage: React.FC = () => {
   useDocumentTitle('Your Memories');
   const { user, isSignedIn, isLoaded } = useAuth();
-  const { isDemoMode } = useDemo();
   const navigate = useNavigate();
 
   // Filter / sort state
@@ -67,13 +63,6 @@ const BrainPage: React.FC = () => {
     search?: string;
     append?: boolean;
   }) => {
-    if (isDemoMode) {
-      setMemories(DEMO_MEMORIES);
-      setComposition(DEMO_COMPOSITION);
-      setTotal(DEMO_MEMORIES.length);
-      return;
-    }
-
     if (!isSignedIn || !user?.id) return;
 
     const isAppend = opts.append ?? false;
@@ -114,7 +103,7 @@ const BrainPage: React.FC = () => {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [isSignedIn, isDemoMode, user?.id]);
+  }, [isSignedIn, user?.id]);
 
   // Fetch when filters or search change (debounce search by 300ms)
   useEffect(() => {
@@ -128,7 +117,7 @@ const BrainPage: React.FC = () => {
 
   // Fetch snapshots for timeline (lazy)
   useEffect(() => {
-    if (!showMore || !isSignedIn || isDemoMode || !user?.id || snapshots.length > 0) return;
+    if (!showMore || !isSignedIn || !user?.id || snapshots.length > 0) return;
 
     authFetch('/twins-brain/snapshots?limit=30')
       .then(r => r.ok ? r.json() : null)
@@ -138,7 +127,7 @@ const BrainPage: React.FC = () => {
         }
       })
       .catch(() => {});
-  }, [showMore, isSignedIn, isDemoMode, user?.id, snapshots.length]);
+  }, [showMore, isSignedIn, user?.id, snapshots.length]);
 
   const handleLoadMore = () => {
     const newOffset = offset + PAGE_SIZE;
