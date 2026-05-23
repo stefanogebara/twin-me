@@ -308,11 +308,17 @@ async function getGoalSummary(userId) {
     .select('status, current_streak, best_streak, total_days_met, total_days_tracked, category')
     .eq('user_id', userId);
 
-  if (error || !goals) return { active: 0, suggested: 0, completed: 0, bestStreak: 0 };
+  if (error || !goals) return { active: 0, suggested: 0, completed: 0, expired: 0, abandoned: 0, bestStreak: 0 };
 
   const active = goals.filter(g => g.status === 'active');
   const suggested = goals.filter(g => g.status === 'suggested');
   const completed = goals.filter(g => g.status === 'completed');
+  // audit-2026-05-23 M13: surface expired + abandoned counts so the dashboard
+  // can show "4 expired, 7 abandoned" as a self-correction signal instead of
+  // hiding them. The numbers are dead-loop indicators (goal accepted, tracker
+  // never measured high enough) worth letting the user see.
+  const expired = goals.filter(g => g.status === 'expired');
+  const abandoned = goals.filter(g => g.status === 'abandoned');
 
   const bestStreak = goals.reduce((max, g) => Math.max(max, g.best_streak || 0), 0);
 
@@ -320,6 +326,8 @@ async function getGoalSummary(userId) {
     active: active.length,
     suggested: suggested.length,
     completed: completed.length,
+    expired: expired.length,
+    abandoned: abandoned.length,
     bestStreak,
     categories: [...new Set(active.map(g => g.category))],
   };
@@ -781,23 +789,6 @@ async function trackGoalProgress(userId, platformData) {
 
       const targetMet = evaluateTarget(measuredValue, goal.target_value, goal.target_operator);
 
-      // Upsert progress log — UNIQUE(goal_id, tracked_date) so concurrent ingestions silently skip
-      const { error: insertErr } = await supabase
-        .from('goal_progress_log')
-        .upsert({
-          goal_id: goal.id,
-          user_id: userId,
-          tracked_date: today,
-          measured_value: measuredValue,
-          target_met: targetMet,
-          source_data: { metric_type: goal.metric_type, platform: goal.source_platform },
-        }, { onConflict: 'goal_id,tracked_date', ignoreDuplicates: true });
-
-      if (insertErr) {
-        log.warn('Progress upsert error', { goalId: goal.id, error: insertErr });
-        continue;
-      }
-
       // Update streak counters — grace_days=1 means one miss doesn't reset to 0
       const GRACE_DAYS = 1;
       const consecutiveMisses = (goal.metadata?.consecutive_misses ?? 0);
@@ -830,27 +821,31 @@ async function trackGoalProgress(userId, platformData) {
         newStatus = successRate >= 0.6 ? 'completed' : 'expired';
       }
 
+      // audit-2026-05-23 M16: atomic write via record_goal_progress RPC. The
+      // previous two-write pattern (log insert + goal update) could leave the
+      // counter stale if the second write failed — and the log row meant the
+      // alreadyTracked check would skip retry. The RPC wraps both writes in
+      // one Postgres transaction so they succeed or fail together.
       const nowIso = new Date().toISOString();
-      const { error: updateErr } = await supabase
-        .from('twin_goals')
-        .update({
-          current_streak: newStreak,
-          best_streak: newBestStreak,
-          total_days_tracked: newTotalTracked,
-          total_days_met: newTotalMet,
-          last_progress_check: nowIso,
-          // audit-2026-05-23 C1: surface latest reading so the FE progress bar
-          // can render "currently 78 of 75 target" without joining the log.
-          last_measured_value: measuredValue,
-          last_measured_at: nowIso,
-          status: newStatus,
-          celebration_delivered: newStatus === 'completed' ? false : goal.celebration_delivered,
-          metadata: { ...(goal.metadata ?? {}), consecutive_misses: newConsecutiveMisses },
-        })
-        .eq('id', goal.id);
+      const { error: rpcErr } = await supabase.rpc('record_goal_progress', {
+        p_goal_id: goal.id,
+        p_user_id: userId,
+        p_tracked_date: today,
+        p_measured_value: measuredValue,
+        p_target_met: targetMet,
+        p_source_data: { metric_type: goal.metric_type, platform: goal.source_platform },
+        p_new_streak: newStreak,
+        p_new_best_streak: newBestStreak,
+        p_new_total_tracked: newTotalTracked,
+        p_new_total_met: newTotalMet,
+        p_new_status: newStatus,
+        p_new_consecutive_misses: newConsecutiveMisses,
+        p_last_measured_at: nowIso,
+      });
 
-      if (updateErr) {
-        log.warn('Goal update error', { goalId: goal.id, error: updateErr });
+      if (rpcErr) {
+        log.warn('record_goal_progress RPC error', { goalId: goal.id, error: rpcErr });
+        continue;
       }
 
       tracked++;

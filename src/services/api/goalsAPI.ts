@@ -29,9 +29,12 @@ export interface Goal {
 
 export interface GoalSummary {
   active: number;
+  suggested: number;
   completed: number;
-  suggestions: number;
-  best_streak: number;
+  expired: number;
+  abandoned: number;
+  bestStreak: number;
+  categories?: string[];
 }
 
 async function json<T>(res: Response): Promise<T> {

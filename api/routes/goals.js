@@ -54,7 +54,12 @@ const suggestionsLimiter = rateLimit({
  * GET /api/goals - List goals with optional status filter
  * Query params: ?status=active (or suggested, completed, abandoned)
  */
-const VALID_GOAL_STATUSES = new Set(['suggested', 'active', 'completed', 'abandoned']);
+// audit-2026-05-23 M13: 'expired' was missing despite being a real status the
+// auto-tracker writes when a goal's duration_days elapses with <60% success
+// rate. Stefano has 4 expired goals that were invisible because GET /goals
+// rejected ?status=expired with "Invalid status filter". The schema check
+// constraint already permits the value.
+const VALID_GOAL_STATUSES = new Set(['suggested', 'active', 'completed', 'abandoned', 'expired']);
 
 router.get('/', authenticateUser, async (req, res) => {
   try {
