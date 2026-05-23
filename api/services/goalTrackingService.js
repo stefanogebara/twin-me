@@ -484,9 +484,11 @@ function extractMetricFromPlatformData(metricType, platformData) {
  *   "Recovery score: 82%" -> recovery_score = 82
  *   "HRV: 154ms" -> hrv = 154
  */
-async function extractMetricFromMemories(userId, metricType) {
+// audit-2026-05-23 H9: accept pre-fetched memories to avoid N×200-row
+// queries when trackGoalProgress loops over multiple active goals.
+async function extractMetricFromMemories(userId, metricType, prefetchedMemories = null) {
   // Fetch enough memories to find platform_data (reflections dominate recent stream)
-  const recentMemories = await getRecentMemories(userId, 200);
+  const recentMemories = prefetchedMemories || await getRecentMemories(userId, 200);
   const platformMemories = recentMemories.filter(m => m.memory_type === 'platform_data' || m.memory_type === 'observation');
 
   // Consider memories from the last 36 hours (wider window than cron interval to avoid gaps)
@@ -751,6 +753,18 @@ async function trackGoalProgress(userId, platformData) {
     // Auto-fetch structured data from DB when caller passes null
     const resolvedPlatformData = platformData || await fetchStructuredPlatformData(userId);
 
+    // audit-2026-05-23 H9: fetch the memory pool once per ingestion cycle
+    // instead of per-goal. extractMetricFromMemories takes the prefetched
+    // list and filters in memory. Lazy-init so users with no goals or all
+    // platform-data hits don't pay the fetch cost.
+    let memoriesPool = null;
+    const getMemoriesPool = async () => {
+      if (memoriesPool === null) {
+        memoriesPool = await getRecentMemories(userId, 200);
+      }
+      return memoriesPool;
+    };
+
     const today = new Date().toISOString().split('T')[0];
     let tracked = 0;
 
@@ -770,7 +784,7 @@ async function trackGoalProgress(userId, platformData) {
       // Extract metric from platform data, or fallback to recent memories
       let measuredValue = extractMetricFromPlatformData(goal.metric_type, resolvedPlatformData);
       if (measuredValue == null) {
-        measuredValue = await extractMetricFromMemories(userId, goal.metric_type);
+        measuredValue = await extractMetricFromMemories(userId, goal.metric_type, await getMemoriesPool());
       }
 
       // audit-2026-05-23 C1: previously a null measurement silently `continue`'d

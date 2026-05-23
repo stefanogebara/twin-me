@@ -214,16 +214,35 @@ export default function GoalsPage() {
     return () => controller.abort();
   }, [load]);
 
-  // Auto-trigger suggestion generation when the user lands on a dead page:
-  // no active goals AND no pending suggestions. Runs once per mount.
+  // audit-2026-05-23 H8: auto-trigger suggestion generation when the user
+  // lands on a dead page. Session-gated via sessionStorage so refresh / nav
+  // back-and-forth don't re-fire the LLM round-trip. The backend H7 cooldown
+  // (user_platform_data) is the source of truth and would no-op anyway, but
+  // the session gate avoids the wasted request and the spinner flash.
+  //
+  // Session key holds the timestamp of the last attempt; 24h re-arm matches
+  // the backend cooldown.
+  const SUGGESTION_SESSION_KEY = 'goals.lastAutoSuggestAt';
+  const SUGGESTION_AUTOTRIGGER_TTL_MS = 24 * 60 * 60 * 1000;
   useEffect(() => {
     if (loading || !isSignedIn || hasTriedGeneration) return;
     if (active.length > 0 || suggestions.length > 0) return;
+
+    try {
+      const last = Number(sessionStorage.getItem(SUGGESTION_SESSION_KEY) || 0);
+      if (last && Date.now() - last < SUGGESTION_AUTOTRIGGER_TTL_MS) {
+        setHasTriedGeneration(true); // suppress further attempts this mount
+        return;
+      }
+    } catch {
+      // sessionStorage unavailable (SSR / sandboxed iframe) — fall through.
+    }
 
     let cancelled = false;
     setHasTriedGeneration(true);
     setGeneratingSuggestions(true);
     setSuggestionsError(null);
+    try { sessionStorage.setItem(SUGGESTION_SESSION_KEY, String(Date.now())); } catch {}
     generateGoalSuggestions()
       .then(fresh => {
         if (cancelled) return;
