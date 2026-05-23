@@ -158,10 +158,6 @@
       "schedule": "30 4 * * *"
     },
     {
-      "path": "/api/cron/evening-recap",
-      "schedule": "0 23 * * *"
-    },
-    {
       "path": "/api/cron/deliver-insights",
       "schedule": "0 * * * *"
     },
@@ -204,10 +200,6 @@
     {
       "path": "/api/cron/investment-correlation",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/nudge-retrospective",
-      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/twin-summary-refresh",

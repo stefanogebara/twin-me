@@ -146,6 +146,18 @@ async function fetchWhoopObservations(userId) {
         nangoService.whoop.getRecovery(userId, 30),
         nangoService.whoop.getSleep(userId, 30),
       ]);
+      // Diagnostic: cron returns count=0 with status=ok — surface why.
+      log.info('Whoop Nango fetch result', {
+        userId: userId.slice(0, 8),
+        recoveryOk: recoveryResult?.success,
+        recoveryRecords: recoveryResult?.data?.records?.length ?? null,
+        recoveryError: recoveryResult?.error || null,
+        recoveryStatus: recoveryResult?.status ?? recoveryResult?.statusCode ?? null,
+        sleepOk: sleepResult?.success,
+        sleepRecords: sleepResult?.data?.records?.length ?? null,
+        sleepError: sleepResult?.error || null,
+        sleepStatus: sleepResult?.status ?? sleepResult?.statusCode ?? null,
+      });
       recoveryHistory = recoveryResult.success ? (recoveryResult.data?.records || []) : [];
       recoveryData = recoveryHistory[0] || null;
       sleepData = sleepResult.success ? (sleepResult.data?.records || []) : [];
