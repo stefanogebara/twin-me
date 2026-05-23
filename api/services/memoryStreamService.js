@@ -1268,7 +1268,10 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     // pick up the same pattern. Plain embedding-based retrieval is good
     // enough at the budgets we use (maxReflections * 2 over-fetch + dedup).
     withLegTimeout('reflections',
-      retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, { ...options, skipHyDE: true })
+      // skipFactPool: this leg post-filters to memory_type='reflection' (line below),
+      // so the parallel fact-only RPC added 2026-05-23 would be wasted work here.
+      // Facts arrive via the dedicated facts leg further down.
+      retrieveMemories(userId, query, maxReflections * 2, reflectionWeights, { ...options, skipHyDE: true, skipFactPool: true })
     ),
 
     // Facts: top by importance (most salient facts about the user)
@@ -1306,9 +1309,13 @@ async function retrieveDiverseMemories(userId, query, budgets = {}, reflectionWe
     // outranked by reflections during min-max scoring.
     semanticConvBudget > 0
       ? withLegTimeout('semantic_conv',
+          // skipFactPool: this leg constrains the main search to conversations via memoryTypes
+          // and post-filters again. The parallel fact-only RPC would be wasted work — facts
+          // arrive via the dedicated facts leg, not this conversation-search path.
           retrieveMemories(userId, query, semanticConvBudget * 2, 'default', {
             memoryTypes: ['conversation'],
             skipHyDE: true,
+            skipFactPool: true,
           })
             .then(results => results.filter(m => m.memory_type === 'conversation').slice(0, semanticConvBudget))
         )
