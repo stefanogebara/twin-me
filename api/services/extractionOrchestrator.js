@@ -183,7 +183,7 @@ class ExtractionOrchestrator {
 
         case 'discord':
           try {
-            const { fetchDiscordObservations } = await import('./observationIngestion.js');
+            const { fetchDiscordObservations } = await import('./observationFetchers/discord.js');
             const discordObs = await fetchDiscordObservations(userId);
             const discordStored = await storeObservationsToMemory(userId, 'discord', discordObs);
             itemsExtracted = discordStored;
@@ -208,7 +208,7 @@ class ExtractionOrchestrator {
 
         case 'github':
           try {
-            const { fetchGitHubObservations } = await import('./observationIngestion.js');
+            const { fetchGitHubObservations } = await import('./observationFetchers/github.js');
             const githubObs = await fetchGitHubObservations(userId);
             const githubStored = await storeObservationsToMemory(userId, 'github', githubObs);
             itemsExtracted = githubStored;
@@ -233,7 +233,7 @@ class ExtractionOrchestrator {
 
         case 'youtube': {
           try {
-            const { fetchYouTubeObservations } = await import('./observationIngestion.js');
+            const { fetchYouTubeObservations } = await import('./observationFetchers/youtube.js');
             const observations = await fetchYouTubeObservations(userId);
             const stored = await storeObservationsToMemory(userId, 'youtube', observations);
             itemsExtracted = stored;
@@ -260,7 +260,7 @@ class ExtractionOrchestrator {
         case 'gmail':
         case 'google_gmail':
           try {
-            const { fetchGmailObservations } = await import('./observationIngestion.js');
+            const { fetchGmailObservations } = await import('./observationFetchers/gmail.js');
             const gmailObs = await fetchGmailObservations(userId);
             const gmailStored = await storeObservationsToMemory(userId, 'google_gmail', gmailObs);
             itemsExtracted = gmailStored;
@@ -285,7 +285,7 @@ class ExtractionOrchestrator {
 
         case 'outlook':
           try {
-            const { fetchOutlookObservations } = await import('./observationIngestion.js');
+            const { fetchOutlookObservations } = await import('./observationFetchers/outlook.js');
             const outlookObs = await fetchOutlookObservations(userId);
             const outlookStored = await storeObservationsToMemory(userId, 'outlook', outlookObs);
             itemsExtracted = outlookStored;
@@ -299,7 +299,7 @@ class ExtractionOrchestrator {
 
         case 'linkedin':
           try {
-            const { fetchLinkedInObservations } = await import('./observationIngestion.js');
+            const { fetchLinkedInObservations } = await import('./observationFetchers/linkedin.js');
             const linkedinObs = await fetchLinkedInObservations(userId);
             const linkedinStored = await storeObservationsToMemory(userId, 'linkedin', linkedinObs);
             itemsExtracted = linkedinStored;
@@ -324,7 +324,7 @@ class ExtractionOrchestrator {
 
         case 'whoop':
           try {
-            const { fetchWhoopObservations } = await import('./observationIngestion.js');
+            const { fetchWhoopObservations } = await import('./observationFetchers/whoop.js');
             const observations = await fetchWhoopObservations(userId);
             const whoopStored = await storeObservationsToMemory(userId, 'whoop', observations);
             itemsExtracted = whoopStored;
@@ -349,7 +349,7 @@ class ExtractionOrchestrator {
 
         case 'oura':
           try {
-            const { fetchOuraObservations } = await import('./observationIngestion.js');
+            const { fetchOuraObservations } = await import('./observationFetchers/oura.js');
             const ouraObs = await fetchOuraObservations(userId);
             const ouraStored = await storeObservationsToMemory(userId, 'oura', ouraObs);
             itemsExtracted = ouraStored;
@@ -374,7 +374,7 @@ class ExtractionOrchestrator {
 
         case 'twitch':
           try {
-            const { fetchTwitchObservations } = await import('./observationIngestion.js');
+            const { fetchTwitchObservations } = await import('./observationFetchers/twitch.js');
             const twitchObs = await fetchTwitchObservations(userId);
             const twitchStored = await storeObservationsToMemory(userId, 'twitch', twitchObs);
             itemsExtracted = twitchStored;
@@ -399,7 +399,7 @@ class ExtractionOrchestrator {
 
         case 'reddit':
           try {
-            const { fetchRedditObservations } = await import('./observationIngestion.js');
+            const { fetchRedditObservations } = await import('./observationFetchers/reddit.js');
             const redditObs = await fetchRedditObservations(userId);
             const redditStored = await storeObservationsToMemory(userId, 'reddit', redditObs);
             itemsExtracted = redditStored;
@@ -424,7 +424,7 @@ class ExtractionOrchestrator {
 
         case 'strava':
           try {
-            const { fetchStravaObservations } = await import('./observationIngestion.js');
+            const { fetchStravaObservations } = await import('./observationFetchers/strava.js');
             const stravaObs = await fetchStravaObservations(userId);
             const stravaStored = await storeObservationsToMemory(userId, 'strava', stravaObs);
             itemsExtracted = stravaStored;
