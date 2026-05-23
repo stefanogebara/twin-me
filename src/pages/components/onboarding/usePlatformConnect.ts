@@ -201,6 +201,12 @@ export function usePlatformConnect({
     }
 
     setConnectingProvider(provider);
+    // audit-2026-05-23: hoisted out of the try block so the catch handler
+    // (line ~376) can actually close it when the API call fails. Previously
+    // it was declared inside the try, putting it out of scope at the catch
+    // and leaving the about:blank popup orphaned on the user's screen any
+    // time /nango/connect-session or /entertainment/connect/* errored.
+    let preOpenedPopup: Window | null = null;
     try {
       const effectiveUserId = userId || 'demo-user';
       toast({
@@ -248,8 +254,24 @@ export function usePlatformConnect({
       // Pre-open a blank popup while still inside the user-gesture call stack.
       // Browsers block window.open() called after any await, so we must open
       // the window before the first async API call and navigate it later.
-      let preOpenedPopup: Window | null = null;
+      // preOpenedPopup declared above the try block (line ~204) so the catch
+      // handler can close it on API failure.
       if (nangoPlatforms.includes(provider as string)) {
+        // audit-2026-05-23: pre-flight popup-blocker warning. Nango Connect
+        // opens a second popup (to the provider's OAuth page) once its UI
+        // loads — and we can't detect when that secondary popup is blocked
+        // because it happens on the Nango domain. Best signal we can give
+        // the user is an upfront heads-up so they expect TWO windows and
+        // notice the popup-blocked icon if it ever appears. Cheap to add;
+        // helps even if popups end up working. See watchdog at line ~169 for
+        // the reactive 20s help-toast if it does silently fail.
+        const platformLabel = AVAILABLE_CONNECTORS.find(c => c.provider === provider)?.name || provider;
+        toast({
+          title: `Opening ${platformLabel} sign-in`,
+          description: 'A small sign-in window will open. If you don\'t see it, check for a popup-blocked icon in your address bar.',
+          duration: 6000,
+        });
+
         const w = 600, h = 700;
         const left = window.screenX + (window.outerWidth - w) / 2;
         const top = window.screenY + (window.outerHeight - h) / 2;
