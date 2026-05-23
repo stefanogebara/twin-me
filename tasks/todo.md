@@ -19,16 +19,41 @@
 - [x] Commits in main: parallel-session work pushed earlier; this 2026-05-15 session added the audit + Renan probe + importance bump
 - [~] Playwright verify on prod — manual MCP browser run preferred over a formal spec; the card is live on twinme.me
 
-### FOLLOW-UP — concept retrieval drowning under github noise
+### FOLLOW-UP — concept retrieval drowning under github noise (CLOSED 2026-05-23)
 
-The Renan facts not surfacing reveals a system-level retrieval issue, not a Renan-specific bug.
+**Resolution:** Fix 1 (cap importance) applied. The forward fix shipped 2026-05-16 added `NOISE_OBSERVATION_PATTERNS` to `api/services/memoryStreamService.js:502` with `skipImportance: true` clamps for 5 patterns (branch creation → 3, lang distribution → 3, annual summary → 4, commit days → 4, streak → 4). The 2026-05-23 backfill migration `database/migrations/20260523_noise_observation_importance_backfill.sql` cleaned up 117 legacy rows still above the cap.
 
-- Github platform_data branch-creation observations are stored with importance 7-8. Branch creations are not importance-8 events — that scoring is wildly miscalibrated. They win concept queries because the branch name literally contains a query keyword ("twin-me" → "TwinMe").
-- Possible fixes (in increasing scope):
-  1. **Cap importance** on github branch-creation observations at 4-5 (small data fix in observation ingestion).
-  2. **Filter out github branch noise** from concept-query retrieval (filter at retrieval time on memory_type+source).
-  3. **Switch concept queries to `reflection` weight preset** [0.0, 0.5, 1.0] — kills recency advantage, weights pure relevance. Needs a query-classifier upstream.
-- Defer: blocks the "expect Renan facts in top 5" assertion but is orthogonal to the Renan-facts data layer being correct. Track separately.
+**Verification (`scripts/probe-concept-retrieval.js`):**
+- "features I should kill in TwinMe" — Renan rank **4** (default + reflection), 0 github noise in top 5
+- "what did Renan tell me to focus on" — Renan rank **2** (default + reflection), 0 github noise in top 5
+- "Vibe Anything paradigm" — Renan NOT in top 10. Different bug: embedding anchors on "Vibe" (loaded by music memories), never resolves "Anything paradigm". Relevance precision, not noise.
+
+**Regression guard:** `tests/unit/noiseObservationClamp.test.js` (12 tests pin the 5 patterns + cap values).
+
+**Open follow-ups:** Embedding precision for product-term queries ("Vibe Anything", future product names) — could be HyDE query expansion improvement or a per-domain reranker. Track separately.
+
+### FOLLOW-UP 2 — product-term embedding precision (CLOSED 2026-05-23)
+
+**Diagnosis:** "Vibe Anything paradigm" failed because the embedding for "Vibe" matched stefano's ~50+ music/vibe memories far more strongly than the lone Renan fact about the Vibe Anything paradigm. Same pattern would hit any TwinMe product name that overlaps with everyday vocabulary (Soul Signature, etc.).
+
+**Tried, rejected:** HyDE alone (non-deterministic — same query flipped between rank 2 and rank -1 across runs). BM25_BLEND_WEIGHT raised 0.10 → 0.30 (no effect on Vibe Anything — the cosine pull was too strong for any lexical blend to flip).
+
+**Fix:** Extended identity-mode's parallel fact-only search to ALL retrieval modes (`api/services/memoryStreamService.js:849`). Facts now compete in their own type-pool (normalized inside the RPC's `WHERE memory_type = ANY(p_memory_types)` candidate set), so an importance-10 Renan fact wins its pool even when its raw cosine similarity is lower than competing reflections. Opt-out via `options.skipFactPool` for perf-sensitive callers.
+
+**Verification (`scripts/probe-concept-retrieval.js`), 9 queries, HyDE OFF (deterministic baseline):**
+- "features I should kill in TwinMe" — rank **2** (improved from 4)
+- "what did Renan tell me to focus on" — rank **2**
+- "Vibe Anything paradigm" — rank **2** (was NOT IN TOP 10)
+- "tell me about Vibe Anything" — rank **2** (was NOT IN TOP 10)
+- "what's Renan's view on Soul Signature" — rank **1**
+- "should I keep the Soul Signature feature" — rank **2**
+- "what is the credit-card-wedge framework" — rank **1**
+- "fazer menos não mais" — rank **1**
+- "what features should I cut to ship faster" — rank **4**
+
+9/9 PASS, all in top 4, zero github noise in any top 5. Same result repeats deterministically without HyDE; with HyDE on, ranks vary 1-2 across runs but still all PASS.
+
+**Cost:** +1 Supabase RPC per `retrieveMemories` call. Fact pool is small (~50 facts for stefano vs 9K+ reflections), so the extra search is sub-100ms.
 
 ---
 

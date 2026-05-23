@@ -843,10 +843,21 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
     };
 
     // Run vector search with query embedding (+ HyDE embedding if available)
-    // In identity mode, also run a parallel fact-only search so biographical facts
-    // can compete on their own terms (normalized within the fact pool) instead of
-    // being drowned out by 9K+ reflections in the main search.
+    // Always run a parallel fact-only search so biographical/coined-term facts
+    // can compete on their own terms (normalized within the fact pool) instead
+    // of being drowned out by 9K+ reflections + observations in the main search.
+    //
+    // Historical: this used to fire only in `identity` mode. Extended to all
+    // modes 2026-05-23 after the noise-clamp probe showed that proper-noun
+    // queries like "Vibe Anything paradigm" reliably failed (Renan's
+    // importance-10 product-direction fact lost to music-vibe memories on
+    // cosine similarity). Fact-pool isolation lets the right fact win its
+    // own pool, where it has no real competition.
+    //
+    // Opt-out via options.skipFactPool for callers that explicitly want only
+    // the main+HyDE streams (e.g. bulk signal gathering, perf-sensitive paths).
     const isIdentityMode = typeof weights === 'string' && weights === 'identity';
+    const useFactPool = !options.skipFactPool;
     const queryEmbStr = vectorToString(queryEmbedding);
 
     const searchPromises = [
@@ -863,7 +874,7 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
         }),
       );
     }
-    if (isIdentityMode) {
+    if (useFactPool) {
       searchPromises.push(
         supabaseAdmin.rpc('search_memory_stream', {
           ...rpcParams,
@@ -901,10 +912,12 @@ async function retrieveMemories(userId, query, limit = 10, weights = 'default', 
         }
       }
       data = merged.slice(0, limit * 3);
-      const factStream = isIdentityMode && searchResults.length > 2 ? (searchResults[2].data || []) : [];
+      // factStream is the 3rd promise when useFactPool=true; with HyDE it's index 2, without HyDE it's index 1.
+      const factIdx = hydeEmbedding ? 2 : 1;
+      const factStream = useFactPool && searchResults.length > factIdx ? (searchResults[factIdx].data || []) : [];
       log.info('HyDE merge', {
         queryResults: (searchResults[0].data || []).length,
-        hydeResults: searchResults[1]?.data?.length || 0,
+        hydeResults: hydeEmbedding ? (searchResults[1]?.data?.length || 0) : 0,
         factResults: factStream.length,
         merged: data.length,
       });
