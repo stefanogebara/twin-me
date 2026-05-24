@@ -388,6 +388,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '15 seconds',
     privacyLevel: 'high',
     category: 'professional',
+    comingSoon: true,
   },
   {
     provider: 'duolingo' as DataProvider,
@@ -424,6 +425,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '15 seconds',
     privacyLevel: 'medium',
     category: 'entertainment',
+    comingSoon: true,
   },
   {
     provider: 'soundcloud' as DataProvider,
@@ -436,6 +438,7 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     setupTime: '15 seconds',
     privacyLevel: 'low',
     category: 'entertainment',
+    comingSoon: true,
   },
   {
     provider: 'microsoft_outlook' as DataProvider,
