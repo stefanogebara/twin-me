@@ -244,9 +244,13 @@ export async function compileWikiDomain(userId, domainId) {
   }
 
   // 6. Generate embedding for the compiled page
+  // audit-2026-05-24 M5: bumped 6000 → 8000. text-embedding-3-small accepts
+  // 8191 tokens (~32k chars); compiled pages currently run 6.5-7.6k chars.
+  // The previous slice truncated ~15-25% of the page from the embedding,
+  // making vector search slightly stale.
   let embedding = null;
   try {
-    embedding = await generateEmbedding(compiledContent.slice(0, 6000));
+    embedding = await generateEmbedding(compiledContent.slice(0, 8000));
   } catch (err) {
     log.warn('Wiki embedding failed (non-fatal)', { userId, domainId, error: err.message });
   }

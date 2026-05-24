@@ -81,20 +81,30 @@ function processInlineFormatting(
     } else if (fullMatch.startsWith('[[domain:')) {
       const domain = match[2];
       const meta = DOMAIN_CONFIG[domain];
-      parts.push(
-        <button
-          key={`xref-${lineKey}-${match.index}`}
-          onClick={() => onDomainClick(domain)}
-          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors hover:opacity-80"
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: meta?.color ?? 'var(--text-secondary)',
-          }}
-        >
-          {meta?.label ?? domain}
-        </button>,
-      );
+      // audit-2026-05-24 M3: only render a clickable cross-ref when the
+      // domain is one of the 5 known wiki domains. LLM-emitted bogus names
+      // like [[domain:wellbeing]] previously rendered as dead-clickable
+      // buttons that called onDomainClick with no matching target.
+      if (meta) {
+        parts.push(
+          <button
+            key={`xref-${lineKey}-${match.index}`}
+            onClick={() => onDomainClick(domain)}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors hover:opacity-80"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: meta.color,
+            }}
+          >
+            {meta.label}
+          </button>,
+        );
+      } else {
+        // Unknown domain — drop the markup but keep the inner label so the
+        // sentence still reads naturally.
+        parts.push(domain);
+      }
     } else if (fullMatch.startsWith('**') && fullMatch.endsWith('**')) {
       parts.push(
         <span key={`b-${lineKey}-${match.index}`} className="font-semibold" style={{ color: 'var(--text-primary)' }}>

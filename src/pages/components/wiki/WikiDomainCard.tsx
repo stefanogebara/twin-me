@@ -123,20 +123,28 @@ function processInlineFormatting(
       // Cross-reference link
       const domain = match[2];
       const meta = DOMAIN_META[domain];
-      parts.push(
-        <button
-          key={`xref-${lineKey}-${match.index}`}
-          onClick={() => onDomainClick(domain)}
-          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors hover:opacity-80"
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: meta?.color ?? 'var(--text-secondary)',
-          }}
-        >
-          {meta?.label ?? domain}
-        </button>,
-      );
+      // audit-2026-05-24 M3: same as wikiMarkdownRenderer — only render the
+      // clickable button when the domain is in DOMAIN_META, otherwise emit
+      // the inner label as plain text so a bogus LLM-emitted [[domain:X]]
+      // doesn't render as a dead-clickable.
+      if (meta) {
+        parts.push(
+          <button
+            key={`xref-${lineKey}-${match.index}`}
+            onClick={() => onDomainClick(domain)}
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors hover:opacity-80"
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: meta.color,
+            }}
+          >
+            {meta.label}
+          </button>,
+        );
+      } else {
+        parts.push(domain);
+      }
     } else if (fullMatch.startsWith('**') && fullMatch.endsWith('**')) {
       // Bold text
       parts.push(

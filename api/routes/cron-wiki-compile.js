@@ -36,12 +36,15 @@ import { logCronExecution } from '../services/cronLogger.js';
 const log = createLogger('cron-wiki-compile');
 const router = express.Router();
 
-// Hard ceiling on users per run. compileWikiPages spends 25-50s per user
-// (5 LLM calls + concurrency 2). With Vercel's 60s function budget, we
-// can comfortably do 1 user/run; multi-user batching would push past
-// the limit. The cron runs daily so cycling through the user base over
-// multiple days is acceptable.
-const MAX_USERS_PER_RUN = 1;
+// audit-2026-05-24 H3: bumped 1 → 5. The 6-hour per-domain cooldown in
+// compileWikiDomain (wikiCompilationService.js MIN_COMPILE_INTERVAL_MS)
+// short-circuits work for any user whose wiki has been compiled in the
+// last 6h, returning in microseconds. Only the FIRST user in the queue
+// (sorted stale-first) is expected to pay the full 25-50s cost on a
+// typical run; remaining 4 slots are nearly-free cooldown checks. The
+// 60s function budget remains a hard cap via PER_USER_TIMEOUT_MS per user
+// and Vercel-level maxDuration: 60.
+const MAX_USERS_PER_RUN = 5;
 
 // Stagger budget per user. Compilation can stall on a slow LLM response;
 // we don't want one user to consume the entire budget. Hard timeout.
