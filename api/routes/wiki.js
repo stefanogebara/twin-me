@@ -135,17 +135,49 @@ router.get('/lint', async (req, res) => {
 /**
  * POST /api/wiki/compile
  * Manually trigger wiki compilation (for testing/debug).
- * Rate limited: max 3 compiles per hour per user.
+ * Rate limited: 20-minute persistent cooldown per user.
+ *
+ * audit-2026-05-24 H1: the previous in-memory `Map` cooldown emptied on
+ * every Vercel cold start, so the 20-min budget was unenforceable in prod.
+ * Each compile fires 5 TIER_ANALYSIS LLM calls — a determined caller could
+ * burn $1–5/min unchecked. Persisted via user_platform_data with
+ * data_type='wiki_compile_cooldown' (same pattern as the goals suggestion
+ * cooldown in goalTrackingService.js).
  */
-const compileCooldowns = new Map(); // userId -> lastCompileTimestamp
-const COMPILE_COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes between manual compiles
+const COMPILE_COOLDOWN_MS = 20 * 60 * 1000;
+
+async function getLastWikiCompileAt(userId) {
+  const { data } = await supabaseAdmin
+    .from('user_platform_data')
+    .select('extracted_at')
+    .eq('user_id', userId)
+    .eq('platform', 'twinme')
+    .eq('data_type', 'wiki_compile_cooldown')
+    .order('extracted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.extracted_at ? new Date(data.extracted_at).getTime() : 0;
+}
+
+async function setLastWikiCompileAt(userId) {
+  const { error } = await supabaseAdmin
+    .from('user_platform_data')
+    .insert({
+      user_id: userId,
+      platform: 'twinme',
+      data_type: 'wiki_compile_cooldown',
+      raw_data: { source: 'POST /api/wiki/compile' },
+      extracted_at: new Date().toISOString(),
+      processed: true,
+    });
+  if (error) log.warn('setLastWikiCompileAt failed', { error: error.message });
+}
 
 router.post('/compile', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Rate limit: prevent spam
-    const lastCompile = compileCooldowns.get(userId);
+    const lastCompile = await getLastWikiCompileAt(userId);
     if (lastCompile && Date.now() - lastCompile < COMPILE_COOLDOWN_MS) {
       const remainingMs = COMPILE_COOLDOWN_MS - (Date.now() - lastCompile);
       const remainingMin = Math.ceil(remainingMs / 60000);
@@ -155,7 +187,9 @@ router.post('/compile', async (req, res) => {
       });
     }
 
-    compileCooldowns.set(userId, Date.now());
+    // Stamp the cooldown BEFORE running compile so concurrent retries during
+    // the long-running LLM batch (~25-50s) hit the rate limit too.
+    await setLastWikiCompileAt(userId);
     log.info('Manual wiki compilation triggered', { userId });
 
     const result = await compileWikiPages(userId);
