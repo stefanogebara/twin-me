@@ -18,6 +18,7 @@
  * 14. Fitbit - Health/fitness (NEW)
  */
 
+import axios from 'axios';
 import { Nango } from '@nangohq/node';
 import { getConnectionId as getDbConnectionId, updateLastSynced } from './connectionMappingService.js';
 import { withRetry } from './retryService.js';
@@ -910,13 +911,45 @@ export const linkedin = {
   getProfile: (userId) => proxyRequest(userId, 'linkedin', '/me')
 };
 
+// Twitch bypasses nango.proxy() — empirical bug in SDK v0.69.30 where the
+// Client-Id header is dropped on the lambda forward path (works locally,
+// fails in cron). nango.getToken handles refresh-on-expiry; we then call
+// Twitch directly with axios so we control headers fully.
+async function twitchDirectGet(userId, endpoint) {
+  const connectionId = await getDbConnectionId(userId, 'twitch');
+  if (!connectionId) return { success: false, error: 'No twitch connection mapping' };
+  const clientId = process.env.TWITCH_CLIENT_ID;
+  if (!clientId) return { success: false, error: 'TWITCH_CLIENT_ID not set' };
+
+  const call = async (forceRefresh = false) => {
+    const token = await nango.getToken('twitch', connectionId, forceRefresh);
+    return axios.get(`https://api.twitch.tv/helix${endpoint}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Client-Id': clientId },
+      timeout: 10000,
+    });
+  };
+
+  try {
+    const response = await call(false);
+    return { success: true, data: response.data };
+  } catch (error) {
+    if (error.response?.status === 401) {
+      try {
+        const response = await call(true);
+        return { success: true, data: response.data };
+      } catch (retryErr) {
+        log.warn(`Twitch direct ${endpoint} 401-retry failed: ${retryErr.message}`);
+        return { success: false, error: retryErr.message, status: retryErr.response?.status };
+      }
+    }
+    log.warn(`Twitch direct ${endpoint} failed: ${error.message}`);
+    return { success: false, error: error.message, status: error.response?.status };
+  }
+}
+
 export const twitch = {
-  getUser: (userId) => proxyRequest(userId, 'twitch', '/users', {
-    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID }
-  }),
-  getFollowedChannels: (userId, twitchUserId) => proxyRequest(userId, 'twitch', `/channels/followed?user_id=${twitchUserId}&first=100`, {
-    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID }
-  })
+  getUser: (userId) => twitchDirectGet(userId, '/users'),
+  getFollowedChannels: (userId, twitchUserId) => twitchDirectGet(userId, `/channels/followed?user_id=${twitchUserId}&first=100`),
 };
 
 export const gmail = {
