@@ -30,6 +30,17 @@ const log = createLogger('WikiCompilation');
 // Domain Configuration
 // ====================================================================
 
+// audit-2026-05-24 M1 (deferred): this file is 1131 lines, over the 800-line
+// ceiling. It mixes compile (buildCompilationPrompt, compileWikiDomain,
+// compileWikiPages), entities (extractWikiEntities, getWikiEntities), lint
+// (detectWikiLints), query-filing (fileQueryInsightIfValuable), graph
+// (buildWikiGraphData), and read ops. A clean split is `wikiCompilationService`
+// + `wikiEntities` + `wikiLint` + `wikiQueryFiling` + `wikiGraphBuilder`.
+// Deferred because (a) no correctness/perf bug — purely a file-size norm,
+// (b) 4 external callers across api/routes + api/services would need import
+// surgery, (c) cross-imports between the new modules (every analyzer needs
+// getWikiPages/getWikiEntities). Track in tasks/lessons.md if it becomes
+// a maintenance pain point.
 const WIKI_DOMAINS = {
   personality: {
     title: 'Personality Profile',
@@ -168,26 +179,19 @@ export async function compileWikiDomain(userId, domainId) {
     .order('created_at', { ascending: false })
     .limit(20);
 
+  // audit-2026-05-24 M4: previously when the expert-filtered query errored,
+  // we fell back to fetching ALL reflections regardless of expert tag. That
+  // silently cross-contaminated domains — a personality reflection landed in
+  // the motivation compile because the filter was bypassed. Now we treat a
+  // filter error as an explicit signal that something is off (metadata schema
+  // drift, expert tag renamed, etc.) and skip the reflection input for this
+  // run. Memories can still drive the compile; reflections retry next cycle.
   if (reflErr) {
-    // Fallback: fetch all reflections if expert filter fails (metadata may vary)
-    log.warn('Expert-filtered reflection query failed, falling back to all', {
-      userId, domainId, error: reflErr.message,
+    log.error('Expert-filtered reflection query failed — skipping reflections to avoid cross-domain contamination', {
+      userId, domainId, expertIds, error: reflErr.message,
     });
   }
-
-  // If expert filter failed, fall back to all reflections for this domain
-  let domainReflections = reflections || [];
-  if (reflErr) {
-    const { data: allReflections } = await supabaseAdmin
-      .from('user_memories')
-      .select('id, content, created_at, importance_score')
-      .eq('user_id', userId)
-      .eq('memory_type', 'reflection')
-      .gt('created_at', lastCompiled)
-      .order('created_at', { ascending: false })
-      .limit(15);
-    domainReflections = allReflections || [];
-  }
+  const domainReflections = reflections || [];
 
   // 3. Fetch recent domain-specific memories for evidence
   const { data: domainMemories } = await supabaseAdmin
