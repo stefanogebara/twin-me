@@ -62,7 +62,7 @@ const OAuthCallback = () => {
                 }, window.location.origin);
                 window.close();
               } else {
-                window.location.href = '/get-started?connected=true&provider=' + (storedProvider || '');
+                window.location.href = '/connect?connected=true&provider=' + (storedProvider || '');
               }
             }, 500);
             return;
@@ -302,7 +302,7 @@ const OAuthCallback = () => {
                   sessionStorage.removeItem('onboarding_platform_step');
                   window.location.href = '/onboarding?step=platform&connected=' + connectedProvider;
                 } else {
-                  window.location.href = '/get-started?connected=true&provider=' + connectedProvider;
+                  window.location.href = '/connect?connected=true&provider=' + connectedProvider;
                 }
               }
             }, 1500);
@@ -400,7 +400,7 @@ const OAuthCallback = () => {
                     sessionStorage.removeItem('onboarding_platform_step');
                     window.location.href = '/onboarding?step=platform&connected=' + (stateData?.provider || '');
                   } else {
-                    window.location.href = '/get-started?connected=true';
+                    window.location.href = '/connect?connected=true';
                   }
                 }
               }, 1500);
@@ -474,7 +474,7 @@ const OAuthCallback = () => {
                     window.opener.postMessage({ type: 'oauth-success', provider: data.provider }, window.location.origin);
                     window.close();
                   } else {
-                    window.location.href = '/get-started?connected=true';
+                    window.location.href = '/connect?connected=true';
                   }
                 }, 1500);
               } else {
@@ -516,9 +516,9 @@ const OAuthCallback = () => {
           });
         }, 500);
 
-        // Don't redirect to auth for connector OAuth failures - stay on get-started
+        // Don't redirect to auth for connector OAuth failures - stay on /connect
         setTimeout(() => {
-          window.location.href = '/get-started';
+          window.location.href = '/connect';
         }, 3000);
       }
     };
