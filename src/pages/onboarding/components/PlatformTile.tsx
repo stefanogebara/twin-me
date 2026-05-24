@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Check, Loader2, AlertTriangle, LogOut } from 'lucide-react';
+import { Check, Loader2, AlertTriangle, LogOut, RefreshCw } from 'lucide-react';
 
 interface PlatformTileProps {
   name: string;
@@ -203,6 +203,16 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
                 boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
               }}
             >
+              {attention && (
+                <button
+                  onClick={() => { setShowMenu(false); onConnect(); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(251,191,36,0.10)]"
+                  style={{ color: '#FBBF24', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reconnect
+                </button>
+              )}
               <button
                 onClick={() => { setShowMenu(false); onManage?.(); }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-[12px] transition-colors hover:bg-[rgba(220,38,38,0.08)]"
