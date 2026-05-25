@@ -113,10 +113,29 @@ export async function updateLastSynced(userId, platform) {
   if (updateErr) log.warn('Error updating last_synced_at:', updateErr.message);
 }
 
+// Flip a connection's status to 'needs_reconnect' so the frontend
+// shows the amber pill and the user can re-authorize. Used by fetchers
+// when the upstream API returns 401/403 (token revoked / scope missing).
+export async function markConnectionNeedsReconnect(userId, platform, reason) {
+  if (!supabaseAdmin) return;
+
+  const { error: updateErr } = await supabaseAdmin
+    .from('nango_connection_mappings')
+    .update({ status: 'needs_reconnect' })
+    .eq('user_id', userId)
+    .eq('platform', platform);
+  if (updateErr) {
+    log.warn(`Failed to mark ${platform} needs_reconnect:`, updateErr.message);
+    return;
+  }
+  log.warn(`Marked ${platform} needs_reconnect`, { userId, reason });
+}
+
 export default {
   getConnectionId,
   saveConnectionMapping,
   deleteConnectionMapping,
   getAllUserConnections,
-  updateLastSynced
+  updateLastSynced,
+  markConnectionNeedsReconnect
 };

@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import { getValidAccessToken } from '../tokenRefreshService.js';
+import { markConnectionNeedsReconnect } from '../connectionMappingService.js';
 import { createLogger } from '../logger.js';
 import { sanitizeExternal } from '../observationUtils.js';
 
@@ -52,9 +53,11 @@ async function fetchRedditObservations(userId) {
       bodyExcerpt: typeof body === 'string' ? body.slice(0, 200) : JSON.stringify(body || {}).slice(0, 200),
     });
     // Surface terminal cases. 401/403 = token revoked or insufficient
-    // scope; the user must reconnect to get fresh tokens.
+    // scope; flip the connection status so the frontend amber pill fires
+    // and `getConnectionId` (filters status='active') stops finding it,
+    // halting silent retry loops until the user reconnects.
     if (status === 401 || status === 403) {
-      log.warn('Reddit token appears revoked — user must reconnect', { userId });
+      await markConnectionNeedsReconnect(userId, 'reddit', `subreddits ${status}`);
     }
     return observations;
   }
