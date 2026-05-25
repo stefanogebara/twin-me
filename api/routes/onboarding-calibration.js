@@ -894,7 +894,7 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
       return res.json({ success: true, isNew: false, memoriesCount: 0, hasCalibration: false });
     }
 
-    const [calibRes, memRes] = await Promise.all([
+    const [calibRes, memRes, connRes] = await Promise.all([
       supabaseAdmin
         .from('onboarding_calibration')
         .select('completed_at')
@@ -904,13 +904,28 @@ router.get('/new-user-check', authenticateUser, async (req, res) => {
         .from('user_memories')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId),
+      // Bug #35: users who connect a platform via /connect (skipping the
+      // cinematic interview) never set onboarding_calibration.completed_at.
+      // Observation ingestion is async via cron, so memoriesCount stays at 0
+      // for many minutes after a connection. The previous gate
+      //   isNew = !hasCalibration && memoriesCount < 5
+      // would flip back to isNew=true on every refresh during that window,
+      // bouncing the user to /onboarding mid-flow. Counting any active
+      // connection as "past the gate" fixes the loop without weakening the
+      // genuinely-new-user check.
+      supabaseAdmin
+        .from('nango_connection_mappings')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .in('status', ['active', 'needs_reconnect']),
     ]);
 
     const hasCalibration = !!(calibRes.data?.completed_at);
     const memoriesCount = memRes.count ?? 0;
-    const isNew = !hasCalibration && memoriesCount < 5;
+    const connectionsCount = connRes.count ?? 0;
+    const isNew = !hasCalibration && memoriesCount < 5 && connectionsCount === 0;
 
-    return res.json({ success: true, isNew, memoriesCount, hasCalibration });
+    return res.json({ success: true, isNew, memoriesCount, hasCalibration, connectionsCount });
   } catch (error) {
     log.error('Status check error', { error });
     return res.status(500).json({ success: false, error: 'Failed to check onboarding status' });
