@@ -9,7 +9,9 @@ const log = createLogger('Dashboard');
 const router = express.Router();
 
 const DASHBOARD_STATS_TTL = 300; // 5 minutes
+const DASHBOARD_ACTIVITY_TTL = 60; // 1 minute — activity feed changes more often
 const dashboardStatsCacheKey = (userId) => `dashboard_stats:${userId}`;
+const dashboardActivityCacheKey = (userId, limit) => `dashboard_activity:${userId}:${limit}`;
 
 /**
  * GET /api/dashboard/stats
@@ -60,7 +62,8 @@ router.get('/stats', authenticateUser, async (req, res) => {
         .limit(1)
         .maybeSingle(),
 
-      // 4. Last sync time
+      // 4. Last sync time — .maybeSingle() so onboarded-but-not-connected users
+      // don't trigger PGRST116 log noise (same M1 fix as digital_twins below).
       supabaseAdmin
         .from('platform_connections')
         .select('last_sync_at')
@@ -68,15 +71,18 @@ router.get('/stats', authenticateUser, async (req, res) => {
         .eq('status', 'connected')
         .order('last_sync_at', { ascending: false })
         .limit(1)
-        .single(),
+        .maybeSingle(),
 
       // 5. Training status (digital twin exists?)
+      // audit-2026-05-25 (M1): .single() throws PGRST116 every time a user has
+      // no twin yet — every onboarding session generated noisy error logs.
+      // .maybeSingle() returns null without an error so logs stay quiet.
       supabaseAdmin
         .from('digital_twins')
         .select('id')
         .eq('user_id', userId)
         .limit(1)
-        .single(),
+        .maybeSingle(),
     ]);
 
     // Process results
@@ -139,6 +145,16 @@ router.get('/activity', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 100);
+
+    // audit-2026-05-25 (H3): activity endpoint had no Redis cache while every
+    // other dashboard sub-query is cached. Activity feeds get polled on tab
+    // focus / dashboard refresh, so each request hit Postgres directly. Add a
+    // 60s cache keyed by userId+limit.
+    const cacheKey = dashboardActivityCacheKey(userId, limit);
+    const cached = await cacheGet(cacheKey);
+    if (cached) {
+      return res.json({ success: true, activity: cached });
+    }
 
     // Get recent analytics events for this user
     const { data: events, error: eventsError } = await supabaseAdmin
@@ -272,6 +288,7 @@ router.get('/activity', authenticateUser, async (req, res) => {
       }
     }
 
+    cacheSet(cacheKey, activity, DASHBOARD_ACTIVITY_TTL).catch(() => {});
     res.json({ success: true, activity });
   } catch (error) {
     log.error('Error fetching dashboard activity', { error });

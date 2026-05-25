@@ -158,23 +158,34 @@ router.get('/', authenticateUser, async (req, res) => {
     const cacheKey = CACHE_KEYS.dashboardContext(userId);
 
     // ── Cache check ────────────────────────────────────────────────────────
+    // audit-2026-05-25 (H1): daily_checkins upsert used to fire on EVERY
+    // dashboard load (including cache hits). One write per page reload across
+    // all users. Guarded by a Redis dedup key so we upsert at most once per
+    // user per local date. The dedup key TTL exceeds 24h so we never miss a
+    // day; collisions only happen across timezone boundaries which is fine
+    // because the upsert is idempotent.
+    const todayDateStr = new Date().toISOString().split('T')[0];
+    const dailyCheckinDedupKey = `daily_checkin_done:${userId}:${todayDateStr}`;
+    const ensureDailyCheckin = async () => {
+      try {
+        const already = await cacheGet(dailyCheckinDedupKey);
+        if (already) return;
+        await supabaseAdmin
+          .from('daily_checkins')
+          .upsert({ user_id: userId, date: todayDateStr, mood: 'neutral' }, { onConflict: 'user_id,date' });
+        cacheSet(dailyCheckinDedupKey, 1, 26 * 60 * 60).catch(() => {});
+      } catch (err) {
+        log.warn('Daily checkin upsert failed', { message: err?.message });
+      }
+    };
+
     const cached = await cacheGet(cacheKey);
     if (cached) {
-      // Record daily checkin for streak tracking (non-blocking, fire-and-forget)
-      supabaseAdmin
-        .from('daily_checkins')
-        .upsert({ user_id: userId, date: new Date().toISOString().split('T')[0], mood: 'neutral' }, { onConflict: 'user_id,date' })
-        .then(() => {})
-        .catch((err) => log.warn('Daily checkin upsert failed (cached path)', err.message));
+      ensureDailyCheckin();
       return res.json({ success: true, ...cached });
     }
 
-    // Record daily checkin for streak tracking (non-blocking)
-    supabaseAdmin
-      .from('daily_checkins')
-      .upsert({ user_id: userId, date: new Date().toISOString().split('T')[0], mood: 'neutral' }, { onConflict: 'user_id,date' })
-      .then(() => {})
-      .catch((err) => log.warn('Daily checkin upsert failed', err.message));
+    ensureDailyCheckin();
 
     // ── Parallel sub-queries ───────────────────────────────────────────────
     // All 7 branches run concurrently. insightCount was previously sequential
@@ -200,20 +211,30 @@ router.get('/', authenticateUser, async (req, res) => {
       }),
 
       // 2. Hero insight
+      // audit-2026-05-25 (C1): urgency is a TEXT column so `order('urgency', desc)`
+      // sorts alphabetically — "medium" > "low" > "high". Truly urgent insights
+      // were buried. Fetch a small page and pick the highest urgency in JS.
       safeRun(async () => {
         const { data } = await supabaseAdmin
           .from('proactive_insights')
-          .select('id, insight, category, sources')
+          .select('id, insight, category, sources, urgency, created_at')
           .eq('user_id', userId)
           .eq('delivered', false)
           .not('category', 'in', '("email_notification_sent","briefing_email")')
-          .order('urgency', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(20);
 
-        if (!data) return null;
-        return { body: data.insight, source: data.category, insightId: data.id, sources: data.sources || [] };
+        if (!data || data.length === 0) return null;
+        const URGENCY_RANK = { high: 3, medium: 2, low: 1 };
+        const top = data
+          .slice()
+          .sort((a, b) => {
+            const ar = URGENCY_RANK[a.urgency] ?? 0;
+            const br = URGENCY_RANK[b.urgency] ?? 0;
+            if (ar !== br) return br - ar;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          })[0];
+        return { body: top.insight, source: top.category, insightId: top.id, sources: top.sources || [] };
       }),
 
       // 3. Twin stats — readiness cached 15min, streak cached 1hr
@@ -379,8 +400,12 @@ router.get('/heatmap', authenticateUser, async (req, res) => {
     });
 
     if (error) {
+      // audit-2026-05-25 (M4): used to swallow this and return success with
+      // an empty heatmap, hiding real RPC failures. Surface 500 so the
+      // frontend can decide whether to retry; useDashboardContext.fetchHeatmap
+      // already treats non-200 as "show empty heatmap".
       log.error('Heatmap RPC error:', error.message);
-      return res.json({ success: true, heatmap: [] });
+      return res.status(500).json({ success: false, error: 'heatmap_unavailable' });
     }
 
     const heatmap = data || [];
@@ -400,9 +425,13 @@ router.get('/timeline', authenticateUser, async (req, res) => {
     const userId = req.user.id;
 
     // Cache check
+    // audit-2026-05-25 (M5): redisClient.get already runs JSON.parse and .set
+    // already runs JSON.stringify, so the previous manual parse/stringify
+    // double-encoded — the cache effectively never hit. Just hand raw objects
+    // to cacheGet/cacheSet like the rest of this file.
     const cacheKey = `timeline:${userId}`;
     const cached = await cacheGet(cacheKey);
-    if (cached) return res.json(JSON.parse(cached));
+    if (cached) return res.json(cached);
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -448,7 +477,7 @@ router.get('/timeline', authenticateUser, async (req, res) => {
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     const result = { timeline };
-    cacheSet(cacheKey, JSON.stringify(result), 60).catch(() => {});
+    cacheSet(cacheKey, result, 60).catch(() => {});
 
     return res.json(result);
   } catch (err) {
