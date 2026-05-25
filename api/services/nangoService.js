@@ -20,7 +20,7 @@
 
 import axios from 'axios';
 import { Nango } from '@nangohq/node';
-import { getConnectionId as getDbConnectionId, updateLastSynced } from './connectionMappingService.js';
+import { getConnectionId as getDbConnectionId, updateLastSynced, markConnectionNeedsReconnect } from './connectionMappingService.js';
 import { withRetry } from './retryService.js';
 import { formatExtractionResult, categorizeError } from './extractionErrorHandler.js';
 import { supabaseAdmin } from './database.js';
@@ -581,6 +581,13 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
       }
     }
 
+    // After a refresh-retry, a continued 401 means the refresh token itself is
+    // dead (revoked at the provider) and the user must re-authorize. Mirror
+    // the 424 flip below so the amber pill fires automatically.
+    if (status === 401 && options._isRefreshRetry) {
+      markConnectionNeedsReconnect(userId, platform, '401 after refresh-retry').catch(() => {});
+    }
+
     log.error(`Proxy request failed for ${platform}:`, error.message);
 
     // Detect HTML error responses
@@ -938,8 +945,15 @@ async function twitchDirectGet(userId, endpoint) {
         const response = await call(true);
         return { success: true, data: response.data };
       } catch (retryErr) {
+        const retryStatus = retryErr.response?.status;
         log.warn(`Twitch direct ${endpoint} 401-retry failed: ${retryErr.message}`);
-        return { success: false, error: retryErr.message, status: retryErr.response?.status };
+        // Force-refresh + retry still 401 = token is unrecoverable at the
+        // provider (revoked or scope removed). Flip status so the user gets
+        // an amber reconnect pill and silent retry loops stop.
+        if (retryStatus === 401) {
+          markConnectionNeedsReconnect(userId, 'twitch', `direct ${endpoint} 401 after refresh-retry`).catch(() => {});
+        }
+        return { success: false, error: retryErr.message, status: retryStatus };
       }
     }
     log.warn(`Twitch direct ${endpoint} failed: ${error.message}`);

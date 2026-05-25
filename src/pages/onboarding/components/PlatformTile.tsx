@@ -19,6 +19,8 @@ interface PlatformTileProps {
   color?: string;
   /** Optional personalized one-liner shown above the generic description. */
   pitchHook?: string | null;
+  /** Static inline caveat shown beneath description (e.g. account requirements). */
+  note?: string | null;
   /**
    * audit-2026-05-12 H6: connected platforms that need a nudge but aren't
    * full-blown expired. e.g. last_sync > 7 days, or last_sync_status='partial'.
@@ -40,6 +42,7 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
   comingSoon,
   color,
   pitchHook,
+  note,
   attention,
   onConnect,
   onManage,
@@ -141,6 +144,15 @@ export const PlatformTile: React.FC<PlatformTileProps> = ({
         >
           {description}
         </span>
+        {note && (
+          <span
+            className="text-[11px] leading-relaxed block mt-1"
+            style={{ color: 'rgba(251,191,36,0.70)', fontFamily: "'Geist', 'Inter', system-ui, sans-serif" }}
+            title={note}
+          >
+            {note}
+          </span>
+        )}
       </div>
 
       {/* Action Button — pill shape */}

@@ -170,6 +170,10 @@ export interface ConnectorConfig {
   category: 'entertainment' | 'social' | 'professional' | 'health' | 'browsing';
   comingSoon?: boolean;
   externalUrl?: string; // For non-OAuth connectors (e.g. Chrome Web Store)
+  // Inline caveat shown beneath the description (e.g. "Work/school accounts only").
+  // Use for known platform limitations so users learn upfront instead of via silent
+  // sync failures. Keep under 60 chars.
+  note?: string;
 }
 
 export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
@@ -450,6 +454,11 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 7,
     setupTime: '10 seconds',
     privacyLevel: 'medium',
-    category: 'professional'
+    category: 'professional',
+    // Microsoft's app registration is configured for organizational tenants only.
+    // Personal accounts (live.com, outlook.com, hotmail.com) get past OAuth but
+    // Microsoft Graph rejects subsequent calls with AADSTS50194-class errors and
+    // sync silently fails. Warning users upfront avoids the dead-end experience.
+    note: 'Work or school account required',
   },
 ];

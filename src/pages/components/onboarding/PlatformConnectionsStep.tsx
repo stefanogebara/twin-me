@@ -123,6 +123,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
           comingSoon={c.comingSoon}
           syncing={connectingProvider === c.provider}
           pitchHook={pitchHooks[c.provider] || null}
+          note={c.note || null}
           onConnect={() => connectService(c.provider)}
         />
       ));
@@ -164,6 +165,7 @@ export const PlatformConnectionsStep: React.FC<PlatformConnectionsStepProps> = (
                   needsReconnect={needsReconnect}
                   syncing={connectingProvider === provider}
                   attention={attention}
+                  note={c?.note || null}
                   onConnect={() => connectService(provider as typeof activeConnections[number])}
                   onManage={() => disconnectService(provider as typeof activeConnections[number])}
                 />
