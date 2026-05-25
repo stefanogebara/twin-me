@@ -12,13 +12,10 @@ export interface DashboardStats {
   trainingStatus: 'idle' | 'training' | 'ready';
 }
 
-export interface ActivityItem {
-  id: string;
-  type: 'connection' | 'analysis' | 'twin_created' | 'training' | 'sync';
-  message: string;
-  timestamp: string;
-  icon?: string;
-}
+// ActivityItem + getActivity removed 2026-05-26: the backend /dashboard/activity
+// route was end-to-end dead (no emitters of any of the 5 event_types it
+// switched on, broken is_active filter in fallback) and zero components
+// called this getter. See dashboard.js audit-2026-05-26.
 
 export const dashboardAPI = {
   /**
@@ -35,21 +32,5 @@ export const dashboardAPI = {
 
     const data = await response.json();
     return data.stats || data;
-  },
-
-  /**
-   * Get recent activity feed
-   */
-  getActivity: async (limit: number = 10): Promise<ActivityItem[]> => {
-    const response = await fetch(`${API_URL}/dashboard/activity?limit=${limit}`, {
-      headers: getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch activity: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.activity || data;
   },
 };

@@ -170,9 +170,18 @@ router.get('/', authenticateUser, async (req, res) => {
       try {
         const already = await cacheGet(dailyCheckinDedupKey);
         if (already) return;
+        // audit-2026-05-26 (L1): used to overwrite an existing checkin's
+        // mood with 'neutral' every time the dashboard ran the upsert.
+        // POST /api/checkin stores the user's real mood + energy; the
+        // dashboard-side upsert exists only to keep the streak unbroken
+        // on days the user didn't explicitly check in. ignoreDuplicates
+        // makes it INSERT-IF-NOT-EXISTS so real check-ins win.
         await supabaseAdmin
           .from('daily_checkins')
-          .upsert({ user_id: userId, date: todayDateStr, mood: 'neutral' }, { onConflict: 'user_id,date' });
+          .upsert(
+            { user_id: userId, date: todayDateStr, mood: 'neutral' },
+            { onConflict: 'user_id,date', ignoreDuplicates: true }
+          );
         cacheSet(dailyCheckinDedupKey, 1, 26 * 60 * 60).catch(() => {});
       } catch (err) {
         log.warn('Daily checkin upsert failed', { message: err?.message });

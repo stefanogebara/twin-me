@@ -581,7 +581,13 @@ async function ensureFreshToken(userId, platform) {
  */
 export async function getValidAccessToken(userId, provider) {
   try {
-    log.info(`Getting valid access token for ${provider} (user: ${userId})`);
+    // audit-2026-05-26 (H2): used to .single() here which throws PGRST116
+    // every time a user doesn't have the provider connected (very common on
+    // dashboard cache miss for users who skipped google_calendar). Replaced
+    // with .maybeSingle() so the "not connected" path is silent and fast.
+    // The info-level "getting token" log was firing for every cache-miss
+    // dashboard load for every provider check — moved to debug.
+    log.debug(`Getting valid access token for ${provider} (user: ${userId})`);
 
     const { data: connection, error: dbError } = await supabaseAdmin
       .from('platform_connections')
@@ -589,9 +595,12 @@ export async function getValidAccessToken(userId, provider) {
       .eq('user_id', userId)
       .eq('platform', provider)
       .not('connected_at', 'is', null)
-      .single();
+      .maybeSingle();
 
-    if (dbError || !connection) {
+    if (dbError) {
+      return { success: false, error: `Lookup failed for ${provider}: ${dbError.message}` };
+    }
+    if (!connection) {
       return { success: false, error: `No active connection found for ${provider}` };
     }
 
