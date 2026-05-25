@@ -81,7 +81,20 @@ export async function fetchConversationHistory(userId, conversationId) {
  */
 export async function fetchCreativityBoost(userId, conversationId) {
   if (!conversationId) return null;
+  // audit-2026-05-26 M1: was reading twin_messages metadata for any
+  // caller-supplied conversation_id without verifying ownership, leaking the
+  // lz_complexity scores of another user's recent assistant messages. Mirror
+  // the read-side ownership check from fetchConversationHistory.
+  if (!CONVERSATION_UUID_RE.test(conversationId)) return null;
   try {
+    const { data: convoCheck } = await supabaseAdmin
+      .from('twin_conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!convoCheck) return null;
+
     const { data: recentMsgs } = await supabaseAdmin
       .from('twin_messages')
       .select('metadata')

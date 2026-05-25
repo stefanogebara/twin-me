@@ -116,14 +116,20 @@ export async function persistChatTurn({
   // twin_conversations orphaned. lz_complexity is included in the assistant
   // row's metadata at insert time, eliminating the separate
   // attachLzScoreToLastMessage SELECT+UPDATE round-trip.
-  await Promise.all([
+  //
+  // audit-2026-05-26 H2: capture the twin_messages insert outcome so the
+  // caller can decide whether to clean up an empty conversation row. Before
+  // this, a silent insert failure (still logged loudly) left the route
+  // setting conversationCreatedHere=false unconditionally, so the orphan
+  // sweeper in the catch block never fired and the empty row leaked.
+  const [messagesResult] = await Promise.all([
     insertTwinMessageRows({
       conversationId, message, assistantMessage, routedModel, routingTier, lzScore,
     }).catch(err => {
       // Should be unreachable — insertTwinMessageRows catches its own errors
       // and returns { ok: false }. Defensive guard against a future regression.
       log.error('insertTwinMessageRows threw unexpectedly', { error: err?.message });
-      return { ok: false };
+      return { ok: false, reason: err?.message };
     }),
 
     logConversationToDatabase({
@@ -161,5 +167,5 @@ export async function persistChatTurn({
       : Promise.resolve(),
   ]);
 
-  return { lzScore };
+  return { lzScore, messagesInserted: messagesResult?.ok === true };
 }

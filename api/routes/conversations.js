@@ -370,6 +370,7 @@ router.get('/:id/messages', authenticateUser, userRateLimit(200, 15 * 60 * 1000)
 router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000), validateMessageRequest, handleValidationErrors, async (req, res) => {
   try {
     const conversationId = req.params.id;
+    const userId = req.user.id;
     const {
       content,
       is_user_message,
@@ -377,6 +378,22 @@ router.post('/:id/messages', authenticateUser, userRateLimit(100, 15 * 60 * 1000
       audio_url,
       metadata = {}
     } = req.body;
+
+    // audit-2026-05-26 C2: IDOR guard. GET /:id, GET /:id/messages, and
+    // DELETE /:id all verify conversation.user_id === userId before
+    // proceeding (lines 198, 327, 291) -- POST /:id/messages was the one
+    // mutating endpoint that did not, letting an authenticated user plant
+    // messages into another user's conversation given a leaked id.
+    const { data: conversation, error: ownershipErr } = await serverDb.getConversation(conversationId);
+    if (ownershipErr) {
+      return res.status(500).json({ error: 'Failed to verify conversation ownership' });
+    }
+    if (!conversation) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+    if (conversation.user_id !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
     const messageData = {
       conversation_id: conversationId,

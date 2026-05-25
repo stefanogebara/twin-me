@@ -107,6 +107,32 @@ router.post('/message', authenticateUser, async (req, res) => {
     }
     hopLog('preflight_passed');
 
+    // audit-2026-05-26 C1: enforce conversationId ownership before any
+    // read or write touches the conversation. Previously fetchConversationHistory
+    // checked ownership for READS (silently returning [] when not owned) but
+    // persistChatTurn would still INSERT into that conversation_id, letting
+    // an authenticated user plant messages into another user's chat history
+    // given a leaked conversation_id. Soft fallback: drop the unowned id so
+    // autoCreateConversation creates a fresh row owned by the caller.
+    const CONVERSATION_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (conversationId) {
+      if (!CONVERSATION_UUID_RE.test(conversationId)) {
+        log.warn('Invalid conversationId format, dropping', { traceId, userId });
+        conversationId = null;
+      } else {
+        const { data: owned } = await supabaseAdmin
+          .from('twin_conversations')
+          .select('id')
+          .eq('id', conversationId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (!owned) {
+          log.warn('conversationId not owned by caller, dropping', { traceId, userId });
+          conversationId = null;
+        }
+      }
+    }
+
     // Audit bug H4: create the conversation row only AFTER pre-flight
     // gates pass. Avoids orphan conversations on rate-limit / quota / paywall
     // rejections.
@@ -407,7 +433,15 @@ router.post('/message', authenticateUser, async (req, res) => {
         res,
         chatLog,
         traceId,
-        onChainStart: () => stream.extendTimeout(115000, 'Action took too long. Please try again.'),
+        // audit-2026-05-26 H1: was extendTimeout(115000) -- dead code since
+        // vercel.json maxDuration is 60s and api/server.js caps /chat/message
+        // at 60000ms. The lambda was hard-killed at 60s long before the 115s
+        // timer fired, so users running a workspace action chain saw a generic
+        // connection-reset instead of the friendly copy below. Bump from the
+        // 55s default to 58s so the chain has 3s extra room while still
+        // leaving 2s for a clean SSE error event before the platform pulls
+        // the plug.
+        onChainStart: () => stream.extendTimeout(58000, 'Action took too long. Please try again.'),
       });
       assistantMessage = chainResult.assistantMessage;
       hopLog('action_chain_done', {
@@ -429,7 +463,7 @@ router.post('/message', authenticateUser, async (req, res) => {
     // Persistence (LZ score, twin_messages rows, unified conversation log,
     // memory stream write) extracted to ../services/twinChatPersistence.js.
     const evalMode = req.headers['x-eval-mode'] === 'true';
-    const { lzScore: responseLzScore } = await persistChatTurn({
+    const { lzScore: responseLzScore, messagesInserted } = await persistChatTurn({
       userId, message, assistantMessage, conversationId, evalMode,
       routedModel, routingTier, systemPrompt, soulSignature, platformData,
       memories, writingProfile, chatSource,
@@ -441,9 +475,30 @@ router.post('/message', authenticateUser, async (req, res) => {
       traceId,
       hopTimings,
     });
-    // Once persistence has run, the conversation has messages attached.
-    // Catch block's empty-conversation cleanup must NOT fire after this.
-    conversationCreatedHere = false;
+    // audit-2026-05-26 H2: messages were either persisted or silently failed.
+    // On silent failure, persistChatTurn swallowed the error so the route
+    // does NOT throw -- the user got a valid LLM response and the chat UX
+    // should still complete. But the twin_conversations row created earlier
+    // in this turn now has zero messages attached: same orphan pattern the
+    // 2026-05-22 audit caught (80.5% empty rows). Clean it up inline, then
+    // null the id so the response doesn't reference a deleted conversation.
+    if (messagesInserted) {
+      conversationCreatedHere = false;
+    } else if (conversationCreatedHere && conversationId) {
+      log.warn('twin_messages insert failed; deleting empty conversation', {
+        traceId, conversationId,
+      });
+      supabaseAdmin
+        .from('twin_conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', userId)
+        .then(({ error: delErr }) => {
+          if (delErr) log.warn('Inline orphan cleanup failed', { conversationId, error: delErr.message });
+        });
+      conversationId = null;
+      conversationCreatedHere = false;
+    }
 
     // Post-response side effects extracted to twinChatPipeline.js.
     runPostResponseSideEffects({
