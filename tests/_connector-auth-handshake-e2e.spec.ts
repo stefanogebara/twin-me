@@ -157,16 +157,26 @@ test('Auth handshake works for every unconnected platform on /connect', async ({
         .last()
         .locator('button:has-text("Connect")');
 
-      const visible = await connectBtn.isVisible().catch(() => false);
-      if (!visible) {
-        result.notes.push('Connect button not visible (below fold or scrolled)');
-        await page.evaluate((p) => {
-          const els = Array.from(document.querySelectorAll('span'));
-          const el = els.find((s) => s.textContent?.trim() === p);
-          el?.scrollIntoView({ block: 'center' });
-        }, platform);
-        await page.waitForTimeout(500);
-      }
+      // Always scroll the tile into view before attempting click — many tiles
+      // sit below the fold and Playwright's auto-wait can't click them.
+      // Also expand any "More platforms" / "Show more" toggles that hide tiles.
+      await page.evaluate((p) => {
+        // Click any "More platforms" expander first
+        const moreBtns = Array.from(document.querySelectorAll('button')).filter((b) => {
+          const t = b.textContent?.trim().toLowerCase() || '';
+          return t.includes('more platform') || t.includes('show more') || t.includes('show all');
+        });
+        moreBtns.forEach((b) => (b as HTMLButtonElement).click());
+        // Then scroll the named platform into view
+        const spans = Array.from(document.querySelectorAll('span'));
+        const el = spans.find((s) => s.textContent?.trim() === p);
+        el?.scrollIntoView({ behavior: 'instant' as ScrollBehavior, block: 'center' });
+      }, platform);
+      await page.waitForTimeout(800);
+
+      // Use locator.scrollIntoViewIfNeeded as a second guarantee
+      await connectBtn.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {});
+      await page.waitForTimeout(300);
 
       await connectBtn.click({ timeout: 8000, force: true });
       result.clicked = true;

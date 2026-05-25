@@ -324,7 +324,12 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     estimatedInsights: 9,
     setupTime: '10 seconds',
     privacyLevel: 'low',
-    category: 'health'
+    category: 'health',
+    // OURA_CLIENT_ID env var not yet provisioned on Vercel — backend returns
+    // 503 with configError=true for any connect attempt. Hide the tile until
+    // the credential is added (task #39). Catalog entry kept so re-enabling
+    // is a one-line change.
+    comingSoon: true,
   },
   {
     provider: 'whoop' as DataProvider,
