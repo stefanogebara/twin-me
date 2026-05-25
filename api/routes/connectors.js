@@ -258,6 +258,19 @@ router.get('/connect/:provider', authenticateUser, async (req, res) => {
       });
     }
 
+    // Refuse to return a broken auth URL when the OAuth client_id env var is
+    // missing. Without this guard, the URL serializes 'client_id=undefined'
+    // and the provider's consent screen rejects with a generic error,
+    // burning a click and confusing the user.
+    if (!config.clientId) {
+      log.error(`OAuth client_id missing for ${provider} — env var not set on this deployment`);
+      return res.status(503).json({
+        success: false,
+        error: `${provider} is temporarily unavailable (configuration missing). Please try again later or contact support.`,
+        configError: true,
+      });
+    }
+
     log.info("Reconnect/refresh initiated", { provider, userId });
 
     // Check if we have a refresh token stored
@@ -1553,6 +1566,17 @@ router.post('/connect/:platform', authenticateUser, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: `Unsupported platform: ${platform}`
+      });
+    }
+
+    // Refuse to return a broken auth URL when the OAuth client_id env var is
+    // missing — without this guard the URL serializes 'client_id=undefined'.
+    if (!config.clientId) {
+      log.error(`OAuth client_id missing for ${platform} — env var not set on this deployment`);
+      return res.status(503).json({
+        success: false,
+        error: `${platform} is temporarily unavailable (configuration missing). Please try again later or contact support.`,
+        configError: true,
       });
     }
 
