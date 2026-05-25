@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { API_URL } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 interface GarminCredentialsModalProps {
   open: boolean;
@@ -18,7 +17,6 @@ export function GarminCredentialsModal({ open, onClose, onSuccess }: GarminCrede
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { getAccessToken } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

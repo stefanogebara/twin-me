@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { API_URL } from '@/services/api/apiBase';
+import { API_URL, getAccessToken } from '@/services/api/apiBase';
 
 interface DuolingoConnectModalProps {
   open: boolean;
@@ -17,7 +16,6 @@ export function DuolingoConnectModal({ open, onClose, onSuccess }: DuolingoConne
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const { getAccessToken } = useAuth();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
