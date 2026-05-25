@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 import { safeRedirect } from '@/lib/safeRedirect';
 
 
@@ -122,6 +123,7 @@ interface PlatformStepProps {
 
 const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
   const { user, authToken } = useAuth();
+  const { toast } = useToast();
   const [connected, setConnected] = useState<Set<string>>(new Set());
   const [connecting, setConnecting] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
@@ -144,41 +146,55 @@ const PlatformStep: React.FC<PlatformStepProps> = ({ onContinue }) => {
 
     setConnecting(platform.id);
     try {
-      // All platforms use direct OAuth via connectors/connect route
-      let apiUrl: string;
-      let fetchOptions: RequestInit;
-
-      apiUrl = `${API_URL}/connectors/connect/${platform.id}`;
-      fetchOptions = {
+      const apiUrl = `${API_URL}/connectors/connect/${platform.id}`;
+      const response = await fetch(apiUrl, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${authToken}`
-        },
-      };
+        headers: { 'Authorization': `Bearer ${authToken}` },
+      });
 
-      const response = await fetch(apiUrl, fetchOptions);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
+      }
 
       const result = await response.json();
 
-      if (result.success && result.authUrl) {
+      // Bug #36: backend (connectors.js:325) returns { success, data: { authUrl } }
+      // but this code originally only checked result.authUrl (top-level). The
+      // if-branches silently fell through and connecting state cleared with no
+      // user feedback. Tolerate both shapes and surface every failure path.
+      const authUrl = result?.authUrl || result?.data?.authUrl;
+      const connectUrl = result?.connectUrl || result?.data?.connectUrl;
+
+      if (result?.success && authUrl) {
         sessionStorage.setItem('connecting_provider', platform.id);
         sessionStorage.setItem('onboarding_platform_step', '1');
-        if (!safeRedirect(result.authUrl)) {
-          console.error('Platform connect blocked: untrusted redirect URL');
+        if (!safeRedirect(authUrl)) {
+          throw new Error('Platform connect blocked: untrusted redirect URL');
         }
-      } else if (result.success && result.connectUrl) {
+        return; // browser navigates away
+      }
+
+      if (result?.success && connectUrl) {
         const width = 600, height = 700;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
-        window.open(result.connectUrl, 'nango-connect', `width=${width},height=${height},left=${left},top=${top}`);
-        // Optimistically mark as connecting; user will return from popup
+        window.open(connectUrl, 'nango-connect', `width=${width},height=${height},left=${left},top=${top}`);
         setTimeout(() => {
           setConnected(prev => new Set([...prev, platform.id]));
           setConnecting(null);
         }, 3000);
+        return;
       }
-    } catch {
+
+      throw new Error(result?.error || `Connect for ${platform.name} returned an unexpected response shape`);
+    } catch (err) {
+      console.error(`Connect failed for ${platform.id}:`, err);
+      toast({
+        title: `Could not connect ${platform.name}`,
+        description: err instanceof Error ? err.message : 'Please try again or skip for now.',
+        variant: 'destructive',
+      });
       setConnecting(null);
     }
   };
