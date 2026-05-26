@@ -38,21 +38,27 @@ A long-running Go service that bridges WhatsApp Web (via `whatsmeow`) ↔ the Tw
 | `Dockerfile` | Multi-stage build, ~25 MB final image |
 | `fly.toml` | Fly.io machines deployment config |
 
-## Status: Phase 1 — Skeleton
+## Status: Phase 2 — Implemented (untested)
 
-What works:
-- HTTP server with auth-gated routes
-- Health endpoint
-- Endpoint shapes match what `/api/voice/*` expects
+What's wired up:
+- HTTP server with auth-gated routes (X-Bridge-Secret on all non-/health)
+- whatsmeow client manager with per-user `*whatsmeow.Client` instances
+- sqlstore.Container against the shared Postgres DB (Supabase pooler)
+- QR-pair flow via `GetQRChannel` + PNG data URL encoding
+- `*events.PairSuccess` handler → POST `/voice-bridge/link/complete` to upsert `whatsapp_links`
+- `*events.Message` handler for voice notes (PTT only, self-chat only) → POST `/voice-bridge/inbound`
+- `*events.Disconnected` + `*events.LoggedOut` lifecycle handling
+- `client.SendMessage` in `/reply/:userId`
+- Resume linked sessions on bridge startup via `GetAllDevices()` + `/voice-bridge/links/active`
 
-What's STUBBED (next session):
-- whatsmeow client initialization + sqlstore wiring
-- QR-pair flow (`GetQRChannel`, `PairSuccess` event handling)
-- Voice message event handler + audio download
-- `client.SendMessage` for outbound replies
-- Resume linked sessions on startup
+Not yet verified:
+- `go mod tidy` resolves the pseudo-version placeholders in `go.mod`. Run before first build.
+- End-to-end live test (need Fly.io deploy + WhatsApp QR scan).
 
-See `// TODO:` comments in `main.go` for exact spots.
+Limitations:
+- Only processes voice notes sent to user's OWN JID (self-chat). Voice notes in group chats or DMs to others are ignored.
+- Outbound `whatsmeow_message_id` placeholder is `out:<inbound_id>` — we don't currently plumb the real WhatsApp message id back from `SendMessage` into `whatsapp_messages`. Add later if needed for delivery-receipt support.
+- Re-pairing a user disconnects the old session immediately; in-flight inbound voice notes during that window may be dropped.
 
 ## Local development
 
@@ -93,7 +99,16 @@ fly deploy
 curl https://twinme-bridge.fly.dev/health
 ```
 
-Then add the same `BRIDGE_SHARED_SECRET` + `BRIDGE_BASE_URL=https://twinme-bridge.fly.dev` to Vercel env so `/api/voice/*` can talk back to the bridge.
+Then add the following to Vercel env so the API can talk to the bridge AND can call itself:
+
+```bash
+vercel env add BRIDGE_BASE_URL                  # https://twinme-bridge.fly.dev
+vercel env add BRIDGE_SHARED_SECRET             # same as `fly secrets set` above
+vercel env add SELF_API_BASE_URL                # https://www.twinme.me/api
+                                                # (used by /voice-bridge/inbound to self-call /chat/message)
+```
+
+`OPENAI_API_KEY` and `JWT_SECRET` are already set for the existing twin chat path — the voice bridge piggybacks on them for Whisper transcription and minting short-lived self-call JWTs respectively.
 
 ## Security notes
 
