@@ -435,7 +435,7 @@ func (b *bridge) handleIncomingMessage(userID string, client *whatsmeow.Client, 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	data, err := client.Download(audio)
+	data, err := client.Download(ctx, audio)
 	if err != nil {
 		log.Printf("[voice] download failed userId=%s msgId=%s err=%v",
 			userID, evt.Info.ID, err)

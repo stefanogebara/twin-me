@@ -1,26 +1,16 @@
 module github.com/stefanogebara/twin-me/bridge
 
-go 1.22
+go 1.25
 
-// Pseudo-versions below are placeholders. After cloning, run:
-//   go mod tidy
-// which will resolve each `latest` pseudo-version to the current commit-
-// based version. whatsmeow doesn't tag releases, so pseudo-versions are
-// the canonical form.
-//
-// Pinned ranges:
-//   whatsmeow      — v0.0.0+ (latest commit), API used: sqlstore.New with ctx,
-//                    GetAllDevices(ctx), client.SendMessage, GetQRChannel,
-//                    events.{Message,PairSuccess,Disconnected,LoggedOut,QR}.
-//   skip2/go-qrcode — v0.0.0-20200617195104-da1b6568686e (latest tagged)
-//                    Used to encode QR codes as PNG data URLs.
-//   lib/pq         — v1.10.9 (Postgres driver for whatsmeow's sqlstore).
-//   joho/godotenv  — for local .env loading (autoload).
-
-require (
-	github.com/joho/godotenv v1.5.1
-	github.com/lib/pq v1.10.9
-	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	go.mau.fi/whatsmeow v0.0.0-20250901000000-000000000000
-	google.golang.org/protobuf v1.34.2
-)
+// Dependencies resolved by `go mod tidy` during Docker build.
+// To regenerate locally: `go mod tidy` (requires network access).
+// Imports used (see main.go):
+//   - go.mau.fi/whatsmeow                  WhatsApp Web protocol client
+//   - go.mau.fi/whatsmeow/proto/waE2E      protobuf message types
+//   - go.mau.fi/whatsmeow/store/sqlstore   Postgres-backed session storage
+//   - go.mau.fi/whatsmeow/types/events     event types for the handler
+//   - go.mau.fi/whatsmeow/util/log         whatsmeow's logger interface
+//   - github.com/lib/pq                    Postgres driver for sqlstore
+//   - github.com/skip2/go-qrcode            QR code PNG encoder
+//   - github.com/joho/godotenv/autoload    .env loader for local dev
+//   - google.golang.org/protobuf/proto     proto.String helper
