@@ -76,6 +76,9 @@
     },
     "api/webhook-plaid.js": {
       "maxDuration": 60
+    },
+    "api/instagram-sync.js": {
+      "maxDuration": 60
     }
   },
   "routes": [
@@ -90,6 +93,10 @@
     {
       "src": "/api/webhooks/plaid",
       "dest": "/api/webhook-plaid.js"
+    },
+    {
+      "src": "/api/instagram/sync",
+      "dest": "/api/instagram-sync.js"
     },
     {
       "src": "/api/(.*)",
