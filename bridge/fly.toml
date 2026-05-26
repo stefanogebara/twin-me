@@ -32,6 +32,13 @@ primary_region = "cdg"  # Paris — close to Vercel's CDG edge + EU users
   min_machines_running = 1
   processes = ["app"]
 
+  # CRITICAL: pendingLink + connected clients are in-memory state on a single
+  # machine. Running >1 machine causes load-balancing across them so a POST
+  # /link/start lands on machine A while the next GET /link/status lands on
+  # machine B (which has no pending state, returns "none", QR never renders).
+  # Future fix: move pendingLinks into shared Postgres so HA becomes possible.
+  # Until then, on every deploy run: `flyctl scale count 1 --app twinme-bridge`
+
   [http_service.concurrency]
     type = "requests"
     soft_limit = 200
