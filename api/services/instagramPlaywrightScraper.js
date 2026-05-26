@@ -27,11 +27,34 @@
  * NEVER throws to the caller — always returns the result envelope.
  */
 
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-core';
 import { createLogger } from './logger.js';
 import { sanitizeExternal } from './observationUtils.js';
 
 const log = createLogger('InstagramPlaywrightScraper');
+
+/**
+ * Launch Chromium with the right binary for the runtime.
+ *
+ * - On Vercel (or any Lambda-like serverless env), use @sparticuz/chromium —
+ *   a ~50MB Chromium build that fits inside Lambda's bundle limits. Without
+ *   this, playwright-core can't find a browser at runtime because Lambda
+ *   doesn't preserve the playwright browser cache from npm install.
+ * - Locally, use whatever Chromium the `playwright` package downloaded
+ *   (playwright-core auto-discovers it via the standard browser-path).
+ */
+async function _launchChromium(headless) {
+  const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+  if (isServerless) {
+    const sparticuz = (await import('@sparticuz/chromium')).default;
+    return chromium.launch({
+      args: sparticuz.args,
+      executablePath: await sparticuz.executablePath(),
+      headless: true,
+    });
+  }
+  return chromium.launch({ headless });
+}
 
 const DEFAULTS = {
   maxItemsPerSurface: 30,
@@ -179,7 +202,7 @@ export async function scrapeInstagramWithCookies({ cookies, username, surfaces, 
 
   let browser;
   try {
-    browser = await chromium.launch({ headless: opts.headless });
+    browser = await _launchChromium(opts.headless);
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
       userAgent: undefined, // let Playwright's default Chromium UA pass IG's basic checks
