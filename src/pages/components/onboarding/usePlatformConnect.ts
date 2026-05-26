@@ -35,6 +35,7 @@ interface UsePlatformConnectOptions {
   setGarminModalOpen?: (open: boolean) => void;
   setSteamModalOpen?: (open: boolean) => void;
   setDuolingoModalOpen?: (open: boolean) => void;
+  setInstagramModalOpen?: (open: boolean) => void;
 }
 
 function createConnectError(message: string, status?: number, code?: string): ConnectError {
@@ -62,6 +63,7 @@ export function usePlatformConnect({
   setGarminModalOpen,
   setSteamModalOpen,
   setDuolingoModalOpen,
+  setInstagramModalOpen,
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
   const { toast } = useToast();
@@ -249,6 +251,17 @@ export function usePlatformConnect({
         return;
       }
 
+      // Instagram uses vanilla-Playwright scraping with user-provided cookies (no OAuth)
+      if (provider === 'instagram') {
+        setConnectingProvider(null);
+        if (setInstagramModalOpen) {
+          setInstagramModalOpen(true);
+        } else {
+          toast({ title: 'Instagram', description: 'Open Settings > Platforms to connect Instagram.', variant: 'default' });
+        }
+        return;
+      }
+
       const nangoPlatforms = ['fitbit', 'microsoft_outlook', 'whoop', 'twitch'];
 
       // Pre-open a blank popup while still inside the user-gesture call stack.
@@ -407,7 +420,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setDuolingoModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setDuolingoModalOpen, setInstagramModalOpen, handleNangoPopup]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;

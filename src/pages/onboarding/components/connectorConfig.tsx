@@ -251,6 +251,18 @@ export const AVAILABLE_CONNECTORS: ConnectorConfig[] = [
     category: 'professional'
   },
   {
+    provider: 'instagram' as DataProvider,
+    name: 'Instagram',
+    description: 'Your saved posts and aesthetic — what you bookmark reveals your taste, interests, and the worlds you return to',
+    icon: <span className="w-6 h-6 inline-flex items-center justify-center text-[#F5F5F4]">IG</span>,
+    color: '#E4405F',
+    dataTypes: ['Saved Posts', 'Your Posts'],
+    estimatedInsights: 8,
+    setupTime: '2 minutes (cookie export)',
+    privacyLevel: 'medium',
+    category: 'social'
+  },
+  {
     provider: 'google_gmail' as DataProvider,
     name: 'Gmail',
     description: 'Email patterns reveal communication habits, network breadth, and how you organize your digital life',
