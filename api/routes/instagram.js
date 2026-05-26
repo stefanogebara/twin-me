@@ -221,6 +221,10 @@ router.post('/sync', authenticateUser, async (req, res) => {
     },
     observations_stored: storedCount,
     duration_ms: result.duration_ms,
+    // Diagnostic info ONLY when scrape returned empty — helps debug Sparticuz-vs-IG fingerprinting.
+    // Includes page title + final URL + body preview, no cookies or auth data.
+    diagnostics: Object.keys(result.diagnostics || {}).length > 0 ? result.diagnostics : undefined,
+    detected: result.detected,
   });
 });
 

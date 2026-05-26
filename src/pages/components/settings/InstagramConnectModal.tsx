@@ -148,9 +148,41 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
               required
               className="bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[#57534E] rounded-[6px] font-mono text-[11px]"
             />
-            <p className="text-[11px] text-[#57534E] leading-snug">
-              How to get cookies: install the "EditThisCookie" Chrome extension, open instagram.com (while logged in), click the extension icon, then "Export to JSON". Paste the result here. Your cookies are sent over HTTPS, used once for scraping, then discarded — never stored on our servers.
-            </p>
+            <div className="border border-[rgba(255,255,255,0.06)] rounded-[10px] p-3 bg-[rgba(255,255,255,0.02)]">
+              <p className="text-[11px] text-[#A8A29E] font-medium mb-2">How to get your Instagram cookies (2 minutes):</p>
+              <ol className="text-[11px] text-[#A8A29E] leading-relaxed space-y-1.5 list-decimal pl-4">
+                <li>
+                  Install{' '}
+                  <a
+                    href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#F5F5F4] underline hover:no-underline"
+                  >
+                    Cookie-Editor
+                  </a>
+                  {' '}(Chrome / Edge / Firefox). It's the modern replacement for EditThisCookie.
+                </li>
+                <li>
+                  Open{' '}
+                  <a
+                    href="https://www.instagram.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#F5F5F4] underline hover:no-underline"
+                  >
+                    instagram.com
+                  </a>
+                  {' '}in the same browser and confirm you're logged in.
+                </li>
+                <li>Click the Cookie-Editor icon in your browser toolbar.</li>
+                <li>Click the <span className="font-mono text-[10.5px]">Export</span> button, then pick <span className="font-mono text-[10.5px]">JSON</span>. The full cookie array gets copied to your clipboard.</li>
+                <li>Paste it into the field above. The JSON should start with <span className="font-mono text-[10.5px]">[</span> and contain a <span className="font-mono text-[10.5px]">"sessionid"</span> entry.</li>
+              </ol>
+              <p className="text-[10.5px] text-[#57534E] leading-snug mt-2.5 pt-2.5 border-t border-[rgba(255,255,255,0.05)]">
+                Cookies travel over HTTPS, are used once per sync, and are never written to disk on our servers. If you log out of Instagram or sign in from a new location, this session expires — just paste fresh cookies to reconnect.
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">

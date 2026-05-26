@@ -137,11 +137,24 @@ function _pageExtractFn() {
     !!document.querySelector('a[href*="/your_activity/"]') ||
     !!document.querySelector('a[href$="/accounts/edit/"]');
 
+  // Diagnostic snapshot when posts are empty — helps debug why Sparticuz-Chromium saw nothing.
+  // Includes ONLY non-sensitive page metadata (no cookies, no auth tokens).
+  const diagnostic = posts.length === 0 ? {
+    page_title: document.title,
+    final_url: location.href,
+    body_preview: (document.body?.innerText || '').slice(0, 400),
+    has_login_form: !!document.querySelector('input[name="username"], input[name="password"]'),
+    total_anchor_count: document.querySelectorAll('a').length,
+    total_img_count: document.querySelectorAll('img').length,
+    body_byte_length: document.documentElement.outerHTML.length,
+  } : null;
+
   return {
     page_url: location.href,
     posts,
     appears_logged_in: loggedIn,
     challenge,
+    diagnostic,
   };
 }
 
@@ -158,6 +171,7 @@ async function _scrapeSurface(page, url, scrollPasses, maxItems, jitterMs) {
     posts: (data.posts || []).slice(0, maxItems),
     appears_logged_in: data.appears_logged_in,
     challenge: data.challenge,
+    diagnostic: data.diagnostic,
   };
 }
 
@@ -178,6 +192,7 @@ export async function scrapeInstagramWithCookies({ cookies, username, surfaces, 
     ok: false,
     scraped: { saved_posts: [], own_posts: [], follows: [] },
     detected: { logged_in: false, captcha: false, rate_limit: false, suspended: false },
+    diagnostics: {},
     duration_ms: 0,
     error: null,
   };
@@ -255,6 +270,7 @@ export async function scrapeInstagramWithCookies({ cookies, username, surfaces, 
 
         if (target.key === 'saved') envelope.scraped.saved_posts = scraped.posts;
         if (target.key === 'own_posts') envelope.scraped.own_posts = scraped.posts;
+        if (scraped.diagnostic) envelope.diagnostics[target.key] = scraped.diagnostic;
       } catch (e) {
         log.warn('surface scrape error', { surface: target.key, error: e?.message });
         envelope.error = envelope.error || `surface ${target.key}: ${e?.message}`;
