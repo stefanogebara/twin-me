@@ -514,7 +514,7 @@ router.post('/link/start', authenticateUser, async (req, res) => {
       }
       if (body?.status === 'SCAN_QR_CODE' || body?.status === 'STARTING') {
         const qrRes = await wahaFetch(
-          `/api/sessions/${WAHA_SESSION}/auth/qr?format=image`
+          `/api/${WAHA_SESSION}/auth/qr?format=image`
         );
         if (qrRes.ok) {
           const arr = Buffer.from(await qrRes.arrayBuffer());
@@ -584,7 +584,7 @@ router.get('/link/status', authenticateUser, async (req, res) => {
 
     if (body.status === 'SCAN_QR_CODE' || body.status === 'STARTING') {
       const qrRes = await wahaFetch(
-        `/api/sessions/${WAHA_SESSION}/auth/qr?format=image`
+        `/api/${WAHA_SESSION}/auth/qr?format=image`
       );
       let qrCode = null;
       if (qrRes.ok) {
