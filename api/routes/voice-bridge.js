@@ -53,6 +53,16 @@ const BRIDGE_SHARED_SECRET = process.env.BRIDGE_SHARED_SECRET || '';
 const JWT_SECRET = process.env.JWT_SECRET || '';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 
+// WAHA Core (free) only allows ONE session named exactly 'default'. The
+// WAHA Plus license adds multi-session support (~$30/mo). Until we move
+// to Plus, the bridge supports a single linked user at a time. We keep
+// the userId → session mapping in the whatsapp_links table:
+//   - status='pending' rows are users currently trying to link
+//   - status='linked' rows are the active link (at most one)
+// The webhook handler resolves session 'default' → userId by querying
+// whichever pending/linked row was most recently touched.
+const WAHA_SESSION = 'default';
+
 const SELF_API_BASE_URL =
   process.env.SELF_API_BASE_URL ||
   `http://localhost:${process.env.PORT || 3004}/api`;
@@ -104,18 +114,48 @@ function requireBridgeAuth(req, res, next) {
   next();
 }
 
+/**
+ * resolveActiveUserId — WAHA Core uses session='default' for everyone, so the
+ * webhook payload tells us the EVENT but not the WHICH USER it's for. We
+ * resolve via DB: prefer the most recently-touched linked row, fall back
+ * to the most recent pending row (for session.status events during pairing).
+ */
+async function resolveActiveUserId() {
+  const { data: linked } = await supabaseAdmin
+    .from('whatsapp_links')
+    .select('user_id, status, updated_at')
+    .eq('status', 'linked')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (linked) return linked.user_id;
+  const { data: pending } = await supabaseAdmin
+    .from('whatsapp_links')
+    .select('user_id, status, updated_at')
+    .eq('status', 'pending')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return pending?.user_id || null;
+}
+
 router.post('/webhook', requireBridgeAuth, async (req, res) => {
-  const { event, session: sessionName, payload } = req.body || {};
+  const { event, payload } = req.body || {};
 
   // Always ACK first — WAHA retries on non-2xx and we don't want it to
   // pile up while we Whisper-transcribe a voice note.
   res.status(202).json({ status: 'accepted' });
 
-  // sessionName is the user_id we pass into POST /sessions/start.
-  if (!event || !sessionName) return;
+  if (!event) return;
+
+  const userId = await resolveActiveUserId();
+  if (!userId) {
+    log.warn('Webhook fired but no pending/linked user', { event });
+    return;
+  }
 
   if (event === 'session.status') {
-    await handleSessionStatus(sessionName, payload);
+    await handleSessionStatus(userId, payload);
     return;
   }
 
@@ -125,7 +165,7 @@ router.post('/webhook', requireBridgeAuth, async (req, res) => {
     const type = payload.type || payload?.media?.mimetype || '';
     const isVoice = type === 'ptt' || /audio\/ogg/i.test(type);
     if (!isVoice) return;
-    await handleInboundVoice(sessionName, payload).catch(err =>
+    await handleInboundVoice(userId, payload).catch(err =>
       log.error('inbound voice handler crashed', { error: err?.message })
     );
     return;
@@ -144,7 +184,7 @@ async function handleSessionStatus(userId, payload) {
     let phoneNumber = null;
     if (!jid && wahaConfigured()) {
       try {
-        const r = await wahaFetch(`/api/sessions/${encodeURIComponent(userId)}`);
+        const r = await wahaFetch(`/api/sessions/${WAHA_SESSION}`);
         const body = await r.json().catch(() => null);
         jid = body?.me?.id || null;
         displayName = body?.me?.pushName || displayName;
@@ -187,15 +227,20 @@ async function upsertWhatsappLink({ userId, jid, displayName, phoneNumber }) {
     return;
   }
 
+  // Look for either (a) the placeholder 'pending' row created at /link/start
+  // or (b) a row already keyed on the real jid. Update whichever we find,
+  // patching jid up to the real value.
   const { data: existing } = await supabaseAdmin
     .from('whatsapp_links')
     .select('id')
     .eq('user_id', userId)
-    .eq('jid', jid)
     .in('status', ['pending', 'linked'])
+    .order('updated_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   const fields = {
+    jid,
     display_name: displayName || null,
     phone_number: phoneNumber || null,
     status: 'linked',
@@ -209,7 +254,7 @@ async function upsertWhatsappLink({ userId, jid, displayName, phoneNumber }) {
   } else {
     await supabaseAdmin
       .from('whatsapp_links')
-      .insert({ user_id: userId, jid, ...fields });
+      .insert({ user_id: userId, ...fields });
   }
   log.info('whatsapp link upserted via webhook', { userId, jid });
 }
@@ -373,7 +418,7 @@ async function handleInboundVoice(userId, payload) {
       return;
     }
 
-    await sendTextViaWaha({ session: userId, chatId, text: replyText });
+    await sendTextViaWaha({ session: WAHA_SESSION, chatId, text: replyText });
 
     await supabaseAdmin.from('whatsapp_messages').insert({
       user_id: userId,
@@ -405,16 +450,54 @@ router.post('/link/start', authenticateUser, async (req, res) => {
   const userId = req.user.id;
   if (!wahaConfigured()) return res.status(503).json({ error: 'bridge_not_configured' });
 
+  // Reserve this user as the active pairing target. WAHA Core can only run
+  // one 'default' session, so we use the whatsapp_links table to track who
+  // owns the current session. If another user is already pending or linked,
+  // refuse — UI tells them to wait or unlink the existing one.
+  const { data: existingOther } = await supabaseAdmin
+    .from('whatsapp_links')
+    .select('user_id, status')
+    .in('status', ['pending', 'linked'])
+    .neq('user_id', userId)
+    .limit(1)
+    .maybeSingle();
+  if (existingOther) {
+    log.warn('link/start blocked — another user holds the bridge', {
+      requester: userId, holder: existingOther.user_id, status: existingOther.status,
+    });
+    return res.status(409).json({ error: 'bridge_busy' });
+  }
+
+  // Mark this user as pending (idempotent — UPDATE if exists, INSERT if not)
+  const { data: ownRow } = await supabaseAdmin
+    .from('whatsapp_links')
+    .select('id')
+    .eq('user_id', userId)
+    .in('status', ['pending', 'linked'])
+    .maybeSingle();
+  if (ownRow) {
+    await supabaseAdmin
+      .from('whatsapp_links')
+      .update({ status: 'pending', updated_at: new Date().toISOString() })
+      .eq('id', ownRow.id);
+  } else {
+    await supabaseAdmin
+      .from('whatsapp_links')
+      .insert({
+        user_id: userId, jid: 'pending', status: 'pending',
+        updated_at: new Date().toISOString(),
+      });
+  }
+
   try {
     // Logout any existing session to force a fresh QR (idempotent on noweb).
-    await wahaFetch(`/api/sessions/${encodeURIComponent(userId)}/logout`, { method: 'POST' })
+    await wahaFetch(`/api/sessions/${WAHA_SESSION}/logout`, { method: 'POST' })
       .catch(() => {});
     // Start (or restart) the session
     const startRes = await wahaFetch('/api/sessions/start', {
       method: 'POST',
-      body: JSON.stringify({ name: userId }),
+      body: JSON.stringify({ name: WAHA_SESSION }),
     });
-    // 201 created OR 422 "already started" are both fine for us
     if (!startRes.ok && startRes.status !== 422) {
       const detail = await startRes.text().catch(() => '');
       log.error('waha session start failed', { userId, status: startRes.status, detail: detail.slice(0, 200) });
@@ -424,14 +507,14 @@ router.post('/link/start', authenticateUser, async (req, res) => {
     const deadline = Date.now() + 8_000;
     let qrData = null;
     while (Date.now() < deadline) {
-      const stat = await wahaFetch(`/api/sessions/${encodeURIComponent(userId)}`);
+      const stat = await wahaFetch(`/api/sessions/${WAHA_SESSION}`);
       const body = await stat.json().catch(() => null);
       if (body?.status === 'WORKING') {
         return res.json({ status: 'linked' });
       }
       if (body?.status === 'SCAN_QR_CODE' || body?.status === 'STARTING') {
         const qrRes = await wahaFetch(
-          `/api/sessions/${encodeURIComponent(userId)}/auth/qr?format=image`
+          `/api/sessions/${WAHA_SESSION}/auth/qr?format=image`
         );
         if (qrRes.ok) {
           const arr = Buffer.from(await qrRes.arrayBuffer());
@@ -479,7 +562,7 @@ router.get('/link/status', authenticateUser, async (req, res) => {
   if (!wahaConfigured()) return res.json({ status: 'none' });
 
   try {
-    const stat = await wahaFetch(`/api/sessions/${encodeURIComponent(userId)}`);
+    const stat = await wahaFetch(`/api/sessions/${WAHA_SESSION}`);
     if (stat.status === 404) return res.json({ status: 'none' });
     const body = await stat.json().catch(() => null);
     if (!body) return res.json({ status: 'none' });
@@ -501,7 +584,7 @@ router.get('/link/status', authenticateUser, async (req, res) => {
 
     if (body.status === 'SCAN_QR_CODE' || body.status === 'STARTING') {
       const qrRes = await wahaFetch(
-        `/api/sessions/${encodeURIComponent(userId)}/auth/qr?format=image`
+        `/api/sessions/${WAHA_SESSION}/auth/qr?format=image`
       );
       let qrCode = null;
       if (qrRes.ok) {
@@ -524,8 +607,14 @@ router.get('/link/status', authenticateUser, async (req, res) => {
 
 router.post('/link/cancel', authenticateUser, async (req, res) => {
   const userId = req.user.id;
+  // Drop any placeholder 'pending' row this user owns so the next user can link.
+  await supabaseAdmin
+    .from('whatsapp_links')
+    .update({ status: 'unlinked', updated_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .eq('status', 'pending');
   if (wahaConfigured()) {
-    await wahaFetch(`/api/sessions/${encodeURIComponent(userId)}/logout`, { method: 'POST' })
+    await wahaFetch(`/api/sessions/${WAHA_SESSION}/logout`, { method: 'POST' })
       .catch(() => {});
   }
   return res.json({ status: 'cancelled' });
@@ -543,7 +632,7 @@ router.post('/unlink', authenticateUser, async (req, res) => {
     return res.status(500).json({ error: 'unlink_failed' });
   }
   if (wahaConfigured()) {
-    await wahaFetch(`/api/sessions/${encodeURIComponent(userId)}/logout`, { method: 'POST' })
+    await wahaFetch(`/api/sessions/${WAHA_SESSION}/logout`, { method: 'POST' })
       .catch(() => {});
   }
   return res.json({ status: 'unlinked' });
