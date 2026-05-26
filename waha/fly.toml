@@ -1,0 +1,66 @@
+# fly.toml — TwinMe WAHA (WhatsApp HTTP API)
+# ==========================================
+# Pivot from custom whatsmeow bridge to WAHA (devlikeapro/waha) after
+# Meta repeatedly rejected the QR-link from Fly outbound IPs with
+# "couldn't link device". WAHA wraps whatsapp-web.js (puppeteer/chromium
+# in `web` engine, baileys in `noweb`) which has a more browser-shaped
+# fingerprint and tends to pass Meta's anti-bot checks reliably.
+#
+# Engine choice: `noweb` (Baileys-based, ~256MB RAM) — matches the
+# user's existing seatable-waha pattern. If `noweb` ALSO fails Meta's
+# check (same family as whatsmeow), we'll switch to `devlikeapro/waha`
+# (web engine, Chromium, ~1GB RAM, $$$).
+#
+# Persistence: WAHA stores sessions in /app/.sessions (mounted volume).
+# Survives machine restarts so users don't have to re-scan QR.
+#
+# Single-machine constraint: same as the Go bridge — session state lives
+# on disk on ONE machine. HA requires a state-sharing engine which WAHA
+# Plus supports but free Core does not.
+
+app = "twinme-waha"
+primary_region = "cdg"  # Paris — same as seatable-waha (known good)
+
+[build]
+  image = "devlikeapro/waha:noweb"
+
+[env]
+  WAHA_LOG_LEVEL = "info"
+  # Webhook target — our Vercel API receives session.status + message events.
+  WHATSAPP_HOOK_EVENTS = "message,session.status"
+  WHATSAPP_HOOK_URL = "https://www.twinme.me/api/voice-bridge/webhook"
+  # WAHA_PRINT_QR turns off the QR-in-stdout (we fetch it via REST).
+  WAHA_PRINT_QR = "false"
+  # Match seatable's setup: HTTP only (Fly terminates TLS).
+  # No need for /docs / dashboard in prod.
+
+[[mounts]]
+  source = "waha_sessions"
+  destination = "/app/.sessions"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false  # CRITICAL: stopping kills sessions.
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # See bridge/fly.toml for the same explanation: WAHA Core stores
+  # sessions on local disk. Scaling to >1 machine would split sessions
+  # across machines and confuse the link/status polling.
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 25
+    hard_limit = 50
+
+  # No HTTP healthcheck — WAHA's /api/health requires the X-Api-Key header
+  # and there's no convenient unauthenticated path. Fly's edge falls back
+  # to TCP-connect health, which is enough to route traffic to the machine
+  # once port 3000 is listening.
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512  # noweb engine needs ~256MB; 512 gives headroom
