@@ -1,75 +1,91 @@
 /**
  * TwinMe Auth Sync Content Script
  *
- * Runs on twin-ai-learn.vercel.app pages and automatically pushes
+ * Runs on twinme.me and twin-ai-learn.vercel.app pages and pushes
  * the user's auth data to the extension's background service worker.
  *
- * This removes the need for the popup to scrape localStorage via
- * chrome.scripting.executeScript, which is unreliable in some cases
- * (cross-origin, iframes, timing). Content scripts run in the same
- * origin so they have direct access to localStorage.
+ * IMPORTANT: TwinMe's access token now lives IN-MEMORY only (XSS
+ * protection — see apiBase.ts). localStorage only holds auth_user
+ * metadata (not the bearer token). So we get the token via two paths:
+ *
+ *   1. CustomEvent 'twinme:tokenchange' that the app dispatches every
+ *      time it sets/refreshes the in-memory token.
+ *   2. Fallback: poll the app's exposed window.__twinmeGetToken() if
+ *      the event was missed (e.g. content script loaded mid-session).
+ *
+ * Also drops a sentinel `document.documentElement.dataset.twinmeExtension`
+ * so the app can detect us (for UX like "Extension detected" badges).
  */
 
 (function () {
   'use strict';
 
-  function syncAuth() {
+  // Sentinel for the app to detect extension presence
+  try { document.documentElement.dataset.twinmeExtension = 'v3.9.0'; } catch (_) {}
+
+  let lastToken = null;
+  let lastUserId = null;
+
+  function sendToBackground(userId, token) {
+    if (!chrome.runtime || !chrome.runtime.sendMessage) return;
     try {
-      const token = localStorage.getItem('auth_token');
-      const userRaw = localStorage.getItem('auth_user');
-      if (!token && !userRaw) return;
-
-      let userId = null;
-      let email = null;
-      let name = null;
-
-      if (userRaw) {
-        try {
-          const u = JSON.parse(userRaw);
-          userId = u.id;
-          email = u.email;
-          name = u.name || u.given_name || u.fullName || u.firstName || u.email;
-        } catch (_) {}
-      }
-
-      // Fallback: decode JWT if user not in localStorage
-      if (!userId && token && token.split('.').length === 3) {
-        try {
-          const p = JSON.parse(atob(token.split('.')[1]));
-          userId = p.id || p.userId || p.sub;
-          email = p.email || email;
-        } catch (_) {}
-      }
-
-      if (!userId) return;
-
-      // Send to background service worker
-      if (chrome.runtime && chrome.runtime.sendMessage) {
-        chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, () => {
-          // Ignore callback errors (service worker may be asleep)
+      chrome.runtime.sendMessage({ type: 'SET_USER_ID', userId }, () => {
+        void chrome.runtime.lastError;
+      });
+      if (token) {
+        chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token }, () => {
           void chrome.runtime.lastError;
         });
-        if (token) {
-          chrome.runtime.sendMessage({ type: 'SET_AUTH_TOKEN', token }, () => {
-            void chrome.runtime.lastError;
-          });
-        }
       }
-    } catch (_) {
-      // Never throw - content script failures must not break the page
-    }
+    } catch (_) {}
   }
 
-  // Sync on load
-  syncAuth();
+  function tryGetUserId() {
+    try {
+      const userRaw = localStorage.getItem('auth_user');
+      if (userRaw) {
+        const u = JSON.parse(userRaw);
+        if (u && u.id) return u.id;
+      }
+    } catch (_) {}
+    return null;
+  }
 
-  // Re-sync periodically in case user signs in/out without reload
-  setInterval(syncAuth, 30000);
-
-  // Re-sync on storage changes (sign in, sign out)
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'auth_token' || e.key === 'auth_user') {
-      syncAuth();
+  function syncFromToken(token) {
+    if (!token || typeof token !== 'string' || token.split('.').length !== 3) return;
+    let userId = tryGetUserId();
+    if (!userId) {
+      try {
+        const p = JSON.parse(atob(token.split('.')[1]));
+        userId = p.id || p.userId || p.sub;
+      } catch (_) {}
     }
+    if (!userId) return;
+    if (token === lastToken && userId === lastUserId) return; // dedup
+    lastToken = token;
+    lastUserId = userId;
+    sendToBackground(userId, token);
+  }
+
+  // Path 1: app dispatches CustomEvent when token changes
+  window.addEventListener('twinme:tokenchange', (e) => {
+    try {
+      const detail = e && e.detail ? e.detail : {};
+      if (detail.token) syncFromToken(detail.token);
+    } catch (_) {}
   });
+
+  // Path 2: poll the app's exposed getter (in case event was missed)
+  function pollExposedGetter() {
+    try {
+      if (typeof window.__twinmeGetAccessToken === 'function') {
+        const token = window.__twinmeGetAccessToken();
+        if (token) syncFromToken(token);
+      }
+    } catch (_) {}
+  }
+
+  // Initial attempt + periodic re-check
+  pollExposedGetter();
+  setInterval(pollExposedGetter, 30000);
 })();

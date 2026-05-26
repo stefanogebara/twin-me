@@ -1,6 +1,11 @@
 /**
  * Instagram Data Collector
- * Extracts posts liked, accounts followed, stories viewed, and user interests
+ * Extracts posts liked, accounts followed, stories viewed, and user interests.
+ *
+ * v3.9.0: added LIVE LIKE DETECTION — listens for clicks on heart-shaped
+ * "Like" buttons across feed/profile/post pages and captures each like as
+ * it happens (no need to visit /your_activity/likes/ first). Capture is
+ * batched and ships via SEND_PLATFORM_DATA every 30s.
  */
 
 console.log('[Soul Signature] Instagram collector loaded');
@@ -283,3 +288,95 @@ window.fetch = function(...args) {
 };
 
 console.log('[Soul Signature] Instagram API interceptor installed');
+
+/**
+ * Live like detection (v3.9.0)
+ * =============================
+ * Hooks every click on the page. If the click target is IG's heart-button
+ * (aria-label contains "Like" in any locale) AND the button is about to
+ * transition from unliked-to-liked, we capture the post URL + caption.
+ *
+ * Why bubble-phase: IG re-renders the button after click. By the time
+ * the next paint happens, the article might be in a different state.
+ * We capture during the click bubble so we have the post context.
+ *
+ * Why we trust the aria-label: IG localizes it ("Like", "Curtir",
+ * "Me gusta", "いいね") but always sets it on the heart icon's parent
+ * button. We match a wide regex.
+ */
+const LIVE_LIKE_BATCH = new Map(); // postUrl -> { caption, likedAt }
+const LIKE_LABEL_RX = /^(like|curtir|me gusta|j'aime|gefällt mir|いいね|좋아요|赞|likar|jaa|tykkää|любить|нравится)$/i;
+
+function isLikeButton(el) {
+  if (!el || el.tagName !== 'BUTTON' && el.getAttribute('role') !== 'button') return false;
+  const label = (el.getAttribute('aria-label') || '').trim();
+  if (!label) return false;
+  return LIKE_LABEL_RX.test(label);
+}
+
+function recordLiveLike(button) {
+  try {
+    const article = button.closest('article');
+    if (!article) return;
+    const postLink = article.querySelector('a[href*="/p/"], a[href*="/reel/"]');
+    if (!postLink) return;
+    const href = postLink.getAttribute('href');
+    if (!href) return;
+    const postUrl = href.startsWith('/') ? `https://www.instagram.com${href}` : href;
+    // Caption: first <span> with non-empty text inside the article
+    let caption = null;
+    const captionEl = article.querySelector('h1, [data-testid="caption"], div._a9zs, span');
+    if (captionEl) caption = (captionEl.textContent || '').trim().slice(0, 500) || null;
+    const img = article.querySelector('img');
+    const altText = img?.getAttribute('alt') || null;
+    if (LIVE_LIKE_BATCH.has(postUrl)) return; // dedup within session
+    LIVE_LIKE_BATCH.set(postUrl, {
+      postUrl,
+      caption,
+      altText,
+      likedAt: new Date().toISOString(),
+    });
+    console.log('[Soul Signature] live like captured:', postUrl);
+  } catch (e) {
+    console.warn('[Soul Signature] recordLiveLike error:', e);
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const target = e.target;
+  if (!(target instanceof Element)) return;
+  const button = target.closest('button, [role="button"]');
+  if (!button) return;
+  if (!isLikeButton(button)) return;
+  // Capture BEFORE React re-renders — schedule with rAF so the click goes through first
+  requestAnimationFrame(() => recordLiveLike(button));
+}, { capture: true, passive: true });
+
+/**
+ * Periodically flush live likes batch into collectedData and ship to backend.
+ * Runs every 30s; only fires SEND if there are new items.
+ */
+setInterval(() => {
+  if (LIVE_LIKE_BATCH.size === 0) return;
+  const items = Array.from(LIVE_LIKE_BATCH.values());
+  LIVE_LIKE_BATCH.clear();
+  // Merge into collectedData.likedPosts (avoiding dup with GraphQL-intercepted likes)
+  const existing = new Set((collectedData.likedPosts || []).map(p => p.postUrl || `https://www.instagram.com/p/${p.shortcode}/`));
+  for (const item of items) {
+    if (existing.has(item.postUrl)) continue;
+    collectedData.likedPosts.push(item);
+  }
+  // Trigger an early ship (in addition to whatever the rest of the collector does)
+  try {
+    chrome.runtime.sendMessage({
+      type: 'SEND_PLATFORM_DATA',
+      platform: 'instagram',
+      data: { likedPosts: items, _liveLikeBatch: true },
+    }, () => { void chrome.runtime.lastError; });
+    console.log(`[Soul Signature] shipped ${items.length} live likes`);
+  } catch (e) {
+    console.warn('[Soul Signature] live-like ship error:', e);
+  }
+}, 30_000);
+
+console.log('[Soul Signature] live like detection installed');

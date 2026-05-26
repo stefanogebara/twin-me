@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwinMe - Digital Twin",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first, incognito excluded.",
   "permissions": [
     "storage",
@@ -24,6 +24,8 @@
     "https://www.disneyplus.com/*",
     "https://www.instagram.com/*",
     "https://twin-ai-learn.vercel.app/*",
+    "https://www.twinme.me/*",
+    "https://twinme.me/*",
     "https://www.ifood.com.br/*",
     "https://ifood.com.br/*",
     "https://www.amazon.com.br/*",
@@ -37,7 +39,11 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://twin-ai-learn.vercel.app/*"],
+      "matches": [
+        "https://twin-ai-learn.vercel.app/*",
+        "https://www.twinme.me/*",
+        "https://twinme.me/*"
+      ],
       "js": ["content/twinme-auth-sync.js"],
       "run_at": "document_idle"
     },

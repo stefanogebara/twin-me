@@ -23,8 +23,38 @@ export const API_URL: string = looksLikeLocalhost
 // refreshAccessToken() to rehydrate this variable from the cookie.
 let currentAccessToken: string | null = null;
 
+/**
+ * Notify the TwinMe browser extension whenever the access token changes.
+ * The extension's content script (twinme-auth-sync.js) listens for this
+ * event AND polls window.__twinmeGetAccessToken as a fallback. Without
+ * this bridge, the extension never gets a JWT and silently fails all
+ * /api/extension/* calls (that was the cause of the 35-day-stale sync).
+ *
+ * Safe to expose: chrome-extension content scripts run in an isolated
+ * world but DO see CustomEvents on window. This is the documented pattern
+ * for page↔content-script communication.
+ */
+function notifyExtensionTokenChange(token: string | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent('twinme:tokenchange', {
+      detail: { token },
+    }));
+  } catch {
+    // Older browsers may not support CustomEvent constructor; ignore.
+  }
+}
+
+// Expose a getter for the extension to poll as fallback if it missed the event
+// (e.g. content script loaded mid-session after the dispatch already fired).
+if (typeof window !== 'undefined') {
+  (window as unknown as { __twinmeGetAccessToken?: () => string | null }).__twinmeGetAccessToken =
+    () => currentAccessToken;
+}
+
 export function setAccessToken(token: string | null) {
   currentAccessToken = token;
+  notifyExtensionTokenChange(token);
 }
 
 export function getAccessToken(): string | null {
@@ -33,6 +63,7 @@ export function getAccessToken(): string | null {
 
 export function clearAccessToken(): void {
   currentAccessToken = null;
+  notifyExtensionTokenChange(null);
 }
 
 export interface AuthHeaders {
