@@ -57,11 +57,12 @@ import { fetchFitbitObservations } from './observationFetchers/fitbit.js';
 import { fetchTwitchObservations } from './observationFetchers/twitch.js';
 import { fetchOuraObservations } from './observationFetchers/oura.js';
 import { fetchAppleMusicObservations } from './observationFetchers/appleMusic.js';
+import { fetchInstagramObservations } from './observationFetchers/instagram.js';
 
 const log = createLogger('ObservationIngestion');
 
 // Platforms we know how to ingest
-const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'google_drive', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack', 'apple_music'];
+const SUPPORTED_PLATFORMS = ['spotify', 'google_calendar', 'youtube', 'discord', 'linkedin', 'reddit', 'whoop', 'github', 'google_gmail', 'google_drive', 'outlook', 'strava', 'garmin', 'fitbit', 'twitch', 'oura', 'slack', 'apple_music', 'instagram'];
 
 // ====================================================================
 // Prospective memory: extract metrics from observations for condition triggers
@@ -312,6 +313,7 @@ const PLATFORM_FETCHERS = {
   twitch: fetchTwitchObservations,
   oura: fetchOuraObservations,
   apple_music: fetchAppleMusicObservations,
+  instagram: fetchInstagramObservations,
 };
 
 async function runObservationIngestion(options = {}) {
@@ -337,7 +339,10 @@ async function runObservationIngestion(options = {}) {
     // Find all users with at least one active platform connection.
     // Check platform_connections (direct OAuth), nango_connection_mappings (Nango-managed),
     // AND user_github_config (PAT-based connections that don't go through OAuth).
-    const [pcRes, nangoRes, githubRes] = await Promise.all([
+    // Instagram is extension-sourced (no OAuth row). Find users by recent
+    // user_platform_data rows the extension wrote.
+    const instagramSince = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+    const [pcRes, nangoRes, githubRes, igRes] = await Promise.all([
       supabase
         .from('platform_connections')
         .select('user_id, platform')
@@ -352,14 +357,22 @@ async function runObservationIngestion(options = {}) {
         .from('user_github_config')
         .select('user_id')
         .not('access_token', 'is', null),
+      supabase
+        .from('user_platform_data')
+        .select('user_id')
+        .eq('platform', 'instagram')
+        .gte('extracted_at', instagramSince),
     ]);
     if (pcRes.error) log.warn('platform_connections fetch error', { error: pcRes.error });
     if (nangoRes.error) log.warn('nango_connection_mappings fetch error', { error: nangoRes.error });
     const pcResult = pcRes.data || [];
     const nangoResult = nangoRes.data || [];
     const githubResult = (githubRes.data || []).map(r => ({ user_id: r.user_id, platform: 'github' }));
+    // Dedup IG users (one row per recent extension push, so many rows per user)
+    const igUserIds = new Set((igRes.data || []).map(r => r.user_id));
+    const igResult = Array.from(igUserIds).map(user_id => ({ user_id, platform: 'instagram' }));
 
-    let allConnections = [...pcResult, ...nangoResult, ...githubResult];
+    let allConnections = [...pcResult, ...nangoResult, ...githubResult, ...igResult];
 
     // Scope to specific users if targetUserIds provided (for manual testing)
     if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {

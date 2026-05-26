@@ -91,19 +91,9 @@ export async function recordInstagramConsent(args: { username: string; consentVe
   return jsonOrThrow<{ success: boolean }>(res);
 }
 
-export async function syncInstagram(args: {
-  cookies: InstagramCookie[];
-  username?: string;
-  surfaces?: InstagramSurface[];
-}): Promise<InstagramSyncResult> {
-  const res = await fetch(`${API_URL}/instagram/sync`, {
-    method: 'POST',
-    headers: authedHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(args),
-  });
-  return jsonOrThrow<InstagramSyncResult>(res);
-}
+// syncInstagram removed: scraping now happens passively via the TwinMe
+// browser extension (browser-extension/collectors/instagram.js). The
+// observation fetcher reads what the extension collected.
 
 export async function updateInstagramSurfaces(enabledSurfaces: InstagramSurface[]): Promise<{ success: boolean }> {
   const res = await fetch(`${API_URL}/instagram/surfaces`, {

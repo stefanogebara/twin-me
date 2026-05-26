@@ -1,24 +1,21 @@
 /**
  * Instagram Connect Modal
  * ========================
- * Phase 4 of the Instagram-via-Playwright plan.
- * Captures username + browser-exported cookies + consent acceptance, then triggers
- * a /sync. Cookies are NEVER persisted server-side — they flow through the request
- * body and Playwright tears down after the scrape.
+ * Final architecture: TwinMe Chrome extension runs in the user's real browser
+ * with their real IG session. We don't need credentials, cookies, or any
+ * server-side scraping. The collector at browser-extension/collectors/instagram.js
+ * captures data as the user browses; the backend fetcher reads it from
+ * user_platform_data and normalizes into observations.
  *
- * UX: user pastes the JSON exported by a cookie-export browser extension
- * (recommended: EditThisCookie). Phase 5 will ship a branded extension that
- * automates this.
+ * This modal is purely informational — it tells the user to install/update
+ * the extension and visit instagram.com. No form to submit.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { syncInstagram, recordInstagramConsent, parseCookiesExport, type InstagramSurface } from '@/services/api/instagramAPI';
+import { recordInstagramConsent } from '@/services/api/instagramAPI';
 
 interface InstagramConnectModalProps {
   open: boolean;
@@ -28,90 +25,58 @@ interface InstagramConnectModalProps {
 
 const CONSENT_VERSION = 1;
 
-const ALL_SURFACES: { key: InstagramSurface; label: string; helper: string }[] = [
-  { key: 'saved', label: 'Saved posts', helper: 'Most useful — what you intentionally bookmark.' },
-  { key: 'own_posts', label: 'Your own posts', helper: 'Captions of posts on your profile.' },
-  { key: 'follows', label: 'Following list', helper: 'Phase 1 limitation: requires click-to-open modal, not scraped yet.' },
-];
+// Sentinel injected by content/twinme-auth-sync.js once the TwinMe extension is loaded.
+function detectExtensionInstalled(): boolean {
+  if (typeof document === 'undefined') return false;
+  return !!document.documentElement.dataset.twinmeExtension;
+}
 
 export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramConnectModalProps) {
   const [username, setUsername] = useState('');
-  const [cookiesText, setCookiesText] = useState('');
-  const [consentAccepted, setConsentAccepted] = useState(false);
-  const [selectedSurfaces, setSelectedSurfaces] = useState<Set<InstagramSurface>>(new Set(['saved']));
-  const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [extensionInstalled, setExtensionInstalled] = useState(detectExtensionInstalled());
   const { toast } = useToast();
 
-  function reset() {
-    setUsername('');
-    setCookiesText('');
-    setConsentAccepted(false);
-    setSelectedSurfaces(new Set(['saved']));
-  }
+  // Poll for extension presence — user may install while the modal is open.
+  useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => {
+      setExtensionInstalled(detectExtensionInstalled());
+    }, 2000);
+    return () => clearInterval(id);
+  }, [open]);
 
-  function toggleSurface(key: InstagramSurface) {
-    setSelectedSurfaces((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!username.trim() || !cookiesText.trim() || !consentAccepted) return;
-
-    setLoading(true);
+  async function handleAccept() {
+    if (!username.trim()) {
+      toast({
+        title: 'Username required',
+        description: 'Enter your Instagram @handle so the twin can attribute data correctly.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setRecording(true);
     try {
-      const cookies = parseCookiesExport(cookiesText);
-      const surfaces = Array.from(selectedSurfaces);
-
-      // 1. Record consent + username.
       await recordInstagramConsent({
-        username: username.trim(),
+        username: username.trim().replace(/^@/, ''),
         consentVersion: CONSENT_VERSION,
       });
-
-      // 2. Run the first sync immediately.
-      const result = await syncInstagram({
-        cookies,
-        username: username.trim(),
-        surfaces,
-      });
-
-      if (!result.ok) {
-        const detected = result.detected;
-        let message = result.error || 'Sync did not succeed.';
-        if (detected?.captcha) message = 'Instagram showed a captcha. Try again after a few hours.';
-        else if (detected?.rate_limit) message = 'Instagram rate-limited the scrape. Try again later.';
-        else if (detected?.suspended) message = 'This Instagram account appears suspended.';
-        else if (!detected?.logged_in) message = 'Cookies did not appear to be logged-in. Re-export and try again.';
-        throw new Error(message);
-      }
-
       toast({
         title: 'Instagram connected',
-        description: `${result.observations_stored} observations added to your twin's memory.`,
+        description: 'Visit instagram.com in this browser and your saved posts will sync automatically.',
       });
-      reset();
       onSuccess();
       onClose();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Connection failed.';
+      const msg = err instanceof Error ? err.message : 'Could not record consent';
       toast({ title: 'Connection failed', description: msg, variant: 'destructive' });
     } finally {
-      setLoading(false);
+      setRecording(false);
     }
   }
 
-  const canSubmit = !!username.trim() && !!cookiesText.trim() && consentAccepted && !loading;
-
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && !loading && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && !recording && onClose()}>
       <DialogContent className="max-w-md bg-[rgba(19,18,26,0.98)] border border-[rgba(255,255,255,0.10)] rounded-[20px] backdrop-blur-[42px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-[#F5F5F4] font-medium text-base">
@@ -119,131 +84,96 @@ export function InstagramConnectModal({ open, onClose, onSuccess }: InstagramCon
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-[#A8A29E] text-sm -mt-1 mb-2">
-          Your aesthetic and social signals — what you save, what you post — added to your soul signature.
+        <p className="text-[#A8A29E] text-sm -mt-1 mb-3">
+          Your aesthetic and social signals — what you save, follow, and post — added to your soul signature.
         </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label className="text-[12px] text-[#9C9590]">Your Instagram username</Label>
-            <Input
+            <label className="text-[12px] text-[#9C9590]">Your Instagram username</label>
+            <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value.replace(/^@/, ''))}
               placeholder="yourhandle"
               autoComplete="off"
-              required
               pattern="[a-zA-Z0-9._]{1,40}"
-              className="bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[#57534E] rounded-[6px]"
+              className="bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[#57534E] rounded-[6px] px-3 py-2.5 text-sm focus:outline-none focus:border-[rgba(255,255,255,0.20)]"
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-[12px] text-[#9C9590]">Cookies (JSON)</Label>
-            <Textarea
-              value={cookiesText}
-              onChange={(e) => setCookiesText(e.target.value)}
-              placeholder='[{"name":"sessionid","value":"...","domain":".instagram.com",...}, ...]'
-              rows={6}
-              required
-              className="bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.08)] text-[#F5F5F4] placeholder:text-[#57534E] rounded-[6px] font-mono text-[11px]"
-            />
-            <div className="border border-[rgba(255,255,255,0.06)] rounded-[10px] p-3 bg-[rgba(255,255,255,0.02)]">
-              <p className="text-[11px] text-[#A8A29E] font-medium mb-2">How to get your Instagram cookies (2 minutes):</p>
-              <ol className="text-[11px] text-[#A8A29E] leading-relaxed space-y-1.5 list-decimal pl-4">
-                <li>
-                  Install{' '}
-                  <a
-                    href="https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#F5F5F4] underline hover:no-underline"
-                  >
-                    Cookie-Editor
-                  </a>
-                  {' '}(Chrome / Edge / Firefox). It's the modern replacement for EditThisCookie.
-                </li>
-                <li>
-                  Open{' '}
-                  <a
-                    href="https://www.instagram.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#F5F5F4] underline hover:no-underline"
-                  >
-                    instagram.com
-                  </a>
-                  {' '}in the same browser and confirm you're logged in.
-                </li>
-                <li>Click the Cookie-Editor icon in your browser toolbar.</li>
-                <li>Click the <span className="font-mono text-[10.5px]">Export</span> button, then pick <span className="font-mono text-[10.5px]">JSON</span>. The full cookie array gets copied to your clipboard.</li>
-                <li>Paste it into the field above. The JSON should start with <span className="font-mono text-[10.5px]">[</span> and contain a <span className="font-mono text-[10.5px]">"sessionid"</span> entry.</li>
-              </ol>
-              <p className="text-[10.5px] text-[#57534E] leading-snug mt-2.5 pt-2.5 border-t border-[rgba(255,255,255,0.05)]">
-                Cookies travel over HTTPS, are used once per sync, and are never written to disk on our servers. If you log out of Instagram or sign in from a new location, this session expires — just paste fresh cookies to reconnect.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label className="text-[12px] text-[#9C9590]">Surfaces to scrape</Label>
-            {ALL_SURFACES.map(({ key, label, helper }) => (
-              <label key={key} className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selectedSurfaces.has(key)}
-                  onChange={() => toggleSurface(key)}
-                  disabled={key === 'follows'}
-                  className="mt-0.5 accent-[#F5F5F4]"
-                />
-                <span className="flex flex-col">
-                  <span className="text-[13px] text-[#F5F5F4]">{label}</span>
-                  <span className="text-[11px] text-[#57534E]">{helper}</span>
-                </span>
-              </label>
-            ))}
+          <div className="border border-[rgba(255,255,255,0.06)] rounded-[10px] p-3 bg-[rgba(255,255,255,0.02)] flex flex-col gap-2">
+            <p className="text-[11px] text-[#A8A29E] font-medium">How this works:</p>
+            <ol className="text-[11px] text-[#A8A29E] leading-relaxed space-y-1.5 list-decimal pl-4">
+              <li>
+                Install the TwinMe browser extension (it runs in your own browser, with your own Instagram session — no passwords, no server-side scraping).
+                {!extensionInstalled && (
+                  <span className="block mt-1.5 text-[10.5px] text-[#F5F5F4]">
+                    Extension not detected. Install instructions in your TwinMe Settings page.
+                  </span>
+                )}
+                {extensionInstalled && (
+                  <span className="block mt-1.5 text-[10.5px] text-[#9bf5a8]">
+                    Extension detected.
+                  </span>
+                )}
+              </li>
+              <li>
+                Visit{' '}
+                <a
+                  href="https://www.instagram.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#F5F5F4] underline hover:no-underline"
+                >
+                  instagram.com
+                </a>
+                {' '}in this browser. Stay logged in.
+              </li>
+              <li>
+                Open <span className="font-mono text-[10.5px]">/{username || 'yourhandle'}/saved/all-posts/</span> or the activity pages once — the extension collects from there automatically.
+              </li>
+              <li>
+                Within a sync cycle (every 30 min), your twin learns from what you've saved, followed, and posted.
+              </li>
+            </ol>
+            <p className="text-[10.5px] text-[#57534E] leading-snug mt-1 pt-2 border-t border-[rgba(255,255,255,0.05)]">
+              No credentials are sent to TwinMe. The extension reads what your already-logged-in browser sees and posts only the normalized data to our backend. You can revoke at any time from the extension settings.
+            </p>
           </div>
 
           <div className="border border-[rgba(255,255,255,0.08)] rounded-[10px] p-3 bg-[rgba(255,255,255,0.03)] flex flex-col gap-2">
             <p className="text-[11px] text-[#A8A29E] leading-snug">
-              By connecting, I understand that:
+              By connecting, you understand that:
             </p>
             <ul className="text-[11px] text-[#57534E] leading-snug list-disc pl-4 space-y-1">
-              <li>Instagram's Terms of Service do not permit automated access. The risk falls on my account, not on TwinMe.</li>
-              <li>TwinMe will use my cookies to read only the surfaces I select above. No write actions, no posting, no messaging.</li>
-              <li>Cookies are never stored. They're used once per sync and discarded.</li>
-              <li>I can disconnect at any time, which deletes the session and (optionally) all data already scraped.</li>
+              <li>The TwinMe extension reads Instagram pages you visit (in your own browser, on your own machine).</li>
+              <li>No passwords, no cookies, no session tokens leave your machine.</li>
+              <li>Only normalized observations (saved posts, follows, captions) are sent to TwinMe.</li>
+              <li>You can uninstall the extension or disconnect Instagram at any time from Settings.</li>
             </ul>
-            <label className="flex items-center gap-2 mt-1 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consentAccepted}
-                onChange={(e) => setConsentAccepted(e.target.checked)}
-                className="accent-[#F5F5F4]"
-              />
-              <span className="text-[12px] text-[#F5F5F4]">I understand and accept these terms.</span>
-            </label>
           </div>
 
           <div className="flex gap-2 justify-end">
             <Button
               type="button"
               variant="ghost"
-              onClick={() => { reset(); onClose(); }}
-              disabled={loading}
+              onClick={() => { setUsername(''); onClose(); }}
+              disabled={recording}
               className="text-[#A8A29E] hover:text-[#F5F5F4] text-sm"
             >
               Cancel
             </Button>
             <Button
-              type="submit"
-              disabled={!canSubmit}
+              type="button"
+              onClick={handleAccept}
+              disabled={!username.trim() || recording}
               className="bg-[#F5F5F4] text-[#110f0f] rounded-[100px] px-4 py-2 text-sm font-medium disabled:opacity-50"
             >
-              {loading ? 'Connecting and syncing...' : 'Connect and sync'}
+              {recording ? 'Connecting...' : 'I understand, connect'}
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
