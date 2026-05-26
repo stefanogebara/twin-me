@@ -142,33 +142,59 @@ async function resolveActiveUserId() {
 router.post('/webhook', requireBridgeAuth, async (req, res) => {
   const { event, payload } = req.body || {};
 
-  // Always ACK first — WAHA retries on non-2xx and we don't want it to
-  // pile up while we Whisper-transcribe a voice note.
-  res.status(202).json({ status: 'accepted' });
+  // CRITICAL: Vercel kills async work after res.json() on serverless. The
+  // previous "respond 202 fast, do work in background" pattern silently
+  // dropped every voice note. Do everything synchronously, respond at the
+  // end. Vercel maxDuration default is 300s on Fluid Compute — plenty for
+  // Whisper (~3s) + chat (~30s) + send (~1s) = ~34s end-to-end. WAHA may
+  // exceed its own webhook timeout and retry, but the idempotency check
+  // in handleInboundVoice (on whatsapp_message_id) catches duplicates.
 
-  if (!event) return;
+  try {
+    if (!event) {
+      return res.status(202).json({ status: 'accepted', skipped: 'no_event' });
+    }
 
-  const userId = await resolveActiveUserId();
-  if (!userId) {
-    log.warn('Webhook fired but no pending/linked user', { event });
-    return;
-  }
+    const userId = await resolveActiveUserId();
+    if (!userId) {
+      log.warn('Webhook fired but no pending/linked user', { event });
+      return res.status(202).json({ status: 'accepted', skipped: 'no_user' });
+    }
 
-  if (event === 'session.status') {
-    await handleSessionStatus(userId, payload);
-    return;
-  }
+    if (event === 'session.status') {
+      await handleSessionStatus(userId, payload);
+      return res.status(202).json({ status: 'accepted', event });
+    }
 
-  if (event === 'message') {
-    // Only inbound, only voice-notes, only self-chat.
-    if (!payload || payload.fromMe === false) return;
-    const type = payload.type || payload?.media?.mimetype || '';
-    const isVoice = type === 'ptt' || /audio\/ogg/i.test(type);
-    if (!isVoice) return;
-    await handleInboundVoice(userId, payload).catch(err =>
-      log.error('inbound voice handler crashed', { error: err?.message })
-    );
-    return;
+    if (event === 'message') {
+      // Diagnostic: log payload shape so we can see what WAHA's noweb engine
+      // actually sends for voice notes (type, media keys, fromMe).
+      log.info('webhook message received', {
+        userId,
+        fromMe: payload?.fromMe,
+        type: payload?.type,
+        hasMedia: payload?.hasMedia,
+        mimetype: payload?.media?.mimetype,
+        hasMediaUrl: !!payload?.media?.url,
+        msgId: payload?.id,
+      });
+
+      if (!payload || payload.fromMe === false) {
+        return res.status(202).json({ status: 'accepted', skipped: 'not_from_me' });
+      }
+      const type = payload.type || payload?.media?.mimetype || '';
+      const isVoice = type === 'ptt' || /audio\/ogg/i.test(type) || type === 'voice' || type === 'audio';
+      if (!isVoice) {
+        return res.status(202).json({ status: 'accepted', skipped: 'not_voice', type });
+      }
+      await handleInboundVoice(userId, payload);
+      return res.status(202).json({ status: 'accepted', event });
+    }
+
+    return res.status(202).json({ status: 'accepted', skipped: 'unknown_event' });
+  } catch (err) {
+    log.error('webhook handler crashed', { error: err?.message, event });
+    return res.status(500).json({ status: 'error', error: err?.message });
   }
 });
 
@@ -295,7 +321,10 @@ function mintUserJwt(userId, email) {
 async function callTwinChat({ userId, email, message }) {
   const token = mintUserJwt(userId, email);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 55_000);
+  // Webhook runs synchronously (Vercel kills async work after res.json
+  // on serverless) and the function's maxDuration is 60s. Reserve room
+  // for Whisper (~3s) + sendText (~2s) + DB writes (~1s) + buffer.
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
   let res;
   try {
     res = await fetch(`${SELF_API_BASE_URL}/chat/message`, {
