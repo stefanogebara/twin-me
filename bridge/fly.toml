@@ -1,0 +1,52 @@
+# fly.toml — TwinMe WhatsApp Voice Bridge
+# =========================================
+# Phase 1 — Fly.io machines configuration.
+#
+# Why Fly: persistent VMs, cheap (~$5/mo per shared-cpu-1x machine),
+# fast Go runtime, easy `fly deploy`. The bridge holds long-lived
+# WhatsApp WebSocket connections so it CANNOT live on serverless.
+#
+# First-time setup:
+#   fly auth login
+#   fly launch --copy-config --name twinme-bridge --region cdg
+#   fly secrets set BRIDGE_SHARED_SECRET=... DATABASE_URL=... TWINME_API_BASE_URL=https://www.twinme.me/api
+#   fly deploy
+#
+# Subsequent deploys: just `fly deploy`
+
+app = "twinme-bridge"
+primary_region = "cdg"  # Paris — close to Vercel's CDG edge + EU users
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  WHATSMEOW_LOG_LEVEL = "WARN"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false  # CRITICAL: never stop. Stopping kills WhatsApp sessions.
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+# DO NOT add scale-to-zero. The bridge MUST stay up.

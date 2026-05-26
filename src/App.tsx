@@ -42,6 +42,7 @@ const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const DashboardV2 = lazy(loadDashboardV2);
 const Settings = lazy(() => import("./pages/Settings"));
+const VoiceSetupPage = lazy(() => import("./pages/VoiceSetupPage"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
 const TalkToTwin = lazy(loadTalkToTwin);
@@ -356,6 +357,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <Settings />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* askjo-inspired voice bridge — WhatsApp link flow (Phase 1) */}
+            <Route path="/settings/voice" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <VoiceSetupPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

@@ -382,6 +382,7 @@ import twinFirstMessageRoutes from './routes/twin-first-message.js';
 import chatUsageRoutes from './routes/chat-usage.js';
 import conversationsRoutes from './routes/conversations.js';
 import voiceRoutes from './routes/voice.js';
+import voiceBridgeRoutes from './routes/voice-bridge.js';
 import analyticsRoutes from './routes/analytics.js';
 import connectorsRoutes from './routes/connectors.js';
 import dataVerificationRoutes from './routes/data-verification.js';
@@ -554,6 +555,7 @@ app.use('/api/chat', twinConversationsRoutes); // same — preserves both URL pr
 app.use('/api/chat', chatUsageRoutes); // Chat usage tracking (GET /api/chat/usage)
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/voice', voiceRoutes);
+app.use('/api/voice-bridge', voiceBridgeRoutes); // askjo-inspired WhatsApp voice surface (Phase 1)
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/connectors', connectorsRoutes);
 // /api/platforms/summary alias — same router. Canonical platform count
