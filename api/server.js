@@ -492,6 +492,7 @@ try {
 import autonomyRoutes from './routes/autonomy.js';
 import agentActionsRoutes from './routes/agent-actions.js';
 import departmentsRoutes from './routes/departments.js';
+import inboxRoutes from './routes/inbox.js';
 import templatesRoutes from './routes/templates.js';
 import cronProspectiveCheckRoutes from './routes/cron-prospective-check.js';
 import cronEveningRecapRoutes from './routes/cron-evening-recap.js';
@@ -728,6 +729,7 @@ app.use('/api/discovery', discoveryRoutes); // Public pre-signup discovery scan
 app.use('/api/autonomy', autonomyRoutes); // Per-skill autonomy spectrum settings
 app.use('/api/agent-actions', agentActionsRoutes); // Agent action logging + outcome tracking
 app.use('/api/departments', departmentsRoutes); // SoulOS department management + proposals
+app.use('/api/inbox', inboxRoutes); // Unified proposal stream (replaces /departments page in Phase 2)
 app.use('/api/inbox', inboxSummaryRoutes); // Inbox summary for Communications department
 app.use('/api/templates', templatesRoutes); // Life Operating System templates (one-click department setups)
 app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)

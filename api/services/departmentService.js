@@ -316,6 +316,102 @@ export async function getAllDepartmentActivity(userId, limit = 50) {
 }
 
 /**
+ * Get the unified inbox stream for /api/inbox — pending + resolved proposals
+ * merged into one chronological list, sorted by COALESCE(resolved_at, created_at).
+ *
+ * Status enum (user-facing):
+ *   - pending   — user_response IS NULL
+ *   - done      — user_response = 'accepted' (executed by user approval)
+ *   - skipped   — user_response = 'rejected'
+ *   - expired   — user_response = 'expired'  (cron auto-expiry)
+ *
+ * Cursor: ISO timestamp of the last item's sortAt. Pass it back to fetch the
+ * next page. Omit on the first request.
+ *
+ * @param {string} userId
+ * @param {object} opts
+ * @param {string|null} opts.cursor   — ISO timestamp to paginate after
+ * @param {number} opts.limit         — page size, max 50, default 20
+ * @returns {Promise<{ items: Array, nextCursor: string|null }>}
+ */
+export async function getInboxStream(userId, { cursor = null, limit = 20 } = {}) {
+  if (!userId) {
+    throw new Error('userId is required');
+  }
+  const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+
+  try {
+    // Sort by resolved_at when present, otherwise created_at. Postgres handles
+    // the COALESCE in the orderBy; supabase-js can't express COALESCE in
+    // .order(), so we fetch a larger window and sort in JS. The window is
+    // capped at limit*3 to stay cheap.
+    let query = supabaseAdmin
+      .from('agent_actions')
+      .select('id, department, skill_name, action_type, proposed_action, context_summary, user_response, outcome_data, created_at, resolved_at')
+      .eq('user_id', userId)
+      .not('department', 'is', null);
+
+    if (cursor) {
+      // Items strictly older than the cursor's sortAt. We compare against
+      // both columns to avoid missing items whose resolved_at < cursor but
+      // created_at >= cursor (rare but possible).
+      query = query.or(`resolved_at.lt.${cursor},and(resolved_at.is.null,created_at.lt.${cursor})`);
+    }
+
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(safeLimit * 3);
+
+    if (error) {
+      log.error('getInboxStream query failed', { userId, error });
+      return { items: [], nextCursor: null };
+    }
+
+    // Sort in JS by max(resolved_at, created_at) DESC, then take page.
+    const sorted = (data || [])
+      .map(row => ({ row, sortAt: row.resolved_at || row.created_at }))
+      .sort((a, b) => (a.sortAt < b.sortAt ? 1 : a.sortAt > b.sortAt ? -1 : 0));
+
+    const page = sorted.slice(0, safeLimit);
+    const nextCursor = page.length === safeLimit ? page[page.length - 1].sortAt : null;
+
+    const items = page.map(({ row, sortAt }) => {
+      const department = row.department || extractDepartmentFromSkillName(row.skill_name);
+      const config = getDepartmentConfig(department);
+      return {
+        id: row.id,
+        status: inboxStatus(row.user_response),
+        title: generateDisplayDescription(row),
+        why: row.context_summary || null,
+        department,
+        departmentColor: config?.color || '#6366F1',
+        toolName: row.action_type || null,
+        createdAt: row.created_at,
+        resolvedAt: row.resolved_at,
+        sortAt,
+      };
+    });
+
+    return { items, nextCursor };
+  } catch (err) {
+    log.error('getInboxStream failed', { userId, error: err.message });
+    return { items: [], nextCursor: null };
+  }
+}
+
+/**
+ * Map raw user_response value → user-facing inbox status.
+ * Keep narrow: only the four states the UI knows about.
+ */
+function inboxStatus(userResponse) {
+  if (userResponse === null || userResponse === undefined) return 'pending';
+  if (userResponse === 'accepted') return 'done';
+  if (userResponse === 'rejected') return 'skipped';
+  if (userResponse === 'expired') return 'expired';
+  return 'done';
+}
+
+/**
  * Transform a raw agent_actions row into a formatted activity item.
  */
 function formatActivityItem(row, department) {
