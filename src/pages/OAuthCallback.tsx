@@ -209,18 +209,28 @@ const OAuthCallback = () => {
             headers: {
               'Content-Type': 'application/json',
             },
+            // credentials:'include' so the connector callback can read/set session cookies.
+            credentials: 'include',
             body: JSON.stringify({
               code,
               state
             })
           });
         } else {
-          // Handle main auth OAuth callback
+          // Handle main auth OAuth callback.
+          //
+          // CRITICAL: credentials:'include' is REQUIRED here. Without it the
+          // browser silently DROPS the Set-Cookie response header — the
+          // refresh_token cookie never lands in the cookie jar, and the very
+          // next /api/auth/refresh call comes through with no cookie and
+          // returns 401. That was the cause of the "session_expired" loop:
+          // OAuth callback returned 200 but the session never persisted.
           response = await fetch(`${API_URL}/auth/oauth/callback`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               code,
               state,
