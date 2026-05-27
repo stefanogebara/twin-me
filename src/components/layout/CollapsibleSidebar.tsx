@@ -14,7 +14,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   BookOpen,
-  Building2,
+  Inbox,
   Wallet,
   CalendarCheck,
 } from 'lucide-react';
@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
   { id: 'dashboard',    label: 'Home',            icon: Home,          path: '/dashboard' },
   { id: 'me',           label: 'You',             icon: Sparkles,      path: '/identity' },
   { id: 'wiki',         label: 'Knowledge',       icon: BookOpen,      path: '/wiki' },
-  { id: 'departments',  label: 'Departments',     icon: Building2,     path: '/departments' },
+  { id: 'inbox',        label: 'Inbox',           icon: Inbox,         path: '/inbox' },
   { id: 'meetings',     label: 'Meetings',        icon: CalendarCheck, path: '/meetings' },
   { id: 'money',        label: 'Money',           icon: Wallet,        path: '/money' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },

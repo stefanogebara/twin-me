@@ -70,6 +70,7 @@ const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
+const InboxPage = lazy(() => import("./pages/InboxPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
@@ -422,16 +423,19 @@ const App = () => {
             {/* Soul Journal */}
             <Route path="/journal" element={<Navigate to="/brain" replace />} />
 
-            {/* Departments — SoulOS control room */}
-            <Route path="/departments" element={
+            {/* Inbox — unified proposal stream (replaces /departments) */}
+            <Route path="/inbox" element={
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>
-                    <DepartmentsPage />
+                    <InboxPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+
+            {/* Legacy /departments route — redirects to /inbox for one release */}
+            <Route path="/departments" element={<Navigate to="/inbox" replace />} />
 
             {/* Privacy Spectrum Dashboard */}
             <Route path="/settings/privacy" element={<Navigate to="/privacy-spectrum" replace />} />
