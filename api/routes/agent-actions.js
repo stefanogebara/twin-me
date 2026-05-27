@@ -76,7 +76,7 @@ router.post('/:actionId/respond', authenticateUser, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Action not found' });
     }
 
-    await recordActionResponse(actionId, response, outcomeData);
+    await recordActionResponse(req.user.id, actionId, response, outcomeData);
 
     return res.json({ success: true, actionId, response });
   } catch (err) {
@@ -140,7 +140,7 @@ router.post('/:actionId/execute', authenticateUser, async (req, res) => {
       elapsedMs,
     };
 
-    await recordActionResponse(actionId, 'accepted', resultData);
+    await recordActionResponse(userId, actionId, 'accepted', resultData);
 
     log.info('Confirmed write action executed', { userId, actionId, tool: toolName, elapsedMs });
 

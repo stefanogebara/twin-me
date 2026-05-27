@@ -310,7 +310,7 @@ export async function executeApprovedAction(userId, actionId) {
   // 'suggest' is a placeholder for text-only proposals (no actual tool execution).
   // Approving them simply acknowledges the suggestion — no API call needed.
   if (toolName === 'suggest') {
-    await recordActionResponse(actionId, 'accepted', {
+    await recordActionResponse(userId, actionId, 'accepted', {
       executionResult: { success: true, type: 'suggestion_acknowledged' },
       executedAt: new Date().toISOString()
     });
@@ -323,7 +323,7 @@ export async function executeApprovedAction(userId, actionId) {
   const result = await executeTool(userId, toolName, params, { bypassAutonomy: true });
 
   // Record the outcome (throws on DB failure — data integrity requirement)
-  await recordActionResponse(actionId, 'accepted', {
+  await recordActionResponse(userId, actionId, 'accepted', {
     executionResult: result,
     executedAt: new Date().toISOString()
   });
@@ -347,25 +347,36 @@ export async function executeApprovedAction(userId, actionId) {
 
 /**
  * Record user response to an agent action.
+ *
+ * Ownership-checked: userId must match the action's user_id, otherwise this
+ * throws. Callers that previously bypassed ownership (legacy 2-arg signature)
+ * are now rejected at runtime — pass the authenticated userId explicitly.
  */
-export async function recordActionResponse(actionId, response, outcomeData = null) {
-  if (!actionId) {
-    throw new Error('actionId is required to record action response');
+export async function recordActionResponse(userId, actionId, response, outcomeData = null) {
+  if (!userId || !actionId) {
+    throw new Error('userId and actionId are required to record action response');
   }
 
-  // First, get the action to know the skill_name and user_id
+  // Fetch the action with ownership scoped to the caller — if it doesn't
+  // belong to userId, .maybeSingle() returns null and we refuse to write.
   const { data: action, error: fetchError } = await supabaseAdmin
     .from('agent_actions')
     .select('user_id, skill_name')
     .eq('id', actionId)
-    .single();
+    .eq('user_id', userId)
+    .maybeSingle();
 
   if (fetchError) {
     log.error('Failed to fetch action for response recording', { actionId, error: fetchError });
     throw fetchError;
   }
 
-  // Main action response write MUST throw on failure — data integrity requirement
+  if (!action) {
+    log.warn('recordActionResponse blocked: action not found or not owned', { userId, actionId });
+    throw new Error('Action not found or not owned by caller');
+  }
+
+  // Main action response write — scoped to (id, user_id) for defence in depth.
   const { error: updateError } = await supabaseAdmin
     .from('agent_actions')
     .update({
@@ -373,7 +384,8 @@ export async function recordActionResponse(actionId, response, outcomeData = nul
       outcome_data: outcomeData,
       resolved_at: new Date().toISOString()
     })
-    .eq('id', actionId);
+    .eq('id', actionId)
+    .eq('user_id', userId);
 
   if (updateError) {
     log.error('Failed to record action response', { actionId, error: updateError });

@@ -6,7 +6,7 @@
  */
 
 import express from 'express';
-import { authenticateUser } from '../middleware/auth.js';
+import { authenticateUser, userRateLimit } from '../middleware/auth.js';
 import { DEPARTMENT_NAMES } from '../config/departmentConfig.js';
 import { createLogger } from '../services/logger.js';
 
@@ -17,6 +17,16 @@ const getAutonomyService = () => import('../services/autonomyService.js');
 
 const log = createLogger('DepartmentRoutes');
 const router = express.Router();
+
+// Rate limiters — protect mutating + expensive endpoints from abuse.
+// approvalLimiter: approve/reject — generous, user-driven UI clicks
+// heartbeatLimiter: manual heartbeat — costly LLM, tight cap
+// proposeLimiter: testing endpoint — tight cap
+// autonomyLimiter: autonomy/toggle — generous
+const approvalLimiter = userRateLimit(60, 60 * 1000);
+const heartbeatLimiter = userRateLimit(3, 60 * 1000);
+const proposeLimiter = userRateLimit(10, 60 * 1000);
+const autonomyLimiter = userRateLimit(30, 60 * 1000);
 
 // ========================================================================
 // Param validation helper
@@ -90,7 +100,7 @@ router.get('/health/correlations', authenticateUser, async (req, res) => {
 // POST /api/departments/proposals/:id/approve — Approve a proposal
 // ========================================================================
 
-router.post('/proposals/:id/approve', authenticateUser, async (req, res) => {
+router.post('/proposals/:id/approve', authenticateUser, approvalLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { executeApprovedAction } = await getAutonomyService();
@@ -106,26 +116,35 @@ router.post('/proposals/:id/approve', authenticateUser, async (req, res) => {
 // POST /api/departments/proposals/:id/reject — Reject a proposal
 // ========================================================================
 
-router.post('/proposals/:id/reject', authenticateUser, async (req, res) => {
+router.post('/proposals/:id/reject', authenticateUser, approvalLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { recordActionResponse } = await getAutonomyService();
-    await recordActionResponse(id, 'rejected', { rejectedAt: new Date().toISOString() });
+    // C1 fix: pass userId so recordActionResponse can verify ownership before
+    // writing user_response or poisoning procedural memory via weakenProcedure.
+    await recordActionResponse(req.user.id, id, 'rejected', { rejectedAt: new Date().toISOString() });
     return res.json({ success: true, actionId: id, response: 'rejected' });
   } catch (err) {
     log.error('Failed to reject proposal', { userId: req.user.id, proposalId: req.params.id, error: err.message });
+    if (err.message === 'Action not found or not owned by caller') {
+      return res.status(404).json({ success: false, error: 'Proposal not found' });
+    }
     return res.status(500).json({ success: false, error: 'Failed to reject proposal' });
   }
 });
 
 // ========================================================================
-// POST /api/departments/heartbeat — Manual heartbeat trigger (bypasses cooldown)
+// POST /api/departments/heartbeat — Manual heartbeat trigger
 // ========================================================================
+// H1 fix: the 2-hour cooldown protects against LLM-cost abuse. We no longer
+// honour `skipCooldown` from the client. The service's normal cooldown path
+// is a no-op when the cache key is still warm, so manual triggers within the
+// cooldown window will return { skipped: 'cooldown' }.
 
-router.post('/heartbeat', authenticateUser, async (req, res) => {
+router.post('/heartbeat', authenticateUser, heartbeatLimiter, async (req, res) => {
   try {
     const { checkDepartmentHeartbeats } = await getDepartmentService();
-    const result = await checkDepartmentHeartbeats(req.user.id, { skipCooldown: true });
+    const result = await checkDepartmentHeartbeats(req.user.id);
     return res.json({ success: true, ...result });
   } catch (err) {
     log.error('Manual heartbeat failed', { userId: req.user.id, error: err.message });
@@ -137,13 +156,17 @@ router.post('/heartbeat', authenticateUser, async (req, res) => {
 // PUT /api/departments/:name/toggle — Enable or disable a department
 // ========================================================================
 
-router.put('/:name/toggle', authenticateUser, async (req, res) => {
+router.put('/:name/toggle', authenticateUser, autonomyLimiter, async (req, res) => {
   try {
     const { name } = req.params;
     const { enabled } = req.body;
 
     if (!validateDepartmentName(name)) {
       return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
+    }
+
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'enabled must be a boolean' });
     }
 
     // Toggle = set autonomy to 1 (SUGGEST) if enabling, 0 (OBSERVE) if disabling
@@ -198,7 +221,7 @@ router.get('/:name', authenticateUser, async (req, res) => {
 // PUT /api/departments/:name/autonomy — Update department autonomy level
 // ========================================================================
 
-router.put('/:name/autonomy', authenticateUser, async (req, res) => {
+router.put('/:name/autonomy', authenticateUser, autonomyLimiter, async (req, res) => {
   try {
     const { name } = req.params;
     const { autonomyLevel } = req.body;
@@ -207,12 +230,24 @@ router.put('/:name/autonomy', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
     }
 
-    if (autonomyLevel == null || autonomyLevel < 0 || autonomyLevel > 4) {
-      return res.status(400).json({ success: false, error: 'autonomyLevel must be 0-4' });
+    // M2 fix: validate autonomyLevel is an integer 0-4. Previously type-coerced
+    // values like "3" or 3.9 slipped past `< 0 || > 4`.
+    if (!Number.isInteger(autonomyLevel) || autonomyLevel < 0 || autonomyLevel > 4) {
+      return res.status(400).json({ success: false, error: 'autonomyLevel must be an integer 0-4' });
     }
 
-    // Step-up auth: autonomy level 3+ requires fresh JWT (< 5 min old)
-    if (autonomyLevel >= 3 && req.user.iat) {
+    // Step-up auth: autonomy level 3+ requires fresh JWT (< 5 min old).
+    // M1 fix: fail closed if iat is absent — never silently skip the freshness
+    // check just because the token shape is missing a claim.
+    if (autonomyLevel >= 3) {
+      if (!req.user.iat) {
+        log.warn('Step-up auth blocked: missing iat claim', { userId: req.user.id });
+        return res.status(403).json({
+          success: false,
+          error: 'reauth_required',
+          message: 'Enabling autonomous mode requires recent authentication. Please sign in again.',
+        });
+      }
       const tokenAge = Date.now() - (req.user.iat * 1000);
       if (tokenAge > 5 * 60 * 1000) {
         return res.status(403).json({
@@ -292,7 +327,7 @@ router.get('/:name/activity', authenticateUser, async (req, res) => {
 // POST /api/departments/:name/propose — Manually trigger a department proposal (testing)
 // ========================================================================
 
-router.post('/:name/propose', authenticateUser, async (req, res) => {
+router.post('/:name/propose', authenticateUser, proposeLimiter, async (req, res) => {
   try {
     const { name } = req.params;
 
@@ -300,9 +335,33 @@ router.post('/:name/propose', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
     }
 
-    const { proposeDepartmentAction } = await getDepartmentService();
+    const { proposeDepartmentAction, validateHeartbeatProposal } = await getDepartmentService();
     const { toolName, params, context } = req.body || {};
-    const proposal = await proposeDepartmentAction(req.user.id, name, { toolName, params, context, priority: 5 });
+
+    // C2 fix: this endpoint used to accept arbitrary tool/params from the
+    // client, bypassing the LLM-side heartbeat whitelist. Reuse the same
+    // validation gate the heartbeat path uses so the only proposals the
+    // user can manually queue are ones the department system could have
+    // generated on its own.
+    const validation = validateHeartbeatProposal({ toolName, params });
+    if (!validation.ok) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_proposal',
+        reason: validation.reason,
+        details: validation.details,
+      });
+    }
+
+    // Context must be a string if present; cap length to avoid abuse.
+    const safeContext = typeof context === 'string' ? context.slice(0, 500) : undefined;
+
+    const proposal = await proposeDepartmentAction(req.user.id, name, {
+      toolName: validation.toolName,
+      params: validation.params,
+      context: safeContext,
+      priority: 5,
+    });
     return res.json({ success: true, proposal });
   } catch (err) {
     log.error('Failed to trigger department proposal', { userId: req.user.id, department: req.params.name, error: err.message });

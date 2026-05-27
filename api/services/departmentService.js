@@ -40,7 +40,7 @@ const HEARTBEAT_TOOL_WHITELIST = {
  * Returns { ok: true } if the proposal is safe to queue, otherwise
  * { ok: false, reason, details } explaining why it was dropped.
  */
-function validateHeartbeatProposal(suggestion) {
+export function validateHeartbeatProposal(suggestion) {
   const toolName = suggestion.toolName || 'suggest';
   const required = HEARTBEAT_TOOL_WHITELIST[toolName];
   if (!required) {

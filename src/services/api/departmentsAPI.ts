@@ -198,7 +198,9 @@ export const departmentsAPI = {
   },
 
   /**
-   * Trigger a manual heartbeat check (bypasses 2-hour cooldown)
+   * Trigger a manual heartbeat check. Subject to the server-side 2-hour
+   * cooldown — a call within the cooldown window resolves with
+   * { skipped: 'cooldown' } instead of running the LLM.
    */
   triggerHeartbeat: async (): Promise<{ success: boolean; proposals: Proposal[]; count?: number; skipped?: string }> => {
     const response = await authFetch('/departments/heartbeat', { method: 'POST' });
