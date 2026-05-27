@@ -88,9 +88,19 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
     return { success: false, error: 'whatsapp_not_configured' };
   }
 
+  log.info('WhatsApp send entry', {
+    recipientPhone,
+    recipientStartsWithPlus: recipientPhone?.startsWith?.('+'),
+    recipientLen: recipientPhone?.length,
+    textLen: text?.length,
+    useKapso: USE_KAPSO,
+    phoneIdSuffix: phoneNumberId?.slice(-6),
+    accessTokenLen: accessToken?.length || 0,
+  });
+
   try {
     const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`;
-    const { data } = await axios.post(url, {
+    const { data, status } = await axios.post(url, {
       messaging_product: 'whatsapp',
       to: recipientPhone,
       type: 'text',
@@ -99,10 +109,26 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     });
 
+    // audit-2026-05-27: diagnose the silent-no-delivery case. Meta returns
+    // 200 with messages[0].id but the recipient sees nothing — often a
+    // 24h-customer-window or wrong-phone_number_id problem. Surfacing the
+    // full response lets us see Meta's own status hints (e.g. warning,
+    // message_status, contacts.input vs contacts.wa_id mismatch).
+    log.info('WhatsApp Meta send response', {
+      httpStatus: status,
+      messages: data?.messages,
+      contacts: data?.contacts,
+    });
+
     return { success: true, messageId: data.messages?.[0]?.id, provider: 'meta' };
   } catch (err) {
     const errMsg = err.response?.data?.error?.message || err.message;
-    log.error('Failed to send WhatsApp message', { recipientPhone, error: errMsg });
+    log.error('Failed to send WhatsApp message', {
+      recipientPhone,
+      error: errMsg,
+      metaError: err.response?.data?.error,
+      httpStatus: err.response?.status,
+    });
     return { success: false, error: errMsg };
   }
 }
