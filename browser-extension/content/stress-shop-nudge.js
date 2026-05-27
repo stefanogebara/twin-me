@@ -24,7 +24,9 @@
   // deployment. Storage lookup is async, so we start with the default and
   // asynchronously swap if an override exists — the first request still uses
   // the default (acceptable; dev can reload after setting).
-  const DEFAULT_API_BASE = 'https://twin-ai-learn.vercel.app/api';
+  // audit-2026-05-27: canonical prod is www.twinme.me since the 2026-05-13
+  // domain migration. The old vercel.app alias still routes here.
+  const DEFAULT_API_BASE = 'https://www.twinme.me/api';
   let API_BASE = DEFAULT_API_BASE;
   try {
     chrome.storage?.local?.get?.(['twinme_api_base'], (res) => {

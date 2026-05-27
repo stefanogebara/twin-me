@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TwinMe - Digital Twin",
-  "version": "3.9.0",
+  "version": "3.9.1",
   "description": "Your AI twin learns from your browsing patterns, interests, and digital footprint. Privacy-first, incognito excluded.",
   "permissions": [
     "storage",
@@ -11,7 +11,7 @@
     "history",
     "alarms"
   ],
-  "homepage_url": "https://twin-ai-learn.vercel.app",
+  "homepage_url": "https://www.twinme.me",
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://www.twitch.tv/*",

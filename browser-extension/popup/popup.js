@@ -5,8 +5,12 @@
 
 let userId = null;
 
-const APP_URL = 'https://twin-ai-learn.vercel.app';
-const APP_ORIGINS = [APP_URL];
+// audit-2026-05-27: canonical prod domain is www.twinme.me. The old
+// twin-ai-learn.vercel.app alias is kept in APP_ORIGINS so tab-matching
+// logic (lines 200, 262) still recognises users with the legacy URL open,
+// but every new tab the popup opens lands on twinme.me.
+const APP_URL = 'https://www.twinme.me';
+const APP_ORIGINS = [APP_URL, 'https://twin-ai-learn.vercel.app'];
 
 // Guard for chrome extension APIs (graceful degradation outside extension context)
 const isExtensionContext = typeof chrome !== 'undefined' && chrome.storage && chrome.runtime;
@@ -197,7 +201,7 @@ async function silentAutoDetect() {
   try {
     const tabs = await chrome.tabs.query({});
     const appTab = tabs.find(t => {
-      try { return t.url && new URL(t.url).origin === APP_URL; } catch { return false; }
+      try { return t.url && APP_ORIGINS.includes(new URL(t.url).origin); } catch { return false; }
     });
     if (!appTab) return;
 
@@ -259,7 +263,7 @@ async function autoDetectUser() {
 
     const tabs = await chrome.tabs.query({});
     let appTab = tabs.find(t => {
-      try { return t.url && new URL(t.url).origin === APP_URL; } catch { return false; }
+      try { return t.url && APP_ORIGINS.includes(new URL(t.url).origin); } catch { return false; }
     });
 
     // No TwinMe tab open -> show "Open TwinMe" button

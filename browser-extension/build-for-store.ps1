@@ -73,7 +73,19 @@ if ($manifestContent -match "localhost") {
 }
 
 # Step 5: Create zip
-Compress-Archive -Path (Join-Path $distDir "*") -DestinationPath $zipPath -Force
+#
+# IMPORTANT (audit-2026-05-27): Compress-Archive on Windows uses BACKSLASH
+# path separators (\\) inside the zip, which Chrome Web Store occasionally
+# rejects and which trips up cross-platform tooling that expects forward
+# slashes per the zip spec. Use the .NET ZipFile API directly — it writes
+# forward slashes on every platform.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $distDir,
+    $zipPath,
+    [System.IO.Compression.CompressionLevel]::Optimal,
+    $false  # do NOT include base directory in archive
+)
 $zipSize = (Get-Item $zipPath).Length / 1KB
 Write-Host "[5/5] Created $zipPath ($([math]::Round($zipSize, 1)) KB)" -ForegroundColor Green
 

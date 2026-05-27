@@ -14,8 +14,11 @@ const CONFIG = {
     API_URL: 'http://localhost:3004/api'
   },
   production: {
-    APP_URL: 'https://twin-ai-learn.vercel.app',
-    API_URL: 'https://twin-ai-learn.vercel.app/api'
+    // audit-2026-05-27: canonical prod domain is www.twinme.me since the
+    // 2026-05-13 domain migration. The old twin-ai-learn.vercel.app alias
+    // still routes here, but every popup link should land on twinme.me.
+    APP_URL: 'https://www.twinme.me',
+    API_URL: 'https://www.twinme.me/api'
   }
 };
 
