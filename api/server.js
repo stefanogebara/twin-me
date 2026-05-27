@@ -458,12 +458,14 @@ import privacySettingsRoutes from './routes/privacy-settings.js';
 import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import portfolioPublicRoutes from './routes/portfolio-public.js';
 import goalsRoutes from './routes/goals.js';
+import twinDirectivesRoutes from './routes/twin-directives.js';
 import checkinRoutes from './routes/checkin.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMemorySaliencyReplayRoutes from './routes/cron-memory-saliency-replay.js';
 import cronSoulSignatureRegenRoutes from './routes/cron-soul-signature-regen.js';
+import cronTwinSelfImprovementRoutes from './routes/cron-twin-self-improvement.js';
 import memoryHealthRoutes from './routes/memory-health.js';
 import memoriesRoutes from './routes/memories.js';
 import memoryLinksRoutes from './routes/memory-links.js';
@@ -672,6 +674,7 @@ app.use('/api/big-five', bigFiveRoutes); // IPIP-NEO-120 Big Five assessment wit
 app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // AI cost dashboard
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
+app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
 app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
@@ -693,6 +696,7 @@ app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/memory-saliency-replay', cronMemorySaliencyReplayRoutes); // Daily saliency replay (CL1-inspired)
 app.use('/api/cron/soul-signature-regen', cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
+app.use('/api/cron/twin-self-improvement', cronTwinSelfImprovementRoutes); // Daily pi-reflect — extract directives from user corrections
 app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard
 app.use('/api/memory/:memoryId', memoryLinksRoutes); // A-MEM Zettelkasten memory links

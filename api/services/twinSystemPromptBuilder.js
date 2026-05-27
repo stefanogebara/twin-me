@@ -278,7 +278,7 @@ When the user asks for a "morning briefing", "what's my day look like", or simil
  * Build a personalized system prompt based on user's soul signature, platform data, and memory.
  * Returns an array format for Anthropic prompt caching - static base is cached, dynamic context is not.
  */
-export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null) {
+export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary = null, proactiveInsights = null, userLocation = null, coreMemoryBlockText = null, departmentProposals = null, wikiPages = null, directives = null) {
   let dynamicContext = '';
 
   // === CORE IDENTITY (pinned blocks — highest attention weight) ===
@@ -286,6 +286,23 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
   // Based on Letta Memory Blocks + Identity Drift research (arXiv:2412.00804).
   if (coreMemoryBlockText) {
     dynamicContext += coreMemoryBlockText;
+  }
+
+  // === DIRECTIVES YOU'VE LEARNED (pi-reflect, askjo.ai-inspired) ===
+  // High-attention rules extracted from past user corrections. These act
+  // as sticky-note constraints that apply to everything below. They live
+  // here (between pinned identity and temporal context) so the LLM treats
+  // them as binding rules, not optional context.
+  //
+  // Ordered by reinforcement_count DESC — the strongest learned signals
+  // appear first. Sourced from twin_directives table via getActiveDirectives().
+  if (Array.isArray(directives) && directives.length > 0) {
+    dynamicContext += '\n\n=== DIRECTIVES YOU\'VE LEARNED ===';
+    dynamicContext += '\nThese are durable rules learned from past corrections. Follow them exactly:';
+    for (const d of directives) {
+      const reinforcedMarker = (d.reinforcement_count || 1) >= 3 ? ' [strongly reinforced]' : '';
+      dynamicContext += `\n- [${d.category}] ${d.content}${reinforcedMarker}`;
+    }
   }
 
   // === TEMPORAL + GEOGRAPHIC AWARENESS ===

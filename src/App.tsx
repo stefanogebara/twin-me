@@ -75,6 +75,7 @@ const GoalsPage = lazy(() => import("./pages/GoalsPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
+const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 
 
@@ -295,6 +296,17 @@ const App = () => {
                 <SidebarLayout>
                   <ErrorBoundary>
                     <GoalsPage />
+                  </ErrorBoundary>
+                </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Twin Soul — directives learned from user corrections (pi-reflect pattern) */}
+            <Route path="/twin-soul" element={
+              <ProtectedRoute>
+                <SidebarLayout>
+                  <ErrorBoundary>
+                    <TwinSoulPage />
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

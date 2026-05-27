@@ -220,6 +220,10 @@
     {
       "path": "/api/cron/agent-actions-cleanup",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/twin-self-improvement",
+      "schedule": "0 4 * * *"
     }
   ]
 }
