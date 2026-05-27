@@ -159,7 +159,25 @@ function verifyKapsoSignature(signature, rawBody) {
 // Parse incoming message from either Kapso or Meta native format
 // ====================================================================
 function parseIncomingMessage(body) {
-  // Try Kapso format first:
+  // Kapso v2 format (event in X-Webhook-Event header, body has top-level
+  // `message` object). Verified from Webhook Delivery Details:
+  //   { message: { id, from, text: { body }, type: 'text',
+  //                kapso: { direction: 'inbound', ... }, timestamp, ... } }
+  // audit-2026-05-27: this is the shape we actually get in prod from Kapso.
+  // Without this branch, every inbound text falls through to the "Non-text
+  // or unparseable" silent-drop path and the twin never replies.
+  if (body?.message?.type === 'text' && body?.message?.from) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: msg.text?.body,
+      messageId: msg.id,
+      contactName: msg.username || null,
+      format: 'kapso_v2',
+    };
+  }
+
+  // Legacy Kapso v1 format (kept for backward compat):
   // { event: "whatsapp.message.received", data: { from, message: { id, type, text: { body } }, contact } }
   if (body?.event === 'whatsapp.message.received' && body?.data?.message) {
     const { data } = body;
