@@ -19,8 +19,28 @@
 import crypto from 'crypto';
 import axios from 'axios';
 import { createLogger } from './logger.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 const log = createLogger('WhatsApp');
+
+/**
+ * Audit every outbound send to whatsapp_outbound_log.
+ *
+ * Vercel log search drops the structured payload content of info-level
+ * logs and times out under realistic load — we cannot reliably read what
+ * Kapso/Meta returned for a given send. This sink writes the full shape
+ * to Postgres so we can SELECT against it deterministically.
+ *
+ * Fire-and-forget. Audit failures must never block the actual send path.
+ */
+async function logOutbound(row) {
+  try {
+    await supabaseAdmin.from('whatsapp_outbound_log').insert(row);
+  } catch (err) {
+    // Audit is best-effort. Never let it throw into the send path.
+    log.warn('whatsapp_outbound_log insert failed', { error: err.message });
+  }
+}
 
 const GRAPH_API_VERSION = 'v21.0';
 const USE_KAPSO = !!process.env.KAPSO_API_KEY;
@@ -95,12 +115,38 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
           warning: result?.warning,
           messageStatus: result?.messageStatus,
         });
+        // audit-2026-05-27: persist the full response so we can query it
+        // when Vercel log search lets us down.
+        logOutbound({
+          recipient: recipientPhone,
+          recipient_input: recipientPhone,
+          text_preview: text?.slice(0, 120) || null,
+          text_len: text?.length || 0,
+          provider: 'kapso',
+          success: true,
+          message_id: result?.messages?.[0]?.id || null,
+          wa_id: result?.contacts?.[0]?.wa_id || null,
+          warning: result?.warning || null,
+          message_status: result?.messageStatus || null,
+          raw_response: result || null,
+        });
         return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
       } catch (err) {
         log.warn('Kapso send failed, falling back to Meta Cloud API', {
           error: err.message,
           status: err.response?.status,
           body: err.response?.data,
+        });
+        logOutbound({
+          recipient: recipientPhone,
+          recipient_input: recipientPhone,
+          text_preview: text?.slice(0, 120) || null,
+          text_len: text?.length || 0,
+          provider: 'kapso',
+          success: false,
+          error_message: err.message,
+          http_status: err.response?.status || null,
+          raw_error: err.response?.data || null,
         });
         // Fall through to Meta Cloud API
       }
@@ -147,6 +193,18 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
       messages: data?.messages,
       contacts: data?.contacts,
     });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'meta',
+      success: true,
+      message_id: data?.messages?.[0]?.id || null,
+      wa_id: data?.contacts?.[0]?.wa_id || null,
+      http_status: status,
+      raw_response: data || null,
+    });
 
     return { success: true, messageId: data.messages?.[0]?.id, provider: 'meta' };
   } catch (err) {
@@ -156,6 +214,17 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
       error: errMsg,
       metaError: err.response?.data?.error,
       httpStatus: err.response?.status,
+    });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: text?.slice(0, 120) || null,
+      text_len: text?.length || 0,
+      provider: 'meta',
+      success: false,
+      error_message: errMsg,
+      http_status: err.response?.status || null,
+      raw_error: err.response?.data || null,
     });
     return { success: false, error: errMsg };
   }
