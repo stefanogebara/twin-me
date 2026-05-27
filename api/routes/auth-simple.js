@@ -598,11 +598,32 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
     // Read refresh token from httpOnly cookie first, fall back to body for backward compat
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
 
+    // TEMP DEBUG (audit-2026-05-27): figure out why /refresh returns 401 right
+    // after a successful /oauth/callback. Logs cookie presence, count of
+    // refresh_token-shaped cookies the browser sent, hash prefix, raw cookie
+    // header so we can see if the browser is sending an old + new cookie pair.
+    log.warn('refresh-debug', {
+      hasReqCookies: !!req.cookies,
+      hasRefreshCookie: !!req.cookies?.refresh_token,
+      refreshCookieLen: req.cookies?.refresh_token?.length || 0,
+      refreshCookiePrefix: req.cookies?.refresh_token?.slice(0, 8) || null,
+      cookieHeaderRaw: (req.headers?.cookie || '').slice(0, 500),
+      refreshTokenCountInRawHeader: ((req.headers?.cookie || '').match(/refresh_token=/g) || []).length,
+      ua: (req.headers?.['user-agent'] || '').slice(0, 80),
+      host: req.headers?.host,
+      origin: req.headers?.origin,
+    });
+
     if (!refreshToken) {
       return res.status(400).json({ error: 'Refresh token required' });
     }
 
     const tokenHash = hashToken(refreshToken);
+
+    // TEMP DEBUG: log hash so we can compare to DB rows
+    log.warn('refresh-debug-hash', {
+      hashPrefix: tokenHash.slice(0, 16),
+    });
 
     // Preferred path: look up per-device row in user_refresh_tokens.
     // This is what new logins write to. Signing in from another device no
