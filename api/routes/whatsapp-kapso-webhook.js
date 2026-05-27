@@ -270,9 +270,15 @@ router.post('/webhook', async (req, res) => {
   }
   processedKeys.set(idempotencyKey, Date.now());
 
-  // 3. Return 200 immediately — process async
-  res.sendStatus(200);
-
+  // 3. Process BEFORE responding — Vercel serverless terminates the
+  // function once res.end() resolves, killing every awaited downstream
+  // call (parseIncomingMessage → processTwinMessage → sendWhatsAppMessage).
+  // Same bug pattern that bit the voice-bridge webhook (commit fd5ce253).
+  // Total budget ≈ LLM chat (~25s) + Kapso send (~2s) + DB writes (~1s),
+  // well within maxDuration=60s (vercel.json:api/index.js).
+  // If Kapso times out its delivery before we 200, it retries — the
+  // idempotency check above catches duplicates so the user only gets
+  // one reply.
   try {
     // 4. Parse message (supports Kapso + Meta native fallback)
     const parsed = parseIncomingMessage(req.body);
@@ -294,13 +300,20 @@ router.post('/webhook', async (req, res) => {
       return;
     }
 
-    // 6. Look up user by phone number in messaging_channels
-    const { data: channel } = await supabaseAdmin
+    // 6. Look up user by phone number in messaging_channels. Both forms
+    // ('+5511...' and '5511...') exist in the wild depending on which
+    // entry path linked the channel. Kapso webhooks send the raw phone
+    // (no leading +) while the linker often stores +-prefixed. Use .in()
+    // (parameterized) to match either, mirroring whatsapp-twinme-webhook.js.
+    const phoneWithPlus = phone.startsWith('+') ? phone : `+${phone}`;
+    const phoneWithout = phone.startsWith('+') ? phone.slice(1) : phone;
+    const { data: channels } = await supabaseAdmin
       .from('messaging_channels')
       .select('user_id, preferences')
       .eq('channel', 'whatsapp')
-      .eq('channel_id', phone)
-      .single();
+      .in('channel_id', [phoneWithPlus, phoneWithout])
+      .limit(1);
+    const channel = channels?.[0] || null;
 
     if (!channel) {
       log.info('Unlinked WhatsApp user', { phone: phone.slice(-4), contactName });
@@ -385,6 +398,10 @@ router.post('/webhook', async (req, res) => {
   } catch (err) {
     log.error('WhatsApp webhook processing error', { error: err.message, stack: err.stack });
   }
+
+  // Respond AFTER all work — Vercel kills async work after res.end(),
+  // so we must respond last. See comment above the try block.
+  res.sendStatus(200);
 });
 
 // ====================================================================
