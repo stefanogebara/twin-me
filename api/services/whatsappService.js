@@ -65,15 +65,43 @@ export async function sendWhatsAppMessage(recipientPhone, text) {
 
     if (client && phoneNumberId) {
       try {
+        // audit-2026-05-27: diagnose silent-no-delivery. Log the full request shape
+        // so we can correlate to Kapso's response. recipientPhone format matters
+        // here — Brazilian numbers may need the leading-9 stripped depending on
+        // the WABA configuration ("nono dígito" rule).
+        log.info('WhatsApp Kapso send entry', {
+          recipientPhone,
+          recipientStartsWithPlus: recipientPhone?.startsWith?.('+'),
+          recipientLen: recipientPhone?.length,
+          phoneNumberIdSuffix: phoneNumberId?.slice(-6),
+          textLen: text?.length,
+        });
         const result = await client.messages.sendText({
           phoneNumberId,
           to: recipientPhone,
           body: text,
         });
-        log.info('WhatsApp message sent via Kapso', { recipientPhone, messageId: result?.messages?.[0]?.id });
+        // audit-2026-05-27: log the FULL Kapso response, not just messageId.
+        // contacts[0].input vs contacts[0].wa_id reveals number normalization
+        // (e.g. "+5511999002121" → "+551199002121" via Brazilian 9-digit drop).
+        // messages[0].id confirms a Meta message_id was minted. The presence
+        // of a `warning` or `message_status` field is the real "is it actually
+        // going to deliver" signal.
+        log.info('WhatsApp Kapso send response', {
+          recipientPhone,
+          messageId: result?.messages?.[0]?.id,
+          contacts: result?.contacts,
+          messages: result?.messages,
+          warning: result?.warning,
+          messageStatus: result?.messageStatus,
+        });
         return { success: true, messageId: result?.messages?.[0]?.id, provider: 'kapso' };
       } catch (err) {
-        log.warn('Kapso send failed, falling back to Meta Cloud API', { error: err.message });
+        log.warn('Kapso send failed, falling back to Meta Cloud API', {
+          error: err.message,
+          status: err.response?.status,
+          body: err.response?.data,
+        });
         // Fall through to Meta Cloud API
       }
     }
