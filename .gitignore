@@ -161,6 +161,18 @@ tmp-*.cjs
 tmp_*.sql
 tmp_*.txt
 
+# Spike/scratch convention: leading underscore in scripts/ + tests/
+# (instagram architecture spikes, login-loop probes, twitch/whoop diagnostics,
+#  one-off auth/session mints, soulOS e2e drafts, etc.)
+scripts/_*
+tests/_*
+
+# Pluggy dashboard research probes (one-off pricing/upgrade screenshots)
+scripts/pluggy-*
+
+# One-off extension payload captures
+ig-extension-payload.json
+
 # One-off test/debug scripts in tests/e2e
 tests/e2e/audit-*.cjs
 tests/e2e/audit-*.js
