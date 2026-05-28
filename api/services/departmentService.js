@@ -122,7 +122,7 @@ export async function getAllDepartments(userId) {
  *
  * @returns {{ actionId: string|null, status: string }}
  */
-export async function proposeDepartmentAction(userId, department, { toolName, params, context, priority }) {
+export async function proposeDepartmentAction(userId, department, { toolName, params, context, reasoning, priority }) {
   if (!userId || !department || !toolName) {
     throw new Error('userId, department, and toolName are required');
   }
@@ -154,6 +154,7 @@ export async function proposeDepartmentAction(userId, department, { toolName, pa
       toolName,
       params: { ...params, priority: priority || 'medium' },
       context: context || `${config.name} department action`,
+      reasoning: reasoning && typeof reasoning === 'string' ? reasoning.slice(0, 1000) : null,
       skillName,
       department,
     });
@@ -283,7 +284,7 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
     // capped at limit*3 to stay cheap.
     let query = supabaseAdmin
       .from('agent_actions')
-      .select('id, department, skill_name, action_type, proposed_action, context_summary, user_response, outcome_data, created_at, resolved_at')
+      .select('id, department, skill_name, action_type, proposed_action, context_summary, reasoning, user_response, outcome_data, created_at, resolved_at')
       .eq('user_id', userId)
       .not('department', 'is', null);
 
@@ -340,14 +341,27 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
     const page = sorted.slice(0, safeLimit);
     const nextCursor = page.length === safeLimit ? page[page.length - 1].sortAt : null;
 
+    // Auto-expire: pending proposals older than this threshold are treated as
+    // 'expired' in the API response even if the DB still says user_response IS
+    // NULL. A nightly cron will persist the change to keep the DB clean, but
+    // the UI gets immediate consistency on every read.
+    const PENDING_EXPIRY_MS = 48 * 60 * 60 * 1000;
+    const now = Date.now();
+
     const items = page.map(({ row, sortAt }) => {
       const department = row.department || extractDepartmentFromSkillName(row.skill_name);
       const config = getDepartmentConfig(department);
+      let status = inboxStatus(row.user_response);
+      if (status === 'pending') {
+        const ageMs = now - new Date(row.created_at).getTime();
+        if (ageMs > PENDING_EXPIRY_MS) status = 'expired';
+      }
       return {
         id: row.id,
-        status: inboxStatus(row.user_response),
+        status,
         title: generateDisplayDescription(row),
         why: row.context_summary || null,
+        reasoning: row.reasoning || null,
         department,
         departmentColor: config?.color || '#6366F1',
         toolName: row.action_type || null,
@@ -760,6 +774,7 @@ GO. Return only the JSON array, no other text:`;
           toolName,
           params,
           context: s.description,
+          reasoning: s.reasoning || null,
           priority: s.priority || 5,
         });
         if (result.actionId) {

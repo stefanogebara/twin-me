@@ -19,6 +19,7 @@ export interface InboxItem {
   status: InboxStatus;
   title: string;
   why: string | null;
+  reasoning: string | null;
   department: string;
   departmentColor: string;
   toolName: string | null;

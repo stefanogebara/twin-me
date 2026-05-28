@@ -237,7 +237,7 @@ export async function logAgentAction(userId, actionData) {
  * @param {{ toolName: string, params: object, context?: string, skillName?: string }} actionData
  * @returns {string} The created action ID
  */
-export async function queueActionForApproval(userId, { toolName, params, context, skillName, department }) {
+export async function queueActionForApproval(userId, { toolName, params, context, reasoning, skillName, department }) {
   if (!userId || !toolName) {
     throw new Error('userId and toolName are required to queue an action');
   }
@@ -255,6 +255,7 @@ export async function queueActionForApproval(userId, { toolName, params, context
       skill_name: skillName || `${toolName.split('_')[0]}_actions`,
       proposed_action: JSON.stringify({ toolName, params }),
       context_summary: context || '',
+      reasoning: reasoning || null,
       department: department || null,
       created_at: new Date().toISOString()
     })

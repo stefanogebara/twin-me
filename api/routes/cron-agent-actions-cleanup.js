@@ -27,7 +27,10 @@ const log = createLogger('CronAgentActionsCleanup');
 const router = express.Router();
 
 // Proposals older than this, still pending, are marked expired.
-const TTL_DAYS = 7;
+// Aligned with the inbox read-side expiry filter in departmentService.js
+// (PENDING_EXPIRY_MS = 48h). Keeping the cron < UI threshold means the DB
+// never lies for more than one cron tick.
+const TTL_DAYS = 2;
 
 // Safety cap — one run won't expire more than this many rows. Prevents a
 // runaway mass-update if the backlog is huge after a deployment gap.

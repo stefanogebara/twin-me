@@ -109,6 +109,16 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
           </p>
         )}
 
+        {/* Evidence — the observation that triggered this proposal */}
+        {item.reasoning && (
+          <p
+            className="text-[12px] mt-1.5 leading-relaxed italic"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Because: {item.reasoning}
+          </p>
+        )}
+
         {/* Outcome hint — only for action tiles in pending state */}
         {isPending && outcomeHint && (
           <p
