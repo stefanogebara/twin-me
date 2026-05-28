@@ -278,7 +278,7 @@ router.post('/:name/propose', authenticateUser, proposeLimiter, async (req, res)
     }
 
     const { proposeDepartmentAction, validateHeartbeatProposal } = await getDepartmentService();
-    const { toolName, params, context } = req.body || {};
+    const { toolName, params, context, reasoning } = req.body || {};
 
     // C2 fix: this endpoint used to accept arbitrary tool/params from the
     // client, bypassing the LLM-side heartbeat whitelist. Reuse the same
@@ -311,10 +311,18 @@ router.post('/:name/propose', authenticateUser, proposeLimiter, async (req, res)
       });
     }
 
+    // Reasoning is the LLM's evidence/observation citation. Optional from the
+    // route — TalkToTwin sends it when known, plain tests may omit it. String
+    // only; cap length to mirror context.
+    const safeReasoning = typeof reasoning === 'string' && reasoning.trim().length > 0
+      ? reasoning.slice(0, 1000)
+      : undefined;
+
     const proposal = await proposeDepartmentAction(req.user.id, name, {
       toolName: validation.toolName,
       params: validation.params,
       context: safeContext,
+      reasoning: safeReasoning,
       priority: 5,
     });
     return res.json({ success: true, proposal });
