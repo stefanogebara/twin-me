@@ -17,6 +17,7 @@
 mod active_window;
 mod clip_indexer;
 mod clips;
+mod config;
 mod sync;
 
 use tauri::{
@@ -48,6 +49,15 @@ fn on_tray_menu_event(app: &AppHandle, event: MenuEvent) {
     match event.id().as_ref() {
         "open" => focus_main_window(app),
         "hide" => hide_main_window(app),
+        "pause" => {
+            // Flip the persisted pause flag. The indexer reads it each tick.
+            if let Ok(conn) = clips::open() {
+                let now = clips::is_paused(&conn).unwrap_or(false);
+                if let Err(err) = clips::set_pause(&conn, !now) {
+                    eprintln!("[tray] set_pause: {err}");
+                }
+            }
+        }
         "quit" => {
             app.exit(0);
         }
@@ -90,9 +100,12 @@ pub fn run() {
             // and similar Littlebird-style controls.
             let open_item = MenuItem::with_id(app, "open", "Open TwinMe", true, Some("CmdOrCtrl+Shift+T"))?;
             let hide_item = MenuItem::with_id(app, "hide", "Hide window", true, None::<&str>)?;
+            // TODO(phase-4): relabel item to reflect current state ("Resume indexing"
+            // when paused) by reading clips::is_paused and rebuilding the menu.
+            let pause_item = MenuItem::with_id(app, "pause", "Pause indexing", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let tray_menu = Menu::with_items(app, &[&open_item, &hide_item, &separator, &quit_item])?;
+            let tray_menu = Menu::with_items(app, &[&open_item, &hide_item, &pause_item, &separator, &quit_item])?;
 
             // Build the tray icon. menuOnLeftClick is false in tauri.conf.json,
             // so left-click → focus window, right-click → menu.

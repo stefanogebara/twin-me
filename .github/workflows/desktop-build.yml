@@ -85,6 +85,16 @@ jobs:
         working-directory: desktop
         run: npm install
 
+      # Run Rust unit tests once (Linux only — the tests are platform-agnostic:
+      # config = file IO, sync = mockito HTTP, clips = in-memory sqlite, and the
+      # active_window test is cfg(not(target_os = "macos")) so it runs here).
+      # `tauri build` never executes #[cfg(test)] code, so without this step the
+      # unit tests would compile-and-run nowhere.
+      - name: Run Rust unit tests
+        if: matrix.platform.runner == 'ubuntu-22.04'
+        working-directory: desktop/src-tauri
+        run: cargo test
+
       # Build UNSIGNED on every push + PR. Signing happens on tag pushes
       # (next step). tauri-action refuses to skip signing when APPLE_CERTIFICATE
       # is set-but-empty — so we only inject the signing env vars when secrets

@@ -9,12 +9,12 @@
 // and never appears in iCloud Documents.
 
 use chrono::Utc;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection, OptionalExtension, Result};
 use std::path::PathBuf;
 
 /// One foreground-app clip. `content` is filled in Phase 3 once the
 /// Accessibility API extraction lands; for the scaffold it stays None.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Clip {
     pub id: i64,
     pub app_name: String,
@@ -22,6 +22,7 @@ pub struct Clip {
     pub content: Option<String>,
     pub started_at: i64,
     pub ended_at: Option<i64>,
+    #[serde(skip)]
     pub synced_at: Option<i64>,
 }
 
@@ -66,9 +67,34 @@ fn init_schema(conn: &Connection) -> Result<()> {
           app_name TEXT PRIMARY KEY,
           added_at INTEGER NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS app_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        );
         "#,
     )?;
     Ok(())
+}
+
+/// Persist the global "indexing paused" flag. Stored in `app_settings` so it
+/// survives restarts. The tray "Pause/Resume indexing" toggle writes here and
+/// the clip indexer reads it each tick.
+pub fn set_pause(conn: &Connection, paused: bool) -> Result<()> {
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES ('paused', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        params![if paused { "1" } else { "0" }],
+    )?;
+    Ok(())
+}
+
+/// True if indexing is currently paused. Absent row → not paused (default).
+pub fn is_paused(conn: &Connection) -> Result<bool> {
+    let row: Option<String> = conn
+        .query_row("SELECT value FROM app_settings WHERE key = 'paused'", [], |r| r.get(0))
+        .optional()?;
+    Ok(row.as_deref() == Some("1"))
 }
 
 /// Start a new clip for a freshly-focused (app, title). Returns the new
@@ -163,4 +189,20 @@ pub fn unexclude_app(conn: &Connection, app: &str) -> Result<()> {
         params![app],
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pause_toggle_round_trips() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        assert!(!is_paused(&conn).unwrap());
+        set_pause(&conn, true).unwrap();
+        assert!(is_paused(&conn).unwrap());
+        set_pause(&conn, false).unwrap();
+        assert!(!is_paused(&conn).unwrap());
+    }
 }
