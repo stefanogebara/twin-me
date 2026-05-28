@@ -159,9 +159,16 @@ export const departmentsAPI = {
   },
 
   /**
-   * Approve a pending proposal
+   * Approve a pending proposal. The response includes outcomeLink when the
+   * underlying tool produced a shareable artifact (Gmail draft, Calendar
+   * event, Google Doc) — used to render a "View …" action in the success
+   * toast without waiting for the inbox stream to refetch.
    */
-  approveProposal: async (id: string): Promise<{ success: boolean; result?: unknown }> => {
+  approveProposal: async (id: string): Promise<{
+    success: boolean;
+    result?: unknown;
+    outcomeLink?: { label: string; url: string } | null;
+  }> => {
     const response = await authFetch(`/departments/proposals/${encodeURIComponent(id)}/approve`, {
       method: 'POST',
     });

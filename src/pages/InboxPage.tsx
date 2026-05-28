@@ -23,6 +23,15 @@ import { Loader2 } from 'lucide-react';
 
 const QUERY_KEY = ['inbox'] as const;
 
+// Mirrors the resolved-badge label in InboxTile.RESOLVED_DONE_LABEL so the
+// toast and the persistent tile read the same after approve.
+function labelForToast(toolName: string): string {
+  if (toolName.includes('mail') || toolName === 'draft') return 'Draft saved';
+  if (toolName.includes('calendar') || toolName.includes('event')) return 'Added to calendar';
+  if (toolName.includes('doc')) return 'Doc created';
+  return 'Did it';
+}
+
 const filterMatch = (status: InboxItem['status'], filter: InboxFilterValue): boolean => {
   if (filter === 'all') return true;
   if (filter === 'pending') return status === 'pending';
@@ -88,14 +97,30 @@ const InboxPage: React.FC = () => {
     async (id: string) => {
       setActionLoadingId(id);
       try {
-        await departmentsAPI.approveProposal(id);
+        const response = await departmentsAPI.approveProposal(id);
         // Match the tile copy: "Noted" for advice (toolName=suggest),
-        // "Did it" for tool-executing proposals. We don't have the
-        // toolName at this scope cheaply; fall back to "Done".
+        // "Did it" for tool-executing proposals.
         const item = items.find((i) => i.id === id);
         const t = (item?.toolName || '').toLowerCase();
         const isAdvice = t === 'suggest' || t === 'suggestion';
-        toast.success(isAdvice ? 'Noted' : 'Did it');
+
+        // When the underlying tool produced a real artifact, surface a
+        // "View …" action in the toast so the user can verify without
+        // scrolling back to the now-done tile.
+        const link = response.outcomeLink;
+        if (!isAdvice && link) {
+          toast.success(`${labelForToast(t)} · ${link.label}`, {
+            description: 'Tap to open',
+            action: {
+              label: link.label,
+              onClick: () => window.open(link.url, '_blank', 'noopener,noreferrer'),
+            },
+            duration: 6000,
+          });
+        } else {
+          toast.success(isAdvice ? 'Noted' : 'Did it');
+        }
+
         await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       } catch (err) {
         toast.error('Could not run this action. Try again?');

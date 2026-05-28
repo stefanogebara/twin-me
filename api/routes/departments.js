@@ -102,8 +102,18 @@ router.post('/proposals/:id/approve', authenticateUser, approvalLimiter, async (
   try {
     const { id } = req.params;
     const { executeApprovedAction } = await getAutonomyService();
+    const { outcomeLinkFromExecution } = await getDepartmentService();
     const result = await executeApprovedAction(req.user.id, id);
-    return res.json({ success: true, result });
+
+    // Compute the outcome link from the fresh executionResult so the client
+    // can offer a "View draft / View event / View doc" action in the success
+    // toast — no need to refetch /api/inbox just to render the link.
+    // result shape depends on the tool: { success, type } for 'suggest',
+    // executeTool() return shape for everything else (which is what
+    // outcomeLinkFromExecution expects).
+    const outcomeLink = outcomeLinkFromExecution(result, null);
+
+    return res.json({ success: true, result, outcomeLink });
   } catch (err) {
     log.error('Failed to approve proposal', { userId: req.user.id, proposalId: req.params.id, error: err.message });
     return res.status(500).json({ success: false, error: 'Failed to approve proposal' });

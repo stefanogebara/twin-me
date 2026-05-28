@@ -161,14 +161,28 @@ export async function proposeDepartmentAction(userId, department, { toolName, pa
 
     log.info('Department action proposed', { userId, department, toolName, actionId });
 
-    // Fire-and-forget push notification (non-fatal)
+    // Fire-and-forget push notification (non-fatal). Inbox-aware copy:
+    //   title = the proposal's verb-led description (e.g. "Block 90 min
+    //           tomorrow morning for GitHub PR review") — much better than
+    //           the old generic "<Dept>: Action proposed" so the user can
+    //           triage from the notification alone
+    //   body  = the reasoning evidence line ("Whoop recovery 78%+ three
+    //           days running, calendar has no focus blocks") — gives a
+    //           reason to tap
+    //   url   = /inbox (was /departments which now redirects but adds a hop)
     try {
       const { sendWebPush } = await import('./webPushService.js');
       const deptConfig = getDepartmentConfig(department);
+      const pushTitle = context && context.trim().length > 0
+        ? context
+        : `${deptConfig?.name || department}: Action proposed`;
+      const pushBody = reasoning && typeof reasoning === 'string' && reasoning.trim().length > 0
+        ? reasoning
+        : 'Your AI department has a suggestion for you';
       await sendWebPush(userId, {
-        title: `${deptConfig?.name || department}: Action proposed`,
-        body: context || 'Your AI department has a suggestion for you',
-        url: '/departments',
+        title: pushTitle,
+        body: pushBody,
+        url: '/inbox',
         tag: `department_proposal_${actionId}`,
         category: 'department_proposal',
       });
@@ -300,18 +314,26 @@ function isHttpsUrl(u) {
 // anything else before interpolating into a URL template.
 const GOOGLE_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 
-function extractOutcomeLink(row) {
-  const exec = row?.outcome_data?.executionResult;
-  if (!exec || exec.success === false) return null;
-  const data = exec.data || {};
-  const tool = exec.tool || row?.action_type || null;
+/**
+ * Inner helper that operates on an executionResult directly. Used by both
+ * extractOutcomeLink(row) below and the /approve route, which has the fresh
+ * result in hand before any DB row has been refetched.
+ *
+ * @param {object} execResult — the executionResult shape from a tool run
+ * @param {string|null} tool   — toolName (or action_type when called from a row)
+ * @returns {{label: string, url: string} | null}
+ */
+export function outcomeLinkFromExecution(execResult, tool) {
+  if (!execResult || execResult.success === false) return null;
+  const data = execResult.data || {};
+  const effectiveTool = execResult.tool || tool || null;
 
   // Gmail draft → build a stable URL from messageId, but only if it matches
   // the expected opaque-id pattern. Never interpolate user-controlled strings.
   const messageId = data?.draft?.messageId;
   if (typeof messageId === 'string'
       && GOOGLE_ID_RE.test(messageId)
-      && (tool === 'gmail_draft' || tool === 'draft')) {
+      && (effectiveTool === 'gmail_draft' || effectiveTool === 'draft')) {
     return {
       label: 'View draft',
       url: `https://mail.google.com/mail/u/0/#drafts/${encodeURIComponent(messageId)}`,
@@ -339,6 +361,10 @@ function extractOutcomeLink(row) {
   }
 
   return null;
+}
+
+function extractOutcomeLink(row) {
+  return outcomeLinkFromExecution(row?.outcome_data?.executionResult, row?.action_type);
 }
 
 export async function getInboxStream(userId, { cursor = null, limit = 20 } = {}) {
