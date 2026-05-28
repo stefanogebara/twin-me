@@ -22,6 +22,31 @@ interface InboxTileProps {
   onSkip: (id: string) => void;
 }
 
+/**
+ * Map a tool's failureReason to a reconnect CTA when the error is a stale
+ * OAuth token. Backend tools surface "Token decryption failed - user must
+ * reconnect google_<platform>" when the encrypted refresh token in
+ * platform_connections can't be decrypted (key rotation, deletion, etc).
+ * In that case the only fix is for the user to redo the OAuth flow — we
+ * link straight to the Settings reconnect URL pattern that handles this.
+ */
+function detectReconnect(reason: string): { label: string; url: string } | null {
+  if (!reason) return null;
+  const lower = reason.toLowerCase();
+  if (!lower.includes('reconnect')) return null;
+  const RECONNECT_TARGETS: Array<{ key: string; label: string; url: string }> = [
+    { key: 'google_gmail', label: 'Reconnect Gmail', url: '/settings?reconnect=gmail' },
+    { key: 'google_calendar', label: 'Reconnect Calendar', url: '/settings?reconnect=calendar' },
+  ];
+  const match = RECONNECT_TARGETS.find((t) => lower.includes(t.key));
+  if (match) return { label: match.label, url: match.url };
+  // Fallback: generic connections anchor when we can't infer the platform.
+  if (lower.includes('token decryption') || lower.includes('reconnect')) {
+    return { label: 'Reconnect platform', url: '/settings#connections' };
+  }
+  return null;
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -131,12 +156,26 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
 
         {/* Failure reason — surfaced when the underlying tool API rejected the action */}
         {item.status === 'failed' && item.failureReason && (
-          <p
-            className="text-[12px] mt-1.5 leading-relaxed"
-            style={{ color: '#dc2626' }}
-          >
-            {item.failureReason}
-          </p>
+          <div className="mt-1.5">
+            <p
+              className="text-[12px] leading-relaxed"
+              style={{ color: '#dc2626' }}
+            >
+              {item.failureReason}
+            </p>
+            {(() => {
+              const recon = detectReconnect(item.failureReason);
+              return recon ? (
+                <a
+                  href={recon.url}
+                  className="inline-block mt-1.5 px-2.5 py-1 rounded-[100px] text-[11px] font-medium transition-opacity hover:opacity-90"
+                  style={{ background: '#F5F5F4', color: '#110f0f' }}
+                >
+                  {recon.label}
+                </a>
+              ) : null;
+            })()}
+          </div>
         )}
 
         <div className="flex items-center gap-2 mt-2">
