@@ -21,9 +21,9 @@ mod config;
 mod sync;
 
 use tauri::{
-    menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, RunEvent, WindowEvent,
+    AppHandle, Manager, Runtime, RunEvent, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -44,25 +44,55 @@ fn hide_main_window(app: &AppHandle) {
     }
 }
 
-/// Tray menu event handler. Routes "open", "hide", and "quit" actions.
-fn on_tray_menu_event(app: &AppHandle, event: MenuEvent) {
-    match event.id().as_ref() {
-        "open" => focus_main_window(app),
-        "hide" => hide_main_window(app),
-        "pause" => {
-            // Flip the persisted pause flag. The indexer reads it each tick.
-            if let Ok(conn) = clips::open() {
-                let now = clips::is_paused(&conn).unwrap_or(false);
-                if let Err(err) = clips::set_pause(&conn, !now) {
-                    eprintln!("[tray] set_pause: {err}");
-                }
-            }
-        }
-        "quit" => {
-            app.exit(0);
-        }
-        _ => {}
+/// Label for the pause/resume tray item given the current paused state.
+fn pause_label(paused: bool) -> &'static str {
+    if paused {
+        "Resume indexing"
+    } else {
+        "Pause indexing"
     }
+}
+
+/// (Re)populate the "Excluded apps" submenu from the persisted exclude list.
+/// Clears any existing children, then adds one re-include item per excluded
+/// app (id `unexclude:<app>`), or a single disabled "(none)" placeholder when
+/// the list is empty. Called once at startup and again after every add/remove
+/// so the submenu always mirrors the DB. The Submenu handle is Arc-backed, so
+/// a captured clone mutates the live menu in place — no tray.set_menu needed.
+fn populate_excluded_submenu<R: Runtime, M: Manager<R>>(
+    manager: &M,
+    submenu: &Submenu<R>,
+) -> tauri::Result<()> {
+    // Drain existing children. remove_at shifts indices down, so always pop 0.
+    if let Ok(items) = submenu.items() {
+        for _ in 0..items.len() {
+            let _ = submenu.remove_at(0);
+        }
+    }
+
+    let excluded = clips::open()
+        .ok()
+        .and_then(|c| clips::list_excluded(&c).ok())
+        .unwrap_or_default();
+
+    if excluded.is_empty() {
+        // Disabled placeholder so the submenu is never empty/confusing.
+        let none_item = MenuItem::with_id(manager, "excluded_none", "(none)", false, None::<&str>)?;
+        submenu.append(&none_item)?;
+    } else {
+        for app_name in excluded {
+            let item = MenuItem::with_id(
+                manager,
+                format!("unexclude:{app_name}"),
+                &app_name,
+                true,
+                None::<&str>,
+            )?;
+            submenu.append(&item)?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -95,17 +125,53 @@ pub fn run() {
                 eprintln!("[twinme-desktop] global shortcut register failed: {err}");
             }
 
-            // Tray menu. Keep it minimal for Phase 1: Open / Hide / separator
-            // / Quit. Phase 2 will add "Pause context awareness for 15 min"
-            // and similar Littlebird-style controls.
+            // Tray menu: Open / Hide / Pause-Resume / Exclude current app /
+            // Excluded apps submenu / separator / Quit. The pause item's label
+            // and the excluded submenu both reflect persisted state and update
+            // live as the user toggles them (see on_menu_event below).
             let open_item = MenuItem::with_id(app, "open", "Open TwinMe", true, Some("CmdOrCtrl+Shift+T"))?;
             let hide_item = MenuItem::with_id(app, "hide", "Hide window", true, None::<&str>)?;
-            // TODO(phase-4): relabel item to reflect current state ("Resume indexing"
-            // when paused) by reading clips::is_paused and rebuilding the menu.
-            let pause_item = MenuItem::with_id(app, "pause", "Pause indexing", true, None::<&str>)?;
+
+            // Initial pause label from the persisted flag so it's correct on
+            // startup ("Resume indexing" if we were paused before quitting).
+            let paused = clips::open()
+                .ok()
+                .and_then(|c| clips::is_paused(&c).ok())
+                .unwrap_or(false);
+            let pause_item =
+                MenuItem::with_id(app, "pause", pause_label(paused), true, None::<&str>)?;
+
+            // Exclude the current foreground app. Writes to the exclude list,
+            // which the indexer honors on its next tick — no clip is created
+            // for an excluded app.
+            let exclude_item =
+                MenuItem::with_id(app, "exclude_current", "Exclude current app", true, None::<&str>)?;
+
+            // Excluded apps submenu — one re-include item per excluded app,
+            // populated from the DB now and rebuilt in place on every change.
+            let excluded_submenu = Submenu::with_id(app, "excluded_menu", "Excluded apps", true)?;
+            populate_excluded_submenu(app, &excluded_submenu)?;
+
             let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let tray_menu = Menu::with_items(app, &[&open_item, &hide_item, &pause_item, &separator, &quit_item])?;
+            let tray_menu = Menu::with_items(
+                app,
+                &[
+                    &open_item,
+                    &hide_item,
+                    &pause_item,
+                    &exclude_item,
+                    &excluded_submenu,
+                    &separator,
+                    &quit_item,
+                ],
+            )?;
+
+            // Handles captured by the menu-event closure so it can mutate the
+            // live menu after the setup closure returns. Both are Arc-backed,
+            // so the clones point at the same underlying menu items.
+            let pause_handle = pause_item.clone();
+            let excluded_handle = excluded_submenu.clone();
 
             // Build the tray icon. menuOnLeftClick is false in tauri.conf.json,
             // so left-click → focus window, right-click → menu.
@@ -113,7 +179,52 @@ pub fn run() {
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
                 .tooltip("TwinMe — Cmd+Shift+T to open")
-                .on_menu_event(on_tray_menu_event)
+                .on_menu_event(move |app, event| {
+                    match event.id().as_ref() {
+                        "open" => focus_main_window(app),
+                        "hide" => hide_main_window(app),
+                        "pause" => {
+                            // Flip the persisted flag, then relabel the item to
+                            // match the new state. The indexer reads the flag
+                            // each tick.
+                            if let Ok(conn) = clips::open() {
+                                let now = clips::is_paused(&conn).unwrap_or(false);
+                                let next = !now;
+                                if let Err(err) = clips::set_pause(&conn, next) {
+                                    eprintln!("[tray] set_pause: {err}");
+                                } else {
+                                    let _ = pause_handle.set_text(pause_label(next));
+                                }
+                            }
+                        }
+                        "exclude_current" => {
+                            // Snapshot the focused app and exclude it, then
+                            // refresh the submenu so it shows up immediately.
+                            if let Some(win) = active_window::current() {
+                                if let Ok(conn) = clips::open() {
+                                    if let Err(err) = clips::exclude_app(&conn, &win.app_name) {
+                                        eprintln!("[tray] exclude_app: {err}");
+                                    }
+                                }
+                            }
+                            let _ = populate_excluded_submenu(app, &excluded_handle);
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        other => {
+                            // Re-include: ids are "unexclude:<app_name>".
+                            if let Some(app_name) = other.strip_prefix("unexclude:") {
+                                if let Ok(conn) = clips::open() {
+                                    if let Err(err) = clips::unexclude_app(&conn, app_name) {
+                                        eprintln!("[tray] unexclude_app: {err}");
+                                    }
+                                }
+                                let _ = populate_excluded_submenu(app, &excluded_handle);
+                            }
+                        }
+                    }
+                })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
