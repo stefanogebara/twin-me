@@ -17,15 +17,14 @@ Built on **Tauri 2** (Rust shell + system webview). ~10 MB binary.
 
 ## Roadmap
 
-Phase 1 (this scaffold) ships the wrapper. Future phases:
-
-| Phase | What | Inspired by |
+| Phase | Status | What |
 |---|---|---|
-| **1 — Shell** ✅ scaffolded | Webview wrapping `twinme.me` + tray + hotkey + notifications | both |
-| 2 — Clips index | Local SQLite + macOS Accessibility API hook + per-app exclude | jo |
-| 3 — Meeting Notes | Mic capture + local Whisper + Note/Summary/Transcript views | Littlebird |
-| 4 — Hummingbird widget | Floating compact window summoned by hotkey, three modes | Littlebird |
-| 5 — Polish | Auto-update channels, onboarding wizard, "Here's what I picked up" reveal | both |
+| **1 — Shell** | merged (PR #46) | Webview + tray + hotkey + notifications |
+| **2 — Clips index** | scaffold (this PR) | Local SQLite + 5s poll + per-app exclude — stub Accessibility |
+| 3 — Real screen content | next | macOS Accessibility AXUIElement, content extraction, sync wiring |
+| 4 — Meeting Notes | later | Mic + local Whisper + Note/Summary/Transcript views |
+| 5 — Hummingbird | later | Floating compact summoned by hotkey |
+| 6 — Polish | later | Auto-update, signed bundles, real icons, onboarding |
 
 ---
 
@@ -51,9 +50,27 @@ desktop/
     │   ├── icon.png
     │   └── README.md     # how to regenerate from a real source
     └── src/
-        ├── main.rs       # Windows console suppression + calls lib::run()
-        └── lib.rs        # tray, hotkey, window-event handling
+        ├── main.rs           # Windows console suppression + calls lib::run()
+        ├── lib.rs            # tray, hotkey, window-event handling + spawns Phase 2 loops
+        ├── clips.rs          # SQLite clip store (schema + CRUD)
+        ├── active_window.rs  # cross-platform focused-window shape (mac TODO)
+        ├── clip_indexer.rs   # 5s poll loop, opens/closes clips on focus change
+        └── sync.rs           # 2-min sync loop (stubbed — Phase 3 wires HTTP)
 ```
+
+### Phase 2 — Clips index (this PR)
+
+In:
+- Local SQLite at the OS data dir (Mac: `~/Library/Application Support/TwinMe/clips.db`)
+- 5s poll loop tracking foreground app + window title
+- Per-app exclude table (no UI yet)
+- 2-min sync loop scaffolded but stubbed (logs "would sync N clips")
+
+NOT in (Phase 3+):
+- macOS Accessibility API content extraction (stubbed — `active_window::current()` returns None)
+- Real backend sync to `/api/observations/clip` (function exists, no HTTP yet)
+- Windows / Linux active-window detection
+- Settings UI for the exclude list
 
 ---
 
