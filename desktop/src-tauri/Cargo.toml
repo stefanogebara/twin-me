@@ -47,6 +47,13 @@ windows = { version = "0.58", features = [
     "Win32_System_Threading",
 ] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Phase 4: active-window detection on X11. We query the root window's
+# _NET_ACTIVE_WINDOW (EWMH) for the focused window, then _NET_WM_NAME (title)
+# and WM_CLASS (app). x11rb is a pure-Rust X11 client — no system C deps.
+# Wayland has no portable active-window API, so those sessions yield None.
+x11rb = "0.13"
+
 [dev-dependencies]
 mockito = "1.5"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "test-util"] }

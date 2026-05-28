@@ -225,6 +225,153 @@ mod windows_impl {
     }
 }
 
+#[cfg(target_os = "linux")]
+mod linux_impl {
+    // Real Linux/X11 implementation via the EWMH _NET_ACTIVE_WINDOW protocol:
+    //
+    //   1. x11rb::connect(None) -> (RustConnection, screen_num). Any connect
+    //      failure (no $DISPLAY, headless CI, refused socket) yields None.
+    //   2. root = conn.setup().roots[screen_num].root.
+    //   3. Intern _NET_ACTIVE_WINDOW / _NET_WM_NAME / UTF8_STRING atoms.
+    //   4. get_property(root, _NET_ACTIVE_WINDOW, WINDOW) -> focused window id.
+    //   5. get_property(win, _NET_WM_NAME, UTF8_STRING) -> title (fallback to
+    //      WM_NAME/STRING for older clients).
+    //   6. get_property(win, WM_CLASS, STRING) -> "instance\0class\0"; the
+    //      class (second field) is the app name.
+    //
+    // Wayland sessions expose no portable active-window API, so we detect
+    // WAYLAND_DISPLAY up front and return None. Every fallible X call uses
+    // `?`/`.ok()?` inside `inner()`, so nothing here can panic — failures just
+    // collapse to None and the indexer no-ops rather than inserting an empty
+    // clip.
+    use x11rb::connection::Connection;
+    use x11rb::protocol::xproto::{Atom, AtomEnum, ConnectionExt, Window};
+
+    pub fn fetch_focused() -> Option<super::ActiveWindow> {
+        // No portable way to read the focused window under Wayland; bail before
+        // touching X so we don't accidentally talk to an XWayland shim.
+        if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+            return None;
+        }
+        inner()
+    }
+
+    /// All X11 work lives here so `?` short-circuits any error to None.
+    fn inner() -> Option<super::ActiveWindow> {
+        let (conn, screen_num) = x11rb::connect(None).ok()?;
+        let root = conn.setup().roots.get(screen_num)?.root;
+
+        // Helper: intern an atom by name, None on any failure.
+        let intern = |name: &[u8]| -> Option<Atom> {
+            Some(conn.intern_atom(false, name).ok()?.reply().ok()?.atom)
+        };
+
+        let net_active_window = intern(b"_NET_ACTIVE_WINDOW")?;
+        let net_wm_name = intern(b"_NET_WM_NAME")?;
+        let utf8_string = intern(b"UTF8_STRING")?;
+
+        let win = active_window_id(&conn, root, net_active_window)?;
+
+        let title = window_title(&conn, win, net_wm_name, utf8_string);
+        let app_name = window_app_name(&conn, win)
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        Some(super::ActiveWindow { app_name, title })
+    }
+
+    /// Read the focused window id from the root's _NET_ACTIVE_WINDOW property.
+    /// Returns None when the property is absent or the id is 0 (no focus).
+    fn active_window_id(
+        conn: &impl Connection,
+        root: Window,
+        net_active_window: Atom,
+    ) -> Option<Window> {
+        let reply = conn
+            .get_property(false, root, net_active_window, AtomEnum::WINDOW, 0, 1)
+            .ok()?
+            .reply()
+            .ok()?;
+        // The property is a single 32-bit window id (format 32).
+        let win = reply.value32()?.next()?;
+        if win == 0 {
+            None
+        } else {
+            Some(win)
+        }
+    }
+
+    /// Read the window title: _NET_WM_NAME (UTF8_STRING) preferred, falling back
+    /// to the legacy WM_NAME (STRING) for clients that don't set the EWMH name.
+    /// Empty/whitespace titles collapse to None.
+    fn window_title(
+        conn: &impl Connection,
+        win: Window,
+        net_wm_name: Atom,
+        utf8_string: Atom,
+    ) -> Option<String> {
+        read_string(conn, win, net_wm_name, utf8_string)
+            .or_else(|| read_string(conn, win, AtomEnum::WM_NAME.into(), AtomEnum::STRING.into()))
+    }
+
+    /// Read the app name from WM_CLASS. WM_CLASS is two NUL-separated strings:
+    /// "instance\0class\0". We prefer the class (second field, e.g. "Firefox"),
+    /// falling back to the instance if the class is empty.
+    fn window_app_name(conn: &impl Connection, win: Window) -> Option<String> {
+        let reply = conn
+            .get_property(
+                false,
+                win,
+                AtomEnum::WM_CLASS,
+                AtomEnum::STRING,
+                0,
+                1024,
+            )
+            .ok()?
+            .reply()
+            .ok()?;
+        if reply.value.is_empty() {
+            return None;
+        }
+
+        // Split on NUL and keep the non-empty fields in order: [instance, class].
+        let mut fields = reply
+            .value
+            .split(|&b| b == 0)
+            .filter(|s| !s.is_empty())
+            .map(|s| String::from_utf8_lossy(s).trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        let first = fields.next();
+        let second = fields.next();
+        // Prefer the class (second field); fall back to the instance.
+        second.or(first)
+    }
+
+    /// Fetch a string property as UTF-8 (lossy), trimmed; empty -> None.
+    fn read_string(
+        conn: &impl Connection,
+        win: Window,
+        property: Atom,
+        type_: Atom,
+    ) -> Option<String> {
+        let reply = conn
+            .get_property(false, win, property, type_, 0, 1024)
+            .ok()?
+            .reply()
+            .ok()?;
+        if reply.value.is_empty() {
+            return None;
+        }
+        let s = String::from_utf8_lossy(&reply.value);
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    }
+}
+
 #[cfg(target_os = "macos")]
 pub fn current() -> Option<ActiveWindow> {
     macos_impl::fetch_focused()
@@ -235,22 +382,26 @@ pub fn current() -> Option<ActiveWindow> {
     windows_impl::fetch_focused()
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+#[cfg(target_os = "linux")]
 pub fn current() -> Option<ActiveWindow> {
-    // TODO(phase-4 U2): Linux active-window lands next (X11 via x11rb, with
-    // Wayland varying by compositor). Until then non-macOS/Windows yields None
-    // so the indexer no-ops safely.
+    linux_impl::fetch_focused()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+pub fn current() -> Option<ActiveWindow> {
+    // Other platforms (BSD, etc.) have no active-window impl yet, so they yield
+    // None and the indexer no-ops safely rather than inserting an empty clip.
     None
 }
 
-#[cfg(all(test, not(any(target_os = "macos", target_os = "windows"))))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn current_returns_none_on_non_macos() {
-        // Linux/other still return None until Phase 4 U2 lands the X11 path.
-        // Runs on the Linux CI runner where current() is the stub.
-        assert!(current().is_none());
+    fn current_is_safe_to_call() {
+        // On headless CI there's no display/foreground window, so this is
+        // typically None — but the contract we assert is "never panics".
+        let _ = current();
     }
 }
