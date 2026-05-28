@@ -12,6 +12,10 @@ const SYNC_INTERVAL: Duration = Duration::from_secs(120);
 const DEFAULT_ENDPOINT: &str = "https://twinme.me/api/observations/clip";
 const BATCH_SIZE: usize = 50;
 
+// WIRE CONTRACT: serde_json omits `None` fields here (no key emitted). The
+// backend's zod schema uses `.optional()`, which accepts a MISSING key but
+// REJECTS an explicit `null`. Do NOT add a serialize_with / representation that
+// emits `null` for these Options — it would 400 every sync.
 #[derive(Debug, Serialize)]
 struct OutgoingClip<'a> {
     local_id: i64,
@@ -107,18 +111,23 @@ pub async fn run() {
             Ok(result) => {
                 let synced_ids: Vec<i64> = result.synced.iter().map(|r| r.local_id).collect();
                 if !synced_ids.is_empty() {
-                    match clips::mark_synced(&conn, &synced_ids) {
-                        Ok(_) => println!(
-                            "[sync] uploaded {} clips, dropped {}",
-                            result.synced.len(),
-                            result.dropped.len()
-                        ),
-                        Err(err) => eprintln!("[sync] mark_synced: {err}"),
+                    if let Err(err) = clips::mark_synced(&conn, &synced_ids) {
+                        eprintln!("[sync] mark_synced: {err}");
                     }
                 }
+                // Mark dropped clips synced too, so the server's rejects aren't
+                // retried forever.
                 let dropped_ids: Vec<i64> = result.dropped.iter().map(|r| r.local_id).collect();
                 if !dropped_ids.is_empty() {
                     let _ = clips::mark_synced(&conn, &dropped_ids);
+                }
+                // Log unconditionally (incl. all-dropped batches) for observability.
+                if !synced_ids.is_empty() || !dropped_ids.is_empty() {
+                    println!(
+                        "[sync] uploaded {} clips, dropped {}",
+                        result.synced.len(),
+                        result.dropped.len()
+                    );
                 }
             }
             Err(err) => eprintln!("[sync] post_batch: {err} — leaving unsynced for next tick"),
