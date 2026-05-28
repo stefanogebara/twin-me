@@ -21,8 +21,8 @@ Built on **Tauri 2** (Rust shell + system webview). ~10 MB binary.
 |---|---|---|
 | **1 — Shell** | merged (PR #46) | Webview + tray + hotkey + notifications |
 | **2 — Clips index** | merged (PR #47) | Local SQLite + 5s poll + per-app exclude — stub Accessibility |
-| **3 — Real Accessibility + sync** | this PR | macOS AXUIElement focused app/window, real HTTPS sync, tray Pause/Resume, backend endpoint |
-| 4 — Win/Linux + content + exclude UI | next | Windows/Linux active-window, in-window content extraction, exclude-list settings UI, keyring |
+| **3 — Real Accessibility + sync** | merged (PR #48) | macOS AXUIElement focused app/window, real HTTPS sync, tray Pause/Resume, backend endpoint |
+| **4 — Cross-platform + content + keyring** | this PR | Windows + Linux(X11) active-window, macOS in-window content extraction, OS keyring, tray exclude controls |
 | 5 — Meeting Notes | later | Mic + local Whisper + Note/Summary/Transcript views |
 | 6 — Hummingbird | later | Floating compact summoned by hotkey |
 | 7 — Polish | later | Auto-update, signed bundles, real icons, onboarding |
@@ -68,7 +68,7 @@ In:
 - Per-app exclude table (no UI yet)
 - 2-min sync loop scaffolded but stubbed (logs "would sync N clips")
 
-### Phase 3 — Real Accessibility + sync (this PR)
+### Phase 3 — Real Accessibility + sync (merged, PR #48)
 
 In:
 - **macOS Accessibility**: `active_window::current()` reads the focused app + window title via `AXUIElementCreateSystemWide` (`accessibility-sys` + `core-foundation`). Non-macOS still returns `None`.
@@ -85,6 +85,21 @@ NOT in (Phase 4):
 - Dynamic tray relabel ("Pause" ↔ "Resume" — currently static "Pause indexing")
 
 To verify the loop on a Mac: run `npm run server:dev`, write a JWT to `~/.config/twinme/auth.toml` as `token = "<jwt>"`, `export TWINME_SYNC_ENDPOINT=http://127.0.0.1:3004/api/observations/clip`, then `cd desktop && npm run dev`. Grant Accessibility in System Settings, restart, and watch for `[sync] uploaded N clips` after ~2 min.
+
+### Phase 4 — Cross-platform capture + content + keyring (this PR)
+
+In:
+- **Windows active-window**: `GetForegroundWindow` + `GetWindowTextW` (title) + `QueryFullProcessImageNameW` (owning exe → app name), via the `windows` crate.
+- **Linux (X11) active-window**: `_NET_ACTIVE_WINDOW` → `_NET_WM_NAME` (title) + `WM_CLASS` (app), via `x11rb`. Wayland sessions and any X connect failure (incl. headless CI) yield `None`.
+- **macOS in-window content**: `active_window::focused_content()` walks the focused window's AX tree (depth ≤ 8, ≤ 500 nodes, ≤ 8000 chars) collecting text; the indexer captures it once at clip-open via `clips::set_content`. Exclude list still gates capture.
+- **OS keyring**: `config::load_auth()` reads the keyring first (macOS Keychain / Windows Credential Manager / Linux Secret Service via pure-Rust `linux-native`), falling back to the Phase 3 `auth.toml` and migrating it into the keyring on first read.
+- **Tray exclude controls**: dynamic Pause ↔ Resume relabel (reflects persisted state at startup); "Exclude current app"; an "Excluded apps" submenu that live-updates as you add/re-include.
+
+NOT in (Phase 5+):
+- Wayland active-window (no portable protocol; returns `None`)
+- In-window content extraction on Windows / Linux (title only there; macOS-only this phase)
+- A bundled local settings window (the remote webview can't call Tauri IPC, so exclusion UI is native-tray)
+- Automatic webview → keyring token write (the token is still placed manually / via the dev flow; keyring is the storage, the write-path bridge is a follow-up)
 
 ---
 
