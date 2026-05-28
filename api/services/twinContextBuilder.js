@@ -20,6 +20,7 @@ import { getTopPatterns } from './twinPatternService.js';
 import { inferIdentityContext } from './identityContextService.js';
 import { getPendingProposals } from './departmentService.js';
 import { getRelevantWikiPages } from './wikiCompilationService.js';
+import { getActiveDirectives } from './twinSelfImprovement.js';
 import axios from 'axios';
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
@@ -129,7 +130,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // under the 60s Vercel function cap.
   const CONTEXT_TIMEOUT_MS = 10000;
 
-  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], []];
+  const defaults = [null, {}, null, [], null, [], { success: false, data: null }, [], null, [], null, null, [], [], [], []];
 
   const fetchPromises = [
     fetchSoul
@@ -254,6 +255,14 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       log.warn('Wiki pages fetch failed:', err.message);
       return [];
     })),
+
+    // Self-improving twin: directives learned from past user corrections
+    // (pi-reflect pattern, askjo.ai-inspired). Injected into the system
+    // prompt as sticky-note rules. Hot path — single indexed read.
+    timed('directives', getActiveDirectives(userId).catch(err => {
+      log.warn('Directives fetch failed:', err.message);
+      return [];
+    })),
   ];
 
   // Track resolved values via microtasks so circuit breaker can use them without waiting.
@@ -315,6 +324,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     nudgeHistory,
     departmentProposals,
     wikiPages,
+    directives,
   ] = contextResults;
 
   ctxLog('All parallel fetches complete');
@@ -362,6 +372,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     nudgeHistory,
     departmentProposals,
     wikiPages,
+    directives,
     timings,
   };
 }

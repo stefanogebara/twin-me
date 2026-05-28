@@ -201,7 +201,7 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
     const contextBuildMs = Date.now() - chatStartTime;
-    const { soulSignature, platformData, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals } = twinContext;
+    const { soulSignature, platformData, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals, directives } = twinContext;
 
     // Inject platform activity priorities into platformData for system prompt
     try {
@@ -224,7 +224,9 @@ router.post('/message', authenticateUser, async (req, res) => {
     const coreBlockText = await loadCoreBlocksForPrompt(userId);
 
     // System prompt assembly + neurotransmitter mode + emotional state
-    // extracted to ../services/twinPromptAssembly.js.
+    // extracted to ../services/twinPromptAssembly.js. Directives (pi-reflect)
+    // are pulled out of twinContext inside the assembler and forwarded into
+    // buildTwinSystemPrompt — no extra arg needed here.
     const promptAssembly = await assembleTwinSystemPrompt({
       twinContext,
       featureFlags,

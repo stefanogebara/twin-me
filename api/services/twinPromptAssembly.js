@@ -95,6 +95,7 @@ export async function assembleTwinSystemPrompt({
   const {
     soulSignature, platformData, twinSummary, proactiveInsights,
     departmentProposals, writingProfile, voiceExamples, nudgeHistory,
+    directives,
   } = twinContext;
 
   const wikiPagesForPrompt = featureFlags.llm_wiki === true ? twinContext.wikiPages : null;
@@ -102,6 +103,7 @@ export async function assembleTwinSystemPrompt({
   const systemPrompt = buildTwinSystemPrompt(
     soulSignature, platformData, twinSummary, proactiveInsights,
     userLocation, coreBlockText, departmentProposals, wikiPagesForPrompt,
+    directives,
   );
 
   systemPrompt.push({ type: 'text', text: ANTI_EMOJI_RULE });
