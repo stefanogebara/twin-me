@@ -21,6 +21,7 @@ import { determineArchetypeFromSoulLayers, generateTraitBadgesFromSoulLayers, fo
 import PersonalityAxes from './components/identity/PersonalityAxes';
 import IdentityQuote from './components/identity/IdentityQuote';
 import TemporalComparison from './components/identity/TemporalComparison';
+import IdentityNarrativeCard from './components/identity/IdentityNarrativeCard';
 import SplitPanelLayout from '@/layouts/SplitPanelLayout';
 import ContextSidebar from './components/identity/ContextSidebar';
 
@@ -751,6 +752,11 @@ const IdentityPage: React.FC = () => {
           )}
         </>
       )}
+
+      {/* ── Your soul, in your own words (askjo SOUL.md analog) ─────── */}
+      {/* User-editable narrative override. Renders nothing if no soul */}
+      {/* signature has been generated yet. */}
+      <IdentityNarrativeCard />
 
       {/* ── Temporal Comparison ("You then vs you now") ─────────────── */}
       {/* Renders nothing unless the backend has 8+ memories in each window. */}

@@ -585,15 +585,34 @@ async function _fetchSoulSignature(userId) {
   // mcp_conversation_logs.soul_signature_id. Without it the C2 write-path
   // fix from 020e7ca6 silently wrote NULL because soulSignature?.id was
   // undefined at the time of the insert.
+  //
+  // audit-2026-05-27 task #11 (askjo SOUL.md analog): pull user_narrative
+  // alongside the system-generated narrative. If the user has authored an
+  // override, transparently swap it in as `narrative` so every downstream
+  // consumer (twinSystemPromptBuilder, MCP log) sees the user's words as
+  // the ground truth without needing to know about the override mechanism.
   const { data, error } = await supabaseAdmin
     .from('soul_signatures')
-    .select('id, archetype_name, archetype_subtitle, narrative, defining_traits, created_at, updated_at')
+    .select('id, archetype_name, archetype_subtitle, narrative, user_narrative, user_narrative_updated_at, defining_traits, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
 
-  const result = (error || !data) ? null : data;
+  if (error || !data) {
+    setCache(cacheKey, null);
+    return null;
+  }
+
+  // Single-source-of-truth swap: when the user has authored a non-empty
+  // override, it BECOMES the narrative for downstream callers. We preserve
+  // the original under narrative_system in case anything wants to compare.
+  const hasUserOverride = typeof data.user_narrative === 'string'
+    && data.user_narrative.trim().length > 0;
+  const result = hasUserOverride
+    ? { ...data, narrative: data.user_narrative, narrative_system: data.narrative, narrative_source: 'user' }
+    : { ...data, narrative_source: 'system' };
+
   setCache(cacheKey, result);
   return result;
 }

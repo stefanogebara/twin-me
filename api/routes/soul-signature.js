@@ -775,4 +775,167 @@ router.get('/layers', authenticateToken, async (req, res) => {
   }
 });
 
+// ====================================================================
+// GET /api/soul-signature/narrative
+//
+// audit-2026-05-27 task #11: askjo SOUL.md analog.
+// Returns the active narrative (user_narrative if set, else system narrative)
+// plus both raw values so the frontend can show "your override" vs "what we
+// inferred" diff UI.
+// ====================================================================
+router.get('/narrative', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: row, error } = await supabaseAdmin
+      .from('soul_signatures')
+      .select('archetype_name, archetype_subtitle, narrative, user_narrative, user_narrative_updated_at, updated_at')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!row) {
+      // No soul signature yet — narrative is empty. Frontend should prompt the
+      // user to either run discovery or write their own from scratch.
+      return res.json({
+        success: true,
+        data: {
+          archetype_name: null,
+          archetype_subtitle: null,
+          narrative: null,
+          user_narrative: null,
+          user_narrative_updated_at: null,
+          active_source: 'none',
+          active_narrative: null,
+        },
+      });
+    }
+
+    const hasUser = typeof row.user_narrative === 'string' && row.user_narrative.trim().length > 0;
+    res.json({
+      success: true,
+      data: {
+        archetype_name: row.archetype_name,
+        archetype_subtitle: row.archetype_subtitle,
+        narrative: row.narrative,
+        user_narrative: row.user_narrative,
+        user_narrative_updated_at: row.user_narrative_updated_at,
+        active_source: hasUser ? 'user' : 'system',
+        active_narrative: hasUser ? row.user_narrative : row.narrative,
+      },
+    });
+  } catch (error) {
+    log.error('Error fetching narrative:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch narrative',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+    });
+  }
+});
+
+// ====================================================================
+// PATCH /api/soul-signature/narrative
+//
+// audit-2026-05-27 task #11: write the user's override of the soul-signature
+// narrative. Accepts { user_narrative: string | null }. Pass null/empty to
+// clear the override and fall back to the system-generated narrative.
+//
+// Length cap is enforced server-side AND by DB CHECK constraint (4000 chars).
+// Trim leading/trailing whitespace so accidental newlines don't bloat the
+// system prompt token budget.
+// ====================================================================
+router.patch('/narrative', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const raw = req.body?.user_narrative;
+
+    // Validation: must be null, undefined, or a string. Empty string is treated
+    // as a clear (null) so the frontend can do "Clear my edit" without sending
+    // a separate verb.
+    let next;
+    if (raw === null || raw === undefined) {
+      next = null;
+    } else if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      next = trimmed.length === 0 ? null : trimmed;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'user_narrative must be a string or null',
+      });
+    }
+
+    if (next !== null && next.length > 4000) {
+      return res.status(400).json({
+        success: false,
+        error: `user_narrative exceeds 4000 character limit (got ${next.length})`,
+      });
+    }
+
+    // Find the user's existing soul_signatures row. Update it if present;
+    // refuse the write if no row exists yet (no narrative to override).
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from('soul_signatures')
+      .select('id')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        error: 'No soul signature found. Generate one first via /api/soul-signature/generate before editing the narrative.',
+      });
+    }
+
+    const nowIso = new Date().toISOString();
+    const { data: updated, error: updateErr } = await supabaseAdmin
+      .from('soul_signatures')
+      .update({
+        user_narrative: next,
+        user_narrative_updated_at: next === null ? null : nowIso,
+        updated_at: nowIso,
+      })
+      .eq('id', existing.id)
+      .select('archetype_name, archetype_subtitle, narrative, user_narrative, user_narrative_updated_at')
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    const hasUser = typeof updated.user_narrative === 'string' && updated.user_narrative.trim().length > 0;
+    log.info('User narrative updated', {
+      userId,
+      cleared: next === null,
+      chars: next?.length || 0,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        archetype_name: updated.archetype_name,
+        archetype_subtitle: updated.archetype_subtitle,
+        narrative: updated.narrative,
+        user_narrative: updated.user_narrative,
+        user_narrative_updated_at: updated.user_narrative_updated_at,
+        active_source: hasUser ? 'user' : 'system',
+        active_narrative: hasUser ? updated.user_narrative : updated.narrative,
+      },
+    });
+  } catch (error) {
+    log.error('Error updating narrative:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update narrative',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred',
+    });
+  }
+});
+
 export default router;
