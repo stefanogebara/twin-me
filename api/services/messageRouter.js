@@ -153,6 +153,12 @@ export async function deliverInsight(userId, insight) {
 const MAX_DELIVERIES_PER_RUN = 50;
 const EMAIL_COOLDOWN_HOURS = 24;
 
+// audit-2026-05-27 task #12: after this many attempts with zero successful
+// channel sends, give up on the row (set delivery_failed_at). Cron runs
+// hourly, so 3 attempts = ~3-hour retry window. Prevents indefinite spam
+// when a channel is structurally broken (e.g. token expired, number invalid).
+const MAX_DELIVERY_ATTEMPTS = 3;
+
 /**
  * Attempt email delivery of batched insights for a single user.
  * Fire-and-forget — errors are logged but never thrown.
@@ -244,12 +250,14 @@ export async function deliverPendingInsights() {
       break;
     }
 
-    // Get undelivered insights (max 5 per user per run to avoid spam)
+    // Get pending insights (max 5 per user per run to avoid spam).
+    // Pending = not yet delivered AND not yet in terminal-failure state.
     const { data: insights } = await supabaseAdmin
       .from('proactive_insights')
       .select('*')
       .eq('user_id', userId)
       .eq('delivered', false)
+      .is('delivery_failed_at', null)
       .order('created_at', { ascending: true })
       .limit(5);
 
@@ -262,39 +270,88 @@ export async function deliverPendingInsights() {
       // Stop if we've hit the global delivery cap
       if (totalDelivered >= MAX_DELIVERIES_PER_RUN) break;
 
-      // Optimistically claim the insight BEFORE sending to prevent
-      // double delivery from concurrent cron runs (H1 fix)
-      const { error: claimError } = await supabaseAdmin
+      // audit-2026-05-27 task #12: HONEST claim.
+      //
+      // Old behaviour: set delivered=true BEFORE sending, only unclaim on a
+      // thrown exception. Silent-fail case (result.delivered=0 with no exception)
+      // left rows marked delivered=true while no channel actually succeeded.
+      // The DB lied → debugging WhatsApp drops took hours longer than it should.
+      //
+      // New behaviour: increment delivery_attempts under an optimistic lock,
+      // run the send, THEN write the outcome:
+      //   - Any channel success    → delivered=true, delivered_at=NOW
+      //   - All channels failed AND attempts >= MAX → delivery_failed_at=NOW (terminal)
+      //   - Otherwise              → leave attempts++ and let next cron retry
+      //
+      // The optimistic lock on delivery_attempts blocks concurrent cron races.
+      const currentAttempts = insight.delivery_attempts || 0;
+      const { data: claimedRows, error: claimError } = await supabaseAdmin
         .from('proactive_insights')
-        .update({ delivered: true, delivered_at: new Date().toISOString() })
+        .update({ delivery_attempts: currentAttempts + 1 })
         .eq('id', insight.id)
-        .eq('delivered', false); // Only claim if still unclaimed
+        .eq('delivery_attempts', currentAttempts) // optimistic lock
+        .eq('delivered', false)
+        .is('delivery_failed_at', null)
+        .select('id');
 
       if (claimError) {
-        log.warn('Failed to claim insight', { insightId: insight.id, error: claimError.message });
-        continue; // Skip — another run may have claimed it
+        log.warn('Failed to claim insight (DB error)', { insightId: insight.id, error: claimError.message });
+        continue;
+      }
+      if (!claimedRows?.length) {
+        // Another cron incremented this row's attempts since our SELECT.
+        // Skip — that run owns this attempt.
+        continue;
       }
 
+      const newAttempts = currentAttempts + 1;
       let result;
       try {
         result = await deliverInsight(userId, insight);
         totalProcessed++;
       } catch (err) {
-        // Delivery failed — unclaim so it can be retried next run
-        await supabaseAdmin
-          .from('proactive_insights')
-          .update({ delivered: false, delivered_at: null })
-          .eq('id', insight.id);
-        log.warn('Insight delivery failed, unclaimed for retry', { insightId: insight.id, error: err.message });
+        // Catastrophic failure (network, code crash, etc.). attempts++ already
+        // saved — the row stays pending unless attempts hit the cap. If so,
+        // mark it terminal so we don't burn cron budget on a hopeless row.
+        log.warn('Insight delivery threw', {
+          insightId: insight.id,
+          attempts: newAttempts,
+          error: err.message,
+        });
+        if (newAttempts >= MAX_DELIVERY_ATTEMPTS) {
+          await supabaseAdmin
+            .from('proactive_insights')
+            .update({ delivery_failed_at: new Date().toISOString() })
+            .eq('id', insight.id);
+        }
         continue;
       }
 
       if (result.delivered > 0) {
+        // SUCCESS — at least one channel returned success=true. Mark delivered.
+        await supabaseAdmin
+          .from('proactive_insights')
+          .update({ delivered: true, delivered_at: new Date().toISOString() })
+          .eq('id', insight.id);
         totalDelivered++;
         deliveredThisRun.push(insight);
-        // Already marked delivered above (optimistic claim)
+      } else if (newAttempts >= MAX_DELIVERY_ATTEMPTS) {
+        // EXHAUSTED — every channel returned success=false across all attempts.
+        // Mark terminal so we stop retrying. Still eligible for email batch
+        // delivery below (different channel, different failure modes).
+        await supabaseAdmin
+          .from('proactive_insights')
+          .update({ delivery_failed_at: new Date().toISOString() })
+          .eq('id', insight.id);
+        log.warn('Insight delivery exhausted retry budget', {
+          insightId: insight.id,
+          attempts: newAttempts,
+          channelsTried: result.channels?.length || 0,
+        });
+        deliveredThisRun.push(insight);
       } else {
-        // No channels succeeded — but insight is still valid for email delivery
+        // Transient failure — leave pending for the next cron run.
+        // attempts++ already persisted via the claim update.
         deliveredThisRun.push(insight);
       }
     }
