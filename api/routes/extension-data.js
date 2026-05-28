@@ -22,6 +22,39 @@ const router = express.Router();
 const allowedPlatforms = ['netflix', 'youtube', 'twitch', 'reddit', 'amazon', 'hbo', 'disney', 'web', 'instagram', 'disneyplus', 'hbomax', 'hulu', 'primevideo'];
 
 /**
+ * Normalize event.timestamp into a valid ISO 8601 string.
+ *
+ * audit-2026-05-28: collectors send timestamps in MIXED shapes —
+ *   background.js / soul-observer.js sometimes use Date.now() (epoch ms, number)
+ *   instagram.js / most others use new Date().toISOString() (string)
+ * The route handler was previously inserting whatever shape arrived directly
+ * into the user_platform_data.extracted_at column. Postgres parses a raw
+ * number as "years BC" via the timestamp-without-time-zone type, yields
+ * error 22007 (invalid_datetime_format) → every batch from the affected
+ * collectors got rejected with 500.
+ *
+ * This normalizer accepts string | number | Date | undefined and always
+ * returns a valid ISO string OR the current time as a safe fallback.
+ * Defensive, server-side — no client changes needed.
+ */
+function normalizeExtractedAt(ts) {
+  if (ts === null || ts === undefined) return new Date().toISOString();
+  // epoch ms — branch on number first (typeof '0' === 'string' is true)
+  if (typeof ts === 'number' && Number.isFinite(ts)) {
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  }
+  if (ts instanceof Date) {
+    return Number.isNaN(ts.getTime()) ? new Date().toISOString() : ts.toISOString();
+  }
+  if (typeof ts === 'string') {
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  }
+  return new Date().toISOString();
+}
+
+/**
  * Map raw event types from extension to valid data_type CHECK constraint values
  */
 function mapEventType(eventType, platform = '') {
@@ -183,7 +216,9 @@ router.post('/batch', authenticateUser, async (req, res) => {
         platform: eventPlatform,
         data_type: mapEventType(event.data_type || event.eventType || 'capture', eventPlatform),
         raw_data: event.raw_data || event,
-        extracted_at: event.timestamp || new Date().toISOString()
+        // audit-2026-05-28: normalize because some collectors send Date.now()
+        // (number) which Postgres rejects as 22007 invalid_datetime_format.
+        extracted_at: normalizeExtractedAt(event.timestamp),
       };
     });
 
