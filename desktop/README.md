@@ -20,11 +20,12 @@ Built on **Tauri 2** (Rust shell + system webview). ~10 MB binary.
 | Phase | Status | What |
 |---|---|---|
 | **1 — Shell** | merged (PR #46) | Webview + tray + hotkey + notifications |
-| **2 — Clips index** | scaffold (this PR) | Local SQLite + 5s poll + per-app exclude — stub Accessibility |
-| 3 — Real screen content | next | macOS Accessibility AXUIElement, content extraction, sync wiring |
-| 4 — Meeting Notes | later | Mic + local Whisper + Note/Summary/Transcript views |
-| 5 — Hummingbird | later | Floating compact summoned by hotkey |
-| 6 — Polish | later | Auto-update, signed bundles, real icons, onboarding |
+| **2 — Clips index** | merged (PR #47) | Local SQLite + 5s poll + per-app exclude — stub Accessibility |
+| **3 — Real Accessibility + sync** | this PR | macOS AXUIElement focused app/window, real HTTPS sync, tray Pause/Resume, backend endpoint |
+| 4 — Win/Linux + content + exclude UI | next | Windows/Linux active-window, in-window content extraction, exclude-list settings UI, keyring |
+| 5 — Meeting Notes | later | Mic + local Whisper + Note/Summary/Transcript views |
+| 6 — Hummingbird | later | Floating compact summoned by hotkey |
+| 7 — Polish | later | Auto-update, signed bundles, real icons, onboarding |
 
 ---
 
@@ -51,14 +52,15 @@ desktop/
     │   └── README.md     # how to regenerate from a real source
     └── src/
         ├── main.rs           # Windows console suppression + calls lib::run()
-        ├── lib.rs            # tray, hotkey, window-event handling + spawns Phase 2 loops
-        ├── clips.rs          # SQLite clip store (schema + CRUD)
-        ├── active_window.rs  # cross-platform focused-window shape (mac TODO)
-        ├── clip_indexer.rs   # 5s poll loop, opens/closes clips on focus change
-        └── sync.rs           # 2-min sync loop (stubbed — Phase 3 wires HTTP)
+        ├── lib.rs            # tray (incl. Pause/Resume), hotkey, window events + spawns loops
+        ├── clips.rs          # SQLite clip store (schema + CRUD + app_settings pause flag)
+        ├── config.rs         # reads JWT from <config_dir>/twinme/auth.toml
+        ├── active_window.rs  # focused app/window — real macOS Accessibility, None stub elsewhere
+        ├── clip_indexer.rs   # 5s poll loop, skips when paused, opens/closes clips on focus change
+        └── sync.rs           # 2-min HTTPS sync to /api/observations/clip (bearer auth)
 ```
 
-### Phase 2 — Clips index (this PR)
+### Phase 2 — Clips index (merged, PR #47)
 
 In:
 - Local SQLite at the OS data dir (Mac: `~/Library/Application Support/TwinMe/clips.db`)
@@ -66,11 +68,23 @@ In:
 - Per-app exclude table (no UI yet)
 - 2-min sync loop scaffolded but stubbed (logs "would sync N clips")
 
-NOT in (Phase 3+):
-- macOS Accessibility API content extraction (stubbed — `active_window::current()` returns None)
-- Real backend sync to `/api/observations/clip` (function exists, no HTTP yet)
-- Windows / Linux active-window detection
-- Settings UI for the exclude list
+### Phase 3 — Real Accessibility + sync (this PR)
+
+In:
+- **macOS Accessibility**: `active_window::current()` reads the focused app + window title via `AXUIElementCreateSystemWide` (`accessibility-sys` + `core-foundation`). Non-macOS still returns `None`.
+- **Real HTTPS sync**: `sync.rs` POSTs unsynced clips to `/api/observations/clip` every 2 min with bearer auth, marks synced + dropped (rejects aren't retried forever), leaves them on network/5xx error.
+- **Auth**: `config::load_auth()` reads the JWT from `<config_dir>/twinme/auth.toml` (written by the webview post-login). `TWINME_SYNC_ENDPOINT` env overrides the default for dev.
+- **Tray Pause/Resume**: `app_settings` table persists a `paused` flag; the indexer skips polling while paused.
+- **Backend**: `POST /api/observations/clip` persists each clip into `user_memories` (`memory_type='observation'`, `metadata.source='desktop_clip'`), returns `{ local_id → memory_id }`.
+
+NOT in (Phase 4):
+- Windows / Linux active-window detection (still `None`)
+- Content extraction from *inside* the focused window (we only capture the title)
+- Settings UI for the per-app exclude list
+- Secure OS keyring storage (still a plain TOML file)
+- Dynamic tray relabel ("Pause" ↔ "Resume" — currently static "Pause indexing")
+
+To verify the loop on a Mac: run `npm run server:dev`, write a JWT to `~/.config/twinme/auth.toml` as `token = "<jwt>"`, `export TWINME_SYNC_ENDPOINT=http://127.0.0.1:3004/api/observations/clip`, then `cd desktop && npm run dev`. Grant Accessibility in System Settings, restart, and watch for `[sync] uploaded N clips` after ~2 min.
 
 ---
 
