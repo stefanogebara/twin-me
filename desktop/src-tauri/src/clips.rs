@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 /// One foreground-app clip. `content` is filled in Phase 3 once the
 /// Accessibility API extraction lands; for the scaffold it stays None.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Clip {
     pub id: i64,
     pub app_name: String,
@@ -22,6 +22,7 @@ pub struct Clip {
     pub content: Option<String>,
     pub started_at: i64,
     pub ended_at: Option<i64>,
+    #[serde(skip)]
     pub synced_at: Option<i64>,
 }
 
