@@ -19,6 +19,7 @@ mod clip_indexer;
 mod clips;
 mod config;
 mod meetings;
+mod model;
 mod sync;
 mod transcribe;
 
