@@ -21,7 +21,7 @@
   'use strict';
 
   // Sentinel for the app to detect extension presence
-  try { document.documentElement.dataset.twinmeExtension = 'v3.9.0'; } catch (_) {}
+  try { document.documentElement.dataset.twinmeExtension = 'v3.9.2'; } catch (_) {}
 
   let lastToken = null;
   let lastUserId = null;
@@ -67,11 +67,26 @@
     sendToBackground(userId, token);
   }
 
-  // Path 1: app dispatches CustomEvent when token changes
+  // Path 1: app dispatches CustomEvent when token changes (crosses worlds via DOM)
   window.addEventListener('twinme:tokenchange', (e) => {
     try {
       const detail = e && e.detail ? e.detail : {};
       if (detail.token) syncFromToken(detail.token);
+    } catch (_) {}
+  });
+
+  // Path 3 (PRIMARY): the MAIN-world bridge (twinme-auth-main.js) reads the app's
+  // in-memory token via window.__twinmeGetAccessToken() — which is INVISIBLE from
+  // this isolated world (so Path 2 below is dead) — and forwards it here via
+  // postMessage. Path 1 above races document_idle injection and can miss the
+  // initial dispatch, so this poll-backed bridge is the reliable channel.
+  // Validate the message originates from this same window + origin before trusting.
+  window.addEventListener('message', (e) => {
+    try {
+      if (e.source !== window) return;
+      if (e.origin !== window.location.origin) return;
+      const d = e.data;
+      if (d && d.source === 'twinme-auth-bridge' && d.token) syncFromToken(d.token);
     } catch (_) {}
   });
 
