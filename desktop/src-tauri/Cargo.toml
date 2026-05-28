@@ -30,6 +30,13 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-feature
 tokio = { version = "1", features = ["time", "rt", "macros"] }
 # Phase 3: parse the JWT the web app writes to <config_dir>/twinme/auth.toml.
 toml = "0.8"
+# Phase 4: OS keyring (macOS Keychain / Windows Credential Manager / Linux
+# Secret Service) for the auth token. On Linux we use `linux-native` (keyutils,
+# pure-Rust) instead of `sync-secret-service` so headless CI compiles without a
+# dbus/Secret-Service daemon running. The keyring is never CALLED in tests
+# (CI only compiles + runs the TOML-fallback unit tests), so the choice of
+# Linux backend only affects compilation, not test behaviour.
+keyring = { version = "3", features = ["apple-native", "windows-native", "linux-native"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.1"
