@@ -29,8 +29,12 @@ mod macos_impl {
     // return an error and we yield None, so the indexer no-ops safely and
     // never inserts an empty clip.
     use accessibility_sys::{
-        kAXFocusedApplicationAttribute, kAXFocusedWindowAttribute, kAXTitleAttribute,
-        AXError, AXUIElementCopyAttributeValue, AXUIElementCreateSystemWide, AXUIElementRef,
+        kAXChildrenAttribute, kAXFocusedApplicationAttribute, kAXFocusedWindowAttribute,
+        kAXTitleAttribute, kAXValueAttribute, AXError, AXUIElementCopyAttributeValue,
+        AXUIElementCreateSystemWide, AXUIElementRef,
+    };
+    use core_foundation::array::{
+        CFArray, CFArrayGetCount, CFArrayGetValueAtIndex, CFArrayRef,
     };
     use core_foundation::base::{CFTypeRef, TCFType};
     use core_foundation::string::{CFString, CFStringRef};
@@ -89,6 +93,116 @@ mod macos_impl {
         // call, so Drop releases it for us.
         let cf: CFString = TCFType::wrap_under_create_rule(raw);
         Some(cf.to_string())
+    }
+
+    // Bounds for the in-window AX traversal. These cap cost and the privacy
+    // surface: we never walk an unbounded tree or hoover up an entire document.
+    const MAX_DEPTH: usize = 8;
+    const MAX_NODES: usize = 500;
+    const MAX_CHARS: usize = 8000;
+
+    /// Extract a bounded snapshot of the text *inside* the focused window so a
+    /// clip carries content, not just its title. macOS-only this phase.
+    ///
+    /// Walks the focused window's Accessibility subtree iteratively (no deep
+    /// recursion) collecting `kAXValue`/`kAXTitle` strings, hard-capped at
+    /// MAX_DEPTH levels, MAX_NODES visited elements, and MAX_CHARS of text.
+    /// Returns None when AX permission is absent, there's no focused window, or
+    /// nothing textual is found — the indexer then leaves `content` NULL.
+    pub fn focused_content() -> Option<String> {
+        // SAFETY: every raw pointer from AX/CF calls is null-checked before use.
+        // The children CFArrayRef is wrapped under the create rule so the array's
+        // +1 retain is released on Drop. Child element pointers are read with the
+        // get-rule (CFArrayGetValueAtIndex does NOT retain) and are owned by the
+        // array, so we neither retain nor release them individually.
+        unsafe {
+            let sys = AXUIElementCreateSystemWide();
+            if sys.is_null() {
+                return None;
+            }
+
+            let app_elem =
+                copy_attr_value(sys, kAXFocusedApplicationAttribute)? as AXUIElementRef;
+            if app_elem.is_null() {
+                return None;
+            }
+
+            let window = copy_attr_value(app_elem, kAXFocusedWindowAttribute)? as AXUIElementRef;
+            if window.is_null() {
+                return None;
+            }
+
+            // Iterative worklist of (element, depth) so a deeply nested view
+            // hierarchy can't blow the stack. Bounded by MAX_NODES below.
+            let mut acc = String::new();
+            let mut nodes: usize = 0;
+            let mut worklist: Vec<(AXUIElementRef, usize)> = vec![(window, 0)];
+
+            while let Some((elem, depth)) = worklist.pop() {
+                if nodes >= MAX_NODES || acc.len() >= MAX_CHARS {
+                    break;
+                }
+                nodes += 1;
+
+                // Collect the element's own text: AXValue (field/document text)
+                // then AXTitle (labels, headings). Skip blanks.
+                push_text(&mut acc, copy_attr_string(elem, kAXValueAttribute));
+                push_text(&mut acc, copy_attr_string(elem, kAXTitleAttribute));
+                if acc.len() >= MAX_CHARS {
+                    break;
+                }
+
+                // Descend into children while we have depth + node budget.
+                if depth < MAX_DEPTH {
+                    if let Some(children) = copy_attr_value(elem, kAXChildrenAttribute) {
+                        // wrap_under_create_rule owns the array's +1 retain;
+                        // Drop releases it when `array` falls out of scope.
+                        let array: CFArray<*const std::os::raw::c_void> =
+                            TCFType::wrap_under_create_rule(children as CFArrayRef);
+                        let count = CFArrayGetCount(array.as_concrete_TypeRef());
+                        for i in 0..count {
+                            if nodes + worklist.len() >= MAX_NODES {
+                                break;
+                            }
+                            let child =
+                                CFArrayGetValueAtIndex(array.as_concrete_TypeRef(), i)
+                                    as AXUIElementRef;
+                            if !child.is_null() {
+                                worklist.push((child, depth + 1));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if acc.len() > MAX_CHARS {
+                // Truncate on a char boundary so we never split a UTF-8 sequence.
+                let mut cut = MAX_CHARS;
+                while cut > 0 && !acc.is_char_boundary(cut) {
+                    cut -= 1;
+                }
+                acc.truncate(cut);
+            }
+
+            let trimmed = acc.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        }
+    }
+
+    /// Append a non-empty AX string to the accumulator with a trailing space.
+    /// No-op for None/blank so we don't pad the buffer with separators.
+    fn push_text(acc: &mut String, value: Option<String>) {
+        if let Some(s) = value {
+            let t = s.trim();
+            if !t.is_empty() {
+                acc.push_str(t);
+                acc.push(' ');
+            }
+        }
     }
 }
 
@@ -375,6 +489,19 @@ mod linux_impl {
 #[cfg(target_os = "macos")]
 pub fn current() -> Option<ActiveWindow> {
     macos_impl::fetch_focused()
+}
+
+/// Bounded snapshot of the text inside the focused window, captured once at
+/// clip-open. macOS-only this phase; every other platform yields None so the
+/// indexer simply leaves the clip's `content` NULL.
+#[cfg(target_os = "macos")]
+pub fn focused_content() -> Option<String> {
+    macos_impl::focused_content()
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn focused_content() -> Option<String> {
+    None
 }
 
 #[cfg(target_os = "windows")]

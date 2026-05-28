@@ -119,6 +119,15 @@ pub fn close_clip(conn: &Connection, id: i64, content: Option<&str>) -> Result<(
     Ok(())
 }
 
+/// Attach in-window content to a clip, captured once at clip-open by the
+/// indexer (Phase 4, macOS Accessibility traversal). Overwrites any prior
+/// content for the row — capture happens exactly once per clip so there's
+/// nothing to preserve.
+pub fn set_content(conn: &Connection, id: i64, content: &str) -> Result<()> {
+    conn.execute("UPDATE clips SET content = ?1 WHERE id = ?2", params![content, id])?;
+    Ok(())
+}
+
 /// Pull at most `limit` finished-but-unsynced clips for the sync loop.
 /// Only returns clips with `ended_at IS NOT NULL` — an open clip is still
 /// being written to, syncing it would race.
@@ -204,5 +213,18 @@ mod tests {
         assert!(is_paused(&conn).unwrap());
         set_pause(&conn, false).unwrap();
         assert!(!is_paused(&conn).unwrap());
+    }
+
+    #[test]
+    fn set_content_round_trips() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        let id = insert_clip(&conn, "Safari", Some("Example")).unwrap();
+        set_content(&conn, id, "hello world").unwrap();
+        // Read it back via a direct query on the content column.
+        let got: Option<String> = conn
+            .query_row("SELECT content FROM clips WHERE id = ?1", [id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(got.as_deref(), Some("hello world"));
     }
 }
