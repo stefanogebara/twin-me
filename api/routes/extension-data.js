@@ -319,40 +319,47 @@ router.post('/batch', authenticateUser, async (req, res) => {
       });
     }
 
-    // audit-2026-05-28: switched from .insert() to .upsert() because every
-    // batch was 500-ing on 23505 unique_violation. The unique constraint
-    // (user_id, platform, data_type, source_url) is meant to collapse
-    // repeated snapshots of the same resource into one row; when source_url
-    // happens to collide (URL revisits, or null for events without a URL),
-    // UPDATE the row instead of throwing. raw_data + extracted_at get
-    // refreshed to the most recent observation.
-    let { data, error } = await supabaseAdmin
-      .from('user_platform_data')
-      .upsert(dedupedRecords, {
-        onConflict: 'user_id,platform,data_type,source_url',
-        ignoreDuplicates: false,
-      })
-      .select();
+    // audit-2026-05-28: CHUNKED parallel upsert. History: insert()->upsert() killed
+    // 23505 unique_violations; dedup (above) killed 21000 cardinality; a per-row
+    // fallback stopped one bad row from sinking the batch. But an UNBOUNDED per-row
+    // fallback over a large backlog (~1000 events) ran ~1000 sequential round-trips
+    // and blew the 30s request timeout in server.js (504). So: upsert in small
+    // chunks IN PARALLEL — dedup guarantees globally-unique conflict keys, so no two
+    // chunks can collide. A chunk that fails the bulk upsert falls back to per-row
+    // ONLY within that chunk (bounded ~150), logging the exact pgError, while every
+    // other chunk still lands. Client gets a 2xx unless nothing lands at all.
+    const CHUNK_SIZE = 150;
+    const chunks = [];
+    for (let i = 0; i < dedupedRecords.length; i += CHUNK_SIZE) {
+      chunks.push(dedupedRecords.slice(i, i + CHUNK_SIZE));
+    }
 
-    if (error) {
-      // audit-2026-05-28: the all-or-nothing bulk upsert 500'd on the client's
-      // accumulated backlog — a single un-storable row sinks the whole statement,
-      // so the extension retried the poisoned payload forever (it never got a 2xx
-      // to clear its queue). Log the bulk pgError, then fall back to per-row
-      // upserts: each bad row is isolated + logged with its EXACT code (the real
-      // root-cause surface), every good row lands, and the client gets a 2xx.
-      log.warn('Bulk upsert failed — falling back to per-row isolation', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        statusCode: error.statusCode,
-        recordCount: dedupedRecords.length,
+    const landed = [];
+    const rowErrors = [];
+
+    await Promise.all(chunks.map(async (chunk) => {
+      const { data: chunkData, error: chunkErr } = await supabaseAdmin
+        .from('user_platform_data')
+        .upsert(chunk, {
+          onConflict: 'user_id,platform,data_type,source_url',
+          ignoreDuplicates: false,
+        })
+        .select('id');
+
+      if (!chunkErr) {
+        if (chunkData) landed.push(...chunkData);
+        return;
+      }
+
+      // This chunk holds an un-storable row — isolate per-row within JUST this
+      // chunk (bounded) so the bad row is logged with its exact code and the rest
+      // of the chunk still lands. Other chunks already succeeded in parallel.
+      log.warn('Chunk upsert failed — isolating per-row within chunk', {
+        code: chunkErr.code,
+        message: chunkErr.message,
+        chunkSize: chunk.length,
       });
-
-      const landed = [];
-      const rowErrors = [];
-      for (const rec of dedupedRecords) {
+      for (const rec of chunk) {
         const { data: rowData, error: rowErr } = await supabaseAdmin
           .from('user_platform_data')
           .upsert(rec, {
@@ -371,24 +378,25 @@ router.post('/batch', authenticateUser, async (req, res) => {
           landed.push(rowData[0]);
         }
       }
+    }));
 
-      if (rowErrors.length > 0) {
-        log.error('Per-row upsert isolated failing rows', {
-          failed: rowErrors.length,
-          landed: landed.length,
-          total: dedupedRecords.length,
-          samples: rowErrors.slice(0, 10),
-        });
-      }
-
-      // Nothing landed => systemic failure (DB/auth/transient), not a few poison
-      // rows. Re-throw so the client retries later instead of dropping the batch.
-      if (landed.length === 0) {
-        throw error;
-      }
-
-      data = landed;
+    if (rowErrors.length > 0) {
+      // The real root-cause surface: the exact pgError for each failing row.
+      log.error('Per-row upsert isolated failing rows', {
+        failed: rowErrors.length,
+        landed: landed.length,
+        total: dedupedRecords.length,
+        samples: rowErrors.slice(0, 10),
+      });
     }
+
+    // Nothing landed => systemic failure (DB down / auth / transient), not a few
+    // poison rows. Throw so the client retries later instead of dropping the batch.
+    if (landed.length === 0 && dedupedRecords.length > 0) {
+      throw new Error('Extension batch: all chunks failed to upsert');
+    }
+
+    const data = landed;
 
     log.info(`Batch inserted ${data.length} events`);
 
