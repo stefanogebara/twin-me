@@ -194,7 +194,32 @@ router.post('/batch', authenticateUser, async (req, res) => {
       .select();
 
     if (error) {
-      log.error(`Batch insert failed:`, error);
+      // audit-2026-05-28: Vercel UI was truncating the error object so the
+      // root cause stayed invisible across multiple sessions. Surface the
+      // discrete fields the postgrest driver exposes so we can read the
+      // pgError code/message/details/hint directly in the log table.
+      // Also dump the record shapes we attempted to insert so we can spot
+      // missing required columns or type mismatches.
+      log.error('Batch insert failed', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        statusCode: error.statusCode,
+        recordCount: records.length,
+        firstRecord: {
+          user_id: records[0]?.user_id,
+          platform: records[0]?.platform,
+          data_type: records[0]?.data_type,
+          extracted_at: records[0]?.extracted_at,
+          raw_data_keys: records[0]?.raw_data && typeof records[0].raw_data === 'object'
+            ? Object.keys(records[0].raw_data).slice(0, 20)
+            : typeof records[0]?.raw_data,
+          raw_data_size_chars: records[0]?.raw_data
+            ? JSON.stringify(records[0].raw_data).length
+            : 0,
+        },
+      });
       throw error;
     }
 
