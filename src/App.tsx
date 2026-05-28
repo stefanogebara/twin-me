@@ -69,7 +69,6 @@ const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
 const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazy(() => import("./pages/IdentityPage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
-const DepartmentsPage = lazy(() => import("./pages/DepartmentsPage"));
 const InboxPage = lazy(() => import("./pages/InboxPage"));
 const WikiPage = lazy(() => import("./pages/WikiGraphPage"));
 const GoalsPage = lazy(() => import("./pages/GoalsPage"));

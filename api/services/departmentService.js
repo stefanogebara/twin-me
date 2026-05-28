@@ -252,70 +252,6 @@ export async function getPendingProposals(userId) {
 }
 
 /**
- * Get recent actions for a department (last N, default 20).
- * Returns formatted activity items with human-readable descriptions.
- */
-export async function getDepartmentActivity(userId, department, limit = 20) {
-  if (!userId || !department) {
-    throw new Error('userId and department are required');
-  }
-
-  const skillName = `${department}_actions`;
-
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('agent_actions')
-      .select('id, action_type, proposed_action, context_summary, user_response, outcome_data, created_at, resolved_at')
-      .eq('user_id', userId)
-      .eq('skill_name', skillName)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      log.error('getDepartmentActivity query failed', { userId, department, error });
-      return [];
-    }
-
-    return (data || []).map(row => formatActivityItem(row, department));
-  } catch (err) {
-    log.error('getDepartmentActivity failed', { userId, department, error: err.message });
-    return [];
-  }
-}
-
-/**
- * Get recent activity across ALL departments (unified feed, sorted by recency).
- */
-export async function getAllDepartmentActivity(userId, limit = 50) {
-  if (!userId) {
-    throw new Error('userId is required');
-  }
-
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('agent_actions')
-      .select('id, action_type, proposed_action, context_summary, user_response, outcome_data, department, skill_name, created_at, resolved_at')
-      .eq('user_id', userId)
-      .not('department', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      log.error('getAllDepartmentActivity query failed', { userId, error });
-      return [];
-    }
-
-    return (data || []).map(row => {
-      const dept = row.department || extractDepartmentFromSkillName(row.skill_name);
-      return formatActivityItem(row, dept);
-    });
-  } catch (err) {
-    log.error('getAllDepartmentActivity failed', { userId, error: err.message });
-    return [];
-  }
-}
-
-/**
  * Get the unified inbox stream for /api/inbox — pending + resolved proposals
  * merged into one chronological list, sorted by COALESCE(resolved_at, created_at).
  *
@@ -409,43 +345,6 @@ function inboxStatus(userResponse) {
   if (userResponse === 'rejected') return 'skipped';
   if (userResponse === 'expired') return 'expired';
   return 'done';
-}
-
-/**
- * Transform a raw agent_actions row into a formatted activity item.
- */
-function formatActivityItem(row, department) {
-  const type = resolveActivityType(row);
-  const config = getDepartmentConfig(department);
-  const description = row.context_summary
-    || row.proposed_action
-    || `${config?.name || department} action`;
-  const outcome = row.outcome_data
-    ? (typeof row.outcome_data === 'string' ? row.outcome_data : row.outcome_data?.summary || null)
-    : null;
-
-  return {
-    id: row.id,
-    type,
-    department: department || 'unknown',
-    description,
-    toolName: row.action_type || null,
-    status: type,
-    createdAt: row.created_at,
-    resolvedAt: row.resolved_at || null,
-    outcome,
-  };
-}
-
-/**
- * Derive activity type from user_response and resolved_at fields.
- */
-function resolveActivityType(row) {
-  if (row.user_response === 'approved' && row.resolved_at) return 'executed';
-  if (row.user_response === 'approved') return 'approved';
-  if (row.user_response === 'rejected') return 'rejected';
-  if (row.user_response === null && !row.resolved_at) return 'proposal';
-  return 'suggestion';
 }
 
 /**

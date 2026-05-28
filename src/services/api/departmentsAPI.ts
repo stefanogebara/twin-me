@@ -42,18 +42,6 @@ export interface Proposal {
   createdAt: string;
 }
 
-export interface ActivityItem {
-  id: string;
-  type: 'proposal' | 'approved' | 'rejected' | 'executed' | 'suggestion';
-  department: string;
-  description: string;
-  toolName: string | null;
-  status: string;
-  createdAt: string;
-  resolvedAt: string | null;
-  outcome: string | null;
-}
-
 interface RawDepartment {
   department?: string;
   name?: string;
@@ -195,27 +183,6 @@ export const departmentsAPI = {
     if (!response.ok) {
       throw new Error(`Failed to reject proposal: ${response.statusText}`);
     }
-  },
-
-  /**
-   * Trigger a manual heartbeat check. Subject to the server-side 2-hour
-   * cooldown — a call within the cooldown window resolves with
-   * { skipped: 'cooldown' } instead of running the LLM.
-   */
-  triggerHeartbeat: async (): Promise<{ success: boolean; proposals: Proposal[]; count?: number; skipped?: string }> => {
-    const response = await authFetch('/departments/heartbeat', { method: 'POST' });
-    if (!response.ok) throw new Error('Heartbeat failed');
-    return response.json();
-  },
-
-  /**
-   * Get unified activity feed across all departments
-   */
-  getActivity: async (limit = 50): Promise<ActivityItem[]> => {
-    const response = await authFetch(`/departments/activity?limit=${limit}`);
-    if (!response.ok) throw new Error('Failed to fetch activity');
-    const data = await response.json();
-    return data.activity ?? [];
   },
 
   /**

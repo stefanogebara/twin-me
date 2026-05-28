@@ -20,11 +20,9 @@ const router = express.Router();
 
 // Rate limiters — protect mutating + expensive endpoints from abuse.
 // approvalLimiter: approve/reject — generous, user-driven UI clicks
-// heartbeatLimiter: manual heartbeat — costly LLM, tight cap
-// proposeLimiter: testing endpoint — tight cap
+// proposeLimiter: TalkToTwin DEPT_SUGGEST inline cards — tight cap
 // autonomyLimiter: autonomy/toggle — generous
 const approvalLimiter = userRateLimit(60, 60 * 1000);
-const heartbeatLimiter = userRateLimit(3, 60 * 1000);
 const proposeLimiter = userRateLimit(10, 60 * 1000);
 const autonomyLimiter = userRateLimit(30, 60 * 1000);
 
@@ -134,25 +132,6 @@ router.post('/proposals/:id/reject', authenticateUser, approvalLimiter, async (r
 });
 
 // ========================================================================
-// POST /api/departments/heartbeat — Manual heartbeat trigger
-// ========================================================================
-// H1 fix: the 2-hour cooldown protects against LLM-cost abuse. We no longer
-// honour `skipCooldown` from the client. The service's normal cooldown path
-// is a no-op when the cache key is still warm, so manual triggers within the
-// cooldown window will return { skipped: 'cooldown' }.
-
-router.post('/heartbeat', authenticateUser, heartbeatLimiter, async (req, res) => {
-  try {
-    const { checkDepartmentHeartbeats } = await getDepartmentService();
-    const result = await checkDepartmentHeartbeats(req.user.id);
-    return res.json({ success: true, ...result });
-  } catch (err) {
-    log.error('Manual heartbeat failed', { userId: req.user.id, error: err.message });
-    return res.status(500).json({ success: false, error: 'Heartbeat check failed' });
-  }
-});
-
-// ========================================================================
 // PUT /api/departments/:name/toggle — Enable or disable a department
 // ========================================================================
 
@@ -177,22 +156,6 @@ router.put('/:name/toggle', authenticateUser, autonomyLimiter, async (req, res) 
   } catch (err) {
     log.error('Failed to toggle department', { userId: req.user.id, department: req.params.name, error: err.message });
     return res.status(500).json({ success: false, error: 'Failed to toggle department' });
-  }
-});
-
-// ========================================================================
-// GET /api/departments/activity — Unified activity feed across all departments
-// ========================================================================
-
-router.get('/activity', authenticateUser, async (req, res) => {
-  try {
-    const { limit = 50 } = req.query;
-    const { getAllDepartmentActivity } = await getDepartmentService();
-    const activity = await getAllDepartmentActivity(req.user.id, Math.min(parseInt(limit) || 50, 100));
-    return res.json({ success: true, activity });
-  } catch (err) {
-    log.error('Failed to get unified activity feed', { userId: req.user.id, error: err.message });
-    return res.status(500).json({ success: false, error: 'Failed to fetch activity' });
   }
 });
 
@@ -302,29 +265,8 @@ router.put('/:name/autonomy', authenticateUser, autonomyLimiter, async (req, res
 });
 
 // ========================================================================
-// GET /api/departments/:name/activity — Recent department actions
-// ========================================================================
-
-router.get('/:name/activity', authenticateUser, async (req, res) => {
-  try {
-    const { name } = req.params;
-    const { limit = 20 } = req.query;
-
-    if (!validateDepartmentName(name)) {
-      return res.status(400).json({ success: false, error: `Unknown department: ${name}` });
-    }
-
-    const { getDepartmentActivity } = await getDepartmentService();
-    const activity = await getDepartmentActivity(req.user.id, name, Math.min(parseInt(limit) || 20, 100));
-    return res.json({ success: true, activity });
-  } catch (err) {
-    log.error('Failed to get department activity', { userId: req.user.id, department: req.params.name, error: err.message });
-    return res.status(500).json({ success: false, error: 'Failed to fetch activity' });
-  }
-});
-
-// ========================================================================
-// POST /api/departments/:name/propose — Manually trigger a department proposal (testing)
+// POST /api/departments/:name/propose — Queue a department action
+// (TalkToTwin DEPT_SUGGEST inline approval cards)
 // ========================================================================
 
 router.post('/:name/propose', authenticateUser, proposeLimiter, async (req, res) => {
