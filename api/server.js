@@ -330,6 +330,15 @@ app.use('/api/billing', billingRoutes);
 // Parse text/plain bodies for WhatsApp import (must be before express.json so the stream isn't consumed)
 app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain' }));
 
+// Extension batch route needs a much higher JSON limit. The default 100kb below
+// rejects ~every batch because Instagram collector dumps savedPosts + userPosts
+// + interests + following in one shot, and soul-observer batches many tab
+// visits. We saw continuous 413/500 cycles in prod after v3.9.1 ship until
+// this mount went in. Mounted BEFORE the global express.json so the more
+// specific 5mb limit wins for /api/extension/*.
+// audit-2026-05-28: extension v3.9.1 in prod hit 413 + 500 on every batch.
+app.use('/api/extension', express.json({ limit: '5mb' }));
+
 // Parse JSON bodies — capture raw body for webhook signature verification
 app.use(express.json({
   limit: '100kb',
