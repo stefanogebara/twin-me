@@ -102,21 +102,119 @@ router.post('/proposals/:id/approve', authenticateUser, approvalLimiter, async (
   try {
     const { id } = req.params;
     const { executeApprovedAction } = await getAutonomyService();
-    const { outcomeLinkFromExecution } = await getDepartmentService();
+    const { outcomeLinkFromExecution, outcomeRefFromExecution } = await getDepartmentService();
     const result = await executeApprovedAction(req.user.id, id);
 
-    // Compute the outcome link from the fresh executionResult so the client
-    // can offer a "View draft / View event / View doc" action in the success
-    // toast — no need to refetch /api/inbox just to render the link.
+    // Compute the outcome link and outcome ref from the fresh executionResult
+    // so the client can offer a "View draft / View event / View doc" action
+    // and a 60s Undo action in the success toast without refetching the inbox.
     // result shape depends on the tool: { success, type } for 'suggest',
-    // executeTool() return shape for everything else (which is what
-    // outcomeLinkFromExecution expects).
+    // executeTool() return shape for everything else.
     const outcomeLink = outcomeLinkFromExecution(result, null);
+    const outcomeRef = outcomeRefFromExecution(result, null);
 
-    return res.json({ success: true, result, outcomeLink });
+    return res.json({ success: true, result, outcomeLink, outcomeRef });
   } catch (err) {
     log.error('Failed to approve proposal', { userId: req.user.id, proposalId: req.params.id, error: err.message });
     return res.status(500).json({ success: false, error: 'Failed to approve proposal' });
+  }
+});
+
+// ========================================================================
+// POST /api/departments/proposals/:id/undo — Undo a recently-approved action
+// ========================================================================
+// Server-side enforces a 60-second window from resolved_at so a user who
+// taps Undo well after the toast disappeared can't roll back artifacts that
+// might already be in use (e.g. a draft they already opened in Gmail).
+// On success: deletes the underlying artifact via the tool registry, marks
+// the row user_response='undone'. Tile re-renders with the 'undone' badge.
+
+const UNDO_WINDOW_MS = 60 * 1000;
+const UNDO_TOOLS = {
+  gmail_draft: { tool: 'gmail_draft_delete', paramKey: 'draftId' },
+  calendar_event: { tool: 'calendar_delete_event', paramKey: 'eventId' },
+};
+
+router.post('/proposals/:id/undo', authenticateUser, approvalLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { outcomeRefFromExecution } = await getDepartmentService();
+    const { supabaseAdmin } = await import('../services/database.js');
+    const { executeTool } = await import('../services/toolRegistry.js');
+
+    // Ownership-scoped fetch — refuse if the row doesn't belong to the caller.
+    const { data: action, error: fetchErr } = await supabaseAdmin
+      .from('agent_actions')
+      .select('id, user_response, outcome_data, resolved_at, action_type')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      log.error('Undo fetch failed', { userId, id, error: fetchErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to look up proposal' });
+    }
+    if (!action) {
+      return res.status(404).json({ success: false, error: 'Proposal not found' });
+    }
+    if (action.user_response !== 'accepted') {
+      return res.status(409).json({ success: false, error: 'Only an accepted action can be undone', currentResponse: action.user_response });
+    }
+
+    // 60-second window. Stale undos are rejected to keep the contract honest.
+    const resolvedAt = action.resolved_at ? new Date(action.resolved_at).getTime() : 0;
+    const ageMs = Date.now() - resolvedAt;
+    if (!resolvedAt || ageMs > UNDO_WINDOW_MS) {
+      return res.status(410).json({
+        success: false,
+        error: 'undo_window_expired',
+        ageMs,
+        windowMs: UNDO_WINDOW_MS,
+      });
+    }
+
+    const outcomeRef = outcomeRefFromExecution(action.outcome_data?.executionResult, action.action_type);
+    if (!outcomeRef) {
+      return res.status(400).json({ success: false, error: 'No reversible artifact for this proposal' });
+    }
+    const undoConfig = UNDO_TOOLS[outcomeRef.kind];
+    if (!undoConfig) {
+      return res.status(400).json({ success: false, error: `Undo not supported for kind: ${outcomeRef.kind}` });
+    }
+
+    // Run the delete tool. bypassAutonomy because this is user-initiated.
+    const deleteResult = await executeTool(userId, undoConfig.tool, { [undoConfig.paramKey]: outcomeRef.id }, { bypassAutonomy: true });
+    if (!deleteResult?.success) {
+      log.warn('Undo tool execution failed', { userId, id, tool: undoConfig.tool, error: deleteResult?.error });
+      return res.status(502).json({ success: false, error: 'Failed to undo the action', detail: deleteResult?.error });
+    }
+
+    // Persist the undo. We keep the original outcome_data for audit, just
+    // tag the new state so the tile flips and the action doesn't show as
+    // viewable any more.
+    const { error: updateErr } = await supabaseAdmin
+      .from('agent_actions')
+      .update({
+        user_response: 'undone',
+        outcome_data: {
+          ...(action.outcome_data || {}),
+          undoneAt: new Date().toISOString(),
+          undoneVia: undoConfig.tool,
+        },
+      })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (updateErr) {
+      log.error('Undo state update failed', { userId, id, error: updateErr.message });
+      return res.status(500).json({ success: false, error: 'Action was undone but state could not be recorded' });
+    }
+
+    return res.json({ success: true, actionId: id, response: 'undone', kind: outcomeRef.kind });
+  } catch (err) {
+    log.error('Undo failed', { userId: req.user.id, id: req.params.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to undo' });
   }
 });
 

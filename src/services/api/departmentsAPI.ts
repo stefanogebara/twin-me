@@ -168,6 +168,7 @@ export const departmentsAPI = {
     success: boolean;
     result?: unknown;
     outcomeLink?: { label: string; url: string } | null;
+    outcomeRef?: { kind: 'gmail_draft' | 'calendar_event'; id: string } | null;
   }> => {
     const response = await authFetch(`/departments/proposals/${encodeURIComponent(id)}/approve`, {
       method: 'POST',
@@ -177,6 +178,22 @@ export const departmentsAPI = {
       throw new Error(`Failed to approve proposal: ${response.statusText}`);
     }
     return response.json();
+  },
+
+  /**
+   * Undo a just-approved action within the 60-second window. Deletes the
+   * underlying artifact (gmail draft, calendar event) and marks the row
+   * user_response='undone'. Returns 410 if the window has expired.
+   */
+  undoProposal: async (id: string): Promise<{ success: boolean; kind?: string; error?: string }> => {
+    const response = await authFetch(`/departments/proposals/${encodeURIComponent(id)}/undo`, {
+      method: 'POST',
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: body?.error || `Undo failed: ${response.statusText}` };
+    }
+    return body;
   },
 
   /**

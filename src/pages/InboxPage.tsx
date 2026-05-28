@@ -36,7 +36,8 @@ const filterMatch = (status: InboxItem['status'], filter: InboxFilterValue): boo
   if (filter === 'all') return true;
   if (filter === 'pending') return status === 'pending';
   if (filter === 'done') return status === 'done';
-  if (filter === 'skipped') return status === 'skipped' || status === 'expired';
+  // "Skipped" bucket holds anything the user didn't act on (or rolled back).
+  if (filter === 'skipped') return status === 'skipped' || status === 'expired' || status === 'undone';
   return true;
 };
 
@@ -108,7 +109,13 @@ const InboxPage: React.FC = () => {
         // "View …" action in the toast so the user can verify without
         // scrolling back to the now-done tile.
         const link = response.outcomeLink;
+        const ref = response.outcomeRef;
         if (!isAdvice && link) {
+          // Two complementary toasts: the View one is short-lived for
+          // visual confirmation; the Undo one runs for the full 60s window
+          // so the user has time to react. The server enforces the same
+          // 60s cap so a late tap won't actually roll back an artifact
+          // that's now in use.
           toast.success(`${labelForToast(t)} · ${link.label}`, {
             description: 'Tap to open',
             action: {
@@ -117,6 +124,26 @@ const InboxPage: React.FC = () => {
             },
             duration: 6000,
           });
+          if (ref) {
+            toast('Want to undo?', {
+              description: 'You have 60s to roll this back',
+              action: {
+                label: 'Undo',
+                onClick: async () => {
+                  const undo = await departmentsAPI.undoProposal(id);
+                  if (undo.success) {
+                    toast.success('Undone');
+                    await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+                  } else {
+                    toast.error(undo.error === 'undo_window_expired'
+                      ? 'Too late to undo — already 60s+'
+                      : `Could not undo: ${undo.error || 'unknown error'}`);
+                  }
+                },
+              },
+              duration: 60000,
+            });
+          }
         } else {
           toast.success(isAdvice ? 'Noted' : 'Did it');
         }

@@ -227,6 +227,29 @@ export async function draftEmail(userId, { to, cc, bcc, subject, body, replyToMe
 }
 
 /**
+ * Delete a Gmail draft by draftId. Used by the /inbox undo flow.
+ */
+export async function deleteDraft(userId, draftId) {
+  if (!draftId) return { success: false, error: 'draftId is required' };
+
+  const auth = await getAuthHeaders(userId, 'google_gmail');
+  if (!auth.success) return { success: false, error: auth.error };
+
+  try {
+    await axios.delete(
+      `${GMAIL_BASE}/drafts/${encodeURIComponent(draftId)}`,
+      { headers: auth.headers, timeout: REQUEST_TIMEOUT }
+    );
+
+    log.info('Draft deleted', { userId, draftId });
+    return { success: true, draftId, deleted: true };
+  } catch (err) {
+    log.error('deleteDraft failed', { userId, draftId, error: err.response?.data || err.message });
+    return { success: false, error: err.response?.data?.error?.message || err.message };
+  }
+}
+
+/**
  * Search/list emails using the Gmail API (live, not cached).
  */
 export async function getEmails(userId, { query, maxResults = 10, labelIds } = {}) {

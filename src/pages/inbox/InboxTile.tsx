@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Check, X, Loader2, Clock } from 'lucide-react';
+import { Check, X, Loader2, Clock, Undo2 } from 'lucide-react';
 import type { InboxItem } from '@/services/api/inboxAPI';
 
 interface InboxTileProps {
@@ -197,18 +197,21 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     done: <Check className="w-3 h-3" />,
     skipped: <X className="w-3 h-3" />,
     expired: <Clock className="w-3 h-3" />,
+    undone: <Undo2 className="w-3 h-3" />,
   };
   const COLOR: Record<InboxItem['status'], string> = {
     pending: 'var(--text-muted)',
     done: kind === 'advice' ? 'var(--text-secondary)' : '#10B981',
     skipped: 'var(--text-muted)',
     expired: 'var(--text-muted)',
+    undone: 'var(--text-muted)',
   };
   const LABEL: Record<InboxItem['status'], string> = {
     pending: 'Needs decision',
     done: RESOLVED_DONE_LABEL[kind],
     skipped: 'Skipped',
     expired: 'Expired',
+    undone: 'Undone',
   };
   return (
     <span

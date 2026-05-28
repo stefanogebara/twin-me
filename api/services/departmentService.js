@@ -367,6 +367,43 @@ function extractOutcomeLink(row) {
   return outcomeLinkFromExecution(row?.outcome_data?.executionResult, row?.action_type);
 }
 
+/**
+ * Inner helper that pulls the artifact identifier the inbox /undo route needs
+ * to delete the right object from the underlying platform. Returns a
+ * { kind, id } pair or null when undo isn't supported for this tool/result.
+ *
+ * Currently supported:
+ *   gmail_draft   → { kind: 'gmail_draft', id: data.draft.draftId }
+ *   calendar_create → { kind: 'calendar_event', id: data.eventId }
+ *
+ * Google Doc undo is not yet wired (needs a drive_trash_file tool).
+ */
+export function outcomeRefFromExecution(execResult, tool) {
+  if (!execResult || execResult.success === false) return null;
+  const data = execResult.data || {};
+  const effectiveTool = execResult.tool || tool || null;
+
+  const draftId = data?.draft?.draftId;
+  if (typeof draftId === 'string'
+      && GOOGLE_ID_RE.test(draftId)
+      && (effectiveTool === 'gmail_draft' || effectiveTool === 'draft')) {
+    return { kind: 'gmail_draft', id: draftId };
+  }
+
+  const eventId = data?.eventId;
+  if (typeof eventId === 'string'
+      && GOOGLE_ID_RE.test(eventId)
+      && (effectiveTool === 'calendar_create' || effectiveTool === 'draft')) {
+    return { kind: 'calendar_event', id: eventId };
+  }
+
+  return null;
+}
+
+function extractOutcomeRef(row) {
+  return outcomeRefFromExecution(row?.outcome_data?.executionResult, row?.action_type);
+}
+
 export async function getInboxStream(userId, { cursor = null, limit = 20 } = {}) {
   if (!userId) {
     throw new Error('userId is required');
@@ -462,6 +499,7 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
         departmentColor: config?.color || '#6366F1',
         toolName: row.action_type || null,
         outcomeLink: status === 'done' ? extractOutcomeLink(row) : null,
+        outcomeRef: status === 'done' ? extractOutcomeRef(row) : null,
         createdAt: row.created_at,
         resolvedAt: row.resolved_at,
         sortAt,
@@ -484,6 +522,7 @@ function inboxStatus(userResponse) {
   if (userResponse === 'accepted') return 'done';
   if (userResponse === 'rejected') return 'skipped';
   if (userResponse === 'expired') return 'expired';
+  if (userResponse === 'undone') return 'undone';
   return 'done';
 }
 

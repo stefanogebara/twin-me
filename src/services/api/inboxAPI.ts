@@ -12,7 +12,12 @@ import { authFetch } from './apiBase';
 
 // --- Types ---
 
-export type InboxStatus = 'pending' | 'done' | 'skipped' | 'expired';
+export type InboxStatus = 'pending' | 'done' | 'skipped' | 'expired' | 'undone';
+
+export interface OutcomeRef {
+  kind: 'gmail_draft' | 'calendar_event';
+  id: string;
+}
 
 export interface OutcomeLink {
   label: string;
@@ -29,6 +34,7 @@ export interface InboxItem {
   departmentColor: string;
   toolName: string | null;
   outcomeLink: OutcomeLink | null;
+  outcomeRef: OutcomeRef | null;
   createdAt: string;
   resolvedAt: string | null;
   sortAt: string;

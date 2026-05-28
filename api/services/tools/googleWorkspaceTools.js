@@ -394,6 +394,27 @@ export function registerGoogleWorkspaceTools() {
   });
 
   registerTool({
+    name: 'gmail_draft_delete',
+    platform: 'google_gmail',
+    description: 'Delete a Gmail draft by draftId. Used to undo a recently-created draft from the /inbox flow.',
+    category: 'communication',
+    parameters: {
+      type: 'object',
+      properties: {
+        draftId: { type: 'string', description: 'Gmail draft ID to delete' },
+      },
+      required: ['draftId'],
+    },
+    requiresConnection: true,
+    minAutonomyLevel: 3,
+    skillName: 'communications_actions',
+    executor: async (userId, params) => {
+      const { deleteDraft } = await import('../googleWorkspaceActions.js');
+      return deleteDraft(userId, params.draftId);
+    },
+  });
+
+  registerTool({
     name: 'calendar_delete_event',
     platform: 'google_calendar',
     description: 'Delete a calendar event by event ID.',
