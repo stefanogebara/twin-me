@@ -459,6 +459,7 @@ import soulSignaturePublicRoutes from './routes/soul-signature-public.js';
 import portfolioPublicRoutes from './routes/portfolio-public.js';
 import goalsRoutes from './routes/goals.js';
 import twinDirectivesRoutes from './routes/twin-directives.js';
+import observationsClipRoutes from './routes/observations-clip.js';
 import checkinRoutes from './routes/checkin.js';
 import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
@@ -675,6 +676,7 @@ app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // 
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
+app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)
 app.use('/api/wiki', wikiRoutes); // LLM Wiki compiled knowledge pages (Karpathy pattern)
 app.use('/api/checkin', checkinRoutes); // Daily mood check-in (50 moods)
 app.use('/api/twin', twinPipelineRoutes); // Twin formation pipeline (form, status, profile, evolution)
