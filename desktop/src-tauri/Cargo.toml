@@ -28,11 +28,17 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-feature
 # in clip_indexer.rs + sync.rs for tokio::time::sleep. Add it explicitly so the
 # name resolves in our crate scope. "time" + "rt" cover our sleep + spawn needs.
 tokio = { version = "1", features = ["time", "rt", "macros"] }
+# Phase 3: parse the JWT the web app writes to <config_dir>/twinme/auth.toml.
+toml = "0.8"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.1"
 core-foundation = "0.10"
 core-graphics = "0.24"
+
+[dev-dependencies]
+mockito = "1.5"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "test-util"] }
 
 [profile.release]
 panic = "abort"
