@@ -736,9 +736,9 @@ YOUR TASK: Based on the data above, output a JSON array of 2-3 specific proposal
 
 OUTPUT FORMAT (must be valid JSON):
 [
-  {"department":"communications","description":"Draft a weekly triage summary email to yourself","toolName":"gmail_draft","params":{"to":"user@example.com","subject":"Weekly Inbox Triage: 37k unread","body":"Here's a plan to tackle the backlog: batch 30 min/day on oldest unread, unsubscribe from 3 Substacks first."},"priority":3,"reasoning":"User has 37k unread emails, 92% unread rate indicates severe backlog"},
-  {"department":"scheduling","description":"Block 90 minutes of deep work tomorrow morning","toolName":"calendar_create","params":{"summary":"Deep work block","start":"${tomorrowDate}T09:00:00","end":"${tomorrowDate}T10:30:00"},"priority":4,"reasoning":"No focus blocks visible in recent calendar data"},
-  {"department":"social","description":"Review relationship with top email senders — 3 are Substack newsletters","toolName":"suggest","params":{},"priority":6,"reasoning":"Most frequent senders are newsletters, not real people"}
+  {"department":"communications","description":"Draft a triage email to unsubscribe from 5 Substack newsletters in your inbox","toolName":"gmail_draft","params":{"to":"user@example.com","subject":"Inbox Triage: 39,723 unread, unsubscribe targets","body":"Top promotional senders this week: substack.com, github.com, vercel.com. A 15-minute unsubscribe sprint on these three would cut future inflow ~40%."},"priority":3,"reasoning":"Gmail shows 39,723 unread (92% unread rate); top 3 senders are newsletters not people"},
+  {"department":"scheduling","description":"Block 90 minutes for deep work tomorrow at 9-10:30am","toolName":"calendar_create","params":{"summary":"Deep work","start":"${tomorrowDate}T09:00:00","end":"${tomorrowDate}T10:30:00"},"priority":4,"reasoning":"Calendar has zero focus blocks this week and your Whoop recovery is above 75% three days running"},
+  {"department":"health","description":"Schedule a low-strain recovery day tomorrow given Whoop recovery 42%","toolName":"suggest","params":{},"priority":5,"reasoning":"Whoop reports recovery 42% with SpO2 89.5% — both indicate impaired recovery overnight"}
 ]
 
 RULES:
@@ -754,9 +754,28 @@ RULES:
    - For modifying existing events, use "suggest" — you don't have event IDs.
 6. For Content → toolName: "docs_create" (only if you have a concrete title), else "suggest"
    - docs_create params MUST include: title (string). Without it, use "suggest".
-7. Description should be ONE sentence, specific to the data
-8. reasoning should cite the specific observation that triggered the suggestion
-9. Return an EMPTY array [] ONLY if there is genuinely no signal in the data
+
+7. The "description" field is the user-facing tile title. It MUST:
+   - Start with a concrete verb: Draft, Block, Schedule, Create, Compile, Send, Reply, Add, Open, Review (only if there is a concrete artifact to review)
+   - Be 8-20 words
+   - Mention at least one specific number, name, or entity from the observations (e.g. "39k unread", "Whoop recovery 42%", "GitHub @vercel/next")
+   - NEVER use hedging words: "consider", "think about", "maybe", "could", "might want to", "perhaps"
+   GOOD:  "Draft a 15-minute Inbox Zero plan to triage 39,723 unread emails"
+   GOOD:  "Block 90 minutes tomorrow morning for GitHub PR review"
+   BAD:   "Consider tackling your email backlog" (hedging, no number)
+   BAD:   "Communications department action" (placeholder, not specific)
+   BAD:   "Review your relationships with newsletter senders" (vague verb, no number)
+
+8. The "reasoning" field is the user-facing evidence line ("Because: …"). It MUST:
+   - Cite at least one specific metric, count, or named entity from the observations
+   - Be 10-25 words
+   - Identify the source: "Gmail shows…", "Whoop reports…", "Calendar has…", "Spotify played…"
+   GOOD:  "Gmail shows 39,723 unread (92% unread rate); GitHub and Substack dominate top senders this week"
+   GOOD:  "Whoop recovery dropped to 42% with SpO2 89.5% — both indicate impaired recovery overnight"
+   BAD:   "User has a lot of emails" (no number, no source)
+   BAD:   "Backlog is severe" (no evidence)
+
+9. Return an EMPTY array [] ONLY if there is genuinely no signal in the data. Do NOT emit a proposal you cannot back with a specific observation citation. A skipped run is better than a vague suggestion.
 
 GO. Return only the JSON array, no other text:`;
 
