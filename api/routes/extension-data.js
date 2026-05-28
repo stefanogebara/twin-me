@@ -350,7 +350,22 @@ router.post('/batch', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    log.error(`Batch sync error:`, error);
+    // audit-2026-05-28: surface the exception class + message + stack so we can
+    // see which code path threw. The supabase-insert path has its own structured
+    // log; this outer catch fires for everything else (record-mapping throws,
+    // post-success code paths, etc.). Without these fields we just see "Batch
+    // sync error" in the Vercel UI and have to guess.
+    log.error('Batch sync error', {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack?.split('\n').slice(0, 4).join(' | '),
+      eventCount: req.body?.events?.length || 0,
+      firstEventKeys: req.body?.events?.[0]
+        ? Object.keys(req.body.events[0]).slice(0, 12)
+        : [],
+      requestPlatform: req.body?.platform || null,
+    });
     res.status(500).json({
       error: 'Batch sync failed',
       ...(process.env.NODE_ENV !== 'production' && { message: error.message })
