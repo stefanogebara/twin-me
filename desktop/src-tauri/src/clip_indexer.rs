@@ -28,6 +28,14 @@ pub async fn run() {
     loop {
         tokio::time::sleep(POLL_INTERVAL).await;
 
+        // Honor the user's pause toggle before any window polling. While
+        // paused the indexer does no work — it just idles on the 5s tick.
+        match clips::is_paused(&conn) {
+            Ok(true) => continue,
+            Ok(false) => {}
+            Err(err) => eprintln!("[indexer] is_paused: {err}"),
+        }
+
         let window = active_window::current();
 
         // Skip if no active window detected (Phase 2 default — see
