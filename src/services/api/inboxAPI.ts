@@ -14,6 +14,11 @@ import { authFetch } from './apiBase';
 
 export type InboxStatus = 'pending' | 'done' | 'skipped' | 'expired';
 
+export interface OutcomeLink {
+  label: string;
+  url: string;
+}
+
 export interface InboxItem {
   id: string;
   status: InboxStatus;
@@ -23,6 +28,7 @@ export interface InboxItem {
   department: string;
   departmentColor: string;
   toolName: string | null;
+  outcomeLink: OutcomeLink | null;
   createdAt: string;
   resolvedAt: string | null;
   sortAt: string;

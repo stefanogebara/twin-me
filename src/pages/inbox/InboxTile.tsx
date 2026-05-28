@@ -140,6 +140,20 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
             <>
               <span style={{ color: 'var(--text-muted)' }}>·</span>
               <ResolvedBadge status={item.status} kind={kind} />
+              {item.status === 'done' && item.outcomeLink && (
+                <>
+                  <span style={{ color: 'var(--text-muted)' }}>·</span>
+                  <a
+                    href={item.outcomeLink.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] underline-offset-2 hover:underline transition-opacity"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {item.outcomeLink.label}
+                  </a>
+                </>
+              )}
             </>
           )}
         </div>

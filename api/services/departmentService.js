@@ -271,6 +271,42 @@ export async function getPendingProposals(userId) {
  * @param {number} opts.limit         — page size, max 50, default 20
  * @returns {Promise<{ items: Array, nextCursor: string|null }>}
  */
+/**
+ * Pull a user-facing link to the artifact a tool produced (Gmail draft URL,
+ * Google Calendar event URL, Google Doc URL) out of an agent_actions row's
+ * outcome_data. Returns { label, url } or null when there's nothing to link to.
+ *
+ * The shape comes from the tool registry execution results:
+ *   gmail_draft   → executionResult.data.draft.{draftId, messageId}
+ *   calendar_create → executionResult.data.htmlLink
+ *   docs_create   → executionResult.data.{url|webViewLink|documentId}
+ */
+function extractOutcomeLink(row) {
+  const exec = row?.outcome_data?.executionResult;
+  if (!exec || exec.success === false) return null;
+  const data = exec.data || {};
+  const tool = exec.tool || row?.action_type || null;
+
+  // Gmail draft → build a stable URL from messageId
+  const messageId = data?.draft?.messageId;
+  if (messageId && (tool === 'gmail_draft' || tool === 'draft')) {
+    return { label: 'View draft', url: `https://mail.google.com/mail/u/0/#drafts/${messageId}` };
+  }
+
+  // Calendar event → htmlLink already a full URL
+  if (typeof data?.htmlLink === 'string' && data.htmlLink.startsWith('http')) {
+    return { label: 'View event', url: data.htmlLink };
+  }
+
+  // Google Doc — be permissive on which field the tool used
+  const docUrl = data?.url || data?.webViewLink || (data?.documentId ? `https://docs.google.com/document/d/${data.documentId}` : null);
+  if (docUrl) {
+    return { label: 'View doc', url: docUrl };
+  }
+
+  return null;
+}
+
 export async function getInboxStream(userId, { cursor = null, limit = 20 } = {}) {
   if (!userId) {
     throw new Error('userId is required');
@@ -365,6 +401,7 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
         department,
         departmentColor: config?.color || '#6366F1',
         toolName: row.action_type || null,
+        outcomeLink: status === 'done' ? extractOutcomeLink(row) : null,
         createdAt: row.created_at,
         resolvedAt: row.resolved_at,
         sortAt,
