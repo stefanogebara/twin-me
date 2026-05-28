@@ -34,8 +34,10 @@ Phase 1 (this scaffold) ships the wrapper. Future phases:
 ```
 desktop/
 ├── package.json          # @tauri-apps/cli wrapper
-├── dist/
-│   └── index.html        # stub frontend (window URL is set to https://twinme.me directly)
+├── www/
+│   └── index.html        # stub frontend (window URL is set to https://twinme.me directly).
+│                         # Folder named "www" not "dist" so root .gitignore
+│                         # doesn't filter it — Tauri needs frontendDist in CI.
 └── src-tauri/
     ├── Cargo.toml
     ├── build.rs
