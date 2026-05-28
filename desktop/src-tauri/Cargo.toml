@@ -1,0 +1,30 @@
+[package]
+name = "twinme-desktop"
+version = "0.1.0"
+description = "TwinMe Desktop - your AI twin, always one keystroke away"
+authors = ["TwinMe <founders@twinme.me>"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "twinme_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+incremental = false
+opt-level = "s"
+strip = true

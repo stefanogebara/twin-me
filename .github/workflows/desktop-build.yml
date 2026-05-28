@@ -1,0 +1,137 @@
+name: TwinMe Desktop · build
+
+# Phase 1 CI: builds the Tauri 2 shell on push to main + on tags.
+# Signs/notarizes when secrets are present (skipped on PRs).
+#
+# Required repo secrets for signing/notarization (add when ready to ship):
+#   APPLE_CERTIFICATE                 base64 of Developer ID Application .p12
+#   APPLE_CERTIFICATE_PASSWORD        password for the .p12
+#   APPLE_SIGNING_IDENTITY            "Developer ID Application: <Name> (<TEAMID>)"
+#   APPLE_ID                          Apple ID email
+#   APPLE_APP_SPECIFIC_PASSWORD       app-specific password from appleid.apple.com
+#   APPLE_TEAM_ID                     10-char team ID
+#   TAURI_SIGNING_PRIVATE_KEY         ed25519 key for auto-updater (optional)
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD password for the key
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-build.yml'
+    tags:
+      - 'desktop-v*'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { name: 'macOS · Apple Silicon', runner: 'macos-14', target: 'aarch64-apple-darwin' }
+          - { name: 'macOS · Intel',         runner: 'macos-13', target: 'x86_64-apple-darwin'  }
+          - { name: 'Windows · x64',         runner: 'windows-latest', target: 'x86_64-pc-windows-msvc' }
+          - { name: 'Linux · x64',           runner: 'ubuntu-22.04', target: 'x86_64-unknown-linux-gnu' }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux deps (Ubuntu)
+        if: matrix.platform.runner == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            libssl-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            desktop/src-tauri/target
+          key: ${{ matrix.platform.runner }}-cargo-${{ hashFiles('desktop/src-tauri/Cargo.lock', 'desktop/src-tauri/Cargo.toml') }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: desktop/package.json
+
+      - name: Install npm deps
+        working-directory: desktop
+        run: npm install
+
+      # Build UNSIGNED on every push + PR. Signing happens on tag pushes
+      # (next step). tauri-action refuses to skip signing when APPLE_CERTIFICATE
+      # is set-but-empty — so we only inject the signing env vars when secrets
+      # actually exist (tag push, after secrets are configured in repo settings).
+      - name: Build TwinMe Desktop (unsigned)
+        if: "!startsWith(github.ref, 'refs/tags/desktop-v')"
+        working-directory: desktop
+        # No --bundles: each platform produces its native default targets
+        # (Mac: .app/.dmg; Win: .msi/.nsis; Linux: .deb/.appimage). Without
+        # APPLE_SIGNING_IDENTITY env, tauri skips codesign instead of erroring.
+        run: npm run build -- --target ${{ matrix.platform.target }}
+
+      - name: Build TwinMe Desktop (signed, tag releases)
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        working-directory: desktop
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run build -- --target ${{ matrix.platform.target }}
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: twinme-desktop-${{ matrix.platform.target }}
+          path: |
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.dmg
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.msi
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.exe
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.AppImage
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.deb
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Attach to GitHub Release (tag pushes only)
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.dmg
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.msi
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.exe
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.AppImage
+            desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle/**/*.deb
+          fail_on_unmatched_files: false
