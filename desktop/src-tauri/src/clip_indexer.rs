@@ -71,9 +71,19 @@ pub async fn run() {
                     // content is not part of ActiveWindow equality, so re-capturing
                     // would not retrigger change detection anyway, and once-at-open
                     // keeps cost bounded. Non-macOS returns None (no-op).
-                    if let Some(text) = active_window::focused_content() {
-                        if let Err(err) = clips::set_content(&conn, id, &text) {
-                            eprintln!("[clip_indexer] set_content({id}) failed: {err}");
+                    //
+                    // focused_content() re-derives the currently-focused app
+                    // independently, so re-verify it's STILL the same non-excluded
+                    // app we just vetted before storing — closes a TOCTOU window
+                    // where focus could flip to an excluded app between insert and
+                    // content read.
+                    if let Some((content_app, text)) = active_window::focused_content() {
+                        let still_ok = content_app == window.app_name
+                            && !clips::is_excluded(&conn, &content_app).unwrap_or(true); // fail closed on DB error
+                        if still_ok {
+                            if let Err(err) = clips::set_content(&conn, id, &text) {
+                                eprintln!("[clip_indexer] set_content({id}) failed: {err}");
+                            }
                         }
                     }
                     current_clip_id = Some(id);

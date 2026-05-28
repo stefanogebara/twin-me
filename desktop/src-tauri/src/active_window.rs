@@ -64,7 +64,9 @@ mod macos_impl {
 
             // TODO(phase-4): wrap the app/window AXUIElementRefs in a TCFType so
             // their +1 retain is released. They leak one ref per poll today —
-            // acceptable for the 5s indexer loop in Phase 3.
+            // acceptable for the 5s indexer loop in Phase 3. focused_content()
+            // has the same leak (its sys/app/window refs), bounded per-call (not
+            // per-node, since child refs are read get-rule and owned by the array).
             Some(super::ActiveWindow {
                 app_name,
                 title: window_title,
@@ -99,17 +101,23 @@ mod macos_impl {
     // surface: we never walk an unbounded tree or hoover up an entire document.
     const MAX_DEPTH: usize = 8;
     const MAX_NODES: usize = 500;
-    const MAX_CHARS: usize = 8000;
+    // String::len() is a byte count, not a char count, so this caps bytes.
+    const MAX_BYTES: usize = 8000;
 
     /// Extract a bounded snapshot of the text *inside* the focused window so a
     /// clip carries content, not just its title. macOS-only this phase.
     ///
+    /// Returns `(app_name, content)` — the app name comes from the SAME focused
+    /// application element we then walk, so the caller can re-verify the content
+    /// source against the exclude list (closing a focus-flip TOCTOU window)
+    /// before storing it.
+    ///
     /// Walks the focused window's Accessibility subtree iteratively (no deep
     /// recursion) collecting `kAXValue`/`kAXTitle` strings, hard-capped at
-    /// MAX_DEPTH levels, MAX_NODES visited elements, and MAX_CHARS of text.
+    /// MAX_DEPTH levels, MAX_NODES visited elements, and ≤ 8000 bytes of text.
     /// Returns None when AX permission is absent, there's no focused window, or
     /// nothing textual is found — the indexer then leaves `content` NULL.
-    pub fn focused_content() -> Option<String> {
+    pub fn focused_content() -> Option<(String, String)> {
         // SAFETY: every raw pointer from AX/CF calls is null-checked before use.
         // The children CFArrayRef is wrapped under the create rule so the array's
         // +1 retain is released on Drop. Child element pointers are read with the
@@ -127,6 +135,11 @@ mod macos_impl {
                 return None;
             }
 
+            // Read the app name off the SAME focused-app element we're about to
+            // walk for content, so the name the caller re-checks against the
+            // exclude list truly identifies the content's source.
+            let app_name = copy_attr_string(app_elem, kAXTitleAttribute)?;
+
             let window = copy_attr_value(app_elem, kAXFocusedWindowAttribute)? as AXUIElementRef;
             if window.is_null() {
                 return None;
@@ -139,7 +152,7 @@ mod macos_impl {
             let mut worklist: Vec<(AXUIElementRef, usize)> = vec![(window, 0)];
 
             while let Some((elem, depth)) = worklist.pop() {
-                if nodes >= MAX_NODES || acc.len() >= MAX_CHARS {
+                if nodes >= MAX_NODES || acc.len() >= MAX_BYTES {
                     break;
                 }
                 nodes += 1;
@@ -148,7 +161,7 @@ mod macos_impl {
                 // then AXTitle (labels, headings). Skip blanks.
                 push_text(&mut acc, copy_attr_string(elem, kAXValueAttribute));
                 push_text(&mut acc, copy_attr_string(elem, kAXTitleAttribute));
-                if acc.len() >= MAX_CHARS {
+                if acc.len() >= MAX_BYTES {
                     break;
                 }
 
@@ -175,9 +188,9 @@ mod macos_impl {
                 }
             }
 
-            if acc.len() > MAX_CHARS {
+            if acc.len() > MAX_BYTES {
                 // Truncate on a char boundary so we never split a UTF-8 sequence.
-                let mut cut = MAX_CHARS;
+                let mut cut = MAX_BYTES;
                 while cut > 0 && !acc.is_char_boundary(cut) {
                     cut -= 1;
                 }
@@ -186,9 +199,10 @@ mod macos_impl {
 
             let trimmed = acc.trim();
             if trimmed.is_empty() {
+                // We read the app name but there's no content to store anyway.
                 None
             } else {
-                Some(trimmed.to_string())
+                Some((app_name, trimmed.to_string()))
             }
         }
     }
@@ -492,15 +506,18 @@ pub fn current() -> Option<ActiveWindow> {
 }
 
 /// Bounded snapshot of the text inside the focused window, captured once at
-/// clip-open. macOS-only this phase; every other platform yields None so the
-/// indexer simply leaves the clip's `content` NULL.
+/// clip-open, paired with the name of the app it was read from. macOS-only this
+/// phase; every other platform yields None so the indexer simply leaves the
+/// clip's `content` NULL. The returned app name lets the indexer re-verify the
+/// content's source against the exclude list before storing it (closing a
+/// focus-flip TOCTOU window between the clip insert and this read).
 #[cfg(target_os = "macos")]
-pub fn focused_content() -> Option<String> {
+pub fn focused_content() -> Option<(String, String)> {
     macos_impl::focused_content()
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn focused_content() -> Option<String> {
+pub fn focused_content() -> Option<(String, String)> {
     None
 }
 
