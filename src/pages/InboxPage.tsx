@@ -89,7 +89,13 @@ const InboxPage: React.FC = () => {
       setActionLoadingId(id);
       try {
         await departmentsAPI.approveProposal(id);
-        toast.success('Did it');
+        // Match the tile copy: "Noted" for advice (toolName=suggest),
+        // "Did it" for tool-executing proposals. We don't have the
+        // toolName at this scope cheaply; fall back to "Done".
+        const item = items.find((i) => i.id === id);
+        const t = (item?.toolName || '').toLowerCase();
+        const isAdvice = t === 'suggest' || t === 'suggestion';
+        toast.success(isAdvice ? 'Noted' : 'Did it');
         await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       } catch (err) {
         toast.error('Could not run this action. Try again?');
@@ -97,7 +103,7 @@ const InboxPage: React.FC = () => {
         setActionLoadingId(null);
       }
     },
-    [queryClient],
+    [queryClient, items],
   );
 
   const handleSkip = useCallback(

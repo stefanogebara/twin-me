@@ -1,13 +1,14 @@
 /**
  * InboxTile
  *
- * Single proposal in the /inbox stream. Renders 4 states:
- *   - pending: shows "Do it" + "Skip" actions
- *   - done   : shows ✓ "Did it" badge (user approved)
- *   - skipped: shows × "Skipped" badge
- *   - expired: shows muted "Expired" badge
+ * Single proposal in the /inbox stream. Two kinds:
+ *   - advice: toolName=suggest (or suggestion). Clicking "Got it" only
+ *             acknowledges — the twin makes no API call.
+ *   - action: toolName=gmail_draft, calendar_create, docs_create, etc.
+ *             Clicking "Do it" runs the underlying tool (saves draft to
+ *             Gmail, adds event to Calendar, creates a Doc).
  *
- * Phase 2 of the /departments → /inbox collapse.
+ * Resolved tile shows "Noted" badge for advice, "Did it" for action.
  */
 
 import React from 'react';
@@ -33,15 +34,47 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-const STATUS_LABEL: Record<InboxItem['status'], string> = {
-  pending: 'Needs decision',
-  done: 'Did it',
-  skipped: 'Skipped',
-  expired: 'Expired',
+type ProposalKind = 'advice' | 'gmail' | 'calendar' | 'doc' | 'action';
+
+function kindOf(toolName: string | null): ProposalKind {
+  if (!toolName) return 'action';
+  const t = toolName.toLowerCase();
+  if (t === 'suggest' || t === 'suggestion') return 'advice';
+  if (t.includes('mail') || t === 'draft') return 'gmail';
+  if (t.includes('calendar') || t.includes('event')) return 'calendar';
+  if (t.includes('doc')) return 'doc';
+  return 'action';
+}
+
+const PRIMARY_LABEL: Record<ProposalKind, string> = {
+  advice: 'Got it',
+  gmail: 'Do it',
+  calendar: 'Do it',
+  doc: 'Do it',
+  action: 'Do it',
+};
+
+const OUTCOME_HINT: Record<ProposalKind, string | null> = {
+  advice: null,
+  gmail: 'Will save a draft in Gmail',
+  calendar: 'Will add this to your calendar',
+  doc: 'Will create a Google Doc',
+  action: null,
+};
+
+const RESOLVED_DONE_LABEL: Record<ProposalKind, string> = {
+  advice: 'Noted',
+  gmail: 'Draft saved',
+  calendar: 'Added to calendar',
+  doc: 'Doc created',
+  action: 'Did it',
 };
 
 const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSkip }) => {
   const isPending = item.status === 'pending';
+  const kind = kindOf(item.toolName);
+  const primaryLabel = PRIMARY_LABEL[kind];
+  const outcomeHint = OUTCOME_HINT[kind];
 
   return (
     <div
@@ -76,6 +109,16 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
           </p>
         )}
 
+        {/* Outcome hint — only for action tiles in pending state */}
+        {isPending && outcomeHint && (
+          <p
+            className="text-[11px] mt-1.5"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {outcomeHint}
+          </p>
+        )}
+
         <div className="flex items-center gap-2 mt-2">
           <span
             className="text-[11px]"
@@ -86,7 +129,7 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
           {!isPending && (
             <>
               <span style={{ color: 'var(--text-muted)' }}>·</span>
-              <ResolvedBadge status={item.status} />
+              <ResolvedBadge status={item.status} kind={kind} />
             </>
           )}
         </div>
@@ -100,14 +143,14 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
             disabled={isLoading}
             className="flex items-center gap-1 px-3 py-1.5 rounded-[100px] text-[12px] font-medium transition-opacity hover:opacity-90 active:scale-[0.97]"
             style={{ background: '#F5F5F4', color: '#110f0f' }}
-            aria-label={`Approve: ${item.title}`}
+            aria-label={`${primaryLabel}: ${item.title}`}
           >
             {isLoading ? (
               <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
               <Check className="w-3 h-3" />
             )}
-            Do it
+            {primaryLabel}
           </button>
           <button
             onClick={() => onSkip(item.id)}
@@ -124,7 +167,7 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
   );
 };
 
-const ResolvedBadge: React.FC<{ status: InboxItem['status'] }> = ({ status }) => {
+const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind }> = ({ status, kind }) => {
   const ICON: Record<InboxItem['status'], React.ReactNode> = {
     pending: null,
     done: <Check className="w-3 h-3" />,
@@ -133,9 +176,15 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status'] }> = ({ status }) =>
   };
   const COLOR: Record<InboxItem['status'], string> = {
     pending: 'var(--text-muted)',
-    done: '#10B981',
+    done: kind === 'advice' ? 'var(--text-secondary)' : '#10B981',
     skipped: 'var(--text-muted)',
     expired: 'var(--text-muted)',
+  };
+  const LABEL: Record<InboxItem['status'], string> = {
+    pending: 'Needs decision',
+    done: RESOLVED_DONE_LABEL[kind],
+    skipped: 'Skipped',
+    expired: 'Expired',
   };
   return (
     <span
@@ -143,7 +192,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status'] }> = ({ status }) =>
       style={{ color: COLOR[status] }}
     >
       {ICON[status]}
-      {STATUS_LABEL[status]}
+      {LABEL[status]}
     </span>
   );
 };
