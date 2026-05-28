@@ -48,7 +48,11 @@ pub fn open() -> Result<Connection> {
     Ok(conn)
 }
 
-fn init_schema(conn: &Connection) -> Result<()> {
+/// Create every table the desktop app needs in the shared clips.db.
+/// `pub(crate)` so sibling modules (e.g. `meetings`) can build the same
+/// schema in their in-memory test connections — all tables live in this one
+/// DB so `open()` hands back a connection that has them all.
+pub(crate) fn init_schema(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         r#"
         CREATE TABLE IF NOT EXISTS clips (
@@ -72,6 +76,16 @@ fn init_schema(conn: &Connection) -> Result<()> {
           key TEXT PRIMARY KEY,
           value TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS meetings (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          platform TEXT NOT NULL,
+          title TEXT,
+          started_at INTEGER NOT NULL,
+          ended_at INTEGER,
+          synced_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS meetings_unsynced ON meetings(synced_at);
         "#,
     )?;
     Ok(())

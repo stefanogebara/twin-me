@@ -18,6 +18,7 @@ mod active_window;
 mod clip_indexer;
 mod clips;
 mod config;
+mod meetings;
 mod sync;
 
 use tauri::{
