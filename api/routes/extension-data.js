@@ -307,7 +307,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
     // NULLS NOT DISTINCT: a null source_url shares one bucket per (user,platform,type).
     const dedupedByKey = new Map();
     for (const rec of records) {
-      const key = `${rec.user_id}|${rec.platform}|${rec.data_type}|${rec.source_url ?? ' '}`;
+      const key = `${rec.user_id}|${rec.platform}|${rec.data_type}|${rec.source_url ?? ''}`;
       dedupedByKey.set(key, rec); // later entries overwrite earlier → newest snapshot wins
     }
     const dedupedRecords = [...dedupedByKey.values()];
@@ -326,7 +326,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
     // happens to collide (URL revisits, or null for events without a URL),
     // UPDATE the row instead of throwing. raw_data + extracted_at get
     // refreshed to the most recent observation.
-    const { data, error } = await supabaseAdmin
+    let { data, error } = await supabaseAdmin
       .from('user_platform_data')
       .upsert(dedupedRecords, {
         onConflict: 'user_id,platform,data_type,source_url',
@@ -335,33 +335,59 @@ router.post('/batch', authenticateUser, async (req, res) => {
       .select();
 
     if (error) {
-      // audit-2026-05-28: Vercel UI was truncating the error object so the
-      // root cause stayed invisible across multiple sessions. Surface the
-      // discrete fields the postgrest driver exposes so we can read the
-      // pgError code/message/details/hint directly in the log table.
-      // Also dump the record shapes we attempted to insert so we can spot
-      // missing required columns or type mismatches.
-      log.error('Batch insert failed', {
+      // audit-2026-05-28: the all-or-nothing bulk upsert 500'd on the client's
+      // accumulated backlog — a single un-storable row sinks the whole statement,
+      // so the extension retried the poisoned payload forever (it never got a 2xx
+      // to clear its queue). Log the bulk pgError, then fall back to per-row
+      // upserts: each bad row is isolated + logged with its EXACT code (the real
+      // root-cause surface), every good row lands, and the client gets a 2xx.
+      log.warn('Bulk upsert failed — falling back to per-row isolation', {
         code: error.code,
         message: error.message,
         details: error.details,
         hint: error.hint,
         statusCode: error.statusCode,
         recordCount: dedupedRecords.length,
-        firstRecord: {
-          user_id: dedupedRecords[0]?.user_id,
-          platform: dedupedRecords[0]?.platform,
-          data_type: dedupedRecords[0]?.data_type,
-          extracted_at: dedupedRecords[0]?.extracted_at,
-          raw_data_keys: dedupedRecords[0]?.raw_data && typeof dedupedRecords[0].raw_data === 'object'
-            ? Object.keys(dedupedRecords[0].raw_data).slice(0, 20)
-            : typeof dedupedRecords[0]?.raw_data,
-          raw_data_size_chars: dedupedRecords[0]?.raw_data
-            ? JSON.stringify(dedupedRecords[0].raw_data).length
-            : 0,
-        },
       });
-      throw error;
+
+      const landed = [];
+      const rowErrors = [];
+      for (const rec of dedupedRecords) {
+        const { data: rowData, error: rowErr } = await supabaseAdmin
+          .from('user_platform_data')
+          .upsert(rec, {
+            onConflict: 'user_id,platform,data_type,source_url',
+            ignoreDuplicates: false,
+          })
+          .select('id');
+        if (rowErr) {
+          rowErrors.push({
+            code: rowErr.code,
+            message: (rowErr.message || '').slice(0, 150),
+            data_type: rec.data_type,
+            source_url: (rec.source_url || '').slice(0, 100),
+          });
+        } else if (rowData && rowData[0]) {
+          landed.push(rowData[0]);
+        }
+      }
+
+      if (rowErrors.length > 0) {
+        log.error('Per-row upsert isolated failing rows', {
+          failed: rowErrors.length,
+          landed: landed.length,
+          total: dedupedRecords.length,
+          samples: rowErrors.slice(0, 10),
+        });
+      }
+
+      // Nothing landed => systemic failure (DB/auth/transient), not a few poison
+      // rows. Re-throw so the client retries later instead of dropping the batch.
+      if (landed.length === 0) {
+        throw error;
+      }
+
+      data = landed;
     }
 
     log.info(`Batch inserted ${data.length} events`);
