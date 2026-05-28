@@ -146,6 +146,7 @@ mobile/app.json.bak
 !browser-extension/**/*.png
 !src/**/*.png
 !src/**/*.jpeg
+!desktop/**/*.png
 
 # Test screenshots directories
 test-screenshots/
