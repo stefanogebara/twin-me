@@ -6,7 +6,7 @@
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
-    "frontendDist": "../dist",
+    "frontendDist": "../www",
     "devUrl": "https://twinme.me"
   },
   "app": {

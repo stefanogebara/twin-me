@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TwinMe</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #13121a;
+    color: #f5f5f4;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .loading { text-align: center; opacity: 0.6; }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-top-color: #c17e2c;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="loading">
+  <div class="spinner"></div>
+  <div>Opening TwinMe&hellip;</div>
+</div>
+<script>
+  // Stub frontend — Tauri config points window.url to https://twinme.me directly.
+  // This file only renders if the URL load fails or during build packaging.
+  window.location.replace('https://twinme.me');
+</script>
+</body>
+</html>
