@@ -22,8 +22,9 @@ Built on **Tauri 2** (Rust shell + system webview). ~10 MB binary.
 | **1 — Shell** | merged (PR #46) | Webview + tray + hotkey + notifications |
 | **2 — Clips index** | merged (PR #47) | Local SQLite + 5s poll + per-app exclude — stub Accessibility |
 | **3 — Real Accessibility + sync** | merged (PR #48) | macOS AXUIElement focused app/window, real HTTPS sync, tray Pause/Resume, backend endpoint |
-| **4 — Cross-platform + content + keyring** | this PR | Windows + Linux(X11) active-window, macOS in-window content extraction, OS keyring, tray exclude controls |
-| 5 — Meeting Notes | later | Mic + local Whisper + Note/Summary/Transcript views |
+| **4 — Cross-platform + content + keyring** | merged (PR #49) | Windows + Linux(X11) active-window, macOS in-window content extraction, OS keyring, tray exclude controls |
+| **5A — Meeting detection** | this PR | Detect Zoom/Meet/Teams/Webex/Slack-huddle/FaceTime from active-window; log sessions → backend observations. No audio. |
+| 5B — Meeting transcription | later | Mic (cpal) + Whisper (local vs server — TBD) + Note/Summary/Transcript |
 | 6 — Hummingbird | later | Floating compact summoned by hotkey |
 | 7 — Polish | later | Auto-update, signed bundles, real icons, onboarding |
 
@@ -86,7 +87,7 @@ NOT in (Phase 4):
 
 To verify the loop on a Mac: run `npm run server:dev`, write a JWT to `~/.config/twinme/auth.toml` as `token = "<jwt>"`, `export TWINME_SYNC_ENDPOINT=http://127.0.0.1:3004/api/observations/clip`, then `cd desktop && npm run dev`. Grant Accessibility in System Settings, restart, and watch for `[sync] uploaded N clips` after ~2 min.
 
-### Phase 4 — Cross-platform capture + content + keyring (this PR)
+### Phase 4 — Cross-platform capture + content + keyring (merged, PR #49)
 
 In:
 - **Windows active-window**: `GetForegroundWindow` + `GetWindowTextW` (title) + `QueryFullProcessImageNameW` (owning exe → app name), via the `windows` crate.
@@ -100,6 +101,18 @@ NOT in (Phase 5+):
 - In-window content extraction on Windows / Linux (title only there; macOS-only this phase)
 - A bundled local settings window (the remote webview can't call Tauri IPC, so exclusion UI is native-tray)
 - Automatic webview → keyring token write (the token is still placed manually / via the dev flow; keyring is the storage, the write-path bridge is a follow-up)
+
+### Phase 5A — Meeting detection (this PR)
+
+In:
+- **Detection**: `meetings::classify_meeting(app, title)` — a pure, unit-tested heuristic mapping the foreground window to a platform (Zoom / Microsoft Teams / Webex / FaceTime / Slack Huddle / Google Meet). Browser-based Meet keys off the window title; Slack requires "huddle" in the title.
+- **Session tracking**: the 5s indexer opens a `meetings` session when a meeting window appears and closes it when a non-meeting window is next focused (a session stays open across no-window / excluded ticks — Phase 5B audio gives true presence).
+- **Sync**: the 2-min loop posts ended sessions to `POST /api/observations/meeting`, which stores each as an observation with a duration-aware summary ("45-min Zoom meeting — Standup", `metadata.source='desktop_meeting'`). Sessions shorter than 60s are treated as noise and skipped (marked synced locally, never posted).
+
+NOT in (Phase 5B):
+- **Audio capture + transcription** — the actual meeting NOTES. `cpal` mic capture + Whisper (local-on-device vs server-side reuse of the existing voice-surface transcription — decision deferred). Note/Summary/Transcript views.
+- Detecting whether you're *actually in* a call vs just having the app focused (audio activity will refine this).
+- Meeting detection on a background/non-foreground window.
 
 ---
 

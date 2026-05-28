@@ -4,13 +4,17 @@
 // load auth token -> pull a batch of unsynced clips -> POST -> mark the ones
 // the server accepted (and the ones it explicitly dropped, so we don't retry
 // rejects forever). On network/5xx error we leave them unsynced for next tick.
-use crate::{clips, config};
+use crate::{clips, config, meetings};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 const SYNC_INTERVAL: Duration = Duration::from_secs(120);
 const DEFAULT_ENDPOINT: &str = "https://twinme.me/api/observations/clip";
 const BATCH_SIZE: usize = 50;
+// Meeting sessions shorter than this are treated as noise (accidental focus on
+// a meeting window, a misfire of classify_meeting) and never posted — they're
+// marked synced locally so they clear the queue without spamming the backend.
+const MIN_MEETING_MS: i64 = 60_000; // 1 minute
 
 // WIRE CONTRACT: serde_json omits `None` fields here (no key emitted). The
 // backend's zod schema uses `.optional()`, which accepts a MISSING key but
@@ -22,6 +26,20 @@ struct OutgoingClip<'a> {
     app_name: &'a str,
     window_title: Option<&'a str>,
     content: Option<&'a str>,
+    started_at: i64,
+    ended_at: Option<i64>,
+}
+
+// Same WIRE CONTRACT as OutgoingClip: serde_json omits `None` fields (the
+// backend zod schema rejects an explicit `null` on `.optional()` keys). `title`
+// stays an Option so an untitled session emits NO key, not `"title":null`.
+// `ended_at` is always Some here (list_unsynced only returns ended sessions),
+// but kept Option to mirror the wire shape and avoid an unwrap.
+#[derive(Debug, Serialize)]
+struct OutgoingMeeting<'a> {
+    local_id: i64,
+    platform: &'a str,
+    title: Option<&'a str>,
     started_at: i64,
     ended_at: Option<i64>,
 }
@@ -77,6 +95,38 @@ pub async fn post_batch(
     resp.json::<SyncResult>().await
 }
 
+/// POST a batch of ended meeting sessions. Mirrors `post_batch` — same auth,
+/// timeout, and `SyncResult` response shape (the backend's meeting endpoint
+/// returns the identical { success, synced, dropped } envelope as clips).
+pub async fn post_meetings(
+    endpoint: &str,
+    token: &str,
+    meetings: &[meetings::Meeting],
+) -> Result<SyncResult, reqwest::Error> {
+    let outgoing: Vec<OutgoingMeeting> = meetings
+        .iter()
+        .map(|m| OutgoingMeeting {
+            local_id: m.id,
+            platform: &m.platform,
+            title: m.title.as_deref(),
+            started_at: m.started_at,
+            ended_at: m.ended_at,
+        })
+        .collect();
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()?;
+    let resp = client
+        .post(endpoint)
+        .bearer_auth(token)
+        .json(&serde_json::json!({ "meetings": outgoing }))
+        .send()
+        .await?
+        .error_for_status()?;
+    resp.json::<SyncResult>().await
+}
+
 pub async fn run() {
     let conn = match clips::open() {
         Ok(c) => c,
@@ -93,44 +143,119 @@ pub async fn run() {
             continue; // not signed in yet
         };
 
+        // Resolve the clip endpoint once; both clip and meeting sync share it
+        // (the meeting URL is derived from it below). The env override lets
+        // tests/staging point at a local server.
+        let endpoint = std::env::var("TWINME_SYNC_ENDPOINT")
+            .unwrap_or_else(|_| DEFAULT_ENDPOINT.to_string());
+
+        // ── Clip sync ────────────────────────────────────────────────────
+        // Guarded (not early-`continue`d) so an empty clip queue doesn't skip
+        // meeting sync below — the two queues drain independently.
         let pending = match clips::list_unsynced(&conn, BATCH_SIZE) {
             Ok(c) => c,
             Err(err) => {
                 eprintln!("[sync] list_unsynced: {err}");
-                continue;
+                Vec::new()
             }
         };
-        if pending.is_empty() {
-            continue;
-        }
-
-        let endpoint = std::env::var("TWINME_SYNC_ENDPOINT")
-            .unwrap_or_else(|_| DEFAULT_ENDPOINT.to_string());
-
-        match post_batch(&endpoint, &token, &pending).await {
-            Ok(result) => {
-                let synced_ids: Vec<i64> = result.synced.iter().map(|r| r.local_id).collect();
-                if !synced_ids.is_empty() {
-                    if let Err(err) = clips::mark_synced(&conn, &synced_ids) {
-                        eprintln!("[sync] mark_synced: {err}");
+        if !pending.is_empty() {
+            match post_batch(&endpoint, &token, &pending).await {
+                Ok(result) => {
+                    let synced_ids: Vec<i64> = result.synced.iter().map(|r| r.local_id).collect();
+                    if !synced_ids.is_empty() {
+                        if let Err(err) = clips::mark_synced(&conn, &synced_ids) {
+                            eprintln!("[sync] mark_synced: {err}");
+                        }
+                    }
+                    // Mark dropped clips synced too, so the server's rejects aren't
+                    // retried forever.
+                    let dropped_ids: Vec<i64> = result.dropped.iter().map(|r| r.local_id).collect();
+                    if !dropped_ids.is_empty() {
+                        let _ = clips::mark_synced(&conn, &dropped_ids);
+                    }
+                    // Log unconditionally (incl. all-dropped batches) for observability.
+                    if !synced_ids.is_empty() || !dropped_ids.is_empty() {
+                        println!(
+                            "[sync] uploaded {} clips, dropped {}",
+                            result.synced.len(),
+                            result.dropped.len()
+                        );
                     }
                 }
-                // Mark dropped clips synced too, so the server's rejects aren't
-                // retried forever.
-                let dropped_ids: Vec<i64> = result.dropped.iter().map(|r| r.local_id).collect();
-                if !dropped_ids.is_empty() {
-                    let _ = clips::mark_synced(&conn, &dropped_ids);
-                }
-                // Log unconditionally (incl. all-dropped batches) for observability.
-                if !synced_ids.is_empty() || !dropped_ids.is_empty() {
-                    println!(
-                        "[sync] uploaded {} clips, dropped {}",
-                        result.synced.len(),
-                        result.dropped.len()
-                    );
+                Err(err) => eprintln!("[sync] post_batch: {err} — leaving unsynced for next tick"),
+            }
+        }
+
+        // ── Meeting sync (Phase 5A) ──────────────────────────────────────
+        // Symmetric to the clip path. Derive the meeting endpoint from the
+        // clip endpoint by swapping the path segment — works for both the
+        // DEFAULT_ENDPOINT and any TWINME_SYNC_ENDPOINT override that targets
+        // /observations/clip.
+        let meeting_endpoint = endpoint.replace("/observations/clip", "/observations/meeting");
+
+        let pending_meetings = match meetings::list_unsynced(&conn, BATCH_SIZE) {
+            Ok(m) => m,
+            Err(err) => {
+                eprintln!("[sync] meetings list_unsynced: {err}");
+                Vec::new()
+            }
+        };
+        if !pending_meetings.is_empty() {
+            // Noise filter: sessions shorter than MIN_MEETING_MS are cleared
+            // locally (marked synced) without hitting the backend. ended_at is
+            // always Some here (list_unsynced only returns ended sessions); the
+            // unwrap_or keeps an unexpected NULL from counting as a short blip.
+            let mut to_post: Vec<meetings::Meeting> = Vec::new();
+            let mut skip_ids: Vec<i64> = Vec::new();
+            for m in pending_meetings {
+                let duration = m.ended_at.unwrap_or(m.started_at) - m.started_at;
+                if duration < MIN_MEETING_MS {
+                    skip_ids.push(m.id);
+                } else {
+                    to_post.push(m);
                 }
             }
-            Err(err) => eprintln!("[sync] post_batch: {err} — leaving unsynced for next tick"),
+            if !skip_ids.is_empty() {
+                let _ = meetings::mark_synced(&conn, &skip_ids);
+            }
+
+            if !to_post.is_empty() {
+                match post_meetings(&meeting_endpoint, &token, &to_post).await {
+                    Ok(result) => {
+                        let synced_ids: Vec<i64> =
+                            result.synced.iter().map(|r| r.local_id).collect();
+                        if !synced_ids.is_empty() {
+                            if let Err(err) = meetings::mark_synced(&conn, &synced_ids) {
+                                eprintln!("[sync] meetings mark_synced: {err}");
+                            }
+                        }
+                        // Clear server-dropped sessions too, so rejects aren't retried.
+                        let dropped_ids: Vec<i64> =
+                            result.dropped.iter().map(|r| r.local_id).collect();
+                        if !dropped_ids.is_empty() {
+                            let _ = meetings::mark_synced(&conn, &dropped_ids);
+                        }
+                        if !synced_ids.is_empty()
+                            || !dropped_ids.is_empty()
+                            || !skip_ids.is_empty()
+                        {
+                            println!(
+                                "[sync] uploaded {} meetings (skipped {} short), dropped {}",
+                                result.synced.len(),
+                                skip_ids.len(),
+                                result.dropped.len()
+                            );
+                        }
+                    }
+                    Err(err) => {
+                        eprintln!("[sync] post_meetings: {err} — leaving unsynced for next tick")
+                    }
+                }
+            } else if !skip_ids.is_empty() {
+                // All pending sessions were short blips — nothing posted.
+                println!("[sync] uploaded 0 meetings (skipped {} short)", skip_ids.len());
+            }
         }
     }
 }
