@@ -429,4 +429,43 @@ export async function recordActionResponse(userId, actionId, response, outcomeDa
       log.warn('Hebbian update failed', { actionId, error: err.message });
     }
   }
+
+  // Queue-empty trigger: when the user just resolved their last pending
+  // proposal, fire a heartbeat check so /inbox feels alive instead of
+  // waiting on the next */30 ingest-observations cron tick.
+  //
+  // Cost is bounded by:
+  //   - 2h Redis cooldown per user (checkDepartmentHeartbeats first thing)
+  //   - >=3 observations in last 6h gate
+  //   - 5-pending cap
+  // So a rapid-fire approve session can't fan out more than 1 heartbeat
+  // per 2h window per user.
+  //
+  // Fire-and-forget — never await. The user's click returns immediately;
+  // new tiles appear on the next 60s React Query refetch.
+  if (action?.user_id) {
+    try {
+      const { count } = await supabaseAdmin
+        .from('agent_actions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', action.user_id)
+        .is('user_response', null)
+        .not('department', 'is', null);
+
+      if (count === 0) {
+        log.info('Pending queue emptied — triggering heartbeat', { userId: action.user_id, actionId });
+        import('./departmentService.js')
+          .then(({ checkDepartmentHeartbeats }) =>
+            checkDepartmentHeartbeats(action.user_id).catch((hbErr) =>
+              log.warn('Queue-empty heartbeat failed', { userId: action.user_id, error: hbErr.message })
+            )
+          )
+          .catch((importErr) =>
+            log.warn('Queue-empty heartbeat import failed', { error: importErr.message })
+          );
+      }
+    } catch (countErr) {
+      log.warn('Queue-empty check failed (non-fatal)', { actionId, error: countErr.message });
+    }
+  }
 }
