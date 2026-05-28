@@ -85,10 +85,19 @@ jobs:
         working-directory: desktop
         run: npm install
 
-      - name: Build TwinMe Desktop
+      # Build UNSIGNED on every push + PR. Signing happens on tag pushes
+      # (next step). tauri-action refuses to skip signing when APPLE_CERTIFICATE
+      # is set-but-empty — so we only inject the signing env vars when secrets
+      # actually exist (tag push, after secrets are configured in repo settings).
+      - name: Build TwinMe Desktop (unsigned)
+        if: "!startsWith(github.ref, 'refs/tags/desktop-v')"
+        working-directory: desktop
+        run: npm run build -- --target ${{ matrix.platform.target }} --bundles app,deb,appimage,nsis
+
+      - name: Build TwinMe Desktop (signed, tag releases)
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
         working-directory: desktop
         env:
-          # macOS signing + notarization. Empty values are tolerated by tauri.
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
