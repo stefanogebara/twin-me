@@ -37,6 +37,15 @@ const allowedPlatforms = ['netflix', 'youtube', 'twitch', 'reddit', 'amazon', 'h
  * returns a valid ISO string OR the current time as a safe fallback.
  * Defensive, server-side — no client changes needed.
  */
+/** Best-effort top-level key list for diagnostic logging (never throws). */
+function safeKeys(obj) {
+  try {
+    return obj && typeof obj === 'object' ? Object.keys(obj).slice(0, 15) : typeof obj;
+  } catch {
+    return 'unknown';
+  }
+}
+
 function normalizeExtractedAt(ts) {
   if (ts === null || ts === undefined) return new Date().toISOString();
   // epoch ms — branch on number first (typeof '0' === 'string' is true)
@@ -208,32 +217,82 @@ router.post('/batch', authenticateUser, async (req, res) => {
       });
     }
 
-    // Transform events for insertion
-    const records = events.map(event => {
-      const eventPlatform = (event.platform || platform || 'unknown').toLowerCase();
-      // audit-2026-05-28: user_platform_data has UNIQUE constraint on
-      // (user_id, platform, data_type, source_url) NULLS NOT DISTINCT.
-      // If source_url is null, every event for the same (user, platform,
-      // data_type) collides → 23505 unique_violation → 500. Pull URL from
-      // wherever the collectors stash it; fall back to a synthetic per-batch
-      // discriminator so repeated event-types within one batch still differ.
-      const sourceUrl =
-        event.url ||
-        event.source_url ||
-        event.raw_data?.url ||
-        event.raw_data?.source_url ||
-        null;
-      return {
-        user_id: userId,
-        platform: eventPlatform,
-        data_type: mapEventType(event.data_type || event.eventType || 'capture', eventPlatform),
-        raw_data: event.raw_data || event,
-        source_url: sourceUrl,
-        // audit-2026-05-28: normalize because some collectors send Date.now()
-        // (number) which Postgres rejects as 22007 invalid_datetime_format.
-        extracted_at: normalizeExtractedAt(event.timestamp),
-      };
-    });
+    // Transform events for insertion.
+    //
+    // audit-2026-05-28: build records PER-EVENT with isolation. Previously a
+    // single malformed event (non-string platform, non-serializable raw_data,
+    // etc.) threw inside events.map() BEFORE the upsert ran — no row landed,
+    // the supabase-error diagnostic never fired, and the whole batch 500'd
+    // via the outer catch. The Instagram collector's collectedData was the
+    // trigger. Now each event is mapped in its own try/catch; a bad event is
+    // skipped + logged instead of nuking the batch.
+    const skipped = [];
+    const records = [];
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
+      try {
+        // Coerce platform to a safe lowercase string. A non-string platform
+        // (object/array from a buggy collector) would throw on .toLowerCase().
+        const rawPlat = event?.platform ?? platform ?? 'unknown';
+        const eventPlatform = String(rawPlat).toLowerCase();
+
+        // user_platform_data has UNIQUE (user_id, platform, data_type,
+        // source_url) NULLS NOT DISTINCT. Null source_url collapses all events
+        // for one (user, platform, data_type) into one row → 23505 without
+        // upsert. Pull a URL from wherever the collectors stash it.
+        const sourceUrl =
+          event?.url ||
+          event?.source_url ||
+          event?.raw_data?.url ||
+          event?.raw_data?.source_url ||
+          null;
+
+        // raw_data must be JSON-serializable. DOM-scraped collector payloads
+        // can carry circular refs / non-plain values that throw when the
+        // supabase client stringifies the request body. Round-trip-guard it.
+        let rawData = event?.raw_data || event;
+        try {
+          JSON.stringify(rawData);
+        } catch {
+          rawData = { _unserializable: true, platform: eventPlatform, keys: safeKeys(event) };
+          log.warn('Extension event raw_data unserializable — replaced with stub', {
+            eventIndex: i, platform: eventPlatform,
+          });
+        }
+
+        records.push({
+          user_id: userId,
+          platform: eventPlatform,
+          data_type: mapEventType(event?.data_type || event?.eventType || 'capture', eventPlatform),
+          raw_data: rawData,
+          source_url: sourceUrl,
+          // normalize: some collectors send Date.now() (number) which Postgres
+          // rejects as 22007 invalid_datetime_format on a timestamp column.
+          extracted_at: normalizeExtractedAt(event?.timestamp),
+        });
+      } catch (mapErr) {
+        skipped.push({ index: i, error: mapErr.message, keys: safeKeys(event) });
+      }
+    }
+
+    if (skipped.length > 0) {
+      log.warn('Skipped malformed extension events during record build', {
+        skippedCount: skipped.length,
+        totalEvents: events.length,
+        samples: skipped.slice(0, 5),
+      });
+    }
+
+    if (records.length === 0) {
+      // Every event was malformed — nothing to insert. Return 200 (the batch
+      // was received and processed) so the extension doesn't retry forever.
+      return res.json({
+        success: true,
+        inserted: 0,
+        skipped: skipped.length,
+        message: 'No valid events after sanitization',
+      });
+    }
 
     // audit-2026-05-28: switched from .insert() to .upsert() because every
     // batch was 500-ing on 23505 unique_violation. The unique constraint
