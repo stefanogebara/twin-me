@@ -29,8 +29,12 @@ mod macos_impl {
     // return an error and we yield None, so the indexer no-ops safely and
     // never inserts an empty clip.
     use accessibility_sys::{
-        kAXFocusedApplicationAttribute, kAXFocusedWindowAttribute, kAXTitleAttribute,
-        AXError, AXUIElementCopyAttributeValue, AXUIElementCreateSystemWide, AXUIElementRef,
+        kAXChildrenAttribute, kAXFocusedApplicationAttribute, kAXFocusedWindowAttribute,
+        kAXTitleAttribute, kAXValueAttribute, AXError, AXUIElementCopyAttributeValue,
+        AXUIElementCreateSystemWide, AXUIElementRef,
+    };
+    use core_foundation::array::{
+        CFArray, CFArrayGetCount, CFArrayGetValueAtIndex, CFArrayRef,
     };
     use core_foundation::base::{CFTypeRef, TCFType};
     use core_foundation::string::{CFString, CFStringRef};
@@ -60,7 +64,9 @@ mod macos_impl {
 
             // TODO(phase-4): wrap the app/window AXUIElementRefs in a TCFType so
             // their +1 retain is released. They leak one ref per poll today —
-            // acceptable for the 5s indexer loop in Phase 3.
+            // acceptable for the 5s indexer loop in Phase 3. focused_content()
+            // has the same leak (its sys/app/window refs), bounded per-call (not
+            // per-node, since child refs are read get-rule and owned by the array).
             Some(super::ActiveWindow {
                 app_name,
                 title: window_title,
@@ -90,6 +96,408 @@ mod macos_impl {
         let cf: CFString = TCFType::wrap_under_create_rule(raw);
         Some(cf.to_string())
     }
+
+    // Bounds for the in-window AX traversal. These cap cost and the privacy
+    // surface: we never walk an unbounded tree or hoover up an entire document.
+    const MAX_DEPTH: usize = 8;
+    const MAX_NODES: usize = 500;
+    // String::len() is a byte count, not a char count, so this caps bytes.
+    const MAX_BYTES: usize = 8000;
+
+    /// Extract a bounded snapshot of the text *inside* the focused window so a
+    /// clip carries content, not just its title. macOS-only this phase.
+    ///
+    /// Returns `(app_name, content)` — the app name comes from the SAME focused
+    /// application element we then walk, so the caller can re-verify the content
+    /// source against the exclude list (closing a focus-flip TOCTOU window)
+    /// before storing it.
+    ///
+    /// Walks the focused window's Accessibility subtree iteratively (no deep
+    /// recursion) collecting `kAXValue`/`kAXTitle` strings, hard-capped at
+    /// MAX_DEPTH levels, MAX_NODES visited elements, and ≤ 8000 bytes of text.
+    /// Returns None when AX permission is absent, there's no focused window, or
+    /// nothing textual is found — the indexer then leaves `content` NULL.
+    pub fn focused_content() -> Option<(String, String)> {
+        // SAFETY: every raw pointer from AX/CF calls is null-checked before use.
+        // The children CFArrayRef is wrapped under the create rule so the array's
+        // +1 retain is released on Drop. Child element pointers are read with the
+        // get-rule (CFArrayGetValueAtIndex does NOT retain) and are owned by the
+        // array, so we neither retain nor release them individually.
+        unsafe {
+            let sys = AXUIElementCreateSystemWide();
+            if sys.is_null() {
+                return None;
+            }
+
+            let app_elem =
+                copy_attr_value(sys, kAXFocusedApplicationAttribute)? as AXUIElementRef;
+            if app_elem.is_null() {
+                return None;
+            }
+
+            // Read the app name off the SAME focused-app element we're about to
+            // walk for content, so the name the caller re-checks against the
+            // exclude list truly identifies the content's source.
+            let app_name = copy_attr_string(app_elem, kAXTitleAttribute)?;
+
+            let window = copy_attr_value(app_elem, kAXFocusedWindowAttribute)? as AXUIElementRef;
+            if window.is_null() {
+                return None;
+            }
+
+            // Iterative worklist of (element, depth) so a deeply nested view
+            // hierarchy can't blow the stack. Bounded by MAX_NODES below.
+            let mut acc = String::new();
+            let mut nodes: usize = 0;
+            let mut worklist: Vec<(AXUIElementRef, usize)> = vec![(window, 0)];
+
+            while let Some((elem, depth)) = worklist.pop() {
+                if nodes >= MAX_NODES || acc.len() >= MAX_BYTES {
+                    break;
+                }
+                nodes += 1;
+
+                // Collect the element's own text: AXValue (field/document text)
+                // then AXTitle (labels, headings). Skip blanks.
+                push_text(&mut acc, copy_attr_string(elem, kAXValueAttribute));
+                push_text(&mut acc, copy_attr_string(elem, kAXTitleAttribute));
+                if acc.len() >= MAX_BYTES {
+                    break;
+                }
+
+                // Descend into children while we have depth + node budget.
+                if depth < MAX_DEPTH {
+                    if let Some(children) = copy_attr_value(elem, kAXChildrenAttribute) {
+                        // wrap_under_create_rule owns the array's +1 retain;
+                        // Drop releases it when `array` falls out of scope.
+                        let array: CFArray<*const std::os::raw::c_void> =
+                            TCFType::wrap_under_create_rule(children as CFArrayRef);
+                        let count = CFArrayGetCount(array.as_concrete_TypeRef());
+                        for i in 0..count {
+                            if nodes + worklist.len() >= MAX_NODES {
+                                break;
+                            }
+                            let child =
+                                CFArrayGetValueAtIndex(array.as_concrete_TypeRef(), i)
+                                    as AXUIElementRef;
+                            if !child.is_null() {
+                                worklist.push((child, depth + 1));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if acc.len() > MAX_BYTES {
+                // Truncate on a char boundary so we never split a UTF-8 sequence.
+                let mut cut = MAX_BYTES;
+                while cut > 0 && !acc.is_char_boundary(cut) {
+                    cut -= 1;
+                }
+                acc.truncate(cut);
+            }
+
+            let trimmed = acc.trim();
+            if trimmed.is_empty() {
+                // We read the app name but there's no content to store anyway.
+                None
+            } else {
+                Some((app_name, trimmed.to_string()))
+            }
+        }
+    }
+
+    /// Append a non-empty AX string to the accumulator with a trailing space.
+    /// No-op for None/blank so we don't pad the buffer with separators.
+    fn push_text(acc: &mut String, value: Option<String>) {
+        if let Some(s) = value {
+            let t = s.trim();
+            if !t.is_empty() {
+                acc.push_str(t);
+                acc.push(' ');
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+mod windows_impl {
+    // Real Windows implementation. Reads the foreground window's title and the
+    // file stem of its owning process via Win32:
+    //
+    //   1. GetForegroundWindow() -> HWND of the focused top-level window.
+    //   2. GetWindowTextLengthW + GetWindowTextW -> window title (UTF-16).
+    //   3. GetWindowThreadProcessId -> owning process id (PID).
+    //   4. OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION) -> process handle.
+    //   5. QueryFullProcessImageNameW -> full exe path; we keep the file stem
+    //      ("chrome" from "...\\chrome.exe") as the app name.
+    //
+    // No special permission is required for these calls. When the desktop
+    // itself has focus GetForegroundWindow yields a null HWND and we return
+    // None, so the indexer no-ops rather than inserting an empty clip.
+    use windows::core::PWSTR;
+    use windows::Win32::Foundation::{CloseHandle, HWND};
+    use windows::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
+    };
+
+    pub fn fetch_focused() -> Option<super::ActiveWindow> {
+        // SAFETY: all FFI happens here. GetForegroundWindow's HWND is checked
+        // with is_invalid() before use; OpenProcess returns a Result that we
+        // match on, and its HANDLE is always closed via CloseHandle; every
+        // text buffer is sized from a preceding length/size query.
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            if hwnd.is_invalid() {
+                return None;
+            }
+
+            let title = window_title(hwnd);
+            let app_name = process_name(hwnd);
+
+            match (app_name, title) {
+                // No process name but we did read a title: still a useful clip.
+                (None, Some(title)) => Some(super::ActiveWindow {
+                    app_name: "Unknown".to_string(),
+                    title: Some(title),
+                }),
+                (None, None) => None,
+                (Some(app_name), title) => Some(super::ActiveWindow { app_name, title }),
+            }
+        }
+    }
+
+    /// Read the foreground window's title. Returns None when the window has no
+    /// title or the text comes back empty after trimming.
+    ///
+    /// SAFETY: caller guarantees `hwnd` is a valid, non-null window handle.
+    unsafe fn window_title(hwnd: HWND) -> Option<String> {
+        // GetWindowTextLengthW returns the length in chars, excluding the
+        // trailing NUL. Non-positive means "no title".
+        let len = GetWindowTextLengthW(hwnd);
+        if len <= 0 {
+            return None;
+        }
+
+        // +1 for the NUL terminator GetWindowTextW writes.
+        let mut buf = vec![0u16; len as usize + 1];
+        let copied = GetWindowTextW(hwnd, &mut buf);
+        if copied <= 0 {
+            return None;
+        }
+
+        let title = String::from_utf16_lossy(&buf[..copied as usize]);
+        let trimmed = title.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    }
+
+    /// Resolve the file stem of the process that owns `hwnd` (e.g. "chrome").
+    /// Returns None if the PID can't be read, the process can't be opened, or
+    /// the image path query fails.
+    ///
+    /// SAFETY: caller guarantees `hwnd` is a valid, non-null window handle.
+    unsafe fn process_name(hwnd: HWND) -> Option<String> {
+        let mut pid: u32 = 0;
+        GetWindowThreadProcessId(hwnd, Some(&mut pid));
+        if pid == 0 {
+            return None;
+        }
+
+        // PROCESS_QUERY_LIMITED_INFORMATION is the least-privilege right that
+        // still permits QueryFullProcessImageNameW. `false` = don't inherit.
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+
+        // MAX_PATH is 260, but long paths can exceed it; size generously.
+        let mut buf = vec![0u16; 1024];
+        let mut size = buf.len() as u32;
+        let query = QueryFullProcessImageNameW(
+            handle,
+            PROCESS_NAME_WIN32,
+            PWSTR(buf.as_mut_ptr()),
+            &mut size,
+        );
+
+        // Always release the handle, regardless of the query outcome.
+        let _ = CloseHandle(handle);
+
+        // On success `size` holds the char count written (excluding NUL).
+        query.ok()?;
+        let full_path = String::from_utf16_lossy(&buf[..size as usize]);
+        file_stem(&full_path)
+    }
+
+    /// Extract the file stem from a Windows exe path: strip the directory and a
+    /// trailing ".exe" (case-insensitive). "C:\\...\\chrome.exe" -> "chrome".
+    fn file_stem(path: &str) -> Option<String> {
+        let file = path.rsplit(['\\', '/']).next().unwrap_or(path).trim();
+        if file.is_empty() {
+            return None;
+        }
+        let stem = file
+            .strip_suffix(".exe")
+            .or_else(|| file.strip_suffix(".EXE"))
+            .unwrap_or(file);
+        if stem.is_empty() {
+            None
+        } else {
+            Some(stem.to_string())
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+mod linux_impl {
+    // Real Linux/X11 implementation via the EWMH _NET_ACTIVE_WINDOW protocol:
+    //
+    //   1. x11rb::connect(None) -> (RustConnection, screen_num). Any connect
+    //      failure (no $DISPLAY, headless CI, refused socket) yields None.
+    //   2. root = conn.setup().roots[screen_num].root.
+    //   3. Intern _NET_ACTIVE_WINDOW / _NET_WM_NAME / UTF8_STRING atoms.
+    //   4. get_property(root, _NET_ACTIVE_WINDOW, WINDOW) -> focused window id.
+    //   5. get_property(win, _NET_WM_NAME, UTF8_STRING) -> title (fallback to
+    //      WM_NAME/STRING for older clients).
+    //   6. get_property(win, WM_CLASS, STRING) -> "instance\0class\0"; the
+    //      class (second field) is the app name.
+    //
+    // Wayland sessions expose no portable active-window API, so we detect
+    // WAYLAND_DISPLAY up front and return None. Every fallible X call uses
+    // `?`/`.ok()?` inside `inner()`, so nothing here can panic — failures just
+    // collapse to None and the indexer no-ops rather than inserting an empty
+    // clip.
+    use x11rb::connection::Connection;
+    use x11rb::protocol::xproto::{Atom, AtomEnum, ConnectionExt, Window};
+
+    pub fn fetch_focused() -> Option<super::ActiveWindow> {
+        // No portable way to read the focused window under Wayland; bail before
+        // touching X so we don't accidentally talk to an XWayland shim.
+        if std::env::var_os("WAYLAND_DISPLAY").is_some() {
+            return None;
+        }
+        inner()
+    }
+
+    /// All X11 work lives here so `?` short-circuits any error to None.
+    fn inner() -> Option<super::ActiveWindow> {
+        let (conn, screen_num) = x11rb::connect(None).ok()?;
+        let root = conn.setup().roots.get(screen_num)?.root;
+
+        // Helper: intern an atom by name, None on any failure.
+        let intern = |name: &[u8]| -> Option<Atom> {
+            Some(conn.intern_atom(false, name).ok()?.reply().ok()?.atom)
+        };
+
+        let net_active_window = intern(b"_NET_ACTIVE_WINDOW")?;
+        let net_wm_name = intern(b"_NET_WM_NAME")?;
+        let utf8_string = intern(b"UTF8_STRING")?;
+
+        let win = active_window_id(&conn, root, net_active_window)?;
+
+        let title = window_title(&conn, win, net_wm_name, utf8_string);
+        let app_name = window_app_name(&conn, win)
+            .unwrap_or_else(|| "Unknown".to_string());
+
+        Some(super::ActiveWindow { app_name, title })
+    }
+
+    /// Read the focused window id from the root's _NET_ACTIVE_WINDOW property.
+    /// Returns None when the property is absent or the id is 0 (no focus).
+    fn active_window_id(
+        conn: &impl Connection,
+        root: Window,
+        net_active_window: Atom,
+    ) -> Option<Window> {
+        let reply = conn
+            .get_property(false, root, net_active_window, AtomEnum::WINDOW, 0, 1)
+            .ok()?
+            .reply()
+            .ok()?;
+        // The property is a single 32-bit window id (format 32).
+        let win = reply.value32()?.next()?;
+        if win == 0 {
+            None
+        } else {
+            Some(win)
+        }
+    }
+
+    /// Read the window title: _NET_WM_NAME (UTF8_STRING) preferred, falling back
+    /// to the legacy WM_NAME (STRING) for clients that don't set the EWMH name.
+    /// Empty/whitespace titles collapse to None.
+    fn window_title(
+        conn: &impl Connection,
+        win: Window,
+        net_wm_name: Atom,
+        utf8_string: Atom,
+    ) -> Option<String> {
+        read_string(conn, win, net_wm_name, utf8_string)
+            .or_else(|| read_string(conn, win, AtomEnum::WM_NAME.into(), AtomEnum::STRING.into()))
+    }
+
+    /// Read the app name from WM_CLASS. WM_CLASS is two NUL-separated strings:
+    /// "instance\0class\0". We prefer the class (second field, e.g. "Firefox"),
+    /// falling back to the instance if the class is empty.
+    fn window_app_name(conn: &impl Connection, win: Window) -> Option<String> {
+        let reply = conn
+            .get_property(
+                false,
+                win,
+                AtomEnum::WM_CLASS,
+                AtomEnum::STRING,
+                0,
+                1024,
+            )
+            .ok()?
+            .reply()
+            .ok()?;
+        if reply.value.is_empty() {
+            return None;
+        }
+
+        // Split on NUL and keep the non-empty fields in order: [instance, class].
+        let mut fields = reply
+            .value
+            .split(|&b| b == 0)
+            .filter(|s| !s.is_empty())
+            .map(|s| String::from_utf8_lossy(s).trim().to_string())
+            .filter(|s| !s.is_empty());
+
+        let first = fields.next();
+        let second = fields.next();
+        // Prefer the class (second field); fall back to the instance.
+        second.or(first)
+    }
+
+    /// Fetch a string property as UTF-8 (lossy), trimmed; empty -> None.
+    fn read_string(
+        conn: &impl Connection,
+        win: Window,
+        property: Atom,
+        type_: Atom,
+    ) -> Option<String> {
+        let reply = conn
+            .get_property(false, win, property, type_, 0, 1024)
+            .ok()?
+            .reply()
+            .ok()?;
+        if reply.value.is_empty() {
+            return None;
+        }
+        let s = String::from_utf8_lossy(&reply.value);
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -97,20 +505,47 @@ pub fn current() -> Option<ActiveWindow> {
     macos_impl::fetch_focused()
 }
 
+/// Bounded snapshot of the text inside the focused window, captured once at
+/// clip-open, paired with the name of the app it was read from. macOS-only this
+/// phase; every other platform yields None so the indexer simply leaves the
+/// clip's `content` NULL. The returned app name lets the indexer re-verify the
+/// content's source against the exclude list before storing it (closing a
+/// focus-flip TOCTOU window between the clip insert and this read).
+#[cfg(target_os = "macos")]
+pub fn focused_content() -> Option<(String, String)> {
+    macos_impl::focused_content()
+}
+
 #[cfg(not(target_os = "macos"))]
-pub fn current() -> Option<ActiveWindow> {
-    // TODO(phase-3+): Windows uses GetForegroundWindow + GetWindowText via
-    // the `windows` crate; Linux varies wildly between X11 and Wayland.
-    // Both land after the macOS path is solid.
+pub fn focused_content() -> Option<(String, String)> {
     None
 }
 
-#[cfg(all(test, not(target_os = "macos")))]
+#[cfg(target_os = "windows")]
+pub fn current() -> Option<ActiveWindow> {
+    windows_impl::fetch_focused()
+}
+
+#[cfg(target_os = "linux")]
+pub fn current() -> Option<ActiveWindow> {
+    linux_impl::fetch_focused()
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+pub fn current() -> Option<ActiveWindow> {
+    // Other platforms (BSD, etc.) have no active-window impl yet, so they yield
+    // None and the indexer no-ops safely rather than inserting an empty clip.
+    None
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn current_returns_none_on_non_macos() {
-        assert!(current().is_none());
+    fn current_is_safe_to_call() {
+        // On headless CI there's no display/foreground window, so this is
+        // typically None — but the contract we assert is "never panics".
+        let _ = current();
     }
 }

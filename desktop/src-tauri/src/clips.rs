@@ -119,6 +119,15 @@ pub fn close_clip(conn: &Connection, id: i64, content: Option<&str>) -> Result<(
     Ok(())
 }
 
+/// Attach in-window content to a clip, captured once at clip-open by the
+/// indexer (Phase 4, macOS Accessibility traversal). Overwrites any prior
+/// content for the row — capture happens exactly once per clip so there's
+/// nothing to preserve.
+pub fn set_content(conn: &Connection, id: i64, content: &str) -> Result<()> {
+    conn.execute("UPDATE clips SET content = ?1 WHERE id = ?2", params![content, id])?;
+    Ok(())
+}
+
 /// Pull at most `limit` finished-but-unsynced clips for the sync loop.
 /// Only returns clips with `ended_at IS NOT NULL` — an open clip is still
 /// being written to, syncing it would race.
@@ -191,6 +200,14 @@ pub fn unexclude_app(conn: &Connection, app: &str) -> Result<()> {
     Ok(())
 }
 
+/// All currently-excluded app names, most-recently-added first. Backs the
+/// tray "Excluded apps" submenu so the user can see and re-include them.
+pub fn list_excluded(conn: &Connection) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare("SELECT app_name FROM excluded_apps ORDER BY added_at DESC")?;
+    let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
+    rows.collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,5 +221,36 @@ mod tests {
         assert!(is_paused(&conn).unwrap());
         set_pause(&conn, false).unwrap();
         assert!(!is_paused(&conn).unwrap());
+    }
+
+    #[test]
+    fn set_content_round_trips() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        let id = insert_clip(&conn, "Safari", Some("Example")).unwrap();
+        set_content(&conn, id, "hello world").unwrap();
+        // Read it back via a direct query on the content column.
+        let got: Option<String> = conn
+            .query_row("SELECT content FROM clips WHERE id = ?1", [id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(got.as_deref(), Some("hello world"));
+    }
+
+    #[test]
+    fn list_excluded_round_trips() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        assert!(list_excluded(&conn).unwrap().is_empty());
+
+        exclude_app(&conn, "1Password").unwrap();
+        exclude_app(&conn, "Banking").unwrap();
+        let listed = list_excluded(&conn).unwrap();
+        assert_eq!(listed.len(), 2);
+        assert!(listed.contains(&"1Password".to_string()));
+        assert!(listed.contains(&"Banking".to_string()));
+
+        unexclude_app(&conn, "1Password").unwrap();
+        let after = list_excluded(&conn).unwrap();
+        assert_eq!(after, vec!["Banking".to_string()]);
     }
 }
