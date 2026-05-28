@@ -294,6 +294,31 @@ router.post('/batch', authenticateUser, async (req, res) => {
       });
     }
 
+    // audit-2026-05-28: collapse duplicate-key records WITHIN the batch before
+    // upserting. A single INSERT ... ON CONFLICT DO UPDATE cannot touch the same
+    // target row twice — Postgres throws 21000 cardinality_violation ("ON CONFLICT
+    // DO UPDATE command cannot affect row a second time"). The extension's MV3
+    // alarm flushes the whole queue every ~5 min; a queue that revisited the same
+    // URL (e.g. instagram.com/ several times) carries duplicate
+    // (user_id, platform, data_type, source_url) tuples. That poisoned batch 500'd
+    // on every retry and never cleared (the per-event loop above only guards record
+    // BUILDING, not the upsert). Keep the LAST occurrence per key — identical to
+    // what the ON CONFLICT UPDATE would have left, so no data is lost.
+    // NULLS NOT DISTINCT: a null source_url shares one bucket per (user,platform,type).
+    const dedupedByKey = new Map();
+    for (const rec of records) {
+      const key = `${rec.user_id}|${rec.platform}|${rec.data_type}|${rec.source_url ?? ' '}`;
+      dedupedByKey.set(key, rec); // later entries overwrite earlier → newest snapshot wins
+    }
+    const dedupedRecords = [...dedupedByKey.values()];
+    if (dedupedRecords.length < records.length) {
+      log.warn('Collapsed duplicate-key events within batch before upsert', {
+        original: records.length,
+        deduped: dedupedRecords.length,
+        removed: records.length - dedupedRecords.length,
+      });
+    }
+
     // audit-2026-05-28: switched from .insert() to .upsert() because every
     // batch was 500-ing on 23505 unique_violation. The unique constraint
     // (user_id, platform, data_type, source_url) is meant to collapse
@@ -303,7 +328,7 @@ router.post('/batch', authenticateUser, async (req, res) => {
     // refreshed to the most recent observation.
     const { data, error } = await supabaseAdmin
       .from('user_platform_data')
-      .upsert(records, {
+      .upsert(dedupedRecords, {
         onConflict: 'user_id,platform,data_type,source_url',
         ignoreDuplicates: false,
       })
@@ -322,17 +347,17 @@ router.post('/batch', authenticateUser, async (req, res) => {
         details: error.details,
         hint: error.hint,
         statusCode: error.statusCode,
-        recordCount: records.length,
+        recordCount: dedupedRecords.length,
         firstRecord: {
-          user_id: records[0]?.user_id,
-          platform: records[0]?.platform,
-          data_type: records[0]?.data_type,
-          extracted_at: records[0]?.extracted_at,
-          raw_data_keys: records[0]?.raw_data && typeof records[0].raw_data === 'object'
-            ? Object.keys(records[0].raw_data).slice(0, 20)
-            : typeof records[0]?.raw_data,
-          raw_data_size_chars: records[0]?.raw_data
-            ? JSON.stringify(records[0].raw_data).length
+          user_id: dedupedRecords[0]?.user_id,
+          platform: dedupedRecords[0]?.platform,
+          data_type: dedupedRecords[0]?.data_type,
+          extracted_at: dedupedRecords[0]?.extracted_at,
+          raw_data_keys: dedupedRecords[0]?.raw_data && typeof dedupedRecords[0].raw_data === 'object'
+            ? Object.keys(dedupedRecords[0].raw_data).slice(0, 20)
+            : typeof dedupedRecords[0]?.raw_data,
+          raw_data_size_chars: dedupedRecords[0]?.raw_data
+            ? JSON.stringify(dedupedRecords[0].raw_data).length
             : 0,
         },
       });
