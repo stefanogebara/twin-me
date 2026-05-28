@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TwinMe Competitor Analysis — Littlebird + jo</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #5d5cae;
+    --accent-soft: #ecebfa;
+    --border: #e8e6e0;
+    --code-bg: #f4f3ee;
+    --table-head: #f7f6f1;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Helvetica, Arial, sans-serif;
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 24px 120px;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 { font-weight: 600; line-height: 1.25; margin: 1.8em 0 0.55em; letter-spacing: -0.01em; }
+  h1 { font-size: 2.1em; border-bottom: 2px solid var(--border); padding-bottom: 0.35em; margin-top: 0.4em; }
+  h2 { font-size: 1.55em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; margin-top: 2.2em; }
+  h3 { font-size: 1.22em; color: #2a2a2a; }
+  h4 { font-size: 1.05em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  p { margin: 0.85em 0; }
+  strong { color: #0a0a0a; font-weight: 600; }
+  em { color: #3a3a3a; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  a:hover { border-bottom-color: var(--accent); }
+  code {
+    background: var(--code-bg);
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.88em;
+    font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    color: #1f1f1f;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 18px 20px;
+    border-radius: 10px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 4px 16px;
+    color: #3a3a3a;
+    margin: 1.1em 0;
+    background: var(--accent-soft);
+    border-radius: 0 6px 6px 0;
+  }
+  blockquote p { margin: 0.4em 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1.2em 0;
+    font-size: 0.92em;
+    background: var(--surface);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { font-weight: 600; background: var(--table-head); color: #1a1a1a; }
+  tr:last-child td { border-bottom: none; }
+  td code { font-size: 0.85em; }
+  ul, ol { padding-left: 1.5em; margin: 0.8em 0; }
+  li { margin: 0.32em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 3em 0; }
+  /* Table of contents */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 28px;
+    border-radius: 10px;
+    margin: 1.5em 0 2em;
+    box-shadow: var(--shadow);
+  }
+  .toc ul { list-style: none; padding-left: 0; margin: 0.4em 0; }
+  .toc li { padding: 1px 0; }
+  .toc li ul { padding-left: 1.4em; margin-top: 0.1em; }
+  .toc a { color: #2a2a2a; }
+  .toc a:hover { color: var(--accent); }
+  /* Anchors */
+  h1[id], h2[id], h3[id], h4[id] { scroll-margin-top: 24px; }
+  /* Highlight first paragraph after h2 a bit */
+  h2 + p { color: #2a2a2a; font-size: 1.02em; }
+  /* Print friendly */
+  @media print {
+    body { max-width: none; padding: 20px; font-size: 11pt; background: white; }
+    a { color: #000; }
+    pre, table { box-shadow: none; }
+  }
+  /* Mobile */
+  @media (max-width: 640px) {
+    body { padding: 20px 14px 60px; font-size: 14px; }
+    h1 { font-size: 1.7em; }
+    h2 { font-size: 1.3em; }
+    table { font-size: 0.85em; }
+    th, td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+<header style="margin-bottom: 2em;">
+  <div style="color: var(--muted); font-size: 0.9em; margin-bottom: 4px;">TwinMe Research</div>
+  <div style="color: var(--muted); font-size: 0.85em; font-style: italic;">Generated 2026-05-28 · source: research/gmail-onboarding-screenshots/</div>
+</header>
+<h1 id="twinme-competitor-analysis-littlebird-jo">TwinMe Competitor Analysis: Littlebird + jo<a class="headerlink" href="#twinme-competitor-analysis-littlebird-jo" title="Permanent link">&para;</a></h1>
+<p>Comprehensive deep-dive on the two competitor onboarding flows captured 2026-05-27, sourced from 56 screenshots (36 Littlebird + 20 jo).</p>
+<p><strong>Originals</strong>: <code>research/gmail-onboarding-screenshots/twinme-platforms/</code> (Littlebird) and <code>research/gmail-onboarding-screenshots/askjo/</code> (jo).</p>
+<hr>
+<h2 id="part-1-littlebird">Part 1 — Littlebird<a class="headerlink" href="#part-1-littlebird" title="Permanent link">&para;</a></h2>
+<p>Source: 36 screenshots of Littlebird v0.78.22 (Stable channel), captured 2026-05-27.</p>
+<hr>
+<h2 id="1-product-context">1. Product context<a class="headerlink" href="#1-product-context" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tagline (welcome screen)</strong></td>
+<td>"Your AI assistant that understands your work context and helps you stay focused"</td>
+</tr>
+<tr>
+<td><strong>Tagline (chat home)</strong></td>
+<td>"Connect everything. Ask anything."</td>
+</tr>
+<tr>
+<td><strong>Positioning claim</strong></td>
+<td>"The only AI that already knows what you're working on"</td>
+</tr>
+<tr>
+<td><strong>Founders</strong></td>
+<td>Alexander Green, Alap Shah, Naman Shah</td>
+</tr>
+<tr>
+<td><strong>HQ</strong></td>
+<td>San Francisco</td>
+</tr>
+<tr>
+<td><strong>Founded / launched</strong></td>
+<td>March 2026</td>
+</tr>
+<tr>
+<td><strong>Seed</strong></td>
+<td>$11M led by <strong>Lotus Studio</strong>; angels: Lenny Rachitsky, Scott Belsky</td>
+</tr>
+<tr>
+<td><strong>Platform</strong></td>
+<td>Native macOS (Windows on roadmap); iOS + Android companion apps</td>
+</tr>
+<tr>
+<td><strong>Captured app version</strong></td>
+<td>v0.78.22 (Stable channel)</td>
+</tr>
+<tr>
+<td><strong>Compliance</strong></td>
+<td>SOC 2, GDPR, CCPA. Data never used for model training. Encrypted in transit + at rest on AWS.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-it-actually-works-per-their-own-support-docs">How it actually works (per their own support docs)<a class="headerlink" href="#how-it-actually-works-per-their-own-support-docs" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Reads <strong>text + accessibility-tree elements of the active application window</strong> every ~2 seconds. NOT screen recording, NOT screenshots, NOT keystroke logging.</li>
+<li>Captures: visible text, app names (Slack, Chrome, etc.), document/email/website content currently rendered.</li>
+<li>Skips: password fields (auto-ignored), minimized windows, private browsing windows.</li>
+<li>Requires macOS Accessibility permission (system-level prompt).</li>
+<li>Has special Google Docs handling: instructs user to enable Chrome screen reader (Cmd+Option+Z) for cleaner OCR of Docs.</li>
+<li>Backend storage = private encrypted index on AWS.</li>
+</ul>
+<hr>
+<h2 id="2-design-language">2. Design language<a class="headerlink" href="#2-design-language" title="Permanent link">&para;</a></h2>
+<h3 id="color-palette">Color palette<a class="headerlink" href="#color-palette" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Off-white background</strong>: ~<code>#F7F4ED</code> (cream-paper) for the main app surface and onboarding left panels.</li>
+<li><strong>Card surface</strong>: pure white <code>#FFFFFF</code> for setting cards, integration tiles, chat messages.</li>
+<li><strong>Dark accent</strong>: near-black <code>#0F1112</code>-ish for primary CTAs, sidebar text, system text.</li>
+<li><strong>Toggle accent</strong>: bright blue <code>#3B82F6</code>-ish, classic iOS-style toggle when ON.</li>
+<li><strong>Connected status</strong>: mint-green pill <code>#D9F4DC</code> with darker green text.</li>
+<li><strong>Beta tag</strong>: lavender pill <code>#E9E4FF</code> with purple text.</li>
+<li><strong>Forest-green hero illustration</strong>: <code>#1A2D1F</code> → <code>#2F4030</code> — dark, painterly grass/garden. Used on the welcome screen and as the right-side preview panel on every onboarding step. Photo-illustration style, hand-painted feel — distinctly <em>un-SaaS</em>.</li>
+<li><strong>Floating-logo "Connect everything" screen</strong> breaks the green dark with a sky/meadow gradient (blue → green) and circles app logos around the Littlebird bird mark. Lush, almost storybook.</li>
+</ul>
+<h3 id="typography">Typography<a class="headerlink" href="#typography" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Headings (page titles like "Meetings", "Routines")</strong>: appear to be a <strong>transitional serif</strong> (Tiempos / Caladea / similar). Larger sizes are crisply serif; smaller "Set Up Your Preferences" titles fall back to sans.</li>
+<li><strong>Body / UI</strong>: a humanist sans-serif (looks like Inter or Söhne). Weight 400 for body, 500-600 for labels and CTAs.</li>
+<li><strong>Monospace</strong> used inside transcript / code areas.</li>
+<li><strong>Hierarchy is generous</strong>: page title 24-28px, section headers 18px, body 13-14px, helper text 12px.</li>
+</ul>
+<h3 id="spacing-shape">Spacing &amp; shape<a class="headerlink" href="#spacing-shape" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Card radius</strong>: ~12px for setting cards and integration tiles; ~16-20px for top-level panel surfaces; ~20-24px for the main chat input.</li>
+<li><strong>Pill radius</strong>: full pill on tabs, suggestion chips, Beta tags, Connected badges, "+ New Note".</li>
+<li><strong>Padding</strong>: tile internal padding ≈ 16-20px; settings row padding 14-16px; section vertical gap ≈ 24-32px.</li>
+<li><strong>Sidebar width</strong>: ~200px (settings sub-nav), wider for the app sidebar (~240px).</li>
+<li><strong>Modal overlay</strong>: dimmed background, modal sits centered with rounded corners and subtle shadow.</li>
+</ul>
+<h3 id="iconography-illustrations">Iconography &amp; illustrations<a class="headerlink" href="#iconography-illustrations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Stroke icons throughout (Lucide-feel: 1.5-2px stroke, rounded ends).</li>
+<li>The brand mark is a stylized white hummingbird on dark background, a black silhouette bird in the sidebar/header.</li>
+<li>Right-panel onboarding previews use <em>real</em> illustrative output, not skeleton placeholders — they show a meeting list, a follow-up email draft, a flying-logo cluster, etc. Sells the value <em>visually</em> on every step.</li>
+<li>The traffic-light buttons (red/yellow/green) are visible on every screen — it's a <code>vibrancy: window</code> macOS window, not a borderless web app.</li>
+</ul>
+<h3 id="motion-inferred-from-layouts">Motion (inferred from layouts)<a class="headerlink" href="#motion-inferred-from-layouts" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Settings rows use long-press style toggles; the OFF→ON state animates color.</li>
+<li>The "Learning in progress... 03:01" countdown implies a smooth circular progress + countdown timer.</li>
+<li>The "Connect everything" floating-logo scene is visually static in screenshots but the layout (logos in mid-air with birds + dots) is designed for a parallax/float animation.</li>
+</ul>
+<hr>
+<h2 id="3-onboarding-flow-10-steps-in-captured-order">3. Onboarding flow (10 steps, in captured order)<a class="headerlink" href="#3-onboarding-flow-10-steps-in-captured-order" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Timestamp</th>
+<th>Screen</th>
+<th>Body copy</th>
+<th>Permissions / CTAs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>15:13:10</td>
+<td><strong>Welcome</strong></td>
+<td>"Welcome to Littlebird. Your AI assistant that understands your work context and helps you stay focused."</td>
+<td>"Sign Up or Sign In" (single light pill button) + ToS/Privacy link footer</td>
+</tr>
+<tr>
+<td>2</td>
+<td>15:14:10</td>
+<td><strong>Set Up Your Preferences</strong></td>
+<td>"This helps Littlebird personalize your experience. You can update it later."</td>
+<td>Fields: First Name · Last Name · How did you hear about us? (select) · <strong>Other names you go by (optional)</strong> — placeholder <em>"e.g. usernames, email handles, nicknames"</em> with helper <em>"Helps Littlebird recognize you in messages, emails, and meetings."</em> / "Continue" + "Signed in as <email>. Switch account"</td>
+</tr>
+<tr>
+<td>3</td>
+<td>15:14:57</td>
+<td><strong>Enable Context Awareness</strong></td>
+<td>"This lets Littlebird understand what's on your screen and provide relevant assistance."</td>
+<td>Card: "Accessibility Permission — Allow Littlebird to read on-screen text for context." → <strong>Grant Access</strong> (light pill) — opens macOS System Settings → Accessibility, toggle Littlebird on / <strong>"Text only. No screen recording. You control which apps to include and can delete data anytime."</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>15:15:48</td>
+<td><strong>Automatic Meeting Notes</strong></td>
+<td>"Littlebird can transcribe meetings and generate structured summaries for you."</td>
+<td>Card: "Microphone Access — Capture audio in meetings you join." → Allow Permission / <strong>"Audio is processed securely and only during meetings. You stay in control."</strong> / Continue + "Skip for now"</td>
+</tr>
+<tr>
+<td>5</td>
+<td>15:16:09</td>
+<td><strong>Connect Your Tools</strong></td>
+<td>"Littlebird can use your connected tools to provide more relevant, timely help."</td>
+<td>Google Calendar + Gmail prebuilt cards (both <strong>already connected</strong> before this screen — implies the sign-up step did Google OAuth in the background). Right panel: a sample "Follow up with Jason" action showing how cross-tool reasoning works.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>15:16:23</td>
+<td><strong>Hummingbird (OFF state)</strong></td>
+<td>"Open Littlebird from anywhere and ask about what's on your screen."</td>
+<td>"Enable Hummingbird" toggle / 3 bullet rows: "Ask questions about anything on your screen" · "Stay in flow with context-aware answers without app switching" · "Ask questions about your ongoing meeting in real time"</td>
+</tr>
+<tr>
+<td>7</td>
+<td>15:16:36</td>
+<td><strong>Hummingbird (ON state)</strong></td>
+<td>(same screen with toggle ON)</td>
+<td>"Press this combination anywhere to open Littlebird" shows ⌥+⌥ glyph; "Want a different shortcut? Click to record a new shortcut" → "Tap Option twice ▾" dropdown</td>
+</tr>
+<tr>
+<td>8</td>
+<td>15:17:15</td>
+<td><strong>See Littlebird in action</strong></td>
+<td>"Here's a quick preview of what Littlebird can understand about your workflow."</td>
+<td>Card: "Switch to another app. Use your Mac normally for a couple of minutes." with a 3-min progress bar "Learning in progress... 03:01" — user is forced to walk away and use their Mac normally</td>
+</tr>
+<tr>
+<td>9</td>
+<td>15:20:05</td>
+<td><strong>Here's what Littlebird picked up</strong></td>
+<td>"This is just a preview. Littlebird gets smarter the more you use it."</td>
+<td>Two blocks: <strong>Activity Summary</strong> ("You just opened Google Chrome briefly before switching to Safari to browse trending designer bags on Mytheresa. You also have tabs open for Mii Collection and renting a car in Milos.") + <strong>Productivity Insights</strong> ("It looks like you are planning a summer vacation to Greece! I can help you build a complete travel itinerary for Milos, track prices for those Chloé and Loewe bags you were eyeing, and organize your car rental arrangements.") + <strong>Continue</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td>15:21:47</td>
+<td><strong>Connect everything. Ask anything.</strong> (transition modal)</td>
+<td>"Connect the apps you actually work in — Gmail, Slack, Notion, GitHub, and 95 more." / "Ask Littlebird about your emails, meetings, files, and tasks — all in one place." / <strong>"Toggle access per chat. You decide what Littlebird can see, always."</strong></td>
+<td>"Set up integrations" → opens the <strong>Add integrations</strong> modal</td>
+</tr>
+</tbody>
+</table>
+<h3 id="onboarding-patterns-worth-stealing">Onboarding patterns worth stealing<a class="headerlink" href="#onboarding-patterns-worth-stealing" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>"Other names you go by"</strong> as a first-class onboarding field — explicit aliases capture. We currently rely on coreMemoryService to back-infer this.</li>
+<li><strong>Permission narrative</strong>: each permission gets its own screen with a one-line trust statement. Accessibility = "Text only. No screen recording." Microphone = "Audio is processed securely and only during meetings."</li>
+<li><strong>The 3-minute live demo (step 8)</strong> is the standout move. The user is shown a literal countdown — <em>"Use your Mac normally"</em> — and the app silently observes. Then step 9 <em>"Here's what Littlebird picked up"</em> delivers a 2-paragraph personalized summary. We don't have anything equivalent.</li>
+<li><strong>"Skip for now"</strong> is universally available next to every permission. Reduces drop-off.</li>
+<li><strong>OAuth already done in the background</strong>: by the time the user reaches step 5, Gmail and Google Calendar already show "Connected." Implies the Sign Up flow did Google OAuth and silently pre-wired the connections.</li>
+</ul>
+<hr>
+<h2 id="4-main-app-surface-chat-home">4. Main app surface — chat home<a class="headerlink" href="#4-main-app-surface-chat-home" title="Permanent link">&para;</a></h2>
+<p>Layout (left → right):</p>
+<h3 id="left-sidebar-240px">Left sidebar (~240px)<a class="headerlink" href="#left-sidebar-240px" title="Permanent link">&para;</a></h3>
+<pre><code>🐦 Littlebird
+
+💬  New Chat              [active by default]
+🔍  Search
+📅  Meeting Notes      [Beta]
+🔁  Routines
+
+Projects                                +
+📁  Greece Trips                              [example]
+
+Recents
+   Assistant Capabilities Overview
+
+────────────────────────────────────
+🎁  Get 2 Months Free                       [×]
+[ Context enabled ●  ]                      [pill, green dot]
+S   Stefano Gebara
+    Basic
+</code></pre>
+<h3 id="center">Center<a class="headerlink" href="#center" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Centered headline: <strong>"What's on your mind today?"</strong> (large serif)</li>
+<li>Composer block (card, ~700px wide, white background, ~20px radius):</li>
+<li>Placeholder: "Ask Littlebird"</li>
+<li>Bottom-left: <code>+</code> (attach menu) — popover shows: <strong>Attach a file · Project ▸ · Max</strong> <em>(For deep research and complex queries)</em> · <strong>Create Image</strong> <em>(toggle)</em> · <strong>Manage integrations</strong></li>
+<li>Bottom-right: row of small app icons (connected integrations), mic, <strong>dark send arrow</strong> (filled, circular)</li>
+<li>Footer-inside-card: "Connect your apps to get better answers" + row of app logos + × dismiss</li>
+<li>Suggestion chips (4 visible, two rows):</li>
+<li>"Can you help research something on the web?"</li>
+<li>"How are you different from typical chatbots?"</li>
+<li>"Get most important news in all continents"</li>
+<li>"More suggestions"</li>
+<li>Bottom system banner: "🎁 Gift 2 months free — Earn $40 in credit when they subscribe — Copy Invite" — sits floating, dismissible</li>
+</ul>
+<h3 id="right-no-permanent-panel">Right (no permanent panel)<a class="headerlink" href="#right-no-permanent-panel" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Right side is empty by default in the chat home; populates only when a chat is active.</li>
+</ul>
+<h3 id="composer-details">Composer details<a class="headerlink" href="#composer-details" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The mode picker isn't surfaced as a model dropdown the way ChatGPT/Claude does it. Instead, "Max" is hidden inside the <code>+</code> menu as a per-message intensifier. Smart.</li>
+<li>"Create Image" is a <strong>mode toggle</strong>, not a separate command. Toggle it ON and the next message generates an image.</li>
+<li>"Project ▸" inside <code>+</code> lets you scope the chat to a project (Greece Trips, etc.) so the answer is constrained to that project's memory.</li>
+</ul>
+<hr>
+<h2 id="5-feature-areas">5. Feature areas<a class="headerlink" href="#5-feature-areas" title="Permanent link">&para;</a></h2>
+<h3 id="51-chat">5.1 Chat<a class="headerlink" href="#51-chat" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Each chat = a session, listed in <strong>Recents</strong>.</li>
+<li>Two persistent personalization layers from Chat settings (see §6.7):</li>
+<li><strong>Custom Instructions</strong> — your system-prompt-like instructions (max length unknown).</li>
+<li><strong>Assistant Notes</strong> — <em>"Review and edit what Littlebird has remembered from past chats to guide future conversations"</em> — single freeform textarea. This is their version of TwinMe's structured directives table, just as a markdown blob.</li>
+<li>Tabs at the top: each chat is a tab; <strong>Cmd+T new tab</strong>, <strong>Cmd+W close</strong>, <strong>Cmd+1..9 switch</strong> — full browser-style tab UX.</li>
+</ul>
+<h3 id="52-meeting-notes-beta">5.2 Meeting Notes (Beta)<a class="headerlink" href="#52-meeting-notes-beta" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Index page: <code>Meetings</code> heading, <code>+ New Note</code> CTA, search bar, <strong>Coming up</strong> (auto-populated from connected Calendar — empty state shows a calendar icon and "No upcoming events"), <strong>Today</strong> group with list rows showing icon · title · "Me" (owner) · "Add to project ▾" dropdown · <code>...</code> overflow menu.</li>
+<li>Each note has three views as tabs at the top of the document:</li>
+<li><strong>Note</strong> — Notion-style empty doc, <em>"Write, '/' for commands"</em> — slash-command editor.</li>
+<li><strong>Summary</strong> — AI-generated structured summary. Example saw "Minimal Snapshot" heading with 3 bullets including a verbatim quote <em>"Stefano Gebara: 'Hello. So I would like to speak about quantum physics.'"</em></li>
+<li><strong>Transcript</strong> — speaker-labeled bubbles, right-aligned for self. Mic-source picker top-left: "🎙 System Default ▾"</li>
+<li>Recording controls float at the bottom-center: collapse arrow <code>⌃</code>, then <strong>Stop ◼</strong> / <strong>Resume ▶</strong>.</li>
+<li>Page header (top-right): date (e.g. "May 27"), copy link, share, chat, <code>...</code> overflow.</li>
+<li>"Add to project" dropdown lets you file the meeting note under a Project, or "Create project."</li>
+</ul>
+<h3 id="53-routines-the-scheduled-brief-feature">5.3 Routines (the scheduled-brief feature)<a class="headerlink" href="#53-routines-the-scheduled-brief-feature" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Index page: "Routines" heading, <code>+ New routine</code> CTA. Grid of card tiles:</li>
+<li><strong>+ Create Custom Routine</strong> — empty template</li>
+<li><strong>Morning Brief</strong> — "A quick read on what matters today so you start the day knowing where to put your attention." (Daily at 7:00)</li>
+<li><strong>End of Day Wrap-Up</strong> — "A short end-of-day read: what got done, what's still open, and what tomorrow looks like." (Daily at 17:00)</li>
+<li><strong>Weekly Reflection</strong> — "Look back at the week: where your time went, what moved forward, and where to point your focus next." (Weekly on Monday at 6:00)</li>
+<li><strong>Monthly Review</strong> — "Zoom out on the last month and set intentions for the next one." (Monthly on the 1st at 7:00)</li>
+<li>Configure-routine modal (created from a template):</li>
+<li><strong>Name</strong> input</li>
+<li><strong>Schedule</strong> tabs: Daily / Weekly / Monthly + time picker</li>
+<li><strong>Notifications</strong> toggle ("Push when a new report is ready.")</li>
+<li><strong>Email</strong> toggle ("Email me when a new report is ready.")</li>
+<li><strong>Instructions</strong> textarea (right column) — prefilled with a friendly first-person prompt: <em>"Give me my morning brief. What's on today — top priorities, meetings I should prep for, and anything I'm at risk of dropping or letting slip through the cracks. Keep it to what I'd actually want to read before my first coffee."</em> — Mic icon for voice dictation</li>
+<li>Footer: Cancel / <strong>Create routine</strong> (dark CTA)</li>
+</ul>
+<h3 id="54-projects">5.4 Projects<a class="headerlink" href="#54-projects" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Projects = top-level grouping containers in the left sidebar with <code>+</code> to add.</li>
+<li>Chats, meeting notes, and (presumably) routine outputs can be "Added to project" via dropdowns/menus.</li>
+<li>"Greece Trips" is the example project shown.</li>
+</ul>
+<h3 id="55-search">5.5 Search<a class="headerlink" href="#55-search" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Sidebar entry — Cmd+K. (Contents not captured in the screenshots.)</li>
+</ul>
+<h3 id="56-hummingbird-the-global-shortcut-floating-widget">5.6 Hummingbird (the global shortcut + floating widget)<a class="headerlink" href="#56-hummingbird-the-global-shortcut-floating-widget" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Activated by <strong>tapping Option twice</strong> (default — user-configurable).</li>
+<li>Opens a floating chat overlay anywhere on the desktop.</li>
+<li>Three modes demonstrated in the settings preview tabs:</li>
+<li><strong>Any app</strong> — overlay reads whatever's on screen; e.g. reading an article + popup "Summarize this article about creativity" → returns <strong>Key Takeaways</strong> card.</li>
+<li><strong>Ongoing meeting</strong> — overlay attached to a live meeting; e.g. "what is going on?" → "Based on your current screen, you're discussing the distillation phase of memory..."</li>
+<li><strong>Selected text</strong> — select text in any app, invoke Hummingbird, ask a question scoped to the selection.</li>
+<li>Settings include: Enable toggle · Global Shortcut picker.</li>
+</ul>
+<hr>
+<h2 id="6-settings-12-section-deep-dive">6. Settings — 12-section deep dive<a class="headerlink" href="#6-settings-12-section-deep-dive" title="Permanent link">&para;</a></h2>
+<p>The Settings modal opens as a centered overlay with a left nav (~200px wide) and a right content panel. Footer of the left nav always shows <code>Littlebird v0.78.22</code>. Sections in order:</p>
+<h3 id="61-general">6.1 General<a class="headerlink" href="#61-general" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What should Littlebird call you?</td>
+<td>Text input.</td>
+</tr>
+<tr>
+<td>Aliases</td>
+<td>Text input, placeholder <em>"e.g. Rob, Robby, robert2025"</em> + helper <em>"Include your nicknames, online handles, and other identifiers, separated by commas."</em></td>
+</tr>
+<tr>
+<td>Timezone</td>
+<td>Read-only display <em>"Littlebird has your timezone as Horário Padrão de Brasília. Detected from your devices."</em> + <strong>Open system date &amp; time settings</strong> button</td>
+</tr>
+<tr>
+<td>Use this device to determine timezone</td>
+<td>Toggle ON (blue)</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Read-only with edit pencil icon</td>
+</tr>
+<tr>
+<td>Version banner</td>
+<td>"Littlebird v0.78.22 (Stable) · You are on the latest version · Channel: Stable"</td>
+</tr>
+<tr>
+<td>Sign Out</td>
+<td>Subtle gray button</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-system">6.2 System<a class="headerlink" href="#62-system" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Launch Littlebird on startup</td>
+<td>ON</td>
+<td>toggle</td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td>ON</td>
+<td>toggle</td>
+</tr>
+<tr>
+<td>Notification Sound</td>
+<td>ON</td>
+<td>toggle</td>
+</tr>
+<tr>
+<td>Time Format</td>
+<td>24-hour</td>
+<td>dropdown (12 / 24)</td>
+</tr>
+<tr>
+<td>Show App In</td>
+<td>Dock and Status Bar</td>
+<td>dropdown (Dock only / Status bar only / Dock and Status Bar)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-appearance">6.3 Appearance<a class="headerlink" href="#63-appearance" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Color Mode</strong>: three visual radio cards each rendering a tiny app preview — Light · Dark · <strong>Match System (selected)</strong>. Real mini-screenshot per option — gorgeous touch.</li>
+<li><strong>Extra Wide Chat</strong> — toggle (default OFF). "Choose whether to make the chat extra wide."</li>
+<li><strong>Font Size</strong> — dropdown (Normal / others).</li>
+<li><strong>Code Block Wrapping</strong> — toggle (ON). Sensible default for chat with code.</li>
+</ul>
+<h3 id="64-privacy-controls">6.4 Privacy Controls<a class="headerlink" href="#64-privacy-controls" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Heading: "Control what Littlebird can see. Excluded content won't appear in your context. <strong>Learn more ↗</strong>"</li>
+<li>Two tabs at the top: <strong>Exclude Apps (1)</strong> / <strong>Exclude Websites (17)</strong>.</li>
+<li><strong>Exclude Apps tab</strong>:</li>
+<li>Search input ("Search applications...") + Filter dropdown</li>
+<li>List of installed apps with per-row toggle (active OFF = excluded). Example shown: Finder excluded.</li>
+<li>Footer: <em>"Can't find your app? Select it manually"</em></li>
+<li><strong>Exclude Websites tab</strong>:</li>
+<li>Section <em>"Exclude by Category"</em> with toggles:<ul>
+<li>Adult Content (ON — <em>"Adult websites and mature content"</em>)</li>
+<li>Banking &amp; Finance (ON — <em>"Bank accounts, financial transactions, and investment platforms"</em>)</li>
+<li>Health &amp; Medical (OFF — <em>"Medical records, health information, and healthcare providers"</em>)</li>
+<li>Social Media (OFF — <em>"Social media platforms and messaging services"</em>)</li>
+<li>Shopping (OFF — <em>"E-commerce sites and online shopping platforms"</em>)</li>
+<li>Entertainment (OFF — <em>"Streaming services, games, and entertainment platforms"</em>)</li>
+</ul>
+</li>
+<li>Section <em>"Exclude Specific Websites (15)"</em> — collapsed. Input "Add domain (example.com)" + Add button.</li>
+</ul>
+<h3 id="65-data-controls">6.5 Data Controls<a class="headerlink" href="#65-data-controls" title="Permanent link">&para;</a></h3>
+<p>Granular delete controls, all under heading <em>"Manage Context Collected"</em>:</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Helper text</th>
+<th>Button</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Delete Last Hour of Context</td>
+<td>Remove all context collected in the last hour</td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>Delete Last Day of Context</td>
+<td>Remove all context collected in the last 24 hours</td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>Delete Context for Custom Time Period</td>
+<td>Choose a custom time period to remove context (e.g., last 2 hours, last 3 days)</td>
+<td>Select</td>
+</tr>
+<tr>
+<td>Delete All Context</td>
+<td><strong>Permanently remove all context collected. This action cannot be undone.</strong></td>
+<td>Delete</td>
+</tr>
+</tbody>
+</table>
+<p>Then <em>"Manage your Account"</em>:
+- <strong>Delete Your Account</strong> — Permanently delete your account and all associated data — Delete</p>
+<h3 id="66-hummingbird">6.6 Hummingbird<a class="headerlink" href="#66-hummingbird" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Heading: "Chat with anything on your screen — apps, meetings, or selected text."</li>
+<li><strong>See in action ▼</strong> expandable section with 3 demo tabs: Any app · Ongoing meeting · Selected text — each renders a realistic preview.</li>
+<li><strong>Enable Hummingbird</strong> toggle.</li>
+<li><strong>Global Shortcut</strong> — dropdown set to "Tap Option twice"; clickable shortcut-recorder is hinted.</li>
+</ul>
+<h3 id="67-meetings">6.7 Meetings<a class="headerlink" href="#67-meetings" title="Permanent link">&para;</a></h3>
+<p>Long settings list, two implicit groups:</p>
+<p><strong>Meeting capture / behavior:</strong>
+| Setting | Default | Type |
+|---|---|---|
+| Meeting Notifications | Confirmed Only | dropdown |
+| Meeting Language | English | dropdown (≥10 langs per docs) |
+| Preferred Microphone | System Default | dropdown |
+| Meeting Reminders | ON | toggle |
+| Reminder Time | 1 Minute | dropdown |
+| Exclude Events Without Guests | ON | toggle — <em>"Don't show notifications for events without other guests or meeting links"</em> |
+| Meeting App Detection Alerts | ON | toggle — <em>"Show notifications when a meeting app is detected"</em> |
+| Auto-Start Recording on Detection | OFF | toggle |
+| Auto-Stop Inactivity Timeout | 15 Minutes | dropdown |
+| Hide Widget From Screen Sharing | ON | toggle — <em>"Keep the floating meeting widget invisible to screen capture and shared screens"</em> |</p>
+<p><strong>Menu bar:</strong>
+| Setting | Default | Type |
+|---|---|---|
+| Menu bar calendar | ON | toggle |
+| Include events | Today &amp; Tomorrow | dropdown |
+| Preview upcoming event in menu bar | 3 hours before event | dropdown |</p>
+<h3 id="68-chat">6.8 Chat<a class="headerlink" href="#68-chat" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Custom Instructions</strong></td>
+<td>"Personalize your interactions with Littlebird by providing your own instructions." Large textarea with Discard / Save footer that activates when dirty. <em>"No unsaved changes"</em> indicator.</td>
+</tr>
+<tr>
+<td><strong>Assistant Notes</strong></td>
+<td>"Review and edit what Littlebird has remembered from past chats to guide future conversations." Large textarea. <em>"Edit Littlebird's memory"</em> placeholder.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="69-integrations">6.9 Integrations<a class="headerlink" href="#69-integrations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Heading: "Your Integrations" + <strong>+ Add integration</strong> CTA.</li>
+<li>Each connected integration is a card with:</li>
+<li>Icon · name (e.g. Gmail) · settings cog · expand chevron · short description</li>
+<li>Account row(s): email · email · <strong>Connected</strong> badge · edit · settings icons</li>
+<li>"+ Add another account" link</li>
+<li><strong>Add integrations</strong> modal: search · filter (All ▾) · <strong>+ Add custom [$ Plus]</strong> CTA · 2-col grid of integration tiles. Each tile has icon · name · "Connect [$ Plus]" or settings cog if already connected · description. Seen tiles:</li>
+<li>Apple Calendar [$ Plus]</li>
+<li>Apple Reminders [$ Plus]</li>
+<li>Gmail (free, already connected)</li>
+<li>Google Calendar (free, already connected)</li>
+<li>Google Drive [$ Plus]</li>
+<li>Outlook [$ Plus]</li>
+<li>AdsInsight [$ Plus] — pharma/clinical-trial data</li>
+<li>Ahrefs [$ Plus] — SEO/search analytics</li>
+<li>Per Littlebird marketing copy: "Gmail, Slack, Notion, GitHub, and <strong>95 more</strong>." The free vs Plus split is per-integration.</li>
+</ul>
+<h3 id="610-keyboard-shortcuts">6.10 Keyboard Shortcuts<a class="headerlink" href="#610-keyboard-shortcuts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Action</th>
+<th>Shortcut</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>General</td>
+<td>New chat</td>
+<td>Cmd+N</td>
+</tr>
+<tr>
+<td></td>
+<td>Search</td>
+<td>Cmd+K</td>
+</tr>
+<tr>
+<td></td>
+<td>Open settings</td>
+<td>Cmd+,</td>
+</tr>
+<tr>
+<td></td>
+<td>Toggle sidebar</td>
+<td>Cmd+S</td>
+</tr>
+<tr>
+<td>Navigation</td>
+<td>Go back</td>
+<td>Cmd+[</td>
+</tr>
+<tr>
+<td></td>
+<td>Go forward</td>
+<td>Cmd+]</td>
+</tr>
+<tr>
+<td>Tabs</td>
+<td>New tab</td>
+<td>Cmd+T</td>
+</tr>
+<tr>
+<td></td>
+<td>Close tab</td>
+<td>Cmd+W</td>
+</tr>
+<tr>
+<td></td>
+<td>Previous tab</td>
+<td>Cmd+Shift+[</td>
+</tr>
+<tr>
+<td></td>
+<td>Next tab</td>
+<td>Cmd+Shift+]</td>
+</tr>
+<tr>
+<td></td>
+<td>Switch to tab</td>
+<td>Cmd+1 ... Cmd+9</td>
+</tr>
+</tbody>
+</table>
+<p>The tab system is a clear signal that Littlebird positions itself as a <em>browser-of-AI-chats</em>, not a single-chat sidekick.</p>
+<h3 id="611-subscription">6.11 Subscription<a class="headerlink" href="#611-subscription" title="Permanent link">&para;</a></h3>
+<p><strong>Plus — $17/mo annual</strong> (or ~$20/mo monthly; "-15%" badge for annual). Includes everything in Basic, plus:
+- Advanced intelligence in chat
+- Enhanced memory and personalization
+- Additional daily chats
+- Additional active routines
+- Unlimited meeting notes
+- Access to integrations for complex tasks and deep research
+- Access to standard image generation
+- Priority support
+- <strong>Start 14-day free trial</strong> CTA</p>
+<p><strong>Pro — From $100/mo</strong>. Includes everything in Plus, plus:
+- Choose 5x or 12x more usage than Plus
+- Auto-detect language in meeting notes
+- Higher limits for image generation
+- Access to premium image generation
+- Early access to new features
+- Two CTAs: <strong>Choose Pro 5x — $100/mo</strong> · <strong>Choose Pro 12x — $200/mo</strong></p>
+<p>Below the table:
+- <strong>Referral code</strong> input + Apply
+- Green banner: "🌱 Earn $40 credits for each friend who subscribes — Start Referring"
+- Footer link: "Want Littlebird for your team or business? Contact us ↗"</p>
+<h3 id="612-team-support">6.12 Team / Support<a class="headerlink" href="#612-team-support" title="Permanent link">&para;</a></h3>
+<p>Visible in sidebar but content not captured. Team is presumably workspace/multi-user; Support is help center links.</p>
+<hr>
+<h2 id="7-backend-signals-inferred-verified">7. Backend signals (inferred + verified)<a class="headerlink" href="#7-backend-signals-inferred-verified" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Source</th>
+<th>Inference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Polling cadence</td>
+<td>Help docs</td>
+<td>~2-second scrape of accessibility tree</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>Help docs + Built In</td>
+<td>"Private encrypted index" on AWS, SOC 2</td>
+</tr>
+<tr>
+<td>Per-message model selection</td>
+<td>Composer <code>+</code> menu</td>
+<td>Single tier by default, "Max" mode for deep research, "Create Image" toggle</td>
+</tr>
+<tr>
+<td>Tab system</td>
+<td>Keyboard Shortcuts</td>
+<td>Stateful tab manager — implies per-tab conversation state in memory + persistence</td>
+</tr>
+<tr>
+<td>Recording state</td>
+<td>Meeting Notes view</td>
+<td>Background audio capture independent of chat tab focus</td>
+</tr>
+<tr>
+<td>Calendar polling</td>
+<td>Menu bar calendar setting</td>
+<td>Pull-based polling against connected Google Calendar</td>
+</tr>
+<tr>
+<td>Notification system</td>
+<td>Settings → System</td>
+<td>Native macOS notification center hooks</td>
+</tr>
+<tr>
+<td>Update channel</td>
+<td>General settings footer</td>
+<td>Stable / (presumably Beta) channels — Sparkle-style autoupdater?</td>
+</tr>
+<tr>
+<td>Image generation</td>
+<td>Composer + subscription page</td>
+<td>Backend has image-gen pipeline, with Plus = standard, Pro = "premium"</td>
+</tr>
+<tr>
+<td>Account-linked memory</td>
+<td>Chat settings</td>
+<td>Server-side memory store ("Assistant Notes") synced across devices/tabs</td>
+</tr>
+<tr>
+<td>Companion apps</td>
+<td>Marketing</td>
+<td>iOS + Android apps imply a sync server and remote-fetch path for memory</td>
+</tr>
+</tbody>
+</table>
+<p>What we don't know:
+- The exact LLM provider(s) — not disclosed. "Advanced intelligence in chat" on Plus and "premium image generation" on Pro hint at multiple models behind one product surface (probably routed server-side).
+- Whether they use Electron, Tauri, or a true native Swift/AppKit build. The OS-permission flows (Accessibility, Microphone) work for any of those, but the file-size limits, the visual polish, and the speed claims suggest native or Tauri-native rather than Electron.
+- Whether context collection runs entirely on-device (most likely) and only chat-time queries hit the cloud — or whether snippets are streamed up continuously.</p>
+<hr>
+<h2 id="8-ui-primitives-catalogue">8. UI primitives catalogue<a class="headerlink" href="#8-ui-primitives-catalogue" title="Permanent link">&para;</a></h2>
+<p>For visual reference if we want to mimic any of this in TwinMe:</p>
+<table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>Where it appears</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cream/off-white surface (<code>~#F7F4ED</code>)</td>
+<td>Welcome, all onboarding panels, main app</td>
+</tr>
+<tr>
+<td>Dark forest illustration</td>
+<td>Welcome bg, right panels on onboarding</td>
+</tr>
+<tr>
+<td>Tile preview card with realistic content</td>
+<td>Every onboarding right panel</td>
+</tr>
+<tr>
+<td>Pill toggle (blue)</td>
+<td>All settings toggles</td>
+</tr>
+<tr>
+<td>Tab strip with rounded inactive + filled active</td>
+<td>Meeting Notes (Note/Summary/Transcript), Privacy Controls (Apps/Websites)</td>
+</tr>
+<tr>
+<td>Suggestion chip (rounded full pill, neutral bg)</td>
+<td>Chat home</td>
+</tr>
+<tr>
+<td>Mode-radio card with mini app preview</td>
+<td>Appearance → Color Mode</td>
+</tr>
+<tr>
+<td>Status pill (green dot + label)</td>
+<td>Sidebar "Context enabled ●"</td>
+</tr>
+<tr>
+<td>Beta lavender pill</td>
+<td>"Meeting Notes [Beta]" sidebar entry</td>
+</tr>
+<tr>
+<td>Connected mint-green pill</td>
+<td>Integrations card account rows</td>
+</tr>
+<tr>
+<td><code>$ Plus</code> paywall badge</td>
+<td>Integration tiles, "Add custom" CTA</td>
+</tr>
+<tr>
+<td>Floating recording controls</td>
+<td>Meeting Notes</td>
+</tr>
+<tr>
+<td>Skeleton + countdown progress</td>
+<td>"Learning in progress... 03:01"</td>
+</tr>
+<tr>
+<td>Auto-detect + override toggle</td>
+<td>Timezone, language</td>
+</tr>
+<tr>
+<td>Inline edit + Save/Discard footer</td>
+<td>Custom Instructions textarea</td>
+</tr>
+<tr>
+<td>Bottom-floating referral banner</td>
+<td>Chat home</td>
+</tr>
+<tr>
+<td>Modal w/ left nav + right content</td>
+<td>All Settings views</td>
+</tr>
+<tr>
+<td>Painted floating logos scene</td>
+<td>"Connect everything. Ask anything." transition modal</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="9-strengths-vs-gaps-vs-twinme-today">9. Strengths vs gaps (vs TwinMe today)<a class="headerlink" href="#9-strengths-vs-gaps-vs-twinme-today" title="Permanent link">&para;</a></h2>
+<h3 id="where-littlebird-is-ahead">Where Littlebird is ahead<a class="headerlink" href="#where-littlebird-is-ahead" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>The 3-minute live observation demo</strong> (step 8). It's the strongest first-impression mechanic I've seen — passive observation + a personalized summary. TwinMe's equivalent moment is a Soul Signature reveal that depends on having a Spotify or YouTube connected, which is a much bigger commitment.</li>
+<li><strong>Per-message access toggles</strong>: <em>"Toggle access per chat. You decide what Littlebird can see, always."</em> — a strong privacy guarantee that doesn't require global settings changes.</li>
+<li><strong>Granular data-delete controls</strong> (last hour / day / custom / all). Our "Delete Account" is binary.</li>
+<li><strong>Category-based website exclusions</strong> (Adult / Finance / Health / Social / Shopping / Entertainment toggles). Easier than building an exclude list manually.</li>
+<li><strong>Tab-based chat browser model</strong> (Cmd+T to spawn parallel chats). TwinMe's single-thread chat surface is more limited.</li>
+<li><strong>Routines as first-class scheduled briefings</strong>, user-configurable from cards. Our cron jobs (<code>cron-morning-briefing</code>, <code>cron-evening-recap</code>, etc.) already do this but aren't exposed.</li>
+<li><strong>Meeting Notes as a complete sub-product</strong> (Note + Summary + Transcript views, recording controls, auto-categorize into Projects).</li>
+<li><strong>Hummingbird global shortcut</strong> (⌥⌥ to open floating chat anywhere with screen context). Closest analog: Granola or Cluely. We have nothing equivalent.</li>
+<li><strong>"Other names you go by" / Aliases</strong> captured at signup, not back-inferred.</li>
+<li><strong>Auto-detected timezone with device-source toggle</strong>. We hardcode UTC.</li>
+<li><strong>Single textarea "Assistant Notes" memory editor</strong> — radically simpler than our directives table. Worth considering as an alternative UI affordance.</li>
+<li><strong>Custom Instructions per-account</strong> — system-prompt-level personalization that persists across all chats.</li>
+<li><strong>Pricing referral mechanic</strong> — $40/friend credit. We have no referral system.</li>
+<li><strong>Visual onboarding right-panel previews</strong> showing real outputs (briefing cards, "follow up with Jason" draft, integration logos). We use skeletons or empty states.</li>
+</ol>
+<h3 id="where-twinme-is-ahead">Where TwinMe is ahead<a class="headerlink" href="#where-twinme-is-ahead" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Soul Signature framing</strong> ("from resume to soul") is more emotionally resonant than "AI that knows what you're working on."</li>
+<li><strong>Memory stream + Generative Agents reflection engine</strong> — Littlebird's "Assistant Notes" is one freeform textarea; we have observation → reflection → expert personas → wiki compilation. Genuinely deeper.</li>
+<li><strong>Cross-platform</strong>: web + (in-progress) mobile. Littlebird is Mac-only at launch.</li>
+<li><strong>STDP synaptic plasticity + co-citation memory links</strong> — neurally-inspired memory architecture. No competitor matches this.</li>
+<li><strong>Smart-routed multi-model gateway</strong> — chat-light / chat-standard / chat-deep based on query complexity. Littlebird hides model choice; we route to save cost at scale.</li>
+<li><strong>Open data exports + portability</strong> (Pluggy bank statements, GDPR-style import). Littlebird doesn't talk about import at all.</li>
+</ol>
+<h3 id="where-theyre-roughly-tied">Where they're roughly tied<a class="headerlink" href="#where-theyre-roughly-tied" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Calendar/Gmail integrations</li>
+<li>Custom Instructions (we have the persona block / core memory blocks; they have a textarea)</li>
+<li>Notifications + reminders</li>
+<li>Privacy/security claims (SOC 2 for both)</li>
+</ul>
+<hr>
+<h2 id="10-direct-action-items-for-twinme-prioritized">10. Direct action items for TwinMe (prioritized)<a class="headerlink" href="#10-direct-action-items-for-twinme-prioritized" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Action</th>
+<th>Effort</th>
+<th>Where in code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>Add a "3-minute live observe" moment in onboarding using the existing browser extension as the data source. Closing screen: "Here's what we picked up" with 2 paragraphs (Activity Summary + Productivity Insights).</td>
+<td>2-3 days</td>
+<td><code>src/pages/onboarding/LiveObserve.tsx</code> (new) + browser extension hook</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>"Other names you go by" / Aliases field in onboarding → push into <code>coreMemoryService</code> blocks</td>
+<td>2 hours</td>
+<td><code>coreMemoryService.js</code>, onboarding form</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>Granular data-delete controls (last hour / day / custom / all) on PrivacySpectrumDashboard</td>
+<td>1 day</td>
+<td><code>src/pages/PrivacyPage.tsx</code> + new <code>/api/user/delete-context</code> endpoint</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td>Auto-detected timezone (replace hardcoded UTC)</td>
+<td>2 hours</td>
+<td><code>twinSystemPromptBuilder.js</code> + frontend (Intl.DateTimeFormat().resolvedOptions().timeZone)</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td>Routines UI surfacing existing crons (Morning Brief / Evening Wrap-Up / Weekly Reflection / Monthly Review) as user-configurable cards</td>
+<td>1-2 days</td>
+<td>new <code>src/pages/RoutinesPage.tsx</code> + read existing cron config</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td>Custom routine builder: name + schedule + instructions textarea</td>
+<td>1 day</td>
+<td>new route + new <code>user_routines</code> table or extend <code>proactive_insights</code></td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td>Per-chat access toggles ("toggle access per chat")</td>
+<td>2 days</td>
+<td>new <code>twin_conversations.scope_overrides</code> JSONB column + UI</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td>Category-based website exclusions (Adult / Finance / Health / Social / Shopping / Entertainment) for browser-extension data</td>
+<td>1 day</td>
+<td>new <code>user_excluded_categories</code> + filter in observation pipeline</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td>Single freeform "Assistant Notes" memory editor as an alternative view alongside our structured directives table</td>
+<td>1 day</td>
+<td>new <code>/twin-soul/notes</code> route, reuses <code>twin_directives</code> with a "single-blob" mode</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td>Tab-style chat browser (Cmd+T new chat, Cmd+1..9 switch)</td>
+<td>2-3 days</td>
+<td>new TabContext + TalkToTwinPage refactor</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Suggestion chips on <code>/talk-to-twin</code> — replace generic with concrete: "Help me research X" / "Get me up to speed on the news" / "How are you different from X"</td>
+<td>1 hour</td>
+<td>copy edit</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Referral mechanic ($X per friend who subscribes)</td>
+<td>2-3 days</td>
+<td>new tables + UI</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Mode-radio cards (Light / Dark / Match System) with mini app previews</td>
+<td>1 day</td>
+<td>dark mode already shipped — add system-match + previews</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td>Global hotkey (Mac/Windows) opening a Hummingbird-style floating chat that reads selected text or current browser tab</td>
+<td>3-5 days</td>
+<td>requires native shell (Tauri/Electron) — not aligned with web-first today</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="11-notable-phrases-worth-stealing-verbatim">11. Notable phrases worth stealing verbatim<a class="headerlink" href="#11-notable-phrases-worth-stealing-verbatim" title="Permanent link">&para;</a></h2>
+<ul>
+<li>"Text only. No screen recording. You control which apps to include and can delete data anytime."</li>
+<li>"Audio is processed securely and only during meetings. You stay in control."</li>
+<li>"Toggle access per chat. You decide what Littlebird can see, always."</li>
+<li>"Excluded content won't appear in your context."</li>
+<li>"Permanently remove all context collected. This action cannot be undone."</li>
+<li>"Get smarter the more you use it."</li>
+<li>Daily-rhythm framing: "Morning Brief / End of Day Wrap-Up / Weekly Reflection / Monthly Review" — exactly how we should label our cron jobs in the UI.</li>
+<li>"Give me my morning brief. What's on today — top priorities, meetings I should prep for, and anything I'm at risk of dropping or letting slip through the cracks. Keep it to what I'd actually want to read before my first coffee." — could be the default instruction string for our Morning Brief routine template.</li>
+</ul>
+<hr>
+<h2 id="12-open-questions-worth-answering-before-copying">12. Open questions worth answering before copying<a class="headerlink" href="#12-open-questions-worth-answering-before-copying" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Is their context collection really only on-device, or do they stream snippets up? (Important for our cost model — we cannot afford per-2-second LLM calls.)</li>
+<li>Do their Routines run on-device or server-side? (Our cron-based model is server-side. Their model would need a daemon or a server-job.)</li>
+<li>Pricing: is $17/mo Plus enough to cover their compute, given they presumably pay for OpenAI/Anthropic? We're burning ~$0.50/user/day on heavy users; that's hard at $17/mo unless they aggressively rate-limit.</li>
+<li>Their "Pro 5x / Pro 12x" pricing is essentially a usage multiplier — similar to ChatGPT Plus vs Team vs Enterprise. Worth modeling for our pricing.</li>
+<li>The "95 more integrations" claim — do these route through a third party (Pipedream / Composio / Paragon) or are they all bespoke? Composio looks likely given the variety (AdsInsight, Ahrefs).</li>
+</ol>
+<hr>
+<h2 id="part-2-jo-askjoai">Part 2 — jo (askjo.ai)<a class="headerlink" href="#part-2-jo-askjoai" title="Permanent link">&para;</a></h2>
+<p>Source: 20 screenshots of the jo onboarding + main app, captured 2026-05-27 (15:36-15:43, 7 minutes).</p>
+<hr>
+<h2 id="1-product-context_1">1. Product context<a class="headerlink" href="#1-product-context_1" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Web tagline</strong> (askjo.ai homepage)</td>
+<td><strong>"Your AI. Your Machine. 10x Faster."</strong></td>
+</tr>
+<tr>
+<td><strong>In-app intro</strong></td>
+<td>"Hi Stefano! Give me a second to look you up..." (animated, first-person)</td>
+</tr>
+<tr>
+<td><strong>Positioning claim</strong></td>
+<td>"A personal AI that actually knows you"</td>
+</tr>
+<tr>
+<td><strong>Founders</strong></td>
+<td><strong>Pradeep Elankumaran</strong> (CEO) — ex-Yahoo, ex-Lyft, prior YC S11 (Kicksend) + S16 (Farmstead). <strong>Kevin Li</strong> (CMO) — ex-Yahoo, ex-Kabam, prior YC S16 (Farmstead). Co-founders for a decade; consumer-product builders since the mid-2000s.</td>
+</tr>
+<tr>
+<td><strong>YC batch</strong></td>
+<td><strong>W24</strong> (cited in YC company page) — also referenced as currently active</td>
+</tr>
+<tr>
+<td><strong>Founded</strong></td>
+<td>2023</td>
+</tr>
+<tr>
+<td><strong>Funding</strong></td>
+<td>$500K disclosed. Investors: <strong>Y Combinator</strong>, <strong>Antigravity Capital</strong>, <strong>Hypothesis Studio</strong>, <strong>Resolute Ventures</strong>, plus angels (Taro Fukuyama publicly disclosed his check).</td>
+</tr>
+<tr>
+<td><strong>HQ</strong></td>
+<td>San Francisco (per LinkedIn)</td>
+</tr>
+<tr>
+<td><strong>Platform</strong></td>
+<td>Native macOS (Apple Silicon only); Telegram + WhatsApp as chat surfaces; iOS/Android native apps "coming soon"</td>
+</tr>
+<tr>
+<td><strong>Hardware floor</strong></td>
+<td><strong>M-series chip (M1-M4), 16 GB RAM minimum.</strong> Most Macs from 2020 onward.</td>
+</tr>
+<tr>
+<td><strong>Pricing (in-app onboarding)</strong></td>
+<td><strong>$39/mo "Early Adopter" pricing, 3 days free</strong></td>
+</tr>
+<tr>
+<td><strong>Pricing (current website)</strong></td>
+<td>Currently <strong>free in beta, no credit card</strong> required</td>
+</tr>
+<tr>
+<td><strong>Founders' contact</strong></td>
+<td><code>founders@askjo.ai</code></td>
+</tr>
+<tr>
+<td><strong>Telegram bot deep link</strong></td>
+<td><code>https://t.me/jo_prod_bot?start=QY23RX</code> (the <code>?start=</code> token is per-user)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="architecture-in-one-diagram">Architecture in one diagram<a class="headerlink" href="#architecture-in-one-diagram" title="Permanent link">&para;</a></h3>
+<pre><code>                        ┌───────────────────────────────┐
+   Your Mac             │   Your dedicated cloud machine │     Cloud LLM providers
+   (M-series, 16 GB+)   │   (1 per user, hosted by jo)   │     (OpenAI, Anthropic, Grok, Kimi, Gemini)
+  ┌──────────────────┐  │ ┌──────────────────────────┐  │   ┌──────────────────────────────┐
+  │ - Local indexer  │  │ │ - Conversation runtime   │  │   │ - Inference                  │
+  │ - &quot;Clips&quot; cache  │←─┼─┤ - Task execution         │──┼──→│ - Contractually barred from  │
+  │ - Photos/Notes/  │  │ │ - Real browser control   │  │   │   training on your data      │
+  │   Slack/Messages │  │ │ - Nightly reflection     │  │   └──────────────────────────────┘
+  │ - Transcription  │  │ │ - Mounts as a Finder vol │  │
+  │ - Echo cancel    │  │ └──────────────────────────┘  │
+  │ - Local model    │  │                                │
+  │   (optional)     │  └────────────────────────────────┘
+  └──────────────────┘
+</code></pre>
+<p><strong>Key claim</strong>: "Personal data stays on Mac" — photos, screen content, local files. The dedicated cloud machine sees only the indexed "clips" + conversation state.</p>
+<hr>
+<h2 id="2-design-language_1">2. Design language<a class="headerlink" href="#2-design-language_1" title="Permanent link">&para;</a></h2>
+<h3 id="color-palette_1">Color palette<a class="headerlink" href="#color-palette_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Background</strong>: very dark navy/charcoal <code>~#0E1118</code> → <code>~#16191F</code> with a faint film-grain texture.</li>
+<li><strong>Card surface</strong>: subtle dark grey <code>~#1B1F26</code> with hairline border <code>rgba(255,255,255,0.05-0.08)</code>.</li>
+<li><strong>Primary accent / "self" color</strong>: <strong>lavender / periwinkle blue</strong> <code>~#9AA4F8</code>-ish, used for jo's avatar circle, the waving-hand emoji background, primary "That's me!" / "Let's go" / "Looks good" / "Next" pill CTAs. Distinctive choice — feels intimate, not corporate.</li>
+<li><strong>Notification banner</strong>: thin warm-orange/amber pill <code>~#E8853A</code> for the persistent "Enable &gt;" CTA inside the top "Enable notifications so I can reach you" black bar.</li>
+<li><strong>Connected status</strong>: tiny <strong>green circle dot</strong> <code>✓</code> (mint green) before connected-account labels.</li>
+<li><strong>Body text</strong>: soft white <code>~#E6E8EE</code> for emphasis; muted grey <code>~#9CA0AC</code> for helper/secondary copy.</li>
+<li><strong>Section header tint</strong>: same lavender as primary but desaturated, used for the lead lines of each card.</li>
+</ul>
+<h3 id="typography-the-defining-choice">Typography — the defining choice<a class="headerlink" href="#typography-the-defining-choice" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>The entire UI is set in a MONOSPACE font.</strong> Almost certainly <strong>Berkeley Mono</strong>, <strong>IBM Plex Mono</strong>, <strong>JetBrains Mono</strong>, or <strong>Departure Mono</strong> family — characters are wide, slab-ish, with neutral terminals.</li>
+<li>This is a deliberate identity move: jo isn't trying to feel like a polished consumer SaaS, it's trying to feel like a <strong>terminal-native, hacker-friendly companion</strong>. Every text — headings, body, button labels, even the chat output — is monospace.</li>
+<li>Sizing hierarchy is small (4 visible sizes max):</li>
+<li>Hero headlines (~22-28px, mono): "Hi Stefano! Give me a second to look you up..."</li>
+<li>Card title (~14-16px): "Each morning, you get your briefing cards"</li>
+<li>Body (~13-14px): card body copy</li>
+<li>Helper text (~12px): "Tap to edit, x to remove"</li>
+</ul>
+<h3 id="spacing-shape_1">Spacing &amp; shape<a class="headerlink" href="#spacing-shape_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Card radius</strong>: ~10-14px (smaller than Littlebird's 12-20px), consistent across cards.</li>
+<li><strong>Pill radius</strong>: full pill on every button and toggle (<code>border-radius: 9999px</code>).</li>
+<li><strong>Card padding</strong>: ~16-20px internal.</li>
+<li><strong>Vertical gap between cards</strong>: ~12-16px — cards stack tightly into a single column.</li>
+<li><strong>Column width</strong>: ~720-800px max, centered. Onboarding lives inside what looks like a centered modal with subtle outer dimming.</li>
+</ul>
+<h3 id="iconography">Iconography<a class="headerlink" href="#iconography" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Mixed inline emojis (👋, ✨, ☀, 🌙, ✅) and small monospace-style line icons in lavender (🔗 chain for "linked to Canary", 📊 bar-chart for "tiny YouTube footprint", 🧭 compass for "I notice what you're looking at", etc.).</li>
+<li>Brand mark: a small <strong>circular profile picture</strong> of "jo" — looks like a stylized human-portrait avatar painted in deep blues/purples. Sits at top-center of every onboarding screen.</li>
+<li>App icons (Safari, Chrome, Notes, Obsidian, WhatsApp, Telegram, iMessage) use their real product icons — sells legitimacy.</li>
+<li>The "At night I self-reflect" card has a small <strong>node graph illustration</strong> — 6-8 nodes connected by hairline blue lines, with tiny icons inside some nodes (lock, message, chain, file). Visual metaphor for memory consolidation.</li>
+</ul>
+<h3 id="motion-inferred">Motion (inferred)<a class="headerlink" href="#motion-inferred" title="Permanent link">&para;</a></h3>
+<ul>
+<li>"I start working on them before you wake up." → the briefing cards are presented as if they came from an overnight batch. Pages animate in as the user scrolls.</li>
+<li>The "Searching for stefano gebara..." status text with the small spinner ✺ — animated.</li>
+<li>"Building suggestions..." loader on the "Want me to run these for you?" card uses a small pulsing dot pattern.</li>
+<li>The onboarding screens <strong>append</strong> new cards as actions complete (instead of replacing them). Connected status (<code>✓ stefanogebara@gmail.com</code>, <code>✓ São Paulo, SP</code>) stays visible — creates a sense of accumulated progress.</li>
+</ul>
+<h3 id="window-chrome">Window chrome<a class="headerlink" href="#window-chrome" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The first screen (1536-21) shows a webview with <code>askjo.ai</code> URL in the title bar — onboarding <em>starts in a browser tab</em>, then transitions to the native app at some point. Notable: doesn't force native install before showing value.</li>
+<li>Later screens drop the URL bar and look like a borderless dark native window. The 1542-49 main-app screenshot reveals a <strong>floating compact panel</strong> rather than a full-screen window — jo is a <em>desktop sidekick</em>, not an app you live inside.</li>
+</ul>
+<hr>
+<h2 id="3-onboarding-flow-20-cards-in-captured-order">3. Onboarding flow (20 cards, in captured order)<a class="headerlink" href="#3-onboarding-flow-20-cards-in-captured-order" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Timestamp</th>
+<th>Card</th>
+<th>Body / copy</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>15:36:21</td>
+<td><strong>"Hi Stefano! Give me a second to look you up..."</strong> (top banner: "Enable notifications so I can reach you" with Enable &gt; CTA)</td>
+<td>Inline DuckDuckGo search panel showing live query <code>Stefano Gebara site:linkedin.com/in</code> returning two LinkedIn profiles. Animated "✺ Searching for stefano gebara site:linkedin.com/in" status.</td>
+<td>(passive — user just watches)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>15:36:26</td>
+<td>Same heading, <strong>second search visible</strong></td>
+<td>DuckDuckGo panel switches to <code>Stefano Gebara stefanogebara</code> → returns Instagram + Facebook results. Status: "Searching for stefano gebara stefanogebara."</td>
+<td>(passive)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>15:36:30</td>
+<td><strong>"Hi Stefano! Your name is pretty popular..."</strong></td>
+<td>"I found a few people with that name — select the ones that are you" + 3 radio options: <br>○ Stefano Gebara with a LinkedIn profile at Canary, educated at IE Business School in Spain<br>○ Someone named Stefano Gebara connected to personal social profiles and a Prezi presentation [...]<br>○ Someone at Canary</td>
+<td>"Continue" (disabled until selected) / "None of these are me" text link</td>
+</tr>
+<tr>
+<td>4</td>
+<td>15:36:46</td>
+<td>(background dims)</td>
+<td>macOS native <strong>Local Network permission dialog</strong> (in Portuguese, because the user's OS lang is pt-BR): <em>"Permitir que 'jo' busque dispositivos em redes locais? Isto permitirá que o app descubra dispositivos nas redes, se conecte a eles e colete dados desses dispositivos."</em></td>
+<td>"Não Permitir" / "Permitir"</td>
+</tr>
+<tr>
+<td>5</td>
+<td>15:37:04</td>
+<td><strong>"Here's what I found:"</strong></td>
+<td>4 inferred facts with lavender link/chart icons:<br>🔗 Canary<br>🔗 IE Business School<br>🔗 Spain<br>📊 tiny YouTube footprint</td>
+<td>"Not me" (transparent pill) / <strong>"That's me! &gt;"</strong> (filled lavender pill)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>15:37:24</td>
+<td><strong>(stacked: confirmation + briefing-card preview)</strong> Card 1: <em>"Your AI machine in the cloud is now live"</em> — bullets: "All chats &amp; summarized events are stored here. Raw data never leaves your Mac" · "We call the most powerful AI models on your behalf" · "Model providers are blocked from saving or training on your data." Card 2: <strong>"☀ Each morning, you get your briefing cards"</strong> — <em>"I start working on them before you wake up."</em> Followed by 5 example briefing cards</td>
+<td>(passive scroll demo)</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td>15:37:38</td>
+<td>Same continued, scrolled down. 6th briefing card visible (Dwarkesh podcast). Footer banner: <strong>"You can ask me to adjust this briefing, and also do other stuff on a schedule for you."</strong></td>
+<td><strong>"Got it!"</strong> pill</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>15:37:54</td>
+<td><strong>3-card daily-rhythm narrative</strong> (each its own dark card):<br><strong>☀ Each morning, you get your briefing cards</strong> — <em>"I start working on them before you wake up."</em><br><strong>✅ More cards roll in all day</strong> — <em>"I start completing them and offer them to you for finalization."</em><br><strong>🌙 At night I self-reflect and connect all the dots</strong> — node-graph illustration.</td>
+<td><strong>"Next &gt;"</strong> pill</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>15:38:01</td>
+<td>New card: <strong>"📧 Things just show up here when they matter."</strong> — <em>"Calendar, email, and docs — I surface what's relevant without you digging."</em></td>
+<td><strong>"M Connect Google &gt;"</strong> + "Set up later"</td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>15:38:34</td>
+<td>Card updated to show <code>✓ stefanogebara@gmail.com</code> + <strong>"M Connect another Google account &gt;"</strong>. <strong>"Next &gt;"</strong> dim. New card revealed: <strong>"📍 Weather, commute, knowing where you are."</strong> — <em>"Nearby context and travel-aware planning. </em><em>Never shared or stored remotely.</em><em>"</em></td>
+<td><strong>"📍 Enable Location &gt;"</strong> + "Set up later"</td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>15:38:45</td>
+<td>Location card shows <code>✓ São Paulo, SP</code>. New card: <strong>"📒 Something you wrote weeks ago might click today."</strong> — <em>"I search your notes so old ideas surface exactly when they're useful."</em></td>
+<td><strong>"📒 Apple Notes &gt;"</strong> + <strong>"🔮 Obsidian &gt;"</strong> + "Set up later"</td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>15:39:05</td>
+<td>New card: <strong>"🧭 I notice what you're looking at."</strong> — <em>"Recent tabs and rabbit holes — things worth revisiting surface at the right time."</em></td>
+<td><strong>"🌐 Safari &gt;"</strong> + <strong>"Ⓒ Chrome &gt;"</strong> + "Set up later"</td>
+<td></td>
+</tr>
+<tr>
+<td>13</td>
+<td>15:39:22</td>
+<td>Browser card shows <code>✓ Chrome</code>, Safari still pending. New card: <strong>"💬 Keeping you caught up."</strong> — <em>"Daily summaries, mention alerts, and quick catch-up across your group chats."</em></td>
+<td><strong>"💬 WhatsApp &gt;"</strong> + <strong>"✈ Telegram &gt;"</strong> + <strong>"💬 iMessage &gt;"</strong> + "Set up later"</td>
+<td></td>
+</tr>
+<tr>
+<td>14</td>
+<td>15:39:39</td>
+<td>Messaging card shows <code>✓ WhatsApp</code>, <code>✓ Telegram</code>, <code>✓ iMessage</code>. New card: <strong>"📋 Here's what I learned"</strong> — 5 inferred facts each with small icon. Helper: <em>"Tap to edit, x to remove"</em>.</td>
+<td><strong>"Looks good &gt;"</strong> (lavender pill)</td>
+<td></td>
+</tr>
+<tr>
+<td>15</td>
+<td>15:40:02</td>
+<td>New card: <strong>"💬 Chat with me anywhere"</strong> — <em>"Talk to me from your phone via Telegram or WhatsApp — same context, no app needed."</em></td>
+<td><strong>"✈ Telegram &gt;"</strong> + <strong>"💬 WhatsApp &gt;"</strong> + "Set up later"</td>
+<td></td>
+</tr>
+<tr>
+<td>16</td>
+<td>15:40:46</td>
+<td>Same screen with Telegram URL surfaced: <code>🔗 https://t.me/jo_prod_bot?start=QY23RX</code>.</td>
+<td>(copyable URL + "Set up later")</td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td>15:42:39</td>
+<td>New card: <strong>"✨ Want me to run these for you?..."</strong> with <em>"Building suggestions..."</em> spinner</td>
+<td><strong>"Skip &gt;"</strong> (always available, non-blocking)</td>
+<td></td>
+</tr>
+<tr>
+<td>18</td>
+<td>15:42:39 (same)</td>
+<td>Final card: <strong>"✨ One last thing"</strong><br>💰 <em>"$39/mo — Early Adopter pricing. 3 days free."</em><br>💻 <em>"Apple Silicon, 16 GB RAM — perfect for local models."</em><br>👋 <em>"Need help? Help → Contact Founders, or email founders@askjo.ai"</em></td>
+<td><strong>"Let's go &gt;"</strong> (lavender pill)</td>
+<td></td>
+</tr>
+<tr>
+<td>19</td>
+<td>15:42:49</td>
+<td><strong>Main app shell — floating compact panel</strong> (FIRST view of the native app). Top: jo avatar, "Search..." input, ⚡, 👁 0 pill. Then "Enable notifications" banner. Then dismissible <strong>"+ Connect apps, I'll do more for you"</strong> with row of 3 app icons (Safari, Notes, Mail). Bottom: + chat input.</td>
+<td>(idle state)</td>
+<td></td>
+</tr>
+<tr>
+<td>20</td>
+<td>15:43:33</td>
+<td>Same widget, model picker opened mid-chat. User asked "hey what can you do?"; jo's response: capabilities monologue ending <em>"I'm annoyingly competent."</em> Model picker dropdown shows 6 options: Local AI · ChatGPT (selected) · Claude · Grok · Kimi · Gemini. Per-model sub-labels (e.g., "GPT-5.4 Mini / GPT-5.4").</td>
+<td>(active chat)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="onboarding-patterns-worth-stealing_1">Onboarding patterns worth stealing<a class="headerlink" href="#onboarding-patterns-worth-stealing_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Visible search as wow-step</strong> (steps 1-2). The DuckDuckGo iframe literally renders inside the onboarding card with the query and results visible. The user <em>watches</em> the AI discover them in real time.</li>
+<li><strong>Multiple matches → "select the ones that are you"</strong> (step 3). Acknowledges that the AI might have ambiguous data and asks the user to disambiguate. We never do this — we assume our first hit is correct.</li>
+<li><strong>Permission narration matched to each capability</strong>. Step 9: "Calendar, email, and docs — I surface what's relevant without you digging." Step 10: "Weather, commute, knowing where you are. Never shared or stored remotely." Step 12: "I notice what you're looking at. Recent tabs and rabbit holes..." — one line of value-prop per permission.</li>
+<li><strong>Card append-don't-replace pattern</strong>. Each connected integration card stays visible with a <code>✓ accountname</code> status. The user sees a <em>growing list of progress</em> through the entire flow.</li>
+<li><strong>First-person voice everywhere</strong>. "I start working on them before you wake up." "I notice what you're looking at." "I search your notes." "I self-reflect." This is jo <em>talking to you</em> in present tense, never passive-voice marketing copy.</li>
+<li><strong>Inferences-confirmation gate</strong> (step 14). 5 bullet-point inferences ("Linked to Canary", "São Paulo", "Your calendar leans heavily into Thursdays and Tuesdays", etc.) with inline edit (<code>Tap to edit</code>) and remove (<code>x</code>) controls. Both jo and Littlebird have this; TwinMe does not.</li>
+<li><strong>Same wow data, two contexts</strong>. The 4 inferred facts in step 5 ("Canary, IE Business School, Spain, tiny YouTube footprint") are deliberately small and discoverable from public web. Step 14 then upgrades to a 5-bullet <em>behaviorally-inferred</em> list (calendar patterns, focus blocks, Portuguese-titled appointments) that proves jo has done real work in the background.</li>
+<li><strong>Non-blocking "Building suggestions..." while finishing</strong>. Step 17 shows a card that's <em>still loading</em> when the user clicks "Let's go" on step 18. Asynchronous work overlaps with the final cards.</li>
+<li><strong><code>Set up later</code> is universal</strong>. Every permission has an opt-out. Reduces drop-off.</li>
+<li><strong>Pricing card is the last beat</strong>. They never show the price until <em>after</em> the user has invested 7 minutes confirming inferences and connecting accounts. By that point the value is shown; the ask feels earned.</li>
+</ol>
+<hr>
+<h2 id="4-main-app-surface">4. Main app surface<a class="headerlink" href="#4-main-app-surface" title="Permanent link">&para;</a></h2>
+<h3 id="the-widget-itself">The widget itself<a class="headerlink" href="#the-widget-itself" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Format</strong>: floating compact panel ~600px wide, transparent dark blurred background. <strong>Not</strong> a full-window app like Littlebird. Sits over your desktop — you can see other windows around it.</li>
+<li>The app appears to be summoned/hidden on demand (no traffic-light buttons visible in the captured screenshots — likely a borderless window).</li>
+</ul>
+<h3 id="top-bar">Top bar<a class="headerlink" href="#top-bar" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>jo avatar</strong> (small circular, left)</li>
+<li><strong>Search...</strong> large input field (center)</li>
+<li><strong>⚡ quick-action button</strong> (right)</li>
+<li><strong>👁 "0" pill</strong> (right) — likely the count of pending tasks or briefing items waiting</li>
+</ul>
+<h3 id="persistent-system-banner">Persistent system banner<a class="headerlink" href="#persistent-system-banner" title="Permanent link">&para;</a></h3>
+<ul>
+<li>"Enable notifications so I can reach you" — same banner as onboarding, still present in main app. Persistent until user enables.</li>
+</ul>
+<h3 id="dismissible-connect-apps-row">Dismissible connect-apps row<a class="headerlink" href="#dismissible-connect-apps-row" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>"+ Connect apps, I'll do more for you"</strong> with <code>x</code> dismiss button</li>
+<li>Three app icons: <strong>Safari · Notes · Mail</strong> — these are <em>uninstalled</em> integrations being recommended (note: even though the user clicked "Set up later" for Notes and Safari earlier in onboarding, they reappear here as soft prompts).</li>
+</ul>
+<h3 id="chat-composer">Chat composer<a class="headerlink" href="#chat-composer" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>"+ New topic?"</strong> input field above any active chat — implies hierarchy: a single conversation can branch into topics, and the user can spawn new ones inline.</li>
+<li><strong>Active chat cards</strong> stack as panels below, each with: 💬 title · "..." overflow · timestamp ("just now") · 🌙 dark-mode toggle for that chat · <code>x</code> close</li>
+<li><strong>Composer footer row</strong>: <code>@</code> mention · <code>📎</code> attach · <strong><code>[🟢 ChatGPT ▾]</code></strong> model picker · <code>↩</code> send</li>
+</ul>
+<h3 id="model-picker-dropdown">Model picker (dropdown)<a class="headerlink" href="#model-picker-dropdown" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Icon</th>
+<th>Model</th>
+<th>Per-model variants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⌬</td>
+<td><strong>Local AI</strong></td>
+<td>(on-device only)</td>
+</tr>
+<tr>
+<td>🟢 ✓</td>
+<td><strong>ChatGPT</strong></td>
+<td>GPT-5.4 Mini · GPT-5.4</td>
+</tr>
+<tr>
+<td>🟠</td>
+<td><strong>Claude</strong></td>
+<td>Claude Sonnet 4.6 · Opus 4.6</td>
+</tr>
+<tr>
+<td>⚫</td>
+<td><strong>Grok</strong></td>
+<td>Grok 4 Fast</td>
+</tr>
+<tr>
+<td>🔮</td>
+<td><strong>Kimi</strong></td>
+<td>K2.5 · K2 Thinking</td>
+</tr>
+<tr>
+<td>✦</td>
+<td><strong>Gemini</strong></td>
+<td>3.1 Pro · 3.1 Flash-Lite</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ChatGPT is the default.</strong> The picker UI is a popover, not a settings page — users can change model <strong>per-message</strong>, much more flexible than Littlebird (which routes silently) and more discoverable than what TwinMe does.</p>
+<hr>
+<h2 id="5-feature-areas_1">5. Feature areas<a class="headerlink" href="#5-feature-areas_1" title="Permanent link">&para;</a></h2>
+<h3 id="51-briefing-cards-the-daily-rhythm">5.1 Briefing cards (the daily rhythm)<a class="headerlink" href="#51-briefing-cards-the-daily-rhythm" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Cadence</strong>: 3 phases narrated as "Morning · Day · Night"</li>
+<li><strong>Morning</strong>: pre-baked cards delivered before the user wakes up</li>
+<li><strong>Day</strong>: more cards "roll in" continuously and offered "for finalization"</li>
+<li><strong>Night</strong>: "self-reflect and connect all the dots" — visual node graph implies memory-linking happens overnight (very Generative-Agents-reflection-engine-coded)</li>
+<li><strong>Card anatomy</strong>:</li>
+<li><strong>Icon</strong> (⚡ for actionable, 📊 for trend/data, 📅 for calendar)</li>
+<li><strong>Title line</strong> (concrete, dated, specific) — e.g. "Tokyo trip in 9 days — yen is down 3%"</li>
+<li><strong>Supporting context line</strong> (1 sentence proving jo did real work) — e.g. "You bought ¥50k last time — same amount at better rate?"</li>
+<li><strong>Action button on the right</strong> (contextual: "Remind at 10am" · "Packing list" · "Gift ideas" · "Compare" · "Summarize")</li>
+<li>Each action button text is generated to match the specific card content, not a generic "Open" or "Details."</li>
+</ul>
+<h3 id="52-daily-rhythm-narration">5.2 Daily rhythm narration<a class="headerlink" href="#52-daily-rhythm-narration" title="Permanent link">&para;</a></h3>
+<p>The 3-card narrative ("morning / day / night") is the most-stealable copy block in the entire app:</p>
+<blockquote>
+<p>☀ <strong>Each morning, you get your briefing cards</strong> — <em>I start working on them before you wake up.</em></p>
+<p>✅ <strong>More cards roll in all day</strong> — <em>I start completing them and offer them to you for finalization.</em></p>
+<p>🌙 <strong>At night I self-reflect and connect all the dots.</strong></p>
+</blockquote>
+<p>This is <em>exactly</em> what TwinMe's reflection engine + proactive insights does, but we never say it out loud.</p>
+<h3 id="53-voice-chat-surfaces">5.3 Voice / chat surfaces<a class="headerlink" href="#53-voice-chat-surfaces" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Telegram bot</strong>: <code>https://t.me/jo_prod_bot?start=QY23RX</code> — one production bot, per-user <code>?start=TOKEN</code> deep link binds the bot conversation to the user account. This is the architecture we wanted for our WhatsApp/Telegram surface (we tried Kapso per-number; jo's approach is much cheaper).</li>
+<li><strong>WhatsApp</strong>: similar pattern (deep link not visible but presumably the same).</li>
+<li><strong>iMessage</strong>: third surface, <strong>macOS-only</strong> since iMessage requires Apple's continuity bridge.</li>
+<li><strong>Voice</strong>: marketed on the website as "hands-free queries with local transcription on Mac." Not visible in the captured screenshots, but the website page lists it among core capabilities. Likely uses Whisper.cpp or a similar local model.</li>
+</ul>
+<h3 id="54-inferences-confirmation-gate">5.4 Inferences confirmation gate<a class="headerlink" href="#54-inferences-confirmation-gate" title="Permanent link">&para;</a></h3>
+<p>The "<strong>Here's what I learned</strong>" card in step 14 deserves a section to itself:</p>
+<table>
+<thead>
+<tr>
+<th>Inference</th>
+<th>Type</th>
+<th>Source jo used (inferred)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Linked to Canary, with a profile that also points to IE Business School and Spain."</td>
+<td>Identity</td>
+<td>LinkedIn search</td>
+</tr>
+<tr>
+<td>"Looks like you're in São Paulo, SP."</td>
+<td>Location</td>
+<td>Browser/OS location after granting permission</td>
+</tr>
+<tr>
+<td>"Your calendar leans heavily into Thursdays and Tuesdays."</td>
+<td>Behavioral pattern</td>
+<td>Google Calendar pattern analysis</td>
+</tr>
+<tr>
+<td>"You've got a few recurring work-focus blocks like GitHub Deep Work, GitHub &amp; Music Focus Session, and Email Zero Sprint."</td>
+<td>Habit</td>
+<td>Recurring-event detection in Calendar</td>
+</tr>
+<tr>
+<td>"Your calendar also includes personal and care-related appointments in Portuguese, like psicólogo, Personal, and Academia da Mente."</td>
+<td>Cultural/personal context</td>
+<td>Multi-lingual event title analysis</td>
+</tr>
+</tbody>
+</table>
+<p>Each row has:
+- A small icon (lavender)
+- The inference as a single full sentence
+- Helper footer: <em>"Tap to edit, x to remove"</em></p>
+<p>This is <strong>the canonical inferences UI</strong>. Combined with Littlebird's variant ("Here's what Littlebird picked up" → Activity Summary + Productivity Insights), it's the <strong>single most consistent pattern across both products</strong> — and <strong>TwinMe is missing it</strong>.</p>
+<h3 id="55-multi-model-picker">5.5 Multi-model picker<a class="headerlink" href="#55-multi-model-picker" title="Permanent link">&para;</a></h3>
+<p>Already detailed in §4. Key differentiator: each provider exposes 1-2 SKUs in the picker (e.g., ChatGPT shows "GPT-5.4 Mini / GPT-5.4"). The user picks the brand, jo routes to a tier internally. <strong>The fact that "Local AI" sits as a peer to OpenAI/Anthropic/etc. in the same picker is huge</strong> — privacy-conscious users can flip to fully local for sensitive messages with one click.</p>
+<h3 id="56-want-me-to-run-these-for-you-task-suggestions">5.6 "Want me to run these for you?" task suggestions<a class="headerlink" href="#56-want-me-to-run-these-for-you-task-suggestions" title="Permanent link">&para;</a></h3>
+<p>Step 17 shows a card titled <strong>"Want me to run these for you?..."</strong> with a <em>"Building suggestions..."</em> loader. This is the jo equivalent of agentic action proposals — at the end of onboarding, the AI proactively suggests scheduled tasks based on what it learned. Skip is always available.</p>
+<h3 id="57-app-icon-shortcuts">5.7 App icon shortcuts<a class="headerlink" href="#57-app-icon-shortcuts" title="Permanent link">&para;</a></h3>
+<p>The main-app screenshot (step 19) shows a dismissible row of 3 app icons: <strong>Safari · Notes · Mail</strong>. These act as soft prompts for integrations not yet connected. Clicking presumably re-runs the integration connect flow. Less aggressive than a settings page.</p>
+<h3 id="58-clips-mentioned-on-website-inferred">5.8 "Clips" (mentioned on website, inferred)<a class="headerlink" href="#58-clips-mentioned-on-website-inferred" title="Permanent link">&para;</a></h3>
+<ul>
+<li>jo's website says it <strong>indexes browsing patterns "automatically into clips"</strong> stored locally on the Mac.</li>
+<li>A clip is presumably an indexed snippet of something the user looked at, with metadata about when/where/how.</li>
+<li>The cloud machine likely receives only embeddings or summaries, not raw clips.</li>
+</ul>
+<h3 id="59-real-browser-control">5.9 Real browser control<a class="headerlink" href="#59-real-browser-control" title="Permanent link">&para;</a></h3>
+<p>Per the website, the cloud machine can <strong>"control an actual browser"</strong> — meaning jo doesn't rely on website-scraping APIs. When you ask "Find me a cheaper car insurance option," jo opens a remote Chromium on its cloud machine, navigates to comparison sites, and reads results. Cluely/Browser-Use-style automation.</p>
+<h3 id="510-nightly-reflection-loop">5.10 Nightly reflection loop<a class="headerlink" href="#510-nightly-reflection-loop" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Marketed on the homepage: <em>"Nightly reflection loop improves assistance without user action."</em></li>
+<li>Echoed by the onboarding card: <em>"At night I self-reflect and connect all the dots."</em></li>
+<li>Same conceptual primitive as our <code>reflectionEngine.js</code>, but exposed to the user as a daily ritual rather than an internal background job.</li>
+</ul>
+<hr>
+<h2 id="6-backend-signals-inferred-verified">6. Backend signals (inferred + verified)<a class="headerlink" href="#6-backend-signals-inferred-verified" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Source</th>
+<th>Inference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Hybrid execution split</strong></td>
+<td>Website</td>
+<td>Local Mac for indexing + storage + transcription; dedicated cloud VM for conversation runtime + browser control + nightly reflection.</td>
+</tr>
+<tr>
+<td><strong>Per-user dedicated cloud machine</strong></td>
+<td>Website</td>
+<td>One Linux VM per user, <strong>mountable as a drive in Finder</strong>. Implies SSHFS or WebDAV mount over local network. The <strong>Local Network permission</strong> in step 4 was for <strong>mDNS/Bonjour discovery of the cloud machine</strong> (or an LAN proxy).</td>
+</tr>
+<tr>
+<td><strong>Files stored as text</strong></td>
+<td>Website</td>
+<td>"Files stored as readable, editable text (not black box)" — suggests a markdown- or JSON-based memory format on the cloud machine that the user can SSH into and edit.</td>
+</tr>
+<tr>
+<td><strong>Model agnosticism via gateway</strong></td>
+<td>Model picker</td>
+<td>OpenAI + Anthropic + Grok + Kimi + Gemini + Local AI all in one picker — implies a unified inference gateway in the cloud VM.</td>
+</tr>
+<tr>
+<td><strong>"Clips" memory index</strong></td>
+<td>Website + onboarding</td>
+<td>Local SQLite or vector store on the Mac storing time-indexed activity snapshots.</td>
+</tr>
+<tr>
+<td><strong>Telegram bot deep-link pattern</strong></td>
+<td>Onboarding step 16</td>
+<td><code>t.me/jo_prod_bot?start=USER_TOKEN</code> — one global bot, per-user binding token, conversation routed server-side.</td>
+</tr>
+<tr>
+<td><strong>Browser-control execution</strong></td>
+<td>Website</td>
+<td>Cloud VM runs a real Chromium (likely Playwright/Puppeteer) for live web navigation.</td>
+</tr>
+<tr>
+<td><strong>DuckDuckGo (not Google) for the initial lookup</strong></td>
+<td>Step 1-2</td>
+<td>Chosen because DDG has a less aggressive bot-detection / no CAPTCHA story for headless browsing. Reveals jo runs <em>real</em> web searches at session start, doesn't rely on a paid SERP API for this.</td>
+</tr>
+<tr>
+<td><strong>Open-source roots</strong></td>
+<td>Website</td>
+<td>Mentions "battle-tested open-source code" and "open-source roots." GitHub org <code>jo-inc</code> exists.</td>
+</tr>
+<tr>
+<td><strong>Smart routing</strong></td>
+<td>Website</td>
+<td>"Quick questions go to fast models; complex research routes to reasoning models." Implies a server-side classifier-and-route layer.</td>
+</tr>
+<tr>
+<td><strong>Local transcription</strong></td>
+<td>Website</td>
+<td>Voice transcription happens on-device. Likely Whisper.cpp.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-we-dont-know">What we don't know<a class="headerlink" href="#what-we-dont-know" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The exact cloud-VM size per user (CPU/RAM/storage).</li>
+<li>The cost-per-user economics. $500K seed at $39/mo means they need to land paying users fast, OR the dedicated cloud machine is small/scheduled-down.</li>
+<li>Whether the "clips" index uses pgvector, LanceDB, FAISS, or something custom.</li>
+<li>The native app stack — they mention open source but not Electron/Tauri/Swift specifically. The font-rendering and animation feel suggest <strong>Tauri</strong> or <strong>a custom native shell</strong>, not Electron.</li>
+<li>Whether the nightly reflection runs on the user's Mac or the dedicated cloud machine.</li>
+</ul>
+<hr>
+<h2 id="7-ui-primitives-catalogue">7. UI primitives catalogue<a class="headerlink" href="#7-ui-primitives-catalogue" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>Where it appears</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Monospace everything</strong></td>
+<td>Every text on every screen</td>
+</tr>
+<tr>
+<td>Dark navy background <code>#0E1118</code></td>
+<td>All onboarding screens, main app</td>
+</tr>
+<tr>
+<td>Lavender accent <code>#9AA4F8</code></td>
+<td>jo avatar, primary CTA pills, status icons, inference list icons</td>
+</tr>
+<tr>
+<td>Warm-orange Enable pill</td>
+<td>Persistent notifications banner</td>
+</tr>
+<tr>
+<td>Mint-green <code>✓</code> status</td>
+<td>Connected accounts, locations</td>
+</tr>
+<tr>
+<td>Dark-card with hairline border</td>
+<td>Every onboarding card</td>
+</tr>
+<tr>
+<td>Stacked card append pattern</td>
+<td>Onboarding flow (cards persist after action)</td>
+</tr>
+<tr>
+<td>Briefing-card row with right-aligned action button</td>
+<td>Each card in the morning-brief preview</td>
+</tr>
+<tr>
+<td>Inline DuckDuckGo iframe</td>
+<td>First two onboarding cards</td>
+</tr>
+<tr>
+<td>Radio-list disambiguation</td>
+<td>"Your name is pretty popular..."</td>
+</tr>
+<tr>
+<td>Inferences confirmation list with <code>tap to edit, x to remove</code></td>
+<td>"Here's what I found" + "Here's what I learned"</td>
+</tr>
+<tr>
+<td>Single-bot deep-link <code>?start=TOKEN</code></td>
+<td>Telegram chat-anywhere card</td>
+</tr>
+<tr>
+<td>Pulsing "Building suggestions..." loader</td>
+<td>Final onboarding step</td>
+</tr>
+<tr>
+<td>Floating compact desktop panel (no traffic lights)</td>
+<td>Main app shell</td>
+</tr>
+<tr>
+<td>Top toolbar: avatar · Search · ⚡ · pill counter</td>
+<td>Main app</td>
+</tr>
+<tr>
+<td>Persistent dismissible "Connect apps" row</td>
+<td>Main app</td>
+</tr>
+<tr>
+<td>Per-message model dropdown with sub-SKUs</td>
+<td>Chat composer</td>
+</tr>
+<tr>
+<td><code>+ New topic?</code> inline branch-point</td>
+<td>Chat composer above active chats</td>
+</tr>
+<tr>
+<td>Active chat as a stacked card with <code>...</code> overflow + dark/light toggle + <code>x</code> close</td>
+<td>Main app chat layout</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="8-strengths-vs-gaps-vs-twinme-today">8. Strengths vs gaps (vs TwinMe today)<a class="headerlink" href="#8-strengths-vs-gaps-vs-twinme-today" title="Permanent link">&para;</a></h2>
+<h3 id="where-jo-is-ahead">Where jo is ahead<a class="headerlink" href="#where-jo-is-ahead" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>The visible web-search wow-step (steps 1-2)</strong>. Literally watch jo find you. This is the most cinematic onboarding moment of either competitor. <em>Steal this.</em></li>
+<li><strong>First-person, present-tense voice</strong> throughout. "I notice what you're looking at." "I start working on them before you wake up." We use passive voice in most surfaces.</li>
+<li><strong>Inferences confirmation gate</strong> (step 14) — 5 bullets with edit/remove. We just shipped a directives table; jo's version is the <em>initial</em> inference list, which is one beat earlier.</li>
+<li><strong>Multi-model picker exposed to the user</strong> with provider-level brands and SKU sub-options. Smart and discoverable.</li>
+<li><strong>"Local AI" as a peer in the model picker</strong>. Lets privacy-paranoid users flip with one click. We can't ship local AI, but we could expose "minimal-context" or "low-trust-data-only" mode similarly.</li>
+<li><strong>Single Telegram bot with per-user <code>?start=TOKEN</code> deep link</strong>. The architecture we wanted for our messaging surface. <em>Steal this verbatim.</em></li>
+<li><strong>Daily rhythm narration</strong> (morning/day/night). We have all three phases as cron jobs but never narrate them.</li>
+<li><strong>Card append pattern</strong> in onboarding. Progress accumulates visibly.</li>
+<li><strong>"Set up later" universal opt-out</strong>.</li>
+<li><strong>Disambiguation step</strong> ("I found multiple Stefano Gebaras, which are you?"). We don't handle ambiguity at all.</li>
+<li><strong>Browser control on cloud machine</strong> for live agentic tasks. We don't do agentic execution.</li>
+<li><strong>Self-reflection visual</strong> (node graph illustration in step 8). Communicates the reflection engine in a single image.</li>
+<li><strong>"Files stored as readable, editable text"</strong> as a stated value. Implies the user can SSH into their cloud machine and edit memory directly. Radical transparency.</li>
+<li><strong>Monospace identity</strong> — defensibly different from every other AI assistant. Signals "for serious users."</li>
+<li><strong>Pricing-at-the-end pattern</strong> ($39/mo only appears at step 18). 7 minutes of value before the ask.</li>
+</ol>
+<h3 id="where-twinme-is-ahead_1">Where TwinMe is ahead<a class="headerlink" href="#where-twinme-is-ahead_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Cross-platform (web + mobile)</strong>. jo is Mac-only at launch (M-series, 16GB+). We work on phones, browsers, anywhere.</li>
+<li><strong>Memory architecture sophistication</strong>: STDP synaptic plasticity, co-citation links, neuropil routing, expert reflection personas, LLM wiki compilation. jo has "clips" + "nightly reflection" — conceptually similar but architecturally simpler.</li>
+<li><strong>Multiple platform integrations as data sources for reflection</strong> (Spotify listening patterns, YouTube watching, Whoop biometrics). jo focuses on Google + local Mac apps.</li>
+<li><strong>Soul Signature framing</strong> is a unique narrative jo doesn't have. They lead with "AI that knows you"; we lead with "from resume to soul."</li>
+<li><strong>OCEAN + stylometric personality voting layer</strong>. jo doesn't expose any personality-modeling.</li>
+<li><strong>Smart routing for cost</strong> (chat-light/standard/deep). jo's model picker is user-facing; ours is invisible to save real money.</li>
+<li><strong>Open data exports + Pluggy bank-statement import</strong>. jo doesn't talk about import.</li>
+</ol>
+<h3 id="where-theyre-roughly-tied_1">Where they're roughly tied<a class="headerlink" href="#where-theyre-roughly-tied_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Calendar/Gmail integrations (both do them, both surface similar facts).</li>
+<li>Privacy claims with on-device emphasis (jo more aggressive with the dedicated-cloud-machine pitch).</li>
+<li>Notification reminders and scheduled briefings.</li>
+</ul>
+<hr>
+<h2 id="9-direct-action-items-for-twinme-prioritized">9. Direct action items for TwinMe (prioritized)<a class="headerlink" href="#9-direct-action-items-for-twinme-prioritized" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Action</th>
+<th>Effort</th>
+<th>Where in code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>HIGH</strong></td>
+<td><strong>Visible web-search wow-step</strong>: during onboarding, after the user enters their email, render a "watching the AI find you" screen with a live DuckDuckGo iframe or animated SERP-like cards. Even mocked, the <em>visual</em> of the AI working in real time is the strongest first impression of the entire flow.</td>
+<td>2-3 days</td>
+<td><code>src/pages/onboarding/DiscoveryReveal.tsx</code> (new) + maybe a server endpoint that drives the timeline</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td><strong>Inferences confirmation gate</strong>: after onboarding's data pull, show a 5-bullet "Here's what I learned" with <code>Tap to edit, x to remove</code> controls. Source: existing <code>soulSignatureService</code> + memory stream summaries.</td>
+<td>1-2 days</td>
+<td><code>src/pages/onboarding/InferencesConfirm.tsx</code> + reuse <code>/api/twin-directives</code> PATCH</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td><strong>First-person voice rewrite</strong> across <code>/twin-soul</code>, onboarding, and proactive-insights surfaces. Replace passive marketing copy with present-tense first-person.</td>
+<td>4-6 hours</td>
+<td>UI copy only</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td><strong>Daily rhythm narration cards</strong> (morning/day/night) in the onboarding flow, mapped to existing crons (<code>cron-morning-briefing</code>, <code>cron-evening-recap</code>, nightly <code>cron-twin-self-improvement</code>).</td>
+<td>1 day</td>
+<td>new onboarding step + a <code>routines</code> index page</td>
+</tr>
+<tr>
+<td><strong>HIGH</strong></td>
+<td><strong>Disambiguation step</strong> when discovery returns multiple matches. Show radio options: "Which of these is you?"</td>
+<td>1 day</td>
+<td>extend <code>discover-correction-form.tsx</code></td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td><strong>Single Telegram bot with per-user <code>?start=TOKEN</code> deep link</strong>. Replaces our Kapso-per-number WhatsApp attempt. One bot, many users.</td>
+<td>1-2 days</td>
+<td>new route <code>/api/twin-telegram-webhook</code> + BotFather setup</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td><strong>Multi-model picker visible in twin chat</strong> (currently silent smart routing). Default = our smart router; manual override = Sonnet 4.6 / Opus 4.6 / DeepSeek / Gemini.</td>
+<td>1 day</td>
+<td><code>src/pages/TwinChatPage.tsx</code> composer</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td><strong>"Self-reflect" visualization</strong> (node-graph illustration of memory links) on <code>/twin-soul</code> or <code>/wiki</code> page. We have the data (memory_links table); just need d3-force render.</td>
+<td>2 days</td>
+<td><code>src/pages/components/SelfReflectGraph.tsx</code></td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td><strong>Pricing-at-the-end pattern</strong>. Move our pricing reveal to <em>after</em> the user has seen their Soul Signature, not before.</td>
+<td>2 hours</td>
+<td>onboarding step reorder</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td><strong>"Set up later" universal opt-out</strong> on every integration step in <code>/connect</code>.</td>
+<td>4 hours</td>
+<td>UI standardization</td>
+</tr>
+<tr>
+<td><strong>MED</strong></td>
+<td><strong>Persistent system banner pattern</strong> for un-granted permissions (notifications, mic). Adopt jo's persistent top bar.</td>
+<td>4 hours</td>
+<td><code>src/components/SystemBanner.tsx</code></td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td><strong>Monospace section toggle</strong> as a font option in settings (purely aesthetic, but signals "for serious users").</td>
+<td>2 hours</td>
+<td>font system addition</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td><strong>Per-message model badge</strong> in chat history (shows which model answered which message).</td>
+<td>2 hours</td>
+<td>metadata field display</td>
+</tr>
+<tr>
+<td><strong>LOW</strong></td>
+<td><strong>Stacked card append pattern</strong> during the soul-signature reveal — each integration's confirmation persists.</td>
+<td>1 day</td>
+<td>UI refactor</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="10-notable-phrases-worth-stealing-verbatim">10. Notable phrases worth stealing verbatim<a class="headerlink" href="#10-notable-phrases-worth-stealing-verbatim" title="Permanent link">&para;</a></h2>
+<ul>
+<li>"Hi Stefano! Give me a second to look you up..." (welcome screen)</li>
+<li>"I found a few people with that name — select the ones that are you" (disambiguation)</li>
+<li>"I start working on them before you wake up." (morning briefing)</li>
+<li>"More cards roll in all day. I start completing them and offer them to you for finalization." (daytime)</li>
+<li>"At night I self-reflect and connect all the dots." (reflection)</li>
+<li>"Things just show up here when they matter." (integration value-prop)</li>
+<li>"Calendar, email, and docs — I surface what's relevant without you digging." (Google connect)</li>
+<li>"Nearby context and travel-aware planning. <strong>Never shared or stored remotely.</strong>" (location)</li>
+<li>"Something you wrote weeks ago might click today. I search your notes so old ideas surface exactly when they're useful." (notes)</li>
+<li>"I notice what you're looking at. Recent tabs and rabbit holes — things worth revisiting surface at the right time." (browser)</li>
+<li>"Daily summaries, mention alerts, and quick catch-up across your group chats." (messaging integrations)</li>
+<li>"Talk to me from your phone via Telegram or WhatsApp — same context, no app needed." (chat surface)</li>
+<li>"All chats &amp; summarized events are stored here. Raw data never leaves your Mac." (privacy)</li>
+<li>"We call the most powerful AI models on your behalf." (LLM routing as a feature)</li>
+<li>"Model providers are blocked from saving or training on your data." (compliance)</li>
+<li>"For most digital grunt work, I'm annoyingly competent." (capabilities, ending)</li>
+<li>"Tap to edit, x to remove" (inferences confirmation)</li>
+</ul>
+<hr>
+<h2 id="11-open-questions-worth-answering-before-copying">11. Open questions worth answering before copying<a class="headerlink" href="#11-open-questions-worth-answering-before-copying" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>How does the dedicated cloud machine economics work at $39/mo?</strong> Even a minimal cloud VM costs ~$5-15/mo before considering LLM inference. Either they're heavily subsidizing seed-runway-style, or the VM scales to zero when idle.</li>
+<li><strong>What's the local-Mac stack?</strong> Native Swift app, Tauri, or Electron? The monospace font + smoothness suggests Tauri or native, but unclear.</li>
+<li><strong>How do they avoid Kapso-style WhatsApp pricing?</strong> A single bot per platform is much cheaper than per-user numbers; same is likely true for WhatsApp Business API. Probably they use the Cloud API tier directly.</li>
+<li><strong>Is the "clips" index encrypted at rest, or just access-controlled?</strong> Important for our own privacy story.</li>
+<li><strong>Does the nightly reflection run on the user's Mac or the cloud VM?</strong> Has cost implications.</li>
+<li><strong>How do they handle multi-device (when the iOS/Android apps ship)?</strong> Per-user dedicated VM should make cross-device sync trivial, but the local "clips" index on the Mac complicates things.</li>
+</ol>
+<hr>
+<h2 id="12-comparison-vs-littlebird-the-other-thread">12. Comparison vs Littlebird (the other thread)<a class="headerlink" href="#12-comparison-vs-littlebird-the-other-thread" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>jo</th>
+<th>Littlebird</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architecture</td>
+<td>Half Mac + half dedicated cloud VM</td>
+<td>Pure Mac app, accessibility-tree polling</td>
+</tr>
+<tr>
+<td>Mac hardware floor</td>
+<td>M-series, 16 GB</td>
+<td>Apple Silicon (no RAM floor disclosed)</td>
+</tr>
+<tr>
+<td>Onboarding signature moment</td>
+<td><strong>Visible web-search of you</strong></td>
+<td><strong>3-minute passive observation demo</strong></td>
+</tr>
+<tr>
+<td>Inferences confirmation</td>
+<td>"Here's what I learned" (5 bullets)</td>
+<td>"Here's what Littlebird picked up" (Activity Summary + Productivity Insights)</td>
+</tr>
+<tr>
+<td>Chat surfaces</td>
+<td>macOS app + Telegram + WhatsApp + iMessage (+ voice)</td>
+<td>macOS app only</td>
+</tr>
+<tr>
+<td>Model picker</td>
+<td>User-visible, 6 providers + Local AI</td>
+<td>Hidden; "Max" mode toggled per message</td>
+</tr>
+<tr>
+<td>Pricing</td>
+<td>$39/mo (Early Adopter)</td>
+<td>Basic free / Plus $17/mo / Pro $100-200/mo</td>
+</tr>
+<tr>
+<td>Memory-edit UI</td>
+<td>Inline edit on inference list</td>
+<td>Single "Assistant Notes" textarea + "Custom Instructions" textarea</td>
+</tr>
+<tr>
+<td>Identity / typography</td>
+<td><strong>Monospace, terminal-coded</strong></td>
+<td>Editorial: dark forest illustration + serif headings + sans body</td>
+</tr>
+<tr>
+<td>First-person voice</td>
+<td>Heavy. "I notice...", "I search...", "I self-reflect"</td>
+<td>Mild. "Littlebird picked up...", neutral copy mostly</td>
+</tr>
+<tr>
+<td>Permission narrative</td>
+<td>One sentence value-prop per permission</td>
+<td>One sentence per permission + persistent trust statement</td>
+</tr>
+<tr>
+<td>Routines / scheduled briefings</td>
+<td>Daily rhythm cards (morning/day/night) in onboarding</td>
+<td>Dedicated <strong>Routines</strong> tab with 4 prebuilt templates + custom builder</td>
+</tr>
+<tr>
+<td>Disambiguation step</td>
+<td>Yes ("multiple Stefano Gebaras...")</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Single-bot deep link</td>
+<td>Yes (<code>t.me/jo_prod_bot?start=TOKEN</code>)</td>
+<td>N/A (Mac-only)</td>
+</tr>
+<tr>
+<td>Privacy: per-app exclude</td>
+<td>N/A (different model)</td>
+<td>Yes, with category presets</td>
+</tr>
+<tr>
+<td>Tab-style chat browser</td>
+<td>Card-stack of "active asks"</td>
+<td>Browser-style Cmd+T tabs</td>
+</tr>
+<tr>
+<td>Meeting transcription</td>
+<td>Mentioned, not captured</td>
+<td>First-class feature (Note/Summary/Transcript)</td>
+</tr>
+<tr>
+<td>Most stealable single feature</td>
+<td><strong>Visible search at session start</strong></td>
+<td><strong>3-minute live observation demo</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="13-sources">13. Sources<a class="headerlink" href="#13-sources" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://askjo.ai/">askjo.ai homepage</a></li>
+<li><a href="https://www.ycombinator.com/companies/jo">Y Combinator company page — jo</a></li>
+<li><a href="https://www.ycombinator.com/launches/PZb-jo-1-0-a-personal-ai-that-actually-knows-you">YC launch announcement — jo 1.0</a></li>
+<li><a href="https://www.welcome.ai/company/jo">Welcome.AI — jo company profile</a></li>
+<li><a href="https://github.com/jo-inc">GitHub — jo-inc organization</a></li>
+<li><a href="https://www.linkedin.com/company/askjoai">LinkedIn — jo (YC W24) company page</a></li>
+<li><a href="https://pitchbook.com/profiles/company/756939-43">PitchBook — Jo 2026 company profile</a></li>
+<li><a href="https://www.highperformr.ai/company/askjoai">HighPerformr — jo (YC W24) HQ + global offices</a></li>
+<li><a href="https://www.linkedin.com/posts/tarof_very-excited-to-invest-in-jo-yc-w24-activity-7277049708043255809-APKl">Taro Fukuyama LinkedIn post — invested in jo (YC W24)</a></li>
+<li><a href="https://www.linkedin.com/posts/y-combinator_jo-yc-w24-is-a-voice-first-digital-personality-activity-7277013185667194880-0B8j">Y Combinator LinkedIn post — jo voice-first AI</a></li>
+</ul>
+<footer style="margin-top: 4em; padding-top: 2em; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85em;">
+  <p>TwinMe internal research document. Markdown source: <code>research/competitor-analysis.md</code></p>
+</footer>
+</body>
+</html>

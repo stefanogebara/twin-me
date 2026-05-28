@@ -1,0 +1,4 @@
+# Source screenshots are research artifacts — kept locally for reference but
+# excluded from git to avoid bloating the repo (~10 MB of PNGs).
+# READMEs (the actual analyses) ARE tracked.
+*.png
