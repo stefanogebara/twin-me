@@ -1,12 +1,23 @@
-// TwinMe Desktop (Phase 1 — Tauri 2 shell)
-// =========================================
-// This is the Rust entrypoint for the desktop app. Phase 1 deliberately stays
-// thin: it wraps https://twinme.me in a webview, adds a system tray icon, a
-// global hotkey (Cmd/Ctrl+Shift+T) to show/focus the main window, and wires
-// the notification + shell plugins for future use.
+// TwinMe Desktop (Phase 1 — Tauri 2 shell + Phase 2 clip indexer scaffold)
+// =========================================================================
+// This is the Rust entrypoint for the desktop app. Phase 1 stays thin: it
+// wraps https://twinme.me in a webview, adds a system tray icon, a global
+// hotkey (Cmd/Ctrl+Shift+T) to show/focus the main window, and wires the
+// notification + shell plugins for future use.
 //
-// Phase 2+ will add the local clip indexer (Accessibility API), mic capture
-// for meeting notes, and a Hummingbird-style floating widget.
+// Phase 2 (this commit) adds the structural pieces of the local clip
+// indexer — see clips.rs / active_window.rs / clip_indexer.rs / sync.rs.
+// Two background tasks are spawned from setup(): the 5s poll loop and the
+// 2-min sync loop. Both no-op safely while active_window::current() stays
+// stubbed.
+//
+// Phase 3+ will fill in the macOS Accessibility implementation, real HTTP
+// sync, mic capture for meeting notes, and a Hummingbird-style widget.
+
+mod active_window;
+mod clip_indexer;
+mod clips;
+mod sync;
 
 use tauri::{
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
@@ -101,6 +112,14 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // Phase 2 background loops. Tauri owns the async runtime, so we
+            // use its handle rather than pulling in tokio directly. Both
+            // tasks no-op safely on errors (DB open failure → early return)
+            // and during Phase 2 the indexer effectively idles because
+            // active_window::current() returns None.
+            tauri::async_runtime::spawn(clip_indexer::run());
+            tauri::async_runtime::spawn(sync::run());
 
             Ok(())
         })
