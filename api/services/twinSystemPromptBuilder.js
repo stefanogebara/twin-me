@@ -301,7 +301,13 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
     dynamicContext += '\nThese are durable rules learned from past corrections. Follow them exactly:';
     for (const d of directives) {
       const reinforcedMarker = (d.reinforcement_count || 1) >= 3 ? ' [strongly reinforced]' : '';
-      dynamicContext += `\n- [${d.category}] ${d.content}${reinforcedMarker}`;
+      // Defensive truncation: extractor caps at 150, but legacy rows (or a
+      // user edit via the directives UI) can be up to 2000 chars. Trim per
+      // directive so a single oversized row can't blow past MAX_DYNAMIC_CONTEXT_CHARS.
+      const truncatedContent = d.content.length > 150
+        ? d.content.slice(0, 147).trimEnd() + '...'
+        : d.content;
+      dynamicContext += `\n- [${d.category}] ${truncatedContent}${reinforcedMarker}`;
     }
   }
 

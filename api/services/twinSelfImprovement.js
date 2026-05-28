@@ -250,7 +250,7 @@ async function generateDirectiveCandidates(userMessage, prevTwinMessage) {
     return raw
       .filter(d => d && typeof d.content === 'string' && typeof d.category === 'string')
       .map(d => ({
-        content: d.content.trim().slice(0, 2000),
+        content: d.content.trim().slice(0, 150),
         category: d.category.trim().toLowerCase(),
       }))
       .filter(d => d.content.length >= 3 && VALID_CATEGORIES.has(d.category))
@@ -363,26 +363,26 @@ async function mergeOrInsertDirective({ userId, candidate, sourceMessageId, sour
   }
 
   if (similar && similar.similarity >= DEDUP_COSINE_THRESHOLD) {
-    // Reinforcement path — bump count + timestamp. Even user_edited rows
-    // get reinforced (the COUNT is fine; the CONTENT stays untouched).
-    const { error } = await supabaseAdmin
-      .from('twin_directives')
-      .update({
-        reinforcement_count: similar.directive.reinforcement_count + 1,
-        last_reinforced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', similar.directive.id);
+    // Reinforcement path — bump count + timestamp via atomic RPC. Even
+    // user_edited rows get reinforced (the COUNT is fine; the CONTENT
+    // stays untouched). Using SQL `col = col + 1` semantics avoids the
+    // read-modify-write race that the previous .update() pattern had
+    // when two cron invocations or a manual re-run overlapped.
+    const { data: newCount, error: incError } = await supabaseAdmin
+      .rpc('increment_directive_reinforcement', { directive_id: similar.directive.id });
 
-    if (error) {
-      log.warn('Reinforcement update failed', { error: error.message });
+    if (incError) {
+      log.warn('Reinforcement increment failed', {
+        error: incError.message,
+        directiveId: similar.directive.id,
+      });
       return { directiveId: similar.directive.id, outcome: 'ignored_dedup_threshold' };
     }
 
     log.info('Reinforced existing directive', {
       directiveId: similar.directive.id,
       similarity: similar.similarity.toFixed(3),
-      newCount: similar.directive.reinforcement_count + 1,
+      newCount: newCount ?? similar.directive.reinforcement_count + 1,
     });
     return { directiveId: similar.directive.id, outcome: 'directive_reinforced' };
   }

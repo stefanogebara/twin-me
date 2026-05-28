@@ -92,10 +92,29 @@ router.all('/', async (req, res) => {
       directivesCreated: 0,
       directivesReinforced: 0,
       budgetExhaustedUsers: 0,
+      usersSkippedDueToBudget: 0,
       errors: [],
     };
 
-    for (const userId of userIds) {
+    // 50s safety threshold inside Vercel's 60s function budget. Sequential
+    // runCycle calls can each take several seconds; without this guard the
+    // function risks being killed mid-cycle and leaving partial work behind.
+    const ELAPSED_BUDGET_MS = 50_000;
+    const startedAt = Date.now();
+
+    for (let i = 0; i < userIds.length; i++) {
+      const userId = userIds[i];
+      const elapsedMs = Date.now() - startedAt;
+      if (elapsedMs > ELAPSED_BUDGET_MS) {
+        const skipped = userIds.length - i;
+        stats.usersSkippedDueToBudget = skipped;
+        log.warn('Elapsed-time budget exceeded — skipping remaining users', {
+          elapsedMs,
+          processed: i,
+          skipped,
+        });
+        break;
+      }
       try {
         const cycleStats = await runCycle(userId);
         stats.usersProcessed++;
@@ -110,6 +129,13 @@ router.all('/', async (req, res) => {
         stats.errors.push(`${userId.slice(0, 8)}: ${userErr.message.slice(0, 100)}`);
       }
     }
+
+    const loopElapsedMs = Date.now() - startedAt;
+    log.info('User loop complete', {
+      loopElapsedMs,
+      usersProcessed: stats.usersProcessed,
+      usersSkippedDueToBudget: stats.usersSkippedDueToBudget,
+    });
 
     const durationMs = Date.now() - startTime;
     log.info('Daily pass complete', { durationMs, ...stats });

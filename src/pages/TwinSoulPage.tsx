@@ -133,6 +133,7 @@ function DirectiveCard({ directive, onUpdate, onDelete }: DirectiveCardProps) {
   }
 
   return (
+    // TODO(pr45-coderabbit-5): revisit per CodeRabbit style feedback
     <div
       className="px-5 py-4 rounded-[20px]"
       style={{
