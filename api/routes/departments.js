@@ -298,6 +298,19 @@ router.post('/:name/propose', authenticateUser, proposeLimiter, async (req, res)
     // Context must be a string if present; cap length to avoid abuse.
     const safeContext = typeof context === 'string' ? context.slice(0, 500) : undefined;
 
+    // Noise gate: a `suggest` proposal with no context becomes a generic
+    // "<Dept> department action" placeholder in the inbox. Reject those at
+    // the door — TalkToTwin DEPT_SUGGEST always passes context, the only
+    // historical callers without context were ad-hoc tests.
+    if (validation.toolName === 'suggest' && (!safeContext || safeContext.trim().length === 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_proposal',
+        reason: 'suggest_requires_context',
+        details: { hint: 'Pass a non-empty `context` describing what the user should consider.' },
+      });
+    }
+
     const proposal = await proposeDepartmentAction(req.user.id, name, {
       toolName: validation.toolName,
       params: validation.params,

@@ -303,8 +303,37 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
       return { items: [], nextCursor: null };
     }
 
+    // Hide pre-fix noise tiles: rows where context_summary is exactly the
+    // generic "<Dept> department action" placeholder AND proposed_action is
+    // a bare suggest with no real payload. These are ad-hoc test/empty
+    // proposals from before the propose route rejected blanks. We never
+    // delete them (keeps audit history intact); just filter on read.
+    const NOISE_CONTEXT_RE = /^[A-Z][a-zA-Z]+ department action$/;
+    const isNoise = (row) => {
+      if (!row.context_summary || !NOISE_CONTEXT_RE.test(row.context_summary)) return false;
+      try {
+        // proposed_action can be double-encoded (jsonb storing a JSON string).
+        // Parse up to twice so we land on a real object regardless of how it
+        // was written.
+        let parsed = row.proposed_action;
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        const tool = parsed?.toolName;
+        const params = parsed?.params || {};
+        if (tool !== 'suggest') return false;
+        // A real suggestion lives in params.suggestion (or description/text);
+        // priority alone is just bookkeeping.
+        const hasRealPayload = ['suggestion', 'description', 'text', 'body']
+          .some(k => typeof params[k] === 'string' && params[k].trim().length > 0);
+        return !hasRealPayload;
+      } catch {
+        return false;
+      }
+    };
+
     // Sort in JS by max(resolved_at, created_at) DESC, then take page.
     const sorted = (data || [])
+      .filter(row => !isNoise(row))
       .map(row => ({ row, sortAt: row.resolved_at || row.created_at }))
       .sort((a, b) => (a.sortAt < b.sortAt ? 1 : a.sortAt > b.sortAt ? -1 : 0));
 
