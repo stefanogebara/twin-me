@@ -103,7 +103,11 @@ router.post('/clip', authenticateUser, async (req, res) => {
   }
 
   log.info('Clip batch processed', { userId, received: clips.length, synced: synced.length, dropped: dropped.length });
-  res.json({ synced, dropped });
+  // Note: addMemory dedups exact content within 24h, so two identical clips in
+  // one batch (or across desktop retries) map to the SAME memory_id — making
+  // retries idempotent. Envelope includes `success: true` to match the repo's
+  // standard API response shape (sibling routes use { success, ... }).
+  res.json({ success: true, synced, dropped });
 });
 
 export default router;
