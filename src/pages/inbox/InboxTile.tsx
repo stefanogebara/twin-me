@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Check, X, Loader2, Clock, Undo2 } from 'lucide-react';
+import { Check, X, Loader2, Clock, Undo2, AlertCircle } from 'lucide-react';
 import type { InboxItem } from '@/services/api/inboxAPI';
 
 interface InboxTileProps {
@@ -129,6 +129,16 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
           </p>
         )}
 
+        {/* Failure reason — surfaced when the underlying tool API rejected the action */}
+        {item.status === 'failed' && item.failureReason && (
+          <p
+            className="text-[12px] mt-1.5 leading-relaxed"
+            style={{ color: '#dc2626' }}
+          >
+            {item.failureReason}
+          </p>
+        )}
+
         <div className="flex items-center gap-2 mt-2">
           <span
             className="text-[11px]"
@@ -198,6 +208,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     skipped: <X className="w-3 h-3" />,
     expired: <Clock className="w-3 h-3" />,
     undone: <Undo2 className="w-3 h-3" />,
+    failed: <AlertCircle className="w-3 h-3" />,
   };
   const COLOR: Record<InboxItem['status'], string> = {
     pending: 'var(--text-muted)',
@@ -205,6 +216,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     skipped: 'var(--text-muted)',
     expired: 'var(--text-muted)',
     undone: 'var(--text-muted)',
+    failed: '#dc2626',
   };
   const LABEL: Record<InboxItem['status'], string> = {
     pending: 'Needs decision',
@@ -212,6 +224,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     skipped: 'Skipped',
     expired: 'Expired',
     undone: 'Undone',
+    failed: 'Failed',
   };
   return (
     <span

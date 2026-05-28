@@ -323,15 +323,30 @@ export async function executeApprovedAction(userId, actionId) {
   const { executeTool } = await import('./toolRegistry.js');
   const result = await executeTool(userId, toolName, params, { bypassAutonomy: true });
 
+  // Silent-failure check: the tool registry wraps the inner Google API call
+  // and returns { success: true, data: { success: false, error: '...' } }
+  // when the inner call fails (API disabled, token decryption, missing
+  // required field, etc). The OUTER success only means "the executor ran
+  // without throwing". Without checking the inner result, every failed
+  // action gets recorded as user_response='accepted' and the tile lies
+  // about what happened. Audit of historical rows found 19% of accepted
+  // actions were silent failures — fix is to surface them as 'failed'.
+  const innerOk = result?.data ? result.data.success !== false : result?.success !== false;
+  const responseTag = innerOk ? 'accepted' : 'failed';
+  const innerError = !innerOk
+    ? (result?.data?.error || result?.error || 'unknown error')
+    : null;
+
   // Record the outcome (throws on DB failure — data integrity requirement)
-  await recordActionResponse(userId, actionId, 'accepted', {
+  await recordActionResponse(userId, actionId, responseTag, {
     executionResult: result,
-    executedAt: new Date().toISOString()
+    executedAt: new Date().toISOString(),
+    ...(innerError ? { failureReason: innerError } : {}),
   });
 
-  // Record department cost AFTER successful tool execution so the budget reflects reality.
-  // Cost recording is non-fatal — tool already ran, we don't want to fail the caller.
-  if (action.department) {
+  // Record department cost only for actions that actually succeeded — a
+  // failed Google API call shouldn't burn budget the user couldn't use.
+  if (innerOk && action.department) {
     try {
       const { recordActionCost } = await import('./departmentBudgetService.js');
       const { TOOL_COST_ESTIMATES } = await import('../config/departmentConfig.js');
@@ -342,7 +357,15 @@ export async function executeApprovedAction(userId, actionId) {
     }
   }
 
-  log.info('Approved action executed', { userId, actionId, toolName });
+  if (innerOk) {
+    log.info('Approved action executed', { userId, actionId, toolName });
+  } else {
+    log.warn('Approved action failed inside tool', { userId, actionId, toolName, error: innerError });
+  }
+
+  // Always return the raw result so callers can inspect both inner success
+  // and the error message. The /approve route reads result?.data?.success
+  // to decide between toast.success and toast.error.
   return result;
 }
 

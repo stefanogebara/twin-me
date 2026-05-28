@@ -36,8 +36,8 @@ const filterMatch = (status: InboxItem['status'], filter: InboxFilterValue): boo
   if (filter === 'all') return true;
   if (filter === 'pending') return status === 'pending';
   if (filter === 'done') return status === 'done';
-  // "Skipped" bucket holds anything the user didn't act on (or rolled back).
-  if (filter === 'skipped') return status === 'skipped' || status === 'expired' || status === 'undone';
+  // "Skipped" bucket holds anything the user didn't act on (or rolled back, or failed).
+  if (filter === 'skipped') return status === 'skipped' || status === 'expired' || status === 'undone' || status === 'failed';
   return true;
 };
 
@@ -104,6 +104,25 @@ const InboxPage: React.FC = () => {
         const item = items.find((i) => i.id === id);
         const t = (item?.toolName || '').toLowerCase();
         const isAdvice = t === 'suggest' || t === 'suggestion';
+
+        // Silent-failure check: tool registry returns {success:true,data:{success:false,error}}
+        // when the inner Google API call rejects (API disabled, token expired,
+        // missing required field, etc). The backend now writes
+        // user_response='failed' for these, but we also surface the error
+        // immediately in the toast so the user understands why the action
+        // didn't happen.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const r = response.result as any;
+        const innerFailed = r?.data && r.data.success === false;
+        if (innerFailed) {
+          const err = r.data.error || 'unknown error';
+          toast.error("Couldn't run this action", {
+            description: err.length > 140 ? `${err.slice(0, 140)}…` : err,
+            duration: 10000,
+          });
+          await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+          return;
+        }
 
         // When the underlying tool produced a real artifact, surface a
         // "View …" action in the toast so the user can verify without

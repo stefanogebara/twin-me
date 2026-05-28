@@ -500,6 +500,7 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
         toolName: row.action_type || null,
         outcomeLink: status === 'done' ? extractOutcomeLink(row) : null,
         outcomeRef: status === 'done' ? extractOutcomeRef(row) : null,
+        failureReason: status === 'failed' ? (row.outcome_data?.failureReason || null) : null,
         createdAt: row.created_at,
         resolvedAt: row.resolved_at,
         sortAt,
@@ -523,6 +524,7 @@ function inboxStatus(userResponse) {
   if (userResponse === 'rejected') return 'skipped';
   if (userResponse === 'expired') return 'expired';
   if (userResponse === 'undone') return 'undone';
+  if (userResponse === 'failed') return 'failed';
   return 'done';
 }
 
