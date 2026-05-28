@@ -276,32 +276,66 @@ export async function getPendingProposals(userId) {
  * Google Calendar event URL, Google Doc URL) out of an agent_actions row's
  * outcome_data. Returns { label, url } or null when there's nothing to link to.
  *
+ * Defence-in-depth: every URL is forced through an https scheme allowlist
+ * before being returned. The frontend renders these directly in <a href>,
+ * so an attacker who could write to outcome_data (compromised tool, future
+ * bug, SQLi elsewhere) must not be able to pivot to javascript:/data: XSS.
+ *
  * The shape comes from the tool registry execution results:
  *   gmail_draft   → executionResult.data.draft.{draftId, messageId}
  *   calendar_create → executionResult.data.htmlLink
  *   docs_create   → executionResult.data.{url|webViewLink|documentId}
  */
+function isHttpsUrl(u) {
+  if (typeof u !== 'string') return false;
+  try {
+    const p = new URL(u);
+    return p.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// Google API resource IDs are opaque alphanumeric tokens (plus -, _). Reject
+// anything else before interpolating into a URL template.
+const GOOGLE_ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+
 function extractOutcomeLink(row) {
   const exec = row?.outcome_data?.executionResult;
   if (!exec || exec.success === false) return null;
   const data = exec.data || {};
   const tool = exec.tool || row?.action_type || null;
 
-  // Gmail draft → build a stable URL from messageId
+  // Gmail draft → build a stable URL from messageId, but only if it matches
+  // the expected opaque-id pattern. Never interpolate user-controlled strings.
   const messageId = data?.draft?.messageId;
-  if (messageId && (tool === 'gmail_draft' || tool === 'draft')) {
-    return { label: 'View draft', url: `https://mail.google.com/mail/u/0/#drafts/${messageId}` };
+  if (typeof messageId === 'string'
+      && GOOGLE_ID_RE.test(messageId)
+      && (tool === 'gmail_draft' || tool === 'draft')) {
+    return {
+      label: 'View draft',
+      url: `https://mail.google.com/mail/u/0/#drafts/${encodeURIComponent(messageId)}`,
+    };
   }
 
-  // Calendar event → htmlLink already a full URL
-  if (typeof data?.htmlLink === 'string' && data.htmlLink.startsWith('http')) {
+  // Calendar event → htmlLink must be a real https URL
+  if (isHttpsUrl(data?.htmlLink)) {
     return { label: 'View event', url: data.htmlLink };
   }
 
-  // Google Doc — be permissive on which field the tool used
-  const docUrl = data?.url || data?.webViewLink || (data?.documentId ? `https://docs.google.com/document/d/${data.documentId}` : null);
-  if (docUrl) {
-    return { label: 'View doc', url: docUrl };
+  // Google Doc — prefer explicit URLs (validated), fall back to documentId
+  // (also validated). Anything that fails the gate is dropped.
+  if (isHttpsUrl(data?.url)) {
+    return { label: 'View doc', url: data.url };
+  }
+  if (isHttpsUrl(data?.webViewLink)) {
+    return { label: 'View doc', url: data.webViewLink };
+  }
+  if (typeof data?.documentId === 'string' && GOOGLE_ID_RE.test(data.documentId)) {
+    return {
+      label: 'View doc',
+      url: `https://docs.google.com/document/d/${encodeURIComponent(data.documentId)}`,
+    };
   }
 
   return null;
