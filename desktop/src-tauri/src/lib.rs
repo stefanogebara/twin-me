@@ -20,6 +20,7 @@ mod clips;
 mod config;
 mod meetings;
 mod sync;
+mod transcribe;
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
