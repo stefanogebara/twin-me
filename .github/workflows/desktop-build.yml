@@ -61,7 +61,8 @@ jobs:
             libssl-dev \
             cmake \
             clang \
-            libclang-dev
+            libclang-dev \
+            libasound2-dev
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable

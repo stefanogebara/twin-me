@@ -45,6 +45,10 @@ whisper-rs = { version = "0.16", default-features = false }
 # WAV reader: Phase 5B mic capture writes 16kHz mono WAVs; transcribe_wav reads
 # them and converts i16 PCM -> f32 for whisper.
 hound = "3"
+# Phase 5B: cross-platform microphone capture. cpal uses CoreAudio (macOS),
+# WASAPI (Windows), and ALSA (Linux) — the only platform that needs an extra
+# system dev package is Linux (libasound2-dev, added to the CI apt list).
+cpal = "0.15"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 accessibility-sys = "0.1"
