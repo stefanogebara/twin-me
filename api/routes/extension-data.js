@@ -211,21 +211,43 @@ router.post('/batch', authenticateUser, async (req, res) => {
     // Transform events for insertion
     const records = events.map(event => {
       const eventPlatform = (event.platform || platform || 'unknown').toLowerCase();
+      // audit-2026-05-28: user_platform_data has UNIQUE constraint on
+      // (user_id, platform, data_type, source_url) NULLS NOT DISTINCT.
+      // If source_url is null, every event for the same (user, platform,
+      // data_type) collides → 23505 unique_violation → 500. Pull URL from
+      // wherever the collectors stash it; fall back to a synthetic per-batch
+      // discriminator so repeated event-types within one batch still differ.
+      const sourceUrl =
+        event.url ||
+        event.source_url ||
+        event.raw_data?.url ||
+        event.raw_data?.source_url ||
+        null;
       return {
         user_id: userId,
         platform: eventPlatform,
         data_type: mapEventType(event.data_type || event.eventType || 'capture', eventPlatform),
         raw_data: event.raw_data || event,
+        source_url: sourceUrl,
         // audit-2026-05-28: normalize because some collectors send Date.now()
         // (number) which Postgres rejects as 22007 invalid_datetime_format.
         extracted_at: normalizeExtractedAt(event.timestamp),
       };
     });
 
-    // Batch insert
+    // audit-2026-05-28: switched from .insert() to .upsert() because every
+    // batch was 500-ing on 23505 unique_violation. The unique constraint
+    // (user_id, platform, data_type, source_url) is meant to collapse
+    // repeated snapshots of the same resource into one row; when source_url
+    // happens to collide (URL revisits, or null for events without a URL),
+    // UPDATE the row instead of throwing. raw_data + extracted_at get
+    // refreshed to the most recent observation.
     const { data, error } = await supabaseAdmin
       .from('user_platform_data')
-      .insert(records)
+      .upsert(records, {
+        onConflict: 'user_id,platform,data_type,source_url',
+        ignoreDuplicates: false,
+      })
       .select();
 
     if (error) {
