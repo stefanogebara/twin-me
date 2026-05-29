@@ -446,31 +446,42 @@ async function handleBrowsingActivity(data) {
 // ─────────────────────────────────────────────
 
 /**
- * Try to refresh auth token from an open TwinMe tab.
- * MV3 service workers lose in-memory state on restart, so we always
- * check storage first, then try to grab a fresh token from the app.
+ * Obtain a valid access token.
+ *
+ * 1. Use the stored token if present — twinme-auth-sync.js relays the app's
+ *    in-memory token here whenever a TwinMe tab is open.
+ * 2. Otherwise ask an open TwinMe tab's content script to MINT a fresh token via
+ *    /api/auth/refresh. The content script runs first-party on the TwinMe origin,
+ *    so the httpOnly refresh cookie is sent. This is message-driven (not a timer),
+ *    so it works even when the TwinMe tab is BACKGROUNDED — unlike the app's own
+ *    25-min refresh timer, which Chrome throttles/freezes in background tabs.
+ *    That throttling was why the extension went silent (~30 min after connect)
+ *    while the user browsed other tabs: the app's in-memory token expired
+ *    un-refreshed, so the relayed token was stale and every sync 401'd.
+ *
+ * The chrome.scripting localStorage read was removed: the OAuth migration moved
+ * the access token in-memory only (apiBase.ts), so localStorage.auth_token is
+ * always empty now.
  */
 async function refreshAuthToken() {
-  // 1. Check storage (may have been updated by another code path)
+  // 1. Check storage (relayed by the content-script auth bridge)
   const { auth_token: stored } = await chrome.storage.local.get('auth_token');
   if (stored) { authToken = stored; return stored; }
 
-  // 2. Try to get token from an open TwinMe tab
+  // 2. Ask an open TwinMe tab to mint a fresh token (first-party /api/auth/refresh)
   try {
-    const tabs = await chrome.tabs.query({ url: `${API_BASE_URL.replace('/api', '')}/*` });
+    const appOrigin = API_BASE_URL.replace('/api', '');
+    const tabs = await chrome.tabs.query({ url: `${appOrigin}/*` });
     for (const tab of tabs) {
       try {
-        const [result] = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => localStorage.getItem('auth_token'),
-        });
-        if (result?.result) {
-          authToken = result.result;
+        const resp = await chrome.tabs.sendMessage(tab.id, { type: 'TWINME_MINT_TOKEN' });
+        if (resp && resp.token) {
+          authToken = resp.token;
           await chrome.storage.local.set({ auth_token: authToken });
-          console.log('[Background] Refreshed auth token from TwinMe tab');
+          console.log('[Background] Minted fresh token via TwinMe tab');
           return authToken;
         }
-      } catch (_) { /* tab may not be scriptable */ }
+      } catch (_) { /* content script not ready / tab not messageable */ }
     }
   } catch (_) {}
 

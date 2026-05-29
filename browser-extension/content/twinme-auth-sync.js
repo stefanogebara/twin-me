@@ -21,7 +21,7 @@
   'use strict';
 
   // Sentinel for the app to detect extension presence
-  try { document.documentElement.dataset.twinmeExtension = 'v3.9.2'; } catch (_) {}
+  try { document.documentElement.dataset.twinmeExtension = 'v3.9.3'; } catch (_) {}
 
   let lastToken = null;
   let lastUserId = null;
@@ -103,4 +103,33 @@
   // Initial attempt + periodic re-check
   pollExposedGetter();
   setInterval(pollExposedGetter, 30000);
+
+  // Path 4 (RECOVERY): the background worker asks us to MINT a fresh token when
+  // its stored token has expired. We run first-party on the TwinMe origin, so
+  // POST /api/auth/refresh sends the httpOnly refresh cookie and returns a new
+  // access token. This is the extension's only reliable recovery path when the
+  // app's in-memory token went stale (e.g. the tab was backgrounded and the app's
+  // refresh timer was throttled). It's message-driven, so it runs even while the
+  // tab is backgrounded — driven by the background's chrome.alarms, which Chrome
+  // does NOT throttle. Mints only on demand (token missing/expired), so it rarely
+  // races the app's own refresh.
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (!msg || msg.type !== 'TWINME_MINT_TOKEN') return; // not ours — ignore
+    (async () => {
+      try {
+        const r = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const j = await r.json().catch(() => ({}));
+        const token = (r.ok && j && j.accessToken) ? j.accessToken : null;
+        if (token) syncFromToken(token); // also relay through the normal path
+        sendResponse({ token });
+      } catch (_) {
+        sendResponse({ token: null });
+      }
+    })();
+    return true; // keep the channel open for the async sendResponse
+  });
 })();
