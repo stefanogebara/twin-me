@@ -43,11 +43,22 @@ export default defineConfig(({ mode }) => ({
     include: ['react', 'react-dom'],
   },
   build: {
+    // audit-2026-05-29 load-perf: isolate the heavy, optional @elevenlabs voice
+    // SDK into its own async chunk so it loads only when a voice route mounts
+    // (was bundled into the 504kB DeepInterview route chunk; now ~33kB route +
+    // a shared, cacheable vendor-elevenlabs chunk).
+    //
+    // Do NOT manual-chunk recharts: Vite already auto-splits it into an async
+    // chunk, but forcing it into a named manualChunk pulled it into the eager
+    // modulepreload set (an eager importer reaches it), which REGRESSED initial
+    // load. Lesson: don't manual-chunk what Vite already code-splits well.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': ['lucide-react', 'framer-motion', '@tanstack/react-query'],
+          'vendor-elevenlabs': ['@elevenlabs/client'],
         },
       },
     },
