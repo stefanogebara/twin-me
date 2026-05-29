@@ -70,4 +70,17 @@ export const inboxAPI = {
       nextCursor: data.nextCursor ?? null,
     };
   },
+
+  /**
+   * Cheap COUNT for the sidebar badge. Used by the Inbox nav item to show
+   * a number when the user has unresolved proposals waiting. Server returns
+   * 0 on any internal error so the badge silently disappears rather than
+   * breaking the sidebar.
+   */
+  getPendingCount: async (): Promise<number> => {
+    const response = await authFetch('/inbox/pending-count');
+    if (!response.ok) return 0;
+    const data = await response.json().catch(() => ({}));
+    return typeof data?.count === 'number' ? data.count : 0;
+  },
 };

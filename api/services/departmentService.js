@@ -404,6 +404,41 @@ function extractOutcomeRef(row) {
   return outcomeRefFromExecution(row?.outcome_data?.executionResult, row?.action_type);
 }
 
+/**
+ * Cheap count of the user's pending inbox items. Mirrors the visibility
+ * rules of getInboxStream so the sidebar badge matches what the page
+ * renders:
+ *   - department IS NOT NULL  (department-emitted only)
+ *   - user_response IS NULL   (still pending)
+ *   - created_at within the 48h auto-expire window  (read-side filter)
+ *
+ * Uses head:true + count:'exact' so Postgres returns just the count
+ * without hauling rows. Errors return 0 (badge stays absent rather
+ * than wrong).
+ */
+export async function getPendingCount(userId) {
+  if (!userId) return 0;
+  try {
+    const PENDING_EXPIRY_MS = 48 * 60 * 60 * 1000;
+    const minCreatedAt = new Date(Date.now() - PENDING_EXPIRY_MS).toISOString();
+    const { count, error } = await supabaseAdmin
+      .from('agent_actions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .not('department', 'is', null)
+      .is('user_response', null)
+      .gte('created_at', minCreatedAt);
+    if (error) {
+      log.warn('getPendingCount query failed', { userId, error: error.message });
+      return 0;
+    }
+    return count ?? 0;
+  } catch (err) {
+    log.warn('getPendingCount failed', { userId, error: err.message });
+    return 0;
+  }
+}
+
 export async function getInboxStream(userId, { cursor = null, limit = 20 } = {}) {
   if (!userId) {
     throw new Error('userId is required');

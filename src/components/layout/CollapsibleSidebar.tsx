@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { inboxAPI } from '@/services/api/inboxAPI';
 import {
   Home,
   MessageCircle,
@@ -54,6 +56,18 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+
+  // Inbox pending count — polled every 60s, drives the nav badge. Failures
+  // resolve to 0 in the API client so the badge silently disappears rather
+  // than breaking layout. Only fetches once the user is loaded (auth ready).
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['inbox', 'pending-count'],
+    queryFn: () => inboxAPI.getPendingCount(),
+    enabled: !!user,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+  });
 
   const [isCollapsedPref, setIsCollapsedPref] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -201,13 +215,18 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.path);
+                const badgeCount = item.id === 'inbox' && pendingCount > 0 ? pendingCount : 0;
 
                 return (
                   <button
                     type="button"
                     key={item.id}
                     onClick={() => handleNavigate(item.path)}
-                    aria-label={`Navigate to ${item.label}`}
+                    aria-label={
+                      badgeCount > 0
+                        ? `Navigate to ${item.label} (${badgeCount} pending)`
+                        : `Navigate to ${item.label}`
+                    }
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       // audit-2026-05-15 C4: nav items must be FLAT (straight
@@ -227,22 +246,48 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
                     }}
                     title={item.label}
                   >
-                    <Icon
-                      className="w-5 h-5 flex-shrink-0"
-                      style={{ color: active ? 'var(--accent-vibrant)' : 'rgba(255, 255, 255, 0.45)' }}
-                      aria-hidden="true"
-                    />
+                    <div className="relative flex-shrink-0">
+                      <Icon
+                        className="w-5 h-5"
+                        style={{ color: active ? 'var(--accent-vibrant)' : 'rgba(255, 255, 255, 0.45)' }}
+                        aria-hidden="true"
+                      />
+                      {/* Collapsed sidebar: tiny dot indicator on the icon when there's a count.
+                          The full numeric badge below only renders when expanded. */}
+                      {badgeCount > 0 && isCollapsed && (
+                        <span
+                          className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                          style={{ background: 'var(--accent-vibrant)' }}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </div>
                     {!isCollapsed && (
-                      <span
-                        className="text-sm truncate"
-                        style={{
-                          fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-                          fontWeight: active ? 500 : 400,
-                          color: active ? '#F5F5F4' : 'rgba(255, 255, 255, 0.45)',
-                        }}
-                      >
-                        {item.label}
-                      </span>
+                      <>
+                        <span
+                          className="text-sm truncate flex-1 text-left"
+                          style={{
+                            fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
+                            fontWeight: active ? 500 : 400,
+                            color: active ? '#F5F5F4' : 'rgba(255, 255, 255, 0.45)',
+                          }}
+                        >
+                          {item.label}
+                        </span>
+                        {badgeCount > 0 && (
+                          <span
+                            className="ml-auto inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 text-[11px] font-medium rounded-full"
+                            style={{
+                              background: 'var(--accent-vibrant)',
+                              color: '#110f0f',
+                              lineHeight: 1,
+                            }}
+                            aria-hidden="true"
+                          >
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </span>
+                        )}
+                      </>
                     )}
                   </button>
                 );
