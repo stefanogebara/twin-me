@@ -1,42 +1,450 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TwinMe</title>
+<link rel="icon" href="flower.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
+  :root {
+    --background: #13121a;
+    --foreground: #f5f5f4;
+    --text-secondary: #a8a29e;
+    --text-muted: #9c9590;
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --accent-amber: #c17e2c;
+    --primary: #f5f5f4;
+    --primary-foreground: #110f0f;
+    --narrative: rgba(245, 245, 244, 0.9);
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+
   html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: #13121a;
-    color: #f5f5f4;
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    overflow: hidden;
+    background-color: var(--background);
+    /* Sun-driven 4-orb ambient gradient (CLAUDE.md defaults). */
+    background-image:
+      radial-gradient(ellipse 90% 70% at 12% 8%, rgba(210, 145, 55, 0.38) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 60% at 88% 12%, rgba(180, 110, 65, 0.30) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 70% at 50% 108%, rgba(160, 95, 55, 0.34) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 80% at 95% 55%, rgba(55, 45, 140, 0.28) 0%, transparent 60%);
+    background-attachment: fixed;
+    color: var(--foreground);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- Top app chrome (reinforces "this is an app") ---- */
+  .chrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    flex: 0 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand img { width: 22px; height: 22px; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4)); }
+  .brand span {
+    font-family: var(--serif);
+    font-size: 19px;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+  }
+  .skip {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: color 0.2s ease;
+  }
+  .skip:hover { color: var(--foreground); }
+
+  /* ---- Stage ---- */
+  .stage {
+    flex: 1 1 auto;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 28px;
+    min-height: 0;
+  }
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 12px;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    pointer-events: none;
+  }
+  .screen.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  .content { width: 100%; max-width: 660px; }
+
+  /* Welcome flower */
+  .flower-wrap {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 26px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  .loading { text-align: center; opacity: 0.6; }
-  .spinner {
-    width: 32px;
-    height: 32px;
-    border: 2px solid rgba(255,255,255,0.15);
-    border-top-color: #c17e2c;
+  .flower-wrap::before {
+    content: "";
+    position: absolute;
+    width: 210px;
+    height: 210px;
     border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
+    background: radial-gradient(circle, rgba(193, 126, 44, 0.34) 0%, transparent 68%);
+    filter: blur(18px);
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .flower-wrap img {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 22px rgba(0, 0, 0, 0.5));
+    animation: float 7s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin: 0 0 18px;
+    color: var(--foreground);
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 34px;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    margin: 0 0 12px;
+    color: var(--foreground);
+  }
+  .lede {
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--narrative);
+    margin: 0 auto;
+    max-width: 520px;
+    font-weight: 400;
+  }
+  .sub {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin: 8px auto 0;
+    max-width: 500px;
+  }
+
+  /* Value / permission cards */
+  .cards { display: flex; flex-direction: column; gap: 12px; margin: 26px auto 0; max-width: 540px; }
+  .card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    text-align: left;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    backdrop-filter: blur(42px);
+    -webkit-backdrop-filter: blur(42px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .card .glyph {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(193, 126, 44, 0.14);
+    border: 1px solid rgba(193, 126, 44, 0.22);
+  }
+  .card .glyph svg { width: 19px; height: 19px; stroke: #e7b06a; }
+  .card .body { flex: 1 1 auto; min-width: 0; }
+  .card .title { font-size: 14.5px; font-weight: 600; color: var(--foreground); margin: 1px 0 3px; }
+  .card .desc { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+  .card .tag {
+    display: inline-block;
+    margin-top: 7px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    padding: 3px 10px;
+  }
+
+  /* "scanning" ready state */
+  .pulse-row { display: flex; gap: 9px; justify-content: center; margin: 28px 0 4px; }
+  .pulse-row i {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent-amber);
+    display: inline-block;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .pulse-row i:nth-child(2) { animation-delay: 0.18s; }
+  .pulse-row i:nth-child(3) { animation-delay: 0.36s; }
+  .pulse-row i:nth-child(4) { animation-delay: 0.54s; }
+  @keyframes pulse { 0%,100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+
+  /* ---- Footer: CTA + progress ---- */
+  .footer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 14px 28px 30px;
+  }
+  .cta {
+    font-family: var(--sans);
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border: none;
+    border-radius: 100px;
+    padding: 12px 30px;
+    min-width: 180px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  }
+  .cta:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34); }
+  .cta:active { transform: translateY(0); }
+
+  .dots { display: flex; gap: 8px; }
+  .dots b {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    transition: background 0.3s ease, width 0.3s ease;
+  }
+  .dots b.on { background: var(--foreground); width: 22px; border-radius: 100px; }
+
+  .back {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-family: var(--sans);
+    font-size: 13px; font-weight: 500; padding: 4px 8px;
+    position: absolute; left: 22px; bottom: 34px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease, color 0.2s ease;
+  }
+  .back.show { opacity: 1; pointer-events: auto; }
+  .back:hover { color: var(--foreground); }
+
+  /* graceful fade-out when launching the web app */
+  body.leaving .app { opacity: 0; transition: opacity 0.4s ease; }
 </style>
 </head>
 <body>
-<div class="loading">
-  <div class="spinner"></div>
-  <div>Opening TwinMe&hellip;</div>
+<div class="app">
+  <header class="chrome">
+    <div class="brand">
+      <img src="flower.png" alt="" />
+      <span>TwinMe</span>
+    </div>
+    <button class="skip" id="skip">Skip intro</button>
+  </header>
+
+  <main class="stage" id="stage">
+    <!-- 0. Welcome -->
+    <section class="screen active" data-step="0">
+      <div class="content">
+        <div class="flower-wrap"><img src="flower.png" alt="TwinMe" /></div>
+        <h1>Meet your twin,<br />natively</h1>
+        <p class="lede">TwinMe Desktop brings your Soul Signature out of the browser and into your day. With your permission, it learns from the work and conversations that actually shape you.</p>
+      </div>
+    </section>
+
+    <!-- 1. What the desktop unlocks -->
+    <section class="screen" data-step="1">
+      <div class="content">
+        <h2>What the desktop unlocks</h2>
+        <p class="sub">Things a browser tab simply cannot do.</p>
+        <div class="cards">
+          <div class="card">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">On-device meeting notes</div>
+              <div class="desc">Local Whisper transcribes your calls right on this machine. The audio never leaves it.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">Context awareness</div>
+              <div class="desc">TwinMe quietly notes the app you are focused on, so your twin learns from real life, not just chat.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">One keystroke away</div>
+              <div class="desc">Summon your twin from anywhere with Ctrl + Shift + T, over any other app.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Permissions -->
+    <section class="screen" data-step="2">
+      <div class="content">
+        <h2>A couple of permissions</h2>
+        <p class="sub">You stay in control. TwinMe asks only when a feature needs it, and you can change your mind anytime in your settings.</p>
+        <div class="cards">
+          <div class="card">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">Microphone</div>
+              <div class="desc">For on-device meeting notes.</div>
+              <span class="tag">Requested when you start your first meeting</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">Context awareness</div>
+              <div class="desc">To notice which app you are using, so your twin understands your day.</div>
+              <span class="tag">Granted in your OS privacy settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Ready -->
+    <section class="screen" data-step="3">
+      <div class="content">
+        <div class="flower-wrap"><img src="flower.png" alt="TwinMe" /></div>
+        <h2>Your twin is ready to learn</h2>
+        <p class="lede">Next, sign in and connect your world — Spotify, Calendar, GitHub and more. Every signal makes your twin more you.</p>
+        <div class="pulse-row"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <button class="cta" id="cta">Get started</button>
+    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b></div>
+  </footer>
+  <button class="back" id="back">Back</button>
 </div>
+
 <script>
-  // Stub frontend — Tauri config points window.url to https://twinme.me directly.
-  // This file only renders if the URL load fails or during build packaging.
-  window.location.replace('https://twinme.me');
+  (function () {
+    "use strict";
+
+    var APP_URL = "https://twinme.me";
+    var FLAG = "twinme_desktop_onboarded";
+    var TOTAL = 4;
+    var step = 0;
+
+    // Returning users skip straight to the app.
+    try {
+      if (localStorage.getItem(FLAG) === "1") {
+        window.location.replace(APP_URL);
+        return;
+      }
+    } catch (e) { /* localStorage may be unavailable; show onboarding */ }
+
+    var screens = document.querySelectorAll(".screen");
+    var dots = document.querySelectorAll("#dots b");
+    var cta = document.getElementById("cta");
+    var back = document.getElementById("back");
+    var skip = document.getElementById("skip");
+
+    var CTA_LABELS = ["Get started", "Continue", "Continue", "Open TwinMe"];
+
+    function render() {
+      for (var i = 0; i < screens.length; i++) {
+        screens[i].classList.toggle("active", i === step);
+      }
+      for (var d = 0; d < dots.length; d++) {
+        dots[d].classList.toggle("on", d === step);
+      }
+      cta.textContent = CTA_LABELS[step];
+      back.classList.toggle("show", step > 0);
+    }
+
+    function launch() {
+      try { localStorage.setItem(FLAG, "1"); } catch (e) { /* ignore */ }
+      document.body.classList.add("leaving");
+      setTimeout(function () { window.location.replace(APP_URL); }, 380);
+    }
+
+    function next() {
+      if (step >= TOTAL - 1) { launch(); return; }
+      step++;
+      render();
+    }
+    function prev() {
+      if (step <= 0) return;
+      step--;
+      render();
+    }
+
+    cta.addEventListener("click", next);
+    back.addEventListener("click", prev);
+    skip.addEventListener("click", launch);
+
+    // Keyboard: Enter/Right advance, Left/Backspace go back.
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === "ArrowRight") { ev.preventDefault(); next(); }
+      else if (ev.key === "ArrowLeft") { ev.preventDefault(); prev(); }
+      else if (ev.key === "Backspace") { ev.preventDefault(); prev(); }
+    });
+
+    render();
+  })();
 </script>
 </body>
 </html>
