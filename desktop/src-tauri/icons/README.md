@@ -1,17 +1,26 @@
 # Icons
 
-Placeholder icons — solid amber `#C17E2C` squares. **Replace before shipping v0.1.**
+The TwinMe brand flower on an on-brand dark "squircle" with a soft amber glow.
+Generated from `public/images/backgrounds/flower-hero.png`.
 
-To regenerate from a single 1024×1024 source PNG:
+## Regenerate
 
 ```bash
-npx @tauri-apps/cli icon assets/twinme-logo-1024.png
+python desktop/scripts/generate-icons.py
 ```
 
-This generates every size + `.icns` (macOS) + `.ico` (Windows) automatically. Drop them back into this folder.
+Requires Pillow. The script trims, centers, and composites the flower, then
+emits every size below. Edit the brand tokens / ratios at the top of the
+script to tweak the look, then re-run.
 
-Current files:
-- `32x32.png` — menubar + tray icon
+## Files
+
+- `32x32.png` — menubar + tray icon (tray uses it in color; `iconAsTemplate: false`)
 - `128x128.png` — app window icon
 - `128x128@2x.png` (256×256) — Retina app window icon
 - `icon.png` — generic 512×512 source
+- `icon.ico` — Windows multi-size icon (16–256)
+- `icon_master_1024.png` — 1024 master (preview / not bundled)
+
+These names match the `bundle.icon` list + `trayIcon.iconPath` in
+`tauri.conf.json`. Keep them in sync if you rename anything.

@@ -1,13 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "TwinMe",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "ai.twinme.desktop",
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
-    "frontendDist": "../www",
-    "devUrl": "https://twinme.me"
+    "frontendDist": "../www"
   },
   "app": {
     "withGlobalTauri": false,
@@ -15,7 +14,6 @@
       {
         "label": "main",
         "title": "TwinMe",
-        "url": "https://twinme.me",
         "width": 1280,
         "height": 820,
         "minWidth": 880,
@@ -37,7 +35,7 @@
     "trayIcon": {
       "id": "main-tray",
       "iconPath": "icons/32x32.png",
-      "iconAsTemplate": true,
+      "iconAsTemplate": false,
       "menuOnLeftClick": false,
       "tooltip": "TwinMe"
     }
@@ -54,7 +52,7 @@
     "publisher": "TwinMe",
     "category": "Productivity",
     "shortDescription": "Your AI twin, always one keystroke away.",
-    "longDescription": "TwinMe Desktop wraps the TwinMe web app in a native shell with a system tray, global hotkey (Cmd+Shift+T), and native notifications. Phase 1 of the TwinMe Desktop roadmap inspired by Littlebird and jo.",
+    "longDescription": "TwinMe Desktop is a native home for your Soul Signature: a guided first-run that explains on-device meeting notes, context awareness, and the global hotkey (Cmd+Shift+T), plus a system tray and native notifications. Inspired by Littlebird and jo.",
     "copyright": "Copyright © 2026 TwinMe",
     "createUpdaterArtifacts": false,
     "macOS": {
