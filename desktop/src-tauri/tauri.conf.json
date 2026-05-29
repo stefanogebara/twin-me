@@ -9,7 +9,8 @@
     "frontendDist": "../www"
   },
   "app": {
-    "withGlobalTauri": false,
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",
@@ -27,6 +28,21 @@
         "visible": true,
         "skipTaskbar": false,
         "titleBarStyle": "Visible"
+      },
+      {
+        "label": "hummingbird",
+        "title": "TwinMe Quick Panel",
+        "url": "hummingbird.html",
+        "width": 460,
+        "height": 600,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "center": true,
+        "shadow": false
       }
     ],
     "security": {

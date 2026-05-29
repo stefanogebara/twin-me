@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TwinMe Quick Panel</title>
+<link rel="icon" href="flower.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --foreground: #f5f5f4;
+    --text-secondary: #a8a29e;
+    --text-muted: #9c9590;
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --accent-amber: #c17e2c;
+    --primary: #f5f5f4;
+    --primary-foreground: #110f0f;
+    --narrative: rgba(245, 245, 244, 0.9);
+    --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background: transparent;
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* The window is transparent; this card is the visible panel. */
+  .panel {
+    position: relative;
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 22px;
+    /* Dark base + the brand amber/copper sun gradient, on glass. */
+    background-color: #15131c;
+    background-image:
+      radial-gradient(ellipse 120% 80% at 18% 0%, rgba(210, 145, 55, 0.30) 0%, transparent 58%),
+      radial-gradient(ellipse 100% 70% at 90% 8%, rgba(180, 110, 65, 0.24) 0%, transparent 55%),
+      radial-gradient(ellipse 120% 80% at 50% 112%, rgba(160, 95, 55, 0.26) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 90% at 100% 60%, rgba(55, 45, 140, 0.22) 0%, transparent 60%);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  /* ---- Top bar (drag handle) ---- */
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 14px 6px;
+    flex: 0 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand img { width: 18px; height: 18px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
+  .brand span { font-family: var(--serif); font-size: 16px; letter-spacing: -0.02em; color: var(--foreground); }
+  .spacer { flex: 1 1 auto; align-self: stretch; }
+  .close {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    font-size: 15px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .close:hover { background: rgba(255, 255, 255, 0.10); color: var(--foreground); }
+
+  /* ---- Body ---- */
+  .body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 22px;
+    min-height: 0;
+  }
+  .flower-wrap { position: relative; width: 92px; height: 92px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+  .flower-wrap::before {
+    content: "";
+    position: absolute; width: 140px; height: 140px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(193, 126, 44, 0.32) 0%, transparent 68%);
+    filter: blur(14px);
+  }
+  .flower-wrap img {
+    position: relative; width: 92px; height: 92px; object-fit: contain;
+    filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.5));
+    animation: float 7s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+    margin: 0 0 8px;
+    color: var(--foreground);
+  }
+  .sub { font-size: 13.5px; line-height: 1.5; color: var(--text-secondary); margin: 0 0 22px; max-width: 320px; }
+
+  /* ---- Actions ---- */
+  .actions { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
+  .primary {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    font-family: var(--sans); font-size: 14.5px; font-weight: 600;
+    color: var(--primary-foreground); background: var(--primary);
+    border: none; border-radius: 100px; padding: 12px 18px;
+    cursor: pointer; transition: transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+  .primary:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.36); }
+  .primary:active { transform: translateY(0); }
+  .primary svg { width: 17px; height: 17px; stroke: var(--primary-foreground); }
+
+  .row { display: flex; gap: 10px; }
+  .ghost {
+    flex: 1 1 0;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500; color: var(--foreground);
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 14px; padding: 13px 8px; cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .ghost:hover { background: rgba(255, 255, 255, 0.10); transform: translateY(-1px); }
+  .ghost svg { width: 19px; height: 19px; stroke: #e7b06a; }
+
+  /* ---- Footer ---- */
+  .foot {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 12px 14px 16px;
+    font-size: 11.5px; color: var(--text-muted);
+  }
+  .foot kbd {
+    font-family: var(--sans); font-size: 11px;
+    background: rgba(255, 255, 255, 0.06); border: 1px solid var(--glass-border);
+    border-radius: 5px; padding: 1px 6px; color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+<div class="panel">
+  <div class="bar">
+    <div class="brand" data-tauri-drag-region>
+      <img src="flower.png" alt="" />
+      <span>TwinMe</span>
+    </div>
+    <div class="spacer" data-tauri-drag-region></div>
+    <button class="close" id="close" title="Close (Esc)">&times;</button>
+  </div>
+
+  <div class="body">
+    <div class="flower-wrap"><img src="flower.png" alt="TwinMe" /></div>
+    <h1>What would you<br />like to do?</h1>
+    <p class="sub">Your twin is one keystroke away, over anything else you are working on.</p>
+
+    <div class="actions">
+      <button class="primary" data-route="/talk-to-twin">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"/></svg>
+        Talk to your twin
+      </button>
+      <div class="row">
+        <button class="ghost" data-route="/identity">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Soul signature
+        </button>
+        <button class="ghost" id="open-app">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
+          Open full app
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <kbd>Esc</kbd> to close &middot; <kbd id="chord">Cmd + Shift + T</kbd> to summon
+  </div>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    // Tauri injects window.__TAURI__ in the desktop app (withGlobalTauri).
+    // In a plain browser (verification), it is absent — fall back to no-ops so
+    // the layout still renders without errors.
+    var tauri = window.__TAURI__ && window.__TAURI__.core;
+    function invoke(cmd, args) {
+      if (tauri && typeof tauri.invoke === "function") {
+        return tauri.invoke(cmd, args || {});
+      }
+      console.log("[hummingbird:no-tauri]", cmd, args || {});
+      return Promise.resolve();
+    }
+
+    function hide() { invoke("hide_hummingbird"); }
+    function openRoute(path) { invoke("open_route", { path: path }); }
+    function openApp() { invoke("open_main_window"); }
+
+    // Wire route buttons (primary + ghost) and the full-app button.
+    document.querySelectorAll("[data-route]").forEach(function (el) {
+      el.addEventListener("click", function () { openRoute(el.getAttribute("data-route")); });
+    });
+    document.getElementById("open-app").addEventListener("click", openApp);
+    document.getElementById("close").addEventListener("click", hide);
+
+    // Esc closes the panel.
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") { ev.preventDefault(); hide(); }
+    });
+
+    // Platform-aware summon hint (no emoji/symbols, plain text).
+    var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+    document.getElementById("chord").textContent = (isMac ? "Cmd" : "Ctrl") + " + Shift + T";
+  })();
+</script>
+</body>
+</html>

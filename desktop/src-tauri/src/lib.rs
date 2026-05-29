@@ -1,18 +1,20 @@
 // TwinMe Desktop (Phase 1 — Tauri 2 shell + Phase 2 clip indexer scaffold)
 // =========================================================================
-// This is the Rust entrypoint for the desktop app. Phase 1 stays thin: it
-// wraps https://twinme.me in a webview, adds a system tray icon, a global
-// hotkey (Cmd/Ctrl+Shift+T) to show/focus the main window, and wires the
-// notification + shell plugins for future use.
+// This is the Rust entrypoint for the desktop app. The main window shows a
+// native first-run onboarding (www/index.html) and then the TwinMe web app;
+// there's a system tray icon and a global hotkey (Cmd/Ctrl+Shift+T).
 //
-// Phase 2 (this commit) adds the structural pieces of the local clip
-// indexer — see clips.rs / active_window.rs / clip_indexer.rs / sync.rs.
-// Two background tasks are spawned from setup(): the 5s poll loop and the
-// 2-min sync loop. Both no-op safely while active_window::current() stays
-// stubbed.
+// Phase 2 adds the structural pieces of the local clip indexer — see
+// clips.rs / active_window.rs / clip_indexer.rs / sync.rs. Two background
+// tasks are spawned from setup(): the 5s poll loop and the 2-min sync loop.
+// Phases 3-5 filled in macOS/Windows/Linux active-window detection, real
+// HTTP sync, the OS keyring auth token, and on-device meeting transcription.
 //
-// Phase 3+ will fill in the macOS Accessibility implementation, real HTTP
-// sync, mic capture for meeting notes, and a Hummingbird-style widget.
+// Phase 6 (this change) adds the Hummingbird quick panel: a second,
+// always-on-top, frameless overlay window (label "hummingbird", loads
+// www/hummingbird.html). The global hotkey toggles it; it dismisses on blur
+// or Esc; its buttons call the open_route / open_main_window commands to
+// drive the main window.
 
 mod active_window;
 mod clip_indexer;
@@ -42,6 +44,74 @@ fn focus_main_window(app: &AppHandle) {
 fn hide_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
+    }
+}
+
+/// Show + focus the Hummingbird quick panel (the always-on-top overlay).
+fn show_hummingbird(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("hummingbird") {
+        let _ = window.center();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Toggle the Hummingbird quick panel: hide it if it's already up front,
+/// otherwise summon it. Used by the global hotkey. With blur-to-dismiss the
+/// panel is only ever visible while focused, so this reads as a clean toggle.
+fn toggle_hummingbird(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("hummingbird") {
+        let visible = window.is_visible().unwrap_or(false);
+        let focused = window.is_focused().unwrap_or(false);
+        if visible && focused {
+            let _ = window.hide();
+        } else {
+            let _ = window.center();
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
+}
+
+/// Command: hide the Hummingbird panel (Esc / close button in the widget).
+#[tauri::command]
+fn hide_hummingbird(app: AppHandle) {
+    if let Some(window) = app.get_webview_window("hummingbird") {
+        let _ = window.hide();
+    }
+}
+
+/// Command: bring the full app forward (and dismiss the panel).
+#[tauri::command]
+fn open_main_window(app: AppHandle) {
+    focus_main_window(&app);
+    if let Some(hb) = app.get_webview_window("hummingbird") {
+        let _ = hb.hide();
+    }
+}
+
+/// Command: focus the main window and navigate it to a twinme.me route, then
+/// dismiss the panel. `path` is an app-internal absolute path (e.g.
+/// "/talk-to-twin"); we only navigate when it is a safe same-site path so the
+/// panel can never be used to open an arbitrary URL.
+#[tauri::command]
+fn open_route(app: AppHandle, path: String) {
+    let safe = path.starts_with('/')
+        && !path.contains("//")
+        && !path.contains('\'')
+        && !path.contains('"')
+        && !path.contains(' ');
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        if safe {
+            let url = format!("https://twinme.me{path}");
+            let _ = window.eval(&format!("window.location.href = '{url}';"));
+        }
+    }
+    if let Some(hb) = app.get_webview_window("hummingbird") {
+        let _ = hb.hide();
     }
 }
 
@@ -113,11 +183,16 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
                     if shortcut == &summon_shortcut && event.state == ShortcutState::Pressed {
-                        focus_main_window(app);
+                        toggle_hummingbird(app);
                     }
                 })
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![
+            hide_hummingbird,
+            open_main_window,
+            open_route
+        ])
         .setup(move |app| {
             // Register the summon hotkey. If registration fails (e.g. another
             // app has already claimed the chord), log it but don't crash —
@@ -130,7 +205,9 @@ pub fn run() {
             // Excluded apps submenu / separator / Quit. The pause item's label
             // and the excluded submenu both reflect persisted state and update
             // live as the user toggles them (see on_menu_event below).
-            let open_item = MenuItem::with_id(app, "open", "Open TwinMe", true, Some("CmdOrCtrl+Shift+T"))?;
+            let open_item = MenuItem::with_id(app, "open", "Open TwinMe", true, None::<&str>)?;
+            let quickpanel_item =
+                MenuItem::with_id(app, "quickpanel", "Quick panel", true, Some("CmdOrCtrl+Shift+T"))?;
             let hide_item = MenuItem::with_id(app, "hide", "Hide window", true, None::<&str>)?;
 
             // Initial pause label from the persisted flag so it's correct on
@@ -159,6 +236,7 @@ pub fn run() {
                 app,
                 &[
                     &open_item,
+                    &quickpanel_item,
                     &hide_item,
                     &pause_item,
                     &exclude_item,
@@ -179,10 +257,11 @@ pub fn run() {
             let _tray = TrayIconBuilder::with_id("main-tray")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(false)
-                .tooltip("TwinMe — Cmd+Shift+T to open")
+                .tooltip("TwinMe — Cmd+Shift+T for quick panel")
                 .on_menu_event(move |app, event| {
                     match event.id().as_ref() {
                         "open" => focus_main_window(app),
+                        "quickpanel" => show_hummingbird(app),
                         "hide" => hide_main_window(app),
                         "pause" => {
                             // Flip the persisted flag, then relabel the item to
@@ -251,18 +330,24 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building TwinMe Desktop")
         .run(|app, event| {
-            // Don't quit when the main window closes — minimize to tray instead.
-            // Matches Littlebird/jo behavior. User must explicitly Quit from
-            // the tray menu (or Cmd+Q on macOS) to fully exit.
-            if let RunEvent::WindowEvent {
-                label,
-                event: WindowEvent::CloseRequested { api, .. },
-                ..
-            } = &event
-            {
-                if label == "main" {
-                    api.prevent_close();
-                    hide_main_window(app);
+            if let RunEvent::WindowEvent { label, event: win_event, .. } = &event {
+                match win_event {
+                    // Don't quit when the main window closes — minimize to tray
+                    // instead (Littlebird/jo behavior). Quit explicitly from the
+                    // tray menu (or Cmd+Q on macOS) to fully exit.
+                    WindowEvent::CloseRequested { api, .. } if label == "main" => {
+                        api.prevent_close();
+                        hide_main_window(app);
+                    }
+                    // Blur-to-dismiss for the Hummingbird quick panel: when it
+                    // loses focus (click elsewhere, or open the main app) hide it,
+                    // so the global hotkey always reads as a clean toggle.
+                    WindowEvent::Focused(false) if label == "hummingbird" => {
+                        if let Some(w) = app.get_webview_window("hummingbird") {
+                            let _ = w.hide();
+                        }
+                    }
+                    _ => {}
                 }
             }
         });
