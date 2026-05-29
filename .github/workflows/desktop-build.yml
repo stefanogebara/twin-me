@@ -107,6 +107,15 @@ jobs:
       # Gatekeeper/SmartScreen warning until signing lands; the /download page
       # documents the "right-click → Open" / "More info → Run anyway" steps.
       # When certs are configured, re-add a tag-gated signed build step here.
+      # The Cargo cache restores desktop/src-tauri/target, which includes the
+      # bundle/ output from previous (older-version) builds. Without clearing it,
+      # the upload globs below sweep up stale-version installers — e.g. a 0.1.0
+      # .exe ending up attached to the 0.1.1 release. Remove only the bundle
+      # output (compiled dependencies stay cached, so builds remain fast).
+      - name: Clean stale bundles
+        shell: bash
+        run: rm -rf "desktop/src-tauri/target/${{ matrix.platform.target }}/release/bundle"
+
       - name: Build TwinMe Desktop (unsigned)
         working-directory: desktop
         # No --bundles: each platform produces its native default targets
