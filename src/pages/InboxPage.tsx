@@ -33,9 +33,10 @@ function labelForToast(toolName: string): string {
 }
 
 const filterMatch = (status: InboxItem['status'], filter: InboxFilterValue): boolean => {
-  if (filter === 'all') return true;
+  if (filter === 'all') return status !== 'snoozed';  // hide snoozed from default view
   if (filter === 'pending') return status === 'pending';
   if (filter === 'done') return status === 'done';
+  if (filter === 'snoozed') return status === 'snoozed';
   // "Skipped" bucket holds anything the user didn't act on (or rolled back, or failed).
   if (filter === 'skipped') return status === 'skipped' || status === 'expired' || status === 'undone' || status === 'failed';
   return true;
@@ -177,12 +178,36 @@ const InboxPage: React.FC = () => {
     [queryClient, items],
   );
 
+  const handleSnooze = useCallback(
+    async (id: string, hours: number) => {
+      setActionLoadingId(id);
+      try {
+        const r = await departmentsAPI.snoozeProposal(id, hours);
+        if (r.success) {
+          const label = hours === 1 ? '1 hour' : hours === 24 ? 'tomorrow' : `${hours} hours`;
+          toast.success(`Snoozed for ${label}`);
+          // Also refresh the sidebar badge count.
+          await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+          await queryClient.invalidateQueries({ queryKey: ['inbox', 'pending-count'] });
+        } else {
+          toast.error(r.error || 'Could not snooze. Try again?');
+        }
+      } catch (err) {
+        toast.error('Could not snooze. Try again?');
+      } finally {
+        setActionLoadingId(null);
+      }
+    },
+    [queryClient],
+  );
+
   const handleSkip = useCallback(
     async (id: string) => {
       setActionLoadingId(id);
       try {
         await departmentsAPI.rejectProposal(id);
         await queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        await queryClient.invalidateQueries({ queryKey: ['inbox', 'pending-count'] });
       } catch (err) {
         toast.error('Could not skip this proposal. Try again?');
       } finally {
@@ -259,6 +284,7 @@ const InboxPage: React.FC = () => {
                   isLoading={actionLoadingId === item.id}
                   onApprove={handleApprove}
                   onSkip={handleSkip}
+                  onSnooze={handleSnooze}
                 />
               ))}
             </div>

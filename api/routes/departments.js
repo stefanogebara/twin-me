@@ -222,6 +222,80 @@ router.post('/proposals/:id/undo', authenticateUser, approvalLimiter, async (req
 // POST /api/departments/proposals/:id/reject — Reject a proposal
 // ========================================================================
 
+// ========================================================================
+// POST /api/departments/proposals/:id/snooze — defer a pending proposal
+// ========================================================================
+// Body: { hours: number }  — clamps to 1..72. Only pending rows (user_response
+// IS NULL) can be snoozed; an accepted/rejected/failed row is past the
+// decision point.
+//
+// Effect on /api/inbox: the row's status flips from 'pending' to 'snoozed'
+// until snoozed_until elapses. Sidebar pending_count excludes it.
+
+const SNOOZE_MIN_H = 1;
+const SNOOZE_MAX_H = 72;
+
+router.post('/proposals/:id/snooze', authenticateUser, approvalLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const rawHours = Number(req.body?.hours);
+    if (!Number.isFinite(rawHours) || rawHours < SNOOZE_MIN_H || rawHours > SNOOZE_MAX_H) {
+      return res.status(400).json({
+        success: false,
+        error: 'hours must be a number between 1 and 72',
+      });
+    }
+    const hours = Math.floor(rawHours);
+
+    const { supabaseAdmin } = await import('../services/database.js');
+
+    // Ownership-scoped fetch — refuse if not yours.
+    const { data: action, error: fetchErr } = await supabaseAdmin
+      .from('agent_actions')
+      .select('id, user_response, department')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      log.error('Snooze fetch failed', { userId, id, error: fetchErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to look up proposal' });
+    }
+    if (!action) {
+      return res.status(404).json({ success: false, error: 'Proposal not found' });
+    }
+    if (!action.department) {
+      return res.status(400).json({ success: false, error: 'Only department proposals can be snoozed' });
+    }
+    if (action.user_response) {
+      return res.status(409).json({ success: false, error: 'Only pending proposals can be snoozed', currentResponse: action.user_response });
+    }
+
+    const snoozedUntil = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('agent_actions')
+      .update({ snoozed_until: snoozedUntil })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (updateErr) {
+      log.error('Snooze update failed', { userId, id, error: updateErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to snooze proposal' });
+    }
+
+    return res.json({ success: true, actionId: id, snoozedUntil, hours });
+  } catch (err) {
+    log.error('Snooze failed', { userId: req.user.id, id: req.params.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to snooze' });
+  }
+});
+
+// ========================================================================
+// POST /api/departments/proposals/:id/reject — Reject a proposal
+// ========================================================================
+
 router.post('/proposals/:id/reject', authenticateUser, approvalLimiter, async (req, res) => {
   try {
     const { id } = req.params;

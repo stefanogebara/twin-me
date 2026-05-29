@@ -181,6 +181,23 @@ export const departmentsAPI = {
   },
 
   /**
+   * Snooze a pending proposal for N hours (1..72 clamped server-side).
+   * Returns the new snoozedUntil ISO timestamp. The tile flips from
+   * 'pending' to 'snoozed' until that timestamp elapses.
+   */
+  snoozeProposal: async (id: string, hours: number): Promise<{ success: boolean; snoozedUntil?: string; error?: string }> => {
+    const response = await authFetch(`/departments/proposals/${encodeURIComponent(id)}/snooze`, {
+      method: 'POST',
+      body: JSON.stringify({ hours }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: body?.error || `Snooze failed: ${response.statusText}` };
+    }
+    return body;
+  },
+
+  /**
    * Undo a just-approved action within the 60-second window. Deletes the
    * underlying artifact (gmail draft, calendar event) and marks the row
    * user_response='undone'. Returns 410 if the window has expired.

@@ -11,13 +11,14 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
 
-export type InboxFilterValue = 'all' | 'pending' | 'done' | 'skipped';
+export type InboxFilterValue = 'all' | 'pending' | 'done' | 'skipped' | 'snoozed';
 
 const LABELS: Record<InboxFilterValue, string> = {
   all: 'All',
   pending: 'Needs decision',
   done: 'Did it',
   skipped: 'Skipped',
+  snoozed: 'Snoozed',
 };
 
 interface Props {
@@ -39,7 +40,7 @@ const InboxFilter: React.FC<Props> = ({ value, onChange }) => {
         }}
         aria-label="Filter inbox"
       >
-        {(['all', 'pending', 'done', 'skipped'] as const).map((v) => (
+        {(['all', 'pending', 'done', 'snoozed', 'skipped'] as const).map((v) => (
           <option key={v} value={v} style={{ background: '#13121a', color: '#F5F5F4' }}>
             {LABELS[v]}
           </option>

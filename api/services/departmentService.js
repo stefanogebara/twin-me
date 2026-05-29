@@ -421,13 +421,17 @@ export async function getPendingCount(userId) {
   try {
     const PENDING_EXPIRY_MS = 48 * 60 * 60 * 1000;
     const minCreatedAt = new Date(Date.now() - PENDING_EXPIRY_MS).toISOString();
+    const nowIso = new Date().toISOString();
     const { count, error } = await supabaseAdmin
       .from('agent_actions')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .not('department', 'is', null)
       .is('user_response', null)
-      .gte('created_at', minCreatedAt);
+      .gte('created_at', minCreatedAt)
+      // Exclude active snoozes — a snoozed item shouldn't blink the badge.
+      // .or() with .is.null OR .lte.nowIso so rows with no snooze still count.
+      .or(`snoozed_until.is.null,snoozed_until.lte.${nowIso}`);
     if (error) {
       log.warn('getPendingCount query failed', { userId, error: error.message });
       return 0;
@@ -452,7 +456,7 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
     // capped at limit*3 to stay cheap.
     let query = supabaseAdmin
       .from('agent_actions')
-      .select('id, department, skill_name, action_type, proposed_action, context_summary, reasoning, user_response, outcome_data, created_at, resolved_at')
+      .select('id, department, skill_name, action_type, proposed_action, context_summary, reasoning, user_response, outcome_data, created_at, resolved_at, snoozed_until')
       .eq('user_id', userId)
       .not('department', 'is', null);
 
@@ -524,6 +528,16 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
         const ageMs = now - new Date(row.created_at).getTime();
         if (ageMs > PENDING_EXPIRY_MS) status = 'expired';
       }
+      // Active snooze hides the row from default views but keeps it in
+      // the stream under a 'snoozed' status so the user can find it via
+      // the Snoozed filter and unsnooze if needed. Once snoozed_until
+      // elapses the read-side check is a no-op and the row reverts to
+      // 'pending' naturally.
+      if (status === 'pending'
+          && row.snoozed_until
+          && new Date(row.snoozed_until).getTime() > now) {
+        status = 'snoozed';
+      }
       return {
         id: row.id,
         status,
@@ -536,6 +550,7 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
         outcomeLink: status === 'done' ? extractOutcomeLink(row) : null,
         outcomeRef: status === 'done' ? extractOutcomeRef(row) : null,
         failureReason: status === 'failed' ? (row.outcome_data?.failureReason || null) : null,
+        snoozedUntil: status === 'snoozed' ? row.snoozed_until : null,
         createdAt: row.created_at,
         resolvedAt: row.resolved_at,
         sortAt,
@@ -562,6 +577,9 @@ function inboxStatus(userResponse) {
   if (userResponse === 'failed') return 'failed';
   return 'done';
 }
+
+// 'snoozed' is computed purely from snoozed_until (no DB value) — handled in
+// the inbox stream projection where the row is available.
 
 /**
  * Update autonomy level for all skills in a department.

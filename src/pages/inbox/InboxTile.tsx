@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Check, X, Loader2, Clock, Undo2, AlertCircle } from 'lucide-react';
+import { Check, X, Loader2, Clock, Undo2, AlertCircle, Moon, ChevronDown } from 'lucide-react';
 import type { InboxItem } from '@/services/api/inboxAPI';
 
 interface InboxTileProps {
@@ -20,6 +20,7 @@ interface InboxTileProps {
   isLoading: boolean;
   onApprove: (id: string) => void;
   onSkip: (id: string) => void;
+  onSnooze?: (id: string, hours: number) => void;
 }
 
 /**
@@ -95,8 +96,10 @@ const RESOLVED_DONE_LABEL: Record<ProposalKind, string> = {
   action: 'Did it',
 };
 
-const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSkip }) => {
+const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSkip, onSnooze }) => {
   const isPending = item.status === 'pending';
+  const isSnoozed = item.status === 'snoozed';
+  const [snoozeMenuOpen, setSnoozeMenuOpen] = React.useState(false);
   const kind = kindOf(item.toolName);
   const primaryLabel = PRIMARY_LABEL[kind];
   const outcomeHint = OUTCOME_HINT[kind];
@@ -189,6 +192,14 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
             <>
               <span style={{ color: 'var(--text-muted)' }}>·</span>
               <ResolvedBadge status={item.status} kind={kind} />
+              {isSnoozed && item.snoozedUntil && (
+                <>
+                  <span style={{ color: 'var(--text-muted)' }}>·</span>
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    until {new Date(item.snoozedUntil).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </>
+              )}
               {item.status === 'done' && item.outcomeLink && (
                 <>
                   <span style={{ color: 'var(--text-muted)' }}>·</span>
@@ -234,6 +245,51 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
           >
             Skip
           </button>
+          {onSnooze && (
+            <div className="relative">
+              <button
+                onClick={() => setSnoozeMenuOpen((v) => !v)}
+                disabled={isLoading}
+                className="flex items-center gap-0.5 px-2 py-1.5 rounded-[6px] text-[12px] transition-opacity hover:opacity-70"
+                style={{ color: 'var(--text-muted)', background: 'none', border: 'none' }}
+                aria-label={`Snooze: ${item.title}`}
+                aria-haspopup="menu"
+                aria-expanded={snoozeMenuOpen}
+              >
+                Later
+                <ChevronDown className="w-3 h-3" />
+              </button>
+              {snoozeMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 z-10 rounded-[12px] backdrop-blur-[42px] py-1 min-w-[140px]"
+                  style={{
+                    background: 'rgba(40,37,36,0.95)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                  }}
+                  role="menu"
+                >
+                  {[
+                    { hours: 1,  label: '1 hour'   },
+                    { hours: 4,  label: '4 hours'  },
+                    { hours: 24, label: 'Tomorrow' },
+                  ].map(({ hours, label }) => (
+                    <button
+                      key={hours}
+                      onClick={() => {
+                        setSnoozeMenuOpen(false);
+                        onSnooze(item.id, hours);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[rgba(255,255,255,0.08)] transition-colors"
+                      style={{ color: 'var(--text-primary)' }}
+                      role="menuitem"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -248,6 +304,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     expired: <Clock className="w-3 h-3" />,
     undone: <Undo2 className="w-3 h-3" />,
     failed: <AlertCircle className="w-3 h-3" />,
+    snoozed: <Moon className="w-3 h-3" />,
   };
   const COLOR: Record<InboxItem['status'], string> = {
     pending: 'var(--text-muted)',
@@ -256,6 +313,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     expired: 'var(--text-muted)',
     undone: 'var(--text-muted)',
     failed: '#dc2626',
+    snoozed: 'var(--text-secondary)',
   };
   const LABEL: Record<InboxItem['status'], string> = {
     pending: 'Needs decision',
@@ -264,6 +322,7 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
     expired: 'Expired',
     undone: 'Undone',
     failed: 'Failed',
+    snoozed: 'Snoozed',
   };
   return (
     <span
