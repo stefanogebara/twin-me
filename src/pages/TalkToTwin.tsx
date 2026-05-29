@@ -548,11 +548,11 @@ const TalkToTwin = () => {
     setConversationId(null);
   };
 
-  const handleRetry = (content: string, messageId: string) => {
+  const handleRetry = useCallback((content: string, messageId: string) => {
     setMessages(prev => prev.filter(m => m.id !== messageId));
     setInputMessage(content);
     inputRef.current?.focus();
-  };
+  }, []);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -624,7 +624,7 @@ const TalkToTwin = () => {
     }
   }, [toast]);
 
-  const handleRate = async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
+  const handleRate = useCallback(async (messageId: string, rating: number, messageContent: string, userMessage: string | null) => {
     try {
       const token = getAccessToken();
       await fetch(`${API_BASE}/chat/feedback`, {
@@ -645,21 +645,21 @@ const TalkToTwin = () => {
     } catch (err) {
       console.error('Failed to send feedback:', err);
     }
-  };
+  }, [conversationId]);
 
   const handleQuickAction = (text: string) => {
     setInputMessage(text);
     inputRef.current?.focus();
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = useCallback((date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
       timeZoneName: 'short',
     }).format(date);
-  };
+  }, []);
 
   if (!interviewChecked) {
     return (

@@ -1,4 +1,4 @@
-import { forwardRef, useState, useMemo } from 'react';
+import { forwardRef, useState, useMemo, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'framer-motion';
@@ -128,7 +128,7 @@ function useCopiedMessages() {
  * Renders assistant message text with DEPT_SUGGEST tags parsed out
  * and replaced by interactive suggestion cards.
  */
-function AssistantMessageBody({
+const AssistantMessageBody = memo(function AssistantMessageBody({
   content,
   onApproveDepartmentSuggestion,
 }: {
@@ -168,9 +168,9 @@ function AssistantMessageBody({
       )}
     </>
   );
-}
+});
 
-export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
+export const MessageList = memo(forwardRef<HTMLDivElement, MessageListProps>(
   ({ messages, isTyping, formatTime, onRetry, onRate, onApproveProposal, onRejectProposal, onApproveAllProposals, onReviewInDepartments, onApproveDepartmentSuggestion }, ref) => {
     const { rated, markRated } = useRatedMessages();
     const { copied, markCopied } = useCopiedMessages();
@@ -451,6 +451,6 @@ export const MessageList = forwardRef<HTMLDivElement, MessageListProps>(
       </div>
     );
   }
-);
+));
 
 MessageList.displayName = 'MessageList';
