@@ -16,9 +16,29 @@ export function initPostHog() {
     capture_pageleave: true,
     autocapture: true,           // Auto-capture clicks, inputs, form submits
     persistence: 'localStorage',
+    // perf (audit-2026-05-29): the session-replay recorder (rrweb) takes its
+    // initial DOM snapshot lazily on the user's FIRST interaction — measured at
+    // ~300ms+ of INP on the first click on Talk to Twin (the snapshot ran on
+    // mouseup, blocking the click). Disable auto-start and kick replay off at
+    // idle instead, so the snapshot never blocks an interaction. Trade-off: the
+    // first few seconds of each session aren't replayed; events + autocapture
+    // still fire immediately.
+    disable_session_recording: true,
     loaded: () => {},
   });
   posthogInitialized = true;
+
+  // Start session replay OFF the critical interaction path (idle, a few seconds
+  // in). requestIdleCallback's timeout guarantees it still starts if the tab
+  // never goes idle; setTimeout is the fallback for browsers without rIC.
+  const startReplay = () => {
+    try { posthog.startSessionRecording(); } catch { /* recorder optional */ }
+  };
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(startReplay, { timeout: 5000 });
+  } else if (typeof window !== 'undefined') {
+    window.setTimeout(startReplay, 3000);
+  }
 }
 
 // ─── Context Interface ──────────────────────────────────────────
