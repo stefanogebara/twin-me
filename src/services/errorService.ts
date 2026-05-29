@@ -3,7 +3,7 @@
  * Centralized error handling, logging, and categorization
  */
 
-import * as Sentry from '@sentry/react';
+import { captureError } from './sentryLazy';
 
 export type ErrorCategory =
   | 'authentication'
@@ -63,17 +63,9 @@ class ErrorService {
       });
     }
 
-    // Send to Sentry (no-op if Sentry wasn't initialized — DSN not configured)
-    Sentry.withScope((scope) => {
-      scope.setTag('category', category);
-      scope.setExtra('url', errorLog.url);
-      if (context) scope.setExtras(context as Record<string, unknown>);
-      if (error instanceof Error) {
-        Sentry.captureException(error);
-      } else {
-        Sentry.captureMessage(errorLog.message, 'error');
-      }
-    });
+    // Forward to Sentry — lazy-loaded so @sentry/react stays out of the initial
+    // bundle (audit-2026-05-29 load-perf). No-op if no DSN is configured.
+    captureError(error, { category, url: errorLog.url, context, message: errorLog.message });
   }
 
   /**

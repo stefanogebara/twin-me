@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from "react-dom/client";
-import * as Sentry from "@sentry/react";
+import { installEarlyErrorBuffer, loadSentry } from './services/sentryLazy';
 import { AuthProvider } from './contexts/AuthContext';
 import { initPostHog } from './contexts/AnalyticsContext';
 import App from "./App.tsx";
@@ -9,25 +9,18 @@ import "./index.css";
 // Initialize PostHog analytics (only if VITE_POSTHOG_KEY is configured)
 initPostHog();
 
-// Initialize Sentry for error tracking (only if SENTRY_DSN is configured)
+// Sentry is loaded + initialized OFF the initial render path (audit-2026-05-29
+// load-perf): it used to import @sentry/react + browserTracing + replay (rrweb)
+// eagerly and run Sentry.init() synchronously here, before createRoot — adding
+// hundreds of ms of render-blocking parse/exec to every page load. Now we
+// buffer any early errors and load + init Sentry at idle (services/sentryLazy.ts).
 if (import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    environment: import.meta.env.MODE || 'development',
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
-    ],
-    // Performance Monitoring
-    tracesSampleRate: import.meta.env.MODE === 'production' ? 0.1 : 1.0, // 10% in prod, 100% in dev
-    // Session Replay
-    replaysSessionSampleRate: 0.1, // 10% of sessions
-    replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
-  });
-
+  installEarlyErrorBuffer();
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(() => { void loadSentry(); }, { timeout: 4000 });
+  } else {
+    window.setTimeout(() => { void loadSentry(); }, 2000);
+  }
 }
 
 createRoot(document.getElementById("root")!).render(
