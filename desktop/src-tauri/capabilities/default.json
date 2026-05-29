@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Default capability for TwinMe Desktop — covers the main window's right to use global shortcuts, system notifications, tray menu, and shell.open for external links.",
-  "windows": ["main"],
+  "windows": ["main", "hummingbird"],
   "permissions": [
     "core:default",
     "core:window:default",
