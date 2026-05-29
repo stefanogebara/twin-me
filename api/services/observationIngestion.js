@@ -523,6 +523,37 @@ async function runObservationIngestion(options = {}) {
             const errMsg = `${platform} for user ${userId}: ${fetchResult.error.message}`;
             log.warn('Platform fetch error', { message: errMsg });
             stats.errors.push(errMsg);
+
+            // audit-2026-05-29 (Bug A): we used to `continue` here without
+            // writing platform_connections, so the row kept its stale
+            // last_sync_status='success' forever. The "Did it" of fetchers.
+            // Now we always write the truth: error status, the err message,
+            // and (if the fetcher signaled auth_failed) flip status to
+            // auth_failed so /inbox surfaces a Reconnect CTA.
+            try {
+              const isAuth = fetchResult.error?.code === 'AUTH_FAILED'
+                || /token decryption|reconnect|401|403|unauthorized/i.test(fetchResult.error?.message || '');
+              const syncStatus = isAuth ? 'auth_failed' : 'error';
+              const lastSyncError = String(fetchResult.error?.message || 'unknown error').slice(0, 500);
+              const errSupabase = await getSupabase();
+              if (errSupabase) {
+                const nowIso = new Date().toISOString();
+                errSupabase
+                  .from('platform_connections')
+                  .update({
+                    last_sync_at: nowIso,
+                    last_sync_status: syncStatus,
+                    last_sync_error: lastSyncError,
+                    ...(isAuth ? { status: 'auth_failed' } : {}),
+                    updated_at: nowIso,
+                  })
+                  .eq('user_id', userId)
+                  .eq('platform', platform)
+                  .then(() => {});
+              }
+            } catch (writeErr) {
+              log.warn('Failed to persist fetch error status', { platform, userId, error: writeErr.message });
+            }
             continue;
           }
           try {

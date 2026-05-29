@@ -19,8 +19,13 @@ async function fetchSpotifyObservations(userId) {
 
   const tokenResult = await getValidAccessToken(userId, 'spotify');
   if (!tokenResult.success || !tokenResult.accessToken) {
-    log.warn('Spotify: no valid token', { userId });
-    return observations;
+    // audit-2026-05-29 (Bug A): used to silently return [] which the
+    // orchestrator wrote as last_sync_status='no_new_data', masking auth
+    // failure for hours. Throw a tagged error so the orchestrator records
+    // auth_failed + last_sync_error and the inbox can surface a Reconnect CTA.
+    const err = new Error(tokenResult.error || 'Spotify token unavailable');
+    err.code = tokenResult.requiresReauth ? 'AUTH_FAILED' : 'TOKEN_UNAVAILABLE';
+    throw err;
   }
 
   const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };

@@ -49,8 +49,12 @@ async function fetchYouTubeObservations(userId) {
   } else {
     const tokenResult = await getValidAccessToken(userId, 'youtube');
     if (!tokenResult.success || !tokenResult.accessToken) {
-      log.warn('YouTube: no valid token', { userId });
-      return observations;
+      // audit-2026-05-29 (Bug A): tagged throw so orchestrator marks
+      // platform_connections.status='auth_failed' + last_sync_error,
+      // unmasking what used to be a silent "no_new_data".
+      const err = new Error(tokenResult.error || 'YouTube token unavailable');
+      err.code = tokenResult.requiresReauth ? 'AUTH_FAILED' : 'TOKEN_UNAVAILABLE';
+      throw err;
     }
     const headers = { Authorization: `Bearer ${tokenResult.accessToken}` };
 

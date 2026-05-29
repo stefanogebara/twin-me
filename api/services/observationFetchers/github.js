@@ -130,8 +130,12 @@ async function fetchGitHubObservations(userId) {
   }
 
   if (!accessToken) {
-    log.warn('No valid token (OAuth or PAT)', { userId });
-    return observations;
+    // audit-2026-05-29 (Bug A): tagged throw so orchestrator records
+    // auth_failed and the inbox can surface a Reconnect CTA. Previously
+    // this returned [] silently and the row kept its stale 'success' status.
+    const err = new Error(tokenResult.error || 'GitHub: no OAuth or PAT token available');
+    err.code = 'AUTH_FAILED';
+    throw err;
   }
 
   const headers = {
