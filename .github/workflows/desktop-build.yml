@@ -95,30 +95,19 @@ jobs:
         working-directory: desktop/src-tauri
         run: cargo test
 
-      # Build UNSIGNED on every push + PR. Signing happens on tag pushes
-      # (next step). tauri-action refuses to skip signing when APPLE_CERTIFICATE
-      # is set-but-empty — so we only inject the signing env vars when secrets
-      # actually exist (tag push, after secrets are configured in repo settings).
+      # Build UNSIGNED on every push, PR, AND tag release. We have no
+      # code-signing certs yet (Phase 7), and tauri-action errors if
+      # APPLE_CERTIFICATE is set-but-empty — so we never inject signing env
+      # vars. desktop-v* tags therefore produce UNSIGNED installers that the
+      # "Attach to GitHub Release" step below publishes. End users get a
+      # Gatekeeper/SmartScreen warning until signing lands; the /download page
+      # documents the "right-click → Open" / "More info → Run anyway" steps.
+      # When certs are configured, re-add a tag-gated signed build step here.
       - name: Build TwinMe Desktop (unsigned)
-        if: "!startsWith(github.ref, 'refs/tags/desktop-v')"
         working-directory: desktop
         # No --bundles: each platform produces its native default targets
         # (Mac: .app/.dmg; Win: .msi/.nsis; Linux: .deb/.appimage). Without
         # APPLE_SIGNING_IDENTITY env, tauri skips codesign instead of erroring.
-        run: npm run build -- --target ${{ matrix.platform.target }}
-
-      - name: Build TwinMe Desktop (signed, tag releases)
-        if: startsWith(github.ref, 'refs/tags/desktop-v')
-        working-directory: desktop
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run build -- --target ${{ matrix.platform.target }}
 
       - name: Upload bundles
