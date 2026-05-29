@@ -14,7 +14,11 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+# `macos-private-api` is required because tauri.conf.json sets
+# app.macOSPrivateApi = true (for the transparent Hummingbird panel). The Tauri
+# CLI auto-injects this during `tauri build`, but raw `cargo test` (the Linux CI
+# step) validates Cargo features against the config and fails without it.
+tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-shell = "2"
