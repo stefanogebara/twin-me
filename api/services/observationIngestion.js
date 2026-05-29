@@ -412,9 +412,18 @@ async function runObservationIngestion(options = {}) {
     const isTimedOut = () => Date.now() - startTime > GLOBAL_TIMEOUT_MS;
 
     // Round-robin: rotate which user starts first so all users get serviced.
+    // audit-2026-05-29: rotation used to be `new Date().getMinutes() % N`.
+    // Cron only fires at :00 and :30, so for N=8 the offset alternated between
+    // 0 and 6 and the SAME 6-user slice ran forever — the other 2 (including
+    // the test account) were never selected. Switch to a 30-min tick counter
+    // so the offset increments by 1 every run and walks through all users
+    // over N ticks regardless of the cron cadence.
     const MAX_USERS_PER_RUN = 3;
     const userEntries = [...userPlatforms.entries()];
-    const rotationOffset = new Date().getMinutes() % userEntries.length;
+    const TICK_MS = 30 * 60 * 1000;
+    const rotationOffset = userEntries.length > 0
+      ? Math.floor(Date.now() / TICK_MS) % userEntries.length
+      : 0;
     const rotatedUsers = [...userEntries.slice(rotationOffset), ...userEntries.slice(0, rotationOffset)]
       .slice(0, MAX_USERS_PER_RUN);
     log.info('User selection', { total: userEntries.length, processing: rotatedUsers.length, rotationOffset });
