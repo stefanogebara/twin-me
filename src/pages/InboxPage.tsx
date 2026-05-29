@@ -8,7 +8,7 @@
  * Phase 2 of the /departments → /inbox collapse.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { inboxAPI } from '@/services/api/inboxAPI';
@@ -73,6 +73,28 @@ const InboxPage: React.FC = () => {
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
+
+  // Push-notification entry: when the SW navigates here with ?source=push,
+  // tell the server to fire a heartbeat check (cost-gated by the same
+  // cooldown as queue-empty trigger). Then strip the param so a reload
+  // doesn't refire and the URL stays clean.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('source') !== 'push') return;
+    inboxAPI.refreshTrigger().finally(() => {
+      url.searchParams.delete('source');
+      const cleaned = url.pathname + (url.searchParams.toString() ? `?${url.searchParams}` : '') + url.hash;
+      window.history.replaceState({}, '', cleaned);
+      // Kick a refetch slightly later so the new proposals from the heartbeat
+      // (if any) show up immediately instead of waiting for the 60s tick.
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+        queryClient.invalidateQueries({ queryKey: ['inbox', 'pending-count'] });
+      }, 8000);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const items = data?.items ?? [];
 

@@ -53,6 +53,41 @@ router.get('/', authenticateUser, inboxLimiter, async (req, res) => {
 });
 
 // ========================================================================
+// POST /api/inbox/refresh-trigger — fire a heartbeat on push notification tap
+// ========================================================================
+// When the user taps a push notification, the service worker navigates to
+// /inbox?source=push. The page detects the source and POSTs here, which
+// fires checkDepartmentHeartbeats fire-and-forget. Cost is bounded by the
+// same guardrails as the queue-empty trigger: 2h Redis cooldown per user,
+// ≥3 obs in last 6h, 5-pending cap. Worst case: a single LLM call per 2h
+// regardless of how many push taps fire.
+//
+// Response is intentionally minimal — the client just needs to know we
+// received the trigger; the actual proposals (if any) appear on the next
+// React Query refetch (~60s).
+router.post('/refresh-trigger', authenticateUser, inboxLimiter, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Fire-and-forget; never await. If the heartbeat fires, new proposals
+    // will appear on the next refetch. If it skips (cooldown, etc), no
+    // harm done.
+    import('../services/departmentService.js')
+      .then(({ checkDepartmentHeartbeats }) =>
+        checkDepartmentHeartbeats(userId).catch((err) =>
+          log.warn('refresh-trigger heartbeat failed', { userId, error: err.message })
+        )
+      )
+      .catch((err) => log.warn('refresh-trigger import failed', { error: err.message }));
+
+    log.info('Refresh-trigger received', { userId });
+    return res.json({ success: true, triggered: true });
+  } catch (err) {
+    log.error('refresh-trigger failed', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to trigger refresh' });
+  }
+});
+
+// ========================================================================
 // GET /api/inbox/pending-count — cheap COUNT for the sidebar badge
 // ========================================================================
 // Backs the count badge on the "Inbox" sidebar nav item. Polled every 60s

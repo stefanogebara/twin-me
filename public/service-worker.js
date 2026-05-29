@@ -226,21 +226,43 @@ self.addEventListener('notificationclick', (event) => {
 
   event.notification.close();
 
-  // Open or focus the app
+  // Resolve target URL from the notification payload. proposeDepartmentAction
+  // (api/services/departmentService.js) attaches { url: '/inbox' } so taps
+  // land on the inbox. Older callers may use 'url' or 'route'; fall back
+  // to /inbox as the default destination.
+  const data = event.notification.data || {};
+  const baseUrl = (typeof data.url === 'string' && data.url.startsWith('/'))
+    ? data.url
+    : (typeof data.route === 'string' && data.route.startsWith('/'))
+      ? data.route
+      : '/inbox';
+
+  // Tag the URL so the InboxPage knows the visit came from a push and can
+  // fire an immediate heartbeat refresh (matches the queue-empty trigger
+  // shape — same cost guardrails enforced on the backend).
+  const sep = baseUrl.includes('?') ? '&' : '?';
+  const targetUrl = `${baseUrl}${sep}source=push`;
+
   event.waitUntil(
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Check if there's already a window open
-        for (let client of clientList) {
-          if (client.url.includes('/soul-signature') && 'focus' in client) {
-            return client.focus();
+        // Try to focus an existing tab on the SAME origin; navigate it to the
+        // target URL so the page mounts fresh and the source=push handler fires.
+        for (const client of clientList) {
+          if ('focus' in client) {
+            try {
+              if ('navigate' in client) {
+                return client.navigate(targetUrl).then(() => client.focus());
+              }
+              return client.focus();
+            } catch (_) {
+              // some clients don't allow navigate from SW — fall through
+            }
           }
         }
-
-        // No window open, open a new one
         if (clients.openWindow) {
-          return clients.openWindow('/soul-signature');
+          return clients.openWindow(targetUrl);
         }
       })
   );

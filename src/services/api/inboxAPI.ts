@@ -73,6 +73,20 @@ export const inboxAPI = {
   },
 
   /**
+   * Tell the server the user just arrived via a push notification tap.
+   * Server fires a heartbeat check fire-and-forget (subject to the 2h
+   * Redis cooldown so the cost is bounded). Use after detecting
+   * ?source=push in the URL on inbox mount.
+   */
+  refreshTrigger: async (): Promise<void> => {
+    try {
+      await authFetch('/inbox/refresh-trigger', { method: 'POST' });
+    } catch {
+      // Non-fatal — the user's already on the page, refetch happens via React Query.
+    }
+  },
+
+  /**
    * Cheap COUNT for the sidebar badge. Used by the Inbox nav item to show
    * a number when the user has unresolved proposals waiting. Server returns
    * 0 on any internal error so the badge silently disappears rather than
