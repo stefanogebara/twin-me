@@ -46,6 +46,7 @@ const VoiceSetupPage = lazy(() => import("./pages/VoiceSetupPage"));
 const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
 const BrainPage = lazy(() => import("./pages/BrainPage"));
 const TalkToTwin = lazy(loadTalkToTwin);
+const Widget = lazy(() => import("./pages/Widget"));
 const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
 const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
 const AdminBetaPage = lazy(() => import("./pages/AdminBetaPage"));
@@ -474,6 +475,18 @@ const App = () => {
                     </Suspense>
                   </ErrorBoundary>
                 </SidebarLayout>
+              </ProtectedRoute>
+            } />
+
+            {/* Compact chrome-less twin chat for the desktop "Hummingbird"
+                panel (Tauri webview -> https://twinme.me/widget). ProtectedRoute
+                redirects unauthenticated users to /auth; NO SidebarLayout so the
+                460x600 panel is pure chat. */}
+            <Route path="/widget" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Widget />
+                </ErrorBoundary>
               </ProtectedRoute>
             } />
 
