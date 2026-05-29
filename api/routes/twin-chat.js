@@ -435,6 +435,11 @@ router.post('/message', authenticateUser, async (req, res) => {
         res,
         chatLog,
         traceId,
+        // audit-2026-05-29: the turn's start timestamp lets the chain bound each
+        // tool to the time REMAINING in the 58s SSE budget (see onChainStart
+        // below) instead of a fixed per-tool cap, so a chained 2nd/3rd action
+        // can't push the turn past the controller deadline.
+        chatStartTime,
         // audit-2026-05-26 H1: was extendTimeout(115000) -- dead code since
         // vercel.json maxDuration is 60s and api/server.js caps /chat/message
         // at 60000ms. The lambda was hard-killed at 60s long before the 115s

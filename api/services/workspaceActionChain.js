@@ -30,7 +30,17 @@ const MAX_ACTION_CHAIN_DEPTH = 3;
 // the conversation. On timeout, we feed a synthetic "timed out" result
 // back to the LLM so it can degrade gracefully ("couldn't pull X this
 // time, but...") rather than the user seeing a hard stream-close error.
-const TOOL_EXECUTION_TIMEOUT_MS = 30000;
+const TOOL_EXECUTION_TIMEOUT_MS = 25000;
+// audit-2026-05-29: the per-tool budget × MAX_ACTION_CHAIN_DEPTH could still exceed
+// the 58s SSE turn budget (twin-chat.js extends the controller to 58s on chain
+// start), producing the intermittent "Couldn't fetch your data" hard timeout on
+// tool-routed queries (email/recovery/money/calendar). So also bound each tool to
+// the time REMAINING in the turn (minus a reserve for the follow-up LLM synthesis)
+// and degrade INSTANTLY once too little time is left — a chained 2nd/3rd action can
+// no longer push the turn past the budget; the LLM always gets time to answer.
+const TURN_BUDGET_MS = 56000;          // ~2s under the 58s SSE controller
+const LLM_FOLLOWUP_RESERVE_MS = 9000;  // reserved for the post-tool LLM synthesis
+const MIN_TOOL_BUDGET_MS = 4000;
 
 /**
  * Race a promise against a deadline. Resolves with the promise value or
@@ -103,6 +113,13 @@ export async function runWorkspaceActionChain({
   chatLog,
   traceId,
   onChainStart,
+  // audit-2026-05-29: when the chat turn started (Date.now() captured at the top
+  // of POST /chat/message). Used to bound each tool to the time REMAINING in the
+  // 58s SSE turn budget so a chained 2nd/3rd action can't push the turn past the
+  // controller deadline and produce the "Couldn't fetch your data" hard timeout.
+  // Defaults to now() so the chain still works if a caller forgets to plumb it
+  // (degrades to the static per-tool budget rather than crashing).
+  chatStartTime = Date.now(),
 }) {
   let assistantMessage = initialMessage;
   let chainDepth = 0;
@@ -127,36 +144,63 @@ export async function runWorkspaceActionChain({
         try { res.write(`data: ${JSON.stringify({ type: 'action_start', tool: action.toolName, params: action.params })}\n\n`); } catch { /* ignore */ }
       }
 
-      // audit-2026-05-13 follow-up: bound each tool to 30s. A single slow
-      // data lookup used to hang the whole chat stream until the 55s
-      // controller timeout fired, leaving the user with a "try again"
-      // error and no twin response at all. With the budget, we now feed
-      // a synthetic "timed out" result back to the LLM so the twin can
-      // degrade gracefully and keep the conversation flowing.
+      // audit-2026-05-13 follow-up: bound each tool. A single slow data lookup
+      // used to hang the whole chat stream until the controller timeout fired,
+      // leaving the user with a "try again" error and no twin response at all.
+      // With the budget, we feed a synthetic "timed out" result back to the LLM
+      // so the twin can degrade gracefully and keep the conversation flowing.
+      //
+      // audit-2026-05-29: the budget is now the SMALLER of the static per-tool
+      // cap OR the time REMAINING in the 58s SSE turn (minus a reserve for the
+      // follow-up LLM synthesis). This stops a chained 2nd/3rd action from
+      // pushing the turn past the controller deadline — the root cause of the
+      // intermittent "Couldn't fetch your data" hard timeout on tool-routed
+      // queries. If too little time is left to BOTH run a tool and synthesize a
+      // reply, we degrade INSTANTLY rather than starting a tool we can't finish.
       let actionResult;
-      try {
-        actionResult = await withTimeout(
-          executeAction(userId, action),
-          TOOL_EXECUTION_TIMEOUT_MS,
-          action.toolName,
-        );
-      } catch (timeoutErr) {
-        if (timeoutErr.code !== 'TOOL_TIMEOUT') throw timeoutErr;
-        log.warn('Tool execution exceeded budget — degrading', {
-          traceId, userId, tool: action.toolName, budgetMs: TOOL_EXECUTION_TIMEOUT_MS,
+      const elapsedMs = Date.now() - chatStartTime;
+      const remainingMs = TURN_BUDGET_MS - elapsedMs - LLM_FOLLOWUP_RESERVE_MS;
+      const toolBudgetMs = Math.min(TOOL_EXECUTION_TIMEOUT_MS, remainingMs);
+
+      if (toolBudgetMs < MIN_TOOL_BUDGET_MS) {
+        log.warn('Insufficient turn budget for tool — degrading instantly', {
+          traceId, userId, tool: action.toolName, elapsedMs, remainingMs,
         });
         degraded = true;
         actionResult = {
           success: false,
           timedOut: true,
           degraded: true,
-          elapsedMs: TOOL_EXECUTION_TIMEOUT_MS,
+          elapsedMs,
           data: null,
-          error: 'tool_execution_timeout',
-          // Pre-formatted block so we don't try to render an empty payload
-          // through formatActionResult (which expects success data).
-          _resultBlockOverride: buildTimeoutResultBlock(action.toolName, TOOL_EXECUTION_TIMEOUT_MS),
+          error: 'turn_budget_exhausted',
+          _resultBlockOverride: buildTimeoutResultBlock(action.toolName, Math.max(0, remainingMs)),
         };
+      } else {
+        try {
+          actionResult = await withTimeout(
+            executeAction(userId, action),
+            toolBudgetMs,
+            action.toolName,
+          );
+        } catch (timeoutErr) {
+          if (timeoutErr.code !== 'TOOL_TIMEOUT') throw timeoutErr;
+          log.warn('Tool execution exceeded budget — degrading', {
+            traceId, userId, tool: action.toolName, budgetMs: toolBudgetMs,
+          });
+          degraded = true;
+          actionResult = {
+            success: false,
+            timedOut: true,
+            degraded: true,
+            elapsedMs: toolBudgetMs,
+            data: null,
+            error: 'tool_execution_timeout',
+            // Pre-formatted block so we don't try to render an empty payload
+            // through formatActionResult (which expects success data).
+            _resultBlockOverride: buildTimeoutResultBlock(action.toolName, toolBudgetMs),
+          };
+        }
       }
       const resultBlock = actionResult._resultBlockOverride || formatActionResult(actionResult);
 
