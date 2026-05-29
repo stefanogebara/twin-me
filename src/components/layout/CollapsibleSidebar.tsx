@@ -17,6 +17,7 @@ import {
   Inbox,
   Wallet,
   CalendarCheck,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
   { id: 'meetings',     label: 'Meetings',        icon: CalendarCheck, path: '/meetings' },
   { id: 'money',        label: 'Money',           icon: Wallet,        path: '/money' },
   { id: 'connect',      label: 'Connect',         icon: Link2,         path: '/connect' },
+  { id: 'download',     label: 'Download app',    icon: Download,      path: '/download' },
   { id: 'settings',     label: 'Settings',        icon: Settings,      path: '/settings' },
 ];
 

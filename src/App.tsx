@@ -77,6 +77,7 @@ const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
 const TwinSoulPage = lazy(() => import("./pages/TwinSoulPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
+const DownloadPage = lazy(() => import("./pages/DownloadPage"));
 
 
 
@@ -531,6 +532,9 @@ const App = () => {
                 </SidebarLayout>
               </ProtectedRoute>
             } />
+
+            {/* Desktop app downloads - Public, no auth required (beta users grab it before logging in) */}
+            <Route path="/download" element={<DownloadPage />} />
 
             {/* Privacy Policy - Public, no auth required */}
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
