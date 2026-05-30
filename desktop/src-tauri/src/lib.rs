@@ -48,8 +48,16 @@ fn hide_main_window(app: &AppHandle) {
 }
 
 /// Show + focus the Hummingbird quick panel (the always-on-top overlay).
+/// The panel loads https://twinme.me/widget, sharing the main window's session
+/// cookie. If it got bounced to /auth (e.g. summoned on first run, before the
+/// user logged in via the main window), nudge it back to /widget on show so it
+/// re-checks the now-present session. The guard makes it a no-op once it's
+/// already on /widget, so an in-progress conversation is preserved.
 fn show_hummingbird(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("hummingbird") {
+        let _ = window.eval(
+            "if(!location.pathname.startsWith('/widget')){location.replace('https://twinme.me/widget')}",
+        );
         let _ = window.center();
         let _ = window.show();
         let _ = window.set_focus();
@@ -66,9 +74,7 @@ fn toggle_hummingbird(app: &AppHandle) {
         if visible && focused {
             let _ = window.hide();
         } else {
-            let _ = window.center();
-            let _ = window.show();
-            let _ = window.set_focus();
+            show_hummingbird(app);
         }
     }
 }
