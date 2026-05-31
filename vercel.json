@@ -222,6 +222,10 @@
       "schedule": "0 2 * * *"
     },
     {
+      "path": "/api/cron/outcome-learning",
+      "schedule": "30 3 * * *"
+    },
+    {
       "path": "/api/cron/twin-self-improvement",
       "schedule": "0 4 * * *"
     }
