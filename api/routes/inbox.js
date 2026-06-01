@@ -53,6 +53,27 @@ router.get('/', authenticateUser, inboxLimiter, async (req, res) => {
 });
 
 // ========================================================================
+// GET /api/inbox/department-summary — per-department status for the panel
+// ========================================================================
+// Joins autonomy + budget (per-user, from platform_connections-style lookup)
+// with last-7-day counts of accepted/rejected/failed/pending. Renders the
+// horizontal cards at the top of /inbox so the user can see which
+// department is loud + which budget is running low at a glance.
+//
+// Cost: 1 cheap aggregate query + the existing getAllDepartments call.
+// Polled at 5min refresh (slow enough to be cheap, fast enough to feel live).
+router.get('/department-summary', authenticateUser, inboxLimiter, async (req, res) => {
+  try {
+    const { getDepartmentSummary } = await getDepartmentService();
+    const departments = await getDepartmentSummary(req.user.id);
+    return res.json({ success: true, departments });
+  } catch (err) {
+    log.error('Failed to fetch department summary', { userId: req.user.id, error: err.message });
+    return res.json({ success: true, departments: [] });
+  }
+});
+
+// ========================================================================
 // POST /api/inbox/refresh-trigger — fire a heartbeat on push notification tap
 // ========================================================================
 // When the user taps a push notification, the service worker navigates to

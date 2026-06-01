@@ -460,6 +460,77 @@ function extractPreview(row) {
 }
 
 /**
+ * Per-department summary for the last 7 days. Joins:
+ *   - per-dept autonomy + budget (via getAllDepartments)
+ *   - per-dept weekly accept/skip/fail/pending counts (single aggregate query)
+ *
+ * One round-trip for the counts, one for the statuses (the existing fan-out).
+ * Returns one row per department in DEPARTMENT_NAMES order.
+ */
+export async function getDepartmentSummary(userId) {
+  if (!userId) return [];
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Pull only the columns we aggregate. Cap at a safe upper bound — even a
+  // very chatty user shouldn't exceed ~200 proposals in a week.
+  const { data: rows, error: countErr } = await supabaseAdmin
+    .from('agent_actions')
+    .select('department, user_response')
+    .eq('user_id', userId)
+    .not('department', 'is', null)
+    .gte('created_at', weekAgo)
+    .limit(1000);
+
+  if (countErr) {
+    log.warn('getDepartmentSummary count query failed', { userId, error: countErr.message });
+  }
+
+  // Bucket counts in JS (much cheaper than 7 dept * 4 status = 28 SQL roundtrips).
+  const counts = {};
+  for (const r of (rows || [])) {
+    const dept = r.department;
+    if (!counts[dept]) counts[dept] = { accepted: 0, rejected: 0, failed: 0, expired: 0, pending: 0, total: 0 };
+    counts[dept].total++;
+    const resp = r.user_response;
+    if (resp === 'accepted') counts[dept].accepted++;
+    else if (resp === 'rejected') counts[dept].rejected++;
+    else if (resp === 'failed') counts[dept].failed++;
+    else if (resp === 'expired') counts[dept].expired++;
+    else if (resp == null) counts[dept].pending++;
+  }
+
+  let statuses = [];
+  try {
+    statuses = await getAllDepartments(userId);
+  } catch (err) {
+    log.warn('getDepartmentSummary status fetch failed', { userId, error: err.message });
+  }
+
+  return statuses.map((s) => {
+    const c = counts[s.department] || { accepted: 0, rejected: 0, failed: 0, expired: 0, pending: 0, total: 0 };
+    const decided = c.accepted + c.rejected + c.failed; // exclude pending/expired from rate
+    const acceptRate = decided > 0 ? Math.round((c.accepted / decided) * 100) : null;
+    return {
+      department: s.department,
+      name: s.name || s.department,
+      description: s.description || '',
+      color: s.config?.color || s.color || '#6366F1',
+      autonomyLevel: s.autonomyLevel ?? 0,
+      isEnabled: s.isEnabled ?? false,
+      budget: s.budget ?? { spent: 0, total: 0 },
+      weeklyTotal: c.total,
+      weeklyAccepted: c.accepted,
+      weeklyRejected: c.rejected,
+      weeklyFailed: c.failed,
+      weeklyExpired: c.expired,
+      weeklyPending: c.pending,
+      acceptRate, // null when nothing decided yet (avoid 0% misread)
+    };
+  });
+}
+
+/**
  * Cheap count of the user's pending inbox items. Mirrors the visibility
  * rules of getInboxStream so the sidebar badge matches what the page
  * renders:

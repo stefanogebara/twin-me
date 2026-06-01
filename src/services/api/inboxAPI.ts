@@ -19,6 +19,23 @@ export interface OutcomeRef {
   id: string;
 }
 
+export interface DepartmentSummary {
+  department: string;
+  name: string;
+  description: string;
+  color: string;
+  autonomyLevel: number;
+  isEnabled: boolean;
+  budget: { spent: number; total: number };
+  weeklyTotal: number;
+  weeklyAccepted: number;
+  weeklyRejected: number;
+  weeklyFailed: number;
+  weeklyExpired: number;
+  weeklyPending: number;
+  acceptRate: number | null;
+}
+
 export type Preview =
   | { kind: 'gmail_draft'; to: string | null; subject: string | null; body: string | null }
   | { kind: 'calendar_event'; summary: string | null; start: string | null; end: string | null; location: string | null }
@@ -76,6 +93,17 @@ export const inboxAPI = {
       items: data.items ?? [],
       nextCursor: data.nextCursor ?? null,
     };
+  },
+
+  /**
+   * Per-department summary for the last 7 days. Backs the collapsible
+   * Departments panel at the top of /inbox.
+   */
+  getDepartmentSummary: async (): Promise<DepartmentSummary[]> => {
+    const response = await authFetch('/inbox/department-summary');
+    if (!response.ok) return [];
+    const data = await response.json().catch(() => ({}));
+    return Array.isArray(data?.departments) ? data.departments : [];
   },
 
   /**

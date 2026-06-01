@@ -17,6 +17,7 @@ import { departmentsAPI } from '@/services/api/departmentsAPI';
 import InboxTile from './inbox/InboxTile';
 import InboxEmptyState from './inbox/InboxEmptyState';
 import InboxFilter from './inbox/InboxFilter';
+import DepartmentStatusPanel from './inbox/DepartmentStatusPanel';
 import type { InboxFilterValue } from './inbox/InboxFilter';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { Loader2 } from 'lucide-react';
@@ -265,6 +266,9 @@ const InboxPage: React.FC = () => {
         </div>
         <InboxFilter value={filter} onChange={setFilter} />
       </div>
+
+      {/* Per-department status panel — autonomy / weekly accept rate / budget */}
+      <DepartmentStatusPanel pendingCount={pendingCount} />
 
       {/* Loading */}
       {isLoading && (
