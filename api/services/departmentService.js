@@ -511,6 +511,14 @@ export async function getDepartmentSummary(userId) {
     const c = counts[s.department] || { accepted: 0, rejected: 0, failed: 0, expired: 0, pending: 0, total: 0 };
     const decided = c.accepted + c.rejected + c.failed; // exclude pending/expired from rate
     const acceptRate = decided > 0 ? Math.round((c.accepted / decided) * 100) : null;
+    // s.budget is the checkDepartmentBudget shape: { allowed, remaining,
+    // spent, budget } — note the inner "budget" key is the cap. Normalize
+    // to { spent, total } so the frontend doesn't have to know either
+    // shape and the panel's "total > 0" guard works.
+    const spent = typeof s.budget?.spent === 'number' ? s.budget.spent : 0;
+    const total = typeof s.budget?.budget === 'number'
+      ? s.budget.budget
+      : (typeof s.budget?.total === 'number' ? s.budget.total : 0);
     return {
       department: s.department,
       name: s.name || s.department,
@@ -518,7 +526,7 @@ export async function getDepartmentSummary(userId) {
       color: s.config?.color || s.color || '#6366F1',
       autonomyLevel: s.autonomyLevel ?? 0,
       isEnabled: s.isEnabled ?? false,
-      budget: s.budget ?? { spent: 0, total: 0 },
+      budget: { spent, total },
       weeklyTotal: c.total,
       weeklyAccepted: c.accepted,
       weeklyRejected: c.rejected,
