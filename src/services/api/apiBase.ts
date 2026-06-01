@@ -52,9 +52,32 @@ if (typeof window !== 'undefined') {
     () => currentAccessToken;
 }
 
+/**
+ * Hand the access token to the TwinMe desktop app (Tauri) when running inside
+ * it, so the headless clip/meeting sync (Rust, sync.rs) can authenticate its
+ * uploads. No-op in a normal browser — window.__TAURI__ is undefined. The
+ * desktop command is scoped to twinme.me only (desktop
+ * capabilities/twinme-auth-bridge.json) and re-validates the token shape before
+ * persisting it to the OS keyring, so this only ever hands over the user's own
+ * already-minted access token.
+ */
+function pushTokenToDesktop(token: string | null): void {
+  if (typeof window === 'undefined' || !token) return;
+  const invoke = (window as unknown as {
+    __TAURI__?: { core?: { invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } };
+  }).__TAURI__?.core?.invoke;
+  if (typeof invoke !== 'function') return;
+  try {
+    void invoke('store_auth_token', { token }).catch(() => { /* desktop-only; ignore */ });
+  } catch {
+    // Not running in Tauri / command unavailable; ignore.
+  }
+}
+
 export function setAccessToken(token: string | null) {
   currentAccessToken = token;
   notifyExtensionTokenChange(token);
+  pushTokenToDesktop(token);
 }
 
 export function getAccessToken(): string | null {
