@@ -181,6 +181,31 @@ export const departmentsAPI = {
   },
 
   /**
+   * Edit a pending gmail_draft proposal's params before approving. Any
+   * subset of { to, subject, body } can be provided; server validates each.
+   * Only works while user_response IS NULL — returns 409 if already
+   * accepted/rejected/etc.
+   */
+  editProposalPreview: async (
+    id: string,
+    fields: { to?: string; subject?: string; body?: string }
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    preview?: { kind: 'gmail_draft'; to: string | null; subject: string | null; body: string | null };
+  }> => {
+    const response = await authFetch(`/departments/proposals/${encodeURIComponent(id)}/preview`, {
+      method: 'PATCH',
+      body: JSON.stringify(fields),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: body?.error || `Edit failed: ${response.statusText}` };
+    }
+    return body;
+  },
+
+  /**
    * Snooze a pending proposal for N hours (1..72 clamped server-side).
    * Returns the new snoozedUntil ISO timestamp. The tile flips from
    * 'pending' to 'snoozed' until that timestamp elapses.

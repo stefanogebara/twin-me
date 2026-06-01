@@ -12,8 +12,11 @@
  */
 
 import React from 'react';
-import { Check, X, Loader2, Clock, Undo2, AlertCircle, Moon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Check, X, Loader2, Clock, Undo2, AlertCircle, Moon, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import type { InboxItem } from '@/services/api/inboxAPI';
+import { departmentsAPI } from '@/services/api/departmentsAPI';
 
 interface InboxTileProps {
   item: InboxItem;
@@ -173,7 +176,7 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
               {previewOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               Preview
             </button>
-            {previewOpen && <PreviewBody preview={item.preview} />}
+            {previewOpen && <PreviewBody itemId={item.id} preview={item.preview} editable={isPending} />}
           </div>
         )}
 
@@ -356,11 +359,25 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
 };
 
 /**
- * Renders the unfolded preview of a proposal's payload. Read-only — the user
- * confirms or skips via the existing buttons; this just makes the decision
- * informed.
+ * Renders the unfolded preview of a proposal's payload.
+ *
+ * - gmail_draft on pending rows is editable inline (to/subject/body).
+ *   Edit mode persists field state locally; Save calls the PATCH route
+ *   and refetches the inbox stream. Cancel reverts to the server value.
+ * - Calendar event / doc previews remain read-only.
  */
-const PreviewBody: React.FC<{ preview: NonNullable<InboxItem['preview']> }> = ({ preview }) => {
+const PreviewBody: React.FC<{
+  itemId: string;
+  preview: NonNullable<InboxItem['preview']>;
+  editable: boolean;
+}> = ({ itemId, preview, editable }) => {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [draftTo, setDraftTo] = React.useState('');
+  const [draftSubject, setDraftSubject] = React.useState('');
+  const [draftBody, setDraftBody] = React.useState('');
+
   const fmtDateTime = (iso: string | null) => {
     if (!iso) return '';
     try {
@@ -377,7 +394,113 @@ const PreviewBody: React.FC<{ preview: NonNullable<InboxItem['preview']> }> = ({
     color: 'var(--text-secondary)',
   };
 
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    color: 'var(--text-primary)',
+  };
+
+  const startEdit = () => {
+    if (preview.kind !== 'gmail_draft') return;
+    setDraftTo(preview.to || '');
+    setDraftSubject(preview.subject || '');
+    setDraftBody(preview.body || '');
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+  };
+
+  const saveEdit = async () => {
+    if (preview.kind !== 'gmail_draft') return;
+    setSaving(true);
+    // Only send fields that actually changed — keeps the PATCH minimal
+    // and avoids sending null over a field the user didn't touch.
+    const updates: { to?: string; subject?: string; body?: string } = {};
+    if (draftTo !== (preview.to || '')) updates.to = draftTo;
+    if (draftSubject !== (preview.subject || '')) updates.subject = draftSubject;
+    if (draftBody !== (preview.body || '')) updates.body = draftBody;
+    if (Object.keys(updates).length === 0) {
+      setEditing(false);
+      setSaving(false);
+      return;
+    }
+    try {
+      const r = await departmentsAPI.editProposalPreview(itemId, updates);
+      if (r.success) {
+        toast.success('Draft updated');
+        setEditing(false);
+        await queryClient.invalidateQueries({ queryKey: ['inbox'] });
+      } else {
+        toast.error(r.error || 'Could not save edits');
+      }
+    } catch {
+      toast.error('Could not save edits. Try again?');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (preview.kind === 'gmail_draft') {
+    if (editing) {
+      return (
+        <div className="mt-1.5 px-3 py-2.5 rounded-[10px] text-[12px] leading-relaxed" style={containerStyle}>
+          <label className="block">
+            <span style={{ color: 'var(--text-muted)' }}>To</span>
+            <input
+              type="email"
+              value={draftTo}
+              onChange={(e) => setDraftTo(e.target.value)}
+              className="mt-1 w-full rounded-[6px] px-2.5 py-1.5 text-[12px]"
+              style={inputStyle}
+              maxLength={320}
+              placeholder="recipient@example.com"
+            />
+          </label>
+          <label className="block mt-2">
+            <span style={{ color: 'var(--text-muted)' }}>Subject</span>
+            <input
+              type="text"
+              value={draftSubject}
+              onChange={(e) => setDraftSubject(e.target.value)}
+              className="mt-1 w-full rounded-[6px] px-2.5 py-1.5 text-[12px]"
+              style={inputStyle}
+              maxLength={200}
+            />
+          </label>
+          <label className="block mt-2">
+            <span style={{ color: 'var(--text-muted)' }}>Body</span>
+            <textarea
+              value={draftBody}
+              onChange={(e) => setDraftBody(e.target.value)}
+              rows={6}
+              className="mt-1 w-full rounded-[6px] px-2.5 py-1.5 text-[12px] resize-y"
+              style={inputStyle}
+              maxLength={4000}
+            />
+          </label>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={saveEdit}
+              disabled={saving}
+              className="px-3 py-1 rounded-[100px] text-[12px] font-medium transition-opacity hover:opacity-90 active:scale-[0.97]"
+              style={{ background: '#F5F5F4', color: '#110f0f' }}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              onClick={cancelEdit}
+              disabled={saving}
+              className="px-2 py-1 text-[12px] transition-opacity hover:opacity-70"
+              style={{ color: 'var(--text-muted)', background: 'none', border: 'none' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="mt-1.5 px-3 py-2.5 rounded-[10px] text-[12px] leading-relaxed" style={containerStyle}>
         {preview.to && (
@@ -390,6 +513,17 @@ const PreviewBody: React.FC<{ preview: NonNullable<InboxItem['preview']> }> = ({
           <div className="mt-1.5 whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
             {preview.body}
           </div>
+        )}
+        {editable && (
+          <button
+            onClick={startEdit}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] transition-opacity hover:opacity-80"
+            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', padding: 0 }}
+            aria-label="Edit draft"
+          >
+            <Pencil className="w-3 h-3" />
+            Edit
+          </button>
         )}
       </div>
     );

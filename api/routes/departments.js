@@ -235,6 +235,122 @@ router.post('/proposals/:id/undo', authenticateUser, approvalLimiter, async (req
 const SNOOZE_MIN_H = 1;
 const SNOOZE_MAX_H = 72;
 
+// ========================================================================
+// PATCH /api/departments/proposals/:id/preview — edit a pending draft's params
+// ========================================================================
+// Body: { to?: string, subject?: string, body?: string }
+// Only gmail_draft proposals are editable in this iteration. Updates the
+// proposed_action.params in-place so the eventual Do it executes the
+// user's edited version. Only pending rows (user_response IS NULL) can be
+// edited — once accepted/skipped/expired/snoozed, the params are frozen.
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUBJECT_MAX = 200;
+const BODY_MAX = 4000;
+const TO_MAX = 320; // RFC 5321 address length
+
+router.patch('/proposals/:id/preview', authenticateUser, approvalLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const incoming = req.body || {};
+
+    // Validate the deltas the client sent. Empty body, no fields, or all
+    // fields missing = nothing to do; reject so the client knows.
+    const updates = {};
+    if (typeof incoming.to === 'string') {
+      const v = incoming.to.trim();
+      if (!v) return res.status(400).json({ success: false, error: 'to cannot be empty' });
+      if (v.length > TO_MAX) return res.status(400).json({ success: false, error: `to exceeds ${TO_MAX} chars` });
+      if (!EMAIL_RE.test(v)) return res.status(400).json({ success: false, error: 'to is not a valid email' });
+      updates.to = v;
+    }
+    if (typeof incoming.subject === 'string') {
+      const v = incoming.subject.slice(0, SUBJECT_MAX + 1);
+      if (v.length > SUBJECT_MAX) return res.status(400).json({ success: false, error: `subject exceeds ${SUBJECT_MAX} chars` });
+      updates.subject = v;
+    }
+    if (typeof incoming.body === 'string') {
+      if (incoming.body.length > BODY_MAX) return res.status(400).json({ success: false, error: `body exceeds ${BODY_MAX} chars` });
+      updates.body = incoming.body;
+    }
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'No editable fields provided (to, subject, body)' });
+    }
+
+    const { supabaseAdmin } = await import('../services/database.js');
+
+    const { data: action, error: fetchErr } = await supabaseAdmin
+      .from('agent_actions')
+      .select('id, user_response, proposed_action, department, snoozed_until')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      log.error('Edit preview fetch failed', { userId, id, error: fetchErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to look up proposal' });
+    }
+    if (!action) return res.status(404).json({ success: false, error: 'Proposal not found' });
+    if (!action.department) return res.status(400).json({ success: false, error: 'Only department proposals are editable' });
+    if (action.user_response) {
+      return res.status(409).json({
+        success: false,
+        error: 'Only pending proposals can be edited',
+        currentResponse: action.user_response,
+      });
+    }
+
+    // Parse proposed_action (may be double-encoded JSON from older inserts).
+    let parsed = action.proposed_action;
+    try {
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    } catch {
+      return res.status(500).json({ success: false, error: 'Could not parse stored action' });
+    }
+    if (!parsed || typeof parsed !== 'object') {
+      return res.status(500).json({ success: false, error: 'Stored action shape unexpected' });
+    }
+    if (parsed.toolName !== 'gmail_draft') {
+      return res.status(400).json({
+        success: false,
+        error: `Editing is only supported for gmail_draft (got ${parsed.toolName})`,
+      });
+    }
+
+    const newParams = { ...(parsed.params || {}), ...updates };
+    const newProposedAction = { ...parsed, params: newParams };
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('agent_actions')
+      .update({ proposed_action: JSON.stringify(newProposedAction) })
+      .eq('id', id)
+      .eq('user_id', userId)
+      .is('user_response', null);  // belt-and-suspenders race guard
+
+    if (updateErr) {
+      log.error('Edit preview update failed', { userId, id, error: updateErr.message });
+      return res.status(500).json({ success: false, error: 'Failed to update proposal' });
+    }
+
+    log.info('Proposal edited', { userId, id, fields: Object.keys(updates) });
+    return res.json({
+      success: true,
+      actionId: id,
+      preview: {
+        kind: 'gmail_draft',
+        to: typeof newParams.to === 'string' ? newParams.to : null,
+        subject: typeof newParams.subject === 'string' ? newParams.subject : null,
+        body: typeof newParams.body === 'string' ? newParams.body.slice(0, 800) : null,
+      },
+    });
+  } catch (err) {
+    log.error('Edit preview failed', { userId: req.user.id, id: req.params.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to edit proposal' });
+  }
+});
+
 router.post('/proposals/:id/snooze', authenticateUser, approvalLimiter, async (req, res) => {
   try {
     const { id } = req.params;
