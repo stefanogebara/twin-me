@@ -14,7 +14,15 @@ export function initPostHog() {
     api_host: POSTHOG_HOST,
     capture_pageview: false,     // We handle pageviews via React Router
     capture_pageleave: true,
-    autocapture: true,           // Auto-capture clicks, inputs, form submits
+    // autocapture disabled (audit-2026-05-31): PostHog's click/input autocapture
+    // hooks EVERY interaction and builds the $autocapture event on the event
+    // handler — it was the dominant cost on the user's first click (~300ms+ INP
+    // measured on Talk to Twin, plus ~66ms on every subsequent click). The app is
+    // richly hand-instrumented (88 trackEvent/trackFunnel/trackUserAction calls
+    // across the auth, onboarding, connect, and chat funnels), so autocapture is
+    // largely redundant. Off = clicks no longer run any PostHog work. Re-enable
+    // if you want exploratory/heatmap auto-capture back.
+    autocapture: false,
     persistence: 'localStorage',
     // perf (audit-2026-05-29): the session-replay recorder (rrweb) takes its
     // initial DOM snapshot lazily on the user's FIRST interaction — measured at
