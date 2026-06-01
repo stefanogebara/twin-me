@@ -49,6 +49,46 @@ const Widget = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Panel mode: loaded inside the desktop Hummingbird overlay
+  // (https://twinme.me/widget?panel=1). Round the corners (the transparent
+  // window shows through) and let Esc dismiss the panel. Harmless in a browser.
+  const isPanel = new URLSearchParams(window.location.search).get('panel') === '1';
+
+  // Make the page transparent so the desktop window's rounded corners show
+  // through; restore on unmount so other routes are unaffected.
+  useEffect(() => {
+    if (!isPanel) return;
+    const html = document.documentElement;
+    const prev = {
+      htmlBg: html.style.background,
+      bodyBg: document.body.style.background,
+      bodyMargin: document.body.style.margin,
+    };
+    html.style.background = 'transparent';
+    document.body.style.background = 'transparent';
+    document.body.style.margin = '0';
+    return () => {
+      html.style.background = prev.htmlBg;
+      document.body.style.background = prev.bodyBg;
+      document.body.style.margin = prev.bodyMargin;
+    };
+  }, [isPanel]);
+
+  // Esc closes the panel via the desktop (capabilities/twinme-panel.json grants
+  // this window the hide_hummingbird command). No-op in a normal browser.
+  useEffect(() => {
+    if (!isPanel) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const core = (window as unknown as {
+        __TAURI__?: { core?: { invoke?: (cmd: string) => Promise<unknown> } };
+      }).__TAURI__?.core;
+      core?.invoke?.('hide_hummingbird').catch(() => { /* desktop-only */ });
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isPanel]);
+
   const handleSendMessage = useCallback(async () => {
     const trimmed = inputMessage.trim();
     if (!trimmed || !user?.id || isTyping) return;
@@ -209,7 +249,12 @@ const Widget = () => {
   return (
     <div
       className="flex flex-col w-full overflow-hidden"
-      style={{ height: '100dvh', background: 'var(--background, #13121a)' }}
+      style={{
+        height: '100dvh',
+        background: 'var(--background, #13121a)',
+        borderRadius: isPanel ? 16 : undefined,
+        border: isPanel ? '1px solid rgba(255,255,255,0.10)' : undefined,
+      }}
     >
       {/* ── Slim brand bar ── */}
       <header

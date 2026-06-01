@@ -56,7 +56,7 @@ fn hide_main_window(app: &AppHandle) {
 fn show_hummingbird(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("hummingbird") {
         let _ = window.eval(
-            "if(!location.pathname.startsWith('/widget')){location.replace('https://twinme.me/widget')}",
+            "if(!location.pathname.startsWith('/widget')){location.replace('https://twinme.me/widget?panel=1')}",
         );
         let _ = window.center();
         let _ = window.show();
