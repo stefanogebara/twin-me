@@ -12,7 +12,7 @@
  */
 
 import React from 'react';
-import { Check, X, Loader2, Clock, Undo2, AlertCircle, Moon, ChevronDown } from 'lucide-react';
+import { Check, X, Loader2, Clock, Undo2, AlertCircle, Moon, ChevronDown, ChevronRight } from 'lucide-react';
 import type { InboxItem } from '@/services/api/inboxAPI';
 
 interface InboxTileProps {
@@ -100,6 +100,7 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
   const isPending = item.status === 'pending';
   const isSnoozed = item.status === 'snoozed';
   const [snoozeMenuOpen, setSnoozeMenuOpen] = React.useState(false);
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   const kind = kindOf(item.toolName);
   const primaryLabel = PRIMARY_LABEL[kind];
   const outcomeHint = OUTCOME_HINT[kind];
@@ -155,6 +156,25 @@ const InboxTile: React.FC<InboxTileProps> = ({ item, isLoading, onApprove, onSki
           >
             {outcomeHint}
           </p>
+        )}
+
+        {/* Preview — collapsed by default. Shows the actual draft body /
+            event time / doc title BEFORE the user clicks Do it so they can
+            decide informed. Only renders on pending/snoozed tiles. */}
+        {(isPending || isSnoozed) && item.preview && (
+          <div className="mt-1.5">
+            <button
+              onClick={() => setPreviewOpen((v) => !v)}
+              className="inline-flex items-center gap-0.5 text-[11px] transition-opacity hover:opacity-80"
+              style={{ color: 'var(--text-muted)', background: 'none', border: 'none', padding: 0 }}
+              aria-expanded={previewOpen}
+              aria-label={previewOpen ? 'Hide preview' : 'Show preview'}
+            >
+              {previewOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              Preview
+            </button>
+            {previewOpen && <PreviewBody preview={item.preview} />}
+          </div>
         )}
 
         {/* Failure reason — surfaced when the underlying tool API rejected the action */}
@@ -333,6 +353,75 @@ const ResolvedBadge: React.FC<{ status: InboxItem['status']; kind: ProposalKind 
       {LABEL[status]}
     </span>
   );
+};
+
+/**
+ * Renders the unfolded preview of a proposal's payload. Read-only — the user
+ * confirms or skips via the existing buttons; this just makes the decision
+ * informed.
+ */
+const PreviewBody: React.FC<{ preview: NonNullable<InboxItem['preview']> }> = ({ preview }) => {
+  const fmtDateTime = (iso: string | null) => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    } catch {
+      return iso;
+    }
+  };
+
+  const containerStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,255,255,0.06)',
+    color: 'var(--text-secondary)',
+  };
+
+  if (preview.kind === 'gmail_draft') {
+    return (
+      <div className="mt-1.5 px-3 py-2.5 rounded-[10px] text-[12px] leading-relaxed" style={containerStyle}>
+        {preview.to && (
+          <div><span style={{ color: 'var(--text-muted)' }}>To: </span>{preview.to}</div>
+        )}
+        {preview.subject && (
+          <div className="mt-0.5"><span style={{ color: 'var(--text-muted)' }}>Subject: </span>{preview.subject}</div>
+        )}
+        {preview.body && (
+          <div className="mt-1.5 whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
+            {preview.body}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (preview.kind === 'calendar_event') {
+    return (
+      <div className="mt-1.5 px-3 py-2.5 rounded-[10px] text-[12px] leading-relaxed" style={containerStyle}>
+        {preview.summary && (
+          <div style={{ color: 'var(--text-primary)' }}>{preview.summary}</div>
+        )}
+        {(preview.start || preview.end) && (
+          <div className="mt-0.5"><span style={{ color: 'var(--text-muted)' }}>When: </span>{fmtDateTime(preview.start)}{preview.end ? ` → ${fmtDateTime(preview.end)}` : ''}</div>
+        )}
+        {preview.location && (
+          <div className="mt-0.5"><span style={{ color: 'var(--text-muted)' }}>Where: </span>{preview.location}</div>
+        )}
+      </div>
+    );
+  }
+
+  if (preview.kind === 'doc') {
+    return (
+      <div className="mt-1.5 px-3 py-2.5 rounded-[10px] text-[12px] leading-relaxed" style={containerStyle}>
+        {preview.title && (
+          <div><span style={{ color: 'var(--text-muted)' }}>Title: </span><span style={{ color: 'var(--text-primary)' }}>{preview.title}</span></div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default InboxTile;

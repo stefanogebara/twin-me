@@ -405,6 +405,61 @@ function extractOutcomeRef(row) {
 }
 
 /**
+ * Extract a user-visible preview of the action's payload from proposed_action
+ * so the inbox tile can show what would actually happen before the user clicks
+ * "Do it". Returns null for advice (suggest) tiles — there's nothing to preview.
+ *
+ * Shape per kind:
+ *   gmail_draft   → { kind:'gmail_draft', to, subject, body }     (body trimmed)
+ *   calendar_create → { kind:'calendar_event', summary, start, end, location? }
+ *   docs_create   → { kind:'doc', title }
+ *
+ * proposed_action is jsonb stored as a JSON-encoded string — possibly
+ * double-encoded for older rows. Parse defensively.
+ */
+function extractPreview(row) {
+  let parsed = row?.proposed_action;
+  if (!parsed) return null;
+  try {
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+  } catch {
+    return null;
+  }
+  const tool = parsed?.toolName;
+  const p = parsed?.params || {};
+
+  if (tool === 'gmail_draft') {
+    const body = typeof p.body === 'string' ? p.body.slice(0, 800) : null;
+    return {
+      kind: 'gmail_draft',
+      to: typeof p.to === 'string' ? p.to : null,
+      subject: typeof p.subject === 'string' ? p.subject : null,
+      body,
+    };
+  }
+
+  if (tool === 'calendar_create') {
+    return {
+      kind: 'calendar_event',
+      summary: typeof p.summary === 'string' ? p.summary : null,
+      start: typeof p.start === 'string' ? p.start : null,
+      end: typeof p.end === 'string' ? p.end : null,
+      location: typeof p.location === 'string' ? p.location : null,
+    };
+  }
+
+  if (tool === 'docs_create') {
+    return {
+      kind: 'doc',
+      title: typeof p.title === 'string' ? p.title : null,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Cheap count of the user's pending inbox items. Mirrors the visibility
  * rules of getInboxStream so the sidebar badge matches what the page
  * renders:
@@ -551,6 +606,9 @@ export async function getInboxStream(userId, { cursor = null, limit = 20 } = {})
         outcomeRef: status === 'done' ? extractOutcomeRef(row) : null,
         failureReason: status === 'failed' ? (row.outcome_data?.failureReason || null) : null,
         snoozedUntil: status === 'snoozed' ? row.snoozed_until : null,
+        // Preview is only useful before the user acts; once status is done/skipped
+        // the artifact (or the lack of it) supersedes the proposed payload.
+        preview: (status === 'pending' || status === 'snoozed') ? extractPreview(row) : null,
         createdAt: row.created_at,
         resolvedAt: row.resolved_at,
         sortAt,

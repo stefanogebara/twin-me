@@ -19,6 +19,11 @@ export interface OutcomeRef {
   id: string;
 }
 
+export type Preview =
+  | { kind: 'gmail_draft'; to: string | null; subject: string | null; body: string | null }
+  | { kind: 'calendar_event'; summary: string | null; start: string | null; end: string | null; location: string | null }
+  | { kind: 'doc'; title: string | null };
+
 export interface OutcomeLink {
   label: string;
   url: string;
@@ -37,6 +42,7 @@ export interface InboxItem {
   outcomeRef: OutcomeRef | null;
   failureReason: string | null;
   snoozedUntil: string | null;
+  preview: Preview | null;
   createdAt: string;
   resolvedAt: string | null;
   sortAt: string;
