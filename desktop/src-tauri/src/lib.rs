@@ -87,6 +87,43 @@ fn hide_hummingbird(app: AppHandle) {
     }
 }
 
+/// Loose shape check: does `token` look like a JWT (three non-empty,
+/// dot-separated segments)? We deliberately do NOT verify the signature or
+/// decode the claims — the desktop has no business holding the JWT secret, and
+/// the backend re-validates every Bearer token anyway. This guard only stops us
+/// from persisting obvious junk (empty strings, a stray word, a half-rotated
+/// value) into the keyring.
+fn looks_like_jwt(token: &str) -> bool {
+    let parts: Vec<&str> = token.split('.').collect();
+    parts.len() == 3 && parts.iter().all(|p| !p.is_empty())
+}
+
+/// Command: persist the TwinMe access token the web app pushes after login (and
+/// on every ~25-min rotation) into the OS keyring, so the headless clip/meeting
+/// sync loop in sync.rs can authenticate its uploads. Without this bridge the
+/// keyring is never populated and every sync POST goes out unauthenticated.
+///
+/// SECURITY: this command is reachable from the REMOTE https://twinme.me page in
+/// the "main" window — see capabilities/twinme-auth-bridge.json, which scopes it
+/// to that one origin, that one window, and this one command. We therefore treat
+/// `token` as untrusted input: validate it looks like a JWT before touching the
+/// keyring, and never echo it back or panic. Keyring write failures are logged
+/// and swallowed (a missing token just means sync stays idle until next push).
+#[tauri::command]
+fn store_auth_token(token: String) {
+    let token = token.trim();
+    if !looks_like_jwt(token) {
+        eprintln!("[twinme-desktop] store_auth_token: rejected non-JWT-shaped token");
+        return;
+    }
+    if let Err(err) = config::store_auth(token) {
+        // Best-effort: a keyring failure (locked keychain, no Secret Service)
+        // shouldn't crash the app — sync simply stays unauthenticated until the
+        // next push succeeds.
+        eprintln!("[twinme-desktop] store_auth_token: keyring write failed: {err}");
+    }
+}
+
 /// Command: bring the full app forward (and dismiss the panel).
 #[tauri::command]
 fn open_main_window(app: AppHandle) {
@@ -197,7 +234,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             hide_hummingbird,
             open_main_window,
-            open_route
+            open_route,
+            store_auth_token
         ])
         .setup(move |app| {
             // Register the summon hotkey. If registration fails (e.g. another

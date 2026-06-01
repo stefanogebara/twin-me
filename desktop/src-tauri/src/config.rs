@@ -21,7 +21,8 @@ pub fn auth_path() -> Option<PathBuf> {
 }
 
 /// Store the JWT in the OS keyring. Returns Err(reason) on failure.
-#[allow(dead_code)]
+/// Called from the `store_auth_token` command (web → keyring bridge) and from
+/// the legacy-TOML migration in `load_auth` below.
 pub fn store_auth(token: &str) -> Result<(), String> {
     let entry = keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|e| e.to_string())?;
     entry.set_password(token).map_err(|e| e.to_string())
