@@ -187,6 +187,19 @@ const SECONDARY_PILL: React.CSSProperties = {
   border: '1px solid rgba(255,255,255,0.10)',
 };
 
+// Route downloads through the same-origin proxy so the browser saves a
+// correctly-named installer. Linking GitHub's release URL directly makes some
+// browsers (Brave) follow the cross-origin CDN redirect and name the file after
+// the GUID object, dropping the .exe/.dmg extension. See
+// api/routes/desktop-download.js. The tag is derived from the asset URL so the
+// proxy serves the exact version this page rendered.
+function proxyHref(asset: GitHubAsset): string {
+  const tag = asset.browser_download_url.match(/\/releases\/download\/([^/]+)\//)?.[1];
+  const params = new URLSearchParams({ file: asset.name });
+  if (tag) params.set('tag', tag);
+  return `/api/desktop-download?${params.toString()}`;
+}
+
 // --- Sub-components ----------------------------------------------------------
 const DownloadButton: React.FC<{ option: DownloadOption; primary?: boolean }> = ({
   option,
@@ -195,7 +208,8 @@ const DownloadButton: React.FC<{ option: DownloadOption; primary?: boolean }> = 
   const size = formatSize(option.asset.size);
   return (
     <a
-      href={option.asset.browser_download_url}
+      href={proxyHref(option.asset)}
+      download={option.asset.name}
       className="flex items-center gap-3 px-5 py-3 transition-opacity hover:opacity-90"
       style={{
         ...(primary ? PRIMARY_PILL : SECONDARY_PILL),
