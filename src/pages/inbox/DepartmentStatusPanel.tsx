@@ -16,10 +16,29 @@
  */
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { inboxAPI } from '@/services/api/inboxAPI';
+import { departmentsAPI } from '@/services/api/departmentsAPI';
 import type { DepartmentSummary } from '@/services/api/inboxAPI';
+
+// A department is "underperforming" when the user has decided on at least
+// MIN_SAMPLE proposals from it in the last 7 days AND the accept rate is
+// below WEAK_RATE. At that point its current autonomy (Ask first / Just do
+// it) is producing noise the user reliably skips — surface a one-tap
+// affordance to drop it back to Watch only. We don't auto-flip; the user
+// always confirms.
+const MIN_SAMPLE = 3;
+const WEAK_RATE = 30;
+
+function isUnderperforming(d: DepartmentSummary): boolean {
+  if (d.autonomyLevel <= 0) return false; // already at Watch only, nothing to suggest
+  const decided = d.weeklyAccepted + d.weeklyRejected + d.weeklyFailed;
+  if (decided < MIN_SAMPLE) return false;
+  if (d.acceptRate == null) return false;
+  return d.acceptRate < WEAK_RATE;
+}
 
 interface Props {
   /** Optional hint — when there are pending tiles, default the panel open. */
@@ -39,6 +58,7 @@ function autonomyColor(level: number): string {
 }
 
 const DepartmentStatusPanel: React.FC<Props> = ({ pendingCount = 0 }) => {
+  const queryClient = useQueryClient();
   const { data: departments = [], isLoading } = useQuery({
     queryKey: ['inbox', 'department-summary'],
     queryFn: () => inboxAPI.getDepartmentSummary(),
@@ -47,6 +67,38 @@ const DepartmentStatusPanel: React.FC<Props> = ({ pendingCount = 0 }) => {
   });
 
   const [open, setOpen] = useState(pendingCount > 0);
+  const [actingOn, setActingOn] = useState<string | null>(null);
+
+  const handleLowerAutonomy = async (d: DepartmentSummary) => {
+    setActingOn(d.department);
+    const previousLevel = d.autonomyLevel;
+    try {
+      await departmentsAPI.updateAutonomy(d.department, 0);
+      toast.success(`${d.name} set to Watch only`, {
+        description: 'You can change this any time in Settings.',
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              await departmentsAPI.updateAutonomy(d.department, previousLevel);
+              toast.success(`${d.name} restored`);
+              await queryClient.invalidateQueries({ queryKey: ['inbox', 'department-summary'] });
+            } catch {
+              toast.error('Could not undo. Try /settings.');
+            }
+          },
+        },
+        duration: 8000,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['inbox', 'department-summary'] });
+      // Pending count may drop too if the department was producing noise.
+      await queryClient.invalidateQueries({ queryKey: ['inbox', 'pending-count'] });
+    } catch (err) {
+      toast.error('Could not lower autonomy. Try again?');
+    } finally {
+      setActingOn(null);
+    }
+  };
 
   // Hide entirely until we have data — avoids a flash of empty header.
   if (isLoading && departments.length === 0) return null;
@@ -72,7 +124,12 @@ const DepartmentStatusPanel: React.FC<Props> = ({ pendingCount = 0 }) => {
       {open && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {departments.map((d) => (
-            <DeptCard key={d.department} d={d} />
+            <DeptCard
+              key={d.department}
+              d={d}
+              isLowering={actingOn === d.department}
+              onLowerAutonomy={() => handleLowerAutonomy(d)}
+            />
           ))}
         </div>
       )}
@@ -80,18 +137,26 @@ const DepartmentStatusPanel: React.FC<Props> = ({ pendingCount = 0 }) => {
   );
 };
 
-const DeptCard: React.FC<{ d: DepartmentSummary }> = ({ d }) => {
+const DeptCard: React.FC<{
+  d: DepartmentSummary;
+  isLowering: boolean;
+  onLowerAutonomy: () => void;
+}> = ({ d, isLowering, onLowerAutonomy }) => {
   const budgetPct = d.budget?.total > 0
     ? Math.min(100, Math.round((d.budget.spent / d.budget.total) * 100))
     : 0;
   const decided = d.weeklyAccepted + d.weeklyRejected + d.weeklyFailed;
+  const weak = isUnderperforming(d);
 
   return (
     <div
       className="relative px-3 py-2.5 rounded-[14px] backdrop-blur-[42px]"
       style={{
         background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        // Amber tint when underperforming so the card stands out without
+        // being alarming (red is reserved for actual failures).
+        border: weak ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid rgba(255,255,255,0.10)',
+        opacity: isLowering ? 0.6 : 1,
       }}
     >
       <div
@@ -145,6 +210,22 @@ const DeptCard: React.FC<{ d: DepartmentSummary }> = ({ d }) => {
               ${d.budget.spent.toFixed(2)} / ${d.budget.total.toFixed(2)}
             </div>
           </div>
+        )}
+
+        {/* Weak-department nudge: only fires when the user has consistently
+            skipped this department's proposals this week. Tap-to-quiet
+            instead of nagging — one button, undoable for 8s via the toast. */}
+        {weak && (
+          <button
+            onClick={onLowerAutonomy}
+            disabled={isLowering}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] transition-opacity hover:opacity-80"
+            style={{ color: '#f59e0b', background: 'none', border: 'none', padding: 0 }}
+            aria-label={`Lower ${d.name} autonomy to Watch only`}
+          >
+            <AlertTriangle className="w-3 h-3" />
+            {isLowering ? 'Updating…' : 'Lower to Watch only'}
+          </button>
         )}
       </div>
     </div>
