@@ -133,6 +133,69 @@ fn open_main_window(app: AppHandle) {
     }
 }
 
+/// Show + focus the native Settings window. Tray-invoked (a plain helper, not an
+/// IPC command), so it needs no permission/capability of its own.
+fn open_settings(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("settings") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// Snapshot of local desktop settings rendered by the Settings window.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SettingsState {
+    paused: bool,
+    excluded: Vec<String>,
+    auth_connected: bool,
+    hotkey: String,
+}
+
+/// Command: read current local settings (capture pause, excluded apps, whether
+/// an auth token is present, the summon hotkey label) for the Settings UI.
+#[tauri::command]
+fn settings_get() -> SettingsState {
+    let conn = clips::open().ok();
+    let paused = conn.as_ref().and_then(|c| clips::is_paused(c).ok()).unwrap_or(false);
+    let excluded = conn
+        .as_ref()
+        .and_then(|c| clips::list_excluded(c).ok())
+        .unwrap_or_default();
+    SettingsState {
+        paused,
+        excluded,
+        auth_connected: config::load_auth().is_some(),
+        hotkey: if cfg!(target_os = "macos") {
+            "Cmd + Shift + T".to_string()
+        } else {
+            "Ctrl + Shift + T".to_string()
+        },
+    }
+}
+
+/// Command: pause or resume context capture (persisted; the indexer reads the
+/// flag each tick).
+#[tauri::command]
+fn settings_set_paused(paused: bool) {
+    if let Ok(conn) = clips::open() {
+        if let Err(err) = clips::set_pause(&conn, paused) {
+            eprintln!("[settings] set_pause: {err}");
+        }
+    }
+}
+
+/// Command: remove an app from the exclude list.
+#[tauri::command]
+fn settings_unexclude(app: String) {
+    if let Ok(conn) = clips::open() {
+        if let Err(err) = clips::unexclude_app(&conn, &app) {
+            eprintln!("[settings] unexclude_app: {err}");
+        }
+    }
+}
+
 /// Command: focus the main window and navigate it to a twinme.me route, then
 /// dismiss the panel. `path` is an app-internal absolute path (e.g.
 /// "/talk-to-twin"); we only navigate when it is a safe same-site path so the
@@ -235,7 +298,10 @@ pub fn run() {
             hide_hummingbird,
             open_main_window,
             open_route,
-            store_auth_token
+            store_auth_token,
+            settings_get,
+            settings_set_paused,
+            settings_unexclude
         ])
         .setup(move |app| {
             // Register the summon hotkey. If registration fails (e.g. another
@@ -253,6 +319,7 @@ pub fn run() {
             let quickpanel_item =
                 MenuItem::with_id(app, "quickpanel", "Quick panel", true, Some("CmdOrCtrl+Shift+T"))?;
             let hide_item = MenuItem::with_id(app, "hide", "Hide window", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
 
             // Initial pause label from the persisted flag so it's correct on
             // startup ("Resume indexing" if we were paused before quitting).
@@ -282,6 +349,7 @@ pub fn run() {
                     &open_item,
                     &quickpanel_item,
                     &hide_item,
+                    &settings_item,
                     &pause_item,
                     &exclude_item,
                     &excluded_submenu,
@@ -307,6 +375,7 @@ pub fn run() {
                         "open" => focus_main_window(app),
                         "quickpanel" => show_hummingbird(app),
                         "hide" => hide_main_window(app),
+                        "settings" => open_settings(app),
                         "pause" => {
                             // Flip the persisted flag, then relabel the item to
                             // match the new state. The indexer reads the flag

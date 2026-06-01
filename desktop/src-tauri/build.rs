@@ -16,6 +16,9 @@ fn main() {
                 "open_main_window",
                 "open_route",
                 "store_auth_token",
+                "settings_get",
+                "settings_set_paused",
+                "settings_unexclude",
             ]),
         ),
     )

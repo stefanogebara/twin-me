@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TwinMe Settings</title>
+<link rel="icon" href="flower.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --background: #13121a;
+    --foreground: #f5f5f4;
+    --text-secondary: #a8a29e;
+    --text-muted: #9c9590;
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --accent-amber: #c17e2c;
+    --primary: #f5f5f4;
+    --primary-foreground: #110f0f;
+    --serif: "Instrument Serif", Georgia, serif;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+  html, body {
+    margin: 0; min-height: 100%;
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse 90% 70% at 12% 0%, rgba(210, 145, 55, 0.20) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 70% at 95% 100%, rgba(55, 45, 140, 0.16) 0%, transparent 60%);
+    background-attachment: fixed;
+    color: var(--foreground);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; padding: 26px 24px 40px; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+  header img { width: 26px; height: 26px; filter: drop-shadow(0 1px 4px rgba(0,0,0,0.4)); }
+  header h1 { font-family: var(--serif); font-weight: 400; font-size: 30px; letter-spacing: -0.025em; margin: 0; }
+
+  .card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(42px);
+    -webkit-backdrop-filter: blur(42px);
+  }
+  .card h2 {
+    font-family: var(--sans); font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); margin: 0 0 14px;
+  }
+
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; }
+  .row + .row { border-top: 1px solid rgba(255,255,255,0.05); }
+  .row .label { font-size: 14.5px; font-weight: 500; color: var(--foreground); }
+  .row .desc { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; max-width: 380px; }
+  .row .value { font-size: 14px; color: var(--text-secondary); }
+
+  /* toggle */
+  .switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0; cursor: pointer; border-radius: 100px;
+    background: rgba(255,255,255,0.12); transition: background 0.2s ease;
+  }
+  .slider::before {
+    content: ""; position: absolute; height: 20px; width: 20px; left: 3px; top: 3px;
+    background: var(--foreground); border-radius: 50%; transition: transform 0.2s ease;
+  }
+  .switch input:checked + .slider { background: var(--accent-amber); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+
+  .pill { font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 100px; }
+  .pill.ok { color: #b7e3c0; background: rgba(80,170,110,0.14); border: 1px solid rgba(80,170,110,0.25); }
+  .pill.off { color: var(--text-secondary); background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); }
+
+  .excluded-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; }
+  .excluded-row + .excluded-row { border-top: 1px solid rgba(255,255,255,0.05); }
+  .excluded-row .name { font-size: 14px; color: var(--foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .remove {
+    flex-shrink: 0; font-family: var(--sans); font-size: 12px; font-weight: 500;
+    color: var(--text-secondary); background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-border); border-radius: 8px; padding: 5px 12px; cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .remove:hover { background: rgba(220,80,80,0.14); color: #f0b4b4; border-color: rgba(220,80,80,0.3); }
+  .empty { font-size: 13px; color: var(--text-muted); padding: 6px 0; }
+  .hint { font-size: 12px; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="flower.png" alt="" />
+    <h1>Settings</h1>
+  </header>
+
+  <!-- Capture -->
+  <section class="card">
+    <h2>Context capture</h2>
+    <div class="row">
+      <div>
+        <div class="label">Pause capture</div>
+        <div class="desc">When paused, TwinMe stops noticing which app you are using. Meeting notes and sync are unaffected.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="pause-toggle" />
+        <span class="slider"></span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Excluded apps -->
+  <section class="card">
+    <h2>Excluded apps</h2>
+    <div id="excluded-list"></div>
+    <div class="hint">Add an app to this list from the tray menu: right-click the TwinMe tray icon while the app is focused, then "Exclude current app".</div>
+  </section>
+
+  <!-- Status -->
+  <section class="card">
+    <h2>Status</h2>
+    <div class="row">
+      <div class="label">Account</div>
+      <span id="account" class="pill off">...</span>
+    </div>
+    <div class="row">
+      <div class="label">Quick panel hotkey</div>
+      <span class="value" id="hotkey">...</span>
+    </div>
+    <div class="row">
+      <div class="label">Version</div>
+      <span class="value">0.1.6</span>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+    var tauri = window.__TAURI__ && window.__TAURI__.core;
+    function invoke(cmd, args) {
+      if (tauri && typeof tauri.invoke === "function") return tauri.invoke(cmd, args || {});
+      // Browser-preview fallback so the page renders without the desktop runtime.
+      if (cmd === "settings_get") {
+        return Promise.resolve({ paused: false, excluded: ["Slack", "Discord"], authConnected: true, hotkey: "Ctrl + Shift + T" });
+      }
+      console.log("[settings:no-tauri]", cmd, args || {});
+      return Promise.resolve();
+    }
+
+    var pauseToggle = document.getElementById("pause-toggle");
+    var excludedList = document.getElementById("excluded-list");
+    var accountEl = document.getElementById("account");
+    var hotkeyEl = document.getElementById("hotkey");
+
+    function renderExcluded(list) {
+      while (excludedList.firstChild) excludedList.removeChild(excludedList.firstChild);
+      if (!list || list.length === 0) {
+        var empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "No apps excluded.";
+        excludedList.appendChild(empty);
+        return;
+      }
+      list.forEach(function (app) {
+        var row = document.createElement("div");
+        row.className = "excluded-row";
+        var name = document.createElement("span");
+        name.className = "name";
+        name.textContent = app;
+        var btn = document.createElement("button");
+        btn.className = "remove";
+        btn.textContent = "Remove";
+        btn.addEventListener("click", function () {
+          invoke("settings_unexclude", { app: app }).then(load);
+        });
+        row.appendChild(name);
+        row.appendChild(btn);
+        excludedList.appendChild(row);
+      });
+    }
+
+    function load() {
+      return invoke("settings_get").then(function (s) {
+        if (!s) return;
+        pauseToggle.checked = !!s.paused;
+        accountEl.textContent = s.authConnected ? "Connected" : "Not connected";
+        accountEl.className = "pill " + (s.authConnected ? "ok" : "off");
+        hotkeyEl.textContent = s.hotkey || "—";
+        renderExcluded(s.excluded || []);
+      });
+    }
+
+    pauseToggle.addEventListener("change", function () {
+      invoke("settings_set_paused", { paused: pauseToggle.checked });
+    });
+
+    load();
+  })();
+</script>
+</body>
+</html>
