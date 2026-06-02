@@ -35,14 +35,19 @@ import {
 } from './whoop/analytics/index.js';
 import { formatTrend, formatCompare, formatWeekly } from './whoop/formatAnalytics.js';
 
-// Hard cap for the analytics tool call. The parent context fan-out has
-// a 10s circuit breaker — analytics is paginated so it can occasionally
-// run long. The cap covers BOTH legs: getValidAccessToken (which for
-// Nango-managed users takes ~3s — measured 2026-06-02 via
-// scripts/_time-whoop-analytics.mjs) plus the actual analytics fetch
-// (~1s for weekly summary, ~300ms for a 30-day trend). 8s gives
-// comfortable margin without risking the parent breaker.
-const WHOOP_ANALYTICS_TIMEOUT_MS = 8000;
+// Hard cap for the analytics tool call. Sits in POST-processing, after
+// the 10s parent fan-out breaker, so it doesn't compete for that
+// budget. The cap covers BOTH the second getValidAccessToken call
+// (Nango proxy adds ~3s of overhead per call — measured 2026-06-02
+// via scripts/_time-whoop-analytics.mjs) AND the analytics fetch
+// itself. Under real Nango contention (one Whoop call in the snapshot
+// fan-out + ours here) the second call can stretch to 13-16s — caught
+// via scripts/_inspect-whoop-prompt.mjs the same day on a strain trend
+// 7d query that took 16.3s end-to-end. 15s is the smallest cap that
+// reliably captures the worst case without making the user wait
+// uncomfortably long for an analytics question. Future optimisation:
+// reuse the snapshot's token instead of double-fetching.
+const WHOOP_ANALYTICS_TIMEOUT_MS = 15000;
 
 /**
  * Run a single Whoop analytics tool based on a detected intent. Returns
@@ -440,18 +445,24 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // (a) has access to userMessage, which the cached platform fetchers
   // don't see, and (b) doesn't mutate the platformDataCache (the user's
   // next turn has a different message and needs different analytics).
-  // The snapshot (recovery / HRV / RHR / sleep) is already in
-  // platformData.whoop from the cache; analytics is the per-turn addon.
+  //
+  // Deliberately does NOT predicate on platformData.whoop existing —
+  // analytics has its OWN data path (direct Whoop v2 API via the
+  // bearer token from getValidAccessToken, not the Nango proxy that
+  // builds the snapshot). When the snapshot leg times out at 6s
+  // (Nango on cold-start), the partial-context fallback gives us
+  // platformData.whoop === undefined — but the user still asked
+  // "what's my HRV trend?" and we owe them an answer. Caught via
+  // scripts/_inspect-whoop-prompt.mjs on 2026-06-02: the local repro
+  // showed platformData_leg_timeout → whoopAnalytics: null because
+  // the precondition gated the entire block out.
   //
   // The merge is done LOCALLY on the returned platformData via a
   // shallow copy so downstream callers (twinPromptAssembly →
   // buildTwinSystemPrompt) see w.analytics, while the cached entry
   // stays pristine for the next turn's different message.
-  //
-  // Backend-agnostic — getValidAccessToken returns a real Whoop API
-  // token whether the storage is Nango-relayed or our own OAuth row.
   let whoopAnalytics = null;
-  if (platformData?.whoop && userMessage) {
+  if (userMessage) {
     try {
       const intent = detectWhoopIntent(userMessage);
       if (intent.kind && intent.kind !== 'snapshot') {
@@ -474,13 +485,15 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   }
 
   // Shallow-copy platformData so we can attach analytics for the
-  // current turn without mutating the cached entry (next turn has a
-  // different message and needs different analytics).
+  // current turn without mutating the cached entry. If the snapshot
+  // leg failed (platformData.whoop is undefined), we still create
+  // platformData.whoop with just the analytics so the prompt builder's
+  // existing `if (platformData.whoop)` path renders our line.
   let returnedPlatformData = platformData;
-  if (whoopAnalytics?.summary && platformData?.whoop) {
+  if (whoopAnalytics?.summary) {
     returnedPlatformData = {
-      ...platformData,
-      whoop: { ...platformData.whoop, analytics: whoopAnalytics },
+      ...(platformData ?? {}),
+      whoop: { ...(platformData?.whoop ?? {}), analytics: whoopAnalytics },
     };
   }
 
