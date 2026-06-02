@@ -1211,16 +1211,35 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
       .in('status', ['connected', 'active']);
 
     for (const mapping of nangoMappings || []) {
+      const nangoLastSync = mapping.last_synced_at || mapping.updated_at || null;
       if (!connectionStatus[mapping.platform]) {
         connectionStatus[mapping.platform] = {
           connected: true,
           isActive: true,
           tokenExpired: false,
           connectedAt: mapping.created_at || null,
-          lastSync: mapping.last_synced_at || mapping.updated_at || null,
+          lastSync: nangoLastSync,
           status: 'active',
           expiresAt: null,
         };
+      } else {
+        // audit-2026-06-02: platform is in BOTH platform_connections and
+        // nango_connection_mappings (e.g. outlook). Nango is the live sync
+        // source for these, so its last_synced_at is authoritative — the
+        // platform_connections.last_sync_at is only bumped by the direct
+        // fetcher, which returns 0 obs for Nango-managed platforms and so goes
+        // stale, making a healthy connection look "partial/stale". Use the most
+        // recent of the two so health reflects the actual last sync.
+        const existing = connectionStatus[mapping.platform];
+        const existingMs = existing.lastSync ? new Date(existing.lastSync).getTime() : 0;
+        const nangoMs = nangoLastSync ? new Date(nangoLastSync).getTime() : 0;
+        if (nangoMs > existingMs) {
+          existing.lastSync = nangoLastSync;
+          existing.isActive = existing.isActive && !existing.tokenExpired;
+          if (['no_new_data', 'unknown', 'partial', 'pending'].includes(existing.status)) {
+            existing.status = 'active';
+          }
+        }
       }
     }
 

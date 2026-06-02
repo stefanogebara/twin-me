@@ -631,34 +631,46 @@ async function runObservationIngestion(options = {}) {
               }
             }
 
-            // Update sync status for tracking (non-blocking)
+            // Update sync status for tracking.
+            // audit-2026-06-02: these two writes were fire-and-forget
+            // (`.then(() => {})`, not awaited). On 0-observation runs there is no
+            // awaited storage work after them, so in the serverless function they
+            // frequently did NOT flush before the handler returned — leaving
+            // last_sync_at frozen at the last run that DID have data. That made
+            // healthy-but-empty platforms (e.g. reddit/twitch, polled fine every
+            // 30min returning count:0) look dead/stale for weeks. Await them (and
+            // log failures) so last_sync_at reliably reflects every successful poll.
             const syncSupabase = await getSupabase();
             if (syncSupabase) {
               const syncTimestamp = new Date().toISOString();
               const syncStatus = observations.length > 0 ? 'success' : 'no_new_data';
 
-              syncSupabase
-                .from('platform_connections')
-                .update({
-                  last_sync_at: syncTimestamp,
-                  last_sync_status: syncStatus,
-                  last_sync_error: null,
-                  updated_at: syncTimestamp,
-                })
-                .eq('user_id', userId)
-                .eq('platform', platform)
-                .then(() => {});
-
-              syncSupabase
-                .from('nango_connection_mappings')
-                .update({
-                  last_synced_at: syncTimestamp,
-                  status: syncStatus === 'success' ? 'active' : 'active',
-                  updated_at: syncTimestamp,
-                })
-                .eq('user_id', userId)
-                .eq('platform', platform)
-                .then(() => {});
+              const syncWrites = await Promise.allSettled([
+                syncSupabase
+                  .from('platform_connections')
+                  .update({
+                    last_sync_at: syncTimestamp,
+                    last_sync_status: syncStatus,
+                    last_sync_error: null,
+                    updated_at: syncTimestamp,
+                  })
+                  .eq('user_id', userId)
+                  .eq('platform', platform),
+                syncSupabase
+                  .from('nango_connection_mappings')
+                  .update({
+                    last_synced_at: syncTimestamp,
+                    status: 'active',
+                    updated_at: syncTimestamp,
+                  })
+                  .eq('user_id', userId)
+                  .eq('platform', platform),
+              ]);
+              for (const w of syncWrites) {
+                if (w.status === 'rejected') {
+                  log.warn('Failed to persist sync status', { platform, userId, error: String(w.reason?.message || w.reason) });
+                }
+              }
             }
           } catch (platformErr) {
             const errMsg = `${platform} for user ${userId}: ${platformErr.message}`;
