@@ -167,6 +167,31 @@ pub fn list_unsynced(conn: &Connection, limit: usize) -> Result<Vec<Clip>> {
     rows.collect()
 }
 
+/// Pull the most recent `limit` clips regardless of sync state. Backs the
+/// onboarding "here's what TwinMe noticed" demo, which wants a quick peek at
+/// the latest activity (synced or not, ended or still open). Mirrors
+/// `list_unsynced`'s columns but orders newest-first with no filters.
+pub fn list_recent(conn: &Connection, limit: usize) -> Result<Vec<Clip>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, app_name, window_title, content, started_at, ended_at, synced_at
+         FROM clips
+         ORDER BY started_at DESC
+         LIMIT ?1",
+    )?;
+    let rows = stmt.query_map(params![limit as i64], |row| {
+        Ok(Clip {
+            id: row.get(0)?,
+            app_name: row.get(1)?,
+            window_title: row.get(2)?,
+            content: row.get(3)?,
+            started_at: row.get(4)?,
+            ended_at: row.get(5)?,
+            synced_at: row.get(6)?,
+        })
+    })?;
+    rows.collect()
+}
+
 /// Mark a batch of clips as synced. Called by `sync.rs` after a 2xx from
 /// the backend. Wrapped in a single transaction to keep the write cheap.
 pub fn mark_synced(conn: &Connection, ids: &[i64]) -> Result<()> {
@@ -248,6 +273,38 @@ mod tests {
             .query_row("SELECT content FROM clips WHERE id = ?1", [id], |r| r.get(0))
             .unwrap();
         assert_eq!(got.as_deref(), Some("hello world"));
+    }
+
+    #[test]
+    fn list_recent_returns_newest_first() {
+        let conn = Connection::open_in_memory().unwrap();
+        init_schema(&conn).unwrap();
+        // Insert three clips with explicit, increasing started_at so ordering
+        // is deterministic (insert_clip uses wall-clock millis otherwise).
+        conn.execute(
+            "INSERT INTO clips (app_name, window_title, started_at) VALUES ('A', 'first', 1000)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO clips (app_name, window_title, started_at) VALUES ('B', 'second', 2000)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO clips (app_name, window_title, started_at) VALUES ('C', NULL, 3000)",
+            [],
+        )
+        .unwrap();
+
+        let recent = list_recent(&conn, 2).unwrap();
+        assert_eq!(recent.len(), 2);
+        // Newest first, and the LIMIT is honored.
+        assert_eq!(recent[0].app_name, "C");
+        assert_eq!(recent[1].app_name, "B");
+        // Recent clips are returned even when never synced / still open.
+        assert!(recent[0].window_title.is_none());
+        assert!(recent[0].synced_at.is_none());
     }
 
     #[test]

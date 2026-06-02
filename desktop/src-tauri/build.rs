@@ -19,6 +19,8 @@ fn main() {
                 "settings_get",
                 "settings_set_paused",
                 "settings_unexclude",
+                "request_mic_permission",
+                "demo_get_clips",
             ]),
         ),
     )
