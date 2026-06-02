@@ -34,7 +34,6 @@ interface UsePlatformConnectOptions {
   setDisconnectingProvider: (provider: DataProvider | null) => void;
   setGarminModalOpen?: (open: boolean) => void;
   setSteamModalOpen?: (open: boolean) => void;
-  setDuolingoModalOpen?: (open: boolean) => void;
   setInstagramModalOpen?: (open: boolean) => void;
 }
 
@@ -62,7 +61,6 @@ export function usePlatformConnect({
   setDisconnectingProvider,
   setGarminModalOpen,
   setSteamModalOpen,
-  setDuolingoModalOpen,
   setInstagramModalOpen,
 }: UsePlatformConnectOptions) {
   const { trackFunnel } = useAnalytics();
@@ -240,17 +238,6 @@ export function usePlatformConnect({
         return;
       }
 
-      // Duolingo uses a public username (unofficial profile endpoint, not OAuth)
-      if (provider === 'duolingo') {
-        setConnectingProvider(null);
-        if (setDuolingoModalOpen) {
-          setDuolingoModalOpen(true);
-        } else {
-          toast({ title: 'Duolingo', description: 'Open Settings > Platforms to connect Duolingo.', variant: 'default' });
-        }
-        return;
-      }
-
       // Instagram uses vanilla-Playwright scraping with user-provided cookies (no OAuth)
       if (provider === 'instagram') {
         setConnectingProvider(null);
@@ -420,7 +407,7 @@ export function usePlatformConnect({
     } finally {
       setConnectingProvider(null);
     }
-  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setDuolingoModalOpen, setInstagramModalOpen, handleNangoPopup]);
+  }, [toast, userId, refetchPlatformStatus, trackFunnel, setConnectingProvider, setGarminModalOpen, setSteamModalOpen, setInstagramModalOpen, handleNangoPopup]);
 
   const disconnectService = useCallback(async (provider: DataProvider) => {
     if (!userId) return;

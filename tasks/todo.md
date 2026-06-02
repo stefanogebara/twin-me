@@ -580,11 +580,40 @@ Scope: verify additional (non-core) platform OAuth + check 2026 API/MCP updates.
 - [ ] Garmin — partner-approval-gated (no self-serve signup); OAuth 1.0 retires Dec 2026 → must use OAuth2 + PKCE.
 - [x] Duolingo — no official public API/OAuth exists; code already treats it as username-based unofficial fetch. Do NOT pursue OAuth. Recommend dropping from the connectable list.
 
-### TICKET: Fitbit — migrate off legacy Web API before Sept 2026 sunset
-- Legacy `api.fitbit.com` Web API stops syncing **September 2026**; Google (owner) not accepting new legacy integrations. Migration to Google Health API v4 + Google OAuth 2.0 is mandatory (new data model, user re-consent).
-- Affected files: `api/services/nangoService.js` (fitbit provider baseUrl `api.fitbit.com`), `api/services/observationFetchers/fitbit.js` (`/1/user/-/...` endpoints), `api/services/observationIngestion.js` (`fitbit` in SUPPORTED_PLATFORMS + PLATFORM_FETCHERS).
-- Options: (1) rebuild on Google Health API v4 (`https://health.googleapis.com/v4/`) + Google OAuth, or (2) remove Fitbit from connectable list until a real user need exists.
-- Severity: NOT urgent (0 connections today) but hard-dated. NOTE: GitHub issue creation for this was blocked by the auto-mode safety classifier; tracked here instead. User can file a GH issue manually if a cross-repo ticket is wanted.
+### PLAN: Fitbit -> Google Health API v4 migration (legacy sunsets Sept 2026)
+
+Legacy `api.fitbit.com` Web API stops syncing **September 2026**; Google not accepting new legacy integrations. TwinMe has **0 Fitbit connections** -> clean forward-rebuild, no data migration, no re-consent burden. (Full research: 2026-06-02 subagent; key facts below.)
+
+**Architecture decision: Nango custom `google-health` integration.** Nango has no built-in google-health provider (confirmed in NangoHQ providers.yaml). Build a custom Nango integration based on Google OAuth. Why Nango over direct Google OAuth: (1) consistency — all 5 health platforms route through Nango; (2) Nango holds its OWN Google OAuth client, isolating the Restricted health scopes from TwinMe's main Google client (Calendar/Gmail/YouTube) and sidestepping scope contamination; (3) refresh handled by Nango proxy.
+
+**External setup (USER — I cannot do these; Phase 0 has 4-6 wk lead time, start ASAP):**
+- Phase 0 (GCP): enable "Google Health API"; add Restricted scopes to consent screen; submit Restricted-scope verification (4-6 wk; 100-user testing cap until approved).
+- Phase 1 (Nango): create custom `google-health` integration (authorize `accounts.google.com/o/oauth2/v2/auth`, token `oauth2.googleapis.com/token`, base `https://health.googleapis.com`, `access_type=offline`) with a DEDICATED Google OAuth client (not TwinMe's Calendar/Gmail client).
+
+**Scopes (all Restricted):** `googlehealth.activity_and_fitness.readonly` (steps/active-min/calories), `googlehealth.health_metrics_and_measurements.readonly` (resting HR), `googlehealth.sleep.readonly` (sleep). Never use `include_granted_scopes=true`.
+
+**Data mapping (legacy -> Google Health v4, base `health.googleapis.com/v4/users/me/dataTypes/{type}/dataPoints`):**
+| Metric | New call | Value path |
+|---|---|---|
+| Steps | POST `steps/...:dailyRollUp` | `rollupDataPoints[0].steps.countSum` |
+| Active min | POST `active-minutes/...:dailyRollUp` (<=14d) | `...activeMinutes.minutesSum` |
+| Calories | POST `total-calories/...:dailyRollUp` (<=14d, no `:list`) | `...totalCalories.kilocaloriesSum` |
+| Resting HR | GET `daily-resting-heart-rate/dataPoints` | `beatsPerMinute` |
+| Sleep | GET `sleep/dataPoints` | `summary.minutesAsleep` + `summary.stagesSummary[]` (AWAKE/LIGHT/DEEP/REM) |
+
+(No `floors` in Google Health — TwinMe's fitbit extractor doesn't use it, no loss.)
+
+**Code (Phase 2 — after Phase 0/1; keep platform key `fitbit` everywhere):**
+- `api/services/nangoService.js`: repoint `fitbit` provider -> `providerConfigKey: 'google-health'`, `baseUrl: 'https://health.googleapis.com/v4'`; replace proxy helpers with the calls above (chunk rollup ranges to <=14 days).
+- `api/services/observationFetchers/fitbit.js`: rewrite fetch+parse to the new shapes but **keep emitted observation strings identical** ("N steps", "Slept H hours", "Sleep score: S", "resting heart rate R", "active minutes: M") so `METRIC_EXTRACTORS.fitbit` in observationIngestion.js needs NO change. Parse defensively (string numerics via parseInt/Float; null-guard nested paths — API is still iterating).
+- No change to `oauth-callback.js` (Nango handles callback).
+- TDD: `tests/api/observationFetchers/fitbit-google-health.test.js` — feed sample Google Health JSON, assert emitted strings + extractor output. Write tests first.
+
+**Phases:** 0 GCP verify (USER, now) -> 1 Nango integration (USER) -> 2 code+tests (dormant until a connection exists, safe to ship) -> 3 test with dev Google account (within 100-user cap) -> 4 ship UI copy "Fitbit via Google Health" -> 5 open to all after verification passes.
+
+**Risks:** Restricted verification lead time vs Sept deadline (critical path); scope contamination (isolated by Nango's own client); 14-day rollup cap (chunk ranges); API rapidly iterating (defensive parse + recheck after Google release notes).
+
+**Status:** research + architecture decision DONE. Phase 0/1 blocked on user console actions. Phase 2 code can be written against documented shapes now but not end-to-end testable until Google/Nango setup exists. (GitHub issue creation was blocked by the auto-mode safety classifier; tracked here. File a GH issue manually if a cross-repo ticket is wanted.)
 
 ### Optional follow-up (NOT done — flagged for user)
 - ~50 root-level `*_IMPLEMENTATION_*.md` / `*_COMPLETE.md` docs clutter the repo root; many are stale (deleted-file refs, old domain). Candidate for a `docs/archive/` sweep as a separate task — deliberately not touched here to avoid removing still-relevant docs unverified.

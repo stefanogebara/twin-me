@@ -50,7 +50,6 @@ const SOCIAL_MAP = {
   nintendo: 'nintendo',
   strava: 'strava',
   fitbit: 'fitbit',
-  duolingo: 'duolingo',
   goodreads: 'goodreads',
   letterboxd: 'letterboxd',
   yelp: 'yelp',

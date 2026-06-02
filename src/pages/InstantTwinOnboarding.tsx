@@ -27,7 +27,6 @@ import { ExpiredTokenBanner } from './components/dashboard-v2/ExpiredTokenBanner
 import type { RevealedArchetype } from './components/onboarding';
 import { GarminCredentialsModal } from './components/settings/GarminCredentialsModal';
 import { SteamConnectModal } from './components/settings/SteamConnectModal';
-import { DuolingoConnectModal } from './components/settings/DuolingoConnectModal';
 import { InstagramConnectModal } from './components/settings/InstagramConnectModal';
 import { CONNECTION_INSIGHT_MESSAGES } from './components/onboarding/connectionInsights';
 import ConnectionRevealCard from './components/onboarding/ConnectionRevealCard';
@@ -76,7 +75,6 @@ const InstantTwinOnboarding = () => {
   const [disconnectingProvider, setDisconnectingProvider] = useState<DataProvider | null>(null);
   const [garminModalOpen, setGarminModalOpen] = useState(false);
   const [steamModalOpen, setSteamModalOpen] = useState(false);
-  const [duolingoModalOpen, setDuolingoModalOpen] = useState(false);
   const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const [revealedArchetype, setRevealedArchetype] = useState<RevealedArchetype | null>(null);
 
@@ -175,7 +173,6 @@ const InstantTwinOnboarding = () => {
     setDisconnectingProvider,
     setGarminModalOpen,
     setSteamModalOpen,
-    setDuolingoModalOpen,
     setInstagramModalOpen,
   });
 
@@ -344,12 +341,6 @@ const InstantTwinOnboarding = () => {
       <SteamConnectModal
         open={steamModalOpen}
         onClose={() => setSteamModalOpen(false)}
-        onSuccess={() => refetchPlatformStatus()}
-      />
-
-      <DuolingoConnectModal
-        open={duolingoModalOpen}
-        onClose={() => setDuolingoModalOpen(false)}
         onSuccess={() => refetchPlatformStatus()}
       />
 

@@ -481,7 +481,6 @@ import memoriesRoutes from './routes/memories.js';
 import memoryLinksRoutes from './routes/memory-links.js';
 import githubConnectRoutes from './routes/github-connect.js';
 import steamConnectRoutes from './routes/steam-connect.js';
-import duolingoConnectRoutes from './routes/duolingo-connect.js';
 import instagramRoutes from './routes/instagram.js';
 import whatsappImportRoutes from './routes/whatsapp-import.js';
 import evalRoutes from './routes/eval.js';
@@ -732,7 +731,6 @@ app.use('/api/nango-webhooks', nangoWebhooksRoutes); // Nango webhook receiver
 app.use('/api/extension', extensionDataRoutes); // Browser extension data capture (YouTube, Twitch, Netflix)
 app.use('/api/github', githubConnectRoutes);   // GitHub PAT connection + status
 app.use('/api/steam', steamConnectRoutes);     // Steam Web API connection (user provides Steam ID, no OAuth)
-app.use('/api/duolingo', duolingoConnectRoutes); // Duolingo public profile connection (user provides username, no OAuth)
 app.use('/api/instagram', instagramRoutes);    // Instagram vanilla-Playwright scraper (no OAuth — uses browser cookies)
 app.use('/api/whatsapp', whatsappKapsoWebhookRoutes); // WhatsApp Kapso inbound webhook
 app.use('/api/whatsapp', whatsappImportRoutes); // WhatsApp export file parser

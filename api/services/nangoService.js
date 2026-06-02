@@ -287,6 +287,10 @@ export const PLATFORM_CONFIGS = {
     soulDataPoints: ['running_patterns', 'cycling_habits', 'training_consistency', 'social_fitness']
   },
 
+  // DEPRECATED: legacy Fitbit Web API (api.fitbit.com) is sunset by Google in Sept 2026.
+  // Migrate to Google Health API v4 (providerConfigKey 'google-health', base
+  // https://health.googleapis.com/v4). Full plan in tasks/todo.md ("Fitbit -> Google
+  // Health API v4 migration"). 0 connections today, so this path is currently dormant.
   fitbit: {
     providerConfigKey: 'fitbit',
     name: 'Fitbit',

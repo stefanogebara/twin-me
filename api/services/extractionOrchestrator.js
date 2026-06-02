@@ -67,7 +67,7 @@ class ExtractionOrchestrator {
         .from('platform_connections')
         .select('*')
         .eq('user_id', userId)
-        .or('access_token.not.is.null,platform.eq.steam,platform.eq.duolingo');
+        .or('access_token.not.is.null,platform.eq.steam');
 
       if (error) {
         throw new Error(`Failed to fetch connections: ${error.message}`);
@@ -483,19 +483,6 @@ class ExtractionOrchestrator {
           } catch (soundcloudError) {
             log.error('SoundCloud extraction error', { error: soundcloudError });
             result = { success: false, error: soundcloudError.message };
-          }
-          break;
-
-        case 'duolingo':
-          try {
-            const { extractAll: extractDuolingo } = await import('./extractors/duolingoExtractor.js');
-            const duolingoResult = await extractDuolingo(userId, null);
-            itemsExtracted = duolingoResult.itemsExtracted || 0;
-            result = { success: duolingoResult.success !== false, itemsExtracted, error: duolingoResult.error };
-            log.info('Extracted Duolingo observations', { stored: itemsExtracted });
-          } catch (duolingoError) {
-            log.error('Duolingo extraction error', { error: duolingoError });
-            result = { success: false, error: duolingoError.message };
           }
           break;
 

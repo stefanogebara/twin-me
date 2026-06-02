@@ -27,7 +27,7 @@ const VALID_PROVIDERS = new Set([
   'spotify', 'youtube', 'google_gmail', 'google_calendar', 'discord', 'github',
   'reddit', 'slack', 'tiktok', 'strava', 'notion', 'pinterest', 'soundcloud',
   'whoop', 'fitbit', 'twitch', 'linkedin', 'instagram', 'outlook',
-  'duolingo', 'steam',
+  'steam',
 ]);
 
 // Encryption key for OAuth tokens
