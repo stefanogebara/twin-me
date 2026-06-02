@@ -24,7 +24,7 @@ Built on **Tauri 2** (Rust shell + system webview). ~10 MB binary.
 | **3 — Real Accessibility + sync** | merged (PR #48) | macOS AXUIElement focused app/window, real HTTPS sync, tray Pause/Resume, backend endpoint |
 | **4 — Cross-platform + content + keyring** | merged (PR #49) | Windows + Linux(X11) active-window, macOS in-window content extraction, OS keyring, tray exclude controls |
 | **5A — Meeting detection** | this PR | Detect Zoom/Meet/Teams/Webex/Slack-huddle/FaceTime from active-window; log sessions → backend observations. No audio. |
-| 5B — Meeting transcription | later | Mic (cpal) + Whisper (local vs server — TBD) + Note/Summary/Transcript |
+| 5B — Meeting transcription | later | Whisper (local vs server — TBD) + Note/Summary/Transcript. `cpal` mic capture already wired in (onboarding permission prompt). |
 | 6 — Hummingbird | later | Floating compact summoned by hotkey |
 | 7 — Polish | later | Auto-update, signed bundles, real icons, onboarding |
 
@@ -110,7 +110,7 @@ In:
 - **Sync**: the 2-min loop posts ended sessions to `POST /api/observations/meeting`, which stores each as an observation with a duration-aware summary ("45-min Zoom meeting — Standup", `metadata.source='desktop_meeting'`). Sessions shorter than 60s are treated as noise and skipped (marked synced locally, never posted).
 
 NOT in (Phase 5B):
-- **Audio capture + transcription** — the actual meeting NOTES. `cpal` mic capture + Whisper (local-on-device vs server-side reuse of the existing voice-surface transcription — decision deferred). Note/Summary/Transcript views.
+- **Audio capture + transcription** — the actual meeting NOTES. Whisper (local-on-device vs server-side reuse of the existing voice-surface transcription — decision deferred) + Note/Summary/Transcript views. (`cpal` is already a dependency — wired in for the onboarding mic-permission prompt — but it isn't capturing meeting audio yet.)
 - Detecting whether you're *actually in* a call vs just having the app focused (audio activity will refine this).
 - Meeting detection on a background/non-foreground window.
 
@@ -134,8 +134,9 @@ NOT in (Phase 5B):
    - Windows: Microsoft C++ Build Tools + WebView2 (preinstalled on Windows 11)
    - Linux:
      ```bash
-     sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev
+     sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev libasound2-dev
      ```
+     `libasound2-dev` (ALSA dev headers) is a build prerequisite because `cpal` links ALSA on Linux — CI installs it too.
 
 ---
 

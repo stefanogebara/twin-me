@@ -136,6 +136,12 @@ const productionOrigins = [
   'https://twin-ai-learn.vercel.app',
   'https://twinme.me',
   'https://www.twinme.me',
+  // TwinMe Desktop (Tauri webview): the bundled onboarding page calls the public
+  // observe-summary endpoint cross-origin. These origins are only ever our own
+  // desktop app's webview (macOS/Linux: tauri://localhost; Windows: http(s)://tauri.localhost).
+  'tauri://localhost',
+  'http://tauri.localhost',
+  'https://tauri.localhost',
 ].filter(Boolean);
 
 const devOrigins = [
@@ -425,6 +431,7 @@ import twinPipelineRoutes from './routes/twin-pipeline.js';
 import notificationsRoutes from './routes/notifications.js';
 import deviceTokensRoutes from './routes/device-tokens.js';
 import desktopDownloadRoutes from './routes/desktop-download.js';
+import desktopObserveSummaryRoutes from './routes/desktop-observe-summary.js';
 import extractionStatusRoutes from './routes/extraction-status.js';
 import profileEnrichmentRoutes from './routes/profile-enrichment.js';
 import resumeUploadRoutes from './routes/resume-upload.js';
@@ -688,6 +695,7 @@ app.use('/api/extraction', extractionStatusRoutes); // Extraction status and job
 app.use('/api/notifications', notificationsRoutes); // User notifications (token expiry, sync issues)
 app.use('/api/device-tokens', deviceTokensRoutes);  // FCM/Expo push token registration
 app.use('/api/desktop-download', desktopDownloadRoutes); // Same-origin installer proxy (forces correct .exe/.dmg filename)
+app.use('/api/desktop', desktopObserveSummaryRoutes); // TwinMe Desktop: onboarding "here's what I noticed" summary (unauthenticated, body-only)
 app.use('/api/enrichment', profileEnrichmentRoutes); // Profile enrichment via Perplexity Sonar (enrichment-first onboarding)
 app.use('/api/resume', resumeUploadRoutes); // Resume/CV upload and parsing for enrichment
 app.use('/api/transactions/pluggy', pluggyRoutes); // Phase 3.1 — Pluggy Open Finance authed endpoints (mount BEFORE /api/transactions)
