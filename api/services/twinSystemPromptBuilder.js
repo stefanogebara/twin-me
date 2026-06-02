@@ -547,6 +547,19 @@ export function buildTwinSystemPrompt(soulSignature, platformData, twinSummary =
       if (w.recovery !== null && w.recovery < 50 && platformData.calendar?.todayEvents?.length >= 3) {
         dynamicContext += ` (Note to self: low recovery with a busy schedule today - might need to take it easy.)`;
       }
+
+      // Analytics escalation — only present when the message asked for a
+      // trend/comparison/weekly recap. Phrased as observations the twin
+      // can quote rather than raw data dumps.
+      if (w.analytics?.summary) {
+        const labelByKind = {
+          trend: 'Looking at the trend',
+          weekly: 'This week so far',
+          compare: 'Period comparison',
+        };
+        const label = labelByKind[w.analytics.kind] ?? 'Whoop pattern';
+        dynamicContext += `\n${label}: ${w.analytics.summary}`;
+      }
     }
 
     if (platformData.web?.hasExtensionData) {

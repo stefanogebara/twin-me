@@ -22,6 +22,70 @@ import { getPendingProposals } from './departmentService.js';
 import { getRelevantWikiPages } from './wikiCompilationService.js';
 import { getActiveDirectives } from './twinSelfImprovement.js';
 import axios from 'axios';
+// Whoop analytics — run on-demand when the user's message asks an
+// analytical question (trend, comparison, weekly recap). Snapshot still
+// always fetches; analytics is the escalation path.
+import { detectWhoopIntent } from './whoop/detectIntent.js';
+import { createWhoopClient } from './whoop/client.js';
+import { resolveDateExpression } from './whoop/dateUtils.js';
+import {
+  getTrend as whoopGetTrend,
+  comparePeriods as whoopComparePeriods,
+  getWeeklySummary as whoopGetWeeklySummary,
+} from './whoop/analytics/index.js';
+import { formatTrend, formatCompare, formatWeekly } from './whoop/formatAnalytics.js';
+
+// Hard cap for the analytics tool call. The parent context fan-out has
+// a 10s circuit breaker — analytics is paginated so it can occasionally
+// run long. 4s lets the snapshot complete + analytics finish well under
+// budget; if analytics times out we just drop the section.
+const WHOOP_ANALYTICS_TIMEOUT_MS = 4000;
+
+/**
+ * Run a single Whoop analytics tool based on a detected intent. Returns
+ * `{ kind, summary }` on success, `null` on intent === 'snapshot'|null
+ * or any failure. Never throws — twin context must keep building even
+ * if Whoop is down.
+ *
+ * @param {object} intent  Output of detectWhoopIntent
+ * @param {string} accessToken
+ */
+async function runWhoopAnalytics(intent, accessToken) {
+  if (!intent || intent.kind === 'snapshot' || intent.kind === null) return null;
+  const client = createWhoopClient({ accessToken });
+  try {
+    if (intent.kind === 'trend') {
+      const trend = await whoopGetTrend(client, {
+        metric: intent.metric,
+        days: intent.days,
+      });
+      return { kind: 'trend', summary: formatTrend(trend), raw: trend };
+    }
+    if (intent.kind === 'weekly') {
+      const week = await whoopGetWeeklySummary(client, {
+        week_start: intent.weekStart, // dateUtils handles the expression
+      });
+      return { kind: 'weekly', summary: formatWeekly(week), raw: week };
+    }
+    if (intent.kind === 'compare') {
+      // Convert the friendly period expressions into the ISO start/end
+      // ranges comparePeriods expects.
+      const a = resolveDateExpression(intent.periodA);
+      const b = resolveDateExpression(intent.periodB);
+      const cmp = await whoopComparePeriods(client, {
+        period_a_start: a.start,
+        period_a_end: a.end,
+        period_b_start: b.start,
+        period_b_end: b.end,
+      });
+      return { kind: 'compare', summary: formatCompare(cmp), raw: cmp };
+    }
+    return null;
+  } catch (err) {
+    log.warn(`Whoop analytics (${intent.kind}) failed: ${err?.message ?? err}`);
+    return null;
+  }
+}
 
 // Short-lived platform data cache to avoid redundant API calls within 5 minutes
 const platformDataCache = new Map();
@@ -938,6 +1002,23 @@ async function _fetchSinglePlatform(userId, platform) {
                 restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
                 fetchedAt: new Date().toISOString()
               };
+
+              // Analytics escalation: if the user's message asks for a
+              // trend / weekly summary / comparison, run that tool now
+              // and attach the formatted string. Snapshot above is the
+              // baseline; analytics only fires when the intent detector
+              // says the question warrants it.
+              const intent = detectWhoopIntent(userMessage);
+              if (intent.kind && intent.kind !== 'snapshot') {
+                const analyticsPromise = runWhoopAnalytics(intent, tokenResult.accessToken);
+                const timeoutPromise = new Promise((resolve) =>
+                  setTimeout(() => resolve(null), WHOOP_ANALYTICS_TIMEOUT_MS),
+                );
+                const analytics = await Promise.race([analyticsPromise, timeoutPromise]);
+                if (analytics?.summary) {
+                  data.whoop.analytics = analytics;
+                }
+              }
             }
           }
         } catch (whoopErr) {
