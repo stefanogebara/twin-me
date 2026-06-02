@@ -7,7 +7,7 @@
 <link rel="icon" href="flower.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --background: #13121a;
@@ -22,7 +22,7 @@
     --primary-foreground: #110f0f;
     --narrative: rgba(245, 245, 244, 0.9);
     --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
-    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --sans: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }
 
   * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
@@ -199,11 +199,11 @@
     text-align: left;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 16px 18px;
-    backdrop-filter: blur(42px);
-    -webkit-backdrop-filter: blur(42px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .card .glyph {
     flex: 0 0 auto;
@@ -307,8 +307,8 @@
     text-align: left; margin: 0 auto;
     background: var(--glass-bg); border: 1px solid var(--glass-border);
     border-radius: 20px; padding: 20px 22px;
-    backdrop-filter: blur(42px); -webkit-backdrop-filter: blur(42px);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(42px) saturate(140%); -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .summary-text { font-size: 15px; line-height: 1.62; color: var(--narrative); margin: 0; white-space: pre-line; }
   .summary-insight {
@@ -351,8 +351,9 @@
     border: 1px solid var(--glass-border);
     border-radius: 14px;
     padding: 12px 14px;
-    backdrop-filter: blur(42px);
-    -webkit-backdrop-filter: blur(42px);
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
     text-align: left;
   }
   .platform .glyph {
@@ -385,7 +386,7 @@
   .cta.secondary {
     background: var(--glass-bg); color: var(--foreground);
     border: 1px solid var(--glass-border); box-shadow: none;
-    backdrop-filter: blur(42px); -webkit-backdrop-filter: blur(42px);
+    backdrop-filter: blur(42px) saturate(140%); -webkit-backdrop-filter: blur(42px) saturate(140%);
   }
 
   /* ---- Footer: CTA + progress ---- */
@@ -617,7 +618,7 @@
     var API_BASE = "https://twinme.me/api";
     // v3: native-first flow (name -> permissions -> observe -> "here's what I
     // noticed" -> sign-in handoff). Bumped key so users of v2 see it once.
-    var FLAG = "twinme_desktop_onboarded_v4"; // v4: adds "Continue with Google" — re-show once so v3 users see it
+    var FLAG = "twinme_desktop_onboarded_v5"; // v5: liquid-glass restyle (saturate + platform shadow/radius) — re-show once
     var NAME_KEY = "twinme_desktop_name";
     var ALIASES_KEY = "twinme_desktop_aliases";
     var TOTAL = 8;
