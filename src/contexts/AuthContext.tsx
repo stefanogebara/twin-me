@@ -395,15 +395,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       __TAURI__?: { core?: { invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } };
     }).__TAURI__?.core?.invoke;
     if (typeof desktopInvoke === 'function') {
-      const dParams = new URLSearchParams({ desktop: 'true' });
-      // Land on the live "look you up" research reveal after sign-in (jo-style);
-      // /soul-reveal auto-scans from the verified account email, then proceeds.
-      dParams.set('redirect', redirectAfterAuth || '/soul-reveal');
-      const dInvite = sessionStorage.getItem('beta_invite_code');
-      if (dInvite) dParams.set('invite', dInvite);
-      if (sessionStorage.getItem('twinme_discovery_confirmed') === 'true') dParams.set('discovery', 'true');
+      // Open the real browser at /desktop-handoff, which runs the normal
+      // (already-registered) web Google sign-in and then deep-links the session
+      // back via twinme:// — no desktop-specific Google redirect URI required.
       try {
-        await desktopInvoke('open_external', { url: `${API_URL}/auth/oauth/${provider}?${dParams.toString()}` });
+        await desktopInvoke('open_external', { url: `${window.location.origin}/desktop-handoff` });
         return;
       } catch (err) {
         console.warn('[auth] desktop open_external failed; falling back to in-webview redirect', err);

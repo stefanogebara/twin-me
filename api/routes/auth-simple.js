@@ -1752,6 +1752,31 @@ router.get('/oauth/claim', oauthClaimLimiter, async (req, res) => {
   });
 });
 
+// POST /api/auth/desktop-handoff
+// Bridges a logged-in WEB session into the Tauri desktop app WITHOUT registering
+// a desktop-specific Google redirect URI. The user signs in normally on twinme.me
+// in the system browser (the web /oauth/callback is already an authorized Google
+// redirect URI); this endpoint mints a one-time auth code the desktop app claims
+// via the twinme:// deep link (same /oauth/claim path mobile uses).
+router.post('/desktop-handoff', authenticateUser, async (req, res) => {
+  try {
+    const { accessToken, refreshToken } = generateTokenPair(req.user);
+    const authCode = crypto.randomBytes(32).toString('hex');
+    await supabaseAdmin.from('pending_auth_codes').insert({
+      code: authCode,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      provider: 'desktop_handoff',
+      redirect_after_auth: '/soul-reveal',
+      expires_at: new Date(Date.now() + 120_000).toISOString(),
+    });
+    return res.json({ success: true, auth_code: authCode });
+  } catch (error) {
+    log.error('Desktop handoff failed', { error });
+    return res.status(500).json({ success: false, error: 'Could not create desktop handoff' });
+  }
+});
+
 // Email verification endpoint
 // GET /api/auth/verify-email?token=X — marks the user's email as verified
 router.get('/verify-email', async (req, res) => {

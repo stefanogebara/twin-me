@@ -24,6 +24,7 @@ import { BackgroundModeProvider, useBackgroundMode } from "./contexts/Background
 // Eager-loaded (critical path: landing, auth, 404)
 import Index from "./pages/Index";
 import CustomAuth from "./pages/CustomAuth";
+import DesktopHandoff from "./pages/DesktopHandoff";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
@@ -158,6 +159,10 @@ const App = () => {
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />
+            {/* Desktop (Tauri) Google sign-in handoff: runs the registered web
+                sign-in, then deep-links the session back via twinme://. Public
+                route — it branches on signed-in/out itself. */}
+            <Route path="/desktop-handoff" element={<DesktopHandoff />} />
             <Route path="/waitlist" element={<Suspense fallback={null}><WaitlistPage /></Suspense>} />
             <Route path="/beta" element={<Suspense fallback={null}><BetaSignupPage /></Suspense>} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />

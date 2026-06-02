@@ -939,7 +939,9 @@
     // the twinme:// deep link, which the app routes to /oauth/callback.
     function continueWithGoogle() {
       var hint = document.getElementById("auth-hint");
-      var url = API_BASE + "/auth/oauth/google?desktop=true&redirect=/soul-reveal";
+      // Open the system browser at the web sign-in handoff (registered Google
+      // redirect URI); it deep-links the session back via twinme:// → /soul-reveal.
+      var url = APP_URL + "/desktop-handoff";
       try { localStorage.setItem(FLAG, "1"); } catch (e) { /* ignore */ }
       if (HAS_TAURI) {
         invoke("open_external", { url: url })
