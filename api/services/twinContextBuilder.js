@@ -37,9 +37,12 @@ import { formatTrend, formatCompare, formatWeekly } from './whoop/formatAnalytic
 
 // Hard cap for the analytics tool call. The parent context fan-out has
 // a 10s circuit breaker — analytics is paginated so it can occasionally
-// run long. 4s lets the snapshot complete + analytics finish well under
-// budget; if analytics times out we just drop the section.
-const WHOOP_ANALYTICS_TIMEOUT_MS = 4000;
+// run long. The cap covers BOTH legs: getValidAccessToken (which for
+// Nango-managed users takes ~3s — measured 2026-06-02 via
+// scripts/_time-whoop-analytics.mjs) plus the actual analytics fetch
+// (~1s for weekly summary, ~300ms for a 30-day trend). 8s gives
+// comfortable margin without risking the parent breaker.
+const WHOOP_ANALYTICS_TIMEOUT_MS = 8000;
 
 /**
  * Run a single Whoop analytics tool based on a detected intent. Returns
