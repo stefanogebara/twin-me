@@ -22,6 +22,13 @@ tauri = { version = "2", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-shell = "2"
+# Phase 2 (Google sign-in): system-browser OAuth returns via a twinme:// deep
+# link. single-instance (with the deep-link feature) MUST initialize before the
+# deep-link plugin so an inbound twinme:// URL reaches the already-running app on
+# Windows/Linux instead of spawning a second process.
+tauri-plugin-deep-link = "2"
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+url = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }

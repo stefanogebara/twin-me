@@ -367,6 +367,27 @@
   .platform .pval { font-size: 11.5px; line-height: 1.4; color: var(--text-muted); }
   .platforms-note { font-size: 12.5px; color: var(--text-muted); margin: 16px auto 0; }
 
+  /* Continue with Google (Phase 2 — system-browser OAuth) */
+  .auth-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 24px auto 4px; max-width: 360px; }
+  .google-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+    font-family: var(--sans); font-size: 14.5px; font-weight: 600;
+    color: var(--primary-foreground); background: var(--primary);
+    border: none; border-radius: 100px; padding: 12px 22px; cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  }
+  .google-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34); }
+  .google-btn:disabled { opacity: 0.6; cursor: default; transform: none; box-shadow: none; }
+  .google-btn svg { width: 18px; height: 18px; flex: 0 0 auto; }
+  .auth-hint { font-size: 12.5px; color: var(--text-muted); margin: 0; line-height: 1.45; }
+  /* Footer CTA de-emphasized on the sign-in screen (Google is the primary). */
+  .cta.secondary {
+    background: var(--glass-bg); color: var(--foreground);
+    border: 1px solid var(--glass-border); box-shadow: none;
+    backdrop-filter: blur(42px); -webkit-backdrop-filter: blur(42px);
+  }
+
   /* ---- Footer: CTA + progress ---- */
   .footer {
     flex: 0 0 auto;
@@ -551,6 +572,13 @@
       <div class="content">
         <h2 id="ready-heading">Keep your twin</h2>
         <p class="lede">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
+        <div class="auth-actions">
+          <button class="google-btn" id="google-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.41a6.6 6.6 0 0 1 0-4.82V6.75H2.18a11 11 0 0 0 0 10.5l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.5c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.5 12 5.5Z"/></svg>
+            Continue with Google
+          </button>
+          <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
+        </div>
         <div class="platforms">
           <div class="platform">
             <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 13c2.3-.7 4.8-.4 6.8.9M8.5 16c1.6-.5 3.3-.3 4.7.7"/></svg></div>
@@ -625,7 +653,7 @@
     var skip = document.getElementById("skip");
 
     //                 0            1           2           3           4           5              6           7
-    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Continue", "Sign in to TwinMe"];
+    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Continue", "Sign in with email"];
 
     function escapeHtml(s) {
       return String(s == null ? "" : s)
@@ -642,6 +670,9 @@
       }
       cta.textContent = CTA_LABELS[step];
       cta.disabled = false;
+      // Screen 7: Google is the in-content primary, so de-emphasize the footer
+      // "Sign in with email" CTA there.
+      cta.classList.toggle("secondary", step === 7);
       // Hide Back during the observe countdown and the summary reveal so the
       // "noticing" moment isn't interrupted mid-flight.
       back.classList.toggle("show", step > 0 && step !== 5 && step !== 6);
@@ -919,6 +950,28 @@
     });
     back.addEventListener("click", prev);
     skip.addEventListener("click", launch);
+
+    // Screen 7: "Continue with Google" opens the system browser for OAuth
+    // (Google blocks it inside the webview). The signed-in session returns via
+    // the twinme:// deep link, which the app routes to /oauth/callback.
+    function continueWithGoogle() {
+      var hint = document.getElementById("auth-hint");
+      var url = API_BASE + "/auth/oauth/google?desktop=true";
+      try { localStorage.setItem(FLAG, "1"); } catch (e) { /* ignore */ }
+      if (HAS_TAURI) {
+        invoke("open_external", { url: url })
+          .then(function () { if (hint) hint.textContent = "Waiting for you to finish in your browser…"; })
+          .catch(function (err) {
+            console.warn("[onboarding] open_external failed:", err);
+            if (hint) hint.textContent = 'Couldn\'t open your browser. Use "Sign in with email" below.';
+          });
+      } else {
+        window.open(url, "_blank");
+        if (hint) hint.textContent = "Continue in the new browser tab…";
+      }
+    }
+    var googleBtn = document.getElementById("google-btn");
+    if (googleBtn) googleBtn.addEventListener("click", continueWithGoogle);
 
     document.addEventListener("keydown", function (ev) {
       // While typing in a field, only Enter advances; arrows must edit text.

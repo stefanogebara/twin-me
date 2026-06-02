@@ -350,6 +350,54 @@ fn populate_excluded_submenu<R: Runtime, M: Manager<R>>(
     Ok(())
 }
 
+/// Open a URL in the user's default system browser. Restricted to the TwinMe
+/// origin so this can never become an arbitrary-launch primitive — the only
+/// caller is the onboarding "Continue with Google" button, which opens
+/// https://twinme.me/api/auth/oauth/google?desktop=true. Google blocks OAuth
+/// inside embedded webviews, so it must run in the real browser; the signed-in
+/// session returns via the twinme:// deep link (see handle_deep_link).
+#[tauri::command]
+fn open_external(app: AppHandle, url: String) -> Result<(), String> {
+    if !(url.starts_with("https://twinme.me/") || url.starts_with("https://www.twinme.me/")) {
+        return Err("blocked: only twinme.me URLs may be opened externally".into());
+    }
+    use tauri_plugin_shell::ShellExt;
+    app.shell()
+        .open(url, None)
+        .map_err(|e| format!("failed to open browser: {e}"))
+}
+
+/// Handle an inbound twinme:// deep link. After the user signs in with Google in
+/// the system browser, the backend OAuth callback redirects to
+/// `twinme://auth?auth_code=<code>&provider=google`. We forward that one-time
+/// code to the web app's existing /oauth/callback page, which exchanges it for a
+/// session and (via apiBase.ts) stores the JWT in the OS keyring — the same path
+/// the web flow uses. No token ever travels in the deep link itself.
+fn handle_deep_link(app: &AppHandle, urls: Vec<url::Url>) {
+    for u in urls {
+        if u.scheme() != "twinme" {
+            continue;
+        }
+        let Some(query) = u.query() else { continue };
+        if !query.contains("auth_code=") {
+            continue;
+        }
+        // Forward to the web app's existing /oauth/callback page (which exchanges
+        // the one-time code and stores the session via the keyring bridge). We
+        // use eval — already used elsewhere in this file, so it's a known-good
+        // API surface — and escape the query for the single-quoted JS string.
+        let escaped = query.replace('\\', "\\\\").replace('\'', "\\'");
+        if let Some(win) = app.get_webview_window("main") {
+            let js =
+                format!("window.location.replace('https://twinme.me/oauth/callback?{escaped}')");
+            let _ = win.eval(&js);
+            let _ = win.show();
+            let _ = win.unminimize();
+            let _ = win.set_focus();
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Cmd+Shift+T on macOS, Ctrl+Shift+T on Windows/Linux. Same chord as
@@ -360,9 +408,29 @@ pub fn run() {
         Code::KeyT,
     );
 
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+
+    // Single-instance MUST be registered before the deep-link plugin so an
+    // incoming twinme:// link (from the Google OAuth callback) is folded into
+    // the already-running app on Windows/Linux instead of spawning a second
+    // process. Desktop-only.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            // The deep-link event fires separately (single-instance "deep-link"
+            // feature forwards it); here we just surface the existing window.
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.show();
+                let _ = win.unminimize();
+                let _ = win.set_focus();
+            }
+        }));
+    }
+
+    builder
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
@@ -381,9 +449,30 @@ pub fn run() {
             settings_set_paused,
             settings_unexclude,
             request_mic_permission,
-            demo_get_clips
+            demo_get_clips,
+            open_external
         ])
         .setup(move |app| {
+            // --- Deep link (twinme://) — return path for system-browser OAuth ---
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                // On Windows/Linux, register the scheme at runtime too so dev and
+                // non-installed (AppImage) runs work; installers register it via
+                // tauri.conf.json's plugins.deep-link.desktop.schemes.
+                #[cfg(any(windows, target_os = "linux"))]
+                {
+                    let _ = app.deep_link().register_all();
+                }
+                // Cold start: the app may have been launched by the deep link.
+                if let Ok(Some(urls)) = app.deep_link().get_current() {
+                    handle_deep_link(app.handle(), urls);
+                }
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    handle_deep_link(&handle, event.urls());
+                });
+            }
+
             // Register the summon hotkey. If registration fails (e.g. another
             // app has already claimed the chord), log it but don't crash —
             // the user can rebind later from settings.
