@@ -347,6 +347,7 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // the returned timings record — the route layer can fold it into the
   // context_fetch_done hop_timings entry.
   let circuitBreakerTripped = false;
+  let degradationReason = null;
   try {
     contextResults = await Promise.race([
       Promise.all(fetchPromises),
@@ -355,17 +356,32 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
       ),
     ]);
   } catch (timeoutErr) {
-    if (timeoutErr.message === 'fetchTwinContext timeout') {
+    // Two graceful-degradation paths land here:
+    //   1. The 10s global breaker timer fired — message ===
+    //      'fetchTwinContext timeout'.
+    //   2. One of the per-leg timed() wrappers fired its own 6s timer —
+    //      message ends in '_leg_timeout' (e.g. 'platformData_leg_timeout').
+    //
+    // Both are EXPECTED outcomes when a backend is slow (cold-start
+    // Nango token refresh, cold pgbouncer queueing on Supabase, etc.) —
+    // they should never propagate to a 500 in the chat handler. Before
+    // this fix only the global breaker degraded; leg timeouts re-threw,
+    // which is what caused the cold-start 500 we hit during the Whoop
+    // step-5 eval (the platformData leg timed out at 6s waiting on Nango).
+    const isLegTimeout = /_leg_timeout$/.test(timeoutErr.message);
+    const isGlobalTimeout = timeoutErr.message === 'fetchTwinContext timeout';
+    if (isGlobalTimeout || isLegTimeout) {
       circuitBreakerTripped = true;
-      log.warn(`Circuit breaker tripped at ${CONTEXT_TIMEOUT_MS}ms — returning partial context`);
+      degradationReason = timeoutErr.message;
+      log.warn(`Circuit breaker tripped (${timeoutErr.message}) — returning partial context`);
       // Use already-resolved values; fall back to defaults for still-pending promises.
-      // This avoids the prior bug of await Promise.allSettled() which waited for all promises.
       contextResults = resolvedValues.map((v, i) => v !== undefined ? v : defaults[i]);
     } else {
       throw timeoutErr;
     }
   }
   timings._circuitBreakerTripped = circuitBreakerTripped;
+  if (degradationReason) timings._circuitBreakerReason = degradationReason;
   timings._circuitBreakerMs = CONTEXT_TIMEOUT_MS;
   // audit-2026-05-13 bottleneck follow-up: mark the boundary between the
   // parallel-fetch race and the post-processing tail (enrichment fallback,
