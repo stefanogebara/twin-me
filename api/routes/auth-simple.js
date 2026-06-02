@@ -1035,10 +1035,13 @@ router.get('/oauth/google', (req, res) => {
 
   const appUrl = resolveAppUrl(req);
   const isMobile = req.query.mobile === 'true';
+  const isDesktop = req.query.desktop === 'true';
+  // Mobile and desktop (Tauri) both finish OAuth via a twinme:// deep link, so
+  // they need Google to redirect to the BACKEND callback (which issues that
+  // deep-link redirect). Web redirects to the frontend /oauth/callback page.
+  const useDeepLink = isMobile || isDesktop;
 
-  // For mobile: redirect straight to backend callback so we can issue deep-link redirect.
-  // For web: redirect to frontend /oauth/callback which then POSTs to backend.
-  const redirectUri = isMobile
+  const redirectUri = useDeepLink
     ? encodeURIComponent(`${req.protocol}://${req.get('host')}/api/auth/oauth/callback`)
     : encodeURIComponent(`${appUrl}/oauth/callback`);
 
@@ -1051,7 +1054,8 @@ router.get('/oauth/google', (req, res) => {
     isAuth: true, // Mark this as authentication flow
     timestamp: Date.now(),
     mobile: isMobile, // Mobile app sets this for deep-link callback
-    redirectUri: isMobile ? `${req.protocol}://${req.get('host')}/api/auth/oauth/callback` : `${appUrl}/oauth/callback`,
+    desktop: isDesktop, // Desktop app (Tauri) sets this for twinme:// deep-link callback
+    redirectUri: useDeepLink ? `${req.protocol}://${req.get('host')}/api/auth/oauth/callback` : `${appUrl}/oauth/callback`,
   };
 
   // Include beta invite code in state (survives OAuth round-trip)
@@ -1395,10 +1399,15 @@ router.get('/oauth/callback', async (req, res) => {
       expires_at: new Date(Date.now() + 120_000).toISOString(),
     });
 
-    // Mobile app flow: redirect to deep link instead of web app
-    if (stateData?.mobile) {
-      log.info('Mobile OAuth flow - redirecting to deep link');
-      return res.redirect(`twinme://auth?auth_code=${authCode}`);
+    // Mobile + desktop app flow: redirect to the twinme:// deep link instead of
+    // the web app. The native client exchanges auth_code via the same POST
+    // endpoint the web app uses (no token ever rides in the URL).
+    if (stateData?.mobile || stateData?.desktop) {
+      log.info('Native OAuth flow - redirecting to deep link', {
+        mobile: !!stateData?.mobile,
+        desktop: !!stateData?.desktop,
+      });
+      return res.redirect(`twinme://auth?auth_code=${authCode}&provider=${encodeURIComponent(provider)}`);
     }
 
     const redirectUrl = `${appUrl}/oauth/callback?auth_code=${authCode}&provider=${encodeURIComponent(provider)}`;

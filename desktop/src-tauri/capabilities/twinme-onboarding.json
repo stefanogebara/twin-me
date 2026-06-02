@@ -6,6 +6,7 @@
   "permissions": [
     "allow-request-mic-permission",
     "allow-demo-get-clips",
-    "allow-settings-set-paused"
+    "allow-settings-set-paused",
+    "allow-open-external"
   ]
 }

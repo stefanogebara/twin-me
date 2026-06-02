@@ -21,6 +21,7 @@ fn main() {
                 "settings_unexclude",
                 "request_mic_permission",
                 "demo_get_clips",
+                "open_external",
             ]),
         ),
     )
