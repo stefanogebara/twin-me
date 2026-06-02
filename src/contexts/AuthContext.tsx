@@ -396,7 +396,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }).__TAURI__?.core?.invoke;
     if (typeof desktopInvoke === 'function') {
       const dParams = new URLSearchParams({ desktop: 'true' });
-      if (redirectAfterAuth) dParams.set('redirect', redirectAfterAuth);
+      // Land on the live "look you up" research reveal after sign-in (jo-style);
+      // /soul-reveal auto-scans from the verified account email, then proceeds.
+      dParams.set('redirect', redirectAfterAuth || '/soul-reveal');
       const dInvite = sessionStorage.getItem('beta_invite_code');
       if (dInvite) dParams.set('invite', dInvite);
       if (sessionStorage.getItem('twinme_discovery_confirmed') === 'true') dParams.set('discovery', 'true');

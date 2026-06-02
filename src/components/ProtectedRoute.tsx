@@ -56,8 +56,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Auth is loaded - now we can make a decision
   if (isSignedIn) {
-    // Gate new users to cinematic onboarding (skip if already on /onboarding)
-    if (needsOnboarding && location.pathname !== '/onboarding') {
+    // Gate new users to cinematic onboarding (skip if already on /onboarding).
+    // Also allow /soul-reveal so the desktop "look you up" research reveal can
+    // run once right after Google sign-in before the onboarding gate sends the
+    // user onward.
+    if (needsOnboarding && location.pathname !== '/onboarding' && location.pathname !== '/soul-reveal') {
       return <Navigate to="/onboarding" replace />;
     }
     return <>{children}</>;
