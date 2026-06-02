@@ -580,25 +580,7 @@
           </button>
           <p class="auth-hint" id="auth-hint">Opens your real browser — we never see your password.</p>
         </div>
-        <div class="platforms">
-          <div class="platform">
-            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 13c2.3-.7 4.8-.4 6.8.9M8.5 16c1.6-.5 3.3-.3 4.7.7"/></svg></div>
-            <div class="pmeta"><div class="pname">Spotify</div><div class="pval">Your taste and moods</div></div>
-          </div>
-          <div class="platform">
-            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
-            <div class="pmeta"><div class="pname">Calendar</div><div class="pval">The shape of your week</div></div>
-          </div>
-          <div class="platform">
-            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4 1.2-4-2.2-5.5-2.8M15 21v-3.3a2.8 2.8 0 0 0-.8-2.2c2.7-.3 5.5-1.3 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 0 0-6 0C7 1.5 6 1.8 6 1.8a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.5 8.3c0 4.6 2.8 5.6 5.5 6a2.8 2.8 0 0 0-.8 2.1V21"/></svg></div>
-            <div class="pmeta"><div class="pname">GitHub</div><div class="pval">What you're building</div></div>
-          </div>
-          <div class="platform">
-            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3z"/></svg></div>
-            <div class="pmeta"><div class="pname">YouTube</div><div class="pval">What you watch</div></div>
-          </div>
-        </div>
-        <p class="platforms-note">You'll sign in and connect these next, inside TwinMe.</p>
+        <p class="platforms-note">After you sign in, I'll take a moment to look you up — then your twin is ready.</p>
       </div>
     </section>
   </main>
@@ -618,7 +600,7 @@
     var API_BASE = "https://twinme.me/api";
     // v3: native-first flow (name -> permissions -> observe -> "here's what I
     // noticed" -> sign-in handoff). Bumped key so users of v2 see it once.
-    var FLAG = "twinme_desktop_onboarded_v5"; // v5: liquid-glass restyle (saturate + platform shadow/radius) — re-show once
+    var FLAG = "twinme_desktop_onboarded_v6"; // v6: removed platform cards + "look you up" after sign-in — re-show once
     var NAME_KEY = "twinme_desktop_name";
     var ALIASES_KEY = "twinme_desktop_aliases";
     var TOTAL = 8;
@@ -957,7 +939,7 @@
     // the twinme:// deep link, which the app routes to /oauth/callback.
     function continueWithGoogle() {
       var hint = document.getElementById("auth-hint");
-      var url = API_BASE + "/auth/oauth/google?desktop=true";
+      var url = API_BASE + "/auth/oauth/google?desktop=true&redirect=/soul-reveal";
       try { localStorage.setItem(FLAG, "1"); } catch (e) { /* ignore */ }
       if (HAS_TAURI) {
         invoke("open_external", { url: url })
