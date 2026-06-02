@@ -386,6 +386,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   const signInWithOAuth = async (provider: 'google', redirectAfterAuth?: string) => {
+    // Desktop (Tauri): Google blocks OAuth inside the embedded webview, so open
+    // the user's real browser instead. The backend (?desktop=true) returns via
+    // the twinme:// deep link, which the desktop app routes to
+    // /oauth/callback?auth_code=... (the claim path — no CSRF nonce needed).
+    // No-op in a normal browser (window.__TAURI__ is undefined).
+    const desktopInvoke = (window as unknown as {
+      __TAURI__?: { core?: { invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown> } };
+    }).__TAURI__?.core?.invoke;
+    if (typeof desktopInvoke === 'function') {
+      const dParams = new URLSearchParams({ desktop: 'true' });
+      if (redirectAfterAuth) dParams.set('redirect', redirectAfterAuth);
+      const dInvite = sessionStorage.getItem('beta_invite_code');
+      if (dInvite) dParams.set('invite', dInvite);
+      if (sessionStorage.getItem('twinme_discovery_confirmed') === 'true') dParams.set('discovery', 'true');
+      try {
+        await desktopInvoke('open_external', { url: `${API_URL}/auth/oauth/${provider}?${dParams.toString()}` });
+        return;
+      } catch (err) {
+        console.warn('[auth] desktop open_external failed; falling back to in-webview redirect', err);
+        // fall through to the standard web redirect below
+      }
+    }
+
     // Build OAuth URL with query parameters
     let oauthUrl = `${API_URL}/auth/oauth/${provider}`;
     const params = new URLSearchParams();
