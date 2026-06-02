@@ -427,6 +427,11 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
   // The snapshot (recovery / HRV / RHR / sleep) is already in
   // platformData.whoop from the cache; analytics is the per-turn addon.
   //
+  // The merge is done LOCALLY on the returned platformData via a
+  // shallow copy so downstream callers (twinPromptAssembly →
+  // buildTwinSystemPrompt) see w.analytics, while the cached entry
+  // stays pristine for the next turn's different message.
+  //
   // Backend-agnostic — getValidAccessToken returns a real Whoop API
   // token whether the storage is Nango-relayed or our own OAuth row.
   let whoopAnalytics = null;
@@ -452,12 +457,23 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     }
   }
 
+  // Shallow-copy platformData so we can attach analytics for the
+  // current turn without mutating the cached entry (next turn has a
+  // different message and needs different analytics).
+  let returnedPlatformData = platformData;
+  if (whoopAnalytics?.summary && platformData?.whoop) {
+    returnedPlatformData = {
+      ...platformData,
+      whoop: { ...platformData.whoop, analytics: whoopAnalytics },
+    };
+  }
+
   timings._postProcessingMs = Date.now() - postProcessingStart;
   log.info('Context build complete', { totalMs: Date.now() - ctxStart, timings });
 
   return {
     soulSignature,
-    platformData,
+    platformData: returnedPlatformData,
     whoopAnalytics,
     writingProfile,
     memories,
