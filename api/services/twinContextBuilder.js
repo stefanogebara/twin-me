@@ -420,12 +420,45 @@ async function fetchTwinContext(userId, userMessage, options = {}) {
     }
   }
 
+  // Whoop analytics escalation. Lives OUTSIDE _fetchPlatformData so it
+  // (a) has access to userMessage, which the cached platform fetchers
+  // don't see, and (b) doesn't mutate the platformDataCache (the user's
+  // next turn has a different message and needs different analytics).
+  // The snapshot (recovery / HRV / RHR / sleep) is already in
+  // platformData.whoop from the cache; analytics is the per-turn addon.
+  //
+  // Backend-agnostic — getValidAccessToken returns a real Whoop API
+  // token whether the storage is Nango-relayed or our own OAuth row.
+  let whoopAnalytics = null;
+  if (platformData?.whoop && userMessage) {
+    try {
+      const intent = detectWhoopIntent(userMessage);
+      if (intent.kind && intent.kind !== 'snapshot') {
+        const whoopAnalyticsStart = Date.now();
+        const tok = await getValidAccessToken(userId, 'whoop');
+        if (tok.success && tok.accessToken) {
+          const analyticsPromise = runWhoopAnalytics(intent, tok.accessToken);
+          const timeoutPromise = new Promise((resolve) =>
+            setTimeout(() => resolve(null), WHOOP_ANALYTICS_TIMEOUT_MS),
+          );
+          whoopAnalytics = await Promise.race([analyticsPromise, timeoutPromise]);
+        }
+        timings.whoopAnalyticsMs = Date.now() - whoopAnalyticsStart;
+        timings.whoopAnalyticsKind = intent.kind;
+        timings.whoopAnalyticsHit = whoopAnalytics?.summary ? 'yes' : 'no';
+      }
+    } catch (err) {
+      log.warn(`Whoop analytics escalation failed: ${err?.message ?? err}`);
+    }
+  }
+
   timings._postProcessingMs = Date.now() - postProcessingStart;
   log.info('Context build complete', { totalMs: Date.now() - ctxStart, timings });
 
   return {
     soulSignature,
     platformData,
+    whoopAnalytics,
     writingProfile,
     memories,
     twinSummary,
@@ -1005,32 +1038,6 @@ async function _fetchSinglePlatform(userId, platform) {
                 restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
                 fetchedAt: new Date().toISOString()
               };
-            }
-          }
-
-          // Analytics escalation. Lives OUTSIDE the Nango/direct branches
-          // so both backends fire it — getValidAccessToken returns a real
-          // Whoop API token for either storage backend, and the analytics
-          // tools always go through that token regardless of which path
-          // built the snapshot. Phase-2 prod eval (2026-06-02) caught the
-          // earlier bug where this was nested inside the direct-OAuth
-          // branch only — Nango users (most of prod) got snapshot but no
-          // analytics, and the twin kept replying "I haven't picked up on
-          // that trend yet".
-          if (data.whoop) {
-            const intent = detectWhoopIntent(userMessage);
-            if (intent.kind && intent.kind !== 'snapshot') {
-              const tokenForAnalytics = await getValidAccessToken(userId, 'whoop');
-              if (tokenForAnalytics.success && tokenForAnalytics.accessToken) {
-                const analyticsPromise = runWhoopAnalytics(intent, tokenForAnalytics.accessToken);
-                const timeoutPromise = new Promise((resolve) =>
-                  setTimeout(() => resolve(null), WHOOP_ANALYTICS_TIMEOUT_MS),
-                );
-                const analytics = await Promise.race([analyticsPromise, timeoutPromise]);
-                if (analytics?.summary) {
-                  data.whoop.analytics = analytics;
-                }
-              }
             }
           }
         } catch (whoopErr) {

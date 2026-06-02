@@ -201,7 +201,20 @@ router.post('/message', authenticateUser, async (req, res) => {
       });
     }
     const contextBuildMs = Date.now() - chatStartTime;
-    const { soulSignature, platformData, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals, directives } = twinContext;
+    let { soulSignature, platformData, writingProfile, memories, twinSummary, proactiveInsights, enrichmentContext, voiceExamples, activeGoals, patterns, identityContext, calibrationContext, nudgeHistory, departmentProposals, directives } = twinContext;
+    const { whoopAnalytics } = twinContext;
+
+    // Per-turn Whoop analytics escalation — the context builder computes
+    // trend/weekly/compare from the user's message but keeps the result
+    // OUT of platformData (which is cached up to 30 min). Merge it into a
+    // shallow copy of platformData.whoop so the prompt builder sees it
+    // via the existing w.analytics path without polluting the cache.
+    if (platformData?.whoop && whoopAnalytics?.summary) {
+      platformData = {
+        ...platformData,
+        whoop: { ...platformData.whoop, analytics: whoopAnalytics },
+      };
+    }
 
     // Inject platform activity priorities into platformData for system prompt
     try {
