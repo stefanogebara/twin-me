@@ -1002,15 +1002,24 @@ async function _fetchSinglePlatform(userId, platform) {
                 restingHR: latestRecovery?.score?.resting_heart_rate ? Math.round(latestRecovery.score.resting_heart_rate) : null,
                 fetchedAt: new Date().toISOString()
               };
+            }
+          }
 
-              // Analytics escalation: if the user's message asks for a
-              // trend / weekly summary / comparison, run that tool now
-              // and attach the formatted string. Snapshot above is the
-              // baseline; analytics only fires when the intent detector
-              // says the question warrants it.
-              const intent = detectWhoopIntent(userMessage);
-              if (intent.kind && intent.kind !== 'snapshot') {
-                const analyticsPromise = runWhoopAnalytics(intent, tokenResult.accessToken);
+          // Analytics escalation. Lives OUTSIDE the Nango/direct branches
+          // so both backends fire it — getValidAccessToken returns a real
+          // Whoop API token for either storage backend, and the analytics
+          // tools always go through that token regardless of which path
+          // built the snapshot. Phase-2 prod eval (2026-06-02) caught the
+          // earlier bug where this was nested inside the direct-OAuth
+          // branch only — Nango users (most of prod) got snapshot but no
+          // analytics, and the twin kept replying "I haven't picked up on
+          // that trend yet".
+          if (data.whoop) {
+            const intent = detectWhoopIntent(userMessage);
+            if (intent.kind && intent.kind !== 'snapshot') {
+              const tokenForAnalytics = await getValidAccessToken(userId, 'whoop');
+              if (tokenForAnalytics.success && tokenForAnalytics.accessToken) {
+                const analyticsPromise = runWhoopAnalytics(intent, tokenForAnalytics.accessToken);
                 const timeoutPromise = new Promise((resolve) =>
                   setTimeout(() => resolve(null), WHOOP_ANALYTICS_TIMEOUT_MS),
                 );
