@@ -168,26 +168,35 @@ describe('detectWhoopIntent', () => {
       expect(result.periodA).toBe('last month');
       expect(result.periodB).toBe('this month');
     });
-    it('matches "compared to last week"', () => {
+    it('downgrades single-period "compared to last week" to trend, not a broken compare', () => {
+      // Regression: live eval (2026-06-02) hit "Periods overlap" because
+      // the detector invented "last 30 days" as periodA for "last week".
+      // Right behaviour: only one period named → fall through to trend
+      // with days derived from the named period.
       const result = detectWhoopIntent('how is my hrv compared to last week');
-      expect(result.kind).toBe('compare');
-      expect(result.periodB).toBe('last week');
+      expect(result.kind).toBe('trend');
+      expect(result.metric).toBe('hrv');
+      expect(result.days).toBe(7);
     });
-    it('matches "better than last month" for strain', () => {
+    it('downgrades single-period "better than last month" for strain to trend', () => {
       const result = detectWhoopIntent('is my strain better than last month');
-      expect(result.kind).toBe('compare');
+      expect(result.kind).toBe('trend');
       expect(result.metric).toBe('strain');
+      expect(result.days).toBe(30);
     });
     it('matches "versus" spelling', () => {
       const result = detectWhoopIntent('recovery this week versus last week');
       expect(result.kind).toBe('compare');
     });
-    it('falls back to snapshot when "compare" appears but no period names found', () => {
+    it('falls back to trend when "compare" appears but no period names found', () => {
       // "compare my recovery" — no two periods named — should NOT be a
-      // broken compare. With no trend or weekly signal either, the
-      // detector falls through to snapshot (today's data is enough).
+      // broken compare. The compare branch internally downgrades to
+      // trend with sensible defaults (30 days) so the twin still gets
+      // numerical context instead of just today's snapshot.
       const result = detectWhoopIntent('compare my recovery');
-      expect(result.kind).toBe('snapshot');
+      expect(result.kind).toBe('trend');
+      expect(result.metric).toBe('recovery');
+      expect(result.days).toBe(30);
     });
     it('does NOT match "compare" without a Whoop noun', () => {
       expect(detectWhoopIntent('compare these two recipes')).toEqual({ kind: null });

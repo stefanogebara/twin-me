@@ -182,10 +182,13 @@ function extractPeriodPair(text) {
 
   if (kept.length === 0) return null;
   if (kept.length === 1) {
-    // Single period named; partner it with a conventional "older" baseline
-    // so callers can always run a real compare. We pick the newer period
-    // as the named one (kept[0]) and the prior 30-day window as periodA.
-    return { periodA: 'last 30 days', periodB: kept[0].expr };
+    // Only ONE period named — we deliberately bail. Any default partner
+    // we invent ("last 30 days", "the week before", etc.) either overlaps
+    // the named period or projects a frame the user didn't ask for. The
+    // caller (detectWhoopIntent) sees `null` here and falls through to
+    // trend, which delivers the named period's stats — enough info for
+    // the twin to frame the answer as a comparison in prose.
+    return null;
   }
 
   // Two+ periods named. Order chronologically — for our supported
@@ -242,9 +245,18 @@ export function detectWhoopIntent(message) {
         metric: extractMetric(text),
       };
     }
-    // Compare worded but no periods named → fall through. If there's a
-    // separate trend/weekly signal in the message the lower branches
-    // will pick it up; otherwise snapshot is a safe default.
+    // Single (or zero) period named. We deliberately don't invent a
+    // partner — see extractPeriodPair for the rationale. Frame the
+    // question as a trend over whatever period IS named (extractDays
+    // pulls "last week" → 7, "last month" → 30, etc.) so the twin still
+    // gets numbers to reason about even though we can't compute the
+    // delta. If the user really wanted a comparison they can name both
+    // periods in the next turn.
+    return {
+      kind: 'trend',
+      metric: extractMetric(text),
+      days: extractDays(text),
+    };
   }
 
   // 2. Trend. Same noun-gate as compare.
