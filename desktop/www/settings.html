@@ -7,7 +7,7 @@
 <link rel="icon" href="flower.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
     --background: #13121a;
@@ -20,15 +20,17 @@
     --primary: #f5f5f4;
     --primary-foreground: #110f0f;
     --serif: "Instrument Serif", Georgia, serif;
-    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --sans: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   }
   * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
   html, body {
     margin: 0; min-height: 100%;
     background-color: var(--background);
     background-image:
-      radial-gradient(ellipse 90% 70% at 12% 0%, rgba(210, 145, 55, 0.20) 0%, transparent 60%),
-      radial-gradient(ellipse 80% 70% at 95% 100%, rgba(55, 45, 140, 0.16) 0%, transparent 60%);
+      radial-gradient(ellipse 90% 70% at 12% 8%, rgba(210, 145, 55, 0.38) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 60% at 88% 12%, rgba(180, 110, 65, 0.30) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 70% at 50% 108%, rgba(160, 95, 55, 0.34) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 80% at 95% 55%, rgba(55, 45, 140, 0.28) 0%, transparent 60%);
     background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--sans);
@@ -43,11 +45,12 @@
   .card {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 18px;
     margin-bottom: 14px;
-    backdrop-filter: blur(42px);
-    -webkit-backdrop-filter: blur(42px);
+    backdrop-filter: blur(42px) saturate(140%);
+    -webkit-backdrop-filter: blur(42px) saturate(140%);
+    box-shadow: 0 4px 4px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
   .card h2 {
     font-family: var(--sans); font-size: 12px; font-weight: 600;
