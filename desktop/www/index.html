@@ -173,6 +173,23 @@
     max-width: 500px;
   }
 
+  /* ---- Name / preferences fields ---- */
+  .fields { margin: 26px auto 0; max-width: 420px; }
+  .field { text-align: left; }
+  .field + .field { margin-top: 14px; }
+  .field label { display: block; font-size: 12px; color: var(--text-muted); margin: 0 0 6px; }
+  .field input {
+    width: 100%;
+    font-family: var(--sans); font-size: 15px; color: var(--foreground);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px; padding: 11px 14px;
+    outline: none; transition: border-color 0.2s ease, background 0.2s ease;
+    -webkit-user-select: text; user-select: text;
+  }
+  .field input::placeholder { color: #57534e; }
+  .field input:focus { border-color: rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.10); }
+
   /* Value / permission cards */
   .cards { display: flex; flex-direction: column; gap: 12px; margin: 26px auto 0; max-width: 540px; }
   .card {
@@ -233,8 +250,16 @@
   }
   .enabled-pill svg { width: 16px; height: 16px; stroke: var(--accent-glyph); }
   .enable-btn.working { opacity: 0.6; }
+  .perm-skip {
+    display: block; margin: 14px auto 0;
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-family: var(--sans);
+    font-size: 13px; font-weight: 500; padding: 4px 8px;
+    transition: color 0.2s ease;
+  }
+  .perm-skip:hover { color: var(--foreground); }
 
-  /* ---- Live observe (screen 3) ---- */
+  /* ---- Live observe (countdown) ---- */
   .observe-stage { margin: 22px auto 0; max-width: 520px; }
   .radar {
     position: relative;
@@ -275,35 +300,31 @@
   .observe-status { font-size: 14px; color: var(--text-secondary); margin: 0 0 4px; min-height: 20px; }
   .observe-count { font-family: var(--serif); font-size: 30px; letter-spacing: -0.02em; color: var(--foreground); margin: 0; }
 
-  /* Result rows (apps noticed) */
-  .results { display: flex; flex-direction: column; gap: 9px; margin: 18px auto 0; max-width: 460px; text-align: left; }
-  .result-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    padding: 11px 14px;
-    backdrop-filter: blur(42px);
-    -webkit-backdrop-filter: blur(42px);
-    opacity: 0;
-    transform: translateY(8px);
-    animation: rowin 0.4s ease forwards;
+  /* ---- Observe payoff: "here's what I noticed" summary ---- */
+  .summary-host { margin: 22px auto 0; max-width: 520px; }
+  .observe-thinking { font-size: 14px; color: var(--text-secondary); margin: 12px auto 0; }
+  .summary-card {
+    text-align: left; margin: 0 auto;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 20px; padding: 20px 22px;
+    backdrop-filter: blur(42px); -webkit-backdrop-filter: blur(42px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
-  @keyframes rowin { to { opacity: 1; transform: translateY(0); } }
-  .result-row .dot {
-    flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--accent-glyph); box-shadow: 0 0 8px rgba(231, 176, 106, 0.5);
+  .summary-text { font-size: 15px; line-height: 1.62; color: var(--narrative); margin: 0; white-space: pre-line; }
+  .summary-insight {
+    font-size: 14.5px; line-height: 1.55; color: var(--foreground);
+    margin: 16px 0 0; padding: 13px 15px;
+    background: rgba(193, 126, 44, 0.10);
+    border: 1px solid rgba(193, 126, 44, 0.22);
+    border-radius: 12px;
   }
-  .result-row .ra { flex: 0 0 auto; font-size: 13.5px; font-weight: 600; color: var(--foreground); }
-  .result-row .rt {
-    flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: var(--text-muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
+  .apps-chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 0; }
+  .apps-chips .clabel { width: 100%; font-size: 12px; color: var(--text-muted); margin: 0 0 2px; }
+  .apps-chips .chip {
+    font-size: 12px; color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
+    border-radius: 100px; padding: 5px 11px;
   }
-  .results-label { font-size: 13.5px; color: var(--narrative); margin: 0 0 2px; font-weight: 500; }
-
-  .hint { font-size: 13px; color: var(--text-muted); margin: 14px auto 0; max-width: 380px; line-height: 1.5; }
   .look-again {
     margin: 14px auto 0;
     font-family: var(--sans); font-size: 13px; font-weight: 600;
@@ -314,12 +335,12 @@
   }
   .look-again:hover { background: rgba(255, 255, 255, 0.10); transform: translateY(-1px); }
 
-  /* ---- Connect platforms grid (screen 4) ---- */
+  /* ---- Connect platforms preview (final handoff) ---- */
   .platforms {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 11px;
-    margin: 24px auto 0;
+    margin: 22px auto 0;
     max-width: 540px;
   }
   .platform {
@@ -329,7 +350,7 @@
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
-    padding: 13px 14px;
+    padding: 12px 14px;
     backdrop-filter: blur(42px);
     -webkit-backdrop-filter: blur(42px);
     text-align: left;
@@ -341,7 +362,9 @@
     border: 1px solid rgba(193, 126, 44, 0.20);
   }
   .platform .glyph svg { width: 16px; height: 16px; stroke: var(--accent-glyph); }
-  .platform .pname { font-size: 13.5px; font-weight: 500; color: var(--foreground); }
+  .platform .pmeta { min-width: 0; }
+  .platform .pname { font-size: 13.5px; font-weight: 600; color: var(--foreground); }
+  .platform .pval { font-size: 11.5px; line-height: 1.4; color: var(--text-muted); }
   .platforms-note { font-size: 12.5px; color: var(--text-muted); margin: 16px auto 0; }
 
   /* ---- Footer: CTA + progress ---- */
@@ -413,48 +436,52 @@
       </div>
     </section>
 
-    <!-- 1. What the desktop unlocks -->
+    <!-- 1. What should I call you? -->
     <section class="screen" data-step="1">
       <div class="content">
-        <h2>What the desktop unlocks</h2>
-        <p class="sub">Things a browser tab simply cannot do.</p>
-        <div class="cards">
-          <div class="card">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">On-device meeting notes</div>
-              <div class="desc">Local Whisper transcribes your calls right on this machine. The audio never leaves it.</div>
-            </div>
+        <h2>What should I call you?</h2>
+        <p class="sub">I'll use this when we talk. You can change it later in TwinMe.</p>
+        <div class="fields">
+          <div class="field">
+            <label for="name-input">Your name</label>
+            <input id="name-input" type="text" autocomplete="given-name" placeholder="e.g. Stefano" maxlength="60" />
           </div>
-          <div class="card">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Context awareness</div>
-              <div class="desc">TwinMe quietly notes the app you are focused on, so your twin learns from real life, not just chat.</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">One keystroke away</div>
-              <div class="desc">Summon your twin from anywhere with Ctrl + Shift + T, over any other app.</div>
-            </div>
+          <div class="field">
+            <label for="aliases-input">Other names you go by (optional)</label>
+            <input id="aliases-input" type="text" placeholder="usernames, nicknames, handles" maxlength="120" />
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 2. Permissions -->
+    <!-- 2. Context awareness -->
     <section class="screen" data-step="2">
       <div class="content">
-        <h2>A couple of permissions</h2>
-        <p class="sub">You stay in control. TwinMe asks only when a feature needs it, and you can change your mind anytime in your settings.</p>
+        <h2>Context awareness</h2>
+        <p class="sub">So your twin learns from real life, not just chat.</p>
+        <div class="cards">
+          <div class="card perm">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">Notice the apps I focus on</div>
+              <div class="desc">Text only — the app name and window title, never what you type and never screen recording. You control which apps to include and can delete everything anytime in Settings.</div>
+            </div>
+            <div class="perm-action" id="perm-ctx-action">
+              <button class="enable-btn" id="perm-ctx-btn">Enable</button>
+            </div>
+          </div>
+        </div>
+        <button class="perm-skip" id="ctx-skip">Set up later</button>
+      </div>
+    </section>
+
+    <!-- 3. Microphone -->
+    <section class="screen" data-step="3">
+      <div class="content">
+        <h2>On-device meeting notes</h2>
+        <p class="sub">Optional. Local transcription of your calls — the audio never leaves this machine, and only during meetings you choose.</p>
         <div class="cards">
           <div class="card perm">
             <div class="glyph">
@@ -462,97 +489,94 @@
             </div>
             <div class="body">
               <div class="title">Microphone</div>
-              <div class="desc">For on-device meeting notes.</div>
+              <div class="desc">For on-device meeting notes. Never shared or stored remotely.</div>
             </div>
             <div class="perm-action" id="perm-mic-action">
               <button class="enable-btn" id="perm-mic-btn">Enable</button>
             </div>
           </div>
-          <div class="card perm">
-            <div class="glyph">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg>
-            </div>
-            <div class="body">
-              <div class="title">Context awareness</div>
-              <div class="desc">So your twin learns from the apps you use.</div>
-            </div>
-            <div class="perm-action" id="perm-ctx-action">
-              <button class="enable-btn" id="perm-ctx-btn">Enable</button>
-            </div>
-          </div>
         </div>
+        <button class="perm-skip" id="mic-skip">Set up later</button>
       </div>
     </section>
 
-    <!-- 3. Live observe (centerpiece) -->
-    <section class="screen" data-step="3">
-      <div class="content">
-        <h2>Watch your twin learn</h2>
-        <p class="sub">Use your computer normally for a moment — switch between a few apps. TwinMe is noticing, all on this machine.</p>
-
-        <div class="observe-stage" id="observe-stage">
-          <!-- Observing state -->
-          <div id="observe-active">
-            <div class="radar">
-              <span class="ring"></span><span class="ring"></span><span class="ring"></span>
-              <span class="core">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </span>
-            </div>
-            <p class="observe-status">Observing your activity</p>
-            <p class="observe-count" id="observe-count"></p>
-          </div>
-
-          <!-- Results state (filled in by JS) -->
-          <div id="observe-results" style="display:none;"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 4. Connect your world -->
+    <!-- 4. One keystroke away -->
     <section class="screen" data-step="4">
       <div class="content">
-        <h2>Connect your world</h2>
-        <p class="sub">Your twin gets sharper with every signal.</p>
+        <h2>One keystroke away</h2>
+        <p class="sub">Summon your twin over any other app, whenever you need it.</p>
+        <div class="cards">
+          <div class="card">
+            <div class="glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>
+            </div>
+            <div class="body">
+              <div class="title">Press Ctrl + Shift + T</div>
+              <div class="desc">A quick panel opens over whatever you're doing. Ask a question, capture a thought, then get back to work.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Use your computer normally (observe countdown) -->
+    <section class="screen" data-step="5">
+      <div class="content">
+        <h2>Use your computer normally</h2>
+        <p class="sub">Switch between a couple of apps and work like you usually would. I'm noticing — all on this machine.</p>
+        <div class="observe-stage">
+          <div class="radar">
+            <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+            <span class="core">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </span>
+          </div>
+          <p class="observe-status">Observing your activity</p>
+          <p class="observe-count" id="observe-count"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Here's what I noticed (LLM summary) -->
+    <section class="screen" data-step="6">
+      <div class="content">
+        <h2 id="observe-heading">Here's what I noticed</h2>
+        <p class="sub">A first glimpse, from the apps and windows I saw. I get sharper the more we work together.</p>
+        <div class="summary-host" id="summary-host"></div>
+      </div>
+    </section>
+
+    <!-- 7. Sign in & connect (handoff to twinme.me) -->
+    <section class="screen" data-step="7">
+      <div class="content">
+        <h2 id="ready-heading">Keep your twin</h2>
+        <p class="lede">Sign in to save what I've learned and connect your world. Everything stays on your terms.</p>
         <div class="platforms">
           <div class="platform">
             <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 13c2.3-.7 4.8-.4 6.8.9M8.5 16c1.6-.5 3.3-.3 4.7.7"/></svg></div>
-            <span class="pname">Spotify</span>
+            <div class="pmeta"><div class="pname">Spotify</div><div class="pval">Your taste and moods</div></div>
           </div>
           <div class="platform">
             <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
-            <span class="pname">Google Calendar</span>
+            <div class="pmeta"><div class="pname">Calendar</div><div class="pval">The shape of your week</div></div>
           </div>
           <div class="platform">
             <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4 1.2-4-2.2-5.5-2.8M15 21v-3.3a2.8 2.8 0 0 0-.8-2.2c2.7-.3 5.5-1.3 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 0 0-6 0C7 1.5 6 1.8 6 1.8a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.5 8.3c0 4.6 2.8 5.6 5.5 6a2.8 2.8 0 0 0-.8 2.1V21"/></svg></div>
-            <span class="pname">GitHub</span>
+            <div class="pmeta"><div class="pname">GitHub</div><div class="pval">What you're building</div></div>
           </div>
           <div class="platform">
             <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3z"/></svg></div>
-            <span class="pname">YouTube</span>
-          </div>
-          <div class="platform">
-            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5a16 16 0 0 0-4-1l-.3.6a13 13 0 0 1 3.6 1.1 14 14 0 0 0-10.6 0A13 13 0 0 1 10.3 4.6L10 4a16 16 0 0 0-4 1C3.5 8.6 2.8 12.2 3 15.7A16 16 0 0 0 7.9 18l.6-1a10 10 0 0 1-1.6-.8l.4-.3a11 11 0 0 0 9.4 0l.4.3a10 10 0 0 1-1.6.8l.6 1a16 16 0 0 0 4.9-2.3c.3-4-.8-7.6-3.4-10.7ZM9.3 13.6c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.4 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Z"/></svg></div>
-            <span class="pname">Discord</span>
+            <div class="pmeta"><div class="pname">YouTube</div><div class="pval">What you watch</div></div>
           </div>
         </div>
-        <p class="platforms-note">You'll connect these next, inside TwinMe.</p>
-      </div>
-    </section>
-
-    <!-- 5. Ready -->
-    <section class="screen" data-step="5">
-      <div class="content">
-        <div class="flower-wrap"><img src="flower.png" alt="TwinMe" /></div>
-        <h2>Your twin is ready</h2>
-        <p class="lede">Everything happens on your terms, here on this machine. Sign in to connect your world and start a conversation that actually knows you.</p>
+        <p class="platforms-note">You'll sign in and connect these next, inside TwinMe.</p>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <button class="cta" id="cta">Get started</button>
-    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b></div>
+    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
   </footer>
   <button class="back" id="back">Back</button>
 </div>
@@ -562,24 +586,30 @@
     "use strict";
 
     var APP_URL = "https://twinme.me";
-    // v2: this richer onboarding supersedes the original 4-screen flow, so we
-    // bump the flag key to show it again to users who passed the old version.
-    var FLAG = "twinme_desktop_onboarded_v2";
-    var TOTAL = 6;
-    var OBSERVE_MS = 40000; // ~40s "observing" demo
+    var API_BASE = "https://twinme.me/api";
+    // v3: native-first flow (name -> permissions -> observe -> "here's what I
+    // noticed" -> sign-in handoff). Bumped key so users of v2 see it once.
+    var FLAG = "twinme_desktop_onboarded_v3";
+    var NAME_KEY = "twinme_desktop_name";
+    var ALIASES_KEY = "twinme_desktop_aliases";
+    var TOTAL = 8;
+    var OBSERVE_MS = 75000;     // ~75s "observing" demo
+    var SKIP_AFTER_MS = 20000;  // allow an early "Skip ahead" after 20s
     var step = 0;
+    var userName = "";
 
-    // Returning users (who have seen THIS v2 onboarding) skip to the app.
+    // Returning users (who have seen THIS v3 onboarding) skip straight to the app.
     try {
       if (localStorage.getItem(FLAG) === "1") {
         window.location.replace(APP_URL);
         return;
       }
+      userName = (localStorage.getItem(NAME_KEY) || "").trim();
     } catch (e) { /* localStorage may be unavailable; show onboarding */ }
 
     // Tauri injects window.__TAURI__ in the desktop app (withGlobalTauri). In a
-    // plain browser (verification) it is absent — fall back to a resolved
-    // promise so the page still renders and advances without errors.
+    // plain browser (verification) it is absent — fall back to resolved promises
+    // and mock data so the page still renders and advances without errors.
     var tauriCore = window.__TAURI__ && window.__TAURI__.core;
     var HAS_TAURI = !!(tauriCore && typeof tauriCore.invoke === "function");
     function invoke(cmd, args) {
@@ -594,7 +624,14 @@
     var back = document.getElementById("back");
     var skip = document.getElementById("skip");
 
-    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Open TwinMe"];
+    //                 0            1           2           3           4           5              6           7
+    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Observing…", "Continue", "Sign in to TwinMe"];
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
 
     function render() {
       for (var i = 0; i < screens.length; i++) {
@@ -605,8 +642,39 @@
       }
       cta.textContent = CTA_LABELS[step];
       cta.disabled = false;
-      back.classList.toggle("show", step > 0);
-      if (step === 3) startObserve();
+      // Hide Back during the observe countdown and the summary reveal so the
+      // "noticing" moment isn't interrupted mid-flight.
+      back.classList.toggle("show", step > 0 && step !== 5 && step !== 6);
+
+      if (step === 1) { setTimeout(focusName, 80); }
+      if (step === 6) { setReadyHeadings(); }
+      if (step === 7) { setReadyHeadings(); }
+      if (step === 5) { startObserve(); }
+      if (step === 6) { loadSummary(); }
+    }
+
+    function focusName() {
+      var el = document.getElementById("name-input");
+      if (!el) return;
+      if (userName && !el.value) el.value = userName;
+      try { el.focus(); } catch (e) { /* ignore */ }
+    }
+
+    function setReadyHeadings() {
+      var oh = document.getElementById("observe-heading");
+      var rh = document.getElementById("ready-heading");
+      if (oh) oh.textContent = "Here's what I noticed" + (userName ? ", " + userName : "");
+      if (rh) rh.textContent = userName ? "Keep your twin, " + userName : "Keep your twin";
+    }
+
+    function captureName() {
+      var el = document.getElementById("name-input");
+      var al = document.getElementById("aliases-input");
+      if (el) userName = (el.value || "").trim().slice(0, 60);
+      try {
+        if (userName) localStorage.setItem(NAME_KEY, userName);
+        if (al && al.value.trim()) localStorage.setItem(ALIASES_KEY, al.value.trim().slice(0, 120));
+      } catch (e) { /* ignore */ }
     }
 
     function launch() {
@@ -616,6 +684,7 @@
     }
 
     function next() {
+      if (step === 1) captureName();
       if (step >= TOTAL - 1) { launch(); return; }
       step++;
       render();
@@ -626,7 +695,7 @@
       render();
     }
 
-    /* ---------- Screen 2: permissions ---------- */
+    /* ---------- Screen 2/3: permissions ---------- */
     function markEnabled(actionId) {
       var holder = document.getElementById(actionId);
       if (!holder) return;
@@ -636,27 +705,11 @@
         'Enabled</span>';
     }
 
-    var micBtn = document.getElementById("perm-mic-btn");
-    micBtn.addEventListener("click", function () {
-      micBtn.disabled = true;
-      micBtn.classList.add("working");
-      micBtn.textContent = "Requesting";
-      invoke("request_mic_permission")
-        .then(function () { markEnabled("perm-mic-action"); })
-        .catch(function (err) {
-          console.warn("[onboarding] mic permission failed:", err);
-          // Let the user retry rather than dead-ending.
-          micBtn.disabled = false;
-          micBtn.classList.remove("working");
-          micBtn.textContent = "Try again";
-        });
-    });
-
     var ctxBtn = document.getElementById("perm-ctx-btn");
     ctxBtn.addEventListener("click", function () {
       ctxBtn.disabled = true;
       ctxBtn.classList.add("working");
-      // Enabling context capture = un-pausing the indexer.
+      // Enabling context capture = un-pausing the local indexer.
       invoke("settings_set_paused", { paused: false })
         .then(function () { markEnabled("perm-ctx-action"); })
         .catch(function (err) {
@@ -667,37 +720,40 @@
         });
     });
 
-    /* ---------- Screen 3: live observe ---------- */
+    var micBtn = document.getElementById("perm-mic-btn");
+    micBtn.addEventListener("click", function () {
+      micBtn.disabled = true;
+      micBtn.classList.add("working");
+      micBtn.textContent = "Requesting";
+      invoke("request_mic_permission")
+        .then(function () { markEnabled("perm-mic-action"); })
+        .catch(function (err) {
+          console.warn("[onboarding] mic permission failed:", err);
+          micBtn.disabled = false;
+          micBtn.classList.remove("working");
+          micBtn.textContent = "Try again";
+        });
+    });
+
+    document.getElementById("ctx-skip").addEventListener("click", next);
+    document.getElementById("mic-skip").addEventListener("click", next);
+
+    /* ---------- Screen 5: observe countdown ---------- */
     var observeStarted = false;
-    var observeTimer = null;
     var observeTick = null;
-
-    var MOCK_CLIPS = [
-      { app: "Google Chrome", title: "twinme.me" },
-      { app: "Visual Studio Code", title: "" },
-      { app: "Slack", title: "" }
-    ];
-
-    function escapeHtml(s) {
-      return String(s == null ? "" : s)
-        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
+    var observeTimer = null;
+    var observeSkipTimer = null;
+    var advancedFromObserve = false;
 
     function startObserve() {
       if (observeStarted) return;
       observeStarted = true;
+      advancedFromObserve = false;
 
-      var active = document.getElementById("observe-active");
-      var results = document.getElementById("observe-results");
       var countEl = document.getElementById("observe-count");
-      active.style.display = "";
-      results.style.display = "none";
-
-      // Disable advancing while observing; the CTA re-enables when results show.
       cta.disabled = true;
+      cta.textContent = "Observing…";
 
-      // Friendly countdown so the wait feels intentional, not stuck.
       var remaining = Math.round(OBSERVE_MS / 1000);
       countEl.textContent = remaining + "s";
       observeTick = setInterval(function () {
@@ -706,83 +762,174 @@
         countEl.textContent = remaining + "s";
       }, 1000);
 
-      observeTimer = setTimeout(finishObserve, OBSERVE_MS);
+      // After a short while, let impatient users jump to the reveal.
+      observeSkipTimer = setTimeout(function () {
+        cta.disabled = false;
+        cta.textContent = "Skip ahead";
+      }, SKIP_AFTER_MS);
+
+      observeTimer = setTimeout(advanceFromObserve, OBSERVE_MS);
     }
 
-    function finishObserve() {
+    function advanceFromObserve() {
+      if (advancedFromObserve) return;
+      advancedFromObserve = true;
       if (observeTick) { clearInterval(observeTick); observeTick = null; }
+      if (observeSkipTimer) { clearTimeout(observeSkipTimer); observeSkipTimer = null; }
+      if (observeTimer) { clearTimeout(observeTimer); observeTimer = null; }
+      step = 6;
+      render();
+    }
+
+    /* ---------- Screen 6: "here's what I noticed" ---------- */
+    var summaryLoaded = false;
+
+    var MOCK_CLIPS = [
+      { app: "Cursor", title: "server.js — twin-ai-learn" },
+      { app: "Brave", title: "twinme.me" },
+      { app: "Slack", title: "#engineering" }
+    ];
+    var MOCK_SUMMARY = {
+      summary: "You moved between your code editor and the browser on twinme.me, with a quick stop in Slack. It looks like a focused build session.",
+      insight: "I can help you pick this back up tomorrow and keep the thread going."
+    };
+
+    function normalizeClips(raw) {
+      var out = [];
+      if (!Array.isArray(raw)) return out;
+      for (var i = 0; i < raw.length; i++) {
+        var c = raw[i] || {};
+        var app = (c.app || c.app_name || "").toString().trim();
+        var title = (c.title || c.window_title || "").toString().trim();
+        if (app) out.push({ app: app, title: title });
+      }
+      return out;
+    }
+
+    function dedupeClips(clips) {
+      var seen = {};
+      var unique = [];
+      for (var i = 0; i < clips.length && unique.length < 8; i++) {
+        var key = clips[i].app.toLowerCase();
+        if (seen[key]) continue;
+        seen[key] = true;
+        unique.push(clips[i]);
+      }
+      return unique;
+    }
+
+    function chipsHtml(deduped) {
+      if (!deduped.length) return "";
+      var chips = "";
+      for (var i = 0; i < deduped.length; i++) {
+        chips += '<span class="chip">' + escapeHtml(deduped[i].app) + "</span>";
+      }
+      return '<div class="apps-chips"><span class="clabel">Apps I saw</span>' + chips + "</div>";
+    }
+
+    function loadSummary() {
+      if (summaryLoaded) return;
+      summaryLoaded = true;
+      var host = document.getElementById("summary-host");
+      cta.disabled = true;
+      host.innerHTML = '<p class="observe-thinking">Making sense of what I saw…</p>';
+      fetchClipsAndSummarize(host);
+    }
+
+    function fetchClipsAndSummarize(host) {
       invoke("demo_get_clips")
-        .then(function (clips) {
-          // In a plain browser (no Tauri) the command resolves undefined — use
-          // the mock list so the screen still demonstrates the idea.
-          if (!HAS_TAURI || !clips) clips = MOCK_CLIPS;
-          renderObserveResults(clips);
+        .then(function (raw) {
+          var clips = normalizeClips(raw);
+          if (!HAS_TAURI) clips = MOCK_CLIPS.slice();
+          var deduped = dedupeClips(clips);
+          if (deduped.length === 0) { renderObserveEmpty(host); return; }
+          if (!HAS_TAURI) { renderSummary(host, MOCK_SUMMARY, deduped); return; }
+          requestSummary(host, deduped);
         })
         .catch(function (err) {
           console.warn("[onboarding] demo_get_clips failed:", err);
-          renderObserveResults(HAS_TAURI ? [] : MOCK_CLIPS);
+          if (!HAS_TAURI) { renderSummary(host, MOCK_SUMMARY, dedupeClips(MOCK_CLIPS.slice())); return; }
+          renderObserveEmpty(host);
         });
     }
 
-    function renderObserveResults(clips) {
-      var active = document.getElementById("observe-active");
-      var results = document.getElementById("observe-results");
-      active.style.display = "none";
-      results.style.display = "";
-      cta.disabled = false; // observing done — allow Continue
-
-      // De-dupe by app (keep first/most-recent), cap to a tidy list.
-      var seen = {};
-      var unique = [];
-      for (var i = 0; i < clips.length && unique.length < 6; i++) {
-        var c = clips[i] || {};
-        var appName = c.app || "";
-        if (!appName || seen[appName]) continue;
-        seen[appName] = true;
-        unique.push(c);
-      }
-
-      if (unique.length === 0) {
-        results.innerHTML =
-          '<p class="hint">Switch between a couple of apps, then look again.</p>' +
-          '<button class="look-again" id="look-again">Look again</button>';
-        document.getElementById("look-again").addEventListener("click", function () {
-          // Re-run the peek without the full countdown.
-          finishObserve();
+    function requestSummary(host, deduped) {
+      fetch(API_BASE + "/desktop/observe-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: userName, clips: deduped })
+      })
+        .then(function (resp) {
+          if (!resp.ok) throw new Error("http_" + resp.status);
+          return resp.json();
+        })
+        .then(function (data) {
+          if (!data || !data.success || !data.summary) throw new Error("no_summary");
+          renderSummary(host, data, deduped);
+        })
+        .catch(function (err) {
+          console.warn("[onboarding] observe-summary failed:", err);
+          // Never dead-end: build a plain summary from the app names client-side.
+          renderSummaryFallback(host, deduped);
         });
-        return;
-      }
-
-      var rows = "";
-      for (var j = 0; j < unique.length; j++) {
-        var u = unique[j];
-        var title = u.title ? escapeHtml(u.title) : "";
-        rows +=
-          '<div class="result-row" style="animation-delay:' + (j * 0.07) + 's">' +
-          '<span class="dot"></span>' +
-          '<span class="ra">' + escapeHtml(u.app) + '</span>' +
-          (title ? '<span class="rt">' + title + '</span>' : '<span class="rt"></span>') +
-          '</div>';
-      }
-      results.innerHTML =
-        '<p class="results-label">Here\'s what TwinMe noticed:</p>' +
-        '<div class="results">' + rows + '</div>';
     }
 
-    cta.addEventListener("click", next);
+    function renderSummary(host, data, deduped) {
+      host.innerHTML =
+        '<div class="summary-card">' +
+          '<p class="summary-text">' + escapeHtml(data.summary) + "</p>" +
+          (data.insight ? '<p class="summary-insight">' + escapeHtml(data.insight) + "</p>" : "") +
+          chipsHtml(deduped) +
+        "</div>";
+      cta.disabled = false;
+    }
+
+    function renderSummaryFallback(host, deduped) {
+      var apps = deduped.map(function (c) { return c.app; });
+      var list = apps.length === 1
+        ? apps[0]
+        : apps.slice(0, -1).join(", ") + " and " + apps[apps.length - 1];
+      var text = "I noticed you moving between " + list + ". The more you use your machine, the more I'll understand your rhythm.";
+      host.innerHTML =
+        '<div class="summary-card">' +
+          '<p class="summary-text">' + escapeHtml(text) + "</p>" +
+          chipsHtml(deduped) +
+        "</div>";
+      cta.disabled = false;
+    }
+
+    function renderObserveEmpty(host) {
+      host.innerHTML =
+        '<div class="summary-card">' +
+          '<p class="summary-text">I didn\'t catch much just yet. Switch between a couple of apps for a few seconds, then look again.</p>' +
+        "</div>" +
+        '<button class="look-again" id="look-again">Look again</button>';
+      cta.disabled = false; // allow continuing regardless
+      var la = document.getElementById("look-again");
+      if (la) la.addEventListener("click", function () {
+        host.innerHTML = '<p class="observe-thinking">Making sense of what I saw…</p>';
+        fetchClipsAndSummarize(host);
+      });
+    }
+
+    /* ---------- Wiring ---------- */
+    cta.addEventListener("click", function () {
+      if (step === 5) { advanceFromObserve(); return; }
+      next();
+    });
     back.addEventListener("click", prev);
     skip.addEventListener("click", launch);
 
-    // Keyboard: Enter/Right advance, Left/Backspace go back. Respect the
-    // disabled CTA (e.g. mid-observe) so keys can't skip the demo.
     document.addEventListener("keydown", function (ev) {
+      // While typing in a field, only Enter advances; arrows must edit text.
+      if (ev.target && ev.target.tagName === "INPUT") {
+        if (ev.key === "Enter") { ev.preventDefault(); if (!cta.disabled) { if (step === 5) advanceFromObserve(); else next(); } }
+        return;
+      }
       if (ev.key === "Enter" || ev.key === "ArrowRight") {
         ev.preventDefault();
-        if (!cta.disabled) next();
-      } else if (ev.key === "ArrowLeft") {
-        ev.preventDefault();
-        prev();
-      } else if (ev.key === "Backspace") {
+        if (!cta.disabled) { if (step === 5) advanceFromObserve(); else next(); }
+      } else if (ev.key === "ArrowLeft" || ev.key === "Backspace") {
         ev.preventDefault();
         prev();
       }
