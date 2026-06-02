@@ -17,6 +17,7 @@
     --glass-bg: rgba(255, 255, 255, 0.06);
     --glass-border: rgba(255, 255, 255, 0.10);
     --accent-amber: #c17e2c;
+    --accent-glyph: #e7b06a;
     --primary: #f5f5f4;
     --primary-foreground: #110f0f;
     --narrative: rgba(245, 245, 244, 0.9);
@@ -103,17 +104,18 @@
     transform: translateY(14px);
     transition: opacity 0.45s ease, transform 0.45s ease;
     pointer-events: none;
+    overflow-y: auto;
   }
   .screen.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-  .content { width: 100%; max-width: 660px; }
+  .content { width: 100%; max-width: 660px; margin: auto; }
 
   /* Welcome flower */
   .flower-wrap {
     position: relative;
-    width: 150px;
-    height: 150px;
-    margin: 0 auto 26px;
+    width: 132px;
+    height: 132px;
+    margin: 0 auto 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -121,16 +123,16 @@
   .flower-wrap::before {
     content: "";
     position: absolute;
-    width: 210px;
-    height: 210px;
+    width: 196px;
+    height: 196px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(193, 126, 44, 0.34) 0%, transparent 68%);
     filter: blur(18px);
   }
   .flower-wrap img {
     position: relative;
-    width: 150px;
-    height: 150px;
+    width: 132px;
+    height: 132px;
     object-fit: contain;
     filter: drop-shadow(0 6px 22px rgba(0, 0, 0, 0.5));
     animation: float 7s ease-in-out infinite;
@@ -197,34 +199,150 @@
     background: rgba(193, 126, 44, 0.14);
     border: 1px solid rgba(193, 126, 44, 0.22);
   }
-  .card .glyph svg { width: 19px; height: 19px; stroke: #e7b06a; }
+  .card .glyph svg { width: 19px; height: 19px; stroke: var(--accent-glyph); }
   .card .body { flex: 1 1 auto; min-width: 0; }
   .card .title { font-size: 14.5px; font-weight: 600; color: var(--foreground); margin: 1px 0 3px; }
   .card .desc { font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
-  .card .tag {
-    display: inline-block;
-    margin-top: 7px;
-    font-size: 11.5px;
-    font-weight: 500;
-    color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--glass-border);
-    border-radius: 100px;
-    padding: 3px 10px;
-  }
 
-  /* "scanning" ready state */
-  .pulse-row { display: flex; gap: 9px; justify-content: center; margin: 28px 0 4px; }
-  .pulse-row i {
-    width: 9px; height: 9px; border-radius: 50%;
-    background: var(--accent-amber);
-    display: inline-block;
-    animation: pulse 1.4s ease-in-out infinite;
+  /* Permission cards with an Enable button on the right */
+  .card.perm { align-items: center; }
+  .perm-action { flex: 0 0 auto; display: flex; align-items: center; }
+  .enable-btn {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border: none;
+    border-radius: 100px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
   }
-  .pulse-row i:nth-child(2) { animation-delay: 0.18s; }
-  .pulse-row i:nth-child(3) { animation-delay: 0.36s; }
-  .pulse-row i:nth-child(4) { animation-delay: 0.54s; }
-  @keyframes pulse { 0%,100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.15); } }
+  .enable-btn:hover { transform: translateY(-1px); }
+  .enable-btn:disabled { cursor: default; transform: none; }
+  .enabled-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-glyph);
+    white-space: nowrap;
+  }
+  .enabled-pill svg { width: 16px; height: 16px; stroke: var(--accent-glyph); }
+  .enable-btn.working { opacity: 0.6; }
+
+  /* ---- Live observe (screen 3) ---- */
+  .observe-stage { margin: 22px auto 0; max-width: 520px; }
+  .radar {
+    position: relative;
+    width: 116px;
+    height: 116px;
+    margin: 0 auto 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radar .ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(231, 176, 106, 0.45);
+    animation: radar 2.6s ease-out infinite;
+    opacity: 0;
+  }
+  .radar .ring:nth-child(2) { animation-delay: 0.85s; }
+  .radar .ring:nth-child(3) { animation-delay: 1.7s; }
+  @keyframes radar {
+    0% { transform: scale(0.35); opacity: 0.85; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  .radar .core {
+    position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(193, 126, 44, 0.16);
+    border: 1px solid rgba(193, 126, 44, 0.30);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radar .core svg { width: 22px; height: 22px; stroke: var(--accent-glyph); }
+
+  .observe-status { font-size: 14px; color: var(--text-secondary); margin: 0 0 4px; min-height: 20px; }
+  .observe-count { font-family: var(--serif); font-size: 30px; letter-spacing: -0.02em; color: var(--foreground); margin: 0; }
+
+  /* Result rows (apps noticed) */
+  .results { display: flex; flex-direction: column; gap: 9px; margin: 18px auto 0; max-width: 460px; text-align: left; }
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 11px 14px;
+    backdrop-filter: blur(42px);
+    -webkit-backdrop-filter: blur(42px);
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rowin 0.4s ease forwards;
+  }
+  @keyframes rowin { to { opacity: 1; transform: translateY(0); } }
+  .result-row .dot {
+    flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-glyph); box-shadow: 0 0 8px rgba(231, 176, 106, 0.5);
+  }
+  .result-row .ra { flex: 0 0 auto; font-size: 13.5px; font-weight: 600; color: var(--foreground); }
+  .result-row .rt {
+    flex: 1 1 auto; min-width: 0; font-size: 12.5px; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;
+  }
+  .results-label { font-size: 13.5px; color: var(--narrative); margin: 0 0 2px; font-weight: 500; }
+
+  .hint { font-size: 13px; color: var(--text-muted); margin: 14px auto 0; max-width: 380px; line-height: 1.5; }
+  .look-again {
+    margin: 14px auto 0;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    color: var(--foreground);
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 100px; padding: 9px 18px; cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .look-again:hover { background: rgba(255, 255, 255, 0.10); transform: translateY(-1px); }
+
+  /* ---- Connect platforms grid (screen 4) ---- */
+  .platforms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 11px;
+    margin: 24px auto 0;
+    max-width: 540px;
+  }
+  .platform {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 13px 14px;
+    backdrop-filter: blur(42px);
+    -webkit-backdrop-filter: blur(42px);
+    text-align: left;
+  }
+  .platform .glyph {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(193, 126, 44, 0.12);
+    border: 1px solid rgba(193, 126, 44, 0.20);
+  }
+  .platform .glyph svg { width: 16px; height: 16px; stroke: var(--accent-glyph); }
+  .platform .pname { font-size: 13.5px; font-weight: 500; color: var(--foreground); }
+  .platforms-note { font-size: 12.5px; color: var(--text-muted); margin: 16px auto 0; }
 
   /* ---- Footer: CTA + progress ---- */
   .footer {
@@ -251,6 +369,7 @@
   }
   .cta:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34); }
   .cta:active { transform: translateY(0); }
+  .cta:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
 
   .dots { display: flex; gap: 8px; }
   .dots b {
@@ -337,44 +456,103 @@
         <h2>A couple of permissions</h2>
         <p class="sub">You stay in control. TwinMe asks only when a feature needs it, and you can change your mind anytime in your settings.</p>
         <div class="cards">
-          <div class="card">
+          <div class="card perm">
             <div class="glyph">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
             </div>
             <div class="body">
               <div class="title">Microphone</div>
               <div class="desc">For on-device meeting notes.</div>
-              <span class="tag">Requested when you start your first meeting</span>
+            </div>
+            <div class="perm-action" id="perm-mic-action">
+              <button class="enable-btn" id="perm-mic-btn">Enable</button>
             </div>
           </div>
-          <div class="card">
+          <div class="card perm">
             <div class="glyph">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg>
             </div>
             <div class="body">
               <div class="title">Context awareness</div>
-              <div class="desc">To notice which app you are using, so your twin understands your day.</div>
-              <span class="tag">Granted in your OS privacy settings</span>
+              <div class="desc">So your twin learns from the apps you use.</div>
+            </div>
+            <div class="perm-action" id="perm-ctx-action">
+              <button class="enable-btn" id="perm-ctx-btn">Enable</button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 3. Ready -->
+    <!-- 3. Live observe (centerpiece) -->
     <section class="screen" data-step="3">
       <div class="content">
+        <h2>Watch your twin learn</h2>
+        <p class="sub">Use your computer normally for a moment — switch between a few apps. TwinMe is noticing, all on this machine.</p>
+
+        <div class="observe-stage" id="observe-stage">
+          <!-- Observing state -->
+          <div id="observe-active">
+            <div class="radar">
+              <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+              <span class="core">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              </span>
+            </div>
+            <p class="observe-status">Observing your activity</p>
+            <p class="observe-count" id="observe-count"></p>
+          </div>
+
+          <!-- Results state (filled in by JS) -->
+          <div id="observe-results" style="display:none;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Connect your world -->
+    <section class="screen" data-step="4">
+      <div class="content">
+        <h2>Connect your world</h2>
+        <p class="sub">Your twin gets sharper with every signal.</p>
+        <div class="platforms">
+          <div class="platform">
+            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 9.5c3-1 6.5-.7 9 .8M8 13c2.3-.7 4.8-.4 6.8.9M8.5 16c1.6-.5 3.3-.3 4.7.7"/></svg></div>
+            <span class="pname">Spotify</span>
+          </div>
+          <div class="platform">
+            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
+            <span class="pname">Google Calendar</span>
+          </div>
+          <div class="platform">
+            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4 1.2-4-2.2-5.5-2.8M15 21v-3.3a2.8 2.8 0 0 0-.8-2.2c2.7-.3 5.5-1.3 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 0 0-6 0C7 1.5 6 1.8 6 1.8a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.5 8.3c0 4.6 2.8 5.6 5.5 6a2.8 2.8 0 0 0-.8 2.1V21"/></svg></div>
+            <span class="pname">GitHub</span>
+          </div>
+          <div class="platform">
+            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3z"/></svg></div>
+            <span class="pname">YouTube</span>
+          </div>
+          <div class="platform">
+            <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5a16 16 0 0 0-4-1l-.3.6a13 13 0 0 1 3.6 1.1 14 14 0 0 0-10.6 0A13 13 0 0 1 10.3 4.6L10 4a16 16 0 0 0-4 1C3.5 8.6 2.8 12.2 3 15.7A16 16 0 0 0 7.9 18l.6-1a10 10 0 0 1-1.6-.8l.4-.3a11 11 0 0 0 9.4 0l.4.3a10 10 0 0 1-1.6.8l.6 1a16 16 0 0 0 4.9-2.3c.3-4-.8-7.6-3.4-10.7ZM9.3 13.6c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm5.4 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Z"/></svg></div>
+            <span class="pname">Discord</span>
+          </div>
+        </div>
+        <p class="platforms-note">You'll connect these next, inside TwinMe.</p>
+      </div>
+    </section>
+
+    <!-- 5. Ready -->
+    <section class="screen" data-step="5">
+      <div class="content">
         <div class="flower-wrap"><img src="flower.png" alt="TwinMe" /></div>
-        <h2>Your twin is ready to learn</h2>
-        <p class="lede">Next, sign in and connect your world — Spotify, Calendar, GitHub and more. Every signal makes your twin more you.</p>
-        <div class="pulse-row"><i></i><i></i><i></i><i></i></div>
+        <h2>Your twin is ready</h2>
+        <p class="lede">Everything happens on your terms, here on this machine. Sign in to connect your world and start a conversation that actually knows you.</p>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <button class="cta" id="cta">Get started</button>
-    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b></div>
+    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b><b></b><b></b></div>
   </footer>
   <button class="back" id="back">Back</button>
 </div>
@@ -384,11 +562,14 @@
     "use strict";
 
     var APP_URL = "https://twinme.me";
-    var FLAG = "twinme_desktop_onboarded";
-    var TOTAL = 4;
+    // v2: this richer onboarding supersedes the original 4-screen flow, so we
+    // bump the flag key to show it again to users who passed the old version.
+    var FLAG = "twinme_desktop_onboarded_v2";
+    var TOTAL = 6;
+    var OBSERVE_MS = 40000; // ~40s "observing" demo
     var step = 0;
 
-    // Returning users skip straight to the app.
+    // Returning users (who have seen THIS v2 onboarding) skip to the app.
     try {
       if (localStorage.getItem(FLAG) === "1") {
         window.location.replace(APP_URL);
@@ -396,13 +577,24 @@
       }
     } catch (e) { /* localStorage may be unavailable; show onboarding */ }
 
+    // Tauri injects window.__TAURI__ in the desktop app (withGlobalTauri). In a
+    // plain browser (verification) it is absent — fall back to a resolved
+    // promise so the page still renders and advances without errors.
+    var tauriCore = window.__TAURI__ && window.__TAURI__.core;
+    var HAS_TAURI = !!(tauriCore && typeof tauriCore.invoke === "function");
+    function invoke(cmd, args) {
+      if (HAS_TAURI) return tauriCore.invoke(cmd, args || {});
+      console.log("[onboarding:no-tauri]", cmd, args || {});
+      return Promise.resolve(undefined);
+    }
+
     var screens = document.querySelectorAll(".screen");
     var dots = document.querySelectorAll("#dots b");
     var cta = document.getElementById("cta");
     var back = document.getElementById("back");
     var skip = document.getElementById("skip");
 
-    var CTA_LABELS = ["Get started", "Continue", "Continue", "Open TwinMe"];
+    var CTA_LABELS = ["Get started", "Continue", "Continue", "Continue", "Continue", "Open TwinMe"];
 
     function render() {
       for (var i = 0; i < screens.length; i++) {
@@ -412,7 +604,9 @@
         dots[d].classList.toggle("on", d === step);
       }
       cta.textContent = CTA_LABELS[step];
+      cta.disabled = false;
       back.classList.toggle("show", step > 0);
+      if (step === 3) startObserve();
     }
 
     function launch() {
@@ -432,15 +626,166 @@
       render();
     }
 
+    /* ---------- Screen 2: permissions ---------- */
+    function markEnabled(actionId) {
+      var holder = document.getElementById(actionId);
+      if (!holder) return;
+      holder.innerHTML =
+        '<span class="enabled-pill">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+        'Enabled</span>';
+    }
+
+    var micBtn = document.getElementById("perm-mic-btn");
+    micBtn.addEventListener("click", function () {
+      micBtn.disabled = true;
+      micBtn.classList.add("working");
+      micBtn.textContent = "Requesting";
+      invoke("request_mic_permission")
+        .then(function () { markEnabled("perm-mic-action"); })
+        .catch(function (err) {
+          console.warn("[onboarding] mic permission failed:", err);
+          // Let the user retry rather than dead-ending.
+          micBtn.disabled = false;
+          micBtn.classList.remove("working");
+          micBtn.textContent = "Try again";
+        });
+    });
+
+    var ctxBtn = document.getElementById("perm-ctx-btn");
+    ctxBtn.addEventListener("click", function () {
+      ctxBtn.disabled = true;
+      ctxBtn.classList.add("working");
+      // Enabling context capture = un-pausing the indexer.
+      invoke("settings_set_paused", { paused: false })
+        .then(function () { markEnabled("perm-ctx-action"); })
+        .catch(function (err) {
+          console.warn("[onboarding] enable context failed:", err);
+          ctxBtn.disabled = false;
+          ctxBtn.classList.remove("working");
+          ctxBtn.textContent = "Try again";
+        });
+    });
+
+    /* ---------- Screen 3: live observe ---------- */
+    var observeStarted = false;
+    var observeTimer = null;
+    var observeTick = null;
+
+    var MOCK_CLIPS = [
+      { app: "Google Chrome", title: "twinme.me" },
+      { app: "Visual Studio Code", title: "" },
+      { app: "Slack", title: "" }
+    ];
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function startObserve() {
+      if (observeStarted) return;
+      observeStarted = true;
+
+      var active = document.getElementById("observe-active");
+      var results = document.getElementById("observe-results");
+      var countEl = document.getElementById("observe-count");
+      active.style.display = "";
+      results.style.display = "none";
+
+      // Disable advancing while observing; the CTA re-enables when results show.
+      cta.disabled = true;
+
+      // Friendly countdown so the wait feels intentional, not stuck.
+      var remaining = Math.round(OBSERVE_MS / 1000);
+      countEl.textContent = remaining + "s";
+      observeTick = setInterval(function () {
+        remaining -= 1;
+        if (remaining < 0) remaining = 0;
+        countEl.textContent = remaining + "s";
+      }, 1000);
+
+      observeTimer = setTimeout(finishObserve, OBSERVE_MS);
+    }
+
+    function finishObserve() {
+      if (observeTick) { clearInterval(observeTick); observeTick = null; }
+      invoke("demo_get_clips")
+        .then(function (clips) {
+          // In a plain browser (no Tauri) the command resolves undefined — use
+          // the mock list so the screen still demonstrates the idea.
+          if (!HAS_TAURI || !clips) clips = MOCK_CLIPS;
+          renderObserveResults(clips);
+        })
+        .catch(function (err) {
+          console.warn("[onboarding] demo_get_clips failed:", err);
+          renderObserveResults(HAS_TAURI ? [] : MOCK_CLIPS);
+        });
+    }
+
+    function renderObserveResults(clips) {
+      var active = document.getElementById("observe-active");
+      var results = document.getElementById("observe-results");
+      active.style.display = "none";
+      results.style.display = "";
+      cta.disabled = false; // observing done — allow Continue
+
+      // De-dupe by app (keep first/most-recent), cap to a tidy list.
+      var seen = {};
+      var unique = [];
+      for (var i = 0; i < clips.length && unique.length < 6; i++) {
+        var c = clips[i] || {};
+        var appName = c.app || "";
+        if (!appName || seen[appName]) continue;
+        seen[appName] = true;
+        unique.push(c);
+      }
+
+      if (unique.length === 0) {
+        results.innerHTML =
+          '<p class="hint">Switch between a couple of apps, then look again.</p>' +
+          '<button class="look-again" id="look-again">Look again</button>';
+        document.getElementById("look-again").addEventListener("click", function () {
+          // Re-run the peek without the full countdown.
+          finishObserve();
+        });
+        return;
+      }
+
+      var rows = "";
+      for (var j = 0; j < unique.length; j++) {
+        var u = unique[j];
+        var title = u.title ? escapeHtml(u.title) : "";
+        rows +=
+          '<div class="result-row" style="animation-delay:' + (j * 0.07) + 's">' +
+          '<span class="dot"></span>' +
+          '<span class="ra">' + escapeHtml(u.app) + '</span>' +
+          (title ? '<span class="rt">' + title + '</span>' : '<span class="rt"></span>') +
+          '</div>';
+      }
+      results.innerHTML =
+        '<p class="results-label">Here\'s what TwinMe noticed:</p>' +
+        '<div class="results">' + rows + '</div>';
+    }
+
     cta.addEventListener("click", next);
     back.addEventListener("click", prev);
     skip.addEventListener("click", launch);
 
-    // Keyboard: Enter/Right advance, Left/Backspace go back.
+    // Keyboard: Enter/Right advance, Left/Backspace go back. Respect the
+    // disabled CTA (e.g. mid-observe) so keys can't skip the demo.
     document.addEventListener("keydown", function (ev) {
-      if (ev.key === "Enter" || ev.key === "ArrowRight") { ev.preventDefault(); next(); }
-      else if (ev.key === "ArrowLeft") { ev.preventDefault(); prev(); }
-      else if (ev.key === "Backspace") { ev.preventDefault(); prev(); }
+      if (ev.key === "Enter" || ev.key === "ArrowRight") {
+        ev.preventDefault();
+        if (!cta.disabled) next();
+      } else if (ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        prev();
+      } else if (ev.key === "Backspace") {
+        ev.preventDefault();
+        prev();
+      }
     });
 
     render();

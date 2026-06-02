@@ -17,6 +17,7 @@
 // drive the main window.
 
 mod active_window;
+mod audio_permission;
 mod clip_indexer;
 mod clips;
 mod config;
@@ -196,6 +197,64 @@ fn settings_unexclude(app: String) {
     }
 }
 
+/// Command: trigger the OS microphone permission prompt during onboarding.
+///
+/// We briefly open the default input device via cpal — just enough for the OS
+/// to surface its mic-access dialog (macOS TCC). We do NOT record, buffer, or
+/// transcribe anything: the data callback is a no-op, the stream is played for
+/// a moment and then dropped. On Windows/Linux there is usually no modal prompt
+/// (mic access is settings-gated, not per-app at runtime), so this just opens
+/// and closes the device successfully.
+///
+/// The actual cpal work is blocking + uses a `!Send` stream, so it runs inside
+/// `spawn_blocking` (keeping the stream off the async runtime and never across
+/// an await). `JoinHandle` resolves to `tauri::Result<R>`, so awaiting yields
+/// `Result<Result<(), String>, tauri::Error>`: map the join error to a String,
+/// then `?` unwraps it to surface the inner cpal result to the JS side.
+#[tauri::command]
+async fn request_mic_permission() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(audio_permission::prompt_microphone)
+        .await
+        .map_err(|e| format!("mic permission task failed: {e}"))?
+}
+
+/// A single recent activity item surfaced in the onboarding "what TwinMe
+/// noticed" demo. Only the app name and (optional) window title are exposed —
+/// never extracted content.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DemoClip {
+    app: String,
+    title: String,
+}
+
+/// Command: return the most recent local clips for the onboarding demo screen.
+///
+/// Reads the latest ~15 clips from the on-device SQLite, drops any belonging to
+/// the TwinMe app itself (so the demo shows the user's *other* activity, not us
+/// watching us), and maps each to a {app, title} pair (empty title -> ""). On
+/// any DB error we return an empty list rather than failing the screen.
+#[tauri::command]
+fn demo_get_clips() -> Vec<DemoClip> {
+    let conn = match clips::open() {
+        Ok(c) => c,
+        Err(err) => {
+            eprintln!("[onboarding] demo_get_clips: open failed: {err}");
+            return Vec::new();
+        }
+    };
+    let recent = clips::list_recent(&conn, 15).unwrap_or_default();
+    recent
+        .into_iter()
+        // Exclude our own app so the demo reflects the user's work, not TwinMe.
+        .filter(|c| !c.app_name.contains("TwinMe"))
+        .map(|c| DemoClip {
+            app: c.app_name,
+            title: c.window_title.unwrap_or_default(),
+        })
+        .collect()
+}
+
 /// Command: focus the main window and navigate it to a twinme.me route, then
 /// dismiss the panel. `path` is an app-internal absolute path (e.g.
 /// "/talk-to-twin"); we only navigate when it is a safe same-site path so the
@@ -301,7 +360,9 @@ pub fn run() {
             store_auth_token,
             settings_get,
             settings_set_paused,
-            settings_unexclude
+            settings_unexclude,
+            request_mic_permission,
+            demo_get_clips
         ])
         .setup(move |app| {
             // Register the summon hotkey. If registration fails (e.g. another
