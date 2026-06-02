@@ -125,6 +125,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // sets the token itself via POST /api/auth/oauth/callback).
           const PUBLIC_EXACT = [
             '/auth', '/login', '/discover', '/', '/oauth/callback',
+            // Desktop (Tauri) Google sign-in handoff: must load without a JWT so
+            // it can start the web sign-in itself (signed out) or mint a one-time
+            // code + deep-link back to the app (signed in). Without this it would
+            // bounce to /auth?error=session_expired and never start the flow.
+            '/desktop-handoff',
             // Legal pages must be reachable without auth — they show up in
             // signup flows, beta-invite emails, and external links.
             '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
