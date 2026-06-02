@@ -562,3 +562,29 @@ Archived — all items complete.
 - [x] **L2. Identity page twin text not using Instrument Serif** — Fixed: taste statement paragraph in `IdentityPage.tsx` now uses `className="narrative-voice"`.
 - [x] **L3. observationIngestion.js is 5,578 lines** — Split into modules: `observationUtils.js` (utilities) + `observationFetchers/{spotify,calendar,youtube,discord,gmail,github,whoop}.js`. Main file reduced 5,578 → 3,063 lines. `ingestWebObservations` re-implemented as export.
 - [x] **L4. auth/refresh called on every page load** — Fixed as part of H2: `initAuth()` now skips refresh when `auth_token` is in localStorage.
+
+## Platform OAuth / API currency audit (2026-06-02)
+
+Scope: verify additional (non-core) platform OAuth + check 2026 API/MCP updates. Triggered by user request re: Strava / Fitbit / Duolingo / Garmin / Oura.
+
+### Findings
+- Active OAuth wiring lives in `api/routes/connectors.js` + `api/config/platformConfigs.js` + `api/services/nangoService.js`. Nango holds provider client IDs/secrets in its dashboard, NOT TwinMe `.env` (so a local `STRAVA_CLIENT_ID` is irrelevant legacy).
+- `api/services/allPlatformConfigs.js` was an orphaned 980-line catalog — its only importer (`all-platform-connectors.js`) was already deleted. DELETED this session, plus 3 stale phase docs (`IMPLEMENTATION_COMPLETE.md`, `PHASE_2_DEPLOYMENT_GUIDE.md`, `PHASE_2_OAUTH_COMPLETE.md`) that referenced the dead catalog, the old `twin-ai-learn.vercel.app` domain, and a superseded pre-Nango per-platform OAuth architecture.
+- Empirical prod check (both connection tables): only **Whoop** has live connections (2, actively syncing). Strava/Fitbit/Garmin/Oura/Peloton/Duolingo = **0 connections ever**.
+- The `@modelcontextprotocol/server-{strava,duolingo,apple-health,kindle}` package names in the dead catalog were all fake (404 on npm). Dead code, harmless.
+
+### Per-platform status
+- [x] Whoop — healthy, v2 API, live connections. No action.
+- [ ] Strava — wired (Nango, v3 API correct). BLOCKER: June 2026 policy = Standard tier capped at 10 athletes + developer must hold a paid Strava subscription; >10 users needs Extended Access approval. Connectability also depends on Nango dashboard provider config.
+- [ ] Oura — wired (OAuth 2.0, v2). Ready to connect once Nango provider configured. PATs removed Dec 2025 (we use OAuth2, good).
+- [ ] Garmin — partner-approval-gated (no self-serve signup); OAuth 1.0 retires Dec 2026 → must use OAuth2 + PKCE.
+- [x] Duolingo — no official public API/OAuth exists; code already treats it as username-based unofficial fetch. Do NOT pursue OAuth. Recommend dropping from the connectable list.
+
+### TICKET: Fitbit — migrate off legacy Web API before Sept 2026 sunset
+- Legacy `api.fitbit.com` Web API stops syncing **September 2026**; Google (owner) not accepting new legacy integrations. Migration to Google Health API v4 + Google OAuth 2.0 is mandatory (new data model, user re-consent).
+- Affected files: `api/services/nangoService.js` (fitbit provider baseUrl `api.fitbit.com`), `api/services/observationFetchers/fitbit.js` (`/1/user/-/...` endpoints), `api/services/observationIngestion.js` (`fitbit` in SUPPORTED_PLATFORMS + PLATFORM_FETCHERS).
+- Options: (1) rebuild on Google Health API v4 (`https://health.googleapis.com/v4/`) + Google OAuth, or (2) remove Fitbit from connectable list until a real user need exists.
+- Severity: NOT urgent (0 connections today) but hard-dated. NOTE: GitHub issue creation for this was blocked by the auto-mode safety classifier; tracked here instead. User can file a GH issue manually if a cross-repo ticket is wanted.
+
+### Optional follow-up (NOT done — flagged for user)
+- ~50 root-level `*_IMPLEMENTATION_*.md` / `*_COMPLETE.md` docs clutter the repo root; many are stale (deleted-file refs, old domain). Candidate for a `docs/archive/` sweep as a separate task — deliberately not touched here to avoid removing still-relevant docs unverified.
