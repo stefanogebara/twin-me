@@ -228,14 +228,19 @@ struct DemoClip {
     title: String,
 }
 
-/// Command: return the most recent local clips for the onboarding demo screen.
+/// Command: return recent local activity for the onboarding demo screen, one
+/// row per app.
 ///
-/// Reads the latest ~15 clips from the on-device SQLite, drops any belonging to
-/// the TwinMe app itself (so the demo shows the user's *other* activity, not us
-/// watching us), and maps each to a {app, title} pair (empty title -> ""). On
-/// any DB error we return an empty list rather than failing the screen.
+/// The 5s indexer poll produces many near-identical clips for a single focused
+/// window (e.g. "brave" six times in a row), which would make the "here's what
+/// TwinMe noticed" list look repetitive and broken. So we pull a generous window
+/// of recent clips, drop any belonging to the TwinMe app itself (we don't show
+/// us watching us), then DEDUPE by app — keeping each app's most-recent title —
+/// and cap at a handful of distinct apps. On any DB error we return an empty
+/// list rather than failing the screen.
 #[tauri::command]
 fn demo_get_clips() -> Vec<DemoClip> {
+    const MAX_APPS: usize = 6;
     let conn = match clips::open() {
         Ok(c) => c,
         Err(err) => {
@@ -243,16 +248,30 @@ fn demo_get_clips() -> Vec<DemoClip> {
             return Vec::new();
         }
     };
-    let recent = clips::list_recent(&conn, 15).unwrap_or_default();
-    recent
-        .into_iter()
+    // Fetch more than we show: dedup-by-app needs enough rows to surface several
+    // DISTINCT apps out of the duplicate-heavy recent history.
+    let recent = clips::list_recent(&conn, 80).unwrap_or_default();
+    let mut seen = std::collections::HashSet::new();
+    let mut out: Vec<DemoClip> = Vec::new();
+    for c in recent {
         // Exclude our own app so the demo reflects the user's work, not TwinMe.
-        .filter(|c| !c.app_name.contains("TwinMe"))
-        .map(|c| DemoClip {
+        if c.app_name.contains("TwinMe") {
+            continue;
+        }
+        // One row per app; list_recent is newest-first, so the first time we see
+        // an app we keep its most-recent title.
+        if !seen.insert(c.app_name.to_lowercase()) {
+            continue;
+        }
+        out.push(DemoClip {
             app: c.app_name,
             title: c.window_title.unwrap_or_default(),
-        })
-        .collect()
+        });
+        if out.len() >= MAX_APPS {
+            break;
+        }
+    }
+    out
 }
 
 /// Command: focus the main window and navigate it to a twinme.me route, then
